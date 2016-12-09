@@ -1,0 +1,18 @@
+<div ng-controller="OnlinePercentageCtrl as showCase">
+  <div class="page-layout">
+    <div class='layout-header' style="padding: 10px 12px; background: #f0f0f0; overflow:hidden">
+      <h4 class="pull-left">{{$state.current.data.title}}</h4>
+      <button type="button" style="margin-bottom: 15px;float: right;" class="btn btn-default" ng-click="showCase.excel()">Download Excel</button>
+    </div>
+    <div class="layout-body">
+      <div class="panel">
+        <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
+          <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" class="table custom-table table-condensed datatable"></table>
+
+          <div ui-view></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

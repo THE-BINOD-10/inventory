@@ -1,0 +1,64 @@
+{% for key,value in package_data.items %}
+<form id="toggle-po">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="myLargeModalLabel">Shipment Info</h4>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group clearfix">
+
+                    {% for report_dat in report_data %}
+                    <div>
+                        <div style="float: left;">
+                            <p style="font-weight: bold;">Shipment Number: {{ report_dat.shipment_number }}</p>
+
+                            <p>Date: {{ report_dat.date }}</p>
+                            <p>Truck Number: {{ report_dat.truck_number }}</p>
+                            <p>Customer Name: {{ key }}</p>
+                        </div>
+
+                    </div>
+
+                    <div style="clear:both;">
+                        <table class="table borderless">
+                            <thead>
+                            <tr>
+                                {% for table_header in table_headers %}
+                                <th>{{ table_header }}</th>
+                                {% endfor %}
+                            </tr>
+                            </thead>
+                            <tbody>
+                                {% for i in value %}
+                              <tr>
+                                <td style="text-align: center;">{{ i.pack_reference }}</td>
+                                <td style="text-align: center;">{{ i.sku_code }}</td>
+                                <td style="text-align: center;">{{ i.quantity }}</td>
+                              </tr>
+                                {% endfor %}
+                              <tr>
+                                <td></td>
+                                <td>Total</td>
+                                {% for key_name,quantity_value in total.items %}
+                                  {% if key_name == key %}
+                                    <td>{{ quantity_value }}</td>
+                                  {% endif %}
+                                {% endfor %}
+                            </tr>
+                            </tbody>
+                        </table>
+
+                    </div>
+
+                {% endfor %}
+                </div>
+
+
+                <div class="modal-footer">
+                </div>
+            </div>
+        </div>
+</form>
+{% endfor %}

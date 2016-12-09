@@ -1,0 +1,38 @@
+       <div class="row">
+          <p>Warehouse management solution are primarily tactical tools, purchased and used by businesses to satisfy the unique customer demand requirements of their supply chain(s) and distribution channel(s), when the inventory and workload are larger than can be handled manually, with spreadsheets.</p>
+        </div>
+        </br>
+        <div class="row">
+          <div class="col-md-6">
+            <a class="btn st-success pull-right btn-lg" style="width: 250px" href="{{showCase.session.url+'sku_form/?download-sku-file='}}">Download Sample File</a>
+          </div>
+          <div class="col-md-6">
+            <span class="btn st-success-rev pull-left btn-lg" style="position: relative;overflow: hidden;width: 250px;">Upload File
+              <input class="btn btn-primary" type = "file" file-uploadd multiple data="sku_upload/" ng-disabled="(!(showCase.upload_status))"/>
+            </span>
+            <p class="pull-left" style="padding: 5px 10px 0px;">{{showCase.upload_file}}</p>
+          </div>
+        </div>
+        </br>
+        <div class="row">
+          <p align="center">Watch video or read instructions to fill products master</p>
+        </div>
+        <div class="row">
+          <div class="col-md-6">
+           <a class="pull-right" href="#"><img src="images/step1.png"></img></a>
+          </div>
+          <div class="col-md-6">
+            <p> To Import Products: </p>
+            <ol>
+              <li>Download Sample CSV.</li>
+              <li>Fill in details in excel.
+                <ul>
+                  <li>Product SKU: Unique product code for each SKU.</li>
+                  <li>Provide descriptive name to the SKU to easily indentity it.</li>
+                  <li>(Optional)SKU Group could be any possible product varient. For example, for a T-shirt S,M,L,XL could be product verients</li>
+                </ul>
+              </li>
+            </ol>
+          </div>
+        </div>
+        </br>

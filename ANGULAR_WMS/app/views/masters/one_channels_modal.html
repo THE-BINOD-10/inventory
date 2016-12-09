@@ -1,0 +1,93 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <div class="modal-dialog model-custom modal-md">
+    <form name="form" class="ng-pristine ng-valid" role="form" ui-jq="validate" ui-options="validationOpt">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title"> {{ showCase.title }} </h4>
+      </div>
+      <div class="modal-body">
+
+	<div class = "row">
+	  <div class = "col-md-12">
+	    <h5 style="text-align:left;">Follow the below instructions to grant API access to RetailOne:</h5>
+	    <ul>
+              <li>Go to <a target="_blank" href="https://api.flipkart.net/oauth-register/login">https://api.flipkart.net/oauth-register/login</a></li>
+              <li>Sign in using your flipkart seller credentials.</li>
+              <li>On log in, click on 'Register New Application'</li>
+              <li>Enter Application name and description as 'RetailOne' (or whatever you prefer to identify later)</li>
+              <li>In the newly generated table row copy Application Id and Application Secret and paste it in the corresponding fields above</li>
+            </ul>
+	  </div>
+	</div>
+
+
+
+          <div class="row" >
+	    <div class="col-md-12">
+              <div class="form-group">
+                <label class="control-label"> Name *</label>
+                <input type="text" name="name" class="form-control" ng-model="showCase.model_data.name" required>
+              </div>
+            </div>
+
+            <input type="text" name="market_place" class="form-control" ng-model="showCase.model_data.market_place" ng-init="showCase.model_data.market_place='flipkart'"  value = "{{'flipkart'}}" style="display: none;"/>
+
+            <div class="col-md-12">
+              <div class="form-group">
+                <label class="control-label"> Flipkart Username * </label>
+                <input type="text" name="username" class="form-control" ng-model="showCase.model_data.username" required>
+              </div>
+            </div>
+            <div class="col-md-12">
+              <div class="form-group">
+                <label class="control-label"> Flipkart Password * </label>
+                <input type="password" name="password" class="form-control" ng-model="showCase.model_data.password" required>
+              </div>
+            </div>
+            <div class="col-md-12">
+              <div class="form-group">
+                <label class="control-label"> App Id * </label>
+		<input type="text" name="app_id" class="form-control" ng-model="showCase.model_data.app_id" required>
+              </div>
+            </div>
+            <div class="col-md-12">
+              <div class="form-group">
+                <label class="control-label"> App Secret * </label>
+                <input type="text" name="secret" class="form-control" ng-model="showCase.model_data.secret" required>
+              </div>
+            </div>
+	    <div class="col-md-12">
+
+		<div class="col-md-11">
+              	    <p align="right">Enable Flipkart Advantage</p>
+            	</div>
+		<div class="col-md-1">
+		<label class="switch switch-sm square">
+                <div>
+                  <input type="checkbox" ng-model="showCase.model_data.flipkart_advantage">
+                  <span>
+                    <i class="handle"></i>
+                  </span>
+                </div>
+                </label>
+		</div>
+
+		<!--
+	      <label class = "cb-checkbox"><span class="cb-inner"><i><input type="checkbox" name="flipkart_advantage" ng-model="showCase.model_data.flipkart_advantage">Enable Flipkart Advantage</i></span></label>
+		-->
+
+          </div>
+
+      </div>
+	</div>
+      <div class="modal-footer">
+        <div class="form-group" style="margin-bottom:0px;">
+          <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)">Save</button>
+        </div>
+	</div>
+    </div><!-- /.modal-content -->
+    </form>
+  </div><!-- /.modal-dialog -->
+</div>

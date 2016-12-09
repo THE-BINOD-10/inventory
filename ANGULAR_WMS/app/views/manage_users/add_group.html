@@ -1,0 +1,38 @@
+<div class="modal fade in" id="page-pop" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="overflow: hidden; display: block;">
+  <!-- Modal -->
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine" novalidate="novalidate">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">×</span>
+          </button>
+          <h4 class="modal-title" id="myLargeModalLabel">Add Group</h4>
+        </div>
+        <div class="modal-body">
+          <div class="form-group clearfix">
+            <div class="row col-md-12">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Group Name * </label>
+                  <input type="text" name="group_name" class="form-control" value="{{showCase.model_data['User Name']}}" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Permissions </label>
+                 <select data-placeholder="Add Groups" multiple class="chosen permission" chosen style="width: 100%;" ng-model="showCase.multipleSelect" ng-options="opt.name for opt in showCase.group_permissions" required>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row"><h4 align="center">{{showCase.message}}</h4></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn pop pop-normal" data-dismiss="modal">Close</button>
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.add_group_permission(form)">Save</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

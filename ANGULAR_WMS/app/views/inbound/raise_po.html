@@ -1,0 +1,15 @@
+<div class="page-layout">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body"> 
+    <tabset class="box-tab">
+      <tab heading="Raise Purchase Order">
+        <div ng-include="'views/inbound/raise_po/raise_po.html'"></div>
+      </tab>
+      <tab heading="Raise Stock Transfer" ng-if="permissions.multi_warehouse">
+        <div ng-include="'views/inbound/raise_po/raise_stock_transfer.html'"></div>
+      </tab>
+    </tabset>
+  </div>
+</div>

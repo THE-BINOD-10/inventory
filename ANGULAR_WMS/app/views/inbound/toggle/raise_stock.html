@@ -1,0 +1,58 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
+        <h4 class="modal-title">{{showCase.title}}</h4> </div>
+      <!-- body-->
+      <div class="modal-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Warehouse Name *</label>
+                <select ng-if="(!(showCase.update))" class="form-control" name="warehouse_name" required>
+                  <option ng-repeat="option in showCase.model_data.warehouse_list" value="{{option}}">{{option}}</option>
+                </select>
+                <input type="text" class="form-control" name="warehouse_name" ng-model="showCase.model_data.warehouse" ng-if="showCase.update" ng-readonly="showCase.update"/>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12"><hr></div>
+          </div>
+          <div class="row">
+            <div class="col-md-4">
+              <label class="col-md-12 control-label"> WMS Code * </label>
+            </div>
+            <div class="col-md-4">
+              <label class="col-md-12 control-label"> Quantity * </label>
+            </div>
+            <div class="col-md-3">
+              <label class="col-md-12 control-label"> Price </label>
+            </div>
+          </div>
+          <div class="row field" ng-repeat="product in showCase.model_data.data">
+            <input type="hidden" name="id" value="{{product.id}}">
+            <div class="col-md-4">
+              <input id="wms1" ng-model="product.wms_code" type="text" name="wms_code" class="form-control mapping-check" ng-required ="$first"> </div>
+            <div class="col-md-4">
+              <input id="quant1" ng-model="product.order_quantity" type="text" name="order_quantity" class="form-control" ng-class="service.get_decimal_perm()" ng-required ="$first"> </div>
+            <div class="col-md-3">
+              <input type="text" ng-model="product.price" name="price" class="form-control" decimal-number ng-required ="$first"> </div>
+            <div class="col-md-1"> <i ng-click="showCase.update_data($index)" ng-class="showCase.isLast($last)"></i> </div>
+          </div>
+          <div class="row"><h4 align="center">{{showCase.message}}</h4></div>
+        </form>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="submit" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.confirm_stock(form)">Confirm Stock Transfer</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.save_stock(form)">Save</button>
+      </div>
+    </div>
+    <!-- /.modal-content -->
+  </div>
+  </form>
+  <!-- /.modal-dialog -->
+</div>

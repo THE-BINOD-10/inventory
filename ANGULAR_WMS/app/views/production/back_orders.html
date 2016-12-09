@@ -1,0 +1,24 @@
+<div class="page-layout">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body" ng-controller="ProductionBackOrdersCtrl as showCase">
+    <div class="panel">
+      <div class="panel-header" style="padding-top:10px">
+        <select ng-model="showCase.filter" ng-init="showCase.filter = 'Self Produce'" ng-change="showCase.change_special_key(showCase.filter)" style="width: 150px" class="form-control pull-right">
+          <option value="Self Produce" selected>Self Produce</option>
+          <option ng-repeat="data in showCase.order_types" value="{{data.vendor__vendor_id}}">{{data.vendor__vendor_id+" : "+data.vendor__name}}</option>
+        </select>
+        <h5 class="pull-right">Order Type: </h5>
+      </div>
+      <div class="panel-body">
+        <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" class="table custom-table table-condensed datatable" dt-instance="showCase.dtInstance"></table>
+        <div ui-view></div>
+      </div>
+      <div class="panel-footer">
+        <button type="button" class="pull-right btn btn-success" style="margin-left:10px;" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable">Raise PO</button>
+        <button type="button" class="pull-right btn btn-danger" ng-disabled="showCase.bt_disable" ng-click="showCase.backorder_rwo();">Raise RWO</button>
+      </div>
+    </div>
+  </div>
+</div>

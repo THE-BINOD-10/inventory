@@ -1,0 +1,152 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <div class="modal-dialog model-custom modal-lg">
+    <form name="form" class="ng-pristine ng-valid" role="form" ui-jq="validate" ui-options="validationOpt">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">{{showCase.title}}</h4>
+      </div>
+      <div class="modal-body" id="update_sku">
+          <div class="row">
+            <input type="hidden" name="data_id" ng-model="showCase.form.data_id" class="form-control" value="" ng-if="showCase.update">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> WMS SKU Code *</label>
+                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-readonly="showCase.update" required>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Product Description * </label>
+                <input type="text" name="sku_desc" class="form-control" ng-model="showCase.model_data.sku_data.sku_desc" maxlength="256" required>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> SKU Type </label>
+                <!--<input type="text" name="sku_type" class="form-control" ng-model="showCase.model_data.sku_data.sku_type" maxlength="60">-->
+                <select class="form-control zone" name="sku_type" ng-model="showCase.model_data.sku_data.sku_type" ng-init="showCase.model_data.sku_data.sku_type" ng-options="type for type in showCase.sku_types"></select>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Put Zone * </label>
+                <select class="form-control zone" name="zone_id" ng-model="showCase.model_data.sku_data.zone" ng-init="showCase.model_data.sku_data.zone" ng-options="zone for zone in showCase.model_data.zones">
+                </select>              
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> SKU Class </label>
+                <input type="text" name="sku_class" class="form-control" ng-model="showCase.model_data.sku_data.sku_class" maxlength="60"> 
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> SKU Group </label>
+                <select class="form-control" name="sku_group" ng-model="showCase.model_data.sku_data.sku_group" ng-init="showCase.model_data.sku_data.sku_group" ng-options="group for group in showCase.model_data.groups"></select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> SKU Category </label>
+                <input type="text" name="sku_category" class="form-control" ng-model="showCase.model_data.sku_data.sku_category" maxlength="60">     
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Threshold Quantity * </label>
+                <input type="text" name="threshold_quantity" class="form-control" ng-model="showCase.model_data.sku_data.threshold_quantity" whole-number required>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Status </label>
+                  <select class="form-control" name="status" ng-model="showCase.model_data.sku_data.status" ng-options="qc for qc in showCase.status_data">
+                </select> 
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4" ng-if="showCase.permissions.add_qualitycheck">
+              <div class="form-group">
+                <label class="control-label"> Quality Check </label>
+                <select class="form-control qc_check" name="qc_check" ng-model="showCase.model_data.sku_data.qc_check" ng-options="qc for qc in showCase.qc_data">
+                </select> 
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12"><hr></div>
+          </div>
+          <div class="row" ng-hide="showCase.isEmptyMarket">
+            <div class="col-md-3">
+              <center><b> Market Place </b></center>
+            </div>
+            <div class="col-md-3">
+              <center><b> SKU </b></center>
+            </div>
+            <div class="col-md-5">
+              <center><b> Description </b></center>
+            </div>
+          </div>
+          <div class="row field" ng-repeat= "market in showCase.model_data.market_data" id="new-market">
+            <input type="hidden" name="market_id" value="{{market.market_id}}">
+            <div class="col-md-3">
+              <select class="form-control" name="market_sku_type" ng-model="market.market_sku_type" ng-options="qc for qc in showCase.model_data.market_list" ng-readonly="market.disable">
+              </select>
+            </div>
+            <div class="col-md-3"><input type="text" name="marketplace_code" class="form-control" ng-model="market.marketplace_code" ng-readonly="market.disable"></div>
+            <div class="col-md-5"><input type="text" name="description" class="form-control" ng-model="market.description" ng-readonly="market.disable"></div>
+            <div class="col-md-1"><i class="fa fa-minus-square minus" ng-click="showCase.remove_market($index, market.market_id)" ng-readonly="market.disable"></i></div>
+          </div> 
+          <div class="row">
+            <center>
+              <button type="button" class="btn btn-default add-market" style="margin-top:10px" ng-click="showCase.add_market()">Add New Market place</button>
+            </center>
+          </div>
+          <div class="row" ng-if="showCase.combo && showCase.update">
+            <div class="col-md-12"><hr></div>
+          </div>
+          <div class="row" ng-if="showCase.combo && showCase.update">
+            <div class="col-md-6">
+              <center><b> Combo SKU </b></center>
+            </div>
+            <div class="col-md-6">
+              <center><b> Combo Description </b></center>
+            </div>
+          </div>
+          <div ng-if="showCase.combo && showCase.update" class="row field" ng-repeat= "combo in showCase.model_data.combo_data">
+            <div class="col-md-6"><input type="text" name="combo_sku" class="form-control" ng-model="combo.combo_sku" disabled></div>
+            <div class="col-md-6"><input type="text" name="combo_desc" class="form-control" ng-model="combo.combo_desc" disabled></div>
+          </div>
+          <div class="row">
+            <div class="col-md-12"><hr></div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>SKU Image Upload</label>
+                <!--<input type="file" file-upload multiple/>-->
+                <input type="file" id="image-upload" name="files" file-upload multiple="">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="image">
+                <img ng-src="{{showCase.model_data.sku_data.image_url}}" alt="SKU image" />
+              </div>
+            </div>
+          </div>
+      </div>
+      <div class="modal-footer">
+        <div class="form-group" style="margin-bottom:0px;">
+          <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)">Save</button>
+        </div>
+      </div>
+    </div><!-- /.modal-content -->
+    </form>
+  </div><!-- /.modal-dialog -->
+</div>

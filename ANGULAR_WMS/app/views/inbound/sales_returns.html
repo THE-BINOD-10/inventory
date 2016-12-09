@@ -1,0 +1,15 @@
+<div ng-controller="SalesReturnsCtrl as showCase">
+  <div class="page-layout">
+    <div class='layout-header'>
+      <div class="pull-left" ng-include="'views/common/title.html'"></div>
+    </div>
+    <div class="layout-body">
+      <div class="panel">
+        <div ng-include="'views/common/no-onclick-table.html'"></div>
+        <div class="panel-footer">
+          <button class="btn btn-danger pull-right scan-returns" type="submit" ng-click="showCase.scan_pop()">Scan Returns</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

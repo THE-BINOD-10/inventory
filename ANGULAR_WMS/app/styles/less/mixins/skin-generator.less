@@ -1,0 +1,336 @@
+// Sidebar skin generator
+.sidebar-variant(@background;
+@color;
+@hover-active-color;
+@brand-background;
+@brand-color;
+) {
+  .sidebar-panel {
+    background-color: @background;
+    > .brand {
+      background-color: @brand-background;
+      a {
+        color: @brand-color;
+        &:active, &:focus, &:hover {
+          color: lighten(@brand-color, 5%);
+        }
+      }
+      .hamburger-icon span {
+        background-color: @brand-color;
+      }
+      .hamburger-icon:hover span {
+        background-color: @hover-active-color;
+      }
+    }
+    > nav {
+      > ul > li > ul {
+        //background-color: darken(@background, 3%)
+      }
+
+      > ul > li:nth-child(0) > a:hover,
+      > ul > li:nth-child(0).open > a,
+      > ul > li:nth-child(0).open > a:hover,
+      > ul > li:nth-child(0).open > a:focus {
+        color: #eedf24;
+      }
+      > ul > li:nth-child(0).open {
+        > ul {
+          >li.open > a,  
+          >li.active > a {
+            color: #eedf24;
+          }
+        }
+      }
+
+      > ul > li > a > span{
+        vertical-align: 2px;
+      }
+
+      > ul > li:nth-child(1) > a:hover,
+      > ul > li:nth-child(1).open > a,
+      > ul > li:nth-child(1).open > a:hover,
+      > ul > li:nth-child(1).open > a:focus {
+        color: #eedf24;
+      }
+      > ul > li:nth-child(1).open,
+      > ul > li:nth-child(1).active, {
+        > a {
+          color: #eedf24;
+        }
+        > ul {
+          >li.open > a,
+          >li.active > a,
+          >li > a:hover {
+            color: #eedf24;
+          }
+          >li.active > a {
+            background-color: rgba(178,230,12,0.1)
+          }
+        } 
+      }
+
+      > ul > li:nth-child(2) > a:hover,
+      > ul > li:nth-child(2).open > a,
+      > ul > li:nth-child(2).open > a:hover,
+      > ul > li:nth-child(2).open > a:focus {
+        color: #70cf32;
+      } 
+      > ul > li:nth-child(2).open,
+      > ul > li:nth-child(2).active {
+        > a {
+          color: #70cf32;
+        }
+        > ul {
+          >li.open > a,
+          >li.active > a,
+          >li.active > a:hover {
+            color: #70cf32;
+            background: rgba(178,230,12,0.1) !important;
+          }
+          li > a:hover {
+            color: #70cf32;
+          }
+        } 
+      }
+
+      > ul > li:nth-child(3) > a:hover,
+      > ul > li:nth-child(3).open > a,
+      > ul > li:nth-child(3).open > a:hover,
+      > ul > li:nth-child(3).open > a:focus {
+        color: #7be3bd;
+      }
+      > ul > li:nth-child(3).open,
+      > ul > li:nth-child(3).active {
+        > a {
+          color: #7be3bd;
+        }
+        > ul {
+          >li.open > a,
+          >li.active > a, 
+          >li.active > a:hover {
+            color: #7be3bd;
+            background: rgba(123,227,189,0.1) !important;
+          } 
+          li > a:hover {
+            color: #7be3bd;
+          } 
+        }
+      }
+
+      > ul > li:nth-child(4) > a:hover,
+      > ul > li:nth-child(4).open > a,
+      > ul > li:nth-child(4).open > a:hover,
+      > ul > li:nth-child(4).open > a:focus {
+        color: #429bce;
+      }
+      > ul > li:nth-child(4).active,
+      > ul > li:nth-child(4).open {
+        > a {
+          color: #429bce;
+        }
+        > ul {
+          >li.open > a,
+          >li.active > a,
+          >li.active > a:hover {
+            color: #429bce;
+            background: rgba(66,155,206,0.1) !important;
+          } 
+          li > a:hover {
+            color: #429bce;
+          } 
+        } 
+      }
+
+      > ul > li:nth-child(5) > a:hover,
+      > ul > li:nth-child(5).open > a,
+      > ul > li:nth-child(5).open > a:hover,
+      > ul > li:nth-child(5).open > a:focus {
+        color: #fbb207;
+      } 
+      > ul > li:nth-child(5).active,
+      > ul > li:nth-child(5).open {
+        > a {
+          color: #fbb207;
+        }
+        > ul {
+          >li.open > a,
+          >li.active > a,
+          >li.active > a:hover {
+            color: #fbb207;
+            background: rgba(251,178,7,0.1) !important;
+          } 
+          li > a:hover {
+            color: #fbb207;
+          } 
+        } 
+      }
+
+      > ul > li:nth-child(6) > a:hover,
+      > ul > li:nth-child(6).open > a,
+      > ul > li:nth-child(6).open > a:hover,
+      > ul > li:nth-child(6).open > a:focus {
+        color: #6fd5d9;
+      } 
+      > ul > li:nth-child(6).active,
+      > ul > li:nth-child(6).open {
+        > a {
+          color: #6fd5d9;
+        }
+        > ul {
+          >li.open > a,
+          >li.active > a,
+          >li.active > a:hover {
+            color: #6fd5d9;
+            background: rgba(111,213,217,0.1) !important;
+          } 
+          li > a:hover {
+            color: #6fd5d9;
+          }
+        }
+      }
+
+      > ul > li:nth-child(7) > a:hover,
+      > ul > li:nth-child(7).open > a,
+      > ul > li:nth-child(7).open > a:hover,
+      > ul > li:nth-child(7).open > a:focus {
+        color: #f6574d;
+      }
+      > ul > li:nth-child(7).active,
+      > ul > li:nth-child(7).open {
+        > a {
+          color: #f6574d;
+        }
+        > ul {
+          >li.open > a,
+          >li.active > a,
+          >li.active > a:hover {
+            color: #f6574d;
+            background: rgba(246,87,77,0.1) !important;
+          } 
+          li > a:hover {
+            color: #f6574d;
+          } 
+        } 
+      }
+
+      > ul > li:nth-child(8) > a:hover,
+      > ul > li:nth-child(8).open > a,
+      > ul > li:nth-child(8).open > a:hover,
+      > ul > li:nth-child(8).open > a:focus {
+        color: #b2e60c;
+      } 
+      > ul > li:nth-child(8).active,
+      > ul > li:nth-child(8).open { 
+        > a {
+          color: #b2e60c;
+        }
+        > ul {
+          >li.open > a,
+          >li.active > a,
+          >li.active > a:hover {
+            color: #b2e60c;
+            background: rgba(178,230,12,0.1) !important;
+          } 
+          li > a:hover {
+            color: #b2e60c;
+          } 
+        } 
+      }
+
+      > ul > li:nth-child(9) > a:hover,
+      > ul > li:nth-child(9).open > a,
+      > ul > li:nth-child(9).open > a:hover,
+      > ul > li:nth-child(9).open > a:focus {
+        color: #bd74d1;
+      }
+      > ul > li:nth-child(9).active,
+      > ul > li:nth-child(9).open {
+        > a {
+          color: #bd74d1;
+        }
+        > ul {
+          >li.open > a,
+          >li.active > a,
+          >li.active > a:hover {
+            color: ;
+            background: rgba(189,116,209,0.1) !important;
+          } 
+          li > a:hover {
+            color: #bd74d1;
+          } 
+        } 
+      }      
+      > ul > li.settings > a {
+        color: #a4aeb3;
+      }
+
+      .open > a,
+      .open > a:hover,
+      .open > a:focus {
+        background-color: transparent;
+      }
+      a {
+        color: @color;
+        &:active, &:focus, &:hover {
+          color: @hover-active-color;
+        }
+      }
+    }
+  }
+  .quick-launch-panel {
+    background: @background;
+    .close {
+      background: darken(@background, 10%);
+      color: @color;
+    }
+    a {
+      color: @color;
+      &:hover {
+        color: @hover-active-color;
+      }
+    }
+  }
+  @media screen and (min-width: @screen-sm-min) {
+    .small-menu .sidebar-panel > nav li.open {
+      background-color: darken(@background, 2%);
+    }
+    .small-menu .sidebar-panel nav > ul > li > .sub-menu {
+      background-color: darken(@background, 2%)
+    }
+  }
+}
+
+// Header skin generator
+.header-variant(@background;
+@hover-active-background;
+@color;
+@hover-active-color) {
+  .main-panel > .header {
+    background-color: @background;
+    .navbar-text {
+      color: @color;
+    }
+    .nav > li > a {
+      color: @color;
+    }
+    .nav > li > a:hover,
+    .nav > li > a:focus {
+      background-color: @hover-active-background;
+      color: @hover-active-color;
+    }
+    .nav .open > a,
+    .nav .open > a:hover,
+    .nav .open > a:focus {
+      background-color: @hover-active-background;
+      color: @hover-active-color;
+    }
+    .hamburger-icon {
+      span {
+        background: @color;
+      }
+      &:hover span {
+        background: @hover-active-color;
+      }
+    }
+  }
+}

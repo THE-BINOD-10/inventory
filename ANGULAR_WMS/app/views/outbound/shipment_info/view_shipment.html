@@ -1,0 +1,9 @@
+<div class="panel" ng-controller="ViewShipmentCtrl as vm">
+  <div class="panel-body">
+    <table datatable="" dt-options="vm.dtOptions" dt-columns="vm.dtColumns" dt-instance="vm.dtInstance" class="table custom-table table-condensed datatable"></table>
+    <div ui-view></div>
+  </div>
+  <div class="panel-footer">
+    <button type="submit" class="btn btn-danger pull-right" ng-disabled="vm.bt_disable" ng-click="vm.confirm_shipment()">Confirm Shipment</button>
+  </div>
+</div>

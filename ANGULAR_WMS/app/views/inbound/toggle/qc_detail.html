@@ -1,0 +1,115 @@
+<div id="page-pop" style="display: block; padding-left: 13px;" class="modal fade process-toggle in" id="po-modal1" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
+  <!-- Modal -->
+  <form id="wms_quality_wise">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.qc_close()"><span aria-hidden="true">x</span>
+          </button>
+          <h4 class="modal-title" id="myLargeModalLabel">WMS Code wise Quality Check</h4> </div>
+        <div class="modal-body">
+          <div class="form-group clearfix">
+            <div class="row col-md-12">
+              <div class="col-md-3">
+                <div class="form-group">
+                  <div class="Enlarge" style="padding-left: 20px;padding-top: 24px;"> <img src="http://img.fkcdn.com/image/sari/6/e/u/102-pavecha-free-size-1024x800-imadz47hvnzh9vrz.jpeg" style="width: 90px;height: 150px;">
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-7">
+                <div class="row">
+                  <div class="col-md-6">
+                    <label>SKU Code
+                      <label> </label>
+                    </label>
+                  </div>
+                  <div class="col-md-6"> <b>{{showCase.model_data1.sku_data['SKU Code']}}</b> </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <label>WMS Code
+                      <label> </label>
+                    </label>
+                  </div>
+                  <div class="col-md-6"> <b>{{showCase.model_data1.sku_data['WMS Code']}}</b> </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <label>Product Description
+                      <label> </label>
+                    </label>
+                  </div>
+                  <div class="col-md-6"> <b>{{showCase.model_data1.sku_data['Product Description']}}</b> </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <label>SKU Type
+                      <label> </label>
+                    </label>
+                  </div>
+                  <div class="col-md-6"> <b>{{showCase.model_data1.sku_data['SKU Type']}}</b> </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <label>SKU Category
+                      <label> </label>
+                    </label>
+                  </div>
+                  <div class="col-md-6"> <b>{{showCase.model_data.sku_data['SKU Category']}}</b> </div>
+                </div>
+              </div>
+            </div>
+            <table class="table">
+              <tbody>
+                <tr class="active">
+                  <th>Purchase Order</th>
+                  <th>Quantity</th>
+                  <th>Accepted Quantity</th>
+                  <th>Rejected Quantity</th>
+                </tr>
+                <tr id="7">
+                  <td>
+                    <input name="id" value="{{showCase.model_data.po_reference}}" type="hidden"> {{showCase.model_data.po_reference}} </td>
+                  <td>{{showCase.current_details.quantity}}</td>
+                  <td>
+                    <input name="accepted_quantity" ng-model="showCase.current_details.accepted_quantity" type="text" ng-readonly="showCase.permissions.use_imei" ng-class="service.get_decimal_perm()"> </td>
+                  <td>
+                    <input name="rejected_quantity" ng-model="showCase.current_details.rejected_quantity" type="text" ng-readonly="showCase.permissions.use_imei" ng-class="service.get_decimal_perm()">
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="row" ng-if="showCase.permissions.use_imei && showCase.show_serial">
+            <div class="col-md-2">
+              <b>Scan Serial Number</b>
+            </div>
+            <div class="col-md-3"><textarea ng-model="showCase.serial_scan" name="serial_number" rows="1" id="scan-qc" ng-keydown="showCase.scan_serial($event,showCase.serial_scan,showCase.model_data.order_id)"></textarea></div>
+            <div class="col-md-2">
+              <button class="form-control" type="button" name="accept" ng-disabled="showCase.enable_button" style="width: 48%;display: inline-block;" ng-click="showCase.accept_qc()">Accept</button>
+              <button class="form-control" type="button" name="reject" ng-disabled="showCase.enable_button" style="width: 48%;display: inline-block;" ng-click="showCase.reason_show = true; showCase.enable_button = true">Reject</button>
+            </div>
+            <div class="col-md-2" ng-if="showCase.reason_show">
+              <select id="reject_reason" class="form-control" ng-model="showCase.selected">
+                <option ng-repeat="opt in showCase.model_data1.options" value="{{opt}}">{{opt}}</option>
+              </select>
+            </div>
+            <div class="col-md-2" ng-if="showCase.reason_show">
+              <button type="button" class="form-control btn-default display-none" id="save-reason" ng-click="showCase.reject_qc();">Done</button>
+            </div>
+          </div>
+          <div class="row">
+            <h4 align="center">{{showCase.message}}</h4>
+          </div>
+          <div class="loading display-none">
+            <div></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.qc_close()">Close</button>
+          <button type="button" class="btn pop pop-green" ng-click="showCase.update_details(showCase.current_details)">Save</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

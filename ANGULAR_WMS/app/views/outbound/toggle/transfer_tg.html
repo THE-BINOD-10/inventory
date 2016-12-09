@@ -1,0 +1,57 @@
+<div id="page-pop" aria-hidden="false" aria-labelledby="myLargeModalLabel" role="dialog" tabindex="-1" class="modal fade process-toggle in" style="display: block;">
+  <!-- Modal -->
+  <form id="transfer-orders">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button aria-label="Close" data-dismiss="modal" class="close" type="button" ng-click="showCase.close()"><span aria-hidden="true">×</span>
+          </button>
+          <h4 id="myLargeModalLabel" class="modal-title">Transfer Orders</h4>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-2">
+              <label class="control-label"> <b>Order ID</b> </label>
+            </div>
+            <div class="col-md-2">
+              <label class="control-label"> <b>WMS Code</b> </label>
+            </div>
+            <div class="col-md-3">
+              <label class="control-label"> <b>Title</b> </label>
+            </div>
+            <div class="col-md-2">
+              <label class="control-label"> <b>Quantity</b> </label>
+            </div>
+            <div class="col-md-3">
+              <label class="control-label"> <b>Transfer To</b> </label>
+            </div>
+          </div>
+          <div class="row" ng-repeat="data in showCase.model_transfer.data">
+            <div class="col-md-2">
+              <input type="hidden" name="order_id" value="{{data.id}}">
+              {{data.order_id}}
+            </div>
+            <div class="col-md-2">
+              {{data.wms_code}}
+            </div>
+            <div class="col-md-3">
+              {{data.title}}
+            </div>
+            <div class="col-md-2">
+              {{data.quantity}}
+            </div>
+            <div class="col-md-3">
+              <select class="form-control" name="transfer_to" ng-model="data.option">
+                <option ng-repeat="(key, value) in showCase.model_transfer.options" value="key">{{key}}({{value}})</option>
+              </select>
+            </div>
+          </div>
+          <div class="row"><h4 align="center">{{showCase.message}}</h4></div>
+        </div>
+      <div class="modal-footer">
+        <button class="btn pop pop-green pull-right" type="button" ng-click="showCase.confirm_transfer()">Confirm Transfer
+        </button>
+      </div>
+    </div>
+  </form>
+</div>

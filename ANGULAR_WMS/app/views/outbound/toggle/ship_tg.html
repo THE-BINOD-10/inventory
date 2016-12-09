@@ -1,0 +1,73 @@
+<div id="page-pop" style="display: block;" class="modal fade process-toggle in" id="location-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
+  <form name="form" role="form" id="add-customer">
+    <div class="modal-dialog modal-lg">
+      <!-- Modal content-->
+      <div class="modal-content model-custom">
+        <div class="modal-header">
+          <button ng-click="vm.close()" type="button" class="close" data-dismiss="modal"> ×</button>
+          <h4 class="modal-title">Add Shippment </h4>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-4" ng-if="(!(vm.customer_details))">
+              <div class="form-group">
+                <label class="control-label">Market Place </label>
+                <input name="market_place" class="form-control" disabled="" type="text" value="{{vm.model_data.marketplace}}">
+              </div>
+            </div>
+            <div class="col-md-4" ng-if="vm.customer_details">
+              <div class="form-group">
+                <label class="control-label">Customer ID </label>
+                <input name="market_place" class="form-control" disabled="" type="text" value="{{vm.model_data.customer_details[0]['customer_id']}}">
+              </div>
+            </div>
+            <div class="col-md-4" ng-if="vm.customer_details">
+              <div class="form-group">
+                <label class="control-label">Customer Name </label>
+                <input name="market_place" class="form-control" disabled="" type="text" value="{{vm.model_data.customer_details[0]['customer_name']}}">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+              <hr>
+            </div>
+          </div>
+          <div class="row">
+            <table class="table table-stk">
+              <thead>
+                <tr>
+                  <th ng-if="(!(vm.sku_group))"> Order ID </th>
+                  <th> SKU Code </th>
+                  <th> Order Quantity </th>
+                  <th> Shipping Quantity </th>
+                  <th> Pack Reference </th>
+                  <th class="plus"></th>
+                </tr>
+              </thead>
+              <tbody ng-repeat="data in vm.model_data.data">
+                <tr ng-repeat="record in data.sub_data">
+                  <input type="hidden" name="order_shipment_id" value="{{vm.model_data.shipment_id}}">
+                  <input type="hidden" name="id" value="{{data.id}}">
+                  <input type="hidden" name="sku_code" value="{{data.sku__sku_code}}">
+                  <input type="hidden" name="order_quantity" value="{{data.picked}}">
+                  <td ng-if="(!(vm.sku_group))">{{data.order_id}}</td>
+                  <td>{{data.sku__sku_code}}</td>
+                  <td> {{data.picked}} </td>
+                  <td><input class="form-control" name="shipping_quantity" ng-model="record.shipping_quantity" type="text" ng-class="service.get_decimal_perm()" ng-change="vm.cal_quantity(record, data)"></td>
+                  <td><input class="form-control" name="package_reference" ng-model="record.pack_reference" type="text"></td>
+                  <td><i ng-click="vm.update_data($index, data, $last)" ng-class="vm.isLast($last)"></i></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="row hide insert-status"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="vm.close()">Close</button>
+          <button class="btn pop pop-green" value="Add Shippment" type="submit" ng-click="vm.add_shipment(form)">Add Shippment</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

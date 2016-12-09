@@ -1,0 +1,25 @@
+  <div class="modal-body">
+    <h5>PO Number: <b>{{showCase.model_data.po_number}}</b></h5>
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>WMS CODE</th>
+            <th>Location</th>
+            <th ng-if="showCase.permissions.pallet_switch">Pallet Number</th>
+            <th>Original Quantity</th>
+            <th>Putaway Quantity</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody ng-repeat="data in showCase.model_data.data">
+          <tr class="receive-toggle" ng-repeat="sku in data.sub_data">
+            <td>{{data.wms_code}}</td>
+            <td>{{sku.loc}}</td>
+            <td ng-if="showCase.permissions.pallet_switch">{{data.pallet_number}}</td>
+            <td>{{data.original_quantity}}</td>
+            <td>{{sku.quantity}}</td>
+            <td></td>
+           </tr>
+         </tbody>
+       </table>
+     </div>

@@ -1,0 +1,95 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
+        <h4 class="modal-title">{{showCase.title}}</h4> </div>
+      <!-- body-->
+      <div class="modal-body">
+          <div class="row">
+            <div class="col-md-4 col-sm-6 col-xs-12">
+              <div class="form-group">
+                <label class="control-label"> Template Name* </label>
+                <input type="text" name="name" class="form-control" ng-model="showCase.model_data.name" ng-readonly="showCase.update" required>
+                <input type="hidden" name="id" ng-if="showCase.update" value="{{showCase.model_data.id}}">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="form-group">
+                    <label class="control-label"> Template Type </label>
+                    <select class="form-control" ng-model="showCase.model_data.property_type" name="property_type" ng-change="showCase.change_template_values();" ng-disabled="showCase.update">
+                      <option ng-repeat="type in showCase.template_types" ng-selected="type.field_name == showCase.model_data.property_type" value="{{type.field_name}}">{{type.field_value}}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="form-group">
+                    <label class="control-label"> Template value </label>
+                    <select class="form-control" ng-model="showCase.model_data.property_name" name="property_name" ng-disabled="showCase.update">
+                      <option ng-repeat="type in showCase.template_values" ng-selected="type == showCase.model_data.property_name" value="{{type}}">{{type}}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row"><hr></div>
+          <div class="row">
+            <div class="col-md-12"><h4>Upload Image</h4></div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <!--<input type="file" file-upload multiple/>-->
+                <input type="file" id="image-upload" name="files" image-upload multiple="">
+              </div>
+            </div>
+            <div class="col-md-6" ng-if="showCase.model_data.images.length > 0">
+              <div class="image">
+                <img ng-src="{{showCase.service.check_image_url(showCase.model_data.images[0])}}"></img>
+              </div>
+            </div>
+          </div>
+          <div class="row"><hr></div>
+          <div class="row">
+            <div class="col-md-12"><h4>Specifications</h4></div>
+            <table class="table table-stk" ng-if="showCase.model_data.attributes.length > 0">
+              <thead>
+                <tr>
+                  <th><b> Attribute Name </b></th>
+                  <th><b> Description </b></th>
+                  <th class="plus"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr ng-repeat= "attribute in showCase.model_data.attributes">
+                  <td>
+                    <input type="text" name="attribute_name" class="form-control" ng-model="attribute.attribute_name" ng-required="$first" ng-readonly="!(attribute.new)">
+                  </td>
+                  <td><input type="text" name="description" class="form-control" percentage-number ng-model="attribute.description" ng-required="$first" ng-readonly="!(attribute.new)"></td>
+                  <td><i ng-click="showCase.remove_attribute($index, attribute)" class="fa fa-minus-square-o"></i></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="row"><button type="button" class="btn btn-success btn-outline" style="display: block;margin:auto" ng-click="showCase.model_data.attributes.push({attribute_name:'', description:'', new: true});">New</button></div>
+          <div class="row insert-status">
+            <h4 align="center">{{showCase.service.message}}</h4> </div>
+        </form>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)">Save</button>
+      </div>
+    </div>
+    <!-- /.modal-content -->
+  </div>
+  </form>
+  <!-- /.modal-dialog -->
+</div>

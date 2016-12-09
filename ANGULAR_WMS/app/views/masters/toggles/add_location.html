@@ -1,0 +1,92 @@
+<div id="page-pop" class="modal fade in" id="location-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="overflow: hidden; display: block; padding-right: 15px;">
+  <!-- Modal -->
+  <form name="form">
+    <div class="modal fade in" id="locationModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="display: block; padding-left: 15px;">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">×</span>
+            </button>
+            <h4 class="modal-title" id="myLargeModalLabel">{{showCase.title}}</h4>
+          </div>
+          <div class="modal-body">
+            <div class="form-group clearfix">
+              <div class="row">
+                <div class="col-md-4 col-sm-6 col-xs-6">
+                  <div class="form-group">
+                    <label class="control-label">Zone ID *</label>
+                    <input type="text" class="form-control" name="zone_id" value="{{showCase.model_data.zone_id}}" ng-readonly="showCase.update" ng-if="showCase.update" required>
+                    <select class="form-control" name="zone_id" ng-model="showCase.model_data.zone_id" ng-if="(!(showCase.update))" required>
+                        <option ng-repeat="zone in showCase.data.location_data" value="{{zone.zone}}">{{zone.zone}}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-4 col-sm-6 col-xs-6">
+                  <div class="form-group">
+                    <label class="control-label">Location *</label> 
+                    <input type="text" name="location" class="form-control anvalid" ng-model="showCase.model_data.location" ng-readonly="showCase.update" required>
+                  </div>
+                </div>
+                <div class="col-md-4 col-sm-6 col-xs-6">
+                  <div class="form-group">
+                    <label class="control-label">Capacity</label>
+                    <input type="text" name="max_capacity" class="form-control" ng-model="showCase.model_data.max_capacity" ng-class="service.get_decimal_perm()">
+                  </div>
+                </div>
+                <div class="col-md-4 col-sm-6 col-xs-6">
+                  <div class="form-group">
+                    <label class="control-label">Put Sequence</label>
+                    <input type="text" name="fill_sequence" class="form-control" ng-model="showCase.model_data.fill_sequence" natural-number>
+                  </div>
+                </div>
+                <div class="col-md-4 col-sm-6 col-xs-6">
+                  <div class="form-group">
+                    <label class="control-label">Get Sequence</label>
+                    <input type="text" name="pick_sequence" class="form-control" ng-model="showCase.model_data.pick_sequence" natural-number>
+                  </div>
+                </div>
+                <div class="col-md-4 col-sm-6 col-xs-6">
+                  <div class="form-group">
+                    <label class="control-label">Status</label>
+		    <select class="form-control" name="status" value="Active" ng-model="showCase.model_data.status">
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-4 col-sm-6 col-xs-6">
+                  <div class="form-group">
+                    <label class="control-label">Location Lock</label>
+                    <select class="form-control lock_loc" name="lock_status" ng-model="showCase.model_data.lock_status">
+                      <option value="">none</option>
+                      <option value="{{opt}}" ng-repeat="opt in showCase.data.lock_fields">{{opt}}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-4 col-sm-6 col-xs-6">
+                  <div class="form-group">
+                    <label> SKU Groups </label>
+                    <select id="maxOption2" class="selectpicker show-menu-arrow form-control" multiple>
+                      <option ng-selected="showCase.check_selected(opt)" value="{{opt}}" ng-repeat="opt in showCase.data.sku_groups">{{opt}}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.permissions.pallet_switch">
+                  <div class="form-group">
+                    <label class="control-label">Pallet Capacity</label>
+                    <input type="text" name="pallet_capacity" class="form-control" ng-model="showCase.model_data.pallet_capacity" natural-number>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row"><h4 align="center">{{showCase.service.message}}</h4></div>
+          <div class="modal-footer">
+            <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
+            <button type="submit" class="btn pop pop-green" ng-click="showCase.location_adding(form)">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

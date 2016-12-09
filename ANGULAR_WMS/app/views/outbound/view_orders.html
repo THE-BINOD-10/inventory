@@ -1,0 +1,64 @@
+<div class="page-layout">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body">
+    <tabset class="box-tab">
+      <tab heading="Orders">
+        <div class="panel" ng-controller="Orders as showCase">
+          <div class="panel-header" style="overflow: visible;padding-bottom: 30px;">
+            <button type="button" class="btn btn btn-danger pull-left" ng-click="$state.go('app.outbound.BackOrders')">Back Orders</button>
+            <!--<button type="button" class="btn btn-success pull-right" style="margin-left:10px;" ng-click="showCase.add_order()">Create Order</button>-->
+            <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+            <div class="pull-right" style="width: 130px;margin-right:10px;">
+              <input type="text" autocomplete="off" class="form-control" placeholder="Search Customer" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_customer_sku_mapping?', 'orders')" typeahead-loading="CustomersLoading" ng-model="showCase.special_key.customer_id" typeahead-on-select="showCase.change_customer(showCase.special_key.customer_id)">
+            </div>
+            <div class="pull-right" style="width: 155px;margin-right:10px;">
+              <select class="selectpicker form-control pull-right" style="width: 155px;" ng-model="showCase.market_filter" title="Select MarketPlace" multiple>
+                <option ng-repeat="market in showCase.market_list" > {{market}}</option>
+              </select>
+            </div>
+            <!--<label style="padding: 5px;" class="control-label pull-right">&nbsp;&nbsp;<b> MarketPlace Filters:</b></label>-->
+            <label class="switch switch-sm square pull-right mr30 mt5">
+              <div>
+                <input type="checkbox" ng-model="showCase.permissions.batch_switch" ng-change="showCase.service.switches(showCase.permissions.batch_switch,'batch_switch')">
+                <span>
+                  <i class="handle"></i>
+                </span>
+              </div>
+            </label>
+            <label style="padding: 5px;" class="control-label pull-right"><b>Batch:</b></label>
+          </div>
+          <div class="panel-body">
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
+            <div ui-view></div>
+          </div>
+          <div class="panel-footer">
+            <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate()">Generate Picklist</button>
+            <!--<button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" style="margin-right:10px;" ng-click="showCase.transfer()">Transfer Order</button>-->
+            <input name="ship_reference" class="pull-right form-control" style="margin-right: 10px;width: 130px" ng-model="showCase.ship_reference" type="text">
+            <label class="pull-right" style="margin-right:10px;font-weight:bold; padding:5px">Shipment Reference: </label>
+
+            <button type="submit" class="btn btn-primary pull-left" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable" ng-if="!(showCase.permissions.batch_switch)" style="margin-right:10px;">Raise PO</button>
+            <button type="submit" class="btn btn-primary pull-left" ng-click="showCase.raise_jo()" ng-disabled="showCase.bt_disable" ng-if="!(showCase.permissions.batch_switch)">Raise JO</button>
+          </div>
+        </div>
+      </tab>
+      <tab heading="Stock Transfer Order" ng-if="permissions.multi_warehouse">
+        <div class="panel" ng-controller="StockTransferOrders as showCase">
+          <div class="panel-header">
+            <!--<button type="button" class="btn btn-success pull-right" style="margin-left:10px;" ng-click="showCase.add_stock_transfer()">Create Stock Transfer</button>-->
+            <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+          </div>
+          <div class="panel-body">
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table no_click_tb"></table>
+            <div ui-view></div>
+          </div>
+          <div class="panel-footer">
+            <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_picklist()">Generate Picklist</button>
+          </div>
+        </div>
+      </tab>
+    </tabset>
+  </div>
+</div>

@@ -1,0 +1,21 @@
+<div ng-controller="MoveInventoryCtrl as showCase">
+  <div class="page-layout">
+    <div class='layout-header'>
+      <div class="pull-left" ng-include="'views/common/title.html'"></div>
+      <button type="button" class="btn btn-success pull-right" ng-click="showCase.add()">New Move Inventory</button>
+    </div>
+    <div class="layout-body">
+      <div class="panel">
+        <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
+          <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>
+          <div class="clearfix">
+          </div>
+          <div ui-view></div>
+        </div>
+        <div class="panel-footer">
+          <button type="submit" class="btn btn-danger pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.confirm_move()">Confirm Move</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,323 @@
+<div class="page-layout" data-ng-controller="ConfigCtrl as showCase">
+  <div class='layout-header'>
+    <h4 class="pull-left">{{$state.current.data.title}}</h4>
+  </div>
+  <div class="layout-body">
+<form name="form" role="form" ui-jq="validate" ui-options="showCase.validationOpt">
+<div class="panel">
+  <div class="panel-body">
+    <div class="panel tab-content" id="configurations">
+      <div class="notifications top-right"></div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-th fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"> <strong> Inbound/ Outbound mail Notifications</strong>
+        </div>
+        <div class="col-md-2">
+          <select id="maxOption2" class="selectpicker show-menu-arrow form-control" multiple ng-change="showCase.mail_alerts_change()">
+            <option ng-selected="showCase.check_selected(value)" ng-repeat="(key, value) in showCase.model_data.mail_options"> {{key}}</option>
+          </select>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-envelope-o fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"><strong> Send [PO] Messages and Email</strong>
+        </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.send_message" ng-change="showCase.switches(showCase.model_data.send_message,1)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label> 
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-th fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"> <strong> Batch Processing Required </strong>
+        </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.batch_switch" ng-change="showCase.switches(showCase.model_data.batch_switch,2)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="glyphicon glyphicon-sort fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"><strong> First In First Out Required </strong> </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.fifo_switch" ng-change="showCase.switches(showCase.model_data.fifo_switch,3)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-file-image-o fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"> <strong> Show Images in Picklist </strong> </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.show_image" ng-change="showCase.switches(showCase.model_data.show_image,4)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-exchange fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"> <strong> Enable/Disable Cross Stock</strong> </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.back_order" ng-change="showCase.switches(showCase.model_data.back_order,5)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-list-ol fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"> <strong> &nbsp; Use Serial Numbers for SKUs</strong> </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.use_imei" ng-change="showCase.switches(showCase.model_data.use_imei,6)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-archive fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"> <strong> &nbsp; Pallet Enable/Disable</strong> </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.pallet_switch" ng-change="showCase.switches(showCase.model_data.pallet_switch,7)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-server fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"> <strong> &nbsp; Production Enable/Disable</strong> </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.production_switch" ng-change="showCase.switches(showCase.model_data.production_switch,8)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-server fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"> <strong> &nbsp; POS Enable/Disable</strong> </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.pos_switch" ng-change="showCase.switches(showCase.model_data.pos_switch,9)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-server fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"> <strong> &nbsp; Auto PO Enable/Disable</strong> </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.auto_po_switch" ng-change="showCase.switches(showCase.model_data.auto_po_switch,10)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-server fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"> <strong> &nbsp; Generate Picklist for out of stock orders</strong> </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.no_stock_switch" ng-change="showCase.switches(showCase.model_data.no_stock_switch,11)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-server fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"> <strong> &nbsp; Decimal Quantity</strong> </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.float_switch" ng-change="showCase.switches(showCase.model_data.float_switch,15)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-envelope fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"> <strong> &nbsp; Automatic Invoice Generation</strong> </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.automate_invoice" ng-change="showCase.switches(showCase.model_data.automate_invoice,16)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px" ng-init="showCase.online_enable_save = false">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-shopping-cart fa-15px"></i></a>
+        </div>
+        <div class="col-md-3 online-percentage"> <strong> Online Percentage ( 0% ) </strong> </div>
+        <div class="col-md-1">
+            <input type="number" class="form-control online-input" id="online_percentage" maxlength="3" ng-model="showCase.model_data.online_percentage" ng-change="showCase.online_enable_save = true">
+        </div>
+        <div class="col-md-1"><i ng-if="showCase.online_enable_save" ng-click="showCase.online_enable_save = false; showCase.switches(showCase.model_data.online_percentage,12)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px;clear: both;" ng-init="showCase.alert_enable_save = false">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-envelope fa-15px"></i></a>
+        </div>
+        <div class="col-md-3 mail-alerts"> <strong> Alerts for Unprocessed PO's/Orders</strong> </div>
+        <div class="col-md-2">
+          <div class="col-md-6" style="padding-left:0px">
+            <input type="number" class="form-control alerts-input" id="mail_alerts" maxlength="3" ng-model="showCase.model_data.mail_alerts" ng-change="showCase.alert_enable_save = true"> </div>
+          <div class="col-md-3" style="padding:0 0 0 6px"><b>Days</b>
+          </div>
+          <div class="col-md-1"><i ng-if="showCase.alert_enable_save" ng-click="showCase.alert_enable_save = false; showCase.switches(showCase.model_data.mail_alerts,13)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px" ng-init="showCase.prefix_enable_save = false">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-outdent fa-15px"></i></a>
+        </div>
+        <div class="col-md-3 po-prefix"> <strong> PO Prefix </strong> </div>
+        <div class="col-md-2">
+          <div class="col-md-6" style="padding-left:0px">
+            <input type="text" class="form-control invoice-prefix" id="invoice_prefix" ng-model="showCase.model_data.prefix" ng-change="showCase.prefix_enable_save = true">
+          </div>
+          <div class="col-md-1"><i ng-if="showCase.prefix_enable_save" ng-click="showCase.prefix_enable_save = false; showCase.switches(showCase.model_data.prefix,14)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-step-forward fa-15px"></i></a>
+        </div>
+        <div class="col-md-3 sku-groups"> <strong> Production Stages </strong> </div>
+        <div class="bootstrap-tagsinput col-md-6">
+          <input class="stages" type="text" value="{{showCase.model_data.all_stages}}" ui-jq="tagsInput"/>
+        </div>
+        <div class="col-md-1"><i ng-click="showCase.update_stages()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-tags fa-15px"></i></a>
+        </div>
+        <div class="col-md-3 sku-groups"> <strong> SKU Groups </strong> </div>
+        <div class="bootstrap-tagsinput col-md-6">
+          <input id="tags" type="text" value="{{showCase.model_data.all_groups}}" ui-jq="tagsInput"/>
+        </div>
+        <div class="col-md-1"><i ng-click="showCase.update_sku_groups()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px"> <div class="col-md-12"><button class="btn btn-primary" role="button" data-toggle="collapse" ng-click="showCase.toggle_reports();">Configure Mail Reports</a>
+      </div>
+      </div>
+      <div class="row" ng-if="showCase.show_mail_reports">
+        <div class="col-md-1"></div>
+        <div class="col-md-10">
+        <div class="panel">
+          <div class="panel-heading border">
+           Add Mail Reports:
+          </div>
+          <div class="panel-body">
+            <select multiple="multiple" id="my-select" name="my-select[elem 1]">
+              <option ng-selected="showCase.check_mail(key)" ng-repeat="(key, val) in showCase.model_data.mail_reports" value="{{val[0]}}">{{val[0]}}</option>
+            </select>
+            <div class="row col-md-12" style="padding-top: 15px">
+              <div class="bootstrap-tagsinput mail-to col-md-6">
+                <b>Mail To:</b>
+                <input name="mail" id="tagss" type="text" ng-model="showCase.model_data.email" value="{{showCase.model_data.email}}" ui-jq="tagsInput" id="email_input"/>
+              </div>
+            </div>
+            <div class="row col-md-12" style="padding-bottom: 15px">
+              <h4>Frequency: </h4>
+            </div>
+            <div class="row col-md-12" style="padding-bottom: 15px">
+              <div class="row col-md-12">
+                Once Every: <input id="days_range" type="text" class="form-control" style="width: 100px;display: inline;" ng-model="showCase.model_data.report_freq">
+                <select style="width: 85px;display: inline;" class="form-control time_data">
+                  <option>Hours</option>
+                  <option selected>Days</option>
+                </select>
+              </div>
+            </div>
+            <div class="row col-md-4" style="padding-bottom: 15px">
+              Since:
+              <input type="text" class="form-control" ui-jq="datepicker" name="shipment_date" id="datepicker11">
+            </div>
+            <div class="row col-md-12">
+              <button id="mail-now" class="btn btn-primary" ng-click="showCase.mail_now();">Mail Now</button>
+            </div>
+            <div class="row col-md-12">
+              <button id="config-save" style="margin: auto;display: block;" class="btn btn-primary" ng-click="showCase.save_mail_config()">Save</button>
+            </div>
+          </div>
+        </div>
+        </div>
+        <div class="col-md-1"></div>
+      </div>
+    </div> 
+  </div>
+</div>
+</form>
+  </div>
+</div>

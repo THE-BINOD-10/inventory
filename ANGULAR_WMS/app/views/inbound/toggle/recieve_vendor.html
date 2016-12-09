@@ -1,0 +1,58 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
+        <h4 class="modal-title">{{showCase.title}}</h4> </div>
+      <!-- body-->
+      <div class="modal-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="po_reference" class="control-label"> PO Reference </label>
+                <input class="form-control" ng-model="showCase.model_data.po_reference" type="text" readonly>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+              <hr>
+            </div>
+          </div>
+          <div class="row">
+            <table>
+              <thead>
+                <tr>
+                  <th>WMS CODE</th>
+                  <th>PO Quantity</th>
+                  <th>Received Quantity</th>
+                  <th>Unit Price</th>
+                <tr>
+              </thead>
+              <tbody ng-repeat="records in showCase.model_data.data">
+                <tr class="field" ng-repeat="data in records">
+                    <input type="hidden" name="supplier_id" value="{{showCase.model_data.supplier_id}}">
+                    <input type="hidden" name="id" value="{{data.order_id}}">
+                    <td>
+                      <input type="text" name="wms_code" class="form-control pricevalid" value="{{data.wms_code}}" readonly>
+                    </td>
+                    <td><input type="text" ng-model="data.po_quantity" name="po_quantity" class="form-control" readonly></td>
+                    <td><input type="text" ng-model="data.value" name="quantity" class="form-control" ng-class="service.get_decimal_perm()" required> </div></td>
+                    <td><input type="text" ng-model="data.price" name="price" class="form-control" readonly></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-green" ng-click="showCase.vendor_receive(form)">Vendor Receive</button>
+      </div>
+    </div>
+    <!-- /.modal-content -->
+  </div>
+  </form>
+  <!-- /.modal-dialog -->
+</div>

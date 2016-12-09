@@ -1,0 +1,39 @@
+<div ng-controller="SupplierWisePOsCtrl as showCase">
+  <div class="page-layout reports">
+    <div class='layout-header'>
+      <div class="pull-left" ng-include="'views/common/title.html'"></div>
+      <button type="button" style="margin-left: 10px" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, 'supplier_wise')" ng-disabled="showCase.service.print_enable">Download Excel</button>
+      <button type="button" class="btn btn-primary pull-right" ng-disabled="showCase.service.print_enable" ng-click="showCase.service.print_report(showCase.model_data, 'print_supplier_pos/?')">Print Report</button>
+    </div>
+    <div class="layout-sub-header">
+        <form id="order-shipment" class="filters">
+          <div class="clearfix">
+            <div class="row col-md-12">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label">Supplier</label>
+                  <select name="supplier" class="form-control" ng-model="showCase.model_data.supplier">
+                    <option ng-repeat="supplier in showCase.suppliers" value="{{supplier.id}}">{{supplier.id+":"+supplier.name}}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-12">
+              <div class="filter-controls">
+                <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);"> Reset </button>
+                <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Generate </button>
+              </div>
+            </div>
+          </div>
+        </form>
+    </div>
+    <div class="layout-body">
+      <div class="panel">
+        <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
+          <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>
+          <div ui-view></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

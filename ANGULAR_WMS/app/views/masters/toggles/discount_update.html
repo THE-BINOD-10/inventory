@@ -1,0 +1,51 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title">{{showCase.title}}</h4> </div>
+      <!-- body-->
+      <div class="modal-body">
+          <div class="row">
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> SKU Code * </label>
+                <input type="text" name="sku_code" autocomplete="off" class="form-control" placeholder="Search SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue(showCase.model_data.sku,'search_wms_codes?', $event, 'SKU Code', 'SKU Code')" ng-model="showCase.model_data.sku" required>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> SKU Discount * </label>
+                <input type="text" name="sku discount" class="form-control" ng-model="showCase.model_data.sku_discount" id="pct" ui-jq="mask" ui-options="'99%'" required>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Category * </label>
+                <input type="text" name="category" class="form-control" ng-model="showCase.model_data.category" required>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Category Discount * </label>
+                <input type="text" name="category discount" class="form-control" ng-model="showCase.model_data.category_discount" id="pct" ui-jq="mask" ui-options="'99%'" required>
+              </div>
+            </div>
+          </div>
+          <div class="row insert-status">
+            <h4 align="center">{{showCase.message}}</h4>
+          </div>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)">Save</button>
+      </div>
+    </div>
+    <!-- /.modal-content -->
+  </div>
+  </form>
+  <!-- /.modal-dialog -->
+</div>

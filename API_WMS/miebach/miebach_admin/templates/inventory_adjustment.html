@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block header %} Inventory Adjustment {% endblock %}
+{% block locator %} active {% endblock %}
+{% block locator_style %} block {% endblock %}
+{% block inventory_adjustment %} active {% endblock %}
+
+{% block content %}
+
+{% load staticfiles %}
+
+<script type="text/javascript" src="{% static 'js/fnReloadAjax.js' %}"></script>
+
+<div class="content-wrapper">
+
+    <!-- Table Body  -->
+    <div class="panel tab-content" id="generate-adjustment">
+
+        <table class="display" id="sortingTable">
+
+            <thead>
+            <tr>
+                <th></th>
+                <th>Location</th>
+                <th>WMS Code</th>
+                <th>Description</th>
+                <th>Total Quantity</th>
+                <th>Physical Quantity</th>
+                <th>Reason</th>
+            </tr>
+            </thead>
+
+        </table>
+        <div class="clearfix top-padding">
+            <button type="submit" class="btn btn-danger right-float confirm-adjustment" disabled>Confirm Adjustment
+            </button>
+            <button type="submit" class="btn btn-danger right-float delete-inventory" style="margin-right: 10px"
+                    disabled>Delete
+            </button>
+        </div>
+    </div>
+    <div class="modal fade" id="sku-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel"
+         aria-hidden="true">
+    </div>
+</div>
+
+<div class="button_column">
+    <button type="get_input" class="btn" id="add-inventory-adjust" data-toggle="modal" data-placement="top"
+            title="Add Inventory Adjustment" data-original-title="Click to Submit" data-target="#MyModal">
+
+        <div class="svg">
+            <!--?xml version="1.0" encoding="utf-8"?-->
+            <!-- License Agreement at http://iconmonstr.com/license/ -->
+            <i class="fa fa-plus fa-3x"></i>
+        </div>
+</div>
+</button>
+{% endblock %}

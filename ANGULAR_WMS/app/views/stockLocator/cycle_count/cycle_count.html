@@ -1,0 +1,19 @@
+<div class="page-layout">
+  <div class='layout-header' style="padding: 10px 12px; background: #f0f0f0; overflow:hidden">
+    <h4 class="pull-left">{{$state.current.data.title}}</h4>
+  </div>
+  <div class="layout-body">
+    <tabset class="box-tab">
+      <tab heading="Generate Cycle Count" ng-controller="CycleCountCtrl as showCase">
+        <div ng-include="'views/stockLocator/cycle_count/generate_cycle_count.html'"></div>
+      </tab>
+      <tab heading="Confirm Cycle Count" ng-controller="ConfirmCycleCountCtrl as showCase">
+        <div ng-include="'views/stockLocator/cycle_count/confirm_cycle_count.html'"></div>
+      </tab>
+      <tab ng-if="permissions.is_superuser == 'true'" heading="Reconfirm Cycle Count" ng-controller="ReconfirmCycleCountCtrl as showCase">
+        <div ng-include="'views/stockLocator/cycle_count/reconfirm_cycle_count.html'"></div>
+      </tab>
+    </tabset>
+  </div>
+</div>
+

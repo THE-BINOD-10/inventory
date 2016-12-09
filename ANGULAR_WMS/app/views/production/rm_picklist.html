@@ -1,0 +1,32 @@
+  <div class="page-layout">
+    <div class='layout-header'>
+      <div class="pull-left" ng-include="'views/common/title.html'"></div>
+    </div>
+    <div class="layout-body">
+      <tabset class="box-tab">
+        <tab heading="Confirmed Orders">
+          <div ng-controller="RawMaterialPicklistCtrl as showCase">
+            <div class="panel">
+              <div class="panel-header">
+                <button type="button" class="btn btn btn-danger pull-right" ng-click="$state.go('app.production.BackOrders')">Back Orders</button>
+              </div>
+              <div class="panel-body">
+                <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>
+                <div ui-view></div>
+              </div>
+            </div>
+          </div>
+        </tab>
+        <tab heading="Picklist Generated">
+          <div ng-controller="PicklistGeneratedCtrl as showCase">
+            <div class="panel">
+              <div class="panel-body">
+                <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>
+                <div ui-view></div>
+              </div>
+            </div>
+          </div>
+        </tab>
+      </tabset>
+    </div>
+  </div>

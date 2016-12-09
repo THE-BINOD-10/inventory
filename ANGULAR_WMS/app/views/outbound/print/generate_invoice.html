@@ -1,0 +1,140 @@
+<div id="page-pop" style="display: block;" class="modal fade process-toggle in" id="location-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
+  <form name="form" role="form" id="add-customer">
+    <div class="modal-dialog modal-lg">
+      <!-- Modal content-->
+      <div class="modal-content model-custom">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+         <h4 class="modal-title">Invoice</h4>
+        </div>
+        <div class="modal-body print">
+
+<div class"row mb15">
+  <h4 align="center">{{showCase.pdf_data.company_name}}</h4>
+</div>
+
+<hr>
+  <p align="center">{{showCase.pdf_data.company_address}}</p>
+  <p align="center">{{showCase.pdf_data.email}}</p>
+ <!-- <p align="center">VAT TIN NO: 27621087850-V CST TIN NO: 27621087850-C</p>-->
+<hr>
+<div class"row mb15">
+  <h4 align="center" style="text-decoration: underline;">Tax Invoice</h4>
+</div>
+
+<div class="row mb15" style="padding: 0px 18px;">
+  <div class="col-xs-12">
+    <div class="row">
+      <div class="col-xs-4">
+        <address class="no-margin">
+                    <strong>To,</strong><br>
+		    <div ng-if = "showCase.pdf_data.marketplace == 'Offline'">
+			<p ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
+			<p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].name">
+				&nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].name}}</p>
+			<p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].address">
+				&nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].address}}</p>
+			<p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].tin_number">
+				&nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].tin_number}}</p>
+			<p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].customer_id">
+				&nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].customer_id}}</p>
+			<p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].email_id">
+				&nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].email_id}}</p>
+		    </div>
+		    <div ng-if = "showCase.pdf_data.marketplace != 'Offline'">
+                        {{showCase.pdf_data.marketplace}}<br>
+		    </div>
+                </address>
+      </div>
+      <div class="col-xs-2"></div>
+      <div class="col-xs-6 text-right">
+        <address class="no-margin" style="margin:0px;padding:0px" ng-if="showCase.pdf_data.invoice_no">
+                    <strong>Invoice Number:</strong>{{showCase.pdf_data.invoice_no}}<br>
+                </address>
+        <address class="no-margin" style="margin:0px;padding:0px" ng-if="showCase.pdf_data.invoice_date">
+                    <strong>Invoice Date:</strong>{{showCase.pdf_data.invoice_date}}<br>
+                </address>
+        <address class="no-margin" style="margin:0px;padding:0px">
+                    <strong>Order Number:</strong>{{showCase.pdf_data.order_id}}<br>
+                </address>
+         <address class="no-margin" style="margin:0px;padding:0px">
+                    <strong>Order Date:</strong>{{showCase.pdf_data.order_date}}<br>
+                </address>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-bordered bl br">
+    <thead>
+      <tr>
+        <th>SKU Code</th>
+        <th>Description</th>
+        <th>Quantity</th>
+        <th>Unit Price</th>
+        <th>Tax</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="record in showCase.pdf_data.data">
+        <td>
+          {{record.sku_code}}
+        </td>
+        <td>
+          {{record.title}}
+        </td>
+        <td>
+          {{record.quantity}}
+        </td>
+        <td>
+          {{record.unit_price}}
+        </td>
+        <td>
+          {{record.tax}}
+        </td>
+        <td>
+          {{record.invoice_amount}}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="row mb15" style="padding: 0px 18px;">
+  <div class="col-xs-12">
+    <div class="row">
+      <div class="col-xs-6">
+        <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
+          <strong>Company's VAT TIN:</strong>29640707663<br>
+        </address>
+        <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'" ng-show="showCase.pdf_data.customer_details[0].tin_number">
+          <strong>Buyer's VAT TIN:</strong>{{showCase.pdf_data.customer_details[0].tin_number}}<br>
+        </address>
+        <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
+          <strong>Company's PAN:</strong>ABEFS4899J<br>
+        </address>
+      </div>
+      <div class="col-xs-6 text-right">
+        <address class="no-margin" style="margin:0px;padding:0px">
+          <strong>Total Quantity:</strong>{{showCase.pdf_data.total_quantity}}<br>
+        </address>
+        <address class="no-margin" style="margin:0px;padding:0px">
+          <strong>Total Amount(Rs):</strong>{{showCase.pdf_data.total_invoice}}<br>
+        </address>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr>
+    </div>
+    <div class="row">
+        <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.print_data($('.print'), 'invoice')">
+          <i class="ti-printer mr5"></i>Print
+        </button>
+    </div>
+
+  </form>
+</div>

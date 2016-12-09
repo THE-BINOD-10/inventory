@@ -1,0 +1,61 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
+        <h4 class="modal-title">{{showCase.title}}</h4> </div>
+      <!-- body-->
+      <div class="modal-body">
+          <div class="row">
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <label>Product SKU Code</label>
+              <input type="text" autocomplete="off" name="product_sku" class="form-control" placeholder="Search Product SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.product_sku" ng-blur="showCase.service.checkSearchValue(showCase.model_data.product_sku,'search_wms_codes?', $event, 'RM','Product SKU Code')">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12"><hr></div>
+          </div>
+          <div class="row">
+            <table class="table table-stk">
+              <thead>
+                <tr>
+                  <th><b> Material SKU Code </b></th>
+                  <th><b> Material Quantity </b></th>
+                  <th><b> Wastage Percent </b></th>
+                  <th><b> Unit of Measurement </b></th>
+                  <th class="plus"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr ng-repeat= "material in showCase.model_data.data">
+                  <input type="hidden" name="id" class="form-control" value="{{material.BOM_ID}}">
+                  <td>
+                    <input type="text" autocomplete="off" name="material_sku" class="form-control" placeholder="Search Material SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="material.Material_sku" ng-blur="showCase.service.checkSearchValue(material.Material_sku,'search_wms_codes?', $event, 'RM', 'Material SKU Code')">
+                  </td>
+                  <td>
+                    <input type="text" name="material_quantity" class="form-control" ng-class="service.get_decimal_perm()" ng-model="material.Material_Quantity"></td>
+                  <td><input type="text" name="wastage_percent" class="form-control" percentage-number ng-model="material.wastage_percent" maxlength="3"></td>
+                  <td>
+                    <select name="unit_of_measurement" class="form-control" ng-model="material.Units">
+                      <option ng-repeat="unit in showCase.units" value="{{unit}}" ng-selected="material.Units == unit">{{unit}}</option>
+                    </select>
+                  </td>
+                  <td><i ng-click="showCase.update_data($index)" ng-class="showCase.service.isLast($last)"></i></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div ng-include="'views/common/msg.html'"></div>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)">Save</button>
+      </div>
+    </div>
+    <!-- /.modal-content -->
+  </div>
+  <form>
+  <!-- /.modal-dialog -->
+</div>

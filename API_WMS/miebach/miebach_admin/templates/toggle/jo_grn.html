@@ -1,0 +1,62 @@
+<!-- Modal -->
+
+
+<form id="putaway-list">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myLargeModalLabel">Goods Receipt Note <span style="position: relative;left:250px;font-size:12px;"> {{ seller_name }}</span></h4>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group clearfix">
+
+                <div style='float:left;'>
+                    <div><b>Job Code</b>: {{ job_code }}</div>
+                    <div><b>Order Date</b>: {{ order_date }}</div>
+                </div>
+
+                    <table class="table" style='margin-top:60px;'>
+                        <tbody>
+                        {% for keys, values in data.items %}
+                        <tr class="active">
+                            {% for key in keys %}
+                            <th>{{ key }}</th>
+                            {% endfor %}
+                        </tr>
+
+                        {% for value in values %}
+                        <tr>
+                            {% for dat in value %}
+                            <td>{{ dat }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                        {% endfor %}
+                        </tbody>
+                        <br/>
+                        <tfoot style='margin-top:20px;'>
+                          <tr>
+                              <th>Total</th><th>{{ total_order_qty }}</th>
+                            <th>{{ total_received_qty }}</th>
+                          </tr>
+                        </tfoot>
+                    </table>
+
+
+                </div>
+                <div class="row col-md-12 insert-status"></div>
+                <div class="loading display-none">
+                    <div></div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary print-grn">Print</button>
+                <button type="submit" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</form>

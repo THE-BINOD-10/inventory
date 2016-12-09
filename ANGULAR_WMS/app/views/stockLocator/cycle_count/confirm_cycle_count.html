@@ -1,0 +1,9 @@
+<div class="panel">
+  <div class="panel-header">
+    <button type="button" class="btn btn-default pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.print_enable">Download Excel</button>
+  </div>
+  <div class="panel-body">
+    <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>
+    <div ui-view></div>
+  </div>
+</div>

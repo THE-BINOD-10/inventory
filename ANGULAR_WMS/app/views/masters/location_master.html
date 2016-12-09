@@ -1,0 +1,47 @@
+<div ng-controller="LocationMasterCtrl as showCase">
+  <div class="page-layout" style="background: #f0f0f0;">
+    <div class='layout-header'>
+      <div class="row">
+        <div class="col-md-6 col-sm-12 col-xs-12">
+          <div ng-include="'views/common/title.html'"></div>
+        </div>
+        <div class="col-md-6 col-sm-12 col-xs-12">
+          <div class="row">
+            <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-3" ng-click="showCase.add_location()">Add Location</button>
+            <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-3" ng-click="showCase.add_zone()">Add Zone</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="layout-body">
+      <accordion close-others="oneAtATime">
+        <accordion-group ng-repeat="zone in showCase.data.location_data" is-open="status.isFirstOpen">
+          <accordion-heading>
+            {{zone.zone}}<i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': status.open, 'glyphicon-chevron-right': !status.open}"></i>
+          </accordion-heading>
+          <table class="table mb0">
+            <thead>
+              <tr>
+                <th class="col-md-3">Location</th>
+                <th class="col-md-2">Capacity</th>
+                <th class="col-md-2">Put Sequence</th>
+                <th class="col-md-2">Get Sequence</th>
+                <th class="col-md-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="location in zone.data" style="cursor:pointer" ng-click="showCase.open_location(location, zone.zone)">
+                <td>{{location.location}}</td>
+                <td>{{location.max_capacity}}</td>
+                <td>{{location.fill_sequence}}</td>
+                <td>{{location.pick_sequence}}</td>
+                <td>{{location.status}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </accordion-group>
+      </accordion> 
+      <div ui-view></div>
+    </div>
+  </div>
+</div>

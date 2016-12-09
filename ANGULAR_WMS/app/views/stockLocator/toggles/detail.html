@@ -1,0 +1,66 @@
+<div id="page-pop" class="modal fade in" id="sku-toggle" tabindex="-1" role="dialog" style="display: block;">
+  <!-- Modal -->
+  <form name="form" role="form" ui-jq="validate">
+      <div class="modal-dialog modal-lg model-custom">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">×</span>
+            </button>
+            <h4 class="modal-title" id="myLargeModalLabel">Location Wise Quantity</h4>
+          </div>           
+            <div class="modal-body">
+              <div class="row">
+                <div class="col-md-12">
+                  <span><b>WMS Code :</b> {{showCase.wms_code}}</span>
+                  <hr>
+                </div>
+                <table class="table table-condensed" ng-if="showCase.service.dict_length(showCase.model_data.zones_data)">
+                  <thead>
+                    <tr>
+                      <th>Zone</th>
+                      <th>Location</th>
+                      <th>Total Quantity</th>
+                      <th>Reserved Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody ng-repeat="(zone, data) in showCase.model_data.zones_data">
+                    <tr ng-repeat="(loc, quantity) in data">
+                      <td>{{zone}}</td>
+                      <td>{{loc}}</td>
+                      <td>{{quantity[0]}}</td>
+                      <td>{{quantity[1]}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="row" ng-if="showCase.model_data.production_stages">
+                <div class="col-md-12">
+                  <span><b>Production Stages :</b></span>
+                  <hr>
+                </div>
+                <table class="table table-condensed">
+                  <thead>
+                    <tr>
+                      <th> Job Order ID </th>
+                      <th> Stage Name </th>
+                      <th> Quantity </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat="stage in showCase.model_data.production_stages">
+                      <td>{{stage.job_code}}</td>
+                      <td>{{stage.stage_name}}</td>
+                      <td>{{stage.stage_quantity}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+          </div>
+        </div>
+      </div>
+  </form>
+</div>

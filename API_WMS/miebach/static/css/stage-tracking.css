@@ -1,0 +1,101 @@
+.round {
+  width: 25px;
+  height: 25px;
+  color: grey;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  background-color: #fff;
+      position: absolute;
+    z-index: 300;
+    top: 6px;
+      left: 3px;
+  cursor: pointer;
+  padding: 2px;
+}
+.current {
+
+  font-weight: 900;
+}
+
+.td-round {
+
+  border: 2px solid grey;
+    border-radius: 50%;
+    padding: 2px;
+}
+td {
+  position: relative;
+  padding: 2px;
+  padding-left: 35px;
+}
+tr {
+
+height: 40px;
+}
+.line {
+
+    width: 6px;
+    background: #909090;
+    position: ABSOLUTE;
+    height: 100%;
+    opacity: 0.8;
+    border-radius: 5px;
+    left: 12px;
+    top: 7px;
+    z-index: 100;
+}
+
+.done > td > .round {
+
+  border: 2px solid #66B032;
+}
+
+.done > td > .round > .glyphicon-ok{
+
+  color: #66B032;
+}
+
+.done > td > .round > .glyphicon-refresh {
+
+  display: none !important;
+}
+
+.done > td > .line {
+
+  background: #66B032;
+}
+
+.current > td > .round {
+
+  border: 2px solid #FF774D;
+}
+
+.current > td > .round > .glyphicon-refresh{
+
+  color: #FF774D;
+}
+
+.current > td > .round > .glyphicon-ok{
+
+  display: none;
+}
+ 
+.not-done > td > .round > .glyphicon-refresh {
+
+  display: none;
+}
+
+.not-done > td > .round > .glyphicon-ok {
+
+  display: none;
+}
+
+.current > td > .line {
+
+  background: #FF774D;
+}
+
+.glyphicon{
+
+  color: #ccc;
+}

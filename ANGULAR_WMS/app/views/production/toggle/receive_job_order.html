@@ -1,0 +1,94 @@
+<div id="page-pop" class="modal fade in" id="po-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="display: block;">
+  <!-- Modal -->
+  <form id="jo-form">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content model-custom">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">×</span>
+          </button>
+          <h4 class="modal-title" id="myLargeModalLabel">Receive Job Order</h4> </div>
+        <div class="modal-body" style="border:none;">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Job Order </label>
+                <input type="text" value="{{showCase.model_data.job_code}}" class="form-control" name="job_code" disabled>
+              </div>
+            </div>
+            <div class="col-md-4" ng-if="showCase.order_ids_list">
+              <div class="form-group">
+                <label class="control-label"> Order ID </label>
+                <input type="text" value="{{showCase.order_ids_list}}" class="form-control" name="order_ids" disabled>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <hr>
+          </div>
+          <div class="row">
+            <table class="table table-stk">
+              <thead>
+                <tr>
+                  <th> WMS Code </th>
+                  <th> JO Quantity </th>
+                  <th ng-if="showCase.permissions.pallet_switch"> Pallet Code </th>
+                  <th> Received Quantity </th>
+                  <th> Stage </th>
+                  <th class="detail"></th>
+                  <th class="plus"></th>
+                </tr>
+              </thead>
+              <tbody ng-repeat="data in showCase.model_data.data">
+                <tr ng-repeat="record in data.sub_data" class="field">
+                  <input type="hidden" name="id" value="{{data.id}}">
+                  <input type="hidden" name="status_track_id" value="{{record.status_track_id}}">
+                  <input type="hidden" name="pallet_id" value="{{record.pallet_id}}">
+                  <td><input type="text" name="wms_code" class="form-control" ng-model="data.wms_code" disabled></td>
+                  <td><input type="text" name="jo_quantity" class="form-control" ng-model="data.product_quantity" disabled></td>
+                  <td ng-if="showCase.permissions.pallet_switch"><input type="text" name="pallet_number" class="form-control" ng-model="record.pallet_number"></td>
+                  <td><input type="text" decimal-number name="received_quantity" class="form-control" ng-model="record.received_quantity" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
+                  <td><select class="form-control" name="stage" ng-init="record.stages_list[0]" >
+                        <option value="" ng-selected="record.stages_list.length == 0" ng-if="record.stages_list.length == 0"> </option>
+                        <option ng-repeat="stage in record.stages_list" value="{{stage}}" ng-selected="$first && record.stages_list.length">{{stage}}</option>
+                      </select>
+                  </td>	
+                  <td class="col-md-1 detail" ng-if="data.sku_extra_data.length > 0">
+                    <span ng-show="$first">
+                      <div class="tooltip" style="color:#33cc66">Detail
+                        <span class="tooltiptext">
+                          <div>
+                            <div ng-if="data.product_images.length">
+                              <img ng-src="{{showCase.service.check_image_url(data.product_images[0])}}" style="width: 100%;">
+                            </div>
+                            <table style="margin: 0px;width: 100%;">
+                          <!--<thead>
+                            <tr><th align="right" style="text-align:right">property</th><th align="left">value</th>
+                            </tr>
+                          </thead>-->
+                              <tbody>
+                                <tr ng-repeat="tip in data.sku_extra_data">
+                                  <td>{{tip.attribute_name}}</td><td>{{tip.attribute_value}}</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </span>
+                      </div>
+                    </span>
+                  </td>
+                  <td><i style="padding-left: 10px;" ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
+        </div>
+        <div class="modal-footer">
+          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-normal" ng-click="showCase.save()">Save</button>
+          <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-green" ng-click="showCase.submit()">Generate GRN</button>
+          <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print()">Print</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

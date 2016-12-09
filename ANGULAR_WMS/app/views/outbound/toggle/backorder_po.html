@@ -1,0 +1,76 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+    <div class="modal-dialog model-custom modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
+          <h4 class="modal-title">Raise PO</h4> </div>
+        <!-- body-->
+        <div class="modal-body">
+          <div class="row" ng-if="showCase.filter && showCase.filter != 'Self Produce'">
+            <div class="col-md-4">
+              <label>Vendor ID</label>
+              <input class="form-control" name="vendor_id" ng-model="showCase.filter" readonly/>
+            </div>
+          </div>
+          <div class="row" ng-if="(!(showCase.filter)) || showCase.filter == 'Self Produce'">
+            <div class="col-md-12 hide">
+              <h5><b>Purchase Order for Back Orders</b></h5>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+              <hr>
+            </div>
+          </div>
+          <div class="row">
+            <table class="table table-stk">
+              <thead>
+                <tr>
+                  <th> Supplier Name</th>
+                  <th> WMS Code </th>
+                  <th> Title </th>
+                  <th>Quantity </th>
+                  <th>Price</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr ng-repeat="product in showCase.model_data.data_dict">
+                  <td>
+                    <input type="hidden" name="wms_code" value="{{product.wms_code}}">
+                    <input type="hidden" name="title" value="{{product.title}}">
+                    <input type="hidden" ng-if="product.order_id" name="order_id" value="{{product.order_id}}">
+                    <select class="form-control" ng-init="supplier_list[0]" name="supplier_id">
+                      <option ng-repeat="supplier in showCase.model_data.supplier_list" value="{{supplier.id}}">{{supplier.name}}</option>
+                    </select>
+                  </td>
+                  <td>{{product.wms_code}}</td>
+                  <td>{{product.title}}</td>
+                  <td>
+                    <input type="text" name="quantity" class="form-control" ng-model="product.quantity" ng-class="service.get_decimal_perm()">
+                  </td>
+                  <td>
+                    <input type="text" name="price" ng-model="product.price" class="form-control" decimal-number>
+                  </td>
+                  <td>
+                    <input type="text" ng-model="product.remarks" name="remarks" class="form-control">
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="row insert-status">
+            <h4 align="center">{{showCase.message}}</h4>
+          </div>
+        </div>
+      <!-- body end-->
+        <div class="modal-footer">
+          <button type="submit" class="btn pop pop-green" ng-disabled="showCase.confirm_disable" ng-click="showCase.confirm_po(form)">Confirm PO</button>
+        </div>
+      </div>
+    </div>
+    <!-- /.modal-content -->
+  </form>
+  <!-- /.modal-dialog -->
+</div>

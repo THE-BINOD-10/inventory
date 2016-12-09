@@ -1,0 +1,31 @@
+<div class="modal-dialog modal-lg">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 class="modal-title" id="myLargeModalLabel">Cycle Count</h4>
+    </div>
+    <div class="modal-body">
+      <div class="row">
+        <div class="col-md-12">
+          <h5>Cycle Count ID: <b>{{showCase.model_data.cycle_id}}</b></h5>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-12">
+          <hr>
+        </div>
+      </div>
+      <table class="table borderless">
+        <thead>
+          <tr>
+            <th>WMS Code</th><th>Zone</th><th>Location</th><th>Seen Quantity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-repeat="data in showCase.model_data.data">
+            <td>{{data.wms_code}}</td><td>{{data.zone}}</td><td>{{data.location}}</td><td>{{data.seen_quantity}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

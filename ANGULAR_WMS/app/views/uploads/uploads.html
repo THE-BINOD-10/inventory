@@ -1,0 +1,38 @@
+<div class="page-layout">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body">
+    <div ng-controller="Uploads">
+      <div class="col-md-4" ng-repeat="upload in uploads">
+        <div class="panel" style="margin-bottom: 20px;">
+          <div class="panel-heading border">
+            {{upload.title}}
+          </div>
+          <div class="panel-body">
+            <br/>
+            <center><a class="btn btn btn-success" style="position: relative;width: 250px;" href="{{url+upload.durl+'?'+upload.dparam+'='+upload.value}}">{{upload.download}}</a></center><br/>
+            <center>
+              <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">{{upload.upload}}
+                <input style="    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;" class="btn btn-primary" value="{{upload.upload}}" type = "file" data="{{upload.uurl}}" index="{{$index}}" excel-upload multiple ng-disabled="disable"/>
+              </span>
+            </center>
+            <br/>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

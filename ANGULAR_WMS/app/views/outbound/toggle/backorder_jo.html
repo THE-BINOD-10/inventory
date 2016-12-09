@@ -1,0 +1,64 @@
+<div id="page-pop" class="modal fade in" id="po-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="display: block; padding-left: 15px;">
+  <!-- Modal -->
+  <form name="form" role="form" ui-jq="validate" ui-options="showCase.validationOpt">
+    <div class="modal-dialog modal-lg model-custom">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">×</span>
+          </button>
+          <h4 class="modal-title" id="myLargeModalLabel">Raise Job Order</h4> </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-3">
+              <label class="control-label"> Product SKU Code </label>
+            </div>
+            <div class="col-md-3">
+              <label class="control-label">Product SKU Quantity </label>
+            </div>
+            <div class="col-md-2">
+              <label class="control-label"> Material SKU Code </label>
+            </div>
+            <div class="col-md-3">
+              <label class="control-label"> Material SKU Quantity </label>
+            </div>
+          </div>
+          <div ng-repeat="data in showCase.model_data.data">
+          <div class="row field" ng-repeat="item in data.sub_data">
+            <div class="col-md-3">
+              <input type="hidden" name="order_id" value="{{data.order_id}}">
+              <input type="hidden" name="id" value="{{item.id}}">
+
+              <input type="text" autocomplete="off" ng-readonly="showCase.update && (!(item.new_sku))" ng-show="$first" name="product_code" class="form-control" placeholder="Search Product SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="data.product_code" ng-blur="showCase.service.checkSearchValue(data.product_code,'search_wms_codes?', $event, 'RM', 'Product SKU Code');showCase.get_product_data(data.product_code, data)">
+
+              <!--<input ng-readonly="showCase.update && (!(item.new_sku))" ng-show="$first" type="text" name="product_code" ng-model="data.product_code" ng-blur="showCase.get_product_data(data.product_code, data)" class="form-control">-->
+            </div>
+            <div class="col-md-3">
+              <input ng-show="$first" type="text" name="product_quantity" ng-model="data.product_description" ng-change="showCase.change_quantity(data)" class="form-control" ng-class="service.get_decimal_perm()">
+            </div>
+            <div class="col-md-2">
+              <input type="text" autocomplete="off" name="material_code" class="form-control" placeholder="Search Material SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?','RM')" typeahead-loading="loadingLocations" ng-model="item.material_code" ng-blur="showCase.service.checkSearchValue(item.material_code,'search_wms_codes?', $event, 'RM', 'Material SKU Code')">
+              <!--<input type="text" name="material_code" ng-model="item.material_code" class="form-control">-->
+            </div>
+            <div class="col-md-3">
+              <input type="text" positive-number name="material_quantity" class="form-control" value="{{(data.product_description > -1)? showCase.service.decimal(data.product_description, item.material_quantity): item.material_quantity;}}" ng-class="service.get_decimal_perm()">
+            </div>
+            <div class="col-md-1">
+              <div class="col-md-1"> <i ng-click="showCase.update_data(data, $index, $last, $first)" ng-class="showCase.isLast($last)"></i> </div>
+            </div>
+          </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12" style="margin-top:10px">
+              <center><button ng-click="showCase.add_product();" type="button" class="btn btn-default">Add New Product SKU Code</button></center>
+            </div>
+          </div>
+          <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
+        </div>
+        <div class="modal-footer">
+          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-click="showCase.confirm_jo(form)">Confirm</button>
+          <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print()">Print</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

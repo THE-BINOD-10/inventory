@@ -1,0 +1,95 @@
+<form id="toggle-po">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <table style="font-size:12px;width:480px">
+          <tbody>
+            <tr>
+              <td rowspan="3" style="text-align:left;width:380px;"><h4>Purchase Order</h4></td>
+              {% if company_name %}
+              <td style="text-align:center;">{{company_name }}</td>
+              {% endif %}
+            </tr>
+            {% if address %}
+            <tr>
+              <td style="text-align:center;width:480px;">{{ w_address|linebreaks }}</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-body">
+        <div class="form-group clearfix">
+          <div>
+            <div style="float: left;">
+            {% if not vendor_name %}
+              <p style="font-weight: bold;">To: </p>
+            {% else %}
+              <p style="font-weight: bold;">Shipped From: </p>
+            {% endif %}
+              <p>{{ name }}</p>
+              {{ address|linebreaks }}
+              <p><b>Telephone:</b> {{ telephone }}</p>
+              {% if vendor_name %}
+                <p style="font-weight: bold;">Shipped To: </p>
+                <p>{{ vendor_name }}</p>
+                {{ vendor_address|linebreaks }}
+                <p><b>Telephone:</b> {{ vendor_telephone }}</p>
+              {% endif %}
+
+            </div>
+          <div style="float: right;">
+            <p><b>Order ID:</b> {{ order_id }}</p>
+            <p><b>PO Reference:</b> {{ po_reference }}</p>
+            <p><b>Date:</b> {{ order_date }}</p>
+          </div>
+          <br/> <br/>
+        </div>
+        <div style="clear:both;">
+          <table class="table borderless">
+            <thead>
+              <tr>
+                {% for table_header in table_headers %}
+                <th>{{ table_header }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for dat in data %}
+              <tr>
+                {% for d in dat %}
+                <td>{{ d }}</td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <table class='table borderless'>
+            <tbody>
+              <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>Total Order Quantity</td>
+                <td>{{ total_qty }}</td>
+                <td> Total Amount</td>
+                <td>{{ total }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer hide">
+        <button class="btn btn-primary inb-receive-po {{ display }}" type="button" id="{{ order_id }}">Proceed to Next Step</button>
+        <button type="submit" class="btn btn-primary print-po">Print</button>
+      </div>
+    </div>
+  </div>
+</form>

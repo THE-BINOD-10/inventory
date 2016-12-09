@@ -1,0 +1,57 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form id="form-data" name="form" role="form" ui-jq="validate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">{{showCase.title}}</h4>
+      </div>
+      <!-- body-->
+      <div class="modal-body">
+        <div class="clearfix">
+          <div class="row">
+            <div class="col-md-4 col-sm-6 col-sm-12">
+              <div class="form-group">
+                <label class="control-label"> Size Name * </label>
+                <input type="text" name="size_name" class="form-control" ng-model="showCase.model_data.size_name" maxlength="256" requiredi ng-disabled="showCase.update">
+              </div>
+              <input type="hidden" name="id" value="{{showCase.model_data.DT_RowAttr['data-id']}}" ng-if="showCase.model_data.DT_RowAttr['data-id']">
+            </div>
+          </div>
+          <div class="row col-md-12">
+            <hr>
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+              <h4>Entities</h4>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-8">
+              <div class="row">
+                <div class="col-md-12" ng-repeat="size in showCase.model_data.sizes">
+                  <div class="input-size" style="padding-bottom: 20px;">
+                    <input type="text" name="size" class="form-control" ng-model="size.size" style="float: left;width: 70%;display: block;">
+                    <span>
+                      <i title="Remove Field" ng-click="showCase.model_data.sizes.splice($index,1)" class="fa fa-minus-square-o" style="padding-left: 15px;"></i>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-4">
+              <span class="plus">
+                <i class="fa fa-plus-circle" style="font-size: 45px;margin-top: -10px;" ng-click="showCase.add_item_size();showCase.model_data.sizes.push({'size':''})" title="Add New Size Input Field"></i>
+              </span>
+            </div>
+          </div>
+          <div ng-include="'views/common/msg.html'"></div>
+        </div>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)">Save</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+  </form>
+</div>

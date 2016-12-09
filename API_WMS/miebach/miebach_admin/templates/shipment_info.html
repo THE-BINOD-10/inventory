@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block header %} Shipment Info {% endblock %}
+{% block outbound %} active{% endblock %}
+{% block outbound_style %} block {% endblock %}
+{% block shipment_info %} active {% endblock %}
+{% block content %}
+{% load staticfiles %}
+<script type="text/javascript" src="{% static 'js/fnReloadAjax.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/notify.js' %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'css/notify.css' %}"/>
+<div class="content-wrapper">
+    <div class="panel tab-content" id="shippment" style='padding-bottom:0px;'>
+        <div class='notifications top-right'></div>
+        <form id="order-shipment">
+            <div class="form-group clearfix">
+                <hr>
+                {% for shipment_field in shipment_fields %}
+                <div class="row col-md-12">
+                    {% for shipment in shipment_field %}
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="col-md-5 control-label">{{ shipment.0 }}</label>
+
+                            <div class="col-md-7">
+                                {% if shipment.1 == "customer_id" %}
+                                <select name='{{ shipment.1 }}' id='{{ shipment.1 }}' class='form-control'>
+                                    <option value="">Select</option>
+                                    {% for cid in customer_ids %}
+                                    <option value={{cid.customer_id}}>{{cid.customer_id}}</option>
+                                    {%endfor%}
+                                </select>
+                                {% elif shipment.1 == "marketplace" %}
+                                <select name='{{ shipment.1 }}' id='{{ shipment.1 }}' class='form-control'>
+                                    <option value="">Select</option>
+                                    {% for market in marketplaces %}
+                                    <option value="{{ market }}">{{ market }}</option>
+                                    {%endfor%}
+                                </select>
+                                {% elif shipment.1 == "shipment_date" %}
+                                    <input name="{{ shipment.1 }}" class="form-control" type="text" id="shipment_date">
+                                {% elif shipment.1 == "shipment_number" %}
+                                    <input name="{{ shipment.1 }}" class="form-control numvalid" type="text" value="{{ shipment_number }}">
+                                {% else %}
+                                <input name="{{ shipment.1 }}" class="form-control" type="text">
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+        </form>
+        <div class="col-md-12" style='padding-bottom:0px;'>
+            <hr>
+            <button type="button" class="btn btn-primary pull-right" id='add-shippment-btn' data-toggle="modal"
+                    data-target="#myModal" disabled='disabled'>Add
+            </button>
+        </div>
+    </div>
+</div>
+</div>
+<div class="modal fade process-toggle" id="location-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel"
+     aria-hidden="true">
+</div>
+
+<div class='content-wrapper'>
+    <div id="shipment-display" class='panel tab-content' style="display : '' "><h4> Shipment Details</h4>
+       <table class="display" id="shipment-info">
+         <thead>
+         <tr>
+             <th>Customer ID</th>
+             <th>Customer Name </th>
+             <th>Total Quantity</th>
+         </tr>
+         </thead>
+      </table>
+                <div class="clearfix top-padding">
+                    <button type="submit" class="btn btn-danger right-float print-shipment">Confirm Shipment</button>
+                </div>
+    </div>
+</div>
+
+{% endblock %}
+

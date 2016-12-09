@@ -1,0 +1,155 @@
+'use strict';
+
+angular.module('urbanApp', ['datatables'])
+  .controller('CustomSKUMasterTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+    var vm = this;
+    vm.apply_filters = colFilters;
+    vm.service = Service;
+
+    vm.filters = {'datatable': 'CustomSKUMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':''}
+    vm.dtOptions = DTOptionsBuilder.newOptions()
+       .withOption('ajax', {
+              url: Session.url+'results_data/',
+              type: 'POST',
+              data: vm.filters,
+              xhrFields: {
+                withCredentials: true
+              }
+           })
+       .withDataProp('data')
+       .withOption('processing', true)
+       .withOption('serverSide', true)
+       .withPaginationType('full_numbers')
+       .withOption('rowCallback', rowCallback)
+       .withOption('initComplete', function( settings ) {
+         vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
+       });
+
+    vm.dtColumns = [
+        DTColumnBuilder.newColumn('Template Name').withTitle('Template Name'),
+        DTColumnBuilder.newColumn('Template Type').withTitle('Template Type'),
+        DTColumnBuilder.newColumn('Template Value').withTitle('Template Value'),
+        DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
+    ];
+
+    vm.dtInstance = {};
+
+    $scope.$on('change_filters_data', function(){
+      vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
+      vm.service.refresh(vm.dtInstance);
+    });
+
+    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+        $('td', nRow).unbind('click');
+        $('td', nRow).bind('click', function() {
+            $scope.$apply(function() {
+              vm.service.apiCall('get_product_properties/?data_id='+aData.DT_RowAttr['data-id']).then(function(data){
+                if(data.message) {
+                  angular.copy(data.data.data[0], vm.model_data);
+                  vm.update = true;
+                  vm.title = "Update Custom SKU";
+                  $state.go('app.masters.CustomSKUMaster.AddCustomSKU');
+                }
+              });
+            });
+        });
+    }
+
+  var empty_data = {name:'', property_name: '', property_type:'', attributes: [{attribute_name:'', description:'', new: true}]};
+  vm.model_data = {};
+  vm.template_types = {};
+  vm.template_values= [];
+  vm.base = function() {
+
+    vm.title = "Add Custom SKU";
+    vm.update = false;
+    angular.copy(empty_data, vm.model_data);
+    vm.service.apiCall('get_sku_field_names/').then(function(data){
+      if(data.message) {
+        vm.template_types = data.data.template_types;  
+        vm.model_data.property_type = vm.template_types[0].field_name;
+        vm.template_values = vm.template_types[0].field_data;
+        vm.model_data.property_name = vm.template_values[0];
+      }
+    })
+  }
+  vm.base();
+
+  vm.close = function() {
+
+    angular.copy(empty_data, vm.model_data);
+    $state.go('app.masters.CustomSKUMaster');
+  }
+
+  vm.add = add;
+  function add() {
+
+    vm.base();
+    $state.go('app.masters.CustomSKUMaster.AddCustomSKU');
+  } 
+
+  vm.change_template_values = function(){
+
+    angular.forEach(vm.template_types, function(data) {
+      if(vm.model_data.property_type == data.field_name){
+        vm.template_values = data.field_data;
+        vm.model_data.property_name = vm.template_values[0];
+      }
+    })
+  }
+
+  vm.custom = function(url, form) {
+    var elem = $(form).serializeArray()
+    var formData = new FormData()
+    var files = $("form").find('[name="files"]')[0].files;
+    $.each(files, function(i, file) {
+        formData.append('files-' + i, file);
+    });
+
+    $.each(elem, function(i, val) {
+        formData.append(val.name, val.value);
+    });
+
+    $.ajax({url: Session.url+url,
+            data: formData,
+            method: 'POST',
+            processData : false,
+            contentType : false,
+            xhrFields: {
+                withCredentials: true
+            },
+            'success': function(response) {
+              if(response.indexOf("Added") > -1 || response.indexOf("Updated") > -1) {
+                vm.service.refresh(vm.dtInstance);
+                vm.close();
+              } else {
+                vm.pop_msg(response);
+              }
+            }});
+  }
+
+  vm.submit = submit;
+  function submit(data) {
+    if (data.$valid) {
+      if (!vm.update) {
+        vm.custom('create_custom_sku_template/', form);
+      } else {
+        vm.custom('update_custom_sku_template/', form);
+      }
+    } else {
+      vm.service.pop_msg('Please fill required fields');
+    }
+  }
+
+  vm.remove_attribute = function(index,attribute) {
+
+   if(vm.update) {
+     vm.service.apiCall('delete_product_attribute/?data_id='+attribute.id);
+   }
+   vm.model_data.attributes.splice(index, 1);
+  }
+
+}
+

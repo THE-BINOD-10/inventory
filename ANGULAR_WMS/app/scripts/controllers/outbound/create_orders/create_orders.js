@@ -1,0 +1,612 @@
+'use strict';
+
+function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout) {
+
+  $scope.msg = "start";
+  var vm = this;
+  vm.service = Service;
+  vm.company_name = Session.user_profile.company_name;
+  vm.model_data = {}
+  var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], customer_id: ""};
+  angular.copy(empty_data, vm.model_data);
+  vm.isLast = isLast;
+    function isLast(check) {
+
+      var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
+      return cssClass
+    }
+
+  vm.update_data = update_data;
+  function update_data(index, data, last) {
+    console.log(data);
+    if (last) {
+      vm.model_data.data.push({sku_id: "", quantity: "", invoice_amount: "", price: "", tax: vm.tax, total_amount: "", unit_price: ""});
+    } else {
+      vm.model_data.data.splice(index,1);
+    }
+  }
+
+  vm.selected = {}
+  vm.get_customer_data = function(item, model, label, event) {
+    vm.model_data["customer_id"] = item.customer_id;
+    vm.model_data["customer_name"] = item.name;
+    vm.model_data["telephone"] = parseInt(item.phone_number);
+    vm.model_data["email_id"] = item.email;
+    vm.model_data["address"] = item.address;
+    vm.add_customer = false;
+    angular.copy(item, vm.selected)
+  }
+
+  vm.check_id = function(id) {
+    if(Number(id) > 0) {
+      if (!(vm.model_data["customer_name"])) {
+        vm.add_customer = true;
+      }
+    }
+    if(!(Number(id)) && id) {
+      vm.model_data["customer_name"] = id;
+      vm.model_data["customer_id"] = "";
+      vm.add_customer = true;
+    }
+  }
+
+  function make_empty() {
+    vm.model_data["customer_name"] = "";
+    vm.model_data["telephone"] = "";
+    vm.model_data["email_id"] = "";
+    vm.model_data["address"] = "";
+  }
+
+  vm.bt_disable = false;
+  vm.insert_order_data = function(form) {
+    if (vm.model_data.shipment_date) {
+      vm.bt_disable = true;
+      console.log(form);
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      vm.service.apiCall('insert_order_data/', 'GET', elem).then(function(data){
+        if(data.message) {
+          if("Success" == data.data) {
+            angular.copy(empty_data, vm.model_data);
+            vm.final_data = {total_quantity:0,total_amount:0}
+          }
+          colFilters.showNoty(data.data);
+        }
+        vm.bt_disable = false;
+      })
+    } else {
+      colFilters.showNoty("Fill Required Fields");
+    }
+  }
+
+  vm.catlog = false;
+  vm.categories = [];
+  vm.category = "";
+  vm.brand = "";
+
+  function change_filter_data() {
+    var data = {brand: vm.brand, category: vm.category, is_catalog: true};
+    vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
+  
+      if(data.message) {
+
+        vm.categories = data.data.categories;
+        
+	vm.brands = data.data.brands;
+	if (vm.brands.length === 0){
+	  vm.details = false;
+	}
+	/*vm.brands_images = {'6 Degree': '6degree.png', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'biowash.jpg', 'Scala': 'scala.png',
+        'Scott International': 'scott.jpg', 'Scott Young': 'scottyoung.png', 'Spark': 'spark.jpg', 'Star - 11': 'star11.png',
+	 'Super Sigma': 'supersigma.jpg', 'Sulphur Cotton': 'dflt.jpg', 'Sulphur Dryfit': 'dflt.jpg'}*/
+        vm.brands_images = {'6 Degree': 'SIX-DEGREES-1.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'BIO-COLLECTION-1.jpg', 
+	'Scala': 'SCALA-1.jpg','Scott International': 'SCOTT-1.jpg', 'Scott Young': 'SCOTT-YOUNG-1.jpg', 'Spark': 'spark-1.jpg', 
+	'Star - 11': 'star-11.jpg','Super Sigma': 'super-sighma.jpg', 'Sulphur Cotton': 'sulphur-1.jpg', 'Sulphur Dryfit': 'sulphur-2.jpg'}	
+        vm.get_category(true);
+      }
+    });
+  }
+  change_filter_data();
+
+  vm.style = "";
+  vm.catlog_data = {data: [], index: ""}
+
+  vm.tag_details = function(cat_name, brand) {
+
+    if(cat_name == "All") {
+      cat_name = "";
+    }
+    vm.category = cat_name;
+    vm.catlog_data.index = "";
+    var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true} 
+    vm.catlog_data.index = ""
+    vm.scroll_data = false;
+    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
+    
+	if(data.message) {
+        
+        angular.copy([], vm.catlog_data.data);
+        vm.catlog_data.index = data.data.next_index;
+	angular.forEach(data.data.data, function(item){
+          vm.catlog_data.data.push(item);
+        })
+        vm.scroll_data = true;
+	}
+    })
+
+  }
+
+  vm.cate_details =  function(brand) {
+
+    var data = {brand: brand, is_catalog: true};
+    
+    vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
+      vm.all_cate = data.data.categories;
+      vm.brand = brand;
+    })
+    
+    angular.copy([], vm.catlog_data.data);
+    vm.catlog_data.index = "";
+    vm.scroll_data = false; 
+    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
+      vm.catlog_data.index = data.data.next_index;
+      angular.forEach(data.data.data, function(item){
+        vm.catlog_data.data.push(item);
+      })
+      vm.scroll_data = true;
+    })
+  }
+
+  vm.get_category = function(status, scroll) {
+    vm.scroll_data = false;
+    var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true}
+    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
+
+      if(data.message) {
+
+        if(status) {
+
+          vm.catlog_data.index = "";
+          angular.copy([], vm.catlog_data.data);
+        }
+        vm.catlog_data.index = data.data.next_index;
+        angular.forEach(data.data.data, function(item){
+          vm.catlog_data.data.push(item);
+        })
+      }
+      //if(scroll) {
+      //  $(window).scroll(scrollHandler);
+      //}
+      vm.scroll_data = true;
+    })
+
+  }
+
+  vm.scroll_data = true;
+  vm.scroll = function(e) {
+
+    console.log("scroll")
+    if($(".render-items:visible").length && vm.scroll_data) {
+
+      if(vm.catlog_data.index) {
+        var data = vm.catlog_data.index.split(":");
+        if((Number(data[1])-Number(data[0])) == 20){
+          vm.get_category(false, true);
+        }
+      }
+    }
+  }
+
+  vm.filter_change = function() {
+
+    vm.catlog_data.index = "";
+    angular.copy([], vm.catlog_data.data);
+    vm.category = '';
+    var all = $(".cat-tags");
+    vm.remove_bold(all);
+    vm.get_category(true);
+  }
+
+  vm.all_cate = [];
+  vm.change_brand = function(data) {
+
+    vm.brand = data;
+    vm.catlog_data.index = "";
+    angular.copy([], vm.catlog_data.data);
+    vm.category = '';
+    vm.style='';
+    var all = $(".cat-tags");
+    vm.remove_bold(all);
+    var data = {brand: vm.brand}
+    vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
+      if(data.message) {
+
+        vm.all_cate = data.data.categories; 
+        if(vm.all_cate.length> 0) {
+          vm.all_cate.push("All")
+          vm.category = vm.all_cate[0];
+          vm.get_category(true);
+          $timeout(function () {
+            $(".cat-tags:first").addClass("ct-selected"); 
+          }, 1000);
+        }
+      }
+    })
+  }
+
+  vm.show = function() {
+  
+    vm.base();
+    vm.model_data.template_value = "";
+    vm.model_data.template_type = ""
+    $state.go('app.outbound.CreateOrders.CreateCustomSku');
+  }
+
+ vm.base = function() {
+
+    vm.title = "Create Custom SKU";
+    //vm.update = false;
+    //angular.copy(empty_data, vm.model_data);
+    vm.service.apiCall('get_sku_field_names/','GET',{'field_type':'create_orders'}).then(function(data){
+
+      if(data.message) {
+	vm.template_types = data.data.template_types;
+        //vm.template_types = data.data.template_types;
+        //vm.model_data.template_type = vm.template_types[0].field_name;
+        //vm.template_values = vm.template_types[0].field_data;
+        vm.model_data.template_type = vm.template_types[0].field_value;
+        vm.pop_data.sizes_list = data.data.sizes_list;
+      }
+    })
+  }
+
+  vm.change_template_values = function(){
+    angular.forEach(vm.template_types, function(data) {
+      var property_name = vm.model_data.template_type.split(':')[0];
+      var template_name = vm.model_data.template_type.split(':')[1];
+      if((property_name == data.field_value) && (template_name == data.template_name)){
+        vm.template_values = data.field_data;
+	vm.template_name = data.template_name;
+	vm.property_type = data.field_name;
+        //vm.model_data.property_name = vm.template_values[0];
+      }
+    })
+  }
+
+  vm.image = "";
+  vm.change_category_values = function(){
+
+    vm.service.apiCall('get_product_properties/',"GET",{'property_type':vm.property_type,'property_name':vm.model_data.template_value,'template_name':vm.template_name}).then(function(data){
+        if (data.data.data.length > 0) {
+
+          vm.attributes = data.data.data[0].attributes;
+          if (data.data.data[0].images.length) {
+
+            vm.image = data.data.data[0].images[0];
+          } else {
+
+            vm.image = "";
+          }
+        } else {
+          vm.attributes = [];
+          vm.image = "";
+        }
+  })
+}
+
+  vm.pop_btn = true;
+  vm.check_quantity = function(data){
+
+    vm.pop_btn = true;
+    angular.forEach(data, function(record){
+      if(Number(record.quantity)> 0) {
+        vm.pop_btn = false;
+      }
+    });
+  }
+
+  vm.submit = submit;
+  function submit(data) {
+    if (data.$valid && vm.pop_data.unit_price) {
+
+      var elem = $('#create_form').serializeArray()
+    var formData = new FormData()
+    var files = $("form").find('[name="files"]')[0].files;
+    $.each(files, function(i, file) {
+        formData.append('files-' + i, file);
+    });
+
+    $.each(elem, function(i, val) {
+        formData.append(val.name, val.value);
+    });
+
+    $.ajax({url: Session.url+'create_custom_sku/',
+            data: formData,
+            method: 'POST',
+            processData : false,
+            contentType : false,
+            xhrFields: {
+                withCredentials: true
+            },
+            'success': function(response) {
+              var response = JSON.parse(response);
+              if(response.message == "SKU Created Successfully") {
+              
+                colFilters.showNoty("Custom SKU Created And Also Added In Order");
+                vm.add_to_order(response.data, vm.pop_data);
+                vm.attributes = [];
+                vm.image = "";
+                vm.model_data.template_value = "";
+                vm.model_data.template_type = "";
+                vm.close(); 
+              } else {
+                vm.service.pop_msg(response.message);
+              }
+            }});
+
+	/*vm.service.apiCall('create_custom_sku/','GET',$('#create_form').serializeArray()).then(function(data) {
+          if(data.message) {
+
+            if(data.data.message == "SKU Created Successfully") {
+              
+              colFilters.showNoty("Custom SKU Created And Also Added In Order");
+              vm.add_to_order(data.data.data, vm.pop_data);
+              vm.attributes = [];
+              vm.image = "";
+              vm.model_data.template_value = "";
+              vm.model_data.template_type = "";
+              vm.close(); 
+            } else {
+              vm.service.pop_msg(data.data.message);
+            }
+          }	
+	})*/
+    } else {
+      vm.service.pop_msg('Please fill required fields');
+    }
+  }
+
+  vm.add_to_order = function(data, sizes) {
+
+    if (vm.model_data.data.length==1) {
+      if (!(vm.model_data.data[0].sku_id)) {
+        vm.model_data.data = [];
+      }
+    }
+    angular.forEach(data, function(record){
+
+      var temp = {sku_id: record.sku_code, quantity: Number(record.quantity), invoice_amount: "", price: Number(sizes.unit_price), tax: vm.tax, total_amount: ''}
+      temp.invoice_amount = temp.quantity*temp.price;
+      temp.total_amount = ((temp.invoice_amount/100)*5.5)+temp.invoice_amount;
+      vm.model_data.data.push(temp);
+    });
+
+    vm.cal_total();
+    /*if (vm.model_data.data[0].sku_id) {
+      vm.model_data.data.push({sku_id: data, quantity: "", invoice_amount: "", price: "", tax: vm.tax}); 
+    } else {
+      vm.model_data.data[0].sku_id = data;
+      vm.model_data.data[0].quantity = "1";
+      vm.model_data.data[0].invoice_amount = "";
+      vm.model_data.data[0].price = "";
+    }*/
+  }
+
+ vm.close = function() {
+
+    //angular.copy(empty_data, vm.model_data);
+    vm.attributes = [];
+    vm.image = "";
+    angular.copy(empty_pop_data, vm.pop_data);
+    vm.pop_btn = true;
+    $state.go('app.outbound.CreateOrders');
+  }
+
+  vm.brand_details = function(brand_data) {
+
+    vm.brand = brand_data;
+    vm.filter_change();
+    /*vm.service.apiCall("get_sku_catalogs/", "GET", {brand: brand_data}).then(function(data) {
+
+      if(data.message) {
+
+        if(brand_data) {   
+
+	  vm.catlog_data.details = [];
+	  vm.catlog_data.brand = brand_data;
+        }
+        
+	angular.forEach(data.data.data, function(item){
+
+	  vm.catlog_data.details.push(item);
+        });
+      }	
+    });*/
+  }
+
+
+  vm.style_open = false;
+  vm.style_data = [];
+  vm.open_style = function(data) {
+
+    vm.service.apiCall("get_sku_variants/", "GET", {sku_class: data, is_catalog: true}).then(function(data) {
+
+      if(data.message) {
+        vm.style_open = true;
+        vm.check_stock=true;
+        vm.style_data = data.data.data;
+      }
+    });
+  }
+
+  vm.check_item = function(sku) {
+
+    var d = $q.defer();
+    angular.forEach(vm.model_data.data, function(data, index){
+      if(data.sku_id == sku) {
+        d.resolve(String(index));
+      } else if ((vm.model_data.data.length-1) == index) {
+        d.resolve('true');
+      }
+    })
+    return d.promise;
+  }
+
+  vm.add_to_cart = function() {
+
+    angular.forEach(vm.style_data, function(data){
+
+      if (data['quantity']) {
+        vm.check_item(data.wms_code).then(function(stat){
+          console.log(stat)
+          if(stat == "true") {
+            if(vm.model_data.data[0]["sku_id"] == "") {
+              vm.model_data.data[0].sku_id = data.wms_code;
+              vm.model_data.data[0].quantity = Number(data.quantity);
+              vm.model_data.data[0]['price'] = Number(data.price);
+              vm.model_data.data[0].invoice_amount = data.price*Number(data.quantity);
+              vm.model_data.data[0]['tax'] = vm.tax;
+              vm.model_data.data[0]['total_amount'] = ((vm.model_data.data[0].invoice_amount/100)*vm.tax)+vm.model_data.data[0].invoice_amount;
+            } else {
+              var temp = {sku_id: data.wms_code, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax}
+              temp['total_amount'] = ((temp.invoice_amount/100)*vm.tax)+temp.invoice_amount;
+              vm.model_data.data.push(temp)
+            }
+          } else {
+             var temp = Number(vm.model_data.data[Number(stat)].quantity);
+             vm.model_data.data[Number(stat)].quantity = temp+Number(data.quantity);
+             vm.model_data.data[Number(stat)].invoice_amount = Number(data.price)*vm.model_data.data[Number(stat)].quantity;
+             var invoice = vm.model_data.data[Number(stat)].invoice_amount;
+             vm.model_data.data[Number(stat)].total_amount = ((invoice/100)*vm.tax)+invoice;
+          }
+          vm.cal_total();
+        });
+      }
+    });
+    vm.service.showNoty("Succesfully Added to Cart");
+  }
+
+  vm.check_stock = true;
+  vm.enable_stock = function(){
+    if(vm.check_stock) {
+      vm.check_stock = false;
+    } else {
+      vm.check_stock = true;
+    }
+  }
+
+  vm.get_invoice = function(record) {
+
+    var sku = record.sku_id;
+    vm.service.apiCall("get_sku_variants/", "GET", {sku_code: sku, customer_id: vm.model_data.customer_id, is_catalog: true}).then(function(data) {
+
+      if(data.message) {
+        if(data.data.data.length == 1) {
+          record["price"] = data.data.data[0].price;
+          if(!(record.quantity)) {
+            record.quantity = 1
+          }
+          record.invoice_amount = Number(record.price)*Number(record.quantity)
+          vm.cal_percentage(record);
+        }
+      }
+    });
+  }
+
+  vm.final_data = {total_quantity:0,total_amount:0}
+  vm.cal_total = function() {
+
+    vm.final_data.total_quantity = 0;
+    vm.final_data.total_amount = 0;
+    angular.forEach(vm.model_data.data, function(record){
+      vm.final_data.total_amount += Number(record.total_amount);
+      vm.final_data.total_quantity += Number(record.quantity);
+    })
+  }
+  vm.cal_percentage = function(data) {
+
+    var per = Number(data.tax);
+    data.total_amount = ((Number(data.invoice_amount)/100)*per)+Number(data.invoice_amount);
+    vm.cal_total();
+  }
+
+  vm.change_unit_price = function(data) {
+    data.invoice_amount = Number(data.price)*Number(data.quantity);
+    vm.cal_percentage(data);
+  }
+
+  vm.lions = false;
+
+  vm.add_customer = false;
+  vm.create_customer = function() {
+
+    if(vm.model_data.customer_id == "") {
+
+      colFilters.showNoty("Please Fill Customer ID");
+    } else if (!(vm.model_data.customer_name)) {
+
+      colFilters.showNoty("Please Fill Customer Name");
+    } else if(!(vm.model_data.email_id)) {
+
+      colFilters.showNoty("Please Fill Email");
+    } else {
+
+      var data = {customer_id: vm.model_data.customer_id, name: vm.model_data.customer_name,
+                  email_id: vm.model_data.email_id, phone_number: vm.model_data.telephone,
+                  address: vm.model_data.address}
+      vm.service.apiCall("insert_customer/","POST", data).then(function(data){
+        if(data.message)  {
+          if(data.data == 'New Customer Added') {
+            vm.add_customer = false;
+          }
+          colFilters.showNoty(data.data);
+        }
+      })
+    }
+  }
+
+  var empty_pop_data = {sizes_list: [], list:[], unit_price:''}
+  vm.pop_data = {};
+  angular.copy(empty_pop_data, vm.pop_data);
+
+  vm.change_sizes_list = function(item) {
+
+    vm.pop_data.list = []
+    angular.forEach(vm.pop_data.sizes_list, function(data){
+
+      if(data.size_name == item) {
+
+        angular.forEach(data.size_values, function(record) {
+
+          vm.pop_data.list.push({name: record, quantity: 0});
+        })
+      }
+    })
+  }
+
+  vm.tax = 0;
+  console.log(Session);
+  if(Session.userName == 'sagar_fab') {
+    vm.tax = 5.5;
+  }
+  vm.model_data.data[0].tax = vm.tax;
+  empty_data.data[0].tax = vm.tax;
+
+  vm.make_bold = function(e) {
+
+    console.log(e);
+    var all = $(e.toElement).parent().find(".cat-tags");
+    vm.remove_bold(all);
+    $(e.toElement).addClass("ct-selected");
+  }
+  vm.remove_bold = function(e) {
+    angular.forEach(e, function(item){
+      $(item).removeClass("ct-selected");
+    })
+  }
+}
+
+angular
+  .module('urbanApp')
+  .controller('CreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', CreateOrders]);

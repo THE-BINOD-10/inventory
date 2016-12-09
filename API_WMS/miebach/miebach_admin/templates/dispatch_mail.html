@@ -1,0 +1,29 @@
+<html><head></head><body style="font-family:arial; font-size:100%;">
+Dear {{ customer_name }},<br>
+
+<p>
+    We are pleased to inform you that following items in your Order <b>{{ order_id }}</b> have been packed by the seller and are ready to be shipped.
+</p>
+
+<p>Item(s) details:</p>
+<table border="1" bordercolor="#D2D9E7" cellpadding="2" cellspacing="2" style="border-collapse:collapse; font-size:13px; border:1px solid #D2D9E7">
+    <tbody>
+    <tr style="background-color:#00648B; color:#FFFFFF;">
+
+        {% for header in headers %}
+        <td> {{ header }} </td>
+        {% endfor %}
+
+    </tr>
+        <tr>
+        {% for item in items %}
+                <td>{{ item }}</td>
+        {% endfor %}
+    </tr>
+    </tbody>
+</table>
+
+<br>The shipment will be sent to:
+{{ address }}
+<br>Phone: {{ phone_number }}<br>
+</body></html>

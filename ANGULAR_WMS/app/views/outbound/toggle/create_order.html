@@ -1,0 +1,89 @@
+<div ng-controller="CreateOrders as pop" id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
+        <h4 class="modal-title">Create Order</h4>
+      </div>
+      <!-- body-->
+      <div class="modal-body raise">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="form-group">
+              <label class="control-label">Customer ID</label>
+              <input name="customer_id" ng-model="pop.model_data.customer_id" class="form-control" type="text" ng-blur="pop.get_customer_data(pop.model_data.customer_id)">
+            </div>
+          </div>   
+          <div class="col-md-4">
+            <div class="form-group">
+              <label class="control-label">Customer Name</label>
+              <input name="customer_name" ng-model="pop.model_data.customer_name" class="form-control" type="text">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              <label class="control-label">Telephone</label>
+              <input name="telephone" ng-model="pop.model_data.telephone" class="form-control" type="text" whole-number maxlength="10">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              <label class="control-label">Shipment Date *</label>
+              <input name="shipment_date" ui-jq="datepicker" ng-model="pop.model_data.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" readonly required>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              <label class="control-label">Email</label>
+              <input name="email_id" class="form-control" type="email" ng-model="pop.model_data.email_id">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              <label class="control-label">Address</label>
+              <textarea rows="4" class="form-control" cols="27" name="address" ng-model="pop.model_data.address"></textarea>
+            </div>
+          </div>
+        </div>
+          <div class="row">
+            <div class="col-md-12"><hr></div>
+          </div>
+          <div class="row">
+            <table>
+              <thead>
+                <tr class="field">
+                  <th>SKU Code/WMS Code *</th>
+                  <th>Quantity</th>
+                  <th>Invoice Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="field" ng-repeat="data in pop.model_data.data">
+                  <td>
+                    <!--<input type="text" name="sku_id" class="form-control" ng-model="data.sku_id" ng-required="(!($last) || $first)">-->
+                    <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" ng-blur="showCase.service.checkSearchValue(data.sku_id,'search_wms_codes?', $event)" ng-required="(!($last) || $first)">
+                  </td>
+                  <td>
+                    <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-required="(!($last) || $first)"> </div>
+                  </td>
+                  <td>
+                    <input type="text" name="invoice_amount" class="form-control" ng-model="data.invoice_amount" decimal-number>
+                  </td>
+                  <td><i ng-click="pop.update_data($index, data, $last)" ng-class="pop.isLast($last)"></i></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.insert_order_data(form)">Create</button>
+      </div>
+    </div>
+    <!-- /.modal-content -->
+  </div>
+  </form>
+  <!-- /.modal-dialog -->
+</div>

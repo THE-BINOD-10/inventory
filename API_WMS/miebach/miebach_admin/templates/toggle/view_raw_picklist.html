@@ -1,0 +1,77 @@
+<!-- Modal -->
+
+
+{% load tag_extras %}
+<form id="confirm_raw_picklist">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="width:119%">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myLargeModalLabel">Raw Material Picklist</h4>
+            </div>
+
+            <div class="modal-body">
+                <h5>Job Order: <b>{{ job_code }}</b></h5>
+                <table class="table table-striped">
+
+                    <tr>
+                        {% for header in headers %}
+                        <th>{{ header }}</th>
+                        {% endfor %}
+                    </tr>
+
+                    {% for record in data %}
+                    <tr id="{{ record.id }}">
+                        <input type="hidden" name="order_id_{{ record.id }}" value="{{ record.order_id_id }}">
+                        <input type="hidden" name="stock_id_{{ record.id }}" value="{{ record.stock_id }}">
+                        <input type="hidden" name="wms_code_{{ record.id }}" value="{{ record.wms_code }}">
+                        {% if show_image == 'true'%}
+                        <td>
+                            {% if not record.image == '' %}
+                                <div class="Enlarge">
+                                    <img src="{{ record.image }}" style="width: 30px;height: 50px;"/>
+                                    <span><img src="{{ record.image }}" style="width: 400px;height: 600px;"/></span>
+                                </div>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                        {% if record.status == 'open' %}
+                            <td>{{ record.order_no }}</td>
+                        {% endif %}
+                        <td>{{ record.wms_code }}</td>
+                        <td>{{ record.title }}</td>
+                        <td><input type="text" name="zone_{{ record.id }}" value="{{ record.zone }}" class="mediumbox"/>
+                        </td>
+                        <td><input type="text" name="location_{{ record.id }}" value="{{ record.location }}"
+                                   class="mediumbox"/></td>
+                        {% if user|is_pallet_detail %}
+                            <td>{{ record.pallet_code }}</td>
+                        {% endif %} 
+                        <td>{{ record.reserved_quantity }}</td>
+                        {% if use_imei == 'true' %}
+                        <td><input type="text" name="picked_quantity_{{ record.id }}"
+                            class="smallbox quantityvalid numvalid" value="0" readonly='readonly'/></td>
+                        <td><textarea name='imei_{{ record.id}}' rows='1' id='scan_imei'></textarea></td>
+                        {% else %}
+                        <td><input type="text" name="picked_quantity_{{ record.id }}"
+                            class="smallbox quantityvalid numvalid" value="{{ record.picked_quantity }}"/></td>
+                        {% endif %}
+                        <td></td>
+                    </tr>
+                    {% endfor %}
+
+                </table>
+                <div class="row col-md-12 insert-status">{{ stock_status }}</div>
+                <div class="loading display-none" style="width:119%;">
+                    <div></div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary print">Print Picklist</button>
+                <button type="button" class="btn btn-primary confirm-raw-picklist">Confirm</button>
+            </div>
+        </div>
+    </div>
+</form>

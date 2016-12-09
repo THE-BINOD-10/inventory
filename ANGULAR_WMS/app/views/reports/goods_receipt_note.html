@@ -1,0 +1,54 @@
+<div ng-controller="GoodsReceiptNoteCtrl as showCase">
+  <div class="page-layout reports">
+    <div class='layout-header'>
+      <div class="pull-left" ng-include="'views/common/title.html'"></div>
+      <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, 'goods_receipt', true)" ng-disabled="showCase.service.print_enable">Download Excel</button>
+    </div>
+    <div class="layout-sub-header">
+        <form id="order-shipment" class="filters">
+          <div class="clearfix">
+            <div class="row col-md-12">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label">From Date</label>
+                  <input name="from_date" class="form-control" type="text" ng-model="showCase.model_data.from_date" ui-jq="datepicker">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label">To Date</label>
+                  <input name="to_date" class="form-control hasDatepicker" id="shipment_date" type="text" ng-model="showCase.model_data.to_date" ui-jq="datepicker">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label">PO Number</label>
+                  <input name="open_po" class="form-control" type="text" ng-model="showCase.model_data.open_po">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label">WMS Code</label>
+                  <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code,'search_wms_codes?', $event)" ng-model="showCase.model_data.wms_code">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-12">
+              <div class="filter-controls">
+                <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);"> Reset </button>
+                <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Generate </button>
+              </div> 
+            </div>
+          </div>
+        </form>
+    </div>
+    <div class="layout-body">
+      <div class="panel">
+        <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
+          <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>
+          <div ui-view></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,51 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title">{{showCase.title}}</h4> </div>
+      <!-- body-->
+      <div class="modal-body" style="overflow-y: visible;">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Customer ID * </label>
+                <input name="customer_id" autocomplete="off" ng-model="showCase.model_data.customer_id" ng-if="(!(showCase.update))" type="text" ng-model="asyncSelected" placeholder="Search Customer" typeahead="address for address in getLocation($viewValue)" typeahead-loading="loadingLocations" class="form-control"/>
+                
+                <i ng-if="(!(showCase.update))" ng-show="loadingLocations" class="glyphicon glyphicon-refresh"></i>
+                <input ng-if="showCase.update" type="text" autocomplete="off" class="form-control" ng-model="showCase.model_data.customer_id" name="customer_id" ng-readonly="showCase.update"/>
+              </div>
+            </div>
+            <div class="col-md-4" ng-if="showCase.update">
+              <div class="form-group">
+                <label class="control-label"> Customer Name * </label>
+                <input type="text" ng-model="showCase.model_data.customer_name" name="customer_name" class="form-control" maxlength="256" ng-readonly="showCase.update" required ng-readonly="showCase.update"> </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> SKU Code * </label>
+                <input type="text" ng-model="showCase.model_data.sku_code" name="sku_code" class="form-control" required> </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="col-md-5 control-label"> Price * </label>
+                <input type="number" name="price" ng-model="showCase.model_data.price" class="form-control" positive-number required> </div>
+            </div>
+          </div>
+          <div class="row insert-status">
+            <h4 align="center">{{showCase.message}}</h4>
+          </div>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)">Save</button>
+      </div>
+    </div>
+    <!-- /.modal-content -->
+  </div>
+  </form>
+  <!-- /.modal-dialog -->
+</div>

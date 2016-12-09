@@ -1,0 +1,11 @@
+<div class="page-layout" ng-controller="ReceivePOCtrl as showCase">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+    <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.print_enable">Download Excel</button>
+  </div>
+  <div class="layout-body">
+    <div class="panel">
+      <div ng-include="'views/common/datatable.html'"></div>
+    </div>
+  </div>  
+</div>

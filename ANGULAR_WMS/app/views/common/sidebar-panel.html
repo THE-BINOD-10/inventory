@@ -1,0 +1,385 @@
+<div class="brand">
+
+  <!-- toggle small sidebar menu -->
+  <a href="javascript:;" class="toggle-sidebar hidden-xs hamburger-icon v3" data-ng-click="app.layout.isSmallSidebar = !app.layout.isSmallSidebar">
+    <img src="images/stockone_logo.png" height="15" alt="">
+  </a>
+  <!-- /toggle small sidebar menu -->
+
+  <!-- logo -->
+  <div class="brand-logo">
+    <img ng-if="user.userName != 'sagar_fab'" data-ng-src="images/stockone_logo_text.png" alt="">
+    <img ng-if="user.userName == 'sagar_fab'" data-ng-src="images/sagar_fab.png" alt="">
+
+    <!--<h5 style="color: #FFF;font-size: 22px;margin: 0px;margin-left: 7px;"><b>Mie</b>one</h5>-->
+  </div>
+  <!-- /logo -->
+
+
+</div>
+
+<!-- main navigation -->
+<nav role="navigation" side-navigation style="margin-bottom: 100px;top: 60px;">
+
+  <ul class="nav">
+
+    <!-- dashboard -->
+    <li ui-sref-active="active">
+      <a ui-sref="app.dashboard">
+        <i class="fa fa-dashboard"></i>
+        <span>Dashboard</span>
+      </a>
+    </li>
+    <!-- /dashboard -->
+
+    <!-- Masters -->
+    <li data-ng-class="{open: $state.includes('app.masters')}">
+      <a href="javascript:;">
+        <i class="fa fa-cubes"></i>
+        <span>Masters</span>
+      </a>
+      <ul class="sub-menu">
+        <li ui-sref-active="active">
+          <a ui-sref="app.masters.SKUMaster">
+            <span>SKU Master</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.masters.LocationMaster">
+            <span>Location Master</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.masters.SupplierMaster">
+            <span>Supplier Master</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.masters.supplierSKUMapping">
+            <span>Supplier-SKU Mapping</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.masters.CustomerMaster">
+            <span>Customer Master</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-if="user.roles.permissions.pos_switch">
+          <a ui-sref="app.masters.Customer-SKUMapping">
+            <span>Customer-SKU Mapping</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="user.roles.permissions.production_switch">
+          <a ui-sref="app.masters.BOMMaster">
+            <span>BOM Master</span>
+          </a>
+        </li>
+        <li ng-if="user.roles.permissions.multi_warehouse" ui-sref-active="active">
+          <a ui-sref="app.masters.WarehouseMaster">
+            <span>Warehouse Master</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="user.roles.permissions.production_switch">
+          <a ui-sref="app.masters.VendorMaster">
+            <span>Vendor Master</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-if="user.roles.permissions.pos_switch">
+          <a ui-sref="app.masters.DiscountMaster">
+            <span>Discount Master</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.masters.CustomSKUMaster">
+            <span>Custom SKU Template</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.masters.SizeMaster">
+            <span>Size Master</span>
+          </a>
+        </li>
+      </ul>
+    </li>
+    <!-- /Masters -->
+
+    <!-- Inbound -->
+    <li data-ng-class="{open: $state.includes('app.inbound')}">
+      <a href="javascript:;">
+        <i class="fa fa-dropbox"></i>
+        <span>Inbound</span>
+      </a>
+      <ul class="sub-menu">
+        <li ng-if="show_tab('add_openpo')" ui-sref-active="active">
+          <a ui-sref="app.inbound.RaisePo">
+            <span>Raise PO</span>
+          </a>
+        </li>
+        <li ng-if="show_tab('add_purchaseorder')" ui-sref-active="active">
+          <a ui-sref="app.inbound.RevceivePo">
+            <span>Receive PO</span>
+          </a>
+        </li>
+        <li ng-if="user.roles.permissions.add_qualitycheck" ui-sref-active="active">
+          <a ui-sref="app.inbound.QualityCheck">
+            <span>Quality Check</span>
+          </a>
+        </li>
+        <li ng-if="show_tab('add_polocation')" ui-sref-active="active">
+          <a ui-sref="app.inbound.PutAwayConfirmation">
+            <span>Put away Confirmation</span>
+          </a>
+        </li>
+        <li ng-if="show_tab('add_orderreturns')" ui-sref-active="active">
+          <a ui-sref="app.inbound.SalesReturns">
+            <span>Sales Returns</span>
+          </a>
+        </li>
+      </ul>
+    </li>
+    <!-- /forms -->
+
+    <!-- tables -->
+    <li ng-show="user.roles.permissions.production_switch" data-ng-class="{open: $state.includes('app.production')}">
+      <a href="javascript:;">
+        <i class="fa fa-simplybuilt"></i>
+        <span>Production</span>
+      </a>
+      <ul class="sub-menu">
+        <li ng-if="show_tab('add_joborder')" ui-sref-active="active">
+          <a ui-sref="app.production.RaiseJO">
+            <span>Raise JO</span>
+          </a>
+        </li>
+        <li ng-if="show_tab('add_materialpicklist')" ui-sref-active="active">
+          <a ui-sref="app.production.RMPicklist">
+            <span>RM Picklist</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.production.ReveiveJO">
+            <span>Receive JO</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.production.JobOrderPutaway">
+            <span>Job Order Putaway</span>
+          </a>
+        </li>
+      </ul>
+    </li>
+    <!-- /tables -->
+
+    <!-- charts -->
+    <li data-ng-class="{open: $state.includes('app.stockLocator')}">
+      <a href="javascript:;">
+        <i class="fa fa-list"></i>
+        <span>Stock Locator</span>
+      </a>
+      <ul class="sub-menu">
+        <li ui-sref-active="active">
+          <a ui-sref="app.stockLocator.StockSummary">
+            <span>Stock Summary</span>
+          </a>
+        </li>
+        <li ng-if="show_tab('add_stockdetail')" ui-sref-active="active">
+          <a ui-sref="app.stockLocator.StockDetail">
+            <span>Stock Detail</span>
+          </a>
+        </li>
+        <li ng-show="user.roles.permissions.production_switch" ui-sref-active="active">
+          <a ui-sref="app.stockLocator.VendorStock">
+            <span>Vendor Stock</span>
+          </a>
+        </li>
+        <li ng-if="show_tab('add_cyclecount')" ui-sref-active="active">
+          <a ui-sref="app.stockLocator.CycleCount">
+            <span>Cycle Count</span>
+          </a>
+        </li>
+        <li ng-if="show_tab('add_inventoryadjustment')" ui-sref-active="active">
+          <a ui-sref="app.stockLocator.MoveInventory">
+            <span>Move Inventory</span>
+          </a>
+        </li>
+        <li ng-if="show_tab('add_inventoryadjustment')" ui-sref-active="active">
+          <a ui-sref="app.stockLocator.InventoryAdjustment">
+            <span>Inventory Adjustment</span>
+          </a>
+        </li>
+      </ul>
+    </li>
+    <!-- /charts -->
+
+    <!-- maps -->
+    <li data-ng-class="{open: $state.includes('app.outbound')}">
+      <a href="javascript:;">
+        <i class="fa fa-truck"></i>
+        <span>Outbound</span>
+      </a>
+      <ul class="sub-menu">
+        <li ng-if="show_tab('add_orderdetail')" ui-sref-active="active">
+          <a ui-sref="app.outbound.CreateOrders">
+            <span>Create Orders</span>
+          </a>
+        </li>
+        <li ng-if="show_tab('add_orderdetail')" ui-sref-active="active">
+          <a ui-sref="app.outbound.ViewOrders">
+            <span>View Orders</span>
+          </a>
+        </li>
+        <li ng-if="show_tab('add_picklist')" ui-sref-active="active">
+          <a ui-sref="app.outbound.PullConfirmation">
+            <span>Pull Confirmation</span>
+          </a>
+        </li>
+        <li ng-if="user.roles.permissions.add_shipmentinfo" ui-sref-active="active">
+          <a ui-sref="app.outbound.ShipmentInfo">
+            <span>Shipment Info</span>
+          </a>
+        </li>
+        <li ng-if="show_tab('multi_warehouse')" ui-sref-active="active">
+          <a ui-sref="app.outbound.CreateStockTransfer">
+            <span>Create Stock Transfer</span>
+          </a>
+        </li>
+      </ul>
+    </li>
+    <!-- /maps -->
+
+    <!-- ready pages -->
+    <li ui-sref-active="active">
+      <a ui-sref="app.uploads">
+        <i class="fa fa-cloud-upload"></i>
+        <span>Uploads</span>
+      </a>
+    </li>
+    <!-- /ready pages -->
+
+    <!-- extras -->
+    <li data-ng-class="{open: $state.includes('app.reports')}">
+      <a href="javascript:;">
+        <i class="fa fa-file-text"></i>
+        <span>Reports</span>
+      </a>
+      <ul class="sub-menu">
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.SKUList">
+            <span>SKU List</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.LocationWiseFilter">
+            <span>Location Wise Filter</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.GoodsReceiptNote">
+            <span>Goods Receipt Note</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.ReceiptSummary">
+            <span>Receipt Summary</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.DispatchSummaryReport">
+            <span>Dispatch Summary Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.SKUWiseStock">
+            <span>SKU Wise Stock</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.SKUWisePurchaseOrders">
+            <span>SKU Wise Purchase Orders</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.SupplierWisePOs">
+            <span>Supplier Wise PO's</span>
+          </a>
+        </li>
+        <li ng-if="show_tab('add_orderreturns')" ui-sref-active="active">
+          <a ui-sref="app.reports.SalesReturnReport">
+            <span>Sales Return Report</span>
+          </a>
+        </li>
+         <li ui-sref-active="active">
+          <a ui-sref="app.reports.InventoryAdjustment">
+            <span>Inventory Adjustment</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.InventoryAging">
+            <span>Inventory Aging</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.StockSummaryReport">
+            <span>Stock Summary Report</span>
+          </a>
+        </li>
+      </ul>
+    </li>
+    <!-- /extras -->
+    <li ng-if="user.roles.permissions.pos_switch" ui-sref-active="active">
+      <a href="http://pos.mieone.com/#/home?user_id={{user.userId}}&amp;user_name={{user.userName}}" target="_blank">
+        <i class="fa fa-dashboard"></i>
+        <span>POS</span>
+      </a>
+    </li>
+
+
+    <!-- Channels -->
+    <li ng-if="user.userName == 'demo' || user.userName == 'pavechas'" ui-sref-active="active">
+      <a ui-sref="app.channels">
+        <i class="fa fa-tasks"></i>
+        <span>Channels</span>
+      </a>
+    </li>
+    <!-- /Channels -->
+
+
+    <!-- ui kit -->
+    <li ui-sref-active="" class="settings" style="position: fixed;bottom: 50px;background: #2d3033;width: 210px !important;">
+      <a ui-sref="app.configurations">
+        <i class="fa fa-cogs"></i>
+        <span>Configurations</span>
+      </a>
+    </li>
+    <!-- /ui kit -->
+  </ul>
+  <ul class="nav bottom-nav" style="position: fixed;bottom: 0px;background: #242629;">
+    <li data-ng-class="{open: $state.includes('user')}" style="" class="user-section">
+      <a href="javascript:;">
+        <i class="fa fa-user"></i>
+        <span><b style="display: inline-flex;width: 120px;">{{(user.user_profile['first_name'] == "")? user.userName:user.user_profile['first_name'];}}</b></span>
+      </a>
+      <ul class="sub-menu manage" style="position: absolute;bottom: 50px;width:100%">
+        <li ui-sref-active="active">
+          <a ui-sref="app.ManageUsers" style="padding: 0px">
+            <i class="fa fa-group fa-fw"></i>
+            <span>Manage Users</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="user.profile" style="padding: 0px">
+            <i class="fa fa-user"></i>
+            <span>Profile</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-click="logout()">
+          <a ui-sref="user.signin" style="padding: 0px">
+            <i class="fa fa-power-off"></i>
+            <span>Logout</span>
+          </a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+<!-- /main navigation -->

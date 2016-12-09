@@ -1,0 +1,99 @@
+<div class="modal fade in" id="po-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="display: block; padding-left: 15px;">
+  <!-- Modal -->
+  <form id="raise_job_order">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" ng-click="showCase.close()">×</span>
+          </button>
+          <h4 class="modal-title" id="myLargeModalLabel">Update Job Order</h4> </div>
+        <div class="modal-body">
+          <div class="form-group clearfix">
+            <h5>Jo Reference: <b>4</b></h5>
+            <input type="hidden" name="jo_reference" value="4">
+            <table class="table">
+              <tbody>
+                <tr class="active">
+                  <th>Product SKU Code</th>
+                  <th>Product SKU Quantity</th>
+                  <th>Material SKU Code</th>
+                  <th>Material SKU Quantity</th>
+                  <th></th>
+                </tr>
+                <tr id="raise-jo-row" class="display-none">
+                  <td>
+                    <input type="text" name="product_code"> </td>
+                  <td>
+                    <center>
+                      <input type="text" name="product_quantity" class="numvalid smallbox">
+                    </center>
+                  </td>
+                  <td>
+                    <input type="text" name="material_code"> </td>
+                  <td>
+                    <center>
+                      <input type="text" name="material_quantity" class="numvalid smallbox">
+                    </center>
+                  </td>
+                  <td><img src="/static/img/details_open.png" id="add_row">
+                    <input type="hidden" name="id">
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <input type="text" name="product_code" value="1" readonly="">
+                  </td>
+                  <td>
+                    <center>
+                      <input type="text" name="product_quantity" value="2" class="numvalid smallbox">
+                      <center></center>
+                    </center>
+                  </td>
+                  <td>
+                    <input type="hidden" name="id" value="19">
+                    <input type="text" name="material_code" value="101">
+                  </td>
+                  <td>
+                    <center>
+                      <input type="text" name="material_quantity" value="6" class="numvalid smallbox">
+                    </center>
+                  </td>
+                  <td> <img src="/static/img/details_close.png" id="add_row"> </td>
+                </tr>
+                <tr>
+                  <td>
+                    <input type="hidden" name="product_code" value="1">
+                  </td>
+                  <td>
+                    <input type="hidden" name="product_quantity" value="2">
+                  </td>
+                  <td>
+                    <input type="hidden" name="id" value="20">
+                    <input type="text" name="material_code" value="102">
+                  </td>
+                  <td>
+                    <center>
+                      <input type="text" name="material_quantity" value="4" class="numvalid smallbox">
+                    </center>
+                  </td>
+                  <td> <img src="/static/img/details_open.png" id="add_row"> </td>
+                </tr>
+              </tbody>
+            </table>
+            <center>
+              <button type="button" class="btn btn-default add-prod-sku">Add New Product SKU Code</button>
+            </center>
+          </div>
+          <div class="row col-md-12 insert-status"></div>
+          <div class="loading display-none">
+            <div></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary save-jo ">Save</button>
+          <button type="button" class="btn btn-primary confirm-jo">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

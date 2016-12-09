@@ -1,0 +1,61 @@
+<div ng-controller="CreateStockOrders as pop" id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
+        <h4 class="modal-title">Create Stock Transfer</h4>
+      </div>
+      <!-- body-->
+      <div class="modal-body raise">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="form-group">
+              <label class="control-label"> Warehouse Name </label>
+              <select name="warehouse_name" class="form-control">
+                <option ng-repeat="wh in pop.warehouse_list" value="{{wh}}">{{wh}}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+          <div class="row">
+            <div class="col-md-12"><hr></div>
+          </div>
+          <div class="row">
+            <table>
+              <thead>
+                <tr class="field">
+                  <th>WMS Code *</th>
+                  <th>Quantity *</th>
+                  <th>Price *</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="field" ng-repeat="data in pop.model_data.data">
+                  <td>
+                    <input id="wms1" type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-model="data.wms_code" ng-blur="showCase.service.checkSearchValue(data.wms_code,'search_wms_codes?', $event)" ng-required="(!($last) || $first)">
+                  </td>
+                  <td>
+                    <input id="quant1" type="text" name="order_quantity" class="form-control" ng-model="data.order_quantity" ng-required="(!($last) || $first" ng-class="service.get_decimal_perm()">
+                  </td>
+                  <td>
+                    <input type="text" name="price" class="form-control" ng-model="data.price" decimal-number>
+                    <input type="hidden" name="id" value=""> </div>
+                  </td>
+                  <td><i ng-click="pop.update_data($index, data, $last)" ng-class="pop.isLast($last)"></i></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.insert_order_data(form)">Create</button>
+      </div>
+    </div>
+    <!-- /.modal-content -->
+  </div>
+  </form>
+  <!-- /.modal-dialog -->
+</div>

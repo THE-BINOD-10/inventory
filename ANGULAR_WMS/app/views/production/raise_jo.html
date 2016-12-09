@@ -1,0 +1,37 @@
+<div class="page-layout">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body">
+    <tabset class="box-tab">
+      <tab heading="Raise Job Order">
+        <div class="panel" ng-controller="RaiseJOCtrl as showCase">
+          <div class="panel-header">
+            <div class="row">
+              <button type="button" class="btn btn-success pull-right" ng-click="showCase.add()">New Raise JO</button>
+             </div>
+          </div>
+          <div class="panel-body">
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>
+            <div ui-view></div>
+          </div>
+          <div class="panel-footer">
+            <button class="btn btn-danger pull-right confirm-jo1" type="submit" ng-disabled="showCase.bt_disable" ng-click="showCase.confirm_jo_group()">Confirm JO</button>
+            <button style="margin-right: 10px" class="btn btn-danger pull-right" type="submit" ng-disabled="showCase.bt_disable" ng-click="showCase.delete_jo_group()">Delete JO</button>
+          </div>
+        </div>
+      </tab>
+      <tab heading="Raise Returnable Work Order">
+        <div class="panel" ng-controller="RaiseRWOCtrl as showCase">
+          <div class="panel-header">
+            <button type="button" class="btn btn-success pull-right" ng-click="showCase.add()">New Raise RWO</button>
+          </div>
+          <div class="panel-body">
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>
+            <div ui-view></div>
+          </div>
+        </div>
+      </tab>
+    </div>
+  </div>
+</div>

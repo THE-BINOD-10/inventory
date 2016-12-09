@@ -1,0 +1,93 @@
+<div class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span ng-click="showCase.close()" aria-hidden="true">×</span></button>
+      </div>
+      <!-- body-->
+      <div class="modal-body raise_po">
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta contentType="text/html; charset=UTF-8" />
+  <style>
+    <link rel="stylesheet" href="vendor/bootstrap/dist/css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="views/inbound/print/page.css"/>
+  </style>
+</head>
+
+<body>
+  <form id="toggle-po">
+    <table style="font-size:12px;width:480px">
+      <tbody>
+        <tr>
+          <td rowspan="3" style="text-align:left;width:380px;">
+            <h4>Purchase Order</h4> 
+          </td> 
+          <td ng-if="company_name" style="text-align:center;">{{showCase.print_data.company_name }}</td> 
+        </tr> 
+        <tr ng-if="address">
+          <td style="text-align:center;width:480px;">{{ showCase.print_data.address }}</td>
+        </tr> 
+      </tbody>
+    </table>
+    <br/>
+    <div class="form-group clearfix" style="padding: 33px">
+      <div>
+        <div style="float:left;padding-bottom:20px;">
+          <p style="font-weight: bold;">To: </p>
+          <p>{{ showCase.print_data.name }}</p> {{ showCase.print_data.address }}
+          <p><b>Telephone:</b> {{ showCase.print_data.telephone }}</p>
+        </div>
+        <div style="float:right">
+          <p><b>Order ID:</b> {{ showCase.print_data.order_id }}</p>
+          <p><b>PO Reference:</b> {{ showCase.print_data.po_reference }}</p>
+          <p><b>Date:</b> {{ showCase.print_data.order_date }}</p>
+        </div>
+      </div>
+      <div style="clear:both;">
+        <table class="table borderless">
+          <thead>
+            <tr> 
+              <th ng-repeat="header in showCase.print_data.table_headers">{{ header }}</th> </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="data in showCase.print_data.data">
+              <td ng-repeat="d in data" style="text-align: center;">{{ d }}</td> </tr></tbody>
+        </table>
+        <table class='table borderless'>
+          <tbody>
+            <tr>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td>Total Order Quantity</td>
+              <td>{{ showCase.print_data.total_qty }}</td>
+              <td> Total Amount</td>
+              <td>{{ showCase.print_data.total }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+  </form>
+</body>
+
+</html>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary inb-receive-po {{ display }}" type="button" id="{{ order_id }}">Proceed to Next Step</button>
+        <button type="submit" class="btn btn-primary print-po" ng-click="showCase.printDiv()">Print</button>
+      </div>
+    </div>
+  </div>
+</div>

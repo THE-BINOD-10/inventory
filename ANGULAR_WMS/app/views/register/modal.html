@@ -1,0 +1,28 @@
+<div id="register-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" ng-if="(!(showCase.completed))">
+      <div class="modal-header">
+        <h2 class="pull-left">{{showCase.title}}</h2> 
+        <h4 class="pull-right">Step {{showCase.step}} of 3</h4>
+      </div>
+      <div class="modal-body">
+        <div ui-view></div>
+        <div class="row">
+          <div class="col-md-6">
+            <button type="button" style="padding: 2px 5px;" class="btn st-success btn-outline pull-right" ng-click="showCase.skip()">SKIP setup with demo data > </button>
+          </div>
+          <div class="col-md-6">
+            <button type="button" style="padding: 2px 5px;" class="btn st-success-rev pull-left" ng-disabled="showCase.upload_status" ng-click="showCase.state_change()">Next > </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-content" ng-if="showCase.completed">
+      <div class="modal-body">
+        <div ui-view></div>
+      </div>
+    </div>
+  </div>
+  </form>
+</div>

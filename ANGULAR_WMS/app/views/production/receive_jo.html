@@ -1,0 +1,17 @@
+<div ng-controller="ReceiveJOCtrl as showCase">
+  <div class="page-layout">
+    <div class='layout-header'>
+      <div class="pull-left" ng-include="'views/common/title.html'"></div>
+      <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+    </div>
+    <div class="layout-body">
+      <div class="panel">
+        <div class="panel-body">
+          <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>
+
+          <div ui-view></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

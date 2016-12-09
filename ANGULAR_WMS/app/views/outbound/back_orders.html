@@ -1,0 +1,17 @@
+<div class="page-layout">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body" ng-controller="OutboundBackOrdersCtrl as showCase">
+    <div class="panel">
+      <div class="panel-body">
+        <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" class="table custom-table table-condensed datatable" dt-instance="showCase.dtInstance"></table>
+        <div ui-view></div>
+      </div>
+      <div class="panel-footer">
+        <button type="button" class="pull-right btn btn-success" style="margin-left:10px;" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable">Raise PO</button>
+        <button type="button" class="pull-right btn btn-danger" ng-disabled="showCase.bt_disable" ng-click="showCase.backorder_jo();">Raise JO</button>
+      </div>
+    </div>
+  </div>
+</div>

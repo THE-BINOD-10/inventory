@@ -1,0 +1,51 @@
+<div class="page-layout">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body">
+    <tabset class="box-tab">
+      <tab heading="Picklist Generated">
+        <div class="panel" ng-controller="OpenOrders as showCase">
+          <div class="panel-header">
+            <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+          </div>
+          <div class="panel-body">
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
+            <div ui-view></div>
+          </div> 
+        </div>
+      </tab>
+      <tab heading="Picked Orders">
+        <div class="panel" ng-controller="PickedOrders as showCase">
+          <div class="panel-header">
+            <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+            <div class="pull-right" style="width: 160px;margin-right:10px;">
+              <select class="form-control" ng-model="showCase.market" ng-change="showCase.change_market(showCase.market)">
+                <option value="" selected>Select MarketPlace</option>
+                <option ng-repeat="market in showCase.market_places" value="{{market}}">{{market}}</option>
+              </select>
+            </div>
+          </div>
+          <div class="panel-body">
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
+            <div ui-view></div>
+          </div>
+        </div>
+      </tab>
+      <tab heading="Batch Picked">
+        <div class="panel" ng-controller="BatchPicked as showCase">
+          <div class="panel-header">
+            <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+          </div>
+          <div class="panel-body">
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table no_click_tb"></table>
+            <div ui-view></div>
+          </div>
+          <div class="panel-footer">
+            <button type="button" class="btn btn-danger pull-right" ng-click="showCase.print_segregation()">Print Segregation</button>
+          </div>
+        </div>
+      </tab>
+    </tabset>
+  </div>
+</div>

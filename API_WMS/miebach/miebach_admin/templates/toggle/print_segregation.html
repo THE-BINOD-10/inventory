@@ -1,0 +1,55 @@
+<!-- Modal -->
+
+{%load staticfiles%}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/jquery-ui.min.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/font-awesome.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap-responsive.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/css_002.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/css.css' %}"/>
+    <script type="text/javascript" src="{% static 'js/modernizr-2.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/jquery-ui.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/bootstrap.js' %}"></script>
+  
+ <link rel="stylesheet" type="text/css" href="{% static 'css/page.css' %}"/>
+
+ <link rel="stylesheet" href="{% static 'css/print.css' %}" type="text/css" media="screen"/>
+
+ <script>
+$(document).ready(function(){
+    var today = new Date(),
+    month = today.toLocaleString('en-US', { month: "long" });
+    $('body').find('#date').html(today.toString().replace(/GMT.+/,""))
+});
+</script>
+{% load tag_extras %}
+  <h5 style='position:relative;left:20px;'>Picklist ID: <b>{{ picklist_number }}</b><p id='date'></p></h5>
+  {% for key, value in data.items %}
+
+    <h5 style='position:relative;left:20px;'>Marketplace: <b>{{ key }}</b>
+
+    <div class="row" style="padding-left: 10px;">
+      <div class="col-md-3">
+        <table class="table table-bordered picklist-table" style="width: 100%; font-size: 12px;">
+
+          <tr>
+            {% for header in headers %}
+              <th>{{ header }}</th>
+            {% endfor %}
+          </tr>
+
+          {% for record in value %}
+            <tr>
+              <td>{{ record.wms_code }}</td>
+              <td>{{ record.picked_quantity }}</td>
+              <td>{{ record.invoice_amount }}</td>
+            </tr>
+          {% endfor %}
+
+        </table>
+      </div>
+      <div class="row col-md-12 insert-status">{{ stock_status }}</div>
+      <div class="loading display-none"></div>
+    </div>
+  {% endfor %}

@@ -1,0 +1,45 @@
+/* $brand
+ ------------------------------------------*/
+
+.brand {
+  width: 100%;
+  height: @header-height;
+  padding: 9px;
+  display: block;
+  clear: both;
+  //.box-shadow(0 1px 0 rgba(0,0,0,0.1));
+  .brand-logo {
+    float: left;
+    padding: 3px 5px;
+    .opacity(.90);
+  }
+  .toggle-sidebar {
+    padding-top: 0;
+    padding-bottom: 0;
+    float: left;
+    padding: 0px;
+  }
+}
+@media (max-width: @screen-xs-max) {
+  .header .brand {
+    text-align: center;
+    .brand-logo {
+      display: inline-block;
+      float: none;
+    }
+  }
+  .header .brand .toggle-offscreen,
+  .header .brand .toggle-chat {
+    position: absolute;
+    top: 0;
+    border: 1px solid transparent;
+    .header-vertical-align(40px);
+    .rounded(0);
+  }
+  .header .brand .toggle-offscreen {
+    left: 0;
+  }
+  .header .brand .toggle-chat {
+    right: 0;
+  }
+}

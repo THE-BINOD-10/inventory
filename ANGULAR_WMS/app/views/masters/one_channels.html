@@ -1,0 +1,186 @@
+<div ng-controller="OneChannel as showCase">
+  <div class="row ng-scope" style = "overflow : hidden">
+    <div class="col-md-12">
+      <div class="header navbar ng-scope" style = "margin-bottom: 0px;">
+        <ul class="nav navbar-nav hidden-xs ng-scope">
+	  <li> 
+	    <h4 class="navbar-text ng-binding">CHANNELS</h4>
+	  </li>
+	</ul>
+      </div>
+
+      <div class="panel mb25">
+        <div class = "panel-heading">
+	  <div style = "float: right">
+	    <button type="button" class="btn btn-default">Download SKU Mapping</button>
+	    <button type="button" class="btn btn-primary">Upload SKU Mapping</button>
+	    <button type="button" class="btn btn-success">Go To SKU Mapping</button>
+	  </div>
+	</div>
+	<div class="panel-body">
+	   
+	  <div class="table-filter">
+           
+          
+	    <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
+            <div ui-view></div>
+	  
+
+          </div>
+
+
+
+	<!--
+	    <table class="table mb0">
+	      <thead> 
+		<tr>
+		  <th class="col-md-2"><center>CHANNEL</center></th>
+		  <th class="col-md-2"><center>CHANNEL NAME</center></th>
+		  <th class="col-md-2"><center>ACTION</center></th>
+		  <th class="col-md-2"><center>PULL</center></th>
+		  <th class="col-md-2"><center>STATUS</center></th>
+		  <th class="col-md-2"><center>LAST SYNCED</center></th>
+		</tr>
+	      </thead>
+	      <tbody>
+	        <tr> 
+   		  <td>
+		    <center>
+		    <img src="https://sandbox-connect.sellerworx.com/assets/images/channels/FK.png" class="channel-logo" ng-click = "app.channels.update">
+		    </center>
+		    </a>
+		  </td>
+
+		  <td><center>Flipkart</center></td>
+
+		  <td><center>
+		    <a href="javascript:;" class="btn btn-danger btn-outline btn-round">Deactivate</a></center>
+		  </td>
+
+		  <td><center>
+                    <a href="javascript:;" class="btn btn-info btn-round btn-sm">Pull Now</a></center>
+                  </td>
+
+		  <td><center>
+		    <span style="padding: 1px 6px 3px;border-radius: 10px;background: #f4f4f5;">
+			<i class="fa fa-circle" style="color:#d96557;display: inline-block;"></i>
+			<p style="display: inline-block;margin: 0px;padding-left: 5px;">Inactive</p>
+		    </span></center>
+		  </td>
+
+		  <td><center>Last Synced</center></td>
+
+		</tr>
+	      </tbody>
+	    </table>
+	  </div>
+	</div>
+	<div ui-view></div>
+      </div>-->
+
+
+      <div class= "col-md-12" style = "margin-left: 10px">
+        <h4 class="ml15">ADD CHANNELS FOR RESPECTIVE MARKETPLACES</h4>
+      </div>
+
+
+
+      <div class = "col-md-12">
+
+	<table class="table_fix" >
+	<tr>
+
+	<td class = "pl25" ng-click = "showCase.add_flipkart_channels()">
+          <div class="widget widget_mod" >
+	  <center>
+            <img src="https://sandbox-connect.sellerworx.com/assets/images/channels/FK.png" style = "max-width: 100%;">
+	  </center>
+          </div>
+	</td>
+
+	<td class = "pl25">
+          <div class="widget widget_mod">
+	  <center>
+            <img src="https://sandbox-connect.sellerworx.com/assets/images/channels/SD.png" style = "max-width: 100%;">
+	  </center>
+          </div>
+        </td>
+
+	<td class = "pl25" ng-click = "showCase.add_amazon_channels()">
+          <div class="widget widget_mod">
+	  <center>
+            <img src="https://sandbox-connect.sellerworx.com/assets/images/channels/AMZ_IN.png" style = "max-width: 100%;">
+	  </center>
+          </div>
+        </td>
+
+	<td class = "pl25">
+          <div class="widget widget_mod">
+	  <center>
+            <img src="https://sandbox-connect.sellerworx.com/assets/images/channels/EBY.png" style = "max-width: 100%;">
+	  </center>
+          </div>
+        </td>
+
+	<td class = "pl25">
+          <div class="widget widget_mod" style="height: 64px;">
+	  <center>
+            <img src="https://sandbox-connect.sellerworx.com/assets/images/channels/VNK.png" style = "max-width: 100%;">
+	  </center>
+          </div>
+        </td>
+
+	<td class = "pl25">
+          <div class="widget widget_mod">
+	  <center>
+            <img src="https://sandbox-connect.sellerworx.com/assets/images/channels/PTM.png" style = "max-width: 100%;">
+	  </center>
+          </div>
+        </td>
+	</tr>
+
+	<tr>
+
+	<td class = "pl25">
+          <div class="widget widget_mod">
+            <img src="https://sandbox-connect.sellerworx.com/assets/images/channels/MTR.png" style = "max-width: 100%;">
+          </div>
+        </td>
+
+	<td class = "pl25">
+          <div class="widget widget_mod">
+            <img src="https://sandbox-connect.sellerworx.com/assets/images/channels/JBG.png" style = "max-width: 100%;">
+          </div>
+        </td>
+
+	<td class = "pl25">
+          <div class="widget widget_mod">
+            <img src="https://sandbox-connect.sellerworx.com/assets/images/channels/SPC.png" style = "max-width: 100%;">
+          </div>
+        </td>
+
+	<td class = "pl25">
+          <div class="widget widget_mod">
+            <img src="https://sandbox-connect.sellerworx.com/assets/images/channels/SFY.png" style = "max-width: 100%;">
+          </div>
+        </td>
+
+	<td class = "pl25">
+          <div class="widget widget_mod" style="height: 64px;">
+            <img src="https://sandbox-connect.sellerworx.com/assets/images/channels/LRD.png" style = "max-width: 100%;">
+          </div>
+        </td>
+
+	<td class = "pl25">
+          <div class="widget widget_mod">
+            <img src="https://sandbox-connect.sellerworx.com/assets/images/channels/AMZ_US.png" style = "max-width: 100%;">
+          </div>
+        </td>
+
+        </tr>
+	</table>
+
+      </div>
+      </div>
+    </div>
+  </div>

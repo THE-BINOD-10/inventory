@@ -831,6 +831,17 @@ var app = angular.module('urbanApp')
             permission: 'add_picklist',
             templateUrl: 'views/outbound/print/generate_invoice.html'
           })
+          .state('app.outbound.ViewOrders.ST', {
+            url: '/ST',
+            params: {param1: null},
+            permission: 'add_orderdetail',
+            templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/pop_js/stock_transfer.js');
+              }]
+            },
+          })
         .state('app.outbound.PullConfirmation', {
           url: '/PullConfirmation',
           permission: 'add_picklist',
@@ -945,6 +956,44 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Uploads'
+          }
+        })
+      
+      // Track Orders
+      .state('app.TrackOrders', {
+          url: '/TrackOrders',
+          templateUrl: 'views/track_orders/track_orders.html',
+          authRequired: true,
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/track_orders/orders.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/track_orders/purchase_orders.js'
+                  ])
+                });
+              }]
+          },
+          data: {
+            title: 'Track Orders'
+          }
+        })
+
+      // Track Orders
+      .state('app.PaymentTracker', {
+          url: '/PaymentTracker',
+          templateUrl: 'views/payment_tracker/payment_tracker.html',
+          authRequired: true,
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/payment_tracker/payment_tracker.js'
+                ]);
+              }]
+          },
+          data: {
+            title: 'Payment Tracker'
           }
         })
 

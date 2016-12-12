@@ -8,8 +8,27 @@
           <h4 class="modal-title" id="myLargeModalLabel">Putaway Confirmation</h4> </div>
         <div class="modal-body">
           <div class="row">
-            <div class="col-md-4">
-              <span>PO Number: <b>{{showCase.model_data.po_number}}</b> </label>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label class="control-label">PO Number</label>
+                <input class="form-control" type="text" value="{{showCase.model_data.po_number}}" disabled="">
+              </div>
+            </div>
+            <div class="col-md-3" ng-if="showCase.permissions.use_imei">
+              <div class="form-group">
+                <label class="control-label">Scan Location</label>
+                <textarea rows="1" class="form-control" cols="27" ng-model="showCase.model_data.scan_location" ng-keydown="showCase.check_location($event, showCase.model_data.scan_location)" attr-name="location"></textarea>
+              </div>
+            </div>
+            <div class="col-md-3" ng-if="showCase.permissions.use_imei">
+              <div class="form-group">
+                <label class="control-label">Scan SKU</label>
+                <textarea rows="1" class="form-control" cols="27" ng-model="showCase.model_data.scan_sku" ng-keydown="showCase.check_sku($event, showCase.model_data.scan_sku)" attr-name="sku"></textarea>
+              </div>
+            </div>
+            <div class="col-md-3" ng-if="showCase.permissions.use_imei">
+              <p>Suggested Location: {{showCase.sug_loc}}</p>
+              <p>Suggested SKU: {{showCase.sug_sku}}</p>
             </div>
           </div>
           <div class="row">
@@ -38,8 +57,8 @@
                   <td><input type="text" name="loc" class="form-control" ng-model="sku.loc"></td>
                   <th ng-if="showCase.permissions.pallet_switch"><input type="text" name="pallet_number" class="form-control" value="{{data.pallet_number}}" readonly="" style="width:90%"></th>
                   <td><input type="text" name="original_quantity" class="form-control" value="{{data.original_quantity}}" readonly=""></td>
-                  <td><input type="text" name="quantity" class="form-control" ng-model="sku.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.cal_quantity(sku, data)"></td>
-                  <td><i ng-if="sku.quantity != data.original_quantity" ng-click="showCase.update_data($index,data, $last)" ng-class="showCase.isLast($last)"></td>
+                  <td><input type="text" name="quantity" class="form-control" ng-model="sku.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.cal_quantity(sku, data);showCase.get_all_locations()"></td>
+                  <td><i ng-if="sku.quantity != data.original_quantity" ng-click="showCase.update_data($index,data, $last);showCase.get_all_locations()" ng-class="showCase.isLast($last);"></td>
                 <tr>
               </tbody>
             </table>

@@ -1,19 +1,17 @@
-<div class="panel" ng-controller="CreateShipmentCtrl as vm">
-  <div class="panel-header" style="overflow: visible;padding-bottom: 30px;">
+<div class="panel" ng-controller="CreateShipmentCtrl as showCase">
+  <div class="panel-header" style="overflow: visible;">
     <div class="layout-sub-header">
-
-
-      <form name="form" role="form" ui-jq="validate" ui-options="vm.validationOpt">
+      <form name="form" role="form" ui-jq="validate" ui-options="showCase.validationOpt">
         <div class="clearfix">
-          <div class="row">
+          <div class="row hide">
             <div class="col-md-11 col-sm-11 col-xs-10">
               <p align="right"><b> SKU Grouping: </b></p>
             </div>
             <div class="col-md-1 col-sm-1 col-xs-2">
-              <input type="hidden" name="sku_grouping" value="{{vm.sku_group}}">
+              <input type="hidden" name="sku_grouping" value="{{showCase.sku_group}}">
               <label class="switch switch-sm square">
                 <div>
-                  <input type="checkbox" ng-model="vm.sku_group">
+                  <input type="checkbox" ng-model="showCase.sku_group">
                   <span>
                     <i class="handle"></i>
                   </span>
@@ -24,42 +22,21 @@
           <div class="row col-md-12">
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label">Shipment Number *</label>
-                <input name="shipment_number" class="form-control" ng-model="vm.model_data.shipment_number" type="text" natural-number required>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label class="control-label">Shipment Date *</label>
-                <input type="text" class="form-control stk-readonly" ui-jq="datepicker" name="shipment_date" ng-model="vm.model_data.shipment_date" readonly required>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label class="control-label">Truck Number *</label>
-                <input name="truck_number" class="form-control" type="text" ng-model="vm.model_data.truck_number" required>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label class="control-label">Shipment Reference *</label>
-                <input name="shipment_reference" class="form-control" type="text" ng-model="vm.model_data.shipment_reference" required>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group">
                 <label class="control-label">Customer ID/Name</label>
-                <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Customer" typeahead="address for address in vm.service.getSearchValues($viewValue, 'search_customer_sku_mapping?','shipment')" typeahead-loading="loadingLocations" ng-model="vm.model_data.customer_id" ng-blur="vm.service.checkSearchValue(vm.model_data.customer_id, 'search_customer_sku_mapping?', $event, 'shipment', 'Customer')">
+                <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Customer" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_customer_sku_mapping?','shipment')" typeahead-loading="loadingLocations" ng-model="showCase.filters_data.customer" ng-blur="showCase.service.checkSearchValue(showCase.filters_data.customer, 'search_customer_sku_mapping?', $event, 'shipment', 'Customer')">
               </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label">Market Place</label>
-                <select name="marketplace" ng-model="vm.model_data.marketplace" class="form-control">
+                <select name="marketplace" ng-model="showCase.filters_data.market_place" class="form-control">
                   <option value="">Default</option>
-                  <option ng-repeat="market in vm.model_data.market_list" value="{{market}}">{{market}}</option>
+                  <option ng-repeat="market in showCase.model_data.market_list" value="{{market}}">{{market}}</option>
                 </select>
               </div>
+            </div>
+            <div class="col-md-4">
+              <button type="button" class="btn btn-primary" ng-click="showCase.apply_filters()" style="margin-top: 25px;">Apply</button>
             </div>
           </div>
         </div>
@@ -67,13 +44,9 @@
 
     </div>
   </div>
-  <div class="panel-body">
-    <table id = "create_ship" datatable="" dt-options="vm.dtOptions" dt-columns="vm.dtColumns" dt-instance="vm.dtInstance" class="table custom-table table-condensed datatable"></table>
-    <div ui-view></div>
+  <div ng-include="'views/common/no-onclick-table.html'"></div>
+  <div class="col-md-12">
 
-    <div class="col-md-12">
-
-    	<button type="submit" class="btn btn-success" ng-disabled="vm.bt_disable" style="display: block;margin: auto;" ng-click="vm.add(form)"> Confirm Create Shipment Orders </button>
-    </div>
+    	<button type="submit" class="btn btn-success" ng-disabled="showCase.bt_disable" style="display: block;margin: auto;" ng-click="showCase.add(form)">Create Shipment</button>
   </div>
 </div>

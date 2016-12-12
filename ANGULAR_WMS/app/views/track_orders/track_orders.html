@@ -1,0 +1,15 @@
+<div class="page-layout" scrolly="scroll_bottom(e)">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body"> 
+    <tabset class="box-tab">
+      <tab heading="Orders">
+        <div ng-include="'views/track_orders/orders.html'"></div>
+      </tab>
+      <tab heading="Purchase Orders">
+        <div ng-include="'views/track_orders/purchase_orders.html'"></div>
+      </tab>
+    </tabset>
+  </div>
+</div>

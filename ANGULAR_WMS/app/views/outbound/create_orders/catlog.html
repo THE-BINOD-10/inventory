@@ -1,54 +1,64 @@
 <div class="clearfix render-items">
-  <div class="row">
-    <div class="col-md-12 col-sm-4 col-xs-6">
-      <div class="form-group">
-	      <div class="col-md-1" style="width: 45px; padding-top: 3px;">
-<a href="" ng-click="showCase.catlog=true;showCase.details=true;showCase.detailed_list=false;" style="margin-left: 10px;"><i class="fa fa-arrow-left fa-2x" style="color:#66CC33;" aria-hidden="true"></i></a>
-	      </div>
-              <div class="col-md-8" style="padding-right: 0px;">
-		<input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-change="showCase.catlog_data.index='';showCase.get_category(true, true);">
-      	      </div>
-	      <div class="col-md-1" style="padding: 8px 5px 5px 10px; background-color: #66CC33; width: 40px;">
- 	        <i class="fa fa-search fa-lg" style="color: white;" aria-hidden="true"></i>
-  	      </div>
-        <div class="col-md-2 col-sm-4 col-xs-12">
-            <div>
-               <select name="Category" class="form-control" ng-model="showCase.brand" ng-change="showCase.change_brand(showCase.brand);">
-                      <option value="" ng-selected="showCase.brand == ''">Brand</option>
-                      <option ng-repeat="cat in showCase.brands" value="{{cat}}" ng-selected="{{showCase.brand == cat}}">{{cat}}</option>
-                </select>
-            </div>
+  <div class="row style-menu">
+    <div class="col-md-4 col-sm-4 col-xs-6">
+      <div class="menu-left">
+        <span ng-click="showCase.catlog=true;showCase.details=true;showCase.detailed_list=false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="showCase.catlog=true;showCase.details=true;showCase.detailed_list=false;" title="Go to Brand Page">Back</span>
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-6 brand-title">
+      <h3>{{showCase.brand}}</h3>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-6">
+      <a href="" class="pull-right" ng-click="showCase.catlog=false;showCase.details=false;showCase.detailed_list=false;">
+        <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" title="Go To Cart Page"></i>
+      </a>
+    </div>
+  </div>
+
+  <div class="row search-items mt15">
+    <div class="">
+      <div class="col-md-1 col-sm-1 col-xs-12">
+      </div>
+      <div class="col-md-8 col-sm-7 col-xs-8">
+        <div class="search-bar">
+          <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-change="showCase.catlog_data.index='';showCase.get_category(true, true);">
+          <i class="fa fa-search fa-lg" style="color: white;" aria-hidden="true"></i>
         </div>
-        <div class="col-md-1">
-	  <a href="" ng-click="showCase.catlog=false;showCase.details=false;showCase.detailed_list=false;">
-	  <i class="fa fa-cart-plus fa-3x" style="color:#66CC33;"aria-hidden="true"></i>
-	  </a>
-	</div>
-             </div>
+      </div>
+      <div class="col-md-2 col-sm-3 col-xs-4">
+        <div>
+           <select name="Category" class="form-control" ng-model="showCase.brand" ng-change="showCase.change_brand(showCase.brand);">
+             <option value="" ng-selected="showCase.brand == ''">All Brands</option>
+             <option ng-repeat="cat in showCase.brands" value="{{cat}}" ng-selected="{{showCase.brand == cat}}">{{cat}}</option>
+           </select>
+        </div>
+      </div>
+      <div class="col-md-1 col-sm-1 col-xs-12">
       </div>
     </div>
   </div>
-  <div class="row">
+  <div class="tag-display row mt10">
+    <div class="col-md-1 col-sm-1 col-xs-12">
+    </div>
+    <div class="col-md-10 col-sm-10 col-xs-12">
+      <a ng-repeat="cate in showCase.all_cate" ng-click="showCase.tag_details(cate,showCase.brand);showCase.make_bold($event)" class="cat-tags" href="" ng-class="($fisrt)? 'ct-selected': 'not-selected'">{{cate}}</a>
+    </div>
   </div>
-<div class="tag-display">
-  <a ng-repeat="cate in showCase.all_cate" ng-click="showCase.tag_details(cate,showCase.brand);showCase.make_bold($event)" class="cat-tags" href="" ng-class="($fisrt)? 'ct-selected': 'not-selected'">{{cate}}</a>
-</div>
-<p style="font-size:20px; text-align: left; padding-left: 2%; color: black;"><!--{{showCase.catlog_data.brand}}-->{{showCase.brand}}</p>
-<hr>
-<div class="item-display" style="margin: 10px 20px;">
-  <div class="row" style="padding-bottom:20px;text-align:center;">
-    <div class="col-md-2 col-sm-3 col-xs-4" style="overflow:hidden;padding: 0px;height: 350px;padding: 10px 10px 10px 10px; background-color: white; cursor:pointer;" ng-repeat="item in showCase.catlog_data.data" ng-click="showCase.open_style(item.sku_class);showCase.detailed_list=false;">
-      <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
-      <br>
+  <div class="item-display row">
+    <div class="col-md-2 col-sm-3 col-xs-4 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="showCase.open_style(item.sku_class);showCase.detailed_list=false;">
       <div>
-        <label style="color:black;width:75%;cursor:pointer" class="style_name" title="{{ item.sku_class }}">{{ item.sku_class }}</label><br>
-        <label style="color:#007399;cursor:pointer" class="style_name" title="{{ item.variants[0].style_name }}">{{ item.variants[0].style_name }}</label><br>
-        <label style="color:black;cursor:pointer;font-size: 20px;font-weight:900">&#8377;{{ item.variants[0].mrp }}</label><br>
+        <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
+        <br>
+        <div>
+          <span class="style_name" title="{{ item.sku_class }}">{{ item.sku_class }}</span>
+          <p class="style_name" style="font-size: 12px;" title="{{ item.variants[0].style_name }}">{{ item.variants[0].style_name }}</p>
+          <span style="font-size: 20px;">&#8377;-{{ item.variants[0].mrp }}</span>
+        </div>
       </div>
     </div>
+    <input type="hidden" name="index" value="{{showCase.catlog_data.index}}">
   </div>
-  <input type="hidden" name="index" value="{{showCase.catlog_data.index}}">
-</div>
  
 </div>
 </div>

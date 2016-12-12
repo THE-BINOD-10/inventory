@@ -1,13 +1,21 @@
 'use strict';
 
-function CreateStockOrders($scope, $http, $state, Session, colFilters, Service) {
+function StockTransferPOP($scope, $http, $state, Session, colFilters, Service) {
 
-  $scope.msg = "start";
   var vm = this;
+  var state_data = Service.stock_transfer;
   vm.service = Service;
-  vm.model_data = {}
+  vm.pop_data = {};
   var empty_data = {data: [{wms_code: "", order_quantity: "", price: ""}], warehouse_name: ""};
-  angular.copy(empty_data, vm.model_data);
+  angular.copy(empty_data, vm.pop_data);
+
+  if(state_data)  {
+
+    angular.copy(JSON.parse(state_data), vm.pop_data.data);
+  } else {
+    $state.go($state.$current.parent);
+  }
+
   vm.isLast = isLast;
     function isLast(check) {
 
@@ -19,9 +27,9 @@ function CreateStockOrders($scope, $http, $state, Session, colFilters, Service) 
   function update_data(index, data, last) {
     console.log(data);
     if (last) {
-      vm.model_data.data.push({wms_code: "", order_quantity: "", price: ""});
+      vm.pop_data.data.push({wms_code: "", order_quantity: "", price: ""});
     } else {
-      vm.model_data.data.splice(index,1);
+      vm.pop_data.data.splice(index,1);
     }
   }
 
@@ -41,18 +49,21 @@ function CreateStockOrders($scope, $http, $state, Session, colFilters, Service) 
       vm.service.apiCall('create_stock_transfer/', 'POST', elem).then(function(data){
         if(data.message) {
           if("Confirmed Successfully" == data.data) {
-            angular.copy(empty_data, vm.model_data);
+            angular.copy(empty_data, vm.pop_data);
+            Service.stock_transfer = "";
+            colFilters.showNoty("Confirmed Successfully");
           }
-          colFilters.showNoty(data.data);
+          vm.service.pop_msg(data.data);
           vm.bt_disable = false;
         }
       })
     } else {
-      colFilters.showNoty("Fill Required Fields");
+      vm.service.pop_msg("Fill Required Fields");
     }
   }
+
 }
 
 angular
   .module('urbanApp')
-  .controller('CreateStockOrders', ['$scope', '$http', '$state', 'Session', 'colFilters', 'Service', CreateStockOrders]);
+  .controller('StockTransferPOP', ['$scope', '$http', '$state', 'Session', 'colFilters', 'Service', StockTransferPOP]);

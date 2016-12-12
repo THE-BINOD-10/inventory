@@ -2,8 +2,8 @@
   <div class="page-layout reports">
     <div class='layout-header'>
       <div class="pull-left" ng-include="'views/common/title.html'"></div>
-      <button type="button" style="margin-left: 10px" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, 'sku_list')" ng-disabled="showCase.service.print_enable">Download Excel</button>
-      <button type="button" class="btn btn-primary pull-right" ng-disabled="showCase.service.print_enable" ng-click="showCase.service.print_report(showCase.model_data, 'print_sku/?')">Print Report</button>
+      <button type="button" style="margin-left: 10px" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, 'daily_production_report')" ng-disabled="showCase.service.print_enable">Download Excel</button>
+      <button type="button" class="btn btn-primary pull-right" ng-disabled="showCase.service.print_enable" ng-click="showCase.service.print_report(showCase.model_data, 'print_daily_production_report/?')">Print Report</button>
     </div>
     <div class="layout-sub-header">
         <form name="form" role="form">

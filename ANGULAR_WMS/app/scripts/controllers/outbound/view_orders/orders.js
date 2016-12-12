@@ -141,8 +141,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 	   vm.remarks = data.data.data_dict[0].remarks;
 	   vm.cust_data = data.data.data_dict[0].cus_data;
 	   vm.item_code = data.data.data_dict[0].item_code;
-	   vm.order_id = data.data.data_dict[0].order_id;;
-	   vm.img_url = vm.service.check_image_url('');
+	   vm.order_id = data.data.data_dict[0].order_id;
+	   var image_url = data.data.data_dict[0].image_url;
+	   vm.img_url = vm.service.check_image_url(image_url);
 	   var custom_data = data.data.data_dict[0].customization_data;
 	   if (custom_data.length === 0){
 
@@ -683,6 +684,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         if(data.message) {vm.confirm_disable = true; vm.message = data.data; reloadData();};
       });
     }
+
+  vm.raise_stock_transfer = function() {
+
+    var data = []
+    for(var key in vm.selected){
+      if(vm.selected[key]) {
+        var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+        data.push({wms_code: temp['SKU Code'], order_quantity: 1, price: 0})
+      }
+    }
+    Service.stock_transfer = JSON.stringify(data)
+    $state.go('app.outbound.ViewOrders.ST')
+  }
 
   }
 

@@ -1,14 +1,17 @@
 <div>
-  <div class="row"> 
-    <div class="col-md-12" style="padding-right: 3%;">                                                                                                                           
-      <!--<button type="button" class="btn btn-primary pull-left" style="margin-left: 2%; margin-bottom: 1%;" ng-click="showCase.catlog=false;showCase.details=false;">Cart</button>-->
-          <a href="" ng-click="showCase.catlog=false;showCase.details=false;" style="">
-          <i class="fa fa-cart-plus fa-3x" style="color:#66CC33; float: right;"aria-hidden="true"></i>
-          </a>
+  <div class="row style-menu">
+    <div class="col-md-4 col-sm-4 col-xs-0">
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-6">
+      <h4 align="center">CREATE ORDERS</h4>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-6">
+      <a href="" class="pull-right" ng-click="showCase.catlog=false;showCase.details=false;">
+        <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" title="Go To Cart Page"></i>
+      </a>
     </div>
   </div>
-  </div>
-  <div class="row" style="padding-left: 2%; padding-bottom: 2%;">
+  <div class="row" style="padding: 10px 20px;;">
     <div class="col-md-2" ng-repeat="brand in showCase.brands" style="text-align: center;cursor:pointer; height: 130px; width: 270px; background-color: white; margin: 5px 5px 5px 5px; padding: 0px 0px 0px 0px;">
     <img ng-src="/images/brand-logos/{{(showCase.brands_images[brand])? showCase.brands_images[brand]: 'red.png'}}" ng-click="showCase.change_brand(brand);showCase.detailed_list=true;showCase.details=false;"style="width:100%; height: 100%;cursor:pointer;">
       <p ng-if="(!(showCase.brands_images[brand]))" style="margin-top:-78px; font-size: 18px; font-weight: bold; color: #5DB730;">{{brand}}</p>

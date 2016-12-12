@@ -137,27 +137,6 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   }
 
-  vm.cate_details =  function(brand) {
-
-    var data = {brand: brand, is_catalog: true};
-    
-    vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
-      vm.all_cate = data.data.categories;
-      vm.brand = brand;
-    })
-    
-    angular.copy([], vm.catlog_data.data);
-    vm.catlog_data.index = "";
-    vm.scroll_data = false; 
-    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
-      vm.catlog_data.index = data.data.next_index;
-      angular.forEach(data.data.data, function(item){
-        vm.catlog_data.data.push(item);
-      })
-      vm.scroll_data = true;
-    })
-  }
-
   vm.get_category = function(status, scroll) {
     vm.scroll_data = false;
     var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true}
@@ -175,9 +154,6 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
           vm.catlog_data.data.push(item);
         })
       }
-      //if(scroll) {
-      //  $(window).scroll(scrollHandler);
-      //}
       vm.scroll_data = true;
     })
 
@@ -438,6 +414,18 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         vm.style_data = data.data.data;
       }
     });
+    vm.style_total_quantity = 0;
+  }
+
+  vm.style_total_quantity = 0;
+  vm.change_style_quantity = function(data){
+    vm.style_total_quantity = 0;
+    angular.forEach(data, function(record){
+
+      if(record.quantity) {
+        vm.style_total_quantity += Number(record.quantity);
+      }
+    })
   }
 
   vm.check_item = function(sku) {
@@ -454,37 +442,40 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   }
 
   vm.add_to_cart = function() {
+    if(vm.style_total_quantity > 0) {
+      angular.forEach(vm.style_data, function(data){
 
-    angular.forEach(vm.style_data, function(data){
-
-      if (data['quantity']) {
-        vm.check_item(data.wms_code).then(function(stat){
-          console.log(stat)
-          if(stat == "true") {
-            if(vm.model_data.data[0]["sku_id"] == "") {
-              vm.model_data.data[0].sku_id = data.wms_code;
-              vm.model_data.data[0].quantity = Number(data.quantity);
-              vm.model_data.data[0]['price'] = Number(data.price);
-              vm.model_data.data[0].invoice_amount = data.price*Number(data.quantity);
-              vm.model_data.data[0]['tax'] = vm.tax;
-              vm.model_data.data[0]['total_amount'] = ((vm.model_data.data[0].invoice_amount/100)*vm.tax)+vm.model_data.data[0].invoice_amount;
+        if (data['quantity']) {
+          vm.check_item(data.wms_code).then(function(stat){
+            console.log(stat)
+            if(stat == "true") {
+              if(vm.model_data.data[0]["sku_id"] == "") {
+                vm.model_data.data[0].sku_id = data.wms_code;
+                vm.model_data.data[0].quantity = Number(data.quantity);
+                vm.model_data.data[0]['price'] = Number(data.price);
+                vm.model_data.data[0].invoice_amount = data.price*Number(data.quantity);
+                vm.model_data.data[0]['tax'] = vm.tax;
+                vm.model_data.data[0]['total_amount'] = ((vm.model_data.data[0].invoice_amount/100)*vm.tax)+vm.model_data.data[0].invoice_amount;
+              } else {
+                var temp = {sku_id: data.wms_code, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax}
+                temp['total_amount'] = ((temp.invoice_amount/100)*vm.tax)+temp.invoice_amount;
+                vm.model_data.data.push(temp)
+              }
             } else {
-              var temp = {sku_id: data.wms_code, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax}
-              temp['total_amount'] = ((temp.invoice_amount/100)*vm.tax)+temp.invoice_amount;
-              vm.model_data.data.push(temp)
+               var temp = Number(vm.model_data.data[Number(stat)].quantity);
+               vm.model_data.data[Number(stat)].quantity = temp+Number(data.quantity);
+               vm.model_data.data[Number(stat)].invoice_amount = Number(data.price)*vm.model_data.data[Number(stat)].quantity;
+               var invoice = vm.model_data.data[Number(stat)].invoice_amount;
+               vm.model_data.data[Number(stat)].total_amount = ((invoice/100)*vm.tax)+invoice;
             }
-          } else {
-             var temp = Number(vm.model_data.data[Number(stat)].quantity);
-             vm.model_data.data[Number(stat)].quantity = temp+Number(data.quantity);
-             vm.model_data.data[Number(stat)].invoice_amount = Number(data.price)*vm.model_data.data[Number(stat)].quantity;
-             var invoice = vm.model_data.data[Number(stat)].invoice_amount;
-             vm.model_data.data[Number(stat)].total_amount = ((invoice/100)*vm.tax)+invoice;
-          }
-          vm.cal_total();
-        });
-      }
-    });
-    vm.service.showNoty("Succesfully Added to Cart");
+            vm.cal_total();
+          });
+        }
+      });
+      vm.service.showNoty("Succesfully Added to Cart");
+    } else {
+      vm.service.showNoty("Please Enter Quantity");
+    }
   }
 
   vm.check_stock = true;

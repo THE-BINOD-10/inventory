@@ -8,6 +8,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     var vm = this;
     vm.colFilters = colFilters
 
+    vm.stock_transfer = "";
+
     vm.scan = function(event, field, url) {
 
       var d = $q.defer();
@@ -570,7 +572,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         link: function (scope, element, attrs) {
             var raw = element[0];
             console.log('loading directive');
-
+                
             element.bind('scroll', function () {
                 console.log(raw.scrollTop + raw.offsetHeight);
                 console.log(raw.scrollHeight);

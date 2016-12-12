@@ -39,8 +39,9 @@
             <input name="ship_reference" class="pull-right form-control" style="margin-right: 10px;width: 130px" ng-model="showCase.ship_reference" type="text">
             <label class="pull-right" style="margin-right:10px;font-weight:bold; padding:5px">Shipment Reference: </label>
 
-            <button type="submit" class="btn btn-primary pull-left" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable" ng-if="!(showCase.permissions.batch_switch)" style="margin-right:10px;">Raise PO</button>
-            <button type="submit" class="btn btn-primary pull-left" ng-click="showCase.raise_jo()" ng-disabled="showCase.bt_disable" ng-if="!(showCase.permissions.batch_switch)">Raise JO</button>
+            <button type="submit" class="btn btn-primary pull-left mr10" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable" ng-if="!(showCase.permissions.batch_switch)">Raise PO</button>
+            <button type="submit" class="btn btn-primary pull-left mr10" ng-click="showCase.raise_jo()" ng-disabled="showCase.bt_disable" ng-if="!(showCase.permissions.batch_switch)">Raise JO</button>
+            <button type="submit" class="btn btn-primary pull-left" ng-click="showCase.raise_stock_transfer()" ng-disabled="showCase.bt_disable" ng-if="!(showCase.permissions.batch_switch)">Raise Stock Transfer</button>
           </div>
         </div>
       </tab>

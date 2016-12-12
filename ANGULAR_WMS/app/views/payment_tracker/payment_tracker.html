@@ -1,0 +1,55 @@
+<div class="page-layout" scrolly="scroll_bottom(e)" ng-controller="PaymentTracker as showCase">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body">
+    <div class="panel">
+      <div class="panel-body">
+        <div class="row">
+          <div class="col-md-2 col-sm-6 col-xs-6">
+            <span>Channel</span>
+          </div>
+          <div class="col-md-3 col-sm-6 col-xs-6">
+            <span>Customer Name</span>
+          </div>
+          <div class="col-md-3 col-sm-6 col-xs-6">
+            <span>Payment Received</span>
+          </div>
+          <div class="col-md-3 col-sm-6 col-xs-6">
+            <span>Payment Receivable</span>
+          </div>
+        </div>
+        <accordion close-others="oneAtATime">
+          <accordion-group ng-repeat="payment in showCase.payment_data.payments" is-open="status.isFirstOpen">
+            <accordion-heading>
+              <div class="row">
+                <div class="col-md-2 col-sm-6 col-xs-6">
+                  <b>{{payment.channel}}</b>
+                </div>
+                <div class="col-md-3 col-sm-5 col-xs-5">
+                  <b>{{payment.customer_name}}</b>
+                </div>
+                <div class="col-md-3 col-sm-6 col-xs-6">
+                  <b>{{payment.payment_received}}</b>
+                </div>
+                <div class="col-md-3 col-sm-6 col-xs-6">
+                  <b>{{payment.payment_receivable}}</b>
+                </div>
+                <div class="col-md-1 col-sm-1 col-xs-1">
+                  <i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': status.open, 'glyphicon-chevron-right': !status.open}"></i>
+                </div>
+              </div>
+            </accordion-heading>
+            <div class="row">
+              <div class="col-md-12 col-sm-12 col-xs-12">
+                <table>
+                   
+                </table>
+              </div>
+            </div>
+          </accordion-group>
+        </accordion>
+      </div>
+    </div>
+  </div>
+</div>

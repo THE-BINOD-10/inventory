@@ -260,6 +260,7 @@ urlpatterns = patterns('rest_api.views',
 
     #common
     url(r'^set_timezone/$', 'set_timezone'),
+    url(r'^get_file_checksum/$', 'get_file_checksum'),
 
     #Retailone
     url(r'^get_marketplace_data/$', 'get_marketplace_data'),

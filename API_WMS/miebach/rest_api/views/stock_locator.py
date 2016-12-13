@@ -129,13 +129,13 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
             if data.pallet_detail:
                 pallet_code = data.pallet_detail.pallet_code
             temp_data['aaData'].append(OrderedDict(( ('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
-                                        ('Receipt Date', str(data.receipt_date).split('+')[0]), ('SKU Code', data.sku.sku_code),
+                                        ('Receipt Date', get_local_date(user, data.receipt_date)), ('SKU Code', data.sku.sku_code),
                                         ('WMS Code', data.sku.wms_code), ('Product Description', data.sku.sku_desc),
                                         ('Zone', data.location.zone.zone), ('Location', data.location.location), ('Quantity', '%g' % round(data.quantity, 2)),
                                         ('Pallet Code', pallet_code), ('Receipt Type', data.receipt_type) )) )
         else:
             temp_data['aaData'].append(OrderedDict(( ('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
-                                        ('Receipt Date', str(data.receipt_date).split('+')[0]), ('SKU Code', data.sku.sku_code),
+                                        ('Receipt Date', get_local_date(user, data.receipt_date)), ('SKU Code', data.sku.sku_code),
                                         ('WMS Code', data.sku.wms_code), ('Product Description', data.sku.sku_desc),
                                         ('Zone', data.location.zone.zone), ('Location', data.location.location),
                                         ('Quantity', '%g' % round(data.quantity, 2)), ('Receipt Type', data.receipt_type))))
@@ -399,7 +399,7 @@ def stock_summary_data(request, user=''):
         zones_data[stock.location.zone.zone][stock.location.location][0] += stock.quantity
 
     job_order = JobOrder.objects.filter(product_code__user=user.id, product_code__wms_code=wms_code,
-                                        status__in=['grn-generated', 'pick_confirm'])
+                                        status__in=['grn-generated', 'pick_confirm', 'partial_pick'])
     job_codes = job_order.values_list('job_code', flat=True).distinct()
     extra_headers =  list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     for job_code in job_codes:

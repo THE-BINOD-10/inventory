@@ -235,7 +235,7 @@ data_datatable = {#masters
                   'ShipmentInfo':'get_customer_results', 'ShipmentPickedOrders': 'get_shipment_picked', 'PullToLocate': 'get_cancelled_orders',\
                   'StockTransferOrders': 'get_stock_transfer_orders', 'OutboundBackOrders': 'get_back_order_data',\
                   #manage users
-                  'ManageUsers': 'get_user_results',
+                  'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
                   #retail one
                   'channels_list': 'get_marketplace_data'
                  }
@@ -301,6 +301,30 @@ def get_local_date(user, input_date, send_date=''):
 
 @csrf_exempt
 def get_user_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    lis  = ['username', 'first_name', 'email', 'id']
+    group = ''
+    admin_group = AdminGroups.objects.filter(user_id=user.id)
+    if admin_group:
+        group = admin_group[0].group
+    if group:
+        if search_term:
+            master_data = group.user_set.filter().exclude(id=user.id)
+        elif order_term:
+            if order_term == 'asc':
+                master_data = group.user_set.filter().exclude(id=user.id).order_by(lis[col_num])
+            else:
+                master_data = group.user_set.filter().exclude(id=user.id).order_by("-%s" % lis[col_num])
+        else:
+            master_data = group.user_set.filter().exclude(id=user.id)
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data in master_data[start_index:stop_index]:
+        member_count = data.groups.all().exclude(name=group.name).count()
+        temp_data['aaData'].append({'User Name': data.username,'DT_RowClass': 'results', 'Name': data.first_name,
+                                    'Email': data.email, 'Member of Groups': member_count, 'DT_RowId': data.id})
+
+@csrf_exempt
+def get_user_groups(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     lis  = ['username', 'first_name', 'email', 'id']
     group = ''
     admin_group = AdminGroups.objects.filter(user_id=user.id)
@@ -1044,7 +1068,8 @@ def add_group(request, user=''):
     if selected:
         selected_list = selected.split(',')
     name = request.POST.get('name')
-
+    if name:
+        name = user.username + ' ' + name
     group_exists = Group.objects.filter(name=name)
     if group_exists:
          return HttpResponse('Group Name already exists')
@@ -1276,6 +1301,13 @@ def check_and_update_order(user, order_id):
     obj = EasyopsAPI(company_name='easyops', user=user)
     obj.confirm_picklist(order_id, user=user)
 
+def get_invoice_number(user):
+    invoice_number = 1
+    invoice_detail = InvoiceDetail.objects.filter(user.id).order_by('-invoice_number')
+    if invoice_detail:
+        invoice_number = int(invoice_detail[0].invoice_number) + 1
+    return invoice_number
+
 def get_invoice_data(order_ids, user):
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -1286,6 +1318,8 @@ def get_invoice_data(order_ids, user):
     total_invoice = 0
     customer_details = []
     order_no = ''
+    #invoice_number = get_invoice_number(user)
+    #invoice_date = datetime.datetime.now()
     if order_ids:
         order_ids = order_ids.split(',')
         order_data = OrderDetail.objects.filter(id__in=order_ids)
@@ -1339,5 +1373,98 @@ def get_invoice_data(order_ids, user):
                     'customer_details': customer_details, 'order_no': order_no}
     return invoice_data
 
-    
+def get_sku_categories_data(request, user, request_data={}):
+    if not request_data:
+        request_data = request.GET
+    filter_params = {'user': user.id}
+    sku_brand = request_data.get('brand', '')
+    sku_category = request_data.get('category', '')
+    is_catalog = request_data.get('is_catalog', '')
+    if sku_brand:
+        filter_params['sku_brand'] = sku_brand
+    if sku_category:
+        filter_params['sku_category'] = sku_category
+    if is_catalog:
+        filter_params['status'] = 1
+
+    sku_master = SKUMaster.objects.filter(**filter_params)
+    categories = list(sku_master.exclude(sku_category='').filter(**filter_params).values_list('sku_category', flat=True).distinct())
+    brands = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
+    return brands, categories
+
+def get_sku_catalogs_data(request, user, request_data={}):
+    if not request_data:
+        request_data = request.GET
+    from rest_api.views.outbound import get_style_variants
+    filter_params = {'user': user.id}
+    get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size', 'style_name']
+    sku_category = request_data.get('category', '')
+    sku_class = request_data.get('sku_class', '')
+    sku_brand = request_data.get('brand', '')
+    sku_category = request_data.get('category', '')
+    is_catalog = request_data.get('is_catalog', '')
+    indexes = request_data.get('index', '0:20')
+    is_file = request_data.get('file', '')
+    if not indexes:
+        indexes = '0:20'
+    if sku_brand:
+        filter_params['sku_brand'] = sku_brand
+    if sku_category:
+        filter_params['sku_category'] = sku_category
+    if is_catalog:
+        filter_params['status'] = 1
+    start, stop = indexes.split(':')
+    start, stop = int(start), int(stop)
+    if sku_class:
+        filter_params['sku_class__icontains'] = sku_class
+
+    sku_master = SKUMaster.objects.exclude(sku_class='').filter(**filter_params).order_by('sequence')
+    product_styles = sku_master.values_list('sku_class', flat=True).distinct()
+    #sku_master = [ key for key,_ in groupby(sku_master)]
+    product_styles = list(OrderedDict.fromkeys(product_styles))
+    data = []
+    for product in product_styles[start: stop]:
+        sku_object = SKUMaster.objects.filter(user=user.id, sku_class=product)
+        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence').\
+                                       order_by('-image_url')
+
+        if sku_styles:
+            sku_variants = list(sku_object.values(*get_values))
+            sku_variants = get_style_variants(sku_variants, user)
+            sku_styles[0]['variants'] = sku_variants
+            data.append(sku_styles[0])
+        if not is_file and len(data) >= 20:
+            break
+    return data, start, stop
+
+def get_user_sku_data(sku):
+    request = {}
+    user = User.objects.get(id=sku.user)
+    brands_data = get_sku_categories_data(request, user, request_data={'file': True})
+    skus_data = get_sku_catalogs_data(request, user, request_data={'file': True})
+    path = 'static/text_files'
+    if not os.path.exists(path):
+        os.makedirs(path)
+    data = json.dumps({'brands_data': brands_data, 'skus_data': skus_data})
+    path = path + '/' + str(user.id) + '.sku_master.txt'
+    fil = open(path, 'w').write(data)
+    checksum = hashlib.sha256(data).hexdigest()
+    file_dump = FileDump.objects.filter(name='sku_master', user_id=user.id)
+    NOW = datetime.datetime.now
+    if not file_dump:
+        FileDump.objects.create(name='sku_master', user_id=user.id, checksum=checksum, path=path, creation_date=NOW, updation_date=NOW)
+    else:
+        file_dump = file_dump[0]
+        file_dump.checksum = checksum
+        file_dump.save()
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_file_checksum(request,user=''):
+    name = request.GET.get('name', '')
+    file_data = list(FileDump.objects.filter(name=name, user=user.id).values('name', 'checksum', 'path'))
+    if file_data:
+        file_data = file_data[0]
+    return HttpResponse(json.dumps({'file_data': file_data}))
 

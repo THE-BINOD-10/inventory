@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User,Group
 from miebach_utils import BigAutoField
 from datetime import date
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 # Create your models here.
 
@@ -1216,3 +1218,21 @@ class UserBrand(models.Model):
 
     class Meta:
         db_table = 'USER_BRAND'
+
+class FileDump(models.Model):
+    user = models.ForeignKey(User, blank=True, null=True)
+    name = models.CharField(max_length=128, default='')
+    checksum = models.CharField(max_length=256, default='')
+    path = models.CharField(max_length=256, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'FILE_DUMP'
+
+@receiver(post_save, sender=SKUMaster)
+def create_user_sku_file(sender, **kwargs):
+    from rest_api.views.common import get_user_sku_data
+    sku = kwargs.get('instance')
+    get_user_sku_data(sku)
+

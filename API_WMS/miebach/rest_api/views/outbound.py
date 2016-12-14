@@ -1082,20 +1082,25 @@ def get_customer_sku(request, user=''):
     temp1 = []
     order_shipments = []
     all_data = {}
+    data = []
     sku_grouping = request.GET.get('sku_grouping', 'false')
     search_params = {'user': user.id}
     headers = ('', 'SKU Code', 'Order Quantity', 'Shipping Quantity', 'Pack Reference', '')
-    c_id = request.GET['customer_id']
-    marketplace = request.GET['marketplace']
-    if c_id:
-        c_id = c_id.split(':')
-        search_params['customer_id'] = c_id[0]
-        search_params['customer_name'] = c_id[1]
-    if marketplace:
-        search_params['marketplace'] = marketplace.replace('Default','')
+    #c_id = request.GET['customer_id']
+    #marketplace = request.GET['marketplace']
+    #if c_id:
+    #    c_id = c_id.split(':')
+    #    search_params['customer_id'] = c_id[0]
+    #    search_params['customer_name'] = c_id[1]
+    #if marketplace:
+    #    search_params['marketplace'] = marketplace.replace('Default','')
 
-    ship_no = request.GET['shipment_number']
+    request_data = dict(request.GET.iterlists())
+    if 'order_id' in request_data.keys():
+        search_params['id__in'] = request_data['order_id']
+    ship_no = get_shipment_number(user)
     data_dict = copy.deepcopy(ORDER_SHIPMENT_DATA)
+    data_dict['shipment_number'] = ship_no
     order_shipment = OrderShipment.objects.filter(shipment_number = ship_no)
     all_orders = OrderDetail.objects.filter(**search_params)
     customer_dict = all_orders.values('customer_id', 'customer_name').distinct()
@@ -1125,7 +1130,8 @@ def get_customer_sku(request, user=''):
                 if all_data[ind]['picked'] < 0:
                     del all_data[ind]
 
-        if not order_shipment and all_data:
+        data = list(chain(data, all_data))
+        '''if not order_shipment and all_data:
             for key, value in request.GET.iteritems():
                 if key in ('customer_id', 'marketplace'):
                     continue
@@ -1139,17 +1145,17 @@ def get_customer_sku(request, user=''):
             data = OrderShipment(**data_dict)
             data.save()
             order_shipment = [data]
-            order_shipments.append(data)
-    if all_data:
-        order_data = all_data
-        display_fields = ['Customer ID', 'Customer Name']
-        if not c_id:
-            display_fields = ['Market Place']
-            customer_dict = {'marketplace': marketplace}
-        return HttpResponse(json.dumps({'customer_details': list(customer_dict), 'data': list(order_data),
-                                  'shipment_id': order_shipment[0].id,
-                                  'display_fields': display_fields,
-                                  'marketplace': marketplace}))
+            order_shipments.append(data)'''
+    if data:
+        #order_data = all_data
+        #display_fields = ['Customer ID', 'Customer Name']
+        #if not c_id:
+        #    display_fields = ['Market Place']
+        #    customer_dict = {'marketplace': marketplace}
+        return HttpResponse(json.dumps({'data': data,
+                                  'shipment_id': '',#order_shipment[0].id,
+                                  'display_fields': '',
+                                  'marketplace': '', 'shipment_number': ship_no}))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
 @login_required
@@ -1854,24 +1860,45 @@ def generate_jo_data(request, user=''):
                          'sub_data': data})
     return HttpResponse(json.dumps({'data': all_data}))
 
-@csrf_exempt
-@get_admin_user
-def shipment_info(request, user=''):
+def get_shipment_number(user):
     order_shipment = OrderShipment.objects.filter(user = user.id).order_by('-shipment_number')
     if order_shipment:
         shipment_number = int(order_shipment[0].shipment_number) + 1
     else:
         shipment_number = 1
+    return shipment_number
+
+@csrf_exempt
+@get_admin_user
+def shipment_info(request, user=''):
+    shipment_number = get_shipment_number(user)
     market_place = list(Picklist.objects.filter(order__user = user.id, status__icontains='picked').\
                                          values_list('order__marketplace', flat=True).distinct())
     return HttpResponse(json.dumps({'shipment_number': shipment_number, 'market_places': market_place}))
+
+def create_shipment(request, user):
+    data_dict = copy.deepcopy(ORDER_SHIPMENT_DATA)
+    for key, value in request.POST.iteritems():
+        if key in ('customer_id', 'marketplace'):
+            continue
+        elif key == 'shipment_date':
+            ship_date = value.split('/')
+            data_dict[key] = datetime.date(int(ship_date[2]), int(ship_date[0]), int(ship_date[1]))
+        elif key in ORDER_SHIPMENT_DATA.keys():
+            data_dict[key] = value
+
+    data_dict['user'] = user.id
+    data = OrderShipment(**data_dict)
+    data.save()
+    return data
 
 @csrf_exempt
 @get_admin_user
 def insert_shipment_info(request, user=''):
     myDict = dict(request.POST.iterlists())
-    for i in range(0, len(myDict['order_shipment_id'])):
-        if not myDict['package_reference'][i] or not myDict['shipping_quantity'][i]:
+    order_shipment = create_shipment(request, user)
+    for i in range(0, len(myDict['sku_code'])):
+        if not myDict['shipping_quantity'][i]:
             continue
 
         order_ids = eval(myDict['id'][i])
@@ -1890,9 +1917,10 @@ def insert_shipment_info(request, user=''):
                 if key in shipment_data and key !='id':
                     shipment_data[key] = value[i]
 
-            order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=myDict['order_shipment_id'][i],
+            order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id,
                                                                 package_reference=myDict['package_reference'][i], order_shipment__user=user.id)
             if not order_pack_instance:
+                data_dict['order_shipment_id'] = order_shipment.id
                 data = OrderPackaging(**data_dict)
                 data.save()
             else:
@@ -1908,6 +1936,7 @@ def insert_shipment_info(request, user=''):
                 shipped_quantity = received_quantity
                 received_quantity = 0
 
+            shipment_data['order_shipment_id'] = order_shipment.id
             shipment_data['order_packaging_id'] = data.id
             shipment_data['order_id'] = order_id
             shipment_data['shipping_quantity'] = shipped_quantity
@@ -1922,7 +1951,7 @@ def insert_shipment_info(request, user=''):
                     setattr(pick_order, 'status', 'dispatched')
                     pick_order.save()
 
-    return HttpResponse('Inserted Successfully')
+    return HttpResponse('Shipment Created Successfully')
 
 
 @csrf_exempt
@@ -2017,20 +2046,7 @@ def print_shipment(request, user=''):
 @login_required
 @get_admin_user
 def get_sku_categories(request, user=''):
-    filter_params = {'user': user.id}
-    sku_brand = request.GET.get('brand', '')
-    sku_category = request.GET.get('category', '')
-    is_catalog = request.GET.get('is_catalog', '')
-    if sku_brand:
-        filter_params['sku_brand'] = sku_brand
-    if sku_category:
-        filter_params['sku_category'] = sku_category
-    if is_catalog:
-        filter_params['status'] = 1
-
-    sku_master = SKUMaster.objects.filter(**filter_params)
-    categories = list(sku_master.exclude(sku_category='').filter(**filter_params).values_list('sku_category', flat=True).distinct())
-    brands = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
+    brands, categories = get_sku_categories_data(request, user)
     stages_list = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'stages_list': stages_list}))
 
@@ -2068,44 +2084,7 @@ def get_style_variants(sku_master, user, customer_id=''):
 @login_required
 @get_admin_user
 def get_sku_catalogs(request, user=''):
-    filter_params = {'user': user.id}
-    get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size', 'style_name']
-    sku_category = request.GET.get('category', '')
-    sku_class = request.GET.get('sku_class', '')
-    sku_brand = request.GET.get('brand', '')
-    sku_category = request.GET.get('category', '')
-    is_catalog = request.GET.get('is_catalog', '')
-    indexes = request.GET.get('index', '0:20')
-    if not indexes:
-        indexes = '0:20'
-    if sku_brand:
-        filter_params['sku_brand'] = sku_brand
-    if sku_category:
-        filter_params['sku_category'] = sku_category
-    if is_catalog:
-        filter_params['status'] = 1
-    start, stop = indexes.split(':')
-    start, stop = int(start), int(stop)
-    if sku_class:
-        filter_params['sku_class__icontains'] = sku_class
-
-    sku_master = SKUMaster.objects.exclude(sku_class='').filter(**filter_params).order_by('sequence')
-    product_styles = sku_master.values_list('sku_class', flat=True).distinct()
-    #sku_master = [ key for key,_ in groupby(sku_master)]
-    product_styles = list(OrderedDict.fromkeys(product_styles))
-    data = []
-    for product in product_styles[start: stop]:
-        sku_object = SKUMaster.objects.filter(user=user.id, sku_class=product)
-        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence').\
-                                       order_by('-image_url')
-
-        if sku_styles:
-            sku_variants = list(sku_object.values(*get_values))
-            sku_variants = get_style_variants(sku_variants, user)
-            sku_styles[0]['variants'] = sku_variants
-            data.append(sku_styles[0])
-        if len(data) >= 20:
-            break
+    data, start, stop = get_sku_catalogs_data(request, user)
     return HttpResponse(json.dumps({'data': data, 'next_index': str(start + 20) + ':' + str(stop + 20)}))
 
 @csrf_exempt
@@ -2142,7 +2121,7 @@ def generate_order_invoice(request, user=''):
     return HttpResponse(json.dumps(invoice_data))
 
 @csrf_exempt
-def get_shipment_picked(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, user_dict={}):
+def get_shipment_picked(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, user_dict={}, filters={}):
 
     if user_dict:
         user_dict = eval(user_dict)
@@ -2150,11 +2129,11 @@ def get_shipment_picked(start_index, stop_index, temp_data, search_term, order_t
            'picked_quantity', 'order__marketplace']
     data_dict = {'status__icontains': 'picked', 'order__user': user.id, 'picked_quantity__gt': 0}
 
-    if user_dict.get('market_places', ''):
-        marketplace = user_dict['market_places'].split(',')
-        data_dict['marketplace__in'] = marketplace
-    if user_dict.get('customer_id', ''):
-        data_dict['customer_id'], data_dict['customer_name'] = user_dict['customer_id'].split(':')
+    if user_dict.get('market_place', ''):
+        marketplace = user_dict['market_place'].split(',')
+        data_dict['order__marketplace__in'] = marketplace
+    if user_dict.get('customer', ''):
+        data_dict['order__customer_id'], data_dict['order__customer_name'] = user_dict['customer'].split(':')
 
     search_params = get_filtered_params(filters, lis[1:])
 
@@ -2286,13 +2265,12 @@ def get_view_order_details(request, user=''):
     state = order_details.state
     pin = order_details.pin_code
     sku_id = order_details.sku_id
-    product_title = OrderDetail.objects.get(id=main_id).title
-    quantity = OrderDetail.objects.get(id=main_id).quantity
-    invoice_amount = OrderDetail.objects.get(id=main_id).invoice_amount
-    remarks = OrderDetail.objects.get(id=main_id).remarks
-    sku_data = SKUMaster.objects.get(id=sku_id)
-    sku_code = sku_data.sku_code
-    sku_type = sku_data.sku_type
+    product_title = order_details.title
+    quantity = order_details.quantity
+    invoice_amount = order_details.invoice_amount
+    remarks = order_details.remarks
+    sku_code = order_details.sku.sku_code
+    sku_type = order_details.sku.sku_type
     field_type = 'product_attribute'
     customization_data = []
     if str(sku_type) == 'CS':
@@ -2310,7 +2288,11 @@ def get_view_order_details(request, user=''):
 		    img_url = ProductImages.objects.get(image_id=pro_pro_id).image_url
 		    custom_data = (attr_name,attr_desc,img_data,img_url)
 	    	    customization_data.append(custom_data)
-    data_dict.append({'product_title':product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks, 'customization_data': customization_data, 'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone, 'email': email, 'address': address, 'city': city, 'state': state, 'pin': pin, 'shipment_date': str(shipment_date), 'cus_data': cus_data, 'item_code': sku_code, 'order_id': order_id})
+    data_dict.append({'product_title':product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
+                      'customization_data': customization_data, 'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone,
+                      'email': email, 'address': address, 'city': city, 'state': state, 'pin': pin, 'shipment_date': str(shipment_date),
+                      'cus_data': cus_data, 'item_code': sku_code, 'order_id': order_id,
+                     'image_url': order_details.sku.image_url})
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 
 @csrf_exempt

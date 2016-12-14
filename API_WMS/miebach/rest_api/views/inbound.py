@@ -2899,7 +2899,7 @@ def track_orders(request, user=''):
                               'quantity': dat.open_po.order_quantity,
                               'price': dat.open_po.price, 'order_date': str(dat.creation_date.strftime("%d %B %Y"))})
         stage = get_stage_index(stages, ind)
-        open_po.append({'open_po_id': open_po_id, 'total': total, 'order_data': temp_data,
+        open_po.append({'open_po_id': open_po_id, 'total': total, 'order_data': temp_data, 'stage': stage,
                                                                   'index': po_data[0].order_id})
 
     search_params = {'user': user.id, 'status': 1}

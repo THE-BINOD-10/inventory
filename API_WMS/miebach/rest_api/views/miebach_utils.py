@@ -904,7 +904,7 @@ def get_stock_summary_data(search_params, user):
     if search_stage:
         stage_filter['stage_name'] = search_stage
     extra_headers =  list(ProductionStages.objects.filter(**stage_filter).order_by('order').values_list('stage_name', flat=True))
-    job_order = JobOrder.objects.filter(product_code__user=user.id, status__in=['grn-generated', 'pick_confirm'])
+    job_order = JobOrder.objects.filter(product_code__user=user.id, status__in=['grn-generated', 'pick_confirm', 'partial_pick'])
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -1040,8 +1040,8 @@ def get_daily_production_data(search_params, user):
 
     for key in all_data_keys:
         data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('SKU Code', key[2]), ('Brand', key[3]),
-                                  ('SKU Category', key[4]), ('Total JO Quantity', key[5]), ('Reduced Quantity', key[6]),
-                                  ('Stage', all_data[key])
+                                  ('SKU Category', key[4]), ('Total JO Quantity', key[5]), ('Reduced Quantity', all_data[key]),
+                                  ('Stage', key[6])
                    )))
 
 

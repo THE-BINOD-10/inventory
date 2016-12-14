@@ -18,7 +18,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service) {
                           order_id: "12345",
                           inv_amount: 1000,
                           pay: 500,
-                          Account: "Credit Card",
+                          account: "Credit Card",
                           order_status: "Generte Picklist",
                           }
                         ]
@@ -28,21 +28,36 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service) {
   vm.payment_data = {};
   angular.copy(empty_data, vm.payment_data);
 
+  vm.model_data = {search:"Order Created",filters: ["Order Created", "Partially Invoiced", "Invoiced"]}
+
   vm.searching = function(data) {
 
     console.log(data);
   }
 
+  vm.get_payment_tracker_data = function() {
+    vm.service.apiCall("payment_tracker/","GET", {filter: vm.model_data.search}).then(function(data){
 
-  vm.scroll_data = true;
-  $scope.$on('scroll-bottom', function(event){
-    console.log("scroll")
-    if($("#track_orders:visible").length && vm.scroll_data) {
+      if(data.message) {
 
-      vm.scroll_data = false;
-      var index = vm.order_data.orders.length-1;
-      var id = vm.order_data.orders[index].index;
-      vm.get_orders(id, true)
+        vm.payment_data.payments = data.data.data;
+      }
+    })
+  }
+  vm.get_payment_tracker_data();
+
+  vm.get_customer_orders = function(payment) {
+
+   console.log(payment) ;
+    if(!(payment["data"])) {
+      var send = {id:payment.customer_id, name:payment.customer_name, channel: payment.channel}
+      vm.service.apiCall("get_customer_payment_tracker/", "GET", send).then(function(data){
+  
+        if(data.message) {
+          payment["data"] = data.data.data;
+        }
+      })
     }
-  })
+  }
+
 }

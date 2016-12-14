@@ -72,10 +72,10 @@
         } else if (!(this.roles.permissions[data])) {
           deferredStatus.resolve("false");
         } else {
-          return deferredStatus.resolve("true");
+          deferredStatus.resolve("true");
         }
       } else {
-        return deferredStatus.resolve("false");
+        deferredStatus.resolve("false");
       }
       return deferredStatus.promise;
     }

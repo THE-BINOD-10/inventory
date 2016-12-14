@@ -30,17 +30,18 @@ def process_date(value):
     return value
 
 
-def get_user_permissions(user):
+def get_user_permissions(request, user):
     roles = {}
     configuration = list(MiscDetail.objects.filter(user=user.id).values('misc_type', 'misc_value'))
     config = dict(zip(map(operator.itemgetter('misc_type'), configuration), map(operator.itemgetter('misc_value'), configuration)))
     user_perms = PERMISSION_KEYS
     for perm in user_perms:
-        roles[perm] = get_permission(user, perm)
+        roles[perm] = get_permission(request.user, perm)
     roles.update(config)
     return {'permissions': roles}
 
-def add_user_permissions(request, user, response_data):
+@get_admin_user
+def add_user_permissions(request, response_data, user=''):
     status_dict = {1: 'true', 0: 'false'}
     multi_warehouse = 'false'
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -49,14 +50,15 @@ def add_user_permissions(request, user, response_data):
     #    multi_warehouse = 'true'
     if user_profile.multi_warehouse:
         multi_warehouse = 'true'
-    response_data['data']['userName'] = user.username
-    response_data['data']['userId'] = user.id
-    response_data['data']['roles'] = get_user_permissions(user)
+    response_data['data']['userName'] = request.user.username
+    response_data['data']['userId'] = request.user.id
+    response_data['data']['roles'] = get_user_permissions(request, user)
     response_data['data']['roles']['permissions']['is_superuser'] = status_dict[int(request.user.is_superuser)]
     response_data['data']['roles']['permissions']['is_staff'] = status_dict[int(request.user.is_staff)]
     response_data['data']['roles']['permissions']['multi_warehouse'] = multi_warehouse
-    response_data['data']['user_profile'] = {'first_name': user.first_name, 'last_name': user.last_name,
-                                             'registered_date': get_local_date(user, user_profile.creation_date), 'email': user.email, 
+    response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
+                                             'registered_date': get_local_date(request.user, user_profile.creation_date),
+                                             'email': request.user.email, 
                                              'trail_user': status_dict[int(user_profile.is_trail)], 'company_name': user_profile.company_name}
 
     setup_status ='false'
@@ -65,7 +67,7 @@ def add_user_permissions(request, user, response_data):
     response_data['data']['roles']['permissions']['setup_status'] = setup_status
     if user_profile.is_trail:
         time_now = datetime.datetime.now().replace(tzinfo=pytz.timezone('UTC'))
-        exp_time = get_local_date(user, time_now, send_date=1) - get_local_date(user, user_profile.creation_date, send_date=1)
+        exp_time = get_local_date(request.user, time_now, send_date=1) - get_local_date(request.user, user_profile.creation_date, send_date=1)
         response_data['data']['user_profile']['expiry_days'] = 30 - int(exp_time.days)
     response_data['message'] = 'Success'
     return response_data
@@ -96,7 +98,7 @@ def wms_login(request):
         else:
             return HttpResponse(json.dumps(response_data), content_type='application/json')
 
-        response_data = add_user_permissions(request, user, response_data)
+        response_data = add_user_permissions(request, response_data)
 
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -142,7 +144,7 @@ def status(request):
     status_dict = {1: 'true', 0: 'false'}
 
     if request.user.is_authenticated():
-        response_data = add_user_permissions(request, request.user, response_data)
+        response_data = add_user_permissions(request, response_data)
  
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -392,8 +394,6 @@ def add_extra_permissions(user):
 @get_admin_user
 def configurations(request, user=''):
     display_none = 'display: block;'
-    if not permissionpage(request):
-        return render(request, 'templates/permission_denied.html')
     fifo_switch = get_misc_value('fifo_switch', user.id)
     batch_switch = get_misc_value('batch_switch', user.id)
     send_message = get_misc_value('send_message', user.id)
@@ -1019,7 +1019,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
     dat = InventoryAdjustment(**data)
     dat.save()
 
-    #check_and_update_stock(wmscode, user)
+    check_and_update_stock(wmscode, user)
 
     return 'Added Successfully'
 
@@ -1228,7 +1228,7 @@ def search_wms_codes(request, user=''):
     data_id = request.GET.get('q', '')
     sku_type = request.GET.get('type', '')
     extra_filter = {}
-    data = SKUMaster.objects.filter(Q(wms_code__icontains = data_id) | Q(sku_desc__icontains = data_id), user=user.id)
+    data = SKUMaster.objects.filter(Q(wms_code__icontains = data_id) | Q(sku_desc__icontains = data_id), user=user.id).order_by('wms_code')
     wms_codes = []
     count = 0
     if data:
@@ -1253,18 +1253,19 @@ def get_order_id(user_id):
 def check_and_update_stock(wms_code, user):
     from rest_api.views.easyops_api import *
     obj = EasyopsAPI(company_name='easyops', user=user)
-    stock_instance = StockDetail.objects.filter(sku__wms_code=wms_code, sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
-    reserved_instance = PicklistLocation.objects.filter(picklist__status__icontains='open', picklist__order__user=user.id, reserved__gt=0,
-                                    picklist__order__sku__wms_code=wms_code).aggregate(Sum('reserved'))['reserved__sum']
-    raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
-                                             stock__sku__wms_code=wms_code).aggregate(Sum('reserved'))['reserved__sum']
+    stock_instance = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE']).filter(sku__wms_code=wms_code,
+                                                 sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
+    reserved_instance = Picklist.objects.filter(status__icontains='picked', order__user=user.id, picked_quantity__gt=0,
+                                                order__sku__wms_code=wms_code).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+    #raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
+    #                                         stock__sku__wms_code=wms_code).aggregate(Sum('reserved'))['reserved__sum']
     if not stock_instance:
         stock_instance = 0
     if not reserved_instance:
         reserved_instance = 0
-    if raw_reserved:
-        reserved_instance += raw_reserved
-    sku_count = float(stock_instance) - float(reserved_instance)
+    #if raw_reserved:
+    #    reserved_instance += raw_reserved
+    sku_count = float(stock_instance) + float(reserved_instance)
     sku_count = int(sku_count)
     if sku_count < 0:
         sku_count = 0
@@ -1463,8 +1464,27 @@ def get_user_sku_data(sku):
 @get_admin_user
 def get_file_checksum(request,user=''):
     name = request.GET.get('name', '')
+    file_content = ''
     file_data = list(FileDump.objects.filter(name=name, user=user.id).values('name', 'checksum', 'path'))
     if file_data:
         file_data = file_data[0]
-    return HttpResponse(json.dumps({'file_data': file_data}))
+        file_content = open(file_data['path'], 'r').read()
+    return HttpResponse(json.dumps({'file_data': file_data, 'file_content': eval(file_content)}))
+
+@get_admin_user
+def search_wms_data(request, user=''):
+
+    search_key = request.GET.get('q', '')
+    total_data = []
+
+    if not search_key:
+      return HttpResponse(json.dumps(total_data))
+
+    lis = ['wms_code', 'sku_desc']
+    master_data = SKUMaster.objects.filter(Q(wms_code__icontains = search_key) | Q(sku_desc__icontains = search_key),user=user.id)
+
+    for data in master_data[:30]:
+
+        total_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc})
+    return HttpResponse(json.dumps(total_data))
 

@@ -889,7 +889,9 @@ def insert_bom(all_data, product_code, user):
                 bom = bom[0]
                 bom.material_quantity = float(val[0])
                 bom.unit_of_measurement = val[1]
-                bom.wastage_percent = float(val[3])
+                bom.wastage_percent = 0
+                if val[3]:
+                    bom.wastage_percent = float(val[3])
                 bom.save()
             else:
                 material_sku = SKUMaster.objects.get(sku_code=key, user=user)

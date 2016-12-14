@@ -1901,7 +1901,7 @@ def putaway_data(request, user=''):
             stock_detail.save()
         consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 
-        #check_and_update_stock(order_data['sku_code'], user)
+        check_and_update_stock(order_data['sku_code'], user)
 
         putaway_quantity = POLocation.objects.filter(purchase_order_id=data.purchase_order_id,
                                                      location__zone__user = user.id, status=0).\

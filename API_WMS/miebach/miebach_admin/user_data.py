@@ -5,7 +5,7 @@ import django
 django.setup()
 from rest_api.views.easyops_api import *
 from miebach_admin.models import *
-from rest_api.views.integrations import update_orders
+from rest_api.views.integrations import update_orders, update_shipped
 from mail_server import send_mail
 import threading
 import time
@@ -70,9 +70,19 @@ class CollectData:
             time.sleep(60)
         send_mail('DUMPS: Returned Orders dump status', 'Returned Orders dump failed', receivers=MAIL_TO)
 
+    def shipped_orders(self):
+        while True:
+            signal = self.populate_data(self.easyops_api.get_shipped_orders, update_shipped)
+            if signal:
+                break
+
+            time.sleep(60)
+        send_mail('DUMPS: Shipped Orders dump status', 'Shipped Orders dump failed', receivers=MAIL_TO)
+
     def run_main(self):
         threads = []
-        thread_obj = [ self.get_user_orders ]
+        thread_obj = [ self.get_user_orders, self.shipped_orders ]
+        #thread_obj = [ self.shipped_orders ]
         for count, obj in enumerate(thread_obj):
             thread = threading.Thread(name='Thread%s' % count, target=obj)
             thread.start()

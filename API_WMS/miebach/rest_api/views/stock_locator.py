@@ -29,6 +29,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     status_track = StatusTracking.objects.filter(status_type='JO', status_id__in=job_ids,status_value__in=extra_headers, quantity__gt=0).\
                                           values('status_value', 'status_id').distinct().annotate(total=Sum('quantity'))
     status_ids = map(lambda d: d.get('status_id', ''), status_track)
+    sku_master = SKUMaster.objects.filter(user=user.id)
 
     if search_term:
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc', 'sku__sku_category').\
@@ -56,8 +57,9 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     temp_data['recordsFiltered'] = len(master_data)
     for ind, data in enumerate(master_data[start_index:stop_index]):
         total = data[3] if len(data) > 3 else 0
+        sku = sku_master.get(wms_code=data[0], user=user.id)
         temp_data['aaData'].append(OrderedDict(( ('WMS Code', data[0]), ('Product Description', data[1]),
-                                                 ('SKU Category', data[2]), ('Quantity', total),
+                                                 ('SKU Category', data[2]), ('Quantity', total), ('Unit of Measurement', sku.measurement_type),
                                                  ('DT_RowId', data[0]) )))
 
 

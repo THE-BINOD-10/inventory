@@ -20,7 +20,6 @@ API_WMS/miebach/static/grappelli/*
 API_WMS/miebach/static/text_files/*
 API_WMS/miebach/rest_api/demo_data/*
 API_WMS/miebach/rest_api/migrations/*
-API_WMS/miebach/phantom/*
 ANGULAR_WMS/bower_components/*
 ANGULAR_WMS/dist/*
 ANGULAR_WMS/node_modules/*

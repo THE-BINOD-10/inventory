@@ -721,7 +721,7 @@ def rm_picklist_confirmation(request, user=''):
                 location = LocationMaster.objects.filter(location=val['location'], zone__zone=val['zone'], zone__user=user.id)
                 if not location:
                     return HttpResponse("Invalid Location and Zone combination")
-                stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': request.user.id}
+                stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': user.id}
                 stock_detail = StockDetail.objects.filter(**stock_dict)
                 for stock in stock_detail:
                     if picking_count == 0:
@@ -791,7 +791,7 @@ def rm_picklist_confirmation(request, user=''):
                         insert_rwo_po(rw_order, request, user)
 
             if get_misc_value('auto_po_switch', user.id) == 'true' and auto_skus:
-                auto_po(list(set(auto_skus)),request.user.id)
+                auto_po(list(set(auto_skus)) ,user.id)
 
     return HttpResponse('Picklist Confirmed')
 

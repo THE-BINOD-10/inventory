@@ -223,7 +223,7 @@ SALES_RETURN_REPORT = {('sales_return_form','salesreturnTable','Sales Return Rep
 LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequence', 'SKU Group']
 
 SKU_HEADERS = ['WMS Code','SKU Description', 'SKU Group', 'SKU Type', 'SKU Category', 'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size',
-               'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url', 'Threshold Quantity', 'Status']
+               'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url', 'Threshold Quantity', 'Measurment Type', 'Status']
 
 EXCEL_HEADERS = ['Receipt Number', 'Receipt Date(YYYY-MM-DD)',  'WMS SKU', 'Location', 'Quantity', 'Receipt Type']
 EXCEL_RECORDS = ('receipt_number', 'receipt_date', 'wms_code', 'location', 'wms_quantity', 'receipt_type')
@@ -400,7 +400,7 @@ ORDER_DEF_EXCEL = {'order_id': 0, 'quantity': 3, 'title': 1, 'shipment_date': 4,
 
 SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('sku_group', 2), ('sku_type', 3), ('sku_category', 4), ('sku_class', 5),
                               ('sku_brand', 6), ('style_name', 7), ('sku_size', 8), ('zone_id', 9), ('price', 10), ('mrp', 11),
-                              ('sequence', 12), ('image_url', 13), ('threshold_quantity', 14), ('status', 15)
+                              ('sequence', 12), ('image_url', 13), ('threshold_quantity', 14), ('measurement_type', 15), ('status', 16)
                            ))
 
 ITEM_MASTER_EXCEL = OrderedDict(( ('wms_code', 1), ('sku_desc', 2), ('sku_category', 25), ('image_url', 18), ('sku_size', 14) ))
@@ -495,6 +495,15 @@ EASYOPS_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumber', 'it
                          'title': 'order["productTitle"]', 'quantity': 'order["quantity"]',
                          'shipment_date': 'orders["orderDate"]',
                          'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]'}
+
+EASYOPS_SHIPPED_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'channel',
+                         'sku': 'order["easyopsSku"]',
+                         'title': 'order["productTitle"]', 'quantity': 'order["quantity"]',
+                         'shipment_date': 'orders["orderDate"]',
+                         'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]'}
+
+ORDER_SUMMARY_FIELDS = {'discount': 0, 'creation_date': datetime.datetime.now(), 'issue_type': 'order', 'vat': 0, 'tax_value': 0,
+                        'order_taken_by': ''}
 
 def fn_timer(function):
     @wraps(function)

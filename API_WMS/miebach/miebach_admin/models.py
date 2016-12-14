@@ -50,6 +50,7 @@ class SKUMaster(models.Model):
     sequence = models.PositiveIntegerField(default=0)
     status = models.IntegerField(default=1)
     relation_type = models.CharField(max_length=32, default = '')
+    measurement_type = models.CharField(max_length=32, default = '')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -896,6 +897,7 @@ class CustomerOrderSummary(models.Model):
     vat = models.FloatField(default=0)
     issue_type=models.CharField(max_length=64, default='')
     tax_value = models.FloatField(default=0)
+    order_taken_by = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

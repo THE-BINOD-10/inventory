@@ -1,41 +1,39 @@
-        <div style="padding-top:20px">
+        <div>
           <form id="order-create" name="form" role="form" ui-jq="validate">
             <div class="clearfix">
-
-              <div class="row col-md-12">
-
-		<div class="col-md-10" style="margin-top: 7px;">
-              	  <p align="right">CUSTOM ORDER</p>
-           	</div>
-
-		<div class="col-md-1" style="margin-top: 6px;">
-              	  <label class="switch switch-sm square">
-                    <div>
-                      <input type="checkbox" ng-model="showCase.custom_order">
-                      <span>
-                    	<i class="handle"></i>
-                      </span>
-                    </div>
-              	  </label>
-            	</div>
-		<div class="col-md-1">
-                <!--<button type="button" class="btn btn-primary pull-right" ng-click="showCase.catlog=flase;showCase.style_open=false;showCase.check_stock=false;showCase.details=true;">View Catalog</button>-->
-		<button type="button" class="btn btn-primary pull-right" ng-click="showCase.catlog=true;showCase.details=true;">View Catalog</button>
+              <div class="row mt10 mb10 pr10 pl10">
+                <div class="col-md-6 col-sm-4 col-xs-4">
+                  <button type="button" class="btn btn-primary pull-left" ng-click="showCase.open_customer_pop()">New Customer</button>
+                </div>
+                <div class="col-md-6 col-sm-8 col-xs-8">
+                  <div class="col-md-8 col-sm-8 col-xs-6">
+              	    <label class="switch switch-sm square pull-right ml10">
+                        <div>
+                          <input type="checkbox" ng-model="showCase.custom_order">
+                          <span>
+                            <i class="handle"></i>
+                          </span>
+                        </div>
+                    </label>
+                    <span class="pull-right" align="right">CUSTOM ORDER</span>
+              	  </div>
+  		  <div class="col-md-4 col-sm-4 col-xs-6">
+		    <button type="button" class="btn btn-primary pull-right" ng-click="showCase.catlog=true;showCase.details=true;">View Catalog</button>
+                  </div>
 		</div>
-
               </div>
               <div class="row col-md-12">
                 <div class="col-md-4">
                   <div class="form-group">
                     <label class="control-label">Customer ID</label>
-                    <!--<input name="customer_id" ng-model="showCase.model_data.customer_id" class="form-control" type="text" ng-blur="showCase.get_customer_data(showCase.model_data.customer_id)">-->
                     <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Customer ID/Name/Number" typeahead="address.customer_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_customer_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.customer_id" typeahead-on-select="showCase.get_customer_data($item, $model, $label, $event)">
                   </div>
                 </div>
                 <div class="col-md-4">
                   <div class="form-group">
                     <label class="control-label">Customer Name</label>
-                    <input name="customer_name" ng-model="showCase.model_data.customer_name" class="form-control" type="text" ng-focus="showCase.check_id(showCase.model_data.customer_id)">
+                    <input name="customer_name" ng-model="showCase.model_data.customer_name" class="form-control" type="text" >
+                    <!--ng-focus="showCase.check_id(showCase.model_data.customer_id)">-->
                   </div>
                 </div>
                 <div class="col-md-4">
@@ -63,11 +61,11 @@
                   </div>
                 </div>
               </div>
-              <div class="row">
+              <!--<div class="row">
                 <div class="col-md-12">
                   <button type="button" class="btn btn-primary" style="margin: auto;display: block;" ng-show="showCase.add_customer" ng-click="showCase.create_customer()"> Create Customer </button>
                  </div>
-              </div>
+              </div>-->
             </div>
             <div class="form-group clearfix" style="padding: 0px 10px;">
               <hr>
@@ -78,12 +76,13 @@
                 <tr>
                   <th>Payment Mode</th>
                   <th>Advance Amount</th>
+                  <th>Order Taken By</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td>
-                    <select class="form-control" name="payment_mode">
+                    <select class="form-control" name="payment_mode" ng-model="showCase.model_data.payment_mode">
                       <option>Credit Card</option>
                       <option>Debit Card</option>
                       <option>Cash On Delivery</option>
@@ -91,7 +90,10 @@
                     </select>
                   </td>
                   <td>
-                    <input type="text" name="payment_received" class="form-control">
+                    <input type="text" name="payment_received" class="form-control" ng-model="showCase.model_data.payment_received">
+                  </td>
+                  <td>
+                    <input type="text" name="order_taken_by" class="form-control" ng-model="showCase.model_data.order_taken_by">
                   </td>
                 </tr>
               </tbody>
@@ -113,7 +115,8 @@
               <tbody>
                 <tr ng-repeat="data in showCase.model_data.data">
                   <td>
-                    <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" ng-blur="showCase.service.checkSearchValue(data.sku_id,'search_wms_codes?', $event);showCase.get_invoice(data)">
+                    <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search WMS Code" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" typeahead-on-select="showCase.get_invoice(data, $item)">
+                    <!--ng-blur="showCase.service.checkSearchValue(data.sku_id,'search_wms_codes?', $event);showCase.get_invoice(data)">-->
                   </td>
                   <td>
                     <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="data.invoice_amount = showCase.service.multi(data.quantity, data.price);showCase.cal_percentage(data)"> </div>

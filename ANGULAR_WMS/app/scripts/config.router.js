@@ -769,6 +769,10 @@ var app = angular.module('urbanApp')
             url: '/CreateCustomSku',
             templateUrl: '/views/outbound/toggle/create_custom_sku.html'
           })
+          .state('app.outbound.CreateOrders.customer', {
+             url: '/customer',
+             templateUrl: 'views/outbound/toggle/customer.html'
+           })
         .state('app.outbound.ViewOrders', {
           url: '/ViewOrders',
           permission: 'add_orderdetail',

@@ -7,7 +7,8 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.service = Service;
   vm.company_name = Session.user_profile.company_name;
   vm.model_data = {}
-  var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], customer_id: ""};
+  var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
+                            customer_id: "", payment_received: "", order_taken_by: ""};
   angular.copy(empty_data, vm.model_data);
   vm.isLast = isLast;
     function isLast(check) {
@@ -102,7 +103,12 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 	 'Super Sigma': 'supersigma.jpg', 'Sulphur Cotton': 'dflt.jpg', 'Sulphur Dryfit': 'dflt.jpg'}*/
         vm.brands_images = {'6 Degree': 'SIX-DEGREES-1.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'BIO-COLLECTION-1.jpg', 
 	'Scala': 'SCALA-1.jpg','Scott International': 'SCOTT-1.jpg', 'Scott Young': 'SCOTT-YOUNG-1.jpg', 'Spark': 'spark-1.jpg', 
-	'Star - 11': 'star-11.jpg','Super Sigma': 'super-sighma.jpg', 'Sulphur Cotton': 'sulphur-1.jpg', 'Sulphur Dryfit': 'sulphur-2.jpg'}	
+	'Star - 11': 'star-11.jpg','Super Sigma': 'super-sighma.jpg', 'Sulphur Cotton': 'sulphur-1.jpg', 'Sulphur Dryfit': 'sulphur-2.jpg'}
+
+        vm.brands_logos = {'6 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
+        'Scala': 'scala-1.png','Scott International': 'scott-1.png', 'Scott Young': 'scott-young-1.png', 'Spark': 'spark-1.png',
+        'Star - 11': 'star-11-1.png','Super Sigma': 'super-sigma-dryfit-1.png', 'Sulphur Cotton': 'sulphur-cottnt-1.png',                             'Sulphur Dryfit': 'sulphur-dryfit-1.png', 'Spring': 'spring-1.png', '100% Cotton': '100-cotton-1.png', 'Sprint': 'sprint-1.png',
+        'Supreme': 'supreme-1.png'}	
         vm.get_category(true);
       }
     });
@@ -282,8 +288,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     });
   }
 
-  vm.submit = submit;
-  function submit(data) {
+  vm.add_custom_sku = function (data) {
     if (data.$valid && vm.pop_data.unit_price) {
 
       var elem = $('#create_form').serializeArray()
@@ -487,9 +492,10 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     }
   }
 
-  vm.get_invoice = function(record) {
+  vm.get_invoice = function(record, item) {
 
-    var sku = record.sku_id;
+    var sku = item.wms_code;
+    record.sku_id = sku;
     vm.service.apiCall("get_sku_variants/", "GET", {sku_code: sku, customer_id: vm.model_data.customer_id, is_catalog: true}).then(function(data) {
 
       if(data.message) {
@@ -595,6 +601,41 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     angular.forEach(e, function(item){
       $(item).removeClass("ct-selected");
     })
+  }
+
+  /*Create customer */
+  vm.status_data = ["Inactive", "Active"];
+  vm.title = "Create Customer";
+  vm.customer_data = {};
+  vm.open_customer_pop = function() {
+
+    vm.service.apiCall("get_customer_master_id/").then(function(data){
+      if(data.message) {
+
+        vm.customer_data["customer_id"] = data.data.customer_id;
+      }
+    });
+    $state.go("app.outbound.CreateOrders.customer");
+  }
+  vm.submit = function(data){
+    if (data.$valid) {
+      vm.service.apiCall('insert_customer/', 'POST', vm.customer_data).then(function(data){
+        if(data.message) {
+          if(data.data == 'New Customer Added') {
+            vm.close();
+            angular.copy(vm.customer_data, vm.model_data)
+            vm.model_data["customer_name"] = vm.customer_data.name;
+            vm.model_data["telephone"] = vm.customer_data.phone_number;
+          } else {
+            vm.service.pop_msg(data.data);
+          }
+        }
+      });
+    } else if (!(data.phone_number.$valid)) {
+      vm.service.pop_msg('Invalid phone number');
+    } else {
+      vm.service.pop_msg('Please fill required fields');
+    }
   }
 }
 

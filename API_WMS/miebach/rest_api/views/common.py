@@ -30,17 +30,18 @@ def process_date(value):
     return value
 
 
-def get_user_permissions(user):
+def get_user_permissions(request, user):
     roles = {}
     configuration = list(MiscDetail.objects.filter(user=user.id).values('misc_type', 'misc_value'))
     config = dict(zip(map(operator.itemgetter('misc_type'), configuration), map(operator.itemgetter('misc_value'), configuration)))
     user_perms = PERMISSION_KEYS
     for perm in user_perms:
-        roles[perm] = get_permission(user, perm)
+        roles[perm] = get_permission(request.user, perm)
     roles.update(config)
     return {'permissions': roles}
 
-def add_user_permissions(request, user, response_data):
+@get_admin_user
+def add_user_permissions(request, response_data, user=''):
     status_dict = {1: 'true', 0: 'false'}
     multi_warehouse = 'false'
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -49,14 +50,15 @@ def add_user_permissions(request, user, response_data):
     #    multi_warehouse = 'true'
     if user_profile.multi_warehouse:
         multi_warehouse = 'true'
-    response_data['data']['userName'] = user.username
-    response_data['data']['userId'] = user.id
-    response_data['data']['roles'] = get_user_permissions(user)
+    response_data['data']['userName'] = request.user.username
+    response_data['data']['userId'] = request.user.id
+    response_data['data']['roles'] = get_user_permissions(request, user)
     response_data['data']['roles']['permissions']['is_superuser'] = status_dict[int(request.user.is_superuser)]
     response_data['data']['roles']['permissions']['is_staff'] = status_dict[int(request.user.is_staff)]
     response_data['data']['roles']['permissions']['multi_warehouse'] = multi_warehouse
-    response_data['data']['user_profile'] = {'first_name': user.first_name, 'last_name': user.last_name,
-                                             'registered_date': get_local_date(user, user_profile.creation_date), 'email': user.email, 
+    response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
+                                             'registered_date': get_local_date(request.user, user_profile.creation_date),
+                                             'email': request.user.email, 
                                              'trail_user': status_dict[int(user_profile.is_trail)], 'company_name': user_profile.company_name}
 
     setup_status ='false'
@@ -65,7 +67,7 @@ def add_user_permissions(request, user, response_data):
     response_data['data']['roles']['permissions']['setup_status'] = setup_status
     if user_profile.is_trail:
         time_now = datetime.datetime.now().replace(tzinfo=pytz.timezone('UTC'))
-        exp_time = get_local_date(user, time_now, send_date=1) - get_local_date(user, user_profile.creation_date, send_date=1)
+        exp_time = get_local_date(request.user, time_now, send_date=1) - get_local_date(request.user, user_profile.creation_date, send_date=1)
         response_data['data']['user_profile']['expiry_days'] = 30 - int(exp_time.days)
     response_data['message'] = 'Success'
     return response_data
@@ -96,7 +98,7 @@ def wms_login(request):
         else:
             return HttpResponse(json.dumps(response_data), content_type='application/json')
 
-        response_data = add_user_permissions(request, user, response_data)
+        response_data = add_user_permissions(request, response_data)
 
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -142,7 +144,7 @@ def status(request):
     status_dict = {1: 'true', 0: 'false'}
 
     if request.user.is_authenticated():
-        response_data = add_user_permissions(request, request.user, response_data)
+        response_data = add_user_permissions(request, response_data)
  
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -235,7 +237,7 @@ data_datatable = {#masters
                   'ShipmentInfo':'get_customer_results', 'ShipmentPickedOrders': 'get_shipment_picked', 'PullToLocate': 'get_cancelled_orders',\
                   'StockTransferOrders': 'get_stock_transfer_orders', 'OutboundBackOrders': 'get_back_order_data',\
                   #manage users
-                  'ManageUsers': 'get_user_results',
+                  'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
                   #retail one
                   'channels_list': 'get_marketplace_data'
                  }
@@ -324,6 +326,30 @@ def get_user_results(start_index, stop_index, temp_data, search_term, order_term
                                     'Email': data.email, 'Member of Groups': member_count, 'DT_RowId': data.id})
 
 @csrf_exempt
+def get_user_groups(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    lis  = ['username', 'first_name', 'email', 'id']
+    group = ''
+    admin_group = AdminGroups.objects.filter(user_id=user.id)
+    if admin_group:
+        group = admin_group[0].group
+    if group:
+        if search_term:
+            master_data = group.user_set.filter().exclude(id=user.id)
+        elif order_term:
+            if order_term == 'asc':
+                master_data = group.user_set.filter().exclude(id=user.id).order_by(lis[col_num])
+            else:
+                master_data = group.user_set.filter().exclude(id=user.id).order_by("-%s" % lis[col_num])
+        else:
+            master_data = group.user_set.filter().exclude(id=user.id)
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data in master_data[start_index:stop_index]:
+        member_count = data.groups.all().exclude(name=group.name).count()
+        temp_data['aaData'].append({'User Name': data.username,'DT_RowClass': 'results', 'Name': data.first_name,
+                                    'Email': data.email, 'Member of Groups': member_count, 'DT_RowId': data.id})
+
+@csrf_exempt
 @login_required
 @get_admin_user
 def add_user(request, user=''):
@@ -368,8 +394,6 @@ def add_extra_permissions(user):
 @get_admin_user
 def configurations(request, user=''):
     display_none = 'display: block;'
-    if not permissionpage(request):
-        return render(request, 'templates/permission_denied.html')
     fifo_switch = get_misc_value('fifo_switch', user.id)
     batch_switch = get_misc_value('batch_switch', user.id)
     send_message = get_misc_value('send_message', user.id)
@@ -995,7 +1019,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
     dat = InventoryAdjustment(**data)
     dat.save()
 
-    #check_and_update_stock(wmscode, user)
+    check_and_update_stock(wmscode, user)
 
     return 'Added Successfully'
 
@@ -1044,7 +1068,8 @@ def add_group(request, user=''):
     if selected:
         selected_list = selected.split(',')
     name = request.POST.get('name')
-
+    if name:
+        name = user.username + ' ' + name
     group_exists = Group.objects.filter(name=name)
     if group_exists:
          return HttpResponse('Group Name already exists')
@@ -1203,7 +1228,7 @@ def search_wms_codes(request, user=''):
     data_id = request.GET.get('q', '')
     sku_type = request.GET.get('type', '')
     extra_filter = {}
-    data = SKUMaster.objects.filter(Q(wms_code__icontains = data_id) | Q(sku_desc__icontains = data_id), user=user.id)
+    data = SKUMaster.objects.filter(Q(wms_code__icontains = data_id) | Q(sku_desc__icontains = data_id), user=user.id).order_by('wms_code')
     wms_codes = []
     count = 0
     if data:
@@ -1228,18 +1253,19 @@ def get_order_id(user_id):
 def check_and_update_stock(wms_code, user):
     from rest_api.views.easyops_api import *
     obj = EasyopsAPI(company_name='easyops', user=user)
-    stock_instance = StockDetail.objects.filter(sku__wms_code=wms_code, sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
-    reserved_instance = PicklistLocation.objects.filter(picklist__status__icontains='open', picklist__order__user=user.id, reserved__gt=0,
-                                    picklist__order__sku__wms_code=wms_code).aggregate(Sum('reserved'))['reserved__sum']
-    raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
-                                             stock__sku__wms_code=wms_code).aggregate(Sum('reserved'))['reserved__sum']
+    stock_instance = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE']).filter(sku__wms_code=wms_code,
+                                                 sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
+    reserved_instance = Picklist.objects.filter(status__icontains='picked', order__user=user.id, picked_quantity__gt=0,
+                                                order__sku__wms_code=wms_code).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+    #raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
+    #                                         stock__sku__wms_code=wms_code).aggregate(Sum('reserved'))['reserved__sum']
     if not stock_instance:
         stock_instance = 0
     if not reserved_instance:
         reserved_instance = 0
-    if raw_reserved:
-        reserved_instance += raw_reserved
-    sku_count = float(stock_instance) - float(reserved_instance)
+    #if raw_reserved:
+    #    reserved_instance += raw_reserved
+    sku_count = float(stock_instance) + float(reserved_instance)
     sku_count = int(sku_count)
     if sku_count < 0:
         sku_count = 0
@@ -1276,6 +1302,13 @@ def check_and_update_order(user, order_id):
     obj = EasyopsAPI(company_name='easyops', user=user)
     obj.confirm_picklist(order_id, user=user)
 
+def get_invoice_number(user):
+    invoice_number = 1
+    invoice_detail = InvoiceDetail.objects.filter(user.id).order_by('-invoice_number')
+    if invoice_detail:
+        invoice_number = int(invoice_detail[0].invoice_number) + 1
+    return invoice_number
+
 def get_invoice_data(order_ids, user):
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -1286,6 +1319,8 @@ def get_invoice_data(order_ids, user):
     total_invoice = 0
     customer_details = []
     order_no = ''
+    #invoice_number = get_invoice_number(user)
+    #invoice_date = datetime.datetime.now()
     if order_ids:
         order_ids = order_ids.split(',')
         order_data = OrderDetail.objects.filter(id__in=order_ids)
@@ -1339,5 +1374,117 @@ def get_invoice_data(order_ids, user):
                     'customer_details': customer_details, 'order_no': order_no}
     return invoice_data
 
-    
+def get_sku_categories_data(request, user, request_data={}):
+    if not request_data:
+        request_data = request.GET
+    filter_params = {'user': user.id}
+    sku_brand = request_data.get('brand', '')
+    sku_category = request_data.get('category', '')
+    is_catalog = request_data.get('is_catalog', '')
+    if sku_brand:
+        filter_params['sku_brand'] = sku_brand
+    if sku_category:
+        filter_params['sku_category'] = sku_category
+    if is_catalog:
+        filter_params['status'] = 1
+
+    sku_master = SKUMaster.objects.filter(**filter_params)
+    categories = list(sku_master.exclude(sku_category='').filter(**filter_params).values_list('sku_category', flat=True).distinct())
+    brands = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
+    return brands, categories
+
+def get_sku_catalogs_data(request, user, request_data={}):
+    if not request_data:
+        request_data = request.GET
+    from rest_api.views.outbound import get_style_variants
+    filter_params = {'user': user.id}
+    get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size', 'style_name']
+    sku_category = request_data.get('category', '')
+    sku_class = request_data.get('sku_class', '')
+    sku_brand = request_data.get('brand', '')
+    sku_category = request_data.get('category', '')
+    is_catalog = request_data.get('is_catalog', '')
+    indexes = request_data.get('index', '0:20')
+    is_file = request_data.get('file', '')
+    if not indexes:
+        indexes = '0:20'
+    if sku_brand:
+        filter_params['sku_brand'] = sku_brand
+    if sku_category:
+        filter_params['sku_category'] = sku_category
+    if is_catalog:
+        filter_params['status'] = 1
+    start, stop = indexes.split(':')
+    start, stop = int(start), int(stop)
+    if sku_class:
+        filter_params['sku_class__icontains'] = sku_class
+
+    sku_master = SKUMaster.objects.exclude(sku_class='').filter(**filter_params).order_by('sequence')
+    product_styles = sku_master.values_list('sku_class', flat=True).distinct()
+    #sku_master = [ key for key,_ in groupby(sku_master)]
+    product_styles = list(OrderedDict.fromkeys(product_styles))
+    data = []
+    for product in product_styles[start: stop]:
+        sku_object = SKUMaster.objects.filter(user=user.id, sku_class=product)
+        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence').\
+                                       order_by('-image_url')
+
+        if sku_styles:
+            sku_variants = list(sku_object.values(*get_values))
+            sku_variants = get_style_variants(sku_variants, user)
+            sku_styles[0]['variants'] = sku_variants
+            data.append(sku_styles[0])
+        if not is_file and len(data) >= 20:
+            break
+    return data, start, stop
+
+def get_user_sku_data(sku):
+    request = {}
+    user = User.objects.get(id=sku.user)
+    brands_data = get_sku_categories_data(request, user, request_data={'file': True})
+    skus_data = get_sku_catalogs_data(request, user, request_data={'file': True})
+    path = 'static/text_files'
+    if not os.path.exists(path):
+        os.makedirs(path)
+    data = json.dumps({'brands_data': brands_data, 'skus_data': skus_data})
+    path = path + '/' + str(user.id) + '.sku_master.txt'
+    fil = open(path, 'w').write(data)
+    checksum = hashlib.sha256(data).hexdigest()
+    file_dump = FileDump.objects.filter(name='sku_master', user_id=user.id)
+    NOW = datetime.datetime.now
+    if not file_dump:
+        FileDump.objects.create(name='sku_master', user_id=user.id, checksum=checksum, path=path, creation_date=NOW, updation_date=NOW)
+    else:
+        file_dump = file_dump[0]
+        file_dump.checksum = checksum
+        file_dump.save()
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_file_checksum(request,user=''):
+    name = request.GET.get('name', '')
+    file_content = ''
+    file_data = list(FileDump.objects.filter(name=name, user=user.id).values('name', 'checksum', 'path'))
+    if file_data:
+        file_data = file_data[0]
+        file_content = open(file_data['path'], 'r').read()
+    return HttpResponse(json.dumps({'file_data': file_data, 'file_content': eval(file_content)}))
+
+@get_admin_user
+def search_wms_data(request, user=''):
+
+    search_key = request.GET.get('q', '')
+    total_data = []
+
+    if not search_key:
+      return HttpResponse(json.dumps(total_data))
+
+    lis = ['wms_code', 'sku_desc']
+    master_data = SKUMaster.objects.filter(Q(wms_code__icontains = search_key) | Q(sku_desc__icontains = search_key),user=user.id)
+
+    for data in master_data[:30]:
+
+        total_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc})
+    return HttpResponse(json.dumps(total_data))
 

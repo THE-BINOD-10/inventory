@@ -59,33 +59,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.model_data = {};
       angular.extend(vm.model_data, {});
+      vm.multipleSelect = "";
       $state.go('app.ManageUsers');
-    }
-
-    vm.add_user = add_user;
-    function add_user() {
-
-      $state.go('app.ManageUsers.AddUser');
-    }
-
-    vm.adding_user = adding_user;
-    function adding_user(data) {
-      if($("form").valid()) {
-        var elem = angular.element($('form'));
-        elem = elem[0];
-        elem = $(elem).serializeArray();
-        elem = $.param(elem);
-        $http({
-               method: 'GET',
-               url: Session.url+"add_user/?"+elem,
-               }).success(function(data, status, headers, config) {
-                 pop_msg(data);
-                 reloadData();
-                 if(data == "Added Successfully") {
-                   vm.close();
-                 }
-        });
-      }
     }
 
     vm.add_group = add_group;
@@ -100,20 +75,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }, 2000);
   }
 
-  vm.group_names = [
-    {
-      'id': 1,
-      'name': 'Group1',
-        },
-    {
-      'id': 2,
-      'name': 'Group2',
-    }]
-
-  vm.multipleSelect = [{
-      'id': 2,
-      'name': 'Group2',
-    }]
+  vm.group_names = [];
 
   vm.group_permissions = [];
   Service.apiCall("add_group_data/","GET").then(function(data){
@@ -128,12 +90,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.add_group_permission = function(form){
 
-    if(form.$valid) {
-      var data = {"name":"","selected":""};
-      angular.forEach($('.permission').next().find(".chosen-choices > li"), function(data){
-        data.selected += $(data).text()+"," 
+    if(form.$valid && $("input[name=group_name]:visible").val()) {
+      var data = {"name":"","selected":[]};
+      angular.forEach($('.permission').next().find(".chosen-choices > li:visible"), function(record){
+        if($(record).text()) {
+          data.selected.push($(record).text())
+        }
       })
-      data.name = $("input[name=group_name]").val();
+      data.selected = data.selected.join(",");
+      data.name = $("input[name=group_name]:visible").val();
       Service.apiCall("add_group/","POST", data).then(function(data){
 
         if(data.message) {
@@ -149,50 +114,5 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     } 
   }
 
-  vm.check_selected = function(group){
-
-    return (vm.model_data.user_groups.indexOf(group) > -1)? true : false;
-  }
-
-  vm.update_user = function(data) {
-
-    if(data.$valid) {
-
-      console.log(form);
-      var elem = $(form).serializeArray();
-      var send = {"perms":""};
-      angular.forEach(elem, function(temp){
-        if (temp.name == "perms") {
-          send[temp.name] = send[temp.name] + ","+temp.value.slice(1);
-        } else {
-          send[temp.name] = temp.value
-        }
-      });
-      send["perms"] = send["perms"].slice(1);
-      Service.apiCall("update_user/","GET",send).then(function(data){
-        if (data.message) {
-          reloadData();
-          if (data.data == "Updated Successfully") {
-            vm.close();
-          }
-        }
-      });
-    }
-  }
-
-  vm.change_password = function(data) {
-    if(data.$valid) {
-
-      var elem = $(form).serializeArray();
-      Service.apiCall("change_password/","GET",send).then(function(data){
-        if (data.message) {
-          reloadData();
-          if (data.data == "Updated Successfully") {
-            vm.close();
-          }
-        }
-      });
-    }
-  } 
 }
 

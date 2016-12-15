@@ -41,12 +41,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                   for(var i=0; i<vm.model_data.data.length; i++){
                     vm.model_data.data[i]['sub_data'] = [];
                     var value = (vm.permissions.use_imei == "true")? 0: vm.model_data.data[i].picked_quantity;
-                    vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
-                                                         location: vm.model_data.data[i].location,
-                                                         orig_location: vm.model_data.data[i].location,
-                                                         picked_quantity: value});
+                    var temp = {zone: vm.model_data.data[i].zone,
+                                location: vm.model_data.data[i].location,
+                                orig_location: vm.model_data.data[i].location,
+                                picked_quantity: value}
+                    if(vm.permissions.use_imei) {
+                      temp["picked_quantity"] = 0;
+                    }
+                    vm.model_data.data[i]['sub_data'].push(temp);
                   }
+                  vm.get_all_locations();
                   $state.go('app.outbound.PullConfirmation.Open');
+                  $timeout(function () {
+                    $("textarea[attr-name='location']").focus();
+                  }, 1000);
                 }
               });
             });
@@ -72,9 +80,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.close = close;
     function close() {
+      vm.scan_data = { suggested_sku: [""], suggest_sku: 0 , locations:[]};
+      vm.unique_combination = [];
+      vm.sug_loc = "";
+      vm.sug_sku = "";
       $state.go('app.outbound.PullConfirmation');
     }
 
+    vm.pdf_data = {};
     vm.picklist_confirmation = picklist_confirmation;
     function picklist_confirmation() {
       var elem = angular.element($('form'));
@@ -85,6 +98,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             if(data.data == "Picklist Confirmed") {
               reloadData();
               vm.close();
+            } else if (data.data.status == 'invoice') {
+
+              reloadData();
+              angular.copy(data.data.data, vm.pdf_data);
+              $state.go('app.outbound.PullConfirmation.GenerateInvoice');
             } else {
               pop_msg(data.data);
             }
@@ -198,45 +216,112 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
   } 
 
-  vm.scan_data = { suggested_sku: [""], suggest_sku: 0 , locations:[]};
+  vm.get_all_locations = function(data) {
+
+    vm.scan_data.locations = []
+    vm.unique_combination = [];
+    angular.forEach(vm.model_data.data, function(temp1){
+
+      angular.forEach(temp1.sub_data, function(temp2){
+
+        if(vm.scan_data.locations.indexOf(temp2.location) == -1) {
+
+          vm.scan_data.locations.push(temp2.location);
+        }
+        if(vm.total_quantity(temp1.sub_data) == temp1.reserved_quantity) {
+          vm.unique_combination.push({locaton: temp2.location, sku: temp1.wms_code, status: true});
+        } else {
+          vm.unique_combination.push({locaton: temp2.location, sku: temp1.wms_code, status: false});
+        }
+      })
+    });
+    vm.get_sug();
+  }
+
+  vm.check_comb = function(v1, v2) {
+
+    var status = false;
+    angular.forEach(vm.unique_combination, function(data) {
+      if(data.locaton == v1 && data.sku == v2){
+        status = true;
+        return status;
+      }
+    })
+    return status;
+  }
+
+  vm.sug_sku = "";
+  vm.sug_loc = "";
+
+  vm.get_sug = function() {
+
+    var status = true;
+    vm.sug_sku = "";
+    angular.forEach(vm.unique_combination, function(data){
+
+      if(vm.model_data.scan_location) {
+
+        if(data.status == false && status && vm.model_data.scan_location == data.locaton) {
+
+          vm.sug_sku = data.sku;
+          vm.sug_loc = data.locaton;
+          status = false;
+          return;
+        }
+      } else if(data.status == false && status) {
+        vm.sug_sku = data.sku;
+        vm.sug_loc = data.locaton;
+        status = false;
+        return;
+      }
+    });
+  }
+
+  vm.unique_combination = [];
+  vm.scan_data = { suggested_sku: [""], suggest_sku: 0 , locations:[], loc_new: false};
 
   vm.check_location = function(event, field) {
 
     vm.service.scan(event, field).then(function(data){
       if(data) {
-        if (!(vm.model_data.scan_sku)) {
-          vm.scan_data.suggested_sku = [];
-          vm.scan_data.suggest_sku = 0;
-          angular.forEach(vm.model_data.data, function(temp){
-  
-            angular.forEach(temp.sub_data, function(temp1){
-              if(temp1.location == field) {
-                if(vm.scan_data.suggested_sku.indexOf(temp.wms_code) == -1) {
-                  vm.scan_data.suggested_sku.push(temp.wms_code);
-                }
-              }
-            })
-          })
-        } else {
           if(vm.scan_data.locations.indexOf(field) == -1) {
-            angular.forEach(vm.model_data.data, function(temp){
-              if(temp.wms_code == vm.model_data.scan_sku) {
-                var clone = {};
-                angular.copy(temp.sub_data[0], clone);
-                clone.picked_quantity = 1;
-                clone.location = field;
-                temp.sub_data.push(clone);
-                vm.scan_data.locations.push(field);
+            vm.service.apiCall("get_stock_location_quantity/", "GET", {location: field, wms_code: vm.model_data.scan_sku})
+            .then(function(data){
+              if(data.data.message == "Invalid Location"){
+                alert("Invalid Location");
+                vm.model_data.scan_location = "";
                 return;
+              } else {
+                vm.scan_data.loc_new = true;
+                vm.scan_data.suggested_sku = [];
+                vm.scan_data.suggest_sku = 0;
+                $("textarea[attr-name='sku']").focus();
+                angular.forEach(vm.model_data.data, function(temp){
+
+                  angular.forEach(temp.sub_data, function(temp1){
+                    if(vm.scan_data.suggested_sku.indexOf(temp.wms_code) == -1) {
+                        vm.scan_data.suggested_sku.push(temp.wms_code);
+                    }
+                  })
+                })
+                vm.get_sug();
               }
             })  
           } else {
-            vm.incrs_qnty(vm.model_data.scan_sku); 
+            
+            vm.scan_data.suggested_sku = [];
+            vm.scan_data.suggest_sku = 0;
+            angular.forEach(vm.model_data.data, function(temp){
+  
+              angular.forEach(temp.sub_data, function(temp1){
+                  if(vm.scan_data.suggested_sku.indexOf(temp.wms_code) == -1) {
+                    vm.scan_data.suggested_sku.push(temp.wms_code);
+                  }
+              })
+            })
+            vm.get_sug();
+            $("textarea[attr-name='sku']").focus();
           }
-        }
-        if(vm.model_data.scan_sku) {
-          vm.model_data.scan_location = "";
-        }
       }
     })
   }
@@ -246,40 +331,48 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     var field = field;
     vm.service.scan(event, field).then(function(data){
       if(data) {
-        if ((vm.scan_data.suggested_sku.indexOf(field) == -1) && vm.model_data.scan_location) {
+        if(!(vm.model_data.scan_location)) {
+          alert("Please Scan Location First");
+          $("textarea[attr-name='location']").focus();
+          vm.model_data.scan_sku = "";
+          return;
+        } else if(vm.scan_data.suggested_sku.indexOf(field) == -1) {
           alert("Invalid SKU");
-        } else if(!(vm.model_data.scan_location)) {
-
-          var sku_list = [];
-          angular.forEach(vm.model_data.data, function(temp){
-            if(sku_list.indexOf(temp.wms_code) == -1) {
-               sku_list.push(temp.wms_code)
-            }
-          })
-          if(sku_list.indexOf(field) == -1) {
-            alert("Invalid SKU")
-            vm.model_data.scan_sku = "";
-          } else {
-            vm.scan_data.locations = [];
+          vm.model_data.scan_sku = "";
+        } else if(!(vm.check_comb(vm.model_data.scan_location, field))) {
+          
+          var add_new = true;
             angular.forEach(vm.model_data.data, function(temp){
               if(temp.wms_code == field) {
-                if (vm.total_quantity(temp.sub_data) == Number(temp.reserved_quantity)) {
-                  alert("Reserved Quantity Equal to Picked Quantity.");
-                } else {
-                  angular.forEach(temp.sub_data, function(temp1){
-                  if(vm.scan_data.locations.indexOf(temp1.location) == -1) {
-                    vm.scan_data.locations.push(temp1.location);
+                if(vm.total_quantity(temp.sub_data) < Number(temp.reserved_quantity) && add_new) {
+                  vm.service.apiCall("get_stock_location_quantity/", "GET", {location: vm.model_data.scan_location, wms_code: vm.model_data.scan_sku})
+                  .then(function(data){
+                    if(data.data.message == "Success" && data.data.stock > 0) {
+                      var clone = {};
+                      angular.copy(temp.sub_data[0], clone);
+                      clone.picked_quantity = 1;
+                      clone.location = vm.model_data.scan_location;
+                      clone["stock"] = data.data.stock;
+                      temp.sub_data.push(clone);
+                      vm.scan_data.locations.push(vm.model_data.scan_location);
+                      vm.scan_data.suggested_sku.push(field);
+                      vm.model_data.scan_sku = "";
+                      vm.scan_data.loc_new = false;
+                      vm.get_all_locations();
+                    } else {
+                      alert("No Stock");
+                      vm.model_data.scan_sku = "";
                     }
                   })
+                  add_new = false;
+                } else {
+                  alert("Reserved Quantity Equal to Picked Quantity.");
+                  vm.model_data.scan_sku = "";
                 }
-                return;
               }
             })
-          }
         } else {
           vm.incrs_qnty(field);
-        }
-        if(vm.model_data.scan_location) {
           vm.model_data.scan_sku = "";
         }
       }
@@ -291,33 +384,76 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     var dict = {};
     vm.status = true;
+    vm.open = true;
     var location = vm.model_data.scan_location;
+    vm.alert_status = false;
     angular.forEach(vm.model_data.data, function(temp){
-      if(temp.wms_code == data) {
+      if((temp.wms_code == data) && (vm.model_data.order_status == 'batch_open')) {
         if (vm.total_quantity(temp.sub_data) == Number(temp.reserved_quantity)) {
           alert("Reserved Quantity Equal to Picked Quantity.");
+          vm.get_all_locations();
           return;
         } else {
           angular.forEach(temp.sub_data, function(temp1){
             if(temp1.location == location) {
               if(vm.status) {
                 if(vm.is_total(temp)) {
-                  temp1.picked_quantity = Number(temp1.picked_quantity)+1;
+                  if(temp1["stock"] && (temp1["stock"] <= Number(temp1.picked_quantity)+1)) {
+                    alert("Insufficient Stock");
+                  } else {
+                    temp1.picked_quantity = Number(temp1.picked_quantity)+1; 
+                    vm.get_all_locations();
+                  }
                   vm.status = false;
                   if(vm.total_quantity(temp.sub_data) == Number(temp.reserved_quantity)) {
-                    vm.change_suggested();
+                    vm.get_all_locations();
                   }
                   return true;
+                } else {
+                  vm.model_data.scan_sku = "";
+                  alert("Reserved Quantity Equal to Picked Quantity.");
+                }
+              }
+            }
+          })
+        }
+      } else {
+
+        if(temp.wms_code == data) {
+          angular.forEach(temp.sub_data, function(temp1){
+            if(temp1.location == location) {
+              if(vm.open) {
+                if(vm.is_total(temp)) {
+                  if(temp1["stock"] && (temp1["stock"] <= Number(temp1.picked_quantity)+1)) {
+                    alert("Insufficient Stock");
+                    
+                  } else if(vm.open) {
+                    temp1.picked_quantity = Number(temp1.picked_quantity)+1;
+                    vm.open = false;
+                    vm.alert_status = false;
+                  } else {
+                    vm.alert_status = true;
+                  }
+                  if(vm.total_quantity(temp.sub_data) == Number(temp.reserved_quantity)) {
+                    vm.change_suggested(temp);
+                  }
+                } else {
+                  vm.alert_status = true;
                 }
               }
             }
           })
         }
       }
-    }) 
+    })
+    if(vm.alert_status) {
+      alert("Reserved Quantity Equal to Picked Quantity");
+      vm.alert_status = false;
+      vm.model_data.scan_sku;
+    } 
   }
 
-  vm.change_suggested = function() {
+  vm.change_suggested = function(data) {
 
     if(vm.scan_data.suggested_sku[vm.scan_data.suggest_sku+1]){
       vm.scan_data.suggest_sku += 1;
@@ -333,8 +469,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       return true;
     } else {
       vm.status = false;
-      vm.change_suggested();
-      alert("Reserved Quantity Equal to Picked Quantity.");
+      vm.change_suggested(data);
       return false;
     }
   }

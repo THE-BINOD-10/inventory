@@ -389,6 +389,7 @@ def confirm_jo(request, user=''):
     if status:
         return HttpResponse(status)
     creation_date = JobOrder.objects.filter(job_code=job_code, product_code__user=user.id)[0].creation_date
+    creation_date = get_local_date(user, creation_date)
     user_profile = UserProfile.objects.get(user_id=user.id)
     user_data = {'company_name': user_profile.company_name, 'username': user.first_name, 'location': user_profile.location}
 
@@ -720,7 +721,7 @@ def rm_picklist_confirmation(request, user=''):
                 location = LocationMaster.objects.filter(location=val['location'], zone__zone=val['zone'], zone__user=user.id)
                 if not location:
                     return HttpResponse("Invalid Location and Zone combination")
-                stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': request.user.id}
+                stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': user.id}
                 stock_detail = StockDetail.objects.filter(**stock_dict)
                 for stock in stock_detail:
                     if picking_count == 0:
@@ -790,7 +791,7 @@ def rm_picklist_confirmation(request, user=''):
                         insert_rwo_po(rw_order, request, user)
 
             if get_misc_value('auto_po_switch', user.id) == 'true' and auto_skus:
-                auto_po(list(set(auto_skus)),request.user.id)
+                auto_po(list(set(auto_skus)) ,user.id)
 
     return HttpResponse('Picklist Confirmed')
 
@@ -1460,9 +1461,9 @@ def confirm_jo_group(request, user=''):
                 tot_mat_qty += float(material.material_quantity)
         c_date = JobOrder.objects.filter(job_code=job_code, order_type=status_dict[key], product_code__user=user.id)
         if c_date:
-            creation_date = c_date[0].creation_date
+            creation_date = get_local_date(user, c_date[0].creation_date)
         else:
-            creation_date = datetime.datetime.now()
+            creation_date = get_local_date(user, datetime.datetime.now())
         job_data[job_code] = { 'all_data': all_data, 'tot_pro_qty': tot_pro_qty, 'tot_mat_qty': tot_mat_qty, 'creation_date': creation_date}
         status = validate_jo(all_data, user.id, jo_reference=jo_reference)
     if not status:

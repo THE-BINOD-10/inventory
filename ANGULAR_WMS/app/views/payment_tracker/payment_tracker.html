@@ -1,0 +1,85 @@
+<div class="page-layout" scrolly="scroll_bottom(e)" ng-controller="PaymentTracker as showCase">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body">
+    <div class="panel">
+      <div class="panel-body tracking mr10 ml10">
+        <div class="row">
+          <div class="col-md-2 col-sm-3 col-xs-6 pull-right">
+            <select class="form-control" name="search" ng-model="showCase.model_data.search" ng-change="showCase.get_payment_tracker_data()">
+              <option ng-repeat="data in showCase.model_data.filters" value="{{data}}">{{data}}</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-1 col-sm-6 col-xs-6">
+            <h4>Channel</h4>
+          </div>
+          <div class="col-md-2 col-sm-6 col-xs-6">
+            <h4>Customer Name</h4>
+          </div>
+          <div class="col-md-3 col-sm-6 col-xs-6">
+            <h4>Invoice Amount(INR)</h4>
+          </div>
+          <div class="col-md-3 col-sm-6 col-xs-6">
+            <h4>Payment Received(INR)</h4>
+          </div>
+          <div class="col-md-3 col-sm-6 col-xs-6">
+            <h4>Payment Receivable(INR)</h4>
+          </div>
+        </div>
+        <accordion close-others="oneAtATime">
+          <accordion-group ng-repeat="payment in showCase.payment_data.payments" is-open="status.isFirstOpen">
+            <accordion-heading>
+              <div class="row" ng-click="showCase.get_customer_orders(payment)">
+                <div class="col-md-1 col-sm-6 col-xs-6">
+                  <b>{{payment.channel}}</b>
+                </div>
+                <div class="col-md-2 col-sm-5 col-xs-5">
+                  <b>{{payment.customer_name}}</b>
+                </div>
+                <div class="col-md-3 col-sm-6 col-xs-6">
+                  <b>{{payment.invoice_amount}}</b>
+                </div>
+                <div class="col-md-3 col-sm-6 col-xs-6">
+                  <b>{{payment.payment_received}}</b>
+                </div>
+                <div class="col-md-3 col-sm-6 col-xs-6">
+                  <b>{{payment.payment_receivable}}</b>
+                  <i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': status.open, 'glyphicon-chevron-right': !status.open}"></i>
+                </div>
+                <div class="col-md-1 col-sm-1 col-xs-1 hide">
+                </div>
+              </div>
+            </accordion-heading>
+            <div class="row">
+              <div class="col-md-12 col-sm-12 col-xs-12">
+                <table class="table table-stk">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Invoice Amount</th>
+                      <th>Received</th>
+                      <th>Receivable</th>
+                      <th>Order Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat="data in payment.data">
+                      <td>{{data.order_id}}</td>
+                      <td>{{data.inv_amount}}</td>
+                      <td>{{data.received}}</td>
+                      <td>{{data.receivable}}</td>
+                      <td>{{data.order_status}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </accordion-group>
+        </accordion>
+      </div>
+    </div>
+  </div>
+</div>

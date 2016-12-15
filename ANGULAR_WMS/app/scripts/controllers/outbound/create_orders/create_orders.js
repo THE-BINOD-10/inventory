@@ -7,7 +7,8 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.service = Service;
   vm.company_name = Session.user_profile.company_name;
   vm.model_data = {}
-  var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], customer_id: ""};
+  var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
+                            customer_id: "", payment_received: "", order_taken_by: ""};
   angular.copy(empty_data, vm.model_data);
   vm.isLast = isLast;
     function isLast(check) {
@@ -102,7 +103,12 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 	 'Super Sigma': 'supersigma.jpg', 'Sulphur Cotton': 'dflt.jpg', 'Sulphur Dryfit': 'dflt.jpg'}*/
         vm.brands_images = {'6 Degree': 'SIX-DEGREES-1.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'BIO-COLLECTION-1.jpg', 
 	'Scala': 'SCALA-1.jpg','Scott International': 'SCOTT-1.jpg', 'Scott Young': 'SCOTT-YOUNG-1.jpg', 'Spark': 'spark-1.jpg', 
-	'Star - 11': 'star-11.jpg','Super Sigma': 'super-sighma.jpg', 'Sulphur Cotton': 'sulphur-1.jpg', 'Sulphur Dryfit': 'sulphur-2.jpg'}	
+	'Star - 11': 'star-11.jpg','Super Sigma': 'super-sighma.jpg', 'Sulphur Cotton': 'sulphur-1.jpg', 'Sulphur Dryfit': 'sulphur-2.jpg'}
+
+        vm.brands_logos = {'6 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
+        'Scala': 'scala-1.png','Scott International': 'scott-1.png', 'Scott Young': 'scott-young-1.png', 'Spark': 'spark-1.png',
+        'Star - 11': 'star-11-1.png','Super Sigma': 'super-sigma-dryfit-1.png', 'Sulphur Cotton': 'sulphur-cottnt-1.png',                             'Sulphur Dryfit': 'sulphur-dryfit-1.png', 'Spring': 'spring-1.png', '100% Cotton': '100-cotton-1.png', 'Sprint': 'sprint-1.png',
+        'Supreme': 'supreme-1.png'}	
         vm.get_category(true);
       }
     });
@@ -137,27 +143,6 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   }
 
-  vm.cate_details =  function(brand) {
-
-    var data = {brand: brand, is_catalog: true};
-    
-    vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
-      vm.all_cate = data.data.categories;
-      vm.brand = brand;
-    })
-    
-    angular.copy([], vm.catlog_data.data);
-    vm.catlog_data.index = "";
-    vm.scroll_data = false; 
-    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
-      vm.catlog_data.index = data.data.next_index;
-      angular.forEach(data.data.data, function(item){
-        vm.catlog_data.data.push(item);
-      })
-      vm.scroll_data = true;
-    })
-  }
-
   vm.get_category = function(status, scroll) {
     vm.scroll_data = false;
     var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true}
@@ -175,9 +160,6 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
           vm.catlog_data.data.push(item);
         })
       }
-      //if(scroll) {
-      //  $(window).scroll(scrollHandler);
-      //}
       vm.scroll_data = true;
     })
 
@@ -306,8 +288,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     });
   }
 
-  vm.submit = submit;
-  function submit(data) {
+  vm.add_custom_sku = function (data) {
     if (data.$valid && vm.pop_data.unit_price) {
 
       var elem = $('#create_form').serializeArray()
@@ -438,6 +419,18 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         vm.style_data = data.data.data;
       }
     });
+    vm.style_total_quantity = 0;
+  }
+
+  vm.style_total_quantity = 0;
+  vm.change_style_quantity = function(data){
+    vm.style_total_quantity = 0;
+    angular.forEach(data, function(record){
+
+      if(record.quantity) {
+        vm.style_total_quantity += Number(record.quantity);
+      }
+    })
   }
 
   vm.check_item = function(sku) {
@@ -454,37 +447,40 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   }
 
   vm.add_to_cart = function() {
+    if(vm.style_total_quantity > 0) {
+      angular.forEach(vm.style_data, function(data){
 
-    angular.forEach(vm.style_data, function(data){
-
-      if (data['quantity']) {
-        vm.check_item(data.wms_code).then(function(stat){
-          console.log(stat)
-          if(stat == "true") {
-            if(vm.model_data.data[0]["sku_id"] == "") {
-              vm.model_data.data[0].sku_id = data.wms_code;
-              vm.model_data.data[0].quantity = Number(data.quantity);
-              vm.model_data.data[0]['price'] = Number(data.price);
-              vm.model_data.data[0].invoice_amount = data.price*Number(data.quantity);
-              vm.model_data.data[0]['tax'] = vm.tax;
-              vm.model_data.data[0]['total_amount'] = ((vm.model_data.data[0].invoice_amount/100)*vm.tax)+vm.model_data.data[0].invoice_amount;
+        if (data['quantity']) {
+          vm.check_item(data.wms_code).then(function(stat){
+            console.log(stat)
+            if(stat == "true") {
+              if(vm.model_data.data[0]["sku_id"] == "") {
+                vm.model_data.data[0].sku_id = data.wms_code;
+                vm.model_data.data[0].quantity = Number(data.quantity);
+                vm.model_data.data[0]['price'] = Number(data.price);
+                vm.model_data.data[0].invoice_amount = data.price*Number(data.quantity);
+                vm.model_data.data[0]['tax'] = vm.tax;
+                vm.model_data.data[0]['total_amount'] = ((vm.model_data.data[0].invoice_amount/100)*vm.tax)+vm.model_data.data[0].invoice_amount;
+              } else {
+                var temp = {sku_id: data.wms_code, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax}
+                temp['total_amount'] = ((temp.invoice_amount/100)*vm.tax)+temp.invoice_amount;
+                vm.model_data.data.push(temp)
+              }
             } else {
-              var temp = {sku_id: data.wms_code, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax}
-              temp['total_amount'] = ((temp.invoice_amount/100)*vm.tax)+temp.invoice_amount;
-              vm.model_data.data.push(temp)
+               var temp = Number(vm.model_data.data[Number(stat)].quantity);
+               vm.model_data.data[Number(stat)].quantity = temp+Number(data.quantity);
+               vm.model_data.data[Number(stat)].invoice_amount = Number(data.price)*vm.model_data.data[Number(stat)].quantity;
+               var invoice = vm.model_data.data[Number(stat)].invoice_amount;
+               vm.model_data.data[Number(stat)].total_amount = ((invoice/100)*vm.tax)+invoice;
             }
-          } else {
-             var temp = Number(vm.model_data.data[Number(stat)].quantity);
-             vm.model_data.data[Number(stat)].quantity = temp+Number(data.quantity);
-             vm.model_data.data[Number(stat)].invoice_amount = Number(data.price)*vm.model_data.data[Number(stat)].quantity;
-             var invoice = vm.model_data.data[Number(stat)].invoice_amount;
-             vm.model_data.data[Number(stat)].total_amount = ((invoice/100)*vm.tax)+invoice;
-          }
-          vm.cal_total();
-        });
-      }
-    });
-    vm.service.showNoty("Succesfully Added to Cart");
+            vm.cal_total();
+          });
+        }
+      });
+      vm.service.showNoty("Succesfully Added to Cart");
+    } else {
+      vm.service.showNoty("Please Enter Quantity");
+    }
   }
 
   vm.check_stock = true;
@@ -496,9 +492,10 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     }
   }
 
-  vm.get_invoice = function(record) {
+  vm.get_invoice = function(record, item) {
 
-    var sku = record.sku_id;
+    var sku = item.wms_code;
+    record.sku_id = sku;
     vm.service.apiCall("get_sku_variants/", "GET", {sku_code: sku, customer_id: vm.model_data.customer_id, is_catalog: true}).then(function(data) {
 
       if(data.message) {
@@ -604,6 +601,41 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     angular.forEach(e, function(item){
       $(item).removeClass("ct-selected");
     })
+  }
+
+  /*Create customer */
+  vm.status_data = ["Inactive", "Active"];
+  vm.title = "Create Customer";
+  vm.customer_data = {};
+  vm.open_customer_pop = function() {
+
+    vm.service.apiCall("get_customer_master_id/").then(function(data){
+      if(data.message) {
+
+        vm.customer_data["customer_id"] = data.data.customer_id;
+      }
+    });
+    $state.go("app.outbound.CreateOrders.customer");
+  }
+  vm.submit = function(data){
+    if (data.$valid) {
+      vm.service.apiCall('insert_customer/', 'POST', vm.customer_data).then(function(data){
+        if(data.message) {
+          if(data.data == 'New Customer Added') {
+            vm.close();
+            angular.copy(vm.customer_data, vm.model_data)
+            vm.model_data["customer_name"] = vm.customer_data.name;
+            vm.model_data["telephone"] = vm.customer_data.phone_number;
+          } else {
+            vm.service.pop_msg(data.data);
+          }
+        }
+      });
+    } else if (!(data.phone_number.$valid)) {
+      vm.service.pop_msg('Invalid phone number');
+    } else {
+      vm.service.pop_msg('Please fill required fields');
+    }
   }
 }
 

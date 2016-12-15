@@ -1,12 +1,12 @@
 <p class="hide">{{showCase.details}}</p>
-<div class="page-layout" ng-controller="CreateOrders as showCase" scrolly="showCase.scroll(e)">
+<div class="page-layout" ng-controller="CreateOrders as showCase" scrolly="showCase.scroll(e)" ng-class="(user.userName == 'sagar_fab')? 'create_red': 'create_default'">
   <div>
-    <div class="layout-header" style="padding-left: 40%;">
+    <div class="layout-header">
       <!--<div class="pull-left" ng-include="'views/common/title.html'" ng-if="(!(showCase.catlog))"></div>
       <div class="pull-left" ng-include="'views/common/company_name.html'" ng-if="showCase.details"></div>-->
-      <div class="pull-left" ng-include="'views/common/company_name.html'"></div>
+      <div ng-include="'views/common/company_name.html'"></div>
     </div>
-   <div class="layout-body" style="padding-top:20px;background-color: white;">
+   <div class="layout-body" style="background-color: white;">
     <div>
       <div ng-include="'views/outbound/create_orders/order.html'" ng-if="(!(showCase.catlog))"></div>
       <!--<div ng-include="'views/outbound/create_orders/catlog.html'" ng-if="showCase.catlog && (!(showCase.style_open))"></div>-->

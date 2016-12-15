@@ -134,4 +134,21 @@ class EasyopsAPI:
         json_response = self.get_response(url, data, put=True)
         return json_response
 
+    def get_shipped_orders(self, token='', user=''):
+        """ Collecting all shipped orders for a particular user """
+        data = {}
+        if user:
+            self.user = user
+        self.token = token
+        if not token:
+            self.get_user_token(user)
+
+        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
+        data = eval(LOAD_CONFIG.get(self.company_name, 'shipped_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
+
+        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'shipped_orders', ''))
+
+        json_response = self.get_response(url, data=data)
+        return json_response
+
 

@@ -1618,9 +1618,9 @@ def validate_bom_form(open_sheet, user, bom_excel):
 
         if product_sku == material_sku:
             index_status.setdefault(row_idx, set()).add('Product and Material SKU Code should not be same')
-        bom = BOMMaster.objects.filter(product_sku__sku_code=product_sku, material_sku__sku_code=material_sku, product_sku__user=user)
-        if bom:
-            index_status.setdefault(row_idx, set()).add('Product and Material Sku codes combination already exists')
+        #bom = BOMMaster.objects.filter(product_sku__sku_code=product_sku, material_sku__sku_code=material_sku, product_sku__user=user)
+        #if bom:
+        #    index_status.setdefault(row_idx, set()).add('Product and Material Sku codes combination already exists')
     if not index_status:
         return 'Success'
 

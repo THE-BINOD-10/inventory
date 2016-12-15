@@ -1,6 +1,6 @@
 'use strict';
 
-function CreateStockOrders($scope, $http, Session, colFilters, Service) {
+function CreateStockOrders($scope, $http, $state, Session, colFilters, Service) {
 
   $scope.msg = "start";
   var vm = this;
@@ -55,4 +55,4 @@ function CreateStockOrders($scope, $http, Session, colFilters, Service) {
 
 angular
   .module('urbanApp')
-  .controller('CreateStockOrders', ['$scope', '$http', 'Session', 'colFilters', 'Service', CreateStockOrders]);
+  .controller('CreateStockOrders', ['$scope', '$http', '$state', 'Session', 'colFilters', 'Service', CreateStockOrders]);

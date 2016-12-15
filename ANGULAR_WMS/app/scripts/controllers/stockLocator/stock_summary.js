@@ -35,6 +35,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
         DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
+        DTColumnBuilder.newColumn('Unit of Measurement').withTitle('Unit of Measurement')
     ];
 
     $scope.$on('change_filters_data', function(){

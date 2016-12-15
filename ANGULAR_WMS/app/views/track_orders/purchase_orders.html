@@ -1,0 +1,66 @@
+<div class="panel tracking" ng-controller="TrackPurchaseOrders as showCase">
+  <div class="panel-header">
+    <div class="row">
+      <div class="col-md-8 col-sm-6 col-xs-6">
+      </div>
+      <div class="col-md-4 col-sm-6 col-xs-6">
+        <input type="text" placeholder="Search Purchase Order ID/Order ID" ng-model="showCase.send.order_id" ng-change="showCase.get_orders(false, false, true)" class="form-control">
+      </div>
+    </div>
+  </div>
+  <div class="panel-body" style="margin-left: 15px !important;margin-right: 15px !important;" id="track_purchase_orders">
+    <accordion close-others="oneAtATime">
+      <accordion-group ng-repeat="order in showCase.order_data['purchase-orders']" is-open="status.isFirstOpen">
+        <accordion-heading>
+          <div class="row">
+            <div class="col-md-3 col-sm-6 col-xs-6">
+              Order Place: <b>{{order.order_data[0].order_date}}</b>
+            </div>
+            <div class="col-md-2 col-sm-5 col-xs-5">
+              Total: <b>{{order.order_data[0].quantity}}</b>
+            </div>
+            <div class="col-md-3 col-sm-6 col-xs-6">
+              Supplier: <b>{{order.order_data[0].name}}</b>
+            </div>
+            <div class="col-md-3 col-sm-6 col-xs-6">
+              Order <b>{{order.order_data[0].order}}</b>
+            </div>
+            <div class="col-md-1 col-sm-1 col-xs-1">
+              <i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': status.open, 'glyphicon-chevron-right': !status.open}"></i>
+            </div>
+          </div>
+        </accordion-heading>
+        <div class="row">
+          <div class="col-md-2 col-sm-3 col-xs-12">
+            <img style="width: 100%" ng-src="{{showCase.service.check_image_url(order.order_data[0].image_url)}}">
+          </div>
+          <div class="col-md-6 col-sm-6 cols-xs-7">
+            <p>Product title: {{order.order_data[0].sku_desc}}</p>
+            <p>SKU Code: {{order.order_data[0].sku_code}}</p>
+            <p>Quantity: {{order.order_data[0].quantity}}</p>
+            <p>Price: {{order.order_data[0].price}}</p>
+          </div>
+          <div class="col-md-4 col-sm-3 col-xs-5">
+            <div class="kk-timeline">
+              <div class='prod-timline'>
+                <table>
+                  <tr ng-repeat="(k,v) in order.stage" class="{{v}}">
+                    <td>
+                      <div class="line" ng-if="(!($last))"></div>
+                      <div class="round">
+                        <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                      </div>
+                      {{k}}
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </div>   
+          </div>
+        </div>
+      </accordion-group>
+    </accordion>
+  </div>
+  <div class="panel-footer"></div>
+</div>

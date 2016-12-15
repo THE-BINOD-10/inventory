@@ -179,6 +179,10 @@ urlpatterns = patterns('rest_api.views',
     url(r'^generate_order_po_data/$', 'generate_order_po_data'),
     url(r'^get_view_order_details/$', 'get_view_order_details'),
     url(r'^get_stock_location_quantity/$', 'get_stock_location_quantity'),
+    url(r'^payment_tracker/$', 'payment_tracker'),
+    url(r'^get_customer_payment_tracker/$', 'get_customer_payment_tracker'),
+    url(r'^get_customer_master_id/$', 'get_customer_master_id'),
+    url(r'^search_wms_data/$', 'search_wms_data'),
 
     # Reports
     #url(r'^location_wise_filter/$','location_wise_filter'),
@@ -260,6 +264,7 @@ urlpatterns = patterns('rest_api.views',
 
     #common
     url(r'^set_timezone/$', 'set_timezone'),
+    url(r'^get_file_checksum/$', 'get_file_checksum'),
 
     #Retailone
     url(r'^get_marketplace_data/$', 'get_marketplace_data'),

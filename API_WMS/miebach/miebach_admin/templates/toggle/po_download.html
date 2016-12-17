@@ -1,3 +1,5 @@
+
+{% load tag_extras %}
 <form id="toggle-po">
   <table style="font-size:12px;width:480px">
     <tbody>
@@ -45,15 +47,26 @@
         <thead>
           <tr>
             {% for table_header in table_headers %}
-            <th>{{ table_header }}</th>
+              <th>{{ table_header }}</th>
             {% endfor %}
+            {% if customization %}
+              <th>Customization</th>
+            {% endif %}
           </tr>
         </thead>
         <tbody>
           {% for dat in data %}
           <tr>
             {% for d in dat %}
-            <td style="text-align: center;">{{ d }}</td>
+              {% if d|get_variable_type == 'list' %}
+                <td style="text-align: center;">
+                {% for extra in d %}
+                  {{ extra.attribute_name}}: {{ extra.attribute_value}}
+                {% endfor %}
+                </td>
+              {% else %}
+              <td style="text-align: center;">{{ d }}</td>
+              {% endif %}
             {% endfor %}
           </tr>
           {% endfor %}

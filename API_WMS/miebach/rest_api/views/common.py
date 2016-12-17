@@ -327,27 +327,35 @@ def get_user_results(start_index, stop_index, temp_data, search_term, order_term
 
 @csrf_exempt
 def get_user_groups(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
-    lis  = ['username', 'first_name', 'email', 'id']
+    lis  = ['Group Name', 'Members Count']
     group = ''
-    admin_group = AdminGroups.objects.filter(user_id=user.id)
-    if admin_group:
-        group = admin_group[0].group
-    if group:
-        if search_term:
-            master_data = group.user_set.filter().exclude(id=user.id)
-        elif order_term:
-            if order_term == 'asc':
-                master_data = group.user_set.filter().exclude(id=user.id).order_by(lis[col_num])
-            else:
-                master_data = group.user_set.filter().exclude(id=user.id).order_by("-%s" % lis[col_num])
-        else:
-            master_data = group.user_set.filter().exclude(id=user.id)
+    #admin_group = AdminGroups.objects.filter(user_id=user.id)
+    #if admin_group:
+    #    group = admin_group[0].group
+    #if group:
+    if search_term:
+        master_data = user.groups.filter(name__icontains=search_term).exclude(name=user.username)
+    #elif order_term:
+    #    if order_term == 'asc':
+    #        master_data = group.user_set.filter().exclude(id=user.id).order_by(lis[col_num])
+    #    else:
+    #        master_data = group.user_set.filter().exclude(id=user.id).order_by("-%s" % lis[col_num])
+    else:
+        master_data = user.groups.exclude(name=user.username)
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
-    for data in master_data[start_index:stop_index]:
-        member_count = data.groups.all().exclude(name=group.name).count()
-        temp_data['aaData'].append({'User Name': data.username,'DT_RowClass': 'results', 'Name': data.first_name,
-                                    'Email': data.email, 'Member of Groups': member_count, 'DT_RowId': data.id})
+    for data in master_data:
+        member_count = data.user_set.all().count()
+        group_name = (data.name).replace(user.username + ' ', '')
+        temp_data['aaData'].append({'Group Name': group_name,'DT_RowClass': 'results', 'Members Count': member_count, 'DT_RowId': data.id})
+
+    sort_col = lis[col_num]
+
+    if order_term == 'asc':
+        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col))
+    else:
+        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
+    temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
 @csrf_exempt
 @login_required

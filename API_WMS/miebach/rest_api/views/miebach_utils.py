@@ -223,7 +223,7 @@ SALES_RETURN_REPORT = {('sales_return_form','salesreturnTable','Sales Return Rep
 LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequence', 'SKU Group']
 
 SKU_HEADERS = ['WMS Code','SKU Description', 'SKU Group', 'SKU Type', 'SKU Category', 'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size',
-               'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url', 'Threshold Quantity', 'Measurment Type', 'Status']
+               'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url', 'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Status']
 
 EXCEL_HEADERS = ['Receipt Number', 'Receipt Date(YYYY-MM-DD)',  'WMS SKU', 'Location', 'Quantity', 'Receipt Type']
 EXCEL_RECORDS = ('receipt_number', 'receipt_date', 'wms_code', 'location', 'wms_quantity', 'receipt_type')
@@ -264,6 +264,9 @@ BATCH_DATA_HEADERS = OrderedDict([('SKU Code','sku__sku_code'),('Title','title')
 PUT_AWAY = OrderedDict([('PO Number','open_po_id'),('Order Date','creation_date'),('Supplier ID','open_po_id__supplier_id__id'),('Supplier Name','open_po_id__supplier_id__name')])
 
 SKU_MASTER_HEADERS = OrderedDict([('WMS SKU Code', 'wms_code'), ('Product Description', 'sku_desc'), ('SKU Type', 'sku_type'), ('SKU Category', 'sku_category'), ('SKU Class', 'sku_class'), ('Zone', 'zone_id'), ('Status', 'status')])
+
+SKU_MASTER_EXCEL_HEADERS = ['WMS SKU Code', 'Product Description', 'SKU Type', 'SKU Category', 'SKU Brand', 'SKU Class', 'Style Name',
+                            'SKU Size', 'SKU Group', 'Zone', 'Price', 'MRP Price', 'Measurement Type', 'Status']
 
 SIZE_MASTER_HEADERS = OrderedDict([('Size Name', 'size_name'), ('Sizes', 'size_value')])
 
@@ -377,6 +380,9 @@ FLIPKART_EXCEL1 = {'order_id': 6, 'quantity': 14, 'title': 2, 'invoice_amount': 
 FLIPKART_EXCEL2 = {'order_id': 2, 'quantity': 15, 'title': 8, 'invoice_amount': 12, 'address': 19, 'customer_name': 18,
                    'marketplace': 'Flipkart', 'sku_code': 7}
 
+FLIPKART_EXCEL3 = {'order_id': 2, 'quantity': 17, 'title': 15, 'invoice_amount': 7, 'address': 21, 'customer_name': 20,
+                   'marketplace': 'Flipkart', 'sku_code': 14}
+
 PAYTM_EXCEL1 = {'order_id': 0, 'quantity': 21, 'title': 12, 'invoice_amount': 20, 'address': 7, 'customer_name': 3, 'marketplace': 'Paytm',
                'sku_code': 14}
 
@@ -398,9 +404,13 @@ SNAPDEAL_FA_EXCEL = {'title': 4, 'invoice_amount': 6, 'marketplace': 'Snapdeal F
 
 ORDER_DEF_EXCEL = {'order_id': 0, 'quantity': 3, 'title': 1, 'shipment_date': 4,'sku_code': 2, 'channel_name': 5}
 
+EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 8, 'invoice_amount': 3, 'channel_name': 5, 'sku_code': 7, 'title': 6, 'status': 4,
+                       'split_order_id': 1}
+
 SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('sku_group', 2), ('sku_type', 3), ('sku_category', 4), ('sku_class', 5),
                               ('sku_brand', 6), ('style_name', 7), ('sku_size', 8), ('zone_id', 9), ('price', 10), ('mrp', 11),
-                              ('sequence', 12), ('image_url', 13), ('threshold_quantity', 14), ('measurement_type', 15), ('status', 16)
+                              ('sequence', 12), ('image_url', 13), ('threshold_quantity', 14), ('measurement_type', 15), ('sale_through', 16),
+                              ('status', 17)
                            ))
 
 ITEM_MASTER_EXCEL = OrderedDict(( ('wms_code', 1), ('sku_desc', 2), ('sku_category', 25), ('image_url', 18), ('sku_size', 14) ))
@@ -437,6 +447,8 @@ UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code'
 
 UNI_COMMERCE_EXCEL1 = {'order_id': 8, 'channel_name': 2, 'sku_code': 6, 'customer_name': 9, 'email_id': 10, 'telephone': 11,
                        'address': [12, 13, 14], 'state': 15, 'pin_code': 16, 'invoice_amount': 19}
+
+UNI_WARE_EXCEL = {'order_id': 12, 'channel_name': 2, 'sku_code': 1, 'quantity': 34}
 
 EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'get_sku_filter_data', 'location_wise': 'get_location_stock_data',
                         'goods_receipt': 'get_po_filter_data', 'receipt_summary': 'get_receipt_filter_data',
@@ -504,6 +516,9 @@ EASYOPS_SHIPPED_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumb
 
 ORDER_SUMMARY_FIELDS = {'discount': 0, 'creation_date': datetime.datetime.now(), 'issue_type': 'order', 'vat': 0, 'tax_value': 0,
                         'order_taken_by': ''}
+
+EASYOPS_STOCK_HEADERS = OrderedDict([('Product Name', 'sku_desc'), ('Sku', 'wms_code'), ('Vendor Sku', 'wms_code'),
+                                     ('Stock', 'stock_count'), ('Purchase Price', 'purchase_price')])
 
 def fn_timer(function):
     @wraps(function)

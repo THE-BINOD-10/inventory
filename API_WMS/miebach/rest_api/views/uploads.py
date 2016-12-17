@@ -43,6 +43,8 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(FLIPKART_EXCEL1)
     elif get_cell_data(0, 1, reader, file_type) == 'Shipment ID' and get_cell_data(0, 2, reader, file_type) == 'ORDER ITEM ID':
         order_mapping = copy.deepcopy(FLIPKART_EXCEL2)
+    elif get_cell_data(0, 1, reader, file_type) == 'Shipment Id' and get_cell_data(0, 2, reader, file_type) == 'Order Item Id':
+        order_mapping = copy.deepcopy(FLIPKART_EXCEL3)
     elif get_cell_data(0, 3, reader, file_type) == 'customer_firstname':
         order_mapping = copy.deepcopy(PAYTM_EXCEL1)
     elif get_cell_data(0, 1, reader, file_type) == 'item_name':
@@ -82,6 +84,10 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(LIMEROAD_EXCEL)
     elif get_cell_data(0, 1, reader, file_type) == 'Uniware Created At' and get_cell_data(0, 0, reader, file_type) == 'Order #':
         order_mapping = copy.deepcopy(UNI_COMMERCE_EXCEL1)
+    elif get_cell_data(0, 0, reader, file_type) == 'Order Date' and get_cell_data(0, 3, reader, file_type) == 'Total Value':
+        order_mapping = copy.deepcopy(EASYOPS_ORDER_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'Shipment' and get_cell_data(0, 1, reader, file_type) == 'Products':
+        order_mapping = copy.deepcopy(UNI_WARE_EXCEL)
 
     return order_mapping
 
@@ -134,6 +140,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         return f_name
 
     sku_ids = []
+
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
@@ -141,18 +148,25 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         order_summary_dict = {}
         if order_mapping.get('marketplace', ''):
             order_data['marketplace'] = order_mapping['marketplace']
+        if order_mapping.get('status', '') and get_cell_data(row_idx, order_mapping['status'], reader, file_type) != 'New':
+            continue
 
         for key, value in order_mapping.iteritems():
-            if key == 'marketplace' or key not in order_mapping.keys():
+            if key in ['marketplace', 'status', 'split_order_id'] or key not in order_mapping.keys():
                 continue
             if key == 'order_id' and 'order_id' in order_mapping.keys():
                 order_id = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
                 if isinstance(order_id, float):
                     order_id = str(int(order_id))
+                if order_mapping.get('split_order_id', '') and '/' in order_id:
+                    order_id = order_id.split('/')[0]
+                order_code = ''.join(re.findall('\D+', order_id))
                 order_id = ''.join(re.findall('\d+', order_id))
                 if order_id:
                     order_data['order_id'] = int(order_id)
                     order_data['order_code'] = 'OD'
+                    if order_code:
+                        order_data['order_code'] = order_code
                 else:
                     order_data['order_id'] = get_order_id(user.id)
                     order_data['order_code'] = 'MN'

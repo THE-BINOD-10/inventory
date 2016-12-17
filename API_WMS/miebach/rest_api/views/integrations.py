@@ -119,3 +119,14 @@ def update_shipped(orders, user='', company_name=''):
                     picklist.save()
     except:
         traceback.print_exc()
+
+def update_returns(orders, user='', company_name=''):
+    order_mapping = eval(LOAD_CONFIG.get(company_name, 'returned_mapping_dict', ''))
+    NOW = datetime.datetime.now()
+    try:
+        orders = orders.get(order_mapping['items'], [])
+        order_details = {}
+        for ind, orders in enumerate(orders):
+            print orders
+    except:
+        traceback.print_exc()

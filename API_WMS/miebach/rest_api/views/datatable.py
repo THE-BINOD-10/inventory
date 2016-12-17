@@ -19,7 +19,7 @@ from retailone import *
 
 @fn_timer
 def sku_excel_download(search_params, temp_data, headers, user):
-    headers = SKU_MASTER_HEADERS.keys()
+    headers = SKU_MASTER_EXCEL_HEADERS
     status_dict = {'1': 'Active', '0': 'Inactive'}
     marketplace_list = Marketplaces.objects.filter(user=user.id).values_list('name').distinct()
     search_terms = {}
@@ -62,9 +62,16 @@ def sku_excel_download(search_params, temp_data, headers, user):
         ws.write(data_count, 1, data.sku_desc)
         ws.write(data_count, 2, data.sku_type)
         ws.write(data_count, 3, data.sku_category)
-        ws.write(data_count, 4, data.sku_class)
-        ws.write(data_count, 5, zone)
-        ws.write(data_count, 6, status_dict[str(int(data.status))])
+        ws.write(data_count, 4, data.sku_brand)
+        ws.write(data_count, 5, data.sku_class)
+        ws.write(data_count, 6, data.style_name)
+        ws.write(data_count, 7, data.sku_size)
+        ws.write(data_count, 8, data.sku_group)
+        ws.write(data_count, 9, zone)
+        ws.write(data_count, 10, data.price)
+        ws.write(data_count, 11, data.mrp)
+        ws.write(data_count, 12, data.measurement_type)
+        ws.write(data_count, 13, status_dict[str(int(data.status))])
         market_map = master_data.filter(sku_id=data.id).values('sku_id', 'sku_type').distinct()
         for dat in market_map:
             map_dat = market_map.values('marketplace_code', 'description')
@@ -79,6 +86,47 @@ def sku_excel_download(search_params, temp_data, headers, user):
     wb.save(path)
     path_to_file = '../' + path
     return path_to_file
+
+@fn_timer
+def easyops_stock_excel_download(search_params, temp_data, headers, user, request):
+    headers = EASYOPS_STOCK_HEADERS.keys()
+    search_term = request.POST.get("search[value]", '')
+    search_terms = {}
+    if search_params.get('search_0',''):
+        search_terms["sku__wms_code__icontains"] = search_params.get('search_0','')
+    if search_params.get('search_1',''):
+        search_terms["sku__sku_desc__icontains"] = search_params.get('search_1','')
+    if search_params.get('search_2',''):
+        search_terms["sku__sku_category__icontains"] = search_params.get('search_2','')
+    if search_params.get('search_3',''):
+        search_terms["total__icontains"] = search_params.get('search_3','')
+    master_data = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'], receipt_number=0).\
+                                      values_list('sku__wms_code', 'sku__sku_desc').distinct().\
+                                          annotate(total=Sum('quantity')).filter(sku__user = user.id, quantity__gt=0, **search_terms).\
+                                          order_by('sku__wms_code')
+    if search_term:
+        master_data = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'], receipt_number=0).\
+                                          values_list('sku__wms_code', 'sku__sku_desc').distinct().\
+                                          annotate(total=Sum('quantity')).filter(Q(sku__wms_code__icontains=search_term) |
+                                          Q(sku__sku_desc__icontains=search_term) | Q(sku__sku_category__icontains=search_term) |
+                                          Q(total__icontains=search_term), sku__user = user.id, quantity__gt=0, **search_terms).\
+                                          order_by('sku__wms_code')
+    excel_headers = headers
+    wb, ws = get_work_sheet('inventory', excel_headers)
+    data_count = 0
+    for data in master_data:
+        data_count += 1
+        ws.write(data_count, 0, data[1])
+        ws.write(data_count, 1, data[0])
+        ws.write(data_count, 2, data[0])
+        ws.write(data_count, 3, data[2])
+
+    file_name = "%s.%s" % (user.id, 'Stock Custom Format-1')
+    path = 'static/excel_files/' + file_name + '.xls'
+    wb.save(path)
+    path_to_file = '../' + path
+    return path_to_file
+
 
 @csrf_exempt
 @login_required
@@ -95,6 +143,9 @@ def results_data(request, user=''):
             search_params[key] = value
         if request.POST.get('datatable', '') == 'SKUMaster':
             excel_data = sku_excel_download(filter_params, temp_data, headers, user)
+            return HttpResponse(str(excel_data))
+        if request.POST.get('datatable', '') == 'StockSummaryEasyops':
+            excel_data = easyops_stock_excel_download(filter_params, temp_data, headers, user, request)
             return HttpResponse(str(excel_data))
     temp_data['draw'] = search_params.get('draw')
     start_index = search_params.get('start')

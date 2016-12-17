@@ -51,6 +51,7 @@ class SKUMaster(models.Model):
     status = models.IntegerField(default=1)
     relation_type = models.CharField(max_length=32, default = '')
     measurement_type = models.CharField(max_length=32, default = '')
+    sale_through = models.CharField(max_length=32, default = '')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

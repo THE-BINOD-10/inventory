@@ -5,7 +5,7 @@ import django
 django.setup()
 from rest_api.views.easyops_api import *
 from miebach_admin.models import *
-from rest_api.views.integrations import update_orders, update_shipped
+from rest_api.views.integrations import update_orders, update_shipped, update_returns
 from mail_server import send_mail
 import threading
 import time
@@ -63,7 +63,7 @@ class CollectData:
 
     def returned_orders(self):
         while True:
-            signal = self.populate_data(self.sellerworx_api.get_returned_orders, update_returns)
+            signal = self.populate_data(self.easyops_api.get_returned_orders, update_returns)
             if signal:
                 break
 
@@ -81,8 +81,9 @@ class CollectData:
 
     def run_main(self):
         threads = []
-        thread_obj = [ self.get_user_orders, self.shipped_orders ]
+        #thread_obj = [ self.get_user_orders, self.shipped_orders ]
         #thread_obj = [ self.shipped_orders ]
+        thread_obj = [ self.returned_orders ]
         for count, obj in enumerate(thread_obj):
             thread = threading.Thread(name='Thread%s' % count, target=obj)
             thread.start()

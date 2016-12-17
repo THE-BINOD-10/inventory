@@ -83,7 +83,7 @@ class EasyopsAPI:
         self.update_token(json_response)
         return json_response
 
-    def get_pending_orders(self, market='Flipkart', token='', user=''):
+    def get_pending_orders(self, token='', user=''):
         """ Collecting all pending orders for a particular user """
         data = {}
         if user:
@@ -92,9 +92,8 @@ class EasyopsAPI:
         if not token:
             self.get_user_token(user)
 
-        if market:
-            today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
-            data = eval(LOAD_CONFIG.get(self.company_name, 'pending_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
+        data = eval(LOAD_CONFIG.get(self.company_name, 'pending_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
 
         url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'pending_orders', ''))
 
@@ -151,4 +150,19 @@ class EasyopsAPI:
         json_response = self.get_response(url, data=data)
         return json_response
 
+    def get_returned_orders(self, token='', user=''):
+        """ Collecting all return orders for a particular user """
+        data = {}
+        if user:
+            self.user = user
+        self.token = token
+        if not token:
+            self.get_user_token(user)
 
+        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'returned_orders', ''))
+
+        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
+        data = eval(LOAD_CONFIG.get(self.company_name, 'returned_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
+
+        json_response = self.get_response(url, data=data)
+        return json_response

@@ -15,13 +15,17 @@ from miebach_utils import *
 
 @csrf_exempt
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'total']
-    lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_category', 'total']
+    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'total', 'sku__measurement_type']
+    lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_category', 'total', 'product_code__measurement_type']
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
+    if 'total__icontains' in search_params1.keys():
+        if search_params1['total__icontains']:
+            search_params1['status__icontains'] = search_params1['total__icontains']
+        del search_params1['total__icontains']
 
     job_order = JobOrder.objects.filter(product_code__user=user.id, status__in=['grn-generated', 'pick_confirm'])
     job_ids = job_order.values_list('id', flat=True)
@@ -49,7 +53,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                           annotate(total=Sum('quantity')).filter(sku__user = user.id, quantity__gt=0, **search_params).\
                                           order_by(order_data)
         wms_codes = map(lambda d: d[0], master_data)
-        master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).values_list('product_code__wms_code', 'product_code__sku_desc',
+        master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).filter(**search_params1).values_list('product_code__wms_code', 'product_code__sku_desc',
                                          'product_code__sku_category').distinct()
         master_data = list(chain(master_data, master_data1))
 

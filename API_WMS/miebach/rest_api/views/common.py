@@ -234,7 +234,8 @@ data_datatable = {#masters
                   #outbound
                   'ViewOrdersB': 'get_batch_data', 'ViewOrders': 'get_order_results', 'OpenOrders': 'open_orders',\
                   'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders',\
-                  'ShipmentInfo':'get_customer_results', 'ShipmentPickedOrders': 'get_shipment_picked', 'PullToLocate': 'get_cancelled_orders',\
+                  'ShipmentInfo':'get_customer_results', 'ShipmentPickedOrders': 'get_shipment_picked',\
+                  'PullToLocate': 'get_cancelled_putaway',\
                   'StockTransferOrders': 'get_stock_transfer_orders', 'OutboundBackOrders': 'get_back_order_data',\
                   #manage users
                   'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
@@ -1325,13 +1326,17 @@ def get_invoice_data(order_ids, user):
     marketplace = ''
     total_quantity = 0
     total_invoice = 0
+    total_tax = 0
+    total_mrp = 0
     customer_details = []
     order_no = ''
-    #invoice_number = get_invoice_number(user)
-    #invoice_date = datetime.datetime.now()
+    invoice_date = datetime.datetime.now()
     if order_ids:
         order_ids = order_ids.split(',')
         order_data = OrderDetail.objects.filter(id__in=order_ids)
+        picklist = Picklist.objects.filter(order_id__in=order_ids).order_by('-updation_date')
+        if picklist:
+            invoice_date = picklist[0].updation_date
         for dat in order_data:
             order_id = dat.original_order_id
             order_no = str(dat.order_id)
@@ -1352,14 +1357,23 @@ def get_invoice_data(order_ids, user):
                 if marketplace == 'Myntra':
                     marketplace = 'Myntra Designs Pvt Ltd\nSSN Logistics Pvt Ltd, B-2, Antariksha Lodgidrome Warehousing Complex, Opp\
                                    Vashere HP petrol pump Aamne-sape, Pagdha, Kalyan rd,Bhiwandi - 421302'
-            total_invoice += float(dat.invoice_amount)
-            total_quantity += int(dat.quantity)
             tax = 0
+            vat = 5.5
+            discount = 0
+            mrp_price = dat.sku.mrp
             order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=dat.id)
             if order_summary:
                 tax = order_summary[0].tax_value
+                vat = order_summary[0].vat
+                mrp_price = order_summary[0].mrp
+                discount = order_summary[0].discount
             else:
-                tax = "%.2f" % (float(float(dat.invoice_amount)/100) * 5.5)
+                tax = "%.2f" % (float(float(dat.invoice_amount)/100) * vat)
+
+            total_invoice += float(dat.invoice_amount)
+            total_quantity += int(dat.quantity)
+            total_tax += float(tax)
+            total_mrp += float(mrp_price)
 
             picklist = Picklist.objects.exclude(order_type='combo').filter(order_id=dat.id).\
                                         aggregate(Sum('picked_quantity'))['picked_quantity__sum']
@@ -1373,13 +1387,17 @@ def get_invoice_data(order_ids, user):
             unit_price = "%.2f" % unit_price
 
             data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(dat.invoice_amount),
-                         'quantity': quantity, 'tax': tax, 'unit_price': unit_price})
-        
+                         'quantity': quantity, 'tax': tax, 'unit_price': unit_price, 'vat': vat, 'mrp_price': mrp_price, 'discount': discount})
+
+    invoice_date = get_local_date(user, invoice_date, send_date='true')
+    invoice_date = invoice_date.strftime("%d %b %Y")
 
     invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'marketplace': marketplace,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
-                    'customer_details': customer_details, 'order_no': order_no}
+                    'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % total_tax, 'total_mrp': total_mrp,
+                    'invoice_no': 'TI/1116/' + order_no, 'invoice_date': invoice_date}
+
     return invoice_data
 
 def get_sku_categories_data(request, user, request_data={}):

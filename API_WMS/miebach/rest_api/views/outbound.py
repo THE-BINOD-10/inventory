@@ -332,7 +332,7 @@ def generate_picklist(request, user=''):
     if get_misc_value('pallet_switch', user.id) == 'true':
         headers.insert(headers.index('Location') + 1, 'Pallet Code')
 
-    data = get_picklist_data(picklist_number + 1, user.id)
+    data, sku_total_quantities = get_picklist_data(picklist_number + 1, user.id)
     if not stock_status:
         order_status = data[0]['status']
         if order_status == 'open':
@@ -578,7 +578,7 @@ def batch_generate_picklist(request, user=''):
     headers, show_image, use_imei = picklist_headers(request, user.id)
 
     order_status = ''
-    data = get_picklist_data(picklist_number + 1, user.id)
+    data, sku_total_quantities = get_picklist_data(picklist_number + 1, user.id)
     if data:
         order_status = data[0]['status']
         if order_status == 'open':
@@ -591,6 +591,7 @@ def batch_generate_picklist(request, user=''):
 
 def get_picklist_data(data_id,user_id):
 
+    sku_total_quantities = {}
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user_id) | Q(stock__sku__user=user_id), picklist_number=data_id)
     pick_stocks = StockDetail.objects.filter(sku__user=user_id)
     data = []
@@ -649,10 +650,14 @@ def get_picklist_data(data_id,user_id):
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['invoice_amount'] += invoice
+            if wms_code in sku_total_quantities.keys():
+                sku_total_quantities[wms_code] += float(order.reserved_quantity)
+            else:
+                sku_total_quantities[wms_code] = float(order.reserved_quantity)
         data = batch_data.values()
 
         data = sorted(data, key=itemgetter('sequence'))
-        return data
+        return data, sku_total_quantities
 
     elif order_status == "open":
         for order in picklist_orders:
@@ -693,8 +698,13 @@ def get_picklist_data(data_id,user_id):
                 wms_code = stock_id.sku.wms_code
 
             data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'order_id': order.order_id, 'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': invoice_amount, 'price': invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'order_no': order_id,'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title})
+
+            if wms_code in sku_total_quantities.keys():
+                sku_total_quantities[wms_code] += float(order.reserved_quantity)
+            else:
+                sku_total_quantities[wms_code] = float(order.reserved_quantity)
         data = sorted(data, key=itemgetter('sequence'))
-        return data
+        return data, sku_total_quantities
     else:
         for order in picklist_orders:
             stock_id = ''
@@ -718,8 +728,13 @@ def get_picklist_data(data_id,user_id):
                 continue
 
             data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'order_id': order.order_id, 'stock_id': st_id, 'picked_quantity':order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': order.order.invoice_amount, 'price': order.order.invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'pallet_code': pallet_code, 'sku_code': order.order.sku_code, 'title': order.order.title })
+
+            if wms_code in sku_total_quantities.keys():
+                sku_total_quantities[wms_code] += float(order.reserved_quantity)
+            else:
+                sku_total_quantities[wms_code] = float(order.reserved_quantity)
         data = sorted(data, key=itemgetter('sequence'))
-        return data
+        return data, sku_total_quantities
 
 
 def confirm_no_stock(picklist, p_quantity=0):
@@ -992,8 +1007,8 @@ def picklist_confirmation(request, user=''):
             order_ids = [str(int(i)) for i in order_ids]
             order_ids = ','.join(order_ids)
             invoice_data = get_invoice_data(order_ids, user)
-            invoice_data['invoice_no'] = 'TI/1116/' + invoice_data['order_no']
-            invoice_data['invoice_date'] = get_local_date(user, datetime.datetime.now())
+            #invoice_data['invoice_no'] = 'TI/1116/' + invoice_data['order_no']
+            #invoice_data['invoice_date'] = get_local_date(user, datetime.datetime.now())
             return HttpResponse(json.dumps({'data': invoice_data, 'status': 'invoice'}))
 
     return HttpResponse('Picklist Confirmed')
@@ -1021,7 +1036,7 @@ def view_picklist(request, user=''):
     pallet_switch = get_misc_value('pallet_switch', user.id)
     if pallet_switch == 'true':
         headers.insert(headers.index('Location') + 1, 'Pallet Code')
-    data = get_picklist_data(data_id, user.id)
+    data, sku_total_quantities = get_picklist_data(data_id, user.id)
     if data[0]['status'] == 'open':
         headers.insert(headers.index('WMS Code'),'Order ID')
         order_count = list(set(map(lambda d: d.get('order_no', ''), data)))
@@ -1030,7 +1045,8 @@ def view_picklist(request, user=''):
             single_order = str(order_count[0])
     return HttpResponse(json.dumps({'data': data, 'picklist_id': data_id,
                                     'show_image': show_image, 'use_imei': use_imei,
-                                    'order_status': data[0]['status'], 'user': request.user.id, 'single_order': single_order}))
+                                    'order_status': data[0]['status'], 'user': request.user.id, 'single_order': single_order,
+                                    'sku_total_quantities': sku_total_quantities}))
 
 @csrf_exempt
 @login_required
@@ -1182,7 +1198,7 @@ def check_imei(request, user=''):
 def print_picklist_excel(request, user=''):
     headers = copy.deepcopy(PICKLIST_EXCEL)
     data_id = request.GET['data_id']
-    data = get_picklist_data(data_id, user.id)
+    data, sku_total_quantities = get_picklist_data(data_id, user.id)
     all_data = []
     for dat in data:
         val = itemgetter(*headers.values())(dat)
@@ -1196,7 +1212,7 @@ def print_picklist(request, user=''):
     temp = []
     title = 'Picklist ID'
     data_id = request.GET['data_id']
-    data = get_picklist_data(data_id, user.id)
+    data, sku_total_quantities = get_picklist_data(data_id, user.id)
     all_data = {}
     total = 0
     total_price = 0
@@ -1397,7 +1413,7 @@ def st_generate_picklist(request, user=''):
     headers, show_image, use_imei = picklist_headers(request, user.id)
 
     order_status = ''
-    data = get_picklist_data(picklist_number + 1, user.id)
+    data, sku_total_quantities = get_picklist_data(picklist_number + 1, user.id)
     if data:
         order_status = data[0]['status']
         if order_status == 'open':
@@ -1483,7 +1499,6 @@ def insert_order_data(request, user=''):
             order_data['order_code'] = 'CO'
         order_data['user'] = user.id
 
-        order_summary_dict = {}
         for key, value in request.GET.iteritems():
             if key in ['payment_received']:
                 continue

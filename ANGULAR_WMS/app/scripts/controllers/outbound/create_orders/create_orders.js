@@ -101,9 +101,11 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 	/*vm.brands_images = {'6 Degree': '6degree.png', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'biowash.jpg', 'Scala': 'scala.png',
         'Scott International': 'scott.jpg', 'Scott Young': 'scottyoung.png', 'Spark': 'spark.jpg', 'Star - 11': 'star11.png',
 	 'Super Sigma': 'supersigma.jpg', 'Sulphur Cotton': 'dflt.jpg', 'Sulphur Dryfit': 'dflt.jpg'}*/
-        vm.brands_images = {'6 Degree': 'SIX-DEGREES-1.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'BIO-COLLECTION-1.jpg', 
-	'Scala': 'SCALA-1.jpg','Scott International': 'SCOTT-1.jpg', 'Scott Young': 'SCOTT-YOUNG-1.jpg', 'Spark': 'spark-1.jpg', 
-	'Star - 11': 'star-11.jpg','Super Sigma': 'super-sighma.jpg', 'Sulphur Cotton': 'sulphur-1.jpg', 'Sulphur Dryfit': 'sulphur-2.jpg'}
+    vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'bio-wash.jpg',
+                        'Scala': 'scala.jpg','Scott International': 'scott.jpg', 'Scott Young': 'scott-young.jpg', 'Spark': 'spark.jpg',
+                        'Star - 11': 'star-11.jpg','Super Sigma': 'super-sigma-dryfit.jpg', 'Sulphur Cotton': 'sulphur-cottnt.jpg',
+                        'Sulphur Dryfit': 'sulphur-dryfit.jpg', 'Spring': 'spring.jpg', '100% Cotton': '100cotton.jpg',
+                        'Sprint': 'sprint.jpg', 'Supreme': 'supreme.jpg'}
 
         vm.brands_logos = {'6 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
         'Scala': 'scala-1.png','Scott International': 'scott-1.png', 'Scott Young': 'scott-young-1.png', 'Spark': 'spark-1.png',

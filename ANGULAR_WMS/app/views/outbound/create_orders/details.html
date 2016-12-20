@@ -12,8 +12,8 @@
     </div>
   </div>
   <div class="row" style="padding: 10px 20px;;">
-    <div class="col-md-3 col-sm-3 col-xs-4" ng-repeat="brand in showCase.brands" style="padding-bottom:5px">
-    <img ng-src="/images/brand-logos/{{(showCase.brands_images[brand])? showCase.brands_images[brand]: 'red.png'}}" ng-click="showCase.change_brand(brand);showCase.detailed_list=true;showCase.details=false;"style="width:100%; height: 100%;cursor:pointer;">
+    <div class="pull-left" ng-repeat="brand in showCase.brands" style="margin: 10px;box-shadow: 1px 1px 10px #777;">
+    <img ng-src="/images/brand-logos/{{(showCase.brands_images[brand])? showCase.brands_images[brand]: 'red.png'}}" ng-click="showCase.change_brand(brand);showCase.detailed_list=true;showCase.details=false;"style="width:216px; height: 157px;cursor:pointer;">
       <p ng-if="(!(showCase.brands_images[brand]))" style="color: #fff;position: absolute;top: 40%;text-align: center;width: 90%;font-size:20px">{{brand}}</p>
       <!--<p>showCase.brands_images[brand] == 'red.png'</p>-->
     </div>

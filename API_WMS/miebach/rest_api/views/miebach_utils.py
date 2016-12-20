@@ -69,7 +69,7 @@ ZONE_DATA = {'user': '', 'zone': ''}
 ORDER_DATA = {'order_id': '', 'sku_id': '', 'title': '',
               'quantity': '', 'status': 1}
 
-RETURN_DATA = {'order_id': '', 'return_id': '', 'return_date': '', 'quantity': '', 'status': 1}
+RETURN_DATA = {'order_id': '', 'return_id': '', 'return_date': '', 'quantity': '', 'status': 1, 'return_type': '', 'damaged_quantity': 0}
 
 
 PALLET_FIELDS = {'pallet_code': '', 'quantity': 0, 'status': 1}
@@ -441,7 +441,7 @@ LIMEROAD_EXCEL = {'order_id': 0, 'invoice_amount': 8, 'marketplace': 'Lime Road'
                       'address': 12, 'telephone': 11,  'shipment_date': 1}
 
 MYNTRA_EXCEL = {'invoice_amount': 14, 'marketplace': 'Myntra', 'sku_code': 2, 'quantity': 9, 'title': 7, 'original_order_id': 1, 'order_id': 1,
-                'vat': [14, 11]}
+                'vat': [14, 11], 'mrp': 12, 'discount': 13}
 
 UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code': 1}
 
@@ -519,6 +519,19 @@ ORDER_SUMMARY_FIELDS = {'discount': 0, 'creation_date': datetime.datetime.now(),
 
 EASYOPS_STOCK_HEADERS = OrderedDict([('Product Name', 'sku_desc'), ('Sku', 'wms_code'), ('Vendor Sku', 'wms_code'),
                                      ('Stock', 'stock_count'), ('Purchase Price', 'purchase_price')])
+
+EASYOPS_RETURN_ORDER_MAPPING = {'order_id': 'orderId', 'items': 'data', 'return_id': 'rtnId',
+                                'return_date': 'returnDate', 'sku': 'order["easyopsSku"]',
+                                'damaged_quantity': 'order["badQty"]', 'return_quantity': 'order["goodQty"]',
+                                'return_type': 'orders["returnType"]', 'order_items': 'orders["lineItems"]'}
+
+EASYOPS_CANCEL_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'channel',
+                                'sku': 'order["easyopsSku"]',
+                                'title': 'order["productTitle"]', 'quantity': 'order["quantity"]',
+                                'shipment_date': 'orders["orderDate"]',
+                                'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]'}
+
+ORDER_DETAIL_STATES = {0: 'Picklist generated', 1: 'Newly Created', 2: 'Dispatched', 3: 'Cancelled', 4: 'Returned'}
 
 def fn_timer(function):
     @wraps(function)

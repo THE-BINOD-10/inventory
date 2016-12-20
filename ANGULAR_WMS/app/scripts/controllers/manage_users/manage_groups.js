@@ -22,7 +22,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        .withOption('rowCallback', rowCallback);
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Group Name').withTitle('Group Name'),
-        DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date')
+        DTColumnBuilder.newColumn('Members Count').withTitle('Members Count')
     ];
 
     vm.dtInstance = {};

@@ -11,6 +11,12 @@
          <div class="row">
            <div class="col-md-4">
              <div class="form-group">
+               <label class="control-label"> Return ID </label>
+              <textarea id="scan_return_id" rows="1" name="scan_return_id" class="form-control" ng-model="showCase.model_data.scan_return_id" ng-keydown="showCase.scan_return($event, showCase.model_data.scan_return_id)"></textarea>
+             </div>
+           </div>
+           <div class="col-md-4">
+             <div class="form-group">
                <label class="control-label"> Order ID </label>
               <textarea id="scan_order_id" rows="1" name="scan_order_id" class="form-control" ng-model="showCase.model_data.scan_order_id" ng-keydown="showCase.scan_track($event, showCase.model_data.scan_order_id)"></textarea>
              </div>
@@ -28,49 +34,31 @@
            </div>
          </div>   
        <div class="row">
-         <div class="col-md-2">
-           <label class="control-label"> Order ID </label>
-         </div>
-         <div class="col-md-2">
-           <label class="control-label"> SKU Code </label>
-         </div>
-         <div class="col-md-2">
-           <label class="control-label"> Product Description </label>
-         </div>
-         <div class="col-md-2">
-           <label class="control-label"> Shipping Quantity </label>
-         </div>
-         <div class="col-md-2">
-           <label class="control-label"> Return Quantity </label>
-         </div>
-         <div class="col-md-2">
-           <label class="control-label"> Damaged Quantity </label>
-         </div>
-       </div>
-       <div ng-repeat="data in showCase.model_data.data">
-       <div class="row field" ng-repeat="data_split in data track by $index">
-         <div class="col-md-2">
-           <!--<input type="text" name="return_id" class="form-control" ng-model="data_split.order_id" ng-show="data.track_id_enable" readonly>-->
-	   <input type="text" name="order_id" class="form-control" ng-model="data_split.order_id">
-         </div>
-         <div class="col-md-2">
-           <input type="text" name="sku_code" class="form-control" ng-model="data_split.sku_code">
-         </div>
-         <div class="col-md-2">
-           <input type="text" name="sku_desc" class="form-control" ng-model="data_split.sku_desc">
-         </div>
-         <div class="col-md-2">
-           <input type="text" name="shipping" class="form-control" ng-class="service.get_decimal_perm()" ng-model="data_split.ship_quantity">
-         </div>
-         <div class="col-md-2">
-           <input type="text" name="return" class="form-control" ng-class="service.get_decimal_perm()"  ng-model="data_split.return_quantity">
-         </div>
-         <div class="col-md-2">
-           <input type="text" name="damaged" class="form-control" ng-class="service.get_decimal_perm()" ng-model="data_split.damaged_quantity">
-           <input type="hidden" value="" name="id">
+         <table class="table table-stk">
+           <thead>
+             <tr>
+               <th> Order ID </th>
+               <th> SKU Code </th>
+               <th> Product Description </th>
+               <th> Shipping Quantity </th>
+               <th> Return Quantity </th>
+               <th> Damaged Quantity </th>
+             </tr>
+           </thead>
+           <tbody ng-repeat="data in showCase.model_data.data">
+             <tr ng-repeat="data_split in data">
+	       <td><input type="text" name="order_id" class="form-control" ng-model="data_split.order_id"></td>
+               <td><input type="text" name="sku_code" class="form-control" ng-model="data_split.sku_code"></td>
+               <td><input type="text" name="sku_desc" class="form-control" ng-model="data_split.sku_desc"></td>
+               <td><input type="text" name="shipping" class="form-control" ng-class="service.get_decimal_perm()" ng-model="data_split.ship_quantity"></td>
+               <td><input type="text" name="return" class="form-control" ng-class="service.get_decimal_perm()"  ng-model="data_split.return_quantity"></td>
+               <td><input type="text" name="damaged" class="form-control" ng-class="service.get_decimal_perm()" ng-model="data_split.damaged_quantity">
+           <input type="hidden" value="{{data_split.id}}" name="id">
            <input type="hidden" value="" name="track_id">
-         </div>
-       </div>
+               </td>
+             </tr>
+           </tbody>
+         </table>
        </div>
        <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
       </div>

@@ -1027,7 +1027,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
     dat = InventoryAdjustment(**data)
     dat.save()
 
-    check_and_update_stock(wmscode, user)
+    #check_and_update_stock(wmscode, user)
 
     return 'Added Successfully'
 

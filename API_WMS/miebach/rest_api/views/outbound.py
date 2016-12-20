@@ -659,6 +659,8 @@ def get_picklist_data(data_id,user_id):
             stock_id = ''
             if order.order:
                 wms_code = order.order.sku.wms_code
+                if order.order_type == 'combo' and order.sku_code:
+                    wms_code = order.sku_code
                 invoice_amount = order.order.invoice_amount
                 order_id = order.order.order_id
                 sku_code = order.order.sku_code
@@ -688,6 +690,7 @@ def get_picklist_data(data_id,user_id):
                 sequence = stock_id.location.pick_sequence
                 location = stock_id.location.location
                 image = stock_id.sku.image_url
+                wms_code = stock_id.sku.wms_code
 
             data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'order_id': order.order_id, 'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': invoice_amount, 'price': invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'order_no': order_id,'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title})
         data = sorted(data, key=itemgetter('sequence'))
@@ -730,8 +733,8 @@ def confirm_no_stock(picklist, p_quantity=0):
     if 'batch_open' in picklist.status:
         pi_status = 'batch_picked'
 
-    if picklist.order:
-        check_and_update_order(picklist.order.user, picklist.order.original_order_id)
+    #if picklist.order:
+    #    check_and_update_order(picklist.order.user, picklist.order.original_order_id)
     if float(picklist.reserved_quantity) <= 0:
         picklist.status = pi_status
     picklist.save()
@@ -967,8 +970,8 @@ def picklist_confirmation(request, user=''):
                     else:
                         picklist.status = 'picked'
 
-                    if picklist.order:
-                        check_and_update_order(user.id, picklist.order.original_order_id) 
+                    #if picklist.order:
+                    #    check_and_update_order(user.id, picklist.order.original_order_id) 
                     all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
 
                     misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type='dispatch', misc_value='true')
@@ -1552,7 +1555,7 @@ def insert_order_data(request, user=''):
             order_detail = OrderDetail(**order_data)
             order_detail.save()
 
-            if order_summary_dict['vat'] or order_summary_dict['tax_value'] or order_summary_dict['order_taken_by']:
+            if order_summary_dict.get('vat', '') or order_summary_dict.get('tax_value', ) or order_summary_dict.get('order_taken_by', ''):
                 order_summary_dict['order_id'] = order_detail.id
                 order_summary = CustomerOrderSummary(**order_summary_dict)
                 order_summary.save()

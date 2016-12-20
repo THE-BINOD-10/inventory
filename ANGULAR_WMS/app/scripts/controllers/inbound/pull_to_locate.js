@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ReturnsPutawayCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('PullToLocateCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state , $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
     var vm = this;
@@ -14,7 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state , $compile, Session, DTO
        .withOption('ajax', {
               url: Session.url+'results_data/',
               type: 'POST',
-              data: {'datatable': 'ReturnsPutaway'},
+              data: {'datatable': 'PullToLocate'},
               xhrFields: {
                 withCredentials: true
               }
@@ -45,8 +45,7 @@ function ServerSideProcessingCtrl($scope, $http, $state , $compile, Session, DTO
                 vm.selected[meta.row] = vm.selectAll;
                 return vm.service.frontHtml + meta.row + vm.service.endHtml +'<input type="hidden" name="id" value="'+full.DT_RowAttr['data-id']+'">';
             }).notSortable(),
-        DTColumnBuilder.newColumn('Return ID').withTitle('Return ID'),
-        DTColumnBuilder.newColumn('Return Date').withTitle('Return Date'),
+        DTColumnBuilder.newColumn('Order ID').withTitle('Order ID'),
         DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
@@ -79,7 +78,7 @@ function ServerSideProcessingCtrl($scope, $http, $state , $compile, Session, DTO
     for(var i=0; i < data.length; i++) {
       elem = elem+$.param(data[i])+"&";
     }
-    $http.get(Session.url+'returns_putaway_data/?'+elem.slice(0,-1),{withCredential: true}).success(function(data){
+    $http.get(Session.url+'cancelled_putaway_data/?'+elem.slice(0,-1),{withCredential: true}).success(function(data){
       console.log(data);
       colFilters.showNoty(data);
       reloadData();

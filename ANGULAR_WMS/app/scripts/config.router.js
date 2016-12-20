@@ -461,10 +461,14 @@ var app = angular.module('urbanApp')
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
-                  'scripts/controllers/inbound/returns_putaway.js'
+                  'scripts/controllers/inbound/po_putaway.js'
                 ]).then( function() {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/inbound/po_putaway.js'
+                    'scripts/controllers/inbound/returns_putaway.js'
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/pull_to_locate.js'
                   ])
                 });
               }]

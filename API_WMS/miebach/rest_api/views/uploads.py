@@ -145,7 +145,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         if not order_mapping:
             break
         order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
-        order_summary_dict = {}
+        order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
         if order_mapping.get('marketplace', ''):
             order_data['marketplace'] = order_mapping['marketplace']
         if order_mapping.get('status', '') and get_cell_data(row_idx, order_mapping['status'], reader, file_type) != 'New':
@@ -181,8 +181,9 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     rate = float(get_cell_data(row_idx, value[1], reader, file_type))
                     tax_value = amount - rate
                     vat = "%.2f" % (float(tax_value * 100) / rate)
-                    order_summary_dict = {'discount': 0, 'creation_date': datetime.datetime.now(), 'issue_type': 'order', 'vat': vat,
-                                          'tax_value': "%.2f" % tax_value}
+                    order_summary_dict['issue_type'] = 'order'
+                    order_summary_dict['vat'] = vat
+                    order_summary_dict['tax_value'] = "%.2f" % tax_value
             elif key == 'address':
                 if isinstance(value, (list)):
                     cell_data = ''
@@ -211,6 +212,10 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 pin_code = get_cell_data(row_idx, value, reader, file_type)
                 if isinstance(pin_code, float) or isinstance(pin_code, int):
                     order_data[key] = int(pin_code)
+            elif key == 'mrp':
+                order_summary_dict['mrp'] = get_cell_data(row_idx, value, reader, file_type)
+            elif key == 'discount' and get_cell_data(row_idx, value, reader, file_type):
+                order_summary_dict['discount'] = get_cell_data(row_idx, value, reader, file_type)
             else:
                 order_data[key] = get_cell_data(row_idx, value, reader, file_type)
         order_data['user'] = user.id
@@ -254,7 +259,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             order_detail.save()
             if order_data['sku_id'] not in sku_ids:
                 sku_ids.append(order_data['sku_id'])
-            if order_summary_dict:
+            if order_summary_dict.get('vat', '') or order_summary_dict.get('tax_value', '') or order_summary_dict.get('mrp', '') or\
+                                                                                               order_summary_dict.get('discount', ''):
                 order_summary_dict['order_id'] = order_detail.id
                 order_summary = CustomerOrderSummary(**order_summary_dict)
                 order_summary.save()

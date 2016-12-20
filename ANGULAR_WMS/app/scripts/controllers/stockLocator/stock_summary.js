@@ -79,5 +79,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
       colFilters.download_excel()
     }
+    vm.easyops_excel = function() {
+      angular.copy(vm.dtColumns,colFilters.headers);
+      angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
+      colFilters.search.datatable = "StockSummaryEasyops";
+      colFilters.download_excel();
+    }
   }
 

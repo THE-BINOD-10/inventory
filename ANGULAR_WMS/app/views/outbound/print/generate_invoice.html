@@ -73,6 +73,9 @@
         <th>Description</th>
         <th>Quantity</th>
         <th>Unit Price</th>
+        <th ng-if="user.userName == 'adam_clothing'">MRP Price(INR)</th>
+        <th>Discount(%)</th>
+        <th>VAT Percentage(%)</th>
         <th>Tax</th>
         <th>Amount</th>
       </tr>
@@ -91,6 +94,9 @@
         <td>
           {{record.unit_price}}
         </td>
+        <td ng-if="user.userName == 'adam_clothing'">{{record.mrp_price}}</td>
+        <td>{{racord.discount}}</td>
+        <td>{{record.vat}}</td>
         <td>
           {{record.tax}}
         </td>
@@ -113,12 +119,21 @@
           <strong>Buyer's VAT TIN:</strong>{{showCase.pdf_data.customer_details[0].tin_number}}<br>
         </address>
         <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
-          <strong>Company's PAN:</strong>ABEFS4899J<br>
+          <strong>Company's PAN:</strong>ABEFS4899J<br>i
+        </address>
+        <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
+          <strong>VAT TIN NO:</strong>27621087850-V<br>
+        </address>
+        <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
+          <strong>CST TIN NO:</strong>27621087850-C<br>
         </address>
       </div>
       <div class="col-xs-6 text-right">
         <address class="no-margin" style="margin:0px;padding:0px">
           <strong>Total Quantity:</strong>{{showCase.pdf_data.total_quantity}}<br>
+        </address>
+        <address class="no-margin" style="margin:0px;padding:0px">
+          <strong>Total Tax:</strong>{{showCase.pdf_data.total_tax}}<br>
         </address>
         <address class="no-margin" style="margin:0px;padding:0px">
           <strong>Total Amount:</strong>{{showCase.pdf_data.total_invoice}}<br>

@@ -23,6 +23,17 @@
       </div>
     </div>
   </tab>
+  <tab heading="Pull To Locate">
+    <div class="panel" ng-controller="PullToLocateCtrl as showCase">
+      <div class="panel-header">
+        <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.print_enable">Download Excel</button>
+      </div>
+      <div ng-include="'views/common/no-onclick-table.html'"></div>
+      <div class="panel-footer">
+        <button ng-disabled="showCase.bt_disable" type="submit" class="btn btn-danger pull-right" ng-click="showCase.confirm_putaway()">Confirm Putaway</button>
+      </div>
+    </div>
+  </tab>
 </tabset>
   </div>
 </div>

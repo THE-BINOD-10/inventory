@@ -91,3 +91,42 @@ def update_orders(orders, user='', company_name=''):
     except:
         traceback.print_exc()
 
+def update_shipped(orders, user='', company_name=''):
+    order_mapping = eval(LOAD_CONFIG.get(company_name, 'shipped_mapping_dict', ''))
+    NOW = datetime.datetime.now()
+    try:
+        orders = orders.get(order_mapping['items'], [])
+        order_details = {}
+        for ind, orders in enumerate(orders):
+            order_id = ''.join(re.findall('\d+', orders[order_mapping['order_id']]))
+            order_code = ''.join(re.findall('\D+', orders[order_mapping['order_id']]))
+            filter_params = {'order__user': user.id, 'order__order_id': order_id}
+            if order_code:
+                filter_params['order__order_code'] = order_code
+            order_items = [orders]
+            if order_mapping.get('order_items', ''):
+                order_items = eval(order_mapping['order_items'])
+
+            for order in order_items:
+                sku_code = eval(order_mapping['sku'])
+                sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+                if sku_master:
+                    filter_params['order__sku_id'] = sku_master[0].id
+
+                picklists = Picklist.objects.filter(**filter_params).exclude(status='dispatched')
+                for picklist in picklists:
+                    picklist.status = 'dispatched'
+                    picklist.save()
+    except:
+        traceback.print_exc()
+
+def update_returns(orders, user='', company_name=''):
+    order_mapping = eval(LOAD_CONFIG.get(company_name, 'returned_mapping_dict', ''))
+    NOW = datetime.datetime.now()
+    try:
+        orders = orders.get(order_mapping['items'], [])
+        order_details = {}
+        for ind, orders in enumerate(orders):
+            print orders
+    except:
+        traceback.print_exc()

@@ -721,7 +721,7 @@ def rm_picklist_confirmation(request, user=''):
                 location = LocationMaster.objects.filter(location=val['location'], zone__zone=val['zone'], zone__user=user.id)
                 if not location:
                     return HttpResponse("Invalid Location and Zone combination")
-                stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': request.user.id}
+                stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': user.id}
                 stock_detail = StockDetail.objects.filter(**stock_dict)
                 for stock in stock_detail:
                     if picking_count == 0:
@@ -791,7 +791,7 @@ def rm_picklist_confirmation(request, user=''):
                         insert_rwo_po(rw_order, request, user)
 
             if get_misc_value('auto_po_switch', user.id) == 'true' and auto_skus:
-                auto_po(list(set(auto_skus)),request.user.id)
+                auto_po(list(set(auto_skus)) ,user.id)
 
     return HttpResponse('Picklist Confirmed')
 
@@ -1620,6 +1620,7 @@ def confirm_back_order(request, user=''):
     status = ''
     total = 0
     total_qty = 0
+    customization = ''
     data_dict = dict(request.POST.iterlists())
     for i in range(len(data_dict['wms_code'])):
         if not (data_dict['quantity'][i] and data_dict['supplier_id'][i]):
@@ -1672,8 +1673,13 @@ def confirm_back_order(request, user=''):
             purchase_order = PurchaseOrder(**purchase_order_dict)
             purchase_order.save()
 
+            sku_extra_data = ''
             if val[5]:
                 create_order_mapping(user, purchase_order.id, val[5], mapping_type='PO')
+                sku_extra_data, product_images, order_ids = get_order_json_data(user, mapping_id=purchase_order.id, mapping_type='PO',
+                                                                                sku_id=sku_master.id, order_ids=[])
+                if sku_extra_data:
+                    customization = 'true'
 
             # Send Mail code
             supplier_code = ''
@@ -1706,7 +1712,7 @@ def confirm_back_order(request, user=''):
             table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Unit Price', 'Amount', 'Remarks')
 
             po_data.append(( wms_code, supplier_code, purchase_order.open_po.sku.sku_desc, purchase_order.open_po.order_quantity,
-                             purchase_order.open_po.price, amount, purchase_order.open_po.remarks))
+                             purchase_order.open_po.price, amount, purchase_order.open_po.remarks, sku_extra_data))
 
             profile = UserProfile.objects.get(user=request.user.id)
             data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
@@ -1714,7 +1720,7 @@ def confirm_back_order(request, user=''):
                          'user_name': request.user.username, 'total_qty': total_qty, 'company_name': profile.company_name,
                          'location': profile.location, 'w_address': profile.address,
                          'company_name': profile.company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
-                         'vendor_telephone': vendor_telephone}
+                         'vendor_telephone': vendor_telephone, 'customization': customization}
 
         t = loader.get_template('templates/toggle/po_download.html')
         c = Context(data_dict)

@@ -19,6 +19,14 @@ def get_count(data, item):
     return data.get(item, 0)
 
 @register.filter
+def get_variable_type(item):
+    if isinstance(item, list):
+        item_type = 'list'
+    else:
+        item_type = 'string'
+    return item_type
+
+@register.filter
 def is_quality_check(user):
     return get_permission(user, 'add_qualitycheck')
 

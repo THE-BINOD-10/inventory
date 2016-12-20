@@ -730,8 +730,8 @@ def confirm_no_stock(picklist, p_quantity=0):
     if 'batch_open' in picklist.status:
         pi_status = 'batch_picked'
 
-    #if picklist.order:
-    #    check_and_update_order(picklist.order.user, picklist.order.original_order_id)
+    if picklist.order:
+        check_and_update_order(picklist.order.user, picklist.order.original_order_id)
     if float(picklist.reserved_quantity) <= 0:
         picklist.status = pi_status
     picklist.save()
@@ -967,8 +967,8 @@ def picklist_confirmation(request, user=''):
                     else:
                         picklist.status = 'picked'
 
-                    #if picklist.order:
-                    #    check_and_update_order(user.id, picklist.order.original_order_id) 
+                    if picklist.order:
+                        check_and_update_order(user.id, picklist.order.original_order_id) 
                     all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
 
                     misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type='dispatch', misc_value='true')
@@ -1472,6 +1472,7 @@ def insert_order_data(request, user=''):
         return HttpResponse(valid_status)
     for i in range(0, len(myDict['sku_id'])):
         order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
+        order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
         order_data['order_id'] = order_id
         order_data['order_code'] = 'MN'
         order_data['marketplace'] = 'Offline'
@@ -1525,8 +1526,11 @@ def insert_order_data(request, user=''):
                     amount = float(invoice)
                     tax_value = (amount/100) * float(value)
                     vat = value
-                    order_summary_dict = {'discount': 0, 'creation_date': datetime.datetime.now(), 'issue_type': 'order', 'vat': vat,
-                                          'tax_value': "%.2f" % tax_value}
+                    order_summary_dict['issue_type'] = 'order'
+                    order_summary_dict['vat'] = vat
+                    order_summary_dict['tax_value'] = "%.2f" % tax_value
+            elif key == 'order_taken_by':
+                order_summary_dict['order_taken_by'] = value
             else:
                 order_data[key] = value
 
@@ -1548,7 +1552,7 @@ def insert_order_data(request, user=''):
             order_detail = OrderDetail(**order_data)
             order_detail.save()
 
-            if order_summary_dict:
+            if order_summary_dict['vat'] or order_summary_dict['tax_value'] or order_summary_dict['order_taken_by']:
                 order_summary_dict['order_id'] = order_detail.id
                 order_summary = CustomerOrderSummary(**order_summary_dict)
                 order_summary.save()
@@ -2337,3 +2341,49 @@ def get_stock_location_quantity(request, user=''):
         diff = 0
 
     return HttpResponse(json.dumps({'stock': diff, 'message': 'Success'}))
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def payment_tracker(request, user=''):
+    response = {}
+    total_data = OrderDetail.objects.filter(user = user.id, marketplace = 'offline')
+    total_customer_data = total_data.values('customer_id', 'customer_name', 'marketplace').distinct()
+    customer_data = []
+    for data in total_customer_data:
+        sum_data = total_data.filter(customer_id=data['customer_id'], customer_name=data['customer_name']).aggregate(Sum('payment_received'),Sum('invoice_amount'))
+        customer_data.append({'channel': data['marketplace'] ,'customer_id': data['customer_id'], 
+                              'customer_name': data['customer_name'], 'payment_received': sum_data['payment_received__sum'], 
+                              'payment_receivable': sum_data['invoice_amount__sum']-sum_data['payment_received__sum'],
+                              'invoice_amount': sum_data['invoice_amount__sum']})
+    response["data"] = customer_data
+    return HttpResponse(json.dumps(response))
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_customer_payment_tracker(request, user=''):
+    response = {}
+    customer_id = request.GET['id']
+    customer_name = request.GET['name']
+    channel = request.GET['channel']
+    total_data = OrderDetail.objects.filter(user = user.id, customer_id = customer_id, customer_name = customer_name, marketplace = channel)
+    orders = total_data.values('order_id', 'payment_mode').distinct()
+    order_data = [];
+    for data in orders:
+        sum_data = total_data.filter(order_id = data['order_id']).aggregate(Sum('invoice_amount'), Sum('payment_received'))
+        order_data.append({"order_id": data['order_id'], 'account': data['payment_mode'], "inv_amount": sum_data['invoice_amount__sum'],
+                           "receivable": sum_data['invoice_amount__sum']-sum_data['payment_received__sum'], 
+                           "received": sum_data['payment_received__sum']})
+    response["data"] = order_data
+    return HttpResponse(json.dumps(response))
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_customer_master_id(request, user=''):
+    customer_id = 1
+    customer_master = CustomerMaster.objects.filter(user=user.id).values_list('customer_id', flat=True).order_by('-customer_id')
+    if customer_master:
+        customer_id = customer_master[0] + 1
+    return HttpResponse(json.dumps({'customer_id': customer_id}))

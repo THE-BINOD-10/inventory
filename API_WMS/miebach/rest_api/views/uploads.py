@@ -214,8 +214,10 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_data[key] = int(pin_code)
             elif key == 'mrp':
                 order_summary_dict['mrp'] = get_cell_data(row_idx, value, reader, file_type)
-            elif key == 'discount' and get_cell_data(row_idx, value, reader, file_type):
-                order_summary_dict['discount'] = get_cell_data(row_idx, value, reader, file_type)
+            elif key == 'discount':
+                discount = get_cell_data(row_idx, value, reader, file_type)
+                if discount:
+                    order_summary_dict['discount'] = get_cell_data(row_idx, value, reader, file_type)
             else:
                 order_data[key] = get_cell_data(row_idx, value, reader, file_type)
         order_data['user'] = user.id

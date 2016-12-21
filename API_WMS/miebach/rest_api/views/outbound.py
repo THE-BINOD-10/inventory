@@ -871,6 +871,7 @@ def picklist_confirmation(request, user=''):
                 data[picklist_id].append({})
             data[picklist_id][index][name] = val
 
+    data = OrderedDict(sorted(data.items(), reverse=True))
     error_string = ''
     picklist_number = request.POST['picklist_number']
     single_order = request.POST.get('single_order', '')
@@ -883,16 +884,23 @@ def picklist_confirmation(request, user=''):
     all_pick_locations = PicklistLocation.objects.filter(picklist__picklist_number=picklist_number, status=1, picklist_id__in=all_pick_ids)
 
     for key, value in data.iteritems():
-        if key in ('name', 'number', 'order'):
+        if key in ('name', 'number', 'order', 'sku'):
             continue
+        picklist_batch = ''
         picklist_order_id = value[0]['order_id']
         if picklist_order_id:
             picklist = all_picklists.get(order_id=picklist_order_id)
+        elif not key:
+            scan_wms_codes = map(lambda d: d['wms_code'], value)
+            picklist_batch = picks_all.filter(Q(stock__sku__wms_code__in=scan_wms_codes) | Q(order__sku__wms_code=scan_wms_codes),
+                                        reserved_quantity__gt=0, status__icontains='open')
+        
         else:
             picklist = picks_all.get(id=key)
         count = 0
 
-        picklist_batch = get_picklist_batch(picklist, value, all_picklists)
+        if not picklist_batch:
+            picklist_batch = get_picklist_batch(picklist, value, all_picklists)
         for i in range(0,len(value)):
             if value[i]['picked_quantity']:
                 count += float(value[i]['picked_quantity'])
@@ -1071,7 +1079,10 @@ def get_picked_data(data_id, user, marketplace=''):
     data = []
     for order in picklist_orders:
         if not order.stock:
-            data.append({'wms_code': order.order.sku.wms_code, 'zone': 'NO STOCK', 'location': 'NO STOCK', 'reserved_quantity': order.reserved_quantity, 'picked_quantity': order.picked_quantity, 'stock_id': 0, 'picklist_number': data_id, 'id': order.id, 'order_id': order.order.order_id, 'image': '', 'title': order.order.title, 'order_detail_id': order.order_id})
+            wms_code = order.order.sku.wms_code
+            if order.order_type == 'combo' and order.sku_code:
+                wms_code = order.sku_code
+            data.append({'wms_code': wms_code, 'zone': 'NO STOCK', 'location': 'NO STOCK', 'reserved_quantity': order.reserved_quantity, 'picked_quantity': order.picked_quantity, 'stock_id': 0, 'picklist_number': data_id, 'id': order.id, 'order_id': order.order.order_id, 'image': '', 'title': order.order.title, 'order_detail_id': order.order_id})
             continue
 
         picklist_location = PicklistLocation.objects.filter(Q(picklist__order__sku__user=user) | Q(stock__sku__user=user), picklist_id=order.id)
@@ -2119,12 +2130,16 @@ def get_sku_variants(request, user=''):
     customer_id = request.GET.get('customer_id', '')
     sku_code = request.GET.get('sku_code', '')
     is_catalog = request.GET.get('is_catalog', '')
+    sale_through = request.GET.get('sale_through', '')
     if sku_class:
         filter_params['sku_class'] = sku_class
     if sku_code:
         filter_params['sku_code'] = sku_code
     if is_catalog:
         filter_params['status'] = 1
+    if sale_through:
+        filter_params['sale_through__iexact'] = sale_through
+
     sku_master = list(SKUMaster.objects.filter(**filter_params).values(*get_values).order_by('sequence'))
     sku_master = [ key for key,_ in groupby(sku_master)]
 

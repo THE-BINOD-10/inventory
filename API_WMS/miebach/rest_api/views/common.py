@@ -21,6 +21,7 @@ import csv
 import hashlib
 import os
 from generate_reports import *
+import inflect
 
 # Create your views here.
 
@@ -29,12 +30,26 @@ def process_date(value):
     value = datetime.date(int(value[2]), int(value[0]), int(value[1]))
     return value
 
+def number_in_words(value):
+    pr = inflect.engine()
+    value = (pr.number_to_words(int(round(value)))).capitalize()
+    return value
+
 
 def get_user_permissions(request, user):
     roles = {}
     configuration = list(MiscDetail.objects.filter(user=user.id).values('misc_type', 'misc_value'))
     config = dict(zip(map(operator.itemgetter('misc_type'), configuration), map(operator.itemgetter('misc_value'), configuration)))
     user_perms = PERMISSION_KEYS
+    print user_perms
+    permissions = Permission.objects.all()
+    user_perms = []
+    ignore_list = ['session', 'webhookdata', 'swxmapping', 'userprofile', 'useraccesstokens', 'contenttype', 'user',
+                   'permission','group','logentry']
+    for permission in permissions:
+        temp = permission.codename.split('_')[-1]
+        if not temp in user_perms and not temp in ignore_list and 'add' in permission.codename:
+            user_perms.append(permission.codename)
     for perm in user_perms:
         roles[perm] = get_permission(request.user, perm)
     roles.update(config)
@@ -346,7 +361,7 @@ def get_user_groups(start_index, stop_index, temp_data, search_term, order_term,
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data:
-        member_count = data.user_set.all().count()
+        member_count = data.user_set.all().exclude(username=user.username).count()
         group_name = (data.name).replace(user.username + ' ', '')
         temp_data['aaData'].append({'Group Name': group_name,'DT_RowClass': 'results', 'Members Count': member_count, 'DT_RowId': data.id})
 
@@ -380,7 +395,7 @@ def add_user(request, user=''):
             admin_group.save()
             user.groups.add(group)
         new_user.groups.add(group)
-        add_extra_permissions(new_user)
+        #add_extra_permissions(new_user)
         new_user.groups.add(group)
         status = 'Added Successfully'
     return HttpResponse(status)
@@ -1073,6 +1088,8 @@ def add_group_data(request, user=''):
 def add_group(request, user=''):
     selected_list = ''
     group = ''
+    permission_dict = copy.deepcopy(PERMISSION_DICT)
+    reversed_perms = OrderedDict(( ([(value, key) for key, value in permission_dict.iteritems()]) ))
     selected = request.POST.get('selected')
     if selected:
         selected_list = selected.split(',')
@@ -1085,6 +1102,7 @@ def add_group(request, user=''):
     if not group_exists and selected_list:
         group,created = Group.objects.get_or_create(name=name)
         for perm in selected_list:
+            perm = permission_dict.get(perm, '')
             permissions = Permission.objects.filter(codename__icontains=perm)
             for permission in permissions:
                 group.permissions.add(permission)
@@ -1106,10 +1124,12 @@ def get_user_data(request, user=''):
         user_groups = cur_user.groups.filter()
         if user_groups:
             for i in user_groups:
-                group_names.append(i.name)
+                i_name = (i.name).replace(user.username + ' ', '')
+                group_names.append(i_name)
         total_groups = []
         for group in groups:
-            total_groups.append(group.name)
+            group_name = (group.name).replace(user.username + ' ', '')
+            total_groups.append(group_name)
     return HttpResponse(json.dumps({'username': cur_user.username, 'first_name': cur_user.first_name, 'groups': total_groups,
                   'user_groups': group_names, 'id': cur_user.id }))
 
@@ -1123,12 +1143,13 @@ def update_user(request):
     selected = request.GET.get('perms')
     if selected:
         selected_list = selected.split(',')
+    modified_list = [request.user.username + ' ' + s for s in selected_list]
     user_groups = request.user.groups.filter()
     exclude_group = AdminGroups.objects.filter(user_id=request.user.id)
     if exclude_group:
         exclude_name = exclude_group[0].group.name
     for group in user_groups:
-        if group.name in selected_list:
+        if group.name in selected_list or group.name in modified_list:
             user.groups.add(group)
         else:
             if exclude_name:
@@ -1368,7 +1389,7 @@ def get_invoice_data(order_ids, user):
                 mrp_price = order_summary[0].mrp
                 discount = order_summary[0].discount
             else:
-                tax = "%.2f" % (float(float(dat.invoice_amount)/100) * vat)
+                tax = float(float(dat.invoice_amount)/100) * vat
 
             total_invoice += float(dat.invoice_amount)
             total_quantity += int(dat.quantity)
@@ -1383,11 +1404,12 @@ def get_invoice_data(order_ids, user):
                                             annotate(total=Sum('picked_quantity'))
                 if picklist:
                     quantity = picklist[0].total
-            unit_price = (float(dat.invoice_amount)/ float(dat.quantity)) * quantity
+            unit_price = ((float(dat.invoice_amount)/ float(dat.quantity)) * quantity) - discount - tax
             unit_price = "%.2f" % unit_price
 
             data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(dat.invoice_amount),
-                         'quantity': quantity, 'tax': tax, 'unit_price': unit_price, 'vat': vat, 'mrp_price': mrp_price, 'discount': discount})
+                         'quantity': quantity, 'tax': "%.2f" % tax, 'unit_price': unit_price, 'vat': vat, 'mrp_price': mrp_price,
+                         'discount': discount})
 
     invoice_date = get_local_date(user, invoice_date, send_date='true')
     invoice_date = invoice_date.strftime("%d %b %Y")
@@ -1396,7 +1418,7 @@ def get_invoice_data(order_ids, user):
                     'order_date': order_date, 'email': user.email, 'marketplace': marketplace,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
                     'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % total_tax, 'total_mrp': total_mrp,
-                    'invoice_no': 'TI/1116/' + order_no, 'invoice_date': invoice_date}
+                    'invoice_no': 'TI/1116/' + order_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(total_invoice)}
 
     return invoice_data
 
@@ -1407,12 +1429,15 @@ def get_sku_categories_data(request, user, request_data={}):
     sku_brand = request_data.get('brand', '')
     sku_category = request_data.get('category', '')
     is_catalog = request_data.get('is_catalog', '')
+    sale_through = request_data.get('sale_through', '')
     if sku_brand:
         filter_params['sku_brand'] = sku_brand
     if sku_category:
         filter_params['sku_category'] = sku_category
     if is_catalog:
         filter_params['status'] = 1
+    if sale_through:
+        filter_params['sale_through__iexact'] = sale_through
 
     sku_master = SKUMaster.objects.filter(**filter_params)
     categories = list(sku_master.exclude(sku_category='').filter(**filter_params).values_list('sku_category', flat=True).distinct())
@@ -1432,6 +1457,8 @@ def get_sku_catalogs_data(request, user, request_data={}):
     is_catalog = request_data.get('is_catalog', '')
     indexes = request_data.get('index', '0:20')
     is_file = request_data.get('file', '')
+    sale_through = request_data.get('sale_through', '')
+
     if not indexes:
         indexes = '0:20'
     if sku_brand:
@@ -1440,6 +1467,9 @@ def get_sku_catalogs_data(request, user, request_data={}):
         filter_params['sku_category'] = sku_category
     if is_catalog:
         filter_params['status'] = 1
+    if sale_through:
+        filter_params['sale_through__iexact'] = sale_through
+
     start, stop = indexes.split(':')
     start, stop = int(start), int(stop)
     if sku_class:

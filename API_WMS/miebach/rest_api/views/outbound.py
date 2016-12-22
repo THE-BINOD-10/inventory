@@ -649,6 +649,7 @@ def get_picklist_data(data_id,user_id):
                 batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'picked_quantity': order.reserved_quantity, 'id': order.id, 'invoice_amount': invoice, 'price': invoice * order.reserved_quantity, 'image': image, 'order_id': order.order_id, 'status': order.status, 'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
+                batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['invoice_amount'] += invoice
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)

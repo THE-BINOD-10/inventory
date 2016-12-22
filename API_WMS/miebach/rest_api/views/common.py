@@ -21,7 +21,7 @@ import csv
 import hashlib
 import os
 from generate_reports import *
-import inflect
+from num2words import num2words
 
 # Create your views here.
 
@@ -31,8 +31,7 @@ def process_date(value):
     return value
 
 def number_in_words(value):
-    pr = inflect.engine()
-    value = (pr.number_to_words(int(round(value)))).capitalize()
+    value = (num2words(int(round(value)), lang='en_IN')).capitalize()
     return value
 
 

@@ -72,7 +72,7 @@
         <th><center>SKU Code</center></th>
         <th><center>Description</center></th>
         <th><center>Qty</center></th>
-        <th ng-if="user.userName == 'adam_clothing'">MRP</center><center>(&#8377;)</center></th>
+        <th ng-if="permissions.show_mrp">MRP</center><center>(&#8377;)</center></th>
         <th><center>Unit Price</center></th>
         <th><center>Discount</center><center>(&#8377;)</center></th>
         <th><center>VAT</center><center>(%)</center></th>
@@ -91,7 +91,7 @@
         <td>
           {{record.quantity}}
         </td>
-        <td ng-if="user.userName == 'adam_clothing'">{{record.mrp_price}}</td>
+        <td ng-if="permissions.show_mrp">{{record.mrp_price}}</td>
         <td>
           {{record.unit_price}}
         </td>
@@ -104,11 +104,21 @@
           {{record.invoice_amount}}
         </td>
       </tr>
+      <tr>
+       <td colspan="2" style="text-align:left"><b>Total: &#8377;</b></td>
+       <td>{{showCase.pdf_data.total_quantity}}</td>
+       <td ng-if="permissions.show_mrp"></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td>{{showCase.pdf_data.total_tax}}</td>
+       <td>{{showCase.pdf_data.total_invoice}}</td>
+      </tr>
     </tbody>
   </table>
 </div>
 
-<div class="row mb15" style="padding: 0px 18px;">
+<!--<div class="row mb15" style="padding: 0px 18px;">
   <div class="col-xs-12">
     <div class="row">
       <div class="col-xs-6">
@@ -127,7 +137,7 @@
     </div>
   </div>
 </div>
-<hr>
+<hr>-->
 <div class="row" style="padding: 0px 18px;">
   <div class="col-xs-12">
     <b>Amount in words: &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{showCase.pdf_data.price_in_words}}</span></b>

@@ -7,7 +7,7 @@
       <tab heading="Raise Purchase Order">
         <div ng-include="'views/inbound/raise_po/raise_po.html'"></div>
       </tab>
-      <tab heading="Raise Stock Transfer" ng-if="permissions.multi_warehouse">
+      <tab heading="Raise Stock Transfer" ng-if="permissions.multi_warehouse || permissions.add_openst">
         <div ng-include="'views/inbound/raise_po/raise_stock_transfer.html'"></div>
       </tab>
     </tabset>

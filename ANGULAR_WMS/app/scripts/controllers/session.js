@@ -20,7 +20,7 @@ function sessionCtrl($rootScope ,$scope, $state, $http, Auth, AUTH_EVENTS, Sessi
                   $scope.password = "";
                 } else {
                   console.log(Session);
-                  if(Session.roles.permissions["setup_status"] == "true")  {
+                  if(Session.roles.permissions["setup_status"])  {
 
                     $state.go('app.Register');
                   } else {

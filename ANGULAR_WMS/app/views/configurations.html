@@ -67,6 +67,21 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-rupee fa-15px" style="font-size: 18px;"></i></a>
+        </div>
+        <div class="col-md-3"><strong> Show MRP In Invoice </strong> </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.show_mrp" ng-change="showCase.switches(showCase.model_data.show_mrp,17)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-file-image-o fa-15px"></i></a>
         </div>
         <div class="col-md-3"> <strong> Show Images in Picklist </strong> </div>

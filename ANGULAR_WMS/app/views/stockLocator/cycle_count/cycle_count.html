@@ -10,7 +10,7 @@
       <tab heading="Confirm Cycle Count" ng-controller="ConfirmCycleCountCtrl as showCase">
         <div ng-include="'views/stockLocator/cycle_count/confirm_cycle_count.html'"></div>
       </tab>
-      <tab ng-if="permissions.is_superuser == 'true'" heading="Reconfirm Cycle Count" ng-controller="ReconfirmCycleCountCtrl as showCase">
+      <tab ng-if="permissions.is_superuser" heading="Reconfirm Cycle Count" ng-controller="ReconfirmCycleCountCtrl as showCase">
         <div ng-include="'views/stockLocator/cycle_count/reconfirm_cycle_count.html'"></div>
       </tab>
     </tabset>

@@ -49,7 +49,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
    vm.suppliers = {};
    vm.service.apiCall('get_supplier_list/').then(function(data){
       if(data.message) {
-        vm.suppliers = datadata.suppliers;
+        vm.suppliers = data.data.suppliers;
       }
    })
 

@@ -45,7 +45,7 @@
           </div>
         </div>
       </tab>
-      <tab heading="Stock Transfer Order" ng-if="permissions.multi_warehouse">
+      <tab heading="Stock Transfer Order" ng-if="permissions.multi_warehouse || permissions.add_stocktransfer">
         <div class="panel" ng-controller="StockTransferOrders as showCase">
           <div class="panel-header">
             <!--<button type="button" class="btn btn-success pull-right" style="margin-left:10px;" ng-click="showCase.add_stock_transfer()">Create Stock Transfer</button>-->

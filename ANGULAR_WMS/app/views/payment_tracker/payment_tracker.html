@@ -4,32 +4,100 @@
   </div>
   <div class="layout-body">
     <div class="panel">
-      <div class="panel-body tracking mr10 ml10">
+      <div class="panel-body mr10 ml10 tracking">
         <div class="row">
+          <div class="col-md-3 col-sm-3 col-xs-3 pull-left hide">
+            <button type="button" class="btn btn-success" ng-click="showCase.open_order_update()">Update Order</button>
+          </div>
           <div class="col-md-2 col-sm-3 col-xs-6 pull-right">
             <select class="form-control" name="search" ng-model="showCase.model_data.search" ng-change="showCase.get_payment_tracker_data()">
               <option ng-repeat="data in showCase.model_data.filters" value="{{data}}">{{data}}</option>
             </select>
           </div>
         </div>
-        <div class="row">
+        <div class="row" style="margin: 10px 5px 0px;">
           <div class="col-md-1 col-sm-6 col-xs-6">
-            <h4>Channel</h4>
+            <h4 style="margin-top:0px;">Channel</h4>
           </div>
           <div class="col-md-2 col-sm-6 col-xs-6">
-            <h4>Customer Name</h4>
+            <h4 style="margin-top:0px;">Customer Name</h4>
           </div>
           <div class="col-md-3 col-sm-6 col-xs-6">
-            <h4>Invoice Amount(INR)</h4>
+            <h4 class="pull-left" style="margin-top:0px;">Invoice Amount</h4>
+            <span style="font-size: 14px;margin-left: 10px;" class="label label-danger pull-left">Rs{{showCase.payment_data.total_invoice_amount}}</span>
           </div>
           <div class="col-md-3 col-sm-6 col-xs-6">
-            <h4>Payment Received(INR)</h4>
+            <h4 class="pull-left" style="margin-top:0px;">Payment Received</h4>
+            <span style="font-size: 14px;margin-left: 10px;" class="label label-success pull-left">Rs{{showCase.payment_data.total_payment_receivable}}</span>
           </div>
           <div class="col-md-3 col-sm-6 col-xs-6">
-            <h4>Payment Receivable(INR)</h4>
+            <h4 class="pull-left" style="margin-top:0px;">Payment Receivable</h4>
+            <span style="font-size: 14px;margin-left: 10px;" class="label label-warning pull-left">Rs{{showCase.payment_data.total_payment_receivable}}</span>
           </div>
         </div>
-        <accordion close-others="oneAtATime">
+        <accordion close-others="oneAtATime" class="accordion">
+          <accordion-group is-open="status.open" ng-repeat="payment in showCase.payment_data.payments">
+            <accordion-heading>
+              <div class="row" ng-click="showCase.get_customer_orders(payment)">
+                <div class="col-md-1 col-sm-6 col-xs-6">
+                  <b>{{payment.channel}}</b>
+                </div>
+                <div class="col-md-2 col-sm-5 col-xs-5">
+                  <b>{{payment.customer_name}}</b>
+                </div>
+                <div class="col-md-3 col-sm-6 col-xs-6">
+                  <b>{{payment.invoice_amount}}</b>
+                </div>
+                <div class="col-md-3 col-sm-6 col-xs-6">
+                  <b>{{payment.payment_received}}</b>
+                </div>
+                <div class="col-md-3 col-sm-6 col-xs-6">
+                  <b>{{payment.payment_receivable}}</b>
+                  <i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': status.open, 'glyphicon-chevron-right': !status.open}"></i>
+                </div>
+                <div class="col-md-1 col-sm-1 col-xs-1 hide">
+                </div>
+              </div>
+              <!--I can have markup, too! <i class="pull-right fa" ng-class="{'fa-angle-down': status.open, 'fa-angle-right': !status.open}"></i>-->
+            </accordion-heading>
+            <!--This is just some content to illustrate fancy headings.-->
+            <div class="row">
+              <div class="col-md-12 col-sm-12 col-xs-12">
+                <table class="table table-stk" style="margin-bottom: 0px;background: #f0f0f0">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Invoice Amount</th>
+                      <th>Received</th>
+                      <th>Receivable</th>
+                      <th>Order Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat="data in payment.data">
+                      <td>{{data.display_order}}</td>
+                      <td>{{data.inv_amount}}</td>
+                      <td>{{data.received}}</td>
+                      <td>{{data.receivable}}</td>
+                      <td>{{data.order_status}}</td>
+                      <td class="order-edit">
+                        <div class="order-update">
+                          <span style="color: #2ECC71;text-decoration: underline;cursor: pointer;" ng-click="showCase.order_update($event)">Update</span>
+                        </div>
+                        <div style="width: 200px;" class="order-save hide">
+                          <input type="text" style="width: 100px !important;" class="form-control pull-left" placeholder="Amount" decimal-number ng-model="data.amount" ng-change="showCase.change_amount(data)">
+                          <button style="width: 60px;margin-left: 10px;" type="button" class="btn btn-success pull-left" ng-click="showCase.order_save($event, $index, $parent.$index, data, payment)">Save</button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </accordion-group>
+        </accordion>
+        <!--<accordion close-others="oneAtATime">
           <accordion-group ng-repeat="payment in showCase.payment_data.payments" is-open="status.isFirstOpen">
             <accordion-heading>
               <div class="row" ng-click="showCase.get_customer_orders(payment)">
@@ -55,7 +123,7 @@
             </accordion-heading>
             <div class="row">
               <div class="col-md-12 col-sm-12 col-xs-12">
-                <table class="table table-stk">
+                <table class="table table-stk" style="margin-bottom: 0px;">
                   <thead>
                     <tr>
                       <th>Order ID</th>
@@ -63,22 +131,33 @@
                       <th>Received</th>
                       <th>Receivable</th>
                       <th>Order Status</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr ng-repeat="data in payment.data">
-                      <td>{{data.order_id}}</td>
+                      <td>{{data.display_order}}</td>
                       <td>{{data.inv_amount}}</td>
                       <td>{{data.received}}</td>
                       <td>{{data.receivable}}</td>
                       <td>{{data.order_status}}</td>
+                      <td class="order-edit">
+                        <div class="order-update">
+                          <span style="color: #2ECC71;text-decoration: underline;cursor: pointer;" ng-click="showCase.order_update($event)">Update</span>
+                        </div>
+                        <div style="width: 200px;" class="order-save hide">
+                          <input type="text" style="width: 100px !important;" class="form-control pull-left" placeholder="Amount" decimal-number ng-model="data.amount" ng-change="showCase.change_amount(data)">
+                          <button style="width: 60px;margin-left: 10px;" type="button" class="btn btn-success pull-left" ng-click="showCase.order_save($event, $index, $parent.$index, data, payment)">Save</button>
+                        </div>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             </div>
           </accordion-group>
-        </accordion>
+        </accordion>-->
+        <div ui-view></div>
       </div>
     </div>
   </div>

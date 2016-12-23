@@ -48,7 +48,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       colFilters.download_excel()
     }
 
-    if (vm.permissions.pallet_switch == "true") {
+    if (vm.permissions.pallet_switch) {
       vm.dtColumns.push(DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code'))
     }
 

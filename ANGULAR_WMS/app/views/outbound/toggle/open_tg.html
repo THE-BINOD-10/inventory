@@ -20,22 +20,20 @@
                 <input type="hidden" value="{{showCase.model_data.single_order}}" name="single_order">
               </div>
             </div>
-            <div class="col-md-3" ng-if="showCase.permissions.use_imei && showCase.model_data.order_status == 'batch_open'">
+            <div class="col-md-3" ng-if="showCase.permissions.use_imei">
               <div class="form-group">
                 <label class="control-label">Scan Location</label>
                 <textarea rows="1" class="form-control" cols="27" ng-model="showCase.model_data.scan_location" ng-keydown="showCase.check_location($event, showCase.model_data.scan_location)" attr-name="location"></textarea>
               </div>
             </div>
-            <div class="col-md-3" ng-if="showCase.permissions.use_imei && showCase.model_data.order_status == 'batch_open'">
+            <div class="col-md-3" ng-if="showCase.permissions.use_imei">
               <div class="form-group">
                 <label class="control-label">Scan SKU</label>
                 <textarea rows="1" class="form-control" cols="27" ng-model="showCase.model_data.scan_sku" ng-keydown="showCase.check_sku($event, showCase.model_data.scan_sku)" attr-name="sku"></textarea>
               </div>
             </div>
-            <div class="col-md-3" ng-if="showCase.permissions.use_imei && showCase.model_data.order_status == 'batch_open'">
-              <p>Suggested Location: {{showCase.sug_loc}}</p>
-              <p>Suggested SKU: {{showCase.sug_sku}}</p>
-              <!--<p>Suggested SKU: {{showCase.scan_data.suggested_sku[showCase.scan_data.suggest_sku]}}</p>-->
+            <div class="col-md-3" ng-if="showCase.permissions.use_imei">
+              <p ng-if="showCase.sug_sku">Suggested SKU: {{showCase.sug_sku}}</p>
             </div>
           </div>
           <div class="row">
@@ -67,7 +65,8 @@
                  <input type="hidden" name="stock_id_{{data.id}}" value="{{data.stock_id}}">
                  <input type="hidden" name="orig_loc_{{data.id}}" value="{{record.orig_location}}">
                  <input type="hidden" name="orig_wms_{{data.id}}" value="{{data.wms_code}}">
-                 <input type="hidden" name="picklist_number" value="{{data.picklist_number}}">
+                 <input type="hidden" name="picklist_number" value="{{showCase.model_data.data[0].picklist_number}}">
+                 <input type="hidden" name="scan_sku" value="{{record.new}}">
                  <td ng-if="showCase.permissions.show_image"><img ng-src="{{showCase.service.check_image_url(data.image)}}" style="width: 30px;height: 50px;padding-bottom: 5px;"></td>
                  <td>
                    <input name="wms_code_{{data.id}}" value="{{data.wms_code}}"  class="form-control" type="hidden" readonly>
@@ -85,9 +84,9 @@
                  <td><input name="location_{{data.id}}" ng-model="record.location" class="form-control" type="text"></td>
                  <td ng-if="showCase.permissions.pallet_switch"><input ng-model="data.pallet_number" class="form-control" type="text" readonly></td>
                  <td><input ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>
-                 <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" ng-change="showCase.cal_quantity(record, data);showCase.get_all_locations()" class="form-control" type="text" ng-class="service.get_decimal_perm()"></td>
+                 <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" ng-change="showCase.count_sku_quantity();showCase.cal_quantity(record, data);" class="form-control" type="text" ng-class="service.get_decimal_perm()"></td>
                  <td ng-if="showCase.permissions.use_imei"><textarea class="form-control" name="imei_{{data.id}}" rows="1" id="scan_imei" ng-model="record.scan" ng-keydown="showCase.serial_scan($event, record.scan, data, record)"></textarea></td>
-                 <td style="width: 20px;padding-left: 10px;"><i ng-click="showCase.update_data($index, data, $last);showCase.get_all_locations()" ng-class="showCase.isLast($last)"></i></td>
+                 <td style="width: 20px;padding-left: 10px;" ng-if="!(record.new)"><i ng-click="showCase.update_data($index, data, $last);" ng-class="showCase.isLast($last)"></i></td>
                </tr>
              </tbody>
            </table>

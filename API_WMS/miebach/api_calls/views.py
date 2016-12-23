@@ -35,7 +35,6 @@ def decide_and_return_response(request, **kwargs):
     return data
 
 def scroll_data(request, obj_lists, limit=''):
-    print limit
     if not obj_lists: return {}
     items, page_num = 10, 1
     if limit:
@@ -87,6 +86,7 @@ def authenticate_user(request):
         if session_key:
             data['status'] = 'success'
             data['session_key'] = session_key
+            data['username'] = user.username
 
     return return_response(data)
 

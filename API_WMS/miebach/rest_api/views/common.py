@@ -40,7 +40,6 @@ def get_user_permissions(request, user):
     configuration = list(MiscDetail.objects.filter(user=user.id).values('misc_type', 'misc_value'))
     config = dict(zip(map(operator.itemgetter('misc_type'), configuration), map(operator.itemgetter('misc_value'), configuration)))
     user_perms = PERMISSION_KEYS
-    print user_perms
     permissions = Permission.objects.all()
     user_perms = []
     ignore_list = ['session', 'webhookdata', 'swxmapping', 'userprofile', 'useraccesstokens', 'contenttype', 'user',
@@ -576,6 +575,20 @@ def po_message(po_data, phone_no, user_name, f_name, order_date):
         total_amount += int(po[5])
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity,total_amount)
     send_sms(phone_no, data)
+
+def order_creation_message(items, telephone, order_id):
+    data = 'Your order with ID %s has been successfully placed for ' % order_id
+    total_quantity = 0
+    total_amount = 0
+    items_data = []
+    for item in items:
+        sku_desc = (item[0][:30] + '..') if len(item[0]) > 30 else item[0]
+        items_data.append('%s with Qty: %s' % (sku_desc, int(item[2])))
+        total_quantity += int(item[2])
+        total_amount += int(item[3])
+    data += ', '.join(items_data)
+    data += '\n\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
+    send_sms(telephone, data)
 
 def enable_mail_reports(request):
     data = request.GET.get('data').split(',')

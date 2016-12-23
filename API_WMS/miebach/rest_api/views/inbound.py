@@ -606,6 +606,7 @@ def switches(request, user=''):
                     'no_stock_switch': request.GET.get('no_stock_switch', ''),
                     'float_switch': request.GET.get('float_switch', ''),
                     'automate_invoice': request.GET.get('automate_invoice', ''),
+                    'show_mrp': request.GET.get('show_mrp', ''),
                   }
 
 
@@ -1705,6 +1706,7 @@ def get_received_orders(request, user=''):
     temp = get_misc_value('pallet_switch', user.id)
     headers = ('WMS CODE', 'Location', 'Pallet Number', 'Original Quantity', 'Putaway Quantity', '')
     data = {}
+    sku_total_quantities = OrderedDict()
     supplier_id = request.GET['supplier_id']
     purchase_orders = PurchaseOrder.objects.filter(order_id=supplier_id, open_po__sku__user = user.id).exclude(
                                                    status__in=['', 'confirmed-putaway'])
@@ -1716,6 +1718,13 @@ def get_received_orders(request, user=''):
         order_id = order.id
         order_data = get_purchase_order_data(order)
         po_location = POLocation.objects.filter(purchase_order_id=order_id, status=1, location__zone__user = user.id)
+        total_sku_quantity = po_location.aggregate(Sum('quantity'))['quantity__sum']
+        if not total_sku_quantity:
+            total_sku_quantity = 0
+        if order_data['wms_code'] in sku_total_quantities.keys():
+            sku_total_quantities[order_data['wms_code']] += float(total_sku_quantity)
+        else:
+            sku_total_quantities[order_data['wms_code']] = float(total_sku_quantity)
         for location in po_location:
             pallet_number = ''
             if temp == "true":
@@ -1746,7 +1755,8 @@ def get_received_orders(request, user=''):
     data_list = data.values()
     data_list.sort(key=lambda x: x[4])
     po_number = '%s%s_%s' % (order.prefix, str(order.po_date).split(' ')[0].replace('-', ''), order.order_id)
-    return HttpResponse(json.dumps({'data': data_list, 'po_number': po_number,'order_id': order_id,'user': request.user.id}))
+    return HttpResponse(json.dumps({'data': data_list, 'po_number': po_number,'order_id': order_id,'user': request.user.id,
+                                    'sku_total_quantities': sku_total_quantities}))
 
 def validate_putaway(all_data,user):
     status = ''
@@ -3060,4 +3070,24 @@ def cancelled_putaway_data(request, user=''):
             status = 'Updated Successfully'
 
     return HttpResponse(status)
+
+@csrf_exempt
+@get_admin_user
+def get_location_capacity(request, user=''):
+    wms_code = request.GET.get('wms_code')
+    location = request.GET.get('location')
+    filter_params = {'sku__user': user.id}
+    capacity = 0
+    if wms_code:
+        sku_master = SKUMaster.objects.filter(user=user.id, wms_code=wms_code)
+        if not sku_master:
+            return HttpResponse(json.dumps({'message': 'Invalid WMS code'}))
+
+    if location:
+        location_master = LocationMaster.objects.filter(zone__user=user.id, location=location)
+        if not location_master:
+            return HttpResponse(json.dumps({'message': 'Invalid Location'}))
+        capacity = int(location_master[0].max_capacity) - int(location_master[0].filled_capacity)
+
+    return HttpResponse(json.dumps({'capacity': capacity, 'message': 'Success'}))
 

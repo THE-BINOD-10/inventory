@@ -180,7 +180,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
-        mapping_results = SKUSupplier.objects.filter( Q(sku_id = search_term) | Q(preference__icontains = search_term) | Q(moq__icontains = search_term) | Q(sku__wms_code__icontains = search_term) | Q(supplier_code__icontains = search_term),sku__user=user.id, supplier__user=user.id, **filter_params ).order_by(order_data)
+        mapping_results = SKUSupplier.objects.filter( Q(sku__id__icontains = search_term) | Q(preference__icontains = search_term) | Q(moq__icontains = search_term) | Q(sku__wms_code__icontains = search_term) | Q(supplier_code__icontains = search_term),sku__user=user.id, supplier__user=user.id, **filter_params ).order_by(order_data)
 
     else:
         mapping_results = SKUSupplier.objects.filter(sku__user = user.id, supplier__user=user.id, **filter_params).order_by(order_data)

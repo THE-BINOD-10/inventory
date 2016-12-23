@@ -432,6 +432,7 @@ def configurations(request, user=''):
     no_stock_switch = get_misc_value('no_stock_switch', user.id)
     float_switch = get_misc_value('float_switch', user.id)
     automate_invoice = get_misc_value('automate_invoice', user.id)
+    show_mrp = get_misc_value('show_mrp', user.id)
     all_groups = SKUGroups.objects.filter(user=user.id).values_list('group', flat=True)
     all_groups = str(','.join(all_groups))
 
@@ -490,7 +491,7 @@ def configurations(request, user=''):
                                                              'all_groups': all_groups, 'display_pos': display_pos,
                                                              'auto_po_switch': auto_po_switch, 'no_stock_switch': no_stock_switch,
                                                              'float_switch': float_switch, 'all_stages': all_stages,
-                                                             'automate_invoice': automate_invoice}))
+                                                             'automate_invoice': automate_invoice, 'show_mrp': show_mrp}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers):
@@ -1281,24 +1282,22 @@ def get_order_id(user_id):
 
 def check_and_update_stock(wms_code, user):
     from rest_api.views.easyops_api import *
-    obj = EasyopsAPI(company_name='easyops', user=user)
-    stock_instance = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE']).filter(sku__wms_code=wms_code,
-                                                 sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
-    reserved_instance = Picklist.objects.filter(status__icontains='picked', order__user=user.id, picked_quantity__gt=0,
-                                                order__sku__wms_code=wms_code).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
-    #raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
-    #                                         stock__sku__wms_code=wms_code).aggregate(Sum('reserved'))['reserved__sum']
-    if not stock_instance:
-        stock_instance = 0
-    if not reserved_instance:
-        reserved_instance = 0
-    #if raw_reserved:
-    #    reserved_instance += raw_reserved
-    sku_count = float(stock_instance) + float(reserved_instance)
-    sku_count = int(sku_count)
-    if sku_count < 0:
-        sku_count = 0
-    obj.update_sku_count(wms_code, sku_count, user=user)
+    integrations = Integrations.objects.filter(user=user.id)
+    for integrate in integrations:
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        stock_instance = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE']).filter(sku__wms_code=wms_code,
+                                                     sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
+        reserved_instance = Picklist.objects.filter(status__icontains='picked', order__user=user.id, picked_quantity__gt=0,
+                                                    order__sku__wms_code=wms_code).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+        if not stock_instance:
+            stock_instance = 0
+        if not reserved_instance:
+            reserved_instance = 0
+        sku_count = float(stock_instance) + float(reserved_instance)
+        sku_count = int(sku_count)
+        if sku_count < 0:
+            sku_count = 0
+        obj.update_sku_count(wms_code, sku_count, user=user)
 
 def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_ids=[]):
     extra_data = []
@@ -1328,8 +1327,10 @@ def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_i
 def check_and_update_order(user, order_id):
     from rest_api.views.easyops_api import *
     user = User.objects.get(id=user)
-    obj = EasyopsAPI(company_name='easyops', user=user)
-    obj.confirm_picklist(order_id, user=user)
+    integrations = Integrations.objects.filter(user=user.id)
+    for integrate in integrations:
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        obj.confirm_picklist(order_id, user=user)
 
 def get_invoice_number(user):
     invoice_number = 1

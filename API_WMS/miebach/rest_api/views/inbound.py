@@ -459,9 +459,12 @@ def get_order_returns_data(start_index, stop_index, temp_data, search_term, orde
 
 @csrf_exempt
 def get_order_returns(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
-    lis = ['return_id', 'return_date', 'order__sku__sku_code', 'order__sku__sku_desc',  'order__marketplace', 'quantity']
+    lis = ['return_id', 'order_id', 'return_date', 'order__sku__sku_code', 'order__sku__sku_desc',  'order__marketplace', 'quantity']
     if search_term:
-        master_data = OrderReturns.objects.filter(Q(return_id__icontains=search_term) | Q(quantity__icontains=search_term) | Q(order__sku__sku_code=search_term) | Q(order__sku__sku_desc__icontains=search_term), status=1, order__user=user.id)
+        order_id_search = ''.join(re.findall('\d+', search_term))
+        master_data = OrderReturns.objects.filter(Q(return_id__icontains=search_term) | Q(quantity__icontains=search_term) |
+                                                  Q(order__sku__sku_code=search_term) | Q(order__sku__sku_desc__icontains=search_term) |
+                                                  Q(order__order_id__icontains=order_id_search), status=1, order__user=user.id)
     elif order_term:
         if order_term == 'asc' and (col_num or col_num == 0):
             master_data = OrderReturns.objects.filter(order__user=user.id, status=1).order_by(lis[col_num])
@@ -472,7 +475,8 @@ def get_order_returns(start_index, stop_index, temp_data, search_term, order_ter
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
-        temp_data['aaData'].append({'Return ID': data.return_id, 'Return Date': str(data.return_date).split('+')[0],
+        temp_data['aaData'].append({'Return ID': data.return_id, 'Order ID': str(data.order.order_code) + str(data.order.order_id),
+                                    'Return Date': get_local_date(user, data.return_date),
                                     'SKU Code': data.order.sku.sku_code, 'Product Description': data.order.sku.sku_desc,
                                     'Market Place': data.order.marketplace, 'Quantity': data.quantity})
 
@@ -602,6 +606,7 @@ def switches(request, user=''):
                     'no_stock_switch': request.GET.get('no_stock_switch', ''),
                     'float_switch': request.GET.get('float_switch', ''),
                     'automate_invoice': request.GET.get('automate_invoice', ''),
+                    'show_mrp': request.GET.get('show_mrp', ''),
                   }
 
 
@@ -1532,10 +1537,12 @@ def check_returns(request, user=''):
     status = ''
     all_data = {}
     data = []
-    for key, value in request.GET.iteritems():
+    request_order_id = request.GET.get('order_id', '')
+    request_return_id = request.GET.get('return_id', '')
+    if request_order_id:
         filter_params = {'order__user': user.id, 'status__in': ['picked', 'batch_picked', 'dispatched'], 'picked_quantity__gt': 0}
-        order_id = re.findall('\d+', value)
-        order_code = re.findall('\D+', value)
+        order_id = re.findall('\d+', request_order_id)
+        order_code = re.findall('\D+', request_order_id)
         if order_id:
             filter_params['order__order_id'] = ''.join(order_id[0])
         if order_code:
@@ -1553,16 +1560,15 @@ def check_returns(request, user=''):
             cond = (picklist.order.order_id, wms_code, sku_desc)
             all_data.setdefault(cond, 0)
             all_data[cond] += picklist.picked_quantity
-    for key, value in all_data.iteritems():
-        data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'ship_quantity': value, 'return_quantity': value,
-                     'damaged_quantity': 0 })
-
-
-        '''order_returns = OrderReturns.objects.filter(return_id=value, sku__user=user.id)
+        for key, value in all_data.iteritems():
+            data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'ship_quantity': value, 'return_quantity': value,
+                         'damaged_quantity': 0 })
+    elif request_return_id:
+        order_returns = OrderReturns.objects.filter(return_id=request_return_id, sku__user=user.id)
         if not order_returns:
-            status = str(value) + ' is invalid'
+            status = str(request_return_id) + ' is invalid'
         elif order_returns[0].status == '0':
-            status = str(value) + ' is already confirmed'
+            status = str(request_return_id) + ' is already confirmed'
         else:
             order_data = order_returns[0]
             order_obj = order_data.order
@@ -1570,9 +1576,10 @@ def check_returns(request, user=''):
                 order_quantity = order_data.order.quantity
             else:
                 order_quantity = order_data.quantity
-            data = {'id': order_data.id, 'return_id': order_data.return_id, 'sku_code': order_data.sku.sku_code,
-                    'sku_desc': order_data.sku.sku_desc, 'ship_quantity': order_quantity,
-                    'return_quantity': order_data.quantity}'''
+            data.append({'id': order_data.id, 'order_id': order_obj.order_id, 'return_id': order_data.return_id,
+                         'sku_code': order_data.sku.sku_code,
+                         'sku_desc': order_data.sku.sku_desc, 'ship_quantity': order_quantity,
+                         'return_quantity': order_data.quantity, 'damaged_quantity': order_data.damaged_quantity})
 
     if not status:
         return HttpResponse(json.dumps(data))
@@ -1699,6 +1706,7 @@ def get_received_orders(request, user=''):
     temp = get_misc_value('pallet_switch', user.id)
     headers = ('WMS CODE', 'Location', 'Pallet Number', 'Original Quantity', 'Putaway Quantity', '')
     data = {}
+    sku_total_quantities = OrderedDict()
     supplier_id = request.GET['supplier_id']
     purchase_orders = PurchaseOrder.objects.filter(order_id=supplier_id, open_po__sku__user = user.id).exclude(
                                                    status__in=['', 'confirmed-putaway'])
@@ -1710,6 +1718,13 @@ def get_received_orders(request, user=''):
         order_id = order.id
         order_data = get_purchase_order_data(order)
         po_location = POLocation.objects.filter(purchase_order_id=order_id, status=1, location__zone__user = user.id)
+        total_sku_quantity = po_location.aggregate(Sum('quantity'))['quantity__sum']
+        if not total_sku_quantity:
+            total_sku_quantity = 0
+        if order_data['wms_code'] in sku_total_quantities.keys():
+            sku_total_quantities[order_data['wms_code']] += float(total_sku_quantity)
+        else:
+            sku_total_quantities[order_data['wms_code']] = float(total_sku_quantity)
         for location in po_location:
             pallet_number = ''
             if temp == "true":
@@ -1740,7 +1755,8 @@ def get_received_orders(request, user=''):
     data_list = data.values()
     data_list.sort(key=lambda x: x[4])
     po_number = '%s%s_%s' % (order.prefix, str(order.po_date).split(' ')[0].replace('-', ''), order.order_id)
-    return HttpResponse(json.dumps({'data': data_list, 'po_number': po_number,'order_id': order_id,'user': request.user.id}))
+    return HttpResponse(json.dumps({'data': data_list, 'po_number': po_number,'order_id': order_id,'user': request.user.id,
+                                    'sku_total_quantities': sku_total_quantities}))
 
 def validate_putaway(all_data,user):
     status = ''
@@ -1901,7 +1917,7 @@ def putaway_data(request, user=''):
             stock_detail.save()
         consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 
-        check_and_update_stock(order_data['sku_code'], user)
+        #check_and_update_stock(order_data['sku_code'], user)
 
         putaway_quantity = POLocation.objects.filter(purchase_order_id=data.purchase_order_id,
                                                      location__zone__user = user.id, status=0).\
@@ -2720,7 +2736,6 @@ def save_qc_serials(scan_data, user):
                 qc_serial = QCSerialMapping(**qc_serial_dict)
                 qc_serial.save()
 
-
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -2971,4 +2986,108 @@ def get_stage_index(stages, ind):
             stage[stages.values()[i]] = 'current'
         else:
             stage[stages.values()[i]] = 'not-done'
-    return stage 
+    return stage
+
+@csrf_exempt
+def get_cancelled_putaway(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    lis = ['id', 'picklist__order__order_id', 'picklist__order__sku__wms_code', 'picklist__order__sku__sku_desc',
+           'location__zone__zone', 'location__location', 'quantity']
+    if search_term:
+        master_data = CancelledLocation.objects.filter(Q(picklist__order__order_id__icontains=search_term) |
+                                                       Q(picklist__order__sku__sku_desc__icontains=search_term) |
+                                                       Q(picklist__order__sku__wms_code__icontains=search_term) |
+                                                       Q(quantity__icontains=search_term),
+                                                       picklist__order__user = user.id , status=1, quantity__gt=0)
+    elif order_term:
+        col_num = col_num - 1
+        order_data = lis[col_num]
+        if order_term == 'desc':
+            order_data = '-%s' % order_data
+        master_data = CancelledLocation.objects.filter(picklist__order__sku__user = user.id, status=1, quantity__gt=0).order_by(order_data)
+    else:
+        master_data = CancelledLocation.objects.filter(picklist__order__sku__user = user.id, status=1, quantity__gt=0).\
+                                                order_by('-creation_date')
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    count = 0;
+    for data in master_data[start_index:stop_index]:
+        checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data.id, data.picklist.order_id)
+        zone = "<input type='text' name='zone' value='%s' class='smallbox'>" % data.location.zone.zone
+        location = "<input type='text' name='location' value='%s' class='smallbox'>" % data.location.location
+        quantity = "<input type='text' name='quantity' value='%s' class='smallbox numvalid'><input type='hidden' name='hide_quantity' value='%s'>" % (data.quantity, data.quantity)
+        temp_data['aaData'].append({'': checkbox, 'Order ID': data.picklist.order.order_id,
+                                    'WMS Code': data.picklist.stock.sku.wms_code,
+                                    'Product Description': data.picklist.order.sku.sku_desc, 'Zone': zone, 'Location': location,
+                                    'Quantity': quantity, 'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data.id}, 'id':count})
+        count = count+1
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def cancelled_putaway_data(request, user=''):
+    stock = StockDetail.objects.filter(sku__user=user.id).order_by('-receipt_number')
+    if stock:
+        receipt_number = int(stock[0].receipt_number) + 1
+    else:
+        receipt_number = 1
+    myDict = dict(request.GET.iterlists())
+    for i in range(0, len(myDict['id'])):
+        status = ''
+        data_id = myDict['id'][i]
+        zone = myDict['zone'][i]
+        location = myDict['location'][i]
+        quantity = float(myDict['quantity'][i])
+        cancelled_data = CancelledLocation.objects.filter(id=data_id, status=1)
+        if not cancelled_data:
+            continue
+        cancelled_data =cancelled_data[0]
+        if location and zone and quantity:
+            location_id = LocationMaster.objects.filter(location=location, zone__zone=zone)
+            if not location_id:
+                status = "Zone, location match doesn't exists"
+        else:
+            status = 'Missing zone or location or quantity'
+        if not status:
+            sku_id = cancelled_data.picklist.stock.sku_id
+            stock_data = StockDetail.objects.filter(location_id=location_id[0].id, receipt_number=receipt_number, sku_id=sku_id,
+                                                    sku__user=user.id)
+            if stock_data:
+                stock_data = stock_data[0]
+                setattr(stock_data, 'quantity', float(stock_data.quantity) + quantity)
+                stock_data.save()
+            else:
+                stock_dict = {'location_id': location_id[0].id, 'receipt_number': receipt_number, 'receipt_date': datetime.datetime.now(),
+                              'sku_id':sku_id, 'quantity': quantity, 'status': 1,
+                              'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now()}
+                new_stock = StockDetail(**stock_dict)
+                new_stock.save()
+            cancelled_data.quantity = float(cancelled_data.quantity) - float(quantity)
+            if cancelled_data.quantity <= 0:
+                cancelled_data.status = 0
+            if not cancelled_data.location_id == location_id[0].id:
+                setattr(cancelled_data, 'location_id', location_id[0].id)
+            cancelled_data.save()
+            status = 'Updated Successfully'
+
+    return HttpResponse(status)
+
+@csrf_exempt
+@get_admin_user
+def get_location_capacity(request, user=''):
+    wms_code = request.GET.get('wms_code')
+    location = request.GET.get('location')
+    filter_params = {'sku__user': user.id}
+    capacity = 0
+    if wms_code:
+        sku_master = SKUMaster.objects.filter(user=user.id, wms_code=wms_code)
+        if not sku_master:
+            return HttpResponse(json.dumps({'message': 'Invalid WMS code'}))
+
+    if location:
+        location_master = LocationMaster.objects.filter(zone__user=user.id, location=location)
+        if not location_master:
+            return HttpResponse(json.dumps({'message': 'Invalid Location'}))
+        capacity = int(location_master[0].max_capacity) - int(location_master[0].filled_capacity)
+
+    return HttpResponse(json.dumps({'capacity': capacity, 'message': 'Success'}))
+

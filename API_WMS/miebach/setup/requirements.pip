@@ -14,3 +14,4 @@ django-cors-headers==1.1.0
 pytz==2016.6.1
 dicttoxml==1.7.4
 lxml==3.3.3
+num2words==0.5.4

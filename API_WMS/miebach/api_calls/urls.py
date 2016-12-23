@@ -34,4 +34,5 @@ urlpatterns = patterns('api_calls.views',
     url(r'^get_misc_value/$', 'get_misc_value'),
     url(r'^get_api_misc_value/$', 'get_api_misc_value'),
     url(r'^get_skus/$', 'get_skus'),
+    url(r'^get_user_skus/$', 'get_user_skus'),
     )

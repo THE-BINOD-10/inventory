@@ -525,7 +525,9 @@ class OrderReturns(models.Model):
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     return_date = models.DateTimeField(auto_now_add=True)
     quantity = models.FloatField(default=0)
+    damaged_quantity = models.FloatField(default=0)
     sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    return_type = models.CharField(max_length=64, default='')
     status = models.CharField(max_length=64)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -638,6 +640,18 @@ class ReturnsLocation(models.Model):
 
     class Meta:
         db_table = 'RETURNS_LOCATION'
+
+class CancelledLocation(models.Model):
+    id = BigAutoField(primary_key=True)
+    picklist = models.ForeignKey(Picklist, blank=True, null=True)
+    location = models.ForeignKey(LocationMaster, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    status = models.IntegerField(max_length=1, default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CANCELLED_LOCATION'
 
 class UserGroups(models.Model):
     id = BigAutoField(primary_key=True)
@@ -896,6 +910,7 @@ class CustomerOrderSummary(models.Model):
     order = models.ForeignKey(OrderDetail)
     discount = models.FloatField(default = 0)
     vat = models.FloatField(default=0)
+    mrp = models.FloatField(default=0)
     issue_type=models.CharField(max_length=64, default='')
     tax_value = models.FloatField(default=0)
     order_taken_by = models.CharField(max_length=128, default='')
@@ -1221,6 +1236,17 @@ class UserBrand(models.Model):
 
     class Meta:
         db_table = 'USER_BRAND'
+
+class Integrations(models.Model):
+    user = models.PositiveIntegerField()
+    name = models.CharField(max_length=64, default='')
+    api_instance = models.CharField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'INTEGRATIONS'
 
 class FileDump(models.Model):
     user = models.ForeignKey(User, blank=True, null=True)

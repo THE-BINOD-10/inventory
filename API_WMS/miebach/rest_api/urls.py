@@ -106,6 +106,8 @@ urlpatterns = patterns('rest_api.views',
     url(r'^st_generate_picklist/$', 'st_generate_picklist'),
     url(r'^confirm_vendor_received/$', 'confirm_vendor_received'),
     url(r'^track_orders/$', 'track_orders'),
+    url(r'^cancelled_putaway_data/$', 'cancelled_putaway_data'),
+    url(r'^get_location_capacity/$', 'get_location_capacity'),
 
     # Production
     url(r'^generated_jo_data/$', 'generated_jo_data'),

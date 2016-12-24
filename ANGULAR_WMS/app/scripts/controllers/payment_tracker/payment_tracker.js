@@ -15,7 +15,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service) {
   vm.payment_data = {};
   angular.copy(empty_data, vm.payment_data);
 
-  vm.model_data = {search:"Order Created",filters: ["All", "Order Created", "Partially Invoiced", "Invoiced"]}
+  vm.model_data = {search:"All",filters: ["All", "Order Created", "Partially Invoiced", "Invoiced"]}
 
   vm.searching = function(data) {
 
@@ -38,7 +38,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, Service) {
 
    console.log(payment) ;
     if(!(payment["data"])) {
-      var send = {id:payment.customer_id, name:payment.customer_name, channel: payment.channel}
+      var send = {id:payment.customer_id, name:payment.customer_name, channel: payment.channel, filter: vm.model_data.search}
       vm.service.apiCall("get_customer_payment_tracker/", "GET", send).then(function(data){
   
         if(data.message) {

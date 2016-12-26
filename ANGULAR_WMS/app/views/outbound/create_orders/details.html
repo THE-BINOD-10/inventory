@@ -1,21 +1,32 @@
 <div>
   <div class="row style-menu">
-    <div class="col-md-4 col-sm-4 col-xs-0">
+    <div class="col-md-4 col-sm-5 col-xs-6">
+      <div class="online-toggle ml10">
+        <span>Offline</span>
+        <label class="switch switch-info switch-sm square">
+          <input type="checkbox" ng-model="showCase.order_type" ng-change="showCase.change_order_type();">
+          <span>
+            <i class="handle"></i>
+          </span>
+        </label>
+        <span>Made On Order</span>
+      </div>
     </div>
-    <div class="col-md-4 col-sm-4 col-xs-6">
+    <div class="col-md-4 col-sm-4 col-xs-5">
       <h4 align="center">CREATE ORDERS</h4>
     </div>
-    <div class="col-md-4 col-sm-4 col-xs-6">
-      <a href="" class="pull-right" ng-click="showCase.catlog=false;showCase.details=false;">
-        <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" title="Go To Cart Page"></i>
-      </a>
+    <div class="col-md-4 col-sm-3 col-xs-1">
+      <div class="">
+        <a href="" class="pull-right" ng-click="showCase.catlog=false;showCase.details=false;">
+          <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" title="Go To Cart Page"></i>
+        </a>
+      </div>
     </div>
   </div>
   <div class="row" style="padding: 10px 20px;;">
-    <div class="pull-left" ng-repeat="brand in showCase.brands" style="margin: 10px;box-shadow: 1px 1px 10px #777;">
+    <div class="pull-left" ng-repeat="brand in showCase.brands" style="margin: 10px;box-shadow: 1px 1px 15px #333;">
     <img ng-src="/images/brand-logos/{{(showCase.brands_images[brand])? showCase.brands_images[brand]: 'red.png'}}" ng-click="showCase.change_brand(brand);showCase.detailed_list=true;showCase.details=false;"style="width:216px; height: 157px;cursor:pointer;">
       <p ng-if="(!(showCase.brands_images[brand]))" style="color: #fff;position: absolute;top: 40%;text-align: center;width: 90%;font-size:20px">{{brand}}</p>
-      <!--<p>showCase.brands_images[brand] == 'red.png'</p>-->
     </div>
   </div>
 </div>

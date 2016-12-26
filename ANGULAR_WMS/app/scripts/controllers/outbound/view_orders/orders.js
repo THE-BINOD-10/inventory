@@ -201,7 +201,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.generate = generate;
     function generate() {
-      if(String(vm.permissions.batch_switch) == "true"){
+      if(vm.permissions.batch_switch){
         batch_generate_picklist();
       } else {
         generate_picklist();
@@ -212,7 +212,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.transfer = transfer;
     function transfer() {
       vm.model_transfer = {};
-      if(String(vm.permissions.batch_switch) == "true"){
+      if(vm.permissions.batch_switch){
         batch_transfer_order(); 
       } else {
         get_transfer_data();
@@ -247,7 +247,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             angular.copy(data.data, vm.model_data);
             for(var i=0; i<vm.model_data.data.length; i++){
                     vm.model_data.data[i]['sub_data'] = [];
-                    var value = (String(vm.permissions.use_imei) == "true")? 0: vm.model_data.data[i].picked_quantity;
+                    var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
                     vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
                                                          location: vm.model_data.data[i].location,
                                                          orig_location: vm.model_data.data[i].location,
@@ -283,7 +283,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             angular.copy(data.data, vm.model_data);
             for(var i=0; i<vm.model_data.data.length; i++){
                     vm.model_data.data[i]['sub_data'] = [];
-                    var value = (String(vm.permissions.use_imei) == "true")? 0: vm.model_data.data[i].picked_quantity;
+                    var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
                     vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
                                                          location: vm.model_data.data[i].location,
                                                          orig_location: vm.model_data.data[i].location,

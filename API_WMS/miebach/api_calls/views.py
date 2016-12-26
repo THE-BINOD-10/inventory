@@ -86,6 +86,7 @@ def authenticate_user(request):
         if session_key:
             data['status'] = 'success'
             data['session_key'] = session_key
+            data['username'] = user.username
 
     return return_response(data)
 
@@ -903,6 +904,37 @@ def get_skus(request):
         data.append(OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc), ('sku_category', sku.sku_category),
                      ('price', str(sku.price)), ('active', sku.status), ('created_at', sku.creation_date.strftime('%Y-%m-%d %H:%M:%S')),
                      ('updated_at', updated ))))
+
+    data = scroll_data(request, data, limit=limit)
+
+    data['message'] = 'success'
+    return HttpResponse(json.dumps(data))
+
+@csrf_exempt
+def get_user_skus(request):
+    if request.user.is_anonymous():
+        return HttpResponse(json.dumps({'message': 'fail'}))
+    data = []
+    limit = request.POST.get('limit', '')
+    combo_skus = SKURelation.objects.filter(parent_sku__user=request.user.id)
+    member_sku_ids = combo_skus.values_list('member_sku_id', flat=True)
+    sku_records = SKUMaster.objects.exclude(id__in=member_sku_ids).filter(user = request.user.id).order_by('sku_code')
+    for ind, sku in enumerate(sku_records):
+        updated = ''
+        if sku.updation_date:
+            updated = sku.updation_date.strftime('%Y-%m-%d %H:%M:%S')
+        data.append(OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc), ('sku_category', sku.sku_category),
+                     ('price', str(sku.price)), ('active', sku.status), ('created_at', sku.creation_date.strftime('%Y-%m-%d %H:%M:%S')),
+                     ('updated_at', updated ))))
+        if sku.relation_type == 'combo':
+            child_skus = combo_skus.filter(parent_sku_id=sku.id, parent_sku__user=request.user.id)
+            data[ind]['child_skus'] = []
+            for child in child_skus:
+                data[ind]['child_skus'].append(OrderedDict(( ('id', child.member_sku.id), ('sku_code', child.member_sku.sku_code),
+                                                      ('sku_desc', child.member_sku.sku_desc), ('sku_category', child.member_sku.sku_category),
+                                                        ('price', str(child.member_sku.price)), ('active', child.member_sku.status),
+                                                        ('created_at', child.member_sku.creation_date.strftime('%Y-%m-%d %H:%M:%S')),
+                                              )))
 
     data = scroll_data(request, data, limit=limit)
 

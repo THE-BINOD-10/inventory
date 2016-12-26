@@ -108,7 +108,7 @@ def dashboard(request, user=''):
                 stock_count = sku_stock[0]['quantity__sum']
             top_skus_data['data'].append(top['sku_id__count'])
             top_skus_data['labels'].append(member)
-            top_skus_data['stock_count'].append('%g' % round(stock_count, 2))
+            top_skus_data['stock_count'].append(get_decimal_limit(user_id, stock_count))
             if len(top_skus_data['data']) == 5:
                 break
         if len(top_skus_data['data']) == 5:

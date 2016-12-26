@@ -34,7 +34,7 @@
               <div class="col-md-4">
                 <div class="form-group">
                   <label class="control-label"> Quantity * </label>
-                  <input ng-model="showCase.model_data.quantity" type="text" name="quantity" class="form-control" decimal-number required>
+                  <input ng-model="showCase.model_data.quantity" type="text" name="quantity" class="form-control" ng-class="service.get_decimal_perm()" required>
                 </div>
               </div>
             </div>

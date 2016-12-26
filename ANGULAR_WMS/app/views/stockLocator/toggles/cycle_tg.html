@@ -50,7 +50,7 @@
               <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-readonly="showCase.update">
             </div>
             <div class="col-md-2">
-              <input type="text" name="seen_quantity" class="form-control" decimal-number ng-model="data.seen_quantity">
+              <input type="text" name="seen_quantity" class="form-control" ng-class="service.get_decimal_perm()" ng-model="data.seen_quantity">
             </div>
           </div>
           <div class="row hide insert-status"></div>

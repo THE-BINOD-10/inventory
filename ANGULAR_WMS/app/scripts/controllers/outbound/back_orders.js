@@ -38,7 +38,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
        .withPaginationType('full_numbers')
        .withOption('rowCallback', rowCallback);
 
-    if(Session.roles.permissions["production_switch"] == "true") {
+    if(Session.roles.permissions["production_switch"]) {
 
       vm.dtColumns = [
         DTColumnBuilder.newColumn(null).withTitle(titleHtml).notSortable().withOption('width', '20px')

@@ -13,9 +13,10 @@ import time
 MAIL_TO = [ 'sreekanth@mieone.com' ]
 
 class CollectData:
-    def __init__(self, company_name=''):
-        self.users = User.objects.filter(username="demo")
-        self.easyops_api = EasyopsAPI(company_name=company_name, warehouse='default')
+    def __init__(self, company_name='', api_object = ''):
+        users_list = Integrations.objects.filter(name=company_name).values_list('user', flat=True)
+        self.users = User.objects.filter(id__in=users_list)
+        self.easyops_api = eval(api_object)(company_name=company_name, warehouse='default')
         self.company_name = company_name
 
     def populate_data(self, query_class, func):

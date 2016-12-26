@@ -48,9 +48,18 @@ function ServerSideProcessingCtrl($scope, $http, $state , $compile, Session, DTO
         DTColumnBuilder.newColumn('Order ID').withTitle('Order ID'),
         DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
-        DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
-        DTColumnBuilder.newColumn('Location').withTitle('Location'),
+        DTColumnBuilder.newColumn('Zone').withTitle('Zone')
+          .renderWith(function(data, type, full, meta) {
+            return "<input type='text' name='zone' value='"+full.Zone+"' class='smallbox'>"
+          }),
+        DTColumnBuilder.newColumn('Location').withTitle('Location')
+          .renderWith(function(data, type, full, meta) {
+            return "<input type='text' name='location' value='"+full.Location+"' class='smallbox'>"
+          }),
         DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
+          .renderWith(function(data, type, full, meta) {
+            return "<input type='text' name='quantity' value='"+full.Quantity+"' class='smallbox'>"
+          })
     ];
 
   vm.dtInstance = {};

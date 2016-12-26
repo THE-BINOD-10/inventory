@@ -447,9 +447,9 @@ def get_order_returns_data(start_index, stop_index, temp_data, search_term, orde
         if data.returns.order:
             order_id = data.returns.order.id
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data.id, order_id)
-        zone = "<input type='text' name='zone' value='%s' class='smallbox'>" % data.location.zone.zone
-        location = "<input type='text' name='location' value='%s' class='smallbox'>" % data.location.location
-        quantity = "<input type='text' name='quantity' value='%s' class='smallbox numvalid'><input type='hidden' name='hide_quantity' value='%s'>" % (data.quantity, data.quantity)
+        zone = data.location.zone.zone
+        location = data.location.location
+        quantity = data.quantity
         temp_data['aaData'].append({'': checkbox, 'Return ID': data.returns.return_id,
                                     'Return Date': get_local_date(request.user, data.returns.return_date),
                                     'WMS Code': data.returns.sku.wms_code,
@@ -606,6 +606,8 @@ def switches(request, user=''):
                     'no_stock_switch': request.GET.get('no_stock_switch', ''),
                     'float_switch': request.GET.get('float_switch', ''),
                     'automate_invoice': request.GET.get('automate_invoice', ''),
+                    'show_mrp': request.GET.get('show_mrp', ''),
+                    'decimal_limit': request.GET.get('decimal_limit', ''),
                   }
 
 
@@ -938,8 +940,9 @@ def get_supplier_data(request, user=''):
                                                                          sku_id=order_data['sku_id'], order_ids=order_ids)
             orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
                             'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
-                            'name': str(order.order_id) + '-' + str(order_data['wms_code']), 'value': '%g' % float(order.saved_quantity),
-                            'receive_quantity': '%g' % order.received_quantity, 'price': order_data['price'],
+                            'name': str(order.order_id) + '-' + str(order_data['wms_code']),
+                            'value': get_decimal_limit(user.id, order.saved_quantity),
+                            'receive_quantity': get_decimal_limit(user.id, order.received_quantity), 'price': order_data['price'],
                             'temp_wms': order_data['temp_wms'],'order_type': order_data['order_type'], 'dis': True,
                             'sku_extra_data': sku_extra_data, 'product_images': product_images}])
 
@@ -1705,6 +1708,7 @@ def get_received_orders(request, user=''):
     temp = get_misc_value('pallet_switch', user.id)
     headers = ('WMS CODE', 'Location', 'Pallet Number', 'Original Quantity', 'Putaway Quantity', '')
     data = {}
+    sku_total_quantities = OrderedDict()
     supplier_id = request.GET['supplier_id']
     purchase_orders = PurchaseOrder.objects.filter(order_id=supplier_id, open_po__sku__user = user.id).exclude(
                                                    status__in=['', 'confirmed-putaway'])
@@ -1716,6 +1720,13 @@ def get_received_orders(request, user=''):
         order_id = order.id
         order_data = get_purchase_order_data(order)
         po_location = POLocation.objects.filter(purchase_order_id=order_id, status=1, location__zone__user = user.id)
+        total_sku_quantity = po_location.aggregate(Sum('quantity'))['quantity__sum']
+        if not total_sku_quantity:
+            total_sku_quantity = 0
+        if order_data['wms_code'] in sku_total_quantities.keys():
+            sku_total_quantities[order_data['wms_code']] += float(total_sku_quantity)
+        else:
+            sku_total_quantities[order_data['wms_code']] = float(total_sku_quantity)
         for location in po_location:
             pallet_number = ''
             if temp == "true":
@@ -1746,7 +1757,8 @@ def get_received_orders(request, user=''):
     data_list = data.values()
     data_list.sort(key=lambda x: x[4])
     po_number = '%s%s_%s' % (order.prefix, str(order.po_date).split(' ')[0].replace('-', ''), order.order_id)
-    return HttpResponse(json.dumps({'data': data_list, 'po_number': po_number,'order_id': order_id,'user': request.user.id}))
+    return HttpResponse(json.dumps({'data': data_list, 'po_number': po_number,'order_id': order_id,'user': request.user.id,
+                                    'sku_total_quantities': sku_total_quantities}))
 
 def validate_putaway(all_data,user):
     status = ''
@@ -1944,9 +1956,10 @@ def quality_check_data(request, user=''):
         for qc_data in quality_check:
             purchase_data = get_purchase_order_data(qc_data.purchase_order)
             po_reference = '%s%s_%s' % (qc_data.purchase_order.prefix, str(qc_data.purchase_order.creation_date).split(' ')[0].replace('-', ''), qc_data.purchase_order.order_id)
-            data.append({'id': qc_data.id, 'wms_code': purchase_data['wms_code'],
-                                'location': qc_data.po_location.location.location, 'quantity': '%g' % qc_data.putaway_quantity,
-                                'accepted_quantity': '%g' % qc_data.accepted_quantity, 'rejected_quantity': '%g' % qc_data.rejected_quantity})
+            data.append({'id': qc_data.id, 'wms_code': purchase_data['wms_code'], 'location': qc_data.po_location.location.location,
+                         'quantity': get_decimal_limit(user.id, qc_data.putaway_quantity),
+                         'accepted_quantity': get_decimal_limit(user.id, qc_data.accepted_quantity),
+                         'rejected_quantity': get_decimal_limit(user.id, qc_data.rejected_quantity)})
 
     return HttpResponse(json.dumps({'data': data, 'po_reference': po_reference, 'order_id': order_id}))
 
@@ -2986,7 +2999,9 @@ def get_cancelled_putaway(start_index, stop_index, temp_data, search_term, order
         master_data = CancelledLocation.objects.filter(Q(picklist__order__order_id__icontains=search_term) |
                                                        Q(picklist__order__sku__sku_desc__icontains=search_term) |
                                                        Q(picklist__order__sku__wms_code__icontains=search_term) |
-                                                       Q(quantity__icontains=search_term),
+                                                       Q(quantity__icontains=search_term) |
+                                                       Q(location__zone__zone__icontains=search_term) |
+                                                       Q(location__location__icontains=search_term),
                                                        picklist__order__user = user.id , status=1, quantity__gt=0)
     elif order_term:
         col_num = col_num - 1
@@ -3002,9 +3017,9 @@ def get_cancelled_putaway(start_index, stop_index, temp_data, search_term, order
     count = 0;
     for data in master_data[start_index:stop_index]:
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data.id, data.picklist.order_id)
-        zone = "<input type='text' name='zone' value='%s' class='smallbox'>" % data.location.zone.zone
-        location = "<input type='text' name='location' value='%s' class='smallbox'>" % data.location.location
-        quantity = "<input type='text' name='quantity' value='%s' class='smallbox numvalid'><input type='hidden' name='hide_quantity' value='%s'>" % (data.quantity, data.quantity)
+        zone = data.location.zone.zone
+        location = data.location.location
+        quantity = data.quantity
         temp_data['aaData'].append({'': checkbox, 'Order ID': data.picklist.order.order_id,
                                     'WMS Code': data.picklist.stock.sku.wms_code,
                                     'Product Description': data.picklist.order.sku.sku_desc, 'Zone': zone, 'Location': location,
@@ -3060,4 +3075,24 @@ def cancelled_putaway_data(request, user=''):
             status = 'Updated Successfully'
 
     return HttpResponse(status)
+
+@csrf_exempt
+@get_admin_user
+def get_location_capacity(request, user=''):
+    wms_code = request.GET.get('wms_code')
+    location = request.GET.get('location')
+    filter_params = {'sku__user': user.id}
+    capacity = 0
+    if wms_code:
+        sku_master = SKUMaster.objects.filter(user=user.id, wms_code=wms_code)
+        if not sku_master:
+            return HttpResponse(json.dumps({'message': 'Invalid WMS code'}))
+
+    if location:
+        location_master = LocationMaster.objects.filter(zone__user=user.id, location=location)
+        if not location_master:
+            return HttpResponse(json.dumps({'message': 'Invalid Location'}))
+        capacity = int(location_master[0].max_capacity) - int(location_master[0].filled_capacity)
+
+    return HttpResponse(json.dumps({'capacity': capacity, 'message': 'Success'}))
 

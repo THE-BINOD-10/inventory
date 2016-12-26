@@ -67,6 +67,21 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-rupee fa-15px" style="font-size: 18px;"></i></a>
+        </div>
+        <div class="col-md-3"><strong> Show MRP In Invoice </strong> </div>
+        <div class="col-md-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.show_mrp" ng-change="showCase.switches(showCase.model_data.show_mrp,17)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-file-image-o fa-15px"></i></a>
         </div>
         <div class="col-md-3"> <strong> Show Images in Picklist </strong> </div>
@@ -199,6 +214,18 @@
               </span>
             </div>
           </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px" ng-if="showCase.model_data.float_switch">
+        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-server fa-15px"></i></a>
+        </div>
+        <div class="col-md-3"> <strong> &nbsp; Decimal Limit</strong> </div>
+        <div class="col-md-2">
+          <select class="form-control" ng-model="showCase.model_data.decimal_limit" ng-change="showCase.decimal_limit_save = true;">
+            <option ng-selected="item == showCase.model_data.decimal_limit" ng-repeat="item in [1,2,3,4,5,6]" value="{{item}}">{{item}}</option>
+          </select>
+        </div>
+        <div class="col-md-1"><i ng-if="showCase.decimal_limit_save" ng-click="showCase.decimal_limit_save = false; showCase.switches(showCase.model_data.decimal_limit,18)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">

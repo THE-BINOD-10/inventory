@@ -47,7 +47,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                 }
               vm.selected[meta.row] = vm.selectAll;
               vm.seleted_rows.push(full);
-              return vm.service.frontHtml + data.id + vm.service.endHtml;
+              return vm.service.frontHtml + meta.row + vm.service.endHtml;
             }),
         DTColumnBuilder.newColumn('Source Location').withTitle('Source Location'),
         DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),

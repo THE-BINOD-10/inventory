@@ -30,6 +30,14 @@ def process_date(value):
     value = datetime.date(int(value[2]), int(value[0]), int(value[1]))
     return value
 
+def get_decimal_limit(user_id, value):
+    decimal_limit = 0
+    if get_misc_value('float_switch', user_id) == 'true':
+        decimal_limit = 1
+        if get_misc_value('float_switch', user_id, number=True):
+            decimal_limit = get_misc_value('decimal_limit', user_id, number=True)
+    return float(("%."+ str(decimal_limit) +"f") % (value))
+
 def number_in_words(value):
     value = (num2words(int(round(value)), lang='en_IN')).capitalize()
     return value
@@ -40,7 +48,6 @@ def get_user_permissions(request, user):
     configuration = list(MiscDetail.objects.filter(user=user.id).values('misc_type', 'misc_value'))
     config = dict(zip(map(operator.itemgetter('misc_type'), configuration), map(operator.itemgetter('misc_value'), configuration)))
     user_perms = PERMISSION_KEYS
-    print user_perms
     permissions = Permission.objects.all()
     user_perms = []
     ignore_list = ['session', 'webhookdata', 'swxmapping', 'userprofile', 'useraccesstokens', 'contenttype', 'user',
@@ -273,8 +280,10 @@ def get_or_none(model_obj, search_params):
         data = ''
     return data
 
-def get_misc_value(misc_type, user):
+def get_misc_value(misc_type, user, number=False):
     misc_value = 'false'
+    if number:
+       misc_value = 0
     data = MiscDetail.objects.filter(user=user, misc_type=misc_type)
     if data:
         misc_value = data[0].misc_value
@@ -432,6 +441,8 @@ def configurations(request, user=''):
     no_stock_switch = get_misc_value('no_stock_switch', user.id)
     float_switch = get_misc_value('float_switch', user.id)
     automate_invoice = get_misc_value('automate_invoice', user.id)
+    show_mrp = get_misc_value('show_mrp', user.id)
+    decimal_limit = get_misc_value('decimal_limit', user.id)
     all_groups = SKUGroups.objects.filter(user=user.id).values_list('group', flat=True)
     all_groups = str(','.join(all_groups))
 
@@ -490,7 +501,8 @@ def configurations(request, user=''):
                                                              'all_groups': all_groups, 'display_pos': display_pos,
                                                              'auto_po_switch': auto_po_switch, 'no_stock_switch': no_stock_switch,
                                                              'float_switch': float_switch, 'all_stages': all_stages,
-                                                             'automate_invoice': automate_invoice}))
+                                                             'automate_invoice': automate_invoice, 'show_mrp': show_mrp,
+                                                             'decimal_limit': decimal_limit}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers):
@@ -575,6 +587,20 @@ def po_message(po_data, phone_no, user_name, f_name, order_date):
         total_amount += int(po[5])
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity,total_amount)
     send_sms(phone_no, data)
+
+def order_creation_message(items, telephone, order_id):
+    data = 'Your order with ID %s has been successfully placed for ' % order_id
+    total_quantity = 0
+    total_amount = 0
+    items_data = []
+    for item in items:
+        sku_desc = (item[0][:30] + '..') if len(item[0]) > 30 else item[0]
+        items_data.append('%s with Qty: %s' % (sku_desc, int(item[2])))
+        total_quantity += int(item[2])
+        total_amount += int(item[3])
+    data += ', '.join(items_data)
+    data += '\n\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
+    send_sms(telephone, data)
 
 def enable_mail_reports(request):
     data = request.GET.get('data').split(',')
@@ -1281,24 +1307,22 @@ def get_order_id(user_id):
 
 def check_and_update_stock(wms_code, user):
     from rest_api.views.easyops_api import *
-    obj = EasyopsAPI(company_name='easyops', user=user)
-    stock_instance = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE']).filter(sku__wms_code=wms_code,
-                                                 sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
-    reserved_instance = Picklist.objects.filter(status__icontains='picked', order__user=user.id, picked_quantity__gt=0,
-                                                order__sku__wms_code=wms_code).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
-    #raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
-    #                                         stock__sku__wms_code=wms_code).aggregate(Sum('reserved'))['reserved__sum']
-    if not stock_instance:
-        stock_instance = 0
-    if not reserved_instance:
-        reserved_instance = 0
-    #if raw_reserved:
-    #    reserved_instance += raw_reserved
-    sku_count = float(stock_instance) + float(reserved_instance)
-    sku_count = int(sku_count)
-    if sku_count < 0:
-        sku_count = 0
-    obj.update_sku_count(wms_code, sku_count, user=user)
+    integrations = Integrations.objects.filter(user=user.id)
+    for integrate in integrations:
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        stock_instance = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE']).filter(sku__wms_code=wms_code,
+                                                     sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
+        reserved_instance = Picklist.objects.filter(status__icontains='picked', order__user=user.id, picked_quantity__gt=0,
+                                                    order__sku__wms_code=wms_code).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+        if not stock_instance:
+            stock_instance = 0
+        if not reserved_instance:
+            reserved_instance = 0
+        sku_count = float(stock_instance) + float(reserved_instance)
+        sku_count = int(sku_count)
+        if sku_count < 0:
+            sku_count = 0
+        obj.update_sku_count(wms_code, sku_count, user=user)
 
 def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_ids=[]):
     extra_data = []
@@ -1328,8 +1352,10 @@ def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_i
 def check_and_update_order(user, order_id):
     from rest_api.views.easyops_api import *
     user = User.objects.get(id=user)
-    obj = EasyopsAPI(company_name='easyops', user=user)
-    obj.confirm_picklist(order_id, user=user)
+    integrations = Integrations.objects.filter(user=user.id)
+    for integrate in integrations:
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        obj.confirm_picklist(order_id, user=user)
 
 def get_invoice_number(user):
     invoice_number = 1

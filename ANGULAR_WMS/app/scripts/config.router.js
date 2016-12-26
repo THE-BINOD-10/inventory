@@ -156,6 +156,7 @@ var app = angular.module('urbanApp')
         })
         .state('app.masters.SKUMaster', {
           url: '/SKUMaster',
+          permission: 'add_skumaster',
           templateUrl: 'views/masters/sku_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -184,6 +185,7 @@ var app = angular.module('urbanApp')
         })
         .state('app.masters.LocationMaster', {
           url: '/LocationMaster',
+          permission: 'add_locationmaster',
           templateUrl: 'views/masters/location_master.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -204,6 +206,7 @@ var app = angular.module('urbanApp')
           })
         .state('app.masters.supplierSKUMapping', {
           url: '/SupplierSKUMapping',
+          permission: 'add_skusupplier',
           templateUrl: 'views/masters/supplier_sku_mapping_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -220,6 +223,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.SupplierMaster', {
           url: '/SupplierMaster',
+          permission: 'add_suppliermaster',
           templateUrl: 'views/masters/supplier_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -236,6 +240,7 @@ var app = angular.module('urbanApp')
           })
         .state('app.masters.CustomerMaster', {
           url: '/CustomerMaster',
+          permission: 'add_customermaster',
           templateUrl: 'views/masters/customer_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -252,7 +257,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.Customer-SKUMapping', {
           url: '/Customer-SKUMapping',
-          permission: 'pos_switch',
+          permission: 'add_customersku&pos_switch',
           templateUrl: 'views/masters/customer_sku_mapping_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -269,6 +274,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.BOMMaster', {
           url: '/BOMMaster',
+          permission: 'add_bommaster',
           templateUrl: 'views/masters/BOM_datatable.html',
           permission: 'production_switch',
           resolve: {
@@ -303,7 +309,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.VendorMaster', {
           url: '/VendorMaster',
-          permission: 'production_switch',
+          permission: 'add_vendormaster&production_switch',
           templateUrl: 'views/masters/vendor_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -320,7 +326,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.DiscountMaster', {
           url: '/DiscountMaster',
-          permission: 'pos_switch',
+          permission: 'add_categorydiscount&pos_switch',
           templateUrl: 'views/masters/discount_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -337,6 +343,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.CustomSKUMaster', {
           url: '/CustomSKUMaster',
+          permission: 'productproperties',
           templateUrl: 'views/masters/custom_sku_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -353,6 +360,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.SizeMaster', {
           url: '/SizeMaster',
+          permission: 'add_sizemaster',
           templateUrl: 'views/masters/size_master.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -509,7 +517,7 @@ var app = angular.module('urbanApp')
         })
         .state('app.production.RaiseJO', {
           url: '/RaiseJO',
-          permission: 'add_joborder&production_switch',
+          permission: 'add_jomaterial&production_switch',
           templateUrl: 'views/production/raise_jo.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -528,17 +536,17 @@ var app = angular.module('urbanApp')
         })
           .state('app.production.RaiseJO.JO', {
             url: '/JO',
-            permission: 'add_joborder&production_switch',
+            permission: 'add_jomaterial&production_switch',
             templateUrl: 'views/production/toggle/update_jo.html'
           })
           .state('app.production.RaiseJO.RWO', {
             url: '/RWO',
-            permission: 'add_joborder&production_switch',
+            permission: 'add_jomaterial&production_switch',
             templateUrl: 'views/production/toggle/update_rwo.html'
           })
           .state('app.production.RaiseJO.JobOrderPrint', {
             url: '/JobOrderPrint',
-            permission: 'add_joborder&production_switch',
+            permission: 'add_jomaterial&production_switch',
             templateUrl: 'views/production/print/job_order_print.html'
           })
         .state('app.production.RMPicklist', {
@@ -572,7 +580,7 @@ var app = angular.module('urbanApp')
           })
         .state('app.production.ReveiveJO', {
           url: '/ReceiveJO',
-          permission: 'production_switch',
+          permission: 'add_joborder&production_switch',
           templateUrl: 'views/production/receive_jo.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -585,12 +593,12 @@ var app = angular.module('urbanApp')
         })
           .state('app.production.ReveiveJO.ReceiveJobOrder', {
             url: '/ReceiveJobOrder',
-            permission: 'production_switch',
+            permission: 'add_joborder&production_switch',
             templateUrl: 'views/production/toggle/receive_job_order.html'
           })
         .state('app.production.JobOrderPutaway', {
           url: '/JobOrderPutaway',
-          permission: 'production_switch',
+          permission: 'add_rmlocation&production_switch',
           templateUrl: 'views/production/jo_putaway.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -603,7 +611,7 @@ var app = angular.module('urbanApp')
         })
           .state('app.production.JobOrderPutaway.JOPutaway', {
             url: '/JOPutaway',
-            permission: 'production_switch',
+            permission: 'add_rmlocation&production_switch',
             templateUrl: 'views/production/toggle/job_order_putaway.html'
           })
         .state('app.production.BackOrders', {
@@ -663,7 +671,7 @@ var app = angular.module('urbanApp')
         })
         .state('app.stockLocator.VendorStock', {
           url: '/VendorStock',
-          permission: 'roduction_switch',
+          permission: 'add_vendorstock&production_switch',
           templateUrl: 'views/stockLocator/vendor_stock.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -779,7 +787,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.outbound.ViewOrders', {
           url: '/ViewOrders',
-          permission: 'add_orderdetail',
+          permission: 'add_picklist',
           templateUrl: 'views/outbound/view_orders.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -802,36 +810,37 @@ var app = angular.module('urbanApp')
         })
           .state('app.outbound.ViewOrders.Picklist', {
             url: '/Picklist',
-            permission: 'add_orderdetail',
+            permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/batch_tg.html'
           })
           .state('app.outbound.ViewOrders.Transfer', {
             url: '/Transfer',
-            permission: 'add_orderdetail',
+            permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/transfer_tg.html'
           })
           .state('app.outbound.ViewOrders.CreateOrder', {
             url: '/CreateOrder',
-            permission: 'add_orderdetail',
+            permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/create_order.html'
           })
           .state('app.outbound.ViewOrders.CreateTransfer', {
             url: '/CreateTransfer',
-            permission: 'add_orderdetail',
+            permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/create_stock_transfer.html'
           })
           .state('app.outbound.ViewOrders.JO', {
             url: '/RaiseJO',
-            permission: 'add_orderdetail&batch_switch',
+            permission: 'add_picklist&batch_switch',
             templateUrl: 'views/outbound/toggle/backorder_jo.html'
           })
           .state('app.outbound.ViewOrders.PO', {
             url: '/RaisePO',
-            permission: 'add_orderdetail&batch_switch',
+            permission: 'add_picklist&batch_switch',
             templateUrl: 'views/outbound/toggle/backorder_po.html'
           })
           .state('app.outbound.ViewOrders.OrderDetails', {
             url: '/OrderDetails',
+            permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/view_order_details.html'
           })
           .state('app.outbound.ViewOrders.GenerateInvoice', {
@@ -841,8 +850,7 @@ var app = angular.module('urbanApp')
           })
           .state('app.outbound.ViewOrders.ST', {
             url: '/ST',
-            params: {param1: null},
-            permission: 'add_orderdetail',
+            permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -852,7 +860,7 @@ var app = angular.module('urbanApp')
           })
         .state('app.outbound.PullConfirmation', {
           url: '/PullConfirmation',
-          permission: 'add_picklist',
+          permission: 'add_picklistlocation',
           templateUrl: 'views/outbound/pull_confirmation.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -875,17 +883,17 @@ var app = angular.module('urbanApp')
         })
           .state('app.outbound.PullConfirmation.Open', {
             url: '/Open',
-            permission: 'add_picklist',
+            permission: 'add_picklistlocation',
             templateUrl: 'views/outbound/toggle/open_tg.html'
           })
           .state('app.outbound.PullConfirmation.Picked', {
             url: '/Picked',
-            permission: 'add_picklist',
+            permission: 'add_picklistlocation',
             templateUrl: 'views/outbound/toggle/picked_tg.html'
           })
           .state('app.outbound.PullConfirmation.GenerateInvoice', {
             url: '/Invoice',
-            permission: 'add_picklist',
+            permission: 'add_picklistlocation',
             templateUrl: 'views/outbound/print/generate_invoice.html'
           })
         .state('app.outbound.ShipmentInfo', {
@@ -1001,7 +1009,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Payment Tracker'
+            title: 'Pending Payment Tracker'
           }
         })
 
@@ -1252,6 +1260,7 @@ var app = angular.module('urbanApp')
       // ManageUsers route
       .state('app.ManageUsers', {
           url: '/ManageUsers',
+          permission: 'is_staff',
           templateUrl: 'views/manage_users/manage_users.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {

@@ -67,8 +67,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       
       }
       angular.copy(dat, vm.model_data);
+      vm.model_data["sku_total_quantities"] = data.sku_total_quantities;
       console.log(dat);
-      vm.get_all_locations();
+      angular.copy(vm.model_data.sku_total_quantities ,vm.remain_quantity);
+      vm.count_sku_quantity();
     }
 
     vm.model_data = {}
@@ -111,31 +113,42 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
   vm.update_data = update_data;
   function update_data(index, data, last) {
     console.log(data);
+    var remain = vm.model_data.sku_total_quantities[data.wms_code] - vm.remain_quantity[data.wms_code]
     if (last) {
-      var total = 0;
-      for(var i=0; i < data.sub_data.length; i++) {
-        total = total + parseInt(data.sub_data[i].quantity);
-      }
-      if(total < data.original_quantity) {
-        var clone = {};
-        angular.copy(data.sub_data[index], clone);
-        clone.quantity = data.original_quantity - total;
-        data.sub_data.push(clone);
+      if(!(vm.model_data.sku_total_quantities[data.wms_code] <= vm.remain_quantity[data.wms_code])){
+        var total = 0;
+        for(var i=0; i < data.sub_data.length; i++) {
+          total = total + parseInt(data.sub_data[i].quantity);
+        }
+        if(total < data.original_quantity) {
+          var clone = {};
+          angular.copy(data.sub_data[index], clone);
+          var temp = data.original_quantity - total;
+          clone.quantity = (remain < temp)?remain:temp;
+          //clone.quantity = data.original_quantity - total;
+          data.sub_data.push(clone);
+        }
       }
     } else {
       data.sub_data.splice(index,1);
     }
+    vm.count_sku_quantity();
   }
 
   vm.cal_quantity = cal_quantity;
   function cal_quantity(sku, data) {
     console.log(sku);
+    var sku_qty = sku.quantity;
+    var remain = vm.model_data.sku_total_quantities[data.wms_code] - vm.remain_quantity[data.wms_code]
     var total = 0;
     for(var i=0; i < data.sub_data.length; i++) {
         total = total + parseInt(data.sub_data[i].quantity);
     }
     if(data.original_quantity >= total){
-      console.log(sku.quantity)
+      console.log(sku.quantity);
+      if(remain < 0) {
+        vm.change_quantity(sku, remain, sku_qty);
+      }
     } else {
       var quantity = data.original_quantity-total;
       if(quantity < 0) {
@@ -145,6 +158,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       } else {
         sku.quantity = quantity;
       }
+      vm.change_quantity(sku, remain, sku_qty)
+    }
+    vm.count_sku_quantity();
+  }
+
+  vm.change_quantity = function(sku, remain, sku_qty){
+    console.log(remain);
+    var temp = sku.quantity;
+    if(remain == 0) {
+      sku.quantity = 0;
+      console.log(sku.quantity);
+    } else if(remain < 0) {
+      sku.quantity = Number(sku_qty) + remain;
+    }
+    if(Number(temp) < sku.quantity) {
+      sku.quantity = temp;
     }
   }
 
@@ -154,253 +183,216 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     vm.service.print_data(clone, 'Putaway Confirmation');  
   }
 
-  vm.get_all_locations = function(data) {
-
-    vm.scan_data.locations = []
-    vm.unique_combination = [];
-    angular.forEach(vm.model_data.data, function(temp1){
-
-      angular.forEach(temp1.sub_data, function(temp2){
-
-        if(vm.scan_data.locations.indexOf(temp2.loc) == -1) {
-
-          vm.scan_data.locations.push(temp2.loc);
-        }
-        if(vm.total_quantity(temp1.sub_data) == temp1.original_quantity) {
-          vm.unique_combination.push({locaton: temp2.loc, sku: temp1.wms_code, status: true});
-        } else {
-          vm.unique_combination.push({locaton: temp2.loc, sku: temp1.wms_code, status: false});
-        }
-      })
-    });
-    vm.get_sug();
-  }
-
-  vm.check_comb = function(v1, v2) {
-
-    var status = false;
-    angular.forEach(vm.unique_combination, function(data) {
-      if(data.locaton == v1 && data.sku == v2){
-        status = true;
-        return status;
-      }
-    })
-    return status;
-  }
-
-  vm.check_comb_stat = function(v1, v2) {
-
-    var status = false;
-    angular.forEach(vm.unique_combination, function(data) {
-      if(data.locaton == v1 && data.sku == v2 && !(data.status)){
-        status = true;
-        return status;
-      }
-    })
-    return status;
-  }
-
-  vm.sug_sku = "";
-  vm.sug_loc = "";
-
-  vm.get_sug = function() {
-
-    var status = true;
-    vm.sug_sku = "";
-    angular.forEach(vm.unique_combination, function(data){
-
-      if(vm.model_data.scan_location) {
-
-        if(data.status == false && status && vm.model_data.scan_location == data.locaton) {
-
-          vm.sug_sku = data.sku;
-          vm.sug_loc = data.locaton;
-          status = false;
-          return;
-        }
-      } else if(data.status == false && status) {
-        vm.sug_sku = data.sku;
-        vm.sug_loc = data.locaton;
-        status = false;
-        return;
-      }
-    });
-  }
-
-  vm.unique_combination = [];
-  vm.scan_data = { suggested_sku: [""], suggest_sku: 0 , locations:[], loc_new: false};
-
+  //scanning
   vm.check_location = function(event, field) {
 
+    var field = field;
     vm.service.scan(event, field).then(function(data){
       if(data) {
-          if(vm.scan_data.locations.indexOf(field) == -1) {
-            vm.service.apiCall("get_stock_location_quantity/", "GET", {location: field, wms_code: vm.model_data.scan_sku})
+        vm.service.scan(event, field).then(function(data){
+          if(vm.check_match(field)) {
+            console.log(field);
+            $("textarea[attr-name='sku']").focus();
+            vm.suggest_sku();
+          } else {
+            vm.service.apiCall("get_location_capacity/", "GET", {location: field})
             .then(function(data){
               if(data.data.message == "Invalid Location"){
                 alert("Invalid Location");
                 vm.model_data.scan_location = "";
-                return;
               } else {
-                vm.scan_data.loc_new = true;
-                vm.scan_data.suggested_sku = [];
-                vm.scan_data.suggest_sku = 0;
                 $("textarea[attr-name='sku']").focus();
-                angular.forEach(vm.model_data.data, function(temp){
-
-                  angular.forEach(temp.sub_data, function(temp1){
-                    if(vm.scan_data.suggested_sku.indexOf(temp.wms_code) == -1) {
-                        vm.scan_data.suggested_sku.push(temp.wms_code);
-                    }
-                  })
-                })
-                vm.get_sug();
-              }
+                vm.suggest_sku();
+              } 
             })
-          } else {
-
-            vm.scan_data.suggested_sku = [];
-            vm.scan_data.suggest_sku = 0;
-            angular.forEach(vm.model_data.data, function(temp){
-
-              angular.forEach(temp.sub_data, function(temp1){
-                  if(vm.scan_data.suggested_sku.indexOf(temp.wms_code) == -1) {
-                    vm.scan_data.suggested_sku.push(temp.wms_code);
-                  }
-              })
-            })
-            vm.get_sug();
-            $("textarea[attr-name='sku']").focus();
           }
+        });
       }
-    })
+    }) 
   }
 
+  vm.current_data = [];
   vm.check_sku = function(event, field) {
 
     var field = field;
     vm.service.scan(event, field).then(function(data){
       if(data) {
-        if(!(vm.model_data.scan_location)) {
-          alert("Please Scan Location First");
-          $("textarea[attr-name='location']").focus();
-          vm.model_data.scan_sku = "";
-          return;
-        } else if(vm.scan_data.suggested_sku.indexOf(field) == -1) {
-          alert("Invalid SKU");
-          vm.model_data.scan_sku = "";
-        } else if(!(vm.check_comb(vm.model_data.scan_location, field))) {
-
-          var add_new = true;
-            angular.forEach(vm.model_data.data, function(temp){
-              if(temp.wms_code == field) {
-                if(vm.total_quantity(temp.sub_data) < Number(temp.original_quantity) && add_new) {
-                      var clone = {};
-                      angular.copy(temp.sub_data[0], clone);
-                      clone.quantity = 1;
-                      clone.loc = vm.model_data.scan_location;
-                      temp.sub_data.push(clone);
-                      vm.scan_data.locations.push(vm.model_data.scan_location);
-                      vm.scan_data.suggested_sku.push(field);
-                      vm.model_data.scan_sku = "";
-                      vm.scan_data.loc_new = false;
-                      vm.get_all_locations();
-                      add_new = false;
-                } else {
-                  //alert("Reserved Quantity Equal to Picked Quantity.");
-                  vm.model_data.scan_sku = "";
-                }
-              }
-            })
-        } else {
-          if(vm.check_comb_stat(vm.model_data.scan_location, field)) {
-            vm.incrs_qnty(field);
-          } else {
-            alert("Reserved Quantity Equal to Picked Quantity.");
-          }
-          vm.model_data.scan_sku = "";
-        }
-      }
-    })
-  }
-
-  vm.status = true;
-  vm.incrs_qnty = function(data) {
-
-    var dict = {};
-    vm.status = true;
-    var location = vm.model_data.scan_location;
-    vm.alert_status = false;
-    angular.forEach(vm.model_data.data, function(temp){
-      if(temp.wms_code == data) {
-        if (vm.total_quantity(temp.sub_data) == Number(temp.original_quantity)) {
-          //alert("Reserved Quantity Equal to Picked Quantity.");
-          //vm.get_all_locations();
-          //return;
-           vm.alert_status = true;
-        } else {
-          angular.forEach(temp.sub_data, function(temp1){
-            if(temp1.loc == location) {
-              if(vm.status) {
-                if(vm.is_total(temp)) {
-                  if(temp1["stock"] && (temp1["stock"] <= Number(temp1.quantity)+1)) {
-                    alert("Insufficient Stock");
+        if(vm.model_data.scan_location) {
+          if(vm.check_sku_match(field)) {
+            if(vm.model_data.sku_total_quantities[field] <= vm.remain_quantity[field]) {
+              alert("Reservered quantity equal to picked quantity")
+            } else {
+              if (vm.check_comb()) {
+                vm.incr_qty();
+              } else {
+                vm.service.apiCall("get_location_capacity/", "GET", {location: vm.model_data.scan_location, wms_code: field})
+                  .then(function(data){
+                  if(data.data.message == "Invalid Location"){
+                    alert("Invalid Location");
+                  } else if(data.data.capacity == 0) {
+                    alert("Zero Capacity");
                   } else {
-                    temp1.quantity = Number(temp1.quantity)+1;
-                    vm.alert_status = false;
-                    vm.get_all_locations();
-                    vm.status = false;
+                    var required = vm.model_data.sku_total_quantities[field] - vm.remain_quantity[field];
+                    var temp_reserve = (data.data.capacity < required)? data.data.capacity: required;
+                    vm.model_data.data.push({image: "",order_id: "", original_quantity: temp_reserve, wms_code: field, sub_data:[{loc: vm.model_data.scan_location, quantity: 1, new: true}]})
+                    vm.count_sku_quantity();
                   }
-                  vm.status = false;
-                  if(vm.total_quantity(temp.sub_data) == Number(temp.original_quantity)) {
-                    vm.get_all_locations();
-                  }
-                  return true;
-                } else {
-                  vm.model_data.scan_sku = "";
-                  alert("Reserved Quantity Equal to Picked Quantity.");
-                }
+                })
               }
             }
-          })
+          } else {
+            alert("Invalid SKU");
+          }
+          vm.model_data.scan_sku = "";
+        } else {
+          alert("Please Enter location first");
+          vm.model_data.scan_sku = "";
+          $("textarea[attr-name='location']").focus();
         }
       }
+    });
+  }
+
+  vm.incr_qty = function() {
+    var sku = vm.model_data.scan_sku;
+    var location = vm.model_data.scan_location;
+    var status = false;
+    for(var i=0; i < vm.model_data.data.length; i++) {
+
+      if(vm.model_data.data[i].wms_code == sku) {
+        if(vm.increase(vm.model_data.data[i])) {
+          status = false;
+          break;
+        } else {
+          status = true;
+        }
+      }
+    }
+    if(status) {
+      alert("Reserved quantity equal to picked quantity");
+    }
+  }
+
+  vm.increase = function(data) {
+
+    var sku = vm.model_data.scan_sku;
+    var location = vm.model_data.scan_location;
+    var total = 0;
+    angular.forEach(data.sub_data, function(record){
+      total = total + Number(record.quantity);
     })
-    /*if(vm.alert_status) {
-      alert("Reserved Quantity Equal to Picked Quantity");
-      vm.alert_status = false;
-      vm.model_data.scan_sku;
-    }*/
-  }
-  
-  vm.change_suggested = function(data) {
-
-    if(vm.scan_data.suggested_sku[vm.scan_data.suggest_sku+1]){
-      vm.scan_data.suggest_sku += 1;
+    var status = false
+    if(data.original_quantity > total) {
+      angular.forEach(data.sub_data, function(record){
+        if(record.loc == location) {
+          record.quantity = Number(record.quantity) + 1;
+          vm.count_sku_quantity();
+          status = true;
+          return status;
+        }
+      })
     }
+    return status;
   }
 
-  vm.is_total = function(data) {
-    var total = 0
-    angular.forEach(data.sub_data, function(temp){
-      total = total + Number(temp.quantity);
+  vm.check_sku_match = function(field){
+
+    var exist = false;
+    angular.forEach(vm.model_data.data, function(record){
+
+      if(record.wms_code == field) {
+        exist = true;
+        return exist;
+      }
     });
-    if (Number(data.original_quantity) > total) {
-      return true;
-    } else {
-      vm.status = false;
-      vm.change_suggested(data);
-      return false;
+    return exist;
+  }
+
+  vm.check_comb = function() {
+
+    var exist = false;
+    angular.forEach(vm.model_data.data, function(record){
+
+      if(record.wms_code == vm.model_data.scan_sku) {
+        angular.forEach(record.sub_data, function(record1){
+          if(record1.loc == vm.model_data.scan_location) {
+            exist = true;
+            return exist;
+          }
+        });
+      }
+    });
+    return exist;
+  }
+
+  vm.check_match = function(field){
+
+    var exist = false;
+    angular.forEach(vm.model_data.data, function(record){
+
+      angular.forEach(record.sub_data, function(record1){
+
+        if(record1.loc == field) {
+          exist = true;
+          return exist;
+        }
+      });
+    });
+    return exist;
+  }
+
+  vm.remain_quantity = {}
+  vm.count_sku_quantity = function() {
+
+    angular.forEach(vm.remain_quantity, function(value, key) {
+
+      vm.remain_quantity[key] = 0;
+    })
+    angular.forEach(vm.model_data.data, function(record){
+      var temp = 0;
+      angular.forEach(record.sub_data, function(record1){
+
+        temp = temp + Number(record1.quantity);
+      })
+      vm.remain_quantity[record.wms_code] = temp + vm.remain_quantity[record.wms_code];
+    })
+    vm.suggest_sku();
+  }
+
+  vm.sug_sku = "";
+  vm.suggest_sku = function() {
+    var location = vm.model_data.scan_location;
+    var status = false;
+    for(var i = 0 ; i < vm.model_data.data.length ; i++) {
+      var temp = vm.model_data.data[i];
+      if(vm.model_data.sku_total_quantities[temp.wms_code] > vm.remain_quantity[temp.wms_code]){
+        for(var j = 0 ; j < temp.sub_data.length ; j++) {
+          var temp1 = temp.sub_data[j];
+          if(temp1.loc == location && temp.original_quantity > vm.get_total(temp.sub_data)) {
+            vm.sug_sku = temp.wms_code;
+            status = true;
+            break;
+          } else {
+            vm.sug_sku = "";
+          }
+        }
+      } else {
+        vm.sug_sku = "";
+      }
+      if(status) {
+        break;
+      }
     }
+    console.log(vm.sug_sku);
   }
 
-  vm.total_quantity = function(data) {
-
-    var total = 0
-    angular.forEach(data, function(temp){
-      total = total + Number(temp.quantity);
-    });
+  vm.get_total = function(data) {
+    var total = 0;
+    angular.forEach(data, function(record){
+      total = total + Number(record.quantity);
+    })
     return total;
-  }
+  }  
+
 }
 

@@ -165,7 +165,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if(data.$valid) {
 
       console.log(form);
-      var elem = $(form).serializeArray();
+      var elem = $("form:visible").serializeArray();
       var send = {"perms":""};
       angular.forEach(elem, function(temp){
         if (temp.name == "perms") {

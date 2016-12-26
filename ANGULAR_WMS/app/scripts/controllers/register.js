@@ -108,7 +108,7 @@ function RegisterCtrl($rootScope ,$scope, $state, $http, Auth, Session, Service)
   vm.completed = false;
   vm.dashboard = function() {
 
-    Session.roles.permissions["setup_status"] = "false";
+    Session.roles.permissions["setup_status"] = false;
     $state.go("app.dashboard");
   }
 }

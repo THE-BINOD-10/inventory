@@ -70,8 +70,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         this.value = this.value.replace(/[^\d\.]/g, "").replace(/\./, "x").replace(/\./g, "").replace(/x/, ".");
         var data = this.value.split(".")
         if(data[1]) {
-          if(data[1].length >= 3) {
-           this.value = data[0]+"."+data[1].slice(0,2);
+          var limit = (Session.roles.permissions["decimal_limit"])?Number(Session.roles.permissions["decimal_limit"]):1;
+          console.log(limit);
+          if(data[1].length > limit) {
+           this.value = data[0]+"."+data[1].slice(0,limit);
           }
         }
         return true;
@@ -118,8 +120,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       var containsDot = value.match(findsDot)
       if(containsDot != null) {
         var data = value.split(".")
-        if(data[1].length >= 2) {
-          value = data[0]+"."+data[1].slice(0,2);
+        var limit = (Session.roles.permissions["decimal_limit"])?Number(Session.roles.permissions["decimal_limit"]):1;
+        if(data[1].length >= limit) {
+          value = data[0]+"."+data[1].slice(0,limit);
         }
       }
       return value;
@@ -754,7 +757,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
                 }
                 if(containsDot != null) {
                   var data = value.split(".")
-                  if(data[1].length == 2 && (!([8,39,37].indexOf(event.which) > -1))) {
+                  if(data[1].length == 3 && (!([8,39,37].indexOf(event.which) > -1))) {
                     event.preventDefault();
                     return false;
                   }

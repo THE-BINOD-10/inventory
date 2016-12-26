@@ -558,7 +558,7 @@ def get_bom_data(request, user=''):
     bom_master = BOMMaster.objects.filter(product_sku__sku_code=data_id, product_sku__user=user.id)
     for bom in bom_master:
         cond = (bom.material_sku.sku_code)
-        all_data.append({"Material_sku": cond, "Material_Quantity": '%g' % round(bom.material_quantity, 2),
+        all_data.append({"Material_sku": cond, "Material_Quantity": get_decimal_limit(user.id, bom.material_quantity),
                          "Units": bom.unit_of_measurement.upper(),
                          "BOM_ID":bom.id, "wastage_percent": bom.wastage_percent})
     title = 'Update BOM Data'

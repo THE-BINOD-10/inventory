@@ -447,9 +447,9 @@ def get_order_returns_data(start_index, stop_index, temp_data, search_term, orde
         if data.returns.order:
             order_id = data.returns.order.id
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data.id, order_id)
-        zone = "<input type='text' name='zone' value='%s' class='smallbox'>" % data.location.zone.zone
-        location = "<input type='text' name='location' value='%s' class='smallbox'>" % data.location.location
-        quantity = "<input type='text' name='quantity' value='%s' class='smallbox numvalid'><input type='hidden' name='hide_quantity' value='%s'>" % (data.quantity, data.quantity)
+        zone = data.location.zone.zone
+        location = data.location.location
+        quantity = data.quantity
         temp_data['aaData'].append({'': checkbox, 'Return ID': data.returns.return_id,
                                     'Return Date': get_local_date(request.user, data.returns.return_date),
                                     'WMS Code': data.returns.sku.wms_code,
@@ -607,6 +607,7 @@ def switches(request, user=''):
                     'float_switch': request.GET.get('float_switch', ''),
                     'automate_invoice': request.GET.get('automate_invoice', ''),
                     'show_mrp': request.GET.get('show_mrp', ''),
+                    'decimal_limit': request.GET.get('decimal_limit', ''),
                   }
 
 
@@ -939,8 +940,9 @@ def get_supplier_data(request, user=''):
                                                                          sku_id=order_data['sku_id'], order_ids=order_ids)
             orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
                             'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
-                            'name': str(order.order_id) + '-' + str(order_data['wms_code']), 'value': '%g' % float(order.saved_quantity),
-                            'receive_quantity': '%g' % order.received_quantity, 'price': order_data['price'],
+                            'name': str(order.order_id) + '-' + str(order_data['wms_code']),
+                            'value': get_decimal_limit(user.id, order.saved_quantity),
+                            'receive_quantity': get_decimal_limit(user.id, order.received_quantity), 'price': order_data['price'],
                             'temp_wms': order_data['temp_wms'],'order_type': order_data['order_type'], 'dis': True,
                             'sku_extra_data': sku_extra_data, 'product_images': product_images}])
 
@@ -1954,9 +1956,10 @@ def quality_check_data(request, user=''):
         for qc_data in quality_check:
             purchase_data = get_purchase_order_data(qc_data.purchase_order)
             po_reference = '%s%s_%s' % (qc_data.purchase_order.prefix, str(qc_data.purchase_order.creation_date).split(' ')[0].replace('-', ''), qc_data.purchase_order.order_id)
-            data.append({'id': qc_data.id, 'wms_code': purchase_data['wms_code'],
-                                'location': qc_data.po_location.location.location, 'quantity': '%g' % qc_data.putaway_quantity,
-                                'accepted_quantity': '%g' % qc_data.accepted_quantity, 'rejected_quantity': '%g' % qc_data.rejected_quantity})
+            data.append({'id': qc_data.id, 'wms_code': purchase_data['wms_code'], 'location': qc_data.po_location.location.location,
+                         'quantity': get_decimal_limit(user.id, qc_data.putaway_quantity),
+                         'accepted_quantity': get_decimal_limit(user.id, qc_data.accepted_quantity),
+                         'rejected_quantity': get_decimal_limit(user.id, qc_data.rejected_quantity)})
 
     return HttpResponse(json.dumps({'data': data, 'po_reference': po_reference, 'order_id': order_id}))
 
@@ -2996,7 +2999,9 @@ def get_cancelled_putaway(start_index, stop_index, temp_data, search_term, order
         master_data = CancelledLocation.objects.filter(Q(picklist__order__order_id__icontains=search_term) |
                                                        Q(picklist__order__sku__sku_desc__icontains=search_term) |
                                                        Q(picklist__order__sku__wms_code__icontains=search_term) |
-                                                       Q(quantity__icontains=search_term),
+                                                       Q(quantity__icontains=search_term) |
+                                                       Q(location__zone__zone__icontains=search_term) |
+                                                       Q(location__location__icontains=search_term),
                                                        picklist__order__user = user.id , status=1, quantity__gt=0)
     elif order_term:
         col_num = col_num - 1
@@ -3012,9 +3017,9 @@ def get_cancelled_putaway(start_index, stop_index, temp_data, search_term, order
     count = 0;
     for data in master_data[start_index:stop_index]:
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data.id, data.picklist.order_id)
-        zone = "<input type='text' name='zone' value='%s' class='smallbox'>" % data.location.zone.zone
-        location = "<input type='text' name='location' value='%s' class='smallbox'>" % data.location.location
-        quantity = "<input type='text' name='quantity' value='%s' class='smallbox numvalid'><input type='hidden' name='hide_quantity' value='%s'>" % (data.quantity, data.quantity)
+        zone = data.location.zone.zone
+        location = data.location.location
+        quantity = data.quantity
         temp_data['aaData'].append({'': checkbox, 'Order ID': data.picklist.order.order_id,
                                     'WMS Code': data.picklist.stock.sku.wms_code,
                                     'Product Description': data.picklist.order.sku.sku_desc, 'Zone': zone, 'Location': location,

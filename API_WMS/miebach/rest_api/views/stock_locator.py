@@ -137,14 +137,15 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
             temp_data['aaData'].append(OrderedDict(( ('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
                                         ('Receipt Date', get_local_date(user, data.receipt_date)), ('SKU Code', data.sku.sku_code),
                                         ('WMS Code', data.sku.wms_code), ('Product Description', data.sku.sku_desc),
-                                        ('Zone', data.location.zone.zone), ('Location', data.location.location), ('Quantity', '%g' % round(data.quantity, 2)),
+                                        ('Zone', data.location.zone.zone), ('Location', data.location.location),
+                                        ('Quantity', get_decimal_limit(user.id, data.quantity)),
                                         ('Pallet Code', pallet_code), ('Receipt Type', data.receipt_type) )) )
         else:
             temp_data['aaData'].append(OrderedDict(( ('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
                                         ('Receipt Date', get_local_date(user, data.receipt_date)), ('SKU Code', data.sku.sku_code),
                                         ('WMS Code', data.sku.wms_code), ('Product Description', data.sku.sku_desc),
                                         ('Zone', data.location.zone.zone), ('Location', data.location.location),
-                                        ('Quantity', '%g' % round(data.quantity, 2)), ('Receipt Type', data.receipt_type))))
+                                        ('Quantity', get_decimal_limit(user.id, data.quantity)), ('Receipt Type', data.receipt_type))))
 
 @csrf_exempt
 def get_cycle_confirmed(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters=''):
@@ -284,7 +285,7 @@ def get_cycle_count(start_index, stop_index, temp_data, search_term, order_term,
     for data in cycle_data[start_index:stop_index]:
         quantity = data['total']
         temp_data['aaData'].append({'wms_code': data['sku__wms_code'], 'zone': data['location__zone__zone'],
-                                    'location': data['location__location'], 'quantity': '%g' % round(quantity, 2), 'id': index})
+                                    'location': data['location__location'], 'quantity': get_decimal_limit(user.id, quantity), 'id': index})
         index = index+1
 
 @csrf_exempt
@@ -504,4 +505,5 @@ def get_vendor_stock(start_index, stop_index, temp_data, search_term, order_term
     for data in master_data[start_index:stop_index]:
         temp_data['aaData'].append(OrderedDict(( ('Vendor Name', data['vendor__name']), ('WMS Code', data['sku__wms_code']),
                                                  ('Product Description', data['sku__sku_desc']), ('SKU Category', data['sku__sku_category']),
-                                                 ('Quantity', '%g' % round(data['total'], 2)), ('DT_RowId', data['sku__wms_code']) )))
+                                                 ('Quantity', get_decimal_limit(user.id, data['total'])), ('DT_RowId', data['sku__wms_code'])
+                                              )))

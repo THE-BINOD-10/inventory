@@ -142,7 +142,7 @@ class OrderDetail(models.Model):
     order_id = models.BigIntegerField()
     original_order_id = models.CharField(max_length=128,default='')
     customer_id = models.PositiveIntegerField(default=0)
-    customer_name = models.CharField(max_length=128,default='')
+    customer_name = models.CharField(max_length=256,default='')
     email_id = models.EmailField(max_length=64, default='')
     address = models.CharField(max_length=256,default='')
     telephone = models.CharField(max_length=128, default='')
@@ -1247,6 +1247,16 @@ class Integrations(models.Model):
 
     class Meta:
         db_table = 'INTEGRATIONS'
+
+class PaymentSummary(models.Model):
+    id = BigAutoField(primary_key=True)
+    order = models.ForeignKey(OrderDetail, blank=True, null=True)
+    payment_received = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PAYMENT_SUMMARY'
 
 class FileDump(models.Model):
     user = models.ForeignKey(User, blank=True, null=True)

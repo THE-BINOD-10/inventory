@@ -73,7 +73,7 @@
               <input type="text" autocomplete="off" name="material_code" class="form-control" placeholder="Search Material SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?','RM')" typeahead-loading="loadingLocations" ng-model="item.material_code" ng-blur="showCase.service.checkSearchValue(item.material_code,'search_wms_codes?', $event, 'RM', 'Material SKU Code')">
             </div>
             <div class="col-md-3">
-              <input type="text" decimal-number name="material_quantity" d-perm="true" class="form-control" value="{{(data.product_description > -1)? showCase.service.decimal(data.product_description, item.material_quantity): item.material_quantity;}}" ng-class="service.get_decimal_perm()">
+              <input type="text" name="material_quantity" d-perm="true" class="form-control" value="{{(data.product_description > -1)? showCase.service.decimal(data.product_description, item.material_quantity): item.material_quantity;}}" ng-class="service.get_decimal_perm()">
             </div>
             <div class="col-md-1">
               <div class="col-md-1"> <i ng-click="showCase.update_data(data, $index, $last, $first)" ng-class="showCase.isLast($last)"></i> </div>

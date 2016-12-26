@@ -1012,10 +1012,6 @@ var app = angular.module('urbanApp')
             title: 'Pending Payment Tracker'
           }
         })
-        .state('app.PaymentTracker.UpdateOrder', {
-            url: '/UpdateOrder',
-            templateUrl: 'views/outbound/toggle/update_order.html'
-          })
 
       // Reports routes
       .state('app.reports', {

@@ -68,7 +68,7 @@
                 <tr ng-repeat="product in showCase.model_data.data">
                   <td>
                     <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="showCase.update">
-                    <input type="text" autocomplete="off" ng-readonly="(product.pk > 0)" name="wms_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" ng-blur="showCase.check_sku_list(product.$$hashKey, product.fields.sku.wms_code, $index);showCase.service.checkSearchValue(product.fields.sku.wms_code,'search_wms_codes?', $event, 'WMS Code', 'WMS Code')" ng-change="showCase.get_sku_details(product)" typeahead-on-select="showCase.get_sku_details(product)">
+                    <input type="text" autocomplete="off" ng-readonly="(product.pk > 0)" name="wms_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" ng-blur="showCase.check_sku_list(product.$$hashKey, product.fields.sku.wms_code, $index);" typeahead-on-select="showCase.get_sku_details(product)">
                   </td>
                   <td>
                     <input id="wms1" ng-model="product.fields.supplier_code" type="text" name="supplier_code" class="form-control " value="">

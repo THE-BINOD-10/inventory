@@ -83,10 +83,15 @@
                 <tr>
                   <td>
                     <select class="form-control" name="payment_mode" ng-model="showCase.model_data.payment_mode">
+                      <option value="" selected></option>
                       <option>Credit Card</option>
                       <option>Debit Card</option>
-                      <option>Cash On Delivery</option>
                       <option>Cash</option>
+                      <option>NEFT</option>
+                      <option>RTGS</option>
+                      <option>IMPS</option>
+                      <option>Online Transfer</option>
+                      <option>Cash Remittance</option>
                     </select>
                   </td>
                   <td>
@@ -166,7 +171,7 @@
           <div ui-view></div>
         </div>
       </tab>
-      <tab heading="Create Stock Transfer Order" ng-if="permissions.multi_warehouse == 'true'">
+      <tab heading="Create Stock Transfer Order" ng-if="permissions.multi_warehouse">
         <div ng-controller="CreateStockOrders as showCase">
           <form id="add_st">
             <div class="form-group clearfix">

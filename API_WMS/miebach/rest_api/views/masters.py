@@ -180,7 +180,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
-        mapping_results = SKUSupplier.objects.filter( Q(sku_id = search_term) | Q(preference__icontains = search_term) | Q(moq__icontains = search_term) | Q(sku__wms_code__icontains = search_term) | Q(supplier_code__icontains = search_term),sku__user=user.id, supplier__user=user.id, **filter_params ).order_by(order_data)
+        mapping_results = SKUSupplier.objects.filter( Q(sku__id__icontains = search_term) | Q(preference__icontains = search_term) | Q(moq__icontains = search_term) | Q(sku__wms_code__icontains = search_term) | Q(supplier_code__icontains = search_term),sku__user=user.id, supplier__user=user.id, **filter_params ).order_by(order_data)
 
     else:
         mapping_results = SKUSupplier.objects.filter(sku__user = user.id, supplier__user=user.id, **filter_params).order_by(order_data)
@@ -558,7 +558,7 @@ def get_bom_data(request, user=''):
     bom_master = BOMMaster.objects.filter(product_sku__sku_code=data_id, product_sku__user=user.id)
     for bom in bom_master:
         cond = (bom.material_sku.sku_code)
-        all_data.append({"Material_sku": cond, "Material_Quantity": '%g' % round(bom.material_quantity, 2),
+        all_data.append({"Material_sku": cond, "Material_Quantity": get_decimal_limit(user.id, bom.material_quantity),
                          "Units": bom.unit_of_measurement.upper(),
                          "BOM_ID":bom.id, "wastage_percent": bom.wastage_percent})
     title = 'Update BOM Data'

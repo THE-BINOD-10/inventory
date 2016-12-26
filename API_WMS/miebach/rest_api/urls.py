@@ -107,6 +107,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^confirm_vendor_received/$', 'confirm_vendor_received'),
     url(r'^track_orders/$', 'track_orders'),
     url(r'^cancelled_putaway_data/$', 'cancelled_putaway_data'),
+    url(r'^get_location_capacity/$', 'get_location_capacity'),
 
     # Production
     url(r'^generated_jo_data/$', 'generated_jo_data'),
@@ -184,6 +185,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^get_customer_payment_tracker/$', 'get_customer_payment_tracker'),
     url(r'^get_customer_master_id/$', 'get_customer_master_id'),
     url(r'^search_wms_data/$', 'search_wms_data'),
+    url(r'^update_payment_status/$', 'update_payment_status'),
 
     # Reports
     #url(r'^location_wise_filter/$','location_wise_filter'),

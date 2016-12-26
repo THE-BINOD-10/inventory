@@ -1579,8 +1579,9 @@ def get_rm_back_order_data(start_index, stop_index, temp_data, search_term, orde
         if procured_quantity > 0:
             checkbox = "<input type='checkbox' id='back-checked' name='%s'>" % title
             master_data.append({'': checkbox, 'WMS Code': wms_code, 'Ordered Quantity': order_quantity,
-                                'Stock Quantity': '%g' % round(stock_quantity, 2), 'Transit Quantity': '%g' % round(transit_quantity, 2),
-                                'Procurement Quantity': '%g' % round(procured_quantity, 2), 'DT_RowClass': 'results'})
+                                'Stock Quantity': get_decimal_limit(user.id, stock_quantity),
+                                'Transit Quantity': get_decimal_limit(user.id, transit_quantity),
+                                'Procurement Quantity': get_decimal_limit(user.id, procured_quantity), 'DT_RowClass': 'results'})
     if search_term:
         master_data = filter(lambda person: search_term in person['WMS Code'] or search_term in str(person['Ordered Quantity']) or\
                search_term in str(person['Stock Quantity']) or search_term in str(person['Transit Quantity']) or \
@@ -1750,7 +1751,7 @@ def generate_rm_rwo_data(request, user=''):
         if bom_master:
             for bom in bom_master:
                 all_data.append({'product_code': key, 'product_quantity': value, 'material_code': bom.material_sku.sku_code,
-                                 'material_quantity': float(bom.material_quantity) * float(value), 'id': ''})
+                                 'material_quantity': float(bom.material_quantity), 'id': ''})
         else:
             all_data.append({'product_code': key, 'product_quantity': value, 'material_code': '', 'material_quantity': '', 'id': ''})
     vendors = list(VendorMaster.objects.filter(user=user.id).values('vendor_id', 'name'))

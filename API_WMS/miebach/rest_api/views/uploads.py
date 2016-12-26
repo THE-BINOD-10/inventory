@@ -1628,8 +1628,8 @@ def validate_bom_form(open_sheet, user, bom_excel):
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Quantity Should be in integer or float')
-                else:
-                    index_status.setdefault(row_idx, set()).add('Quantity Should not be empty')
+                #else:
+                #    index_status.setdefault(row_idx, set()).add('Quantity Should not be empty')
             elif key == 'wastage_percent':
                 cell_data = open_sheet.cell(row_idx, bom_excel[key]).value
                 if cell_data:

@@ -4,6 +4,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   $scope.msg = "start";
   var vm = this;
+  vm.order_type_value = "offline";
   vm.service = Service;
   vm.company_name = Session.user_profile.company_name;
   vm.model_data = {}
@@ -88,7 +89,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.brand = "";
 
   function change_filter_data() {
-    var data = {brand: vm.brand, category: vm.category, is_catalog: true};
+    var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
   
       if(data.message) {
@@ -126,7 +127,8 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     }
     vm.category = cat_name;
     vm.catlog_data.index = "";
-    var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true} 
+    var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
+                sale_through: vm.order_type_value} 
     vm.catlog_data.index = ""
     vm.scroll_data = false;
     vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
@@ -146,7 +148,8 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   vm.get_category = function(status, scroll) {
     vm.scroll_data = false;
-    var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true}
+    var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
+                sale_through: vm.order_type_value}
     vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
 
       if(data.message) {
@@ -201,7 +204,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     vm.style='';
     var all = $(".cat-tags");
     vm.remove_bold(all);
-    var data = {brand: vm.brand}
+    var data = {brand: vm.brand, sale_through: vm.order_type_value}
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
       if(data.message) {
 
@@ -636,6 +639,31 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
       vm.service.pop_msg('Invalid phone number');
     } else {
       vm.service.pop_msg('Please fill required fields');
+    }
+  }
+
+  //Order type 
+  vm.order_type = false;
+  vm.order_type_value = "offline"
+  vm.change_order_type = function() {
+
+    vm.catlog_data.index = "";
+    vm.get_order_type();
+    var data = {is_catalog: true, sale_through: vm.order_type_value};
+    vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
+
+      if(data.message) {
+
+        vm.brands = data.data.brands;
+      }
+    })
+  }
+  vm.get_order_type = function() {
+
+    if(vm.order_type) {
+      vm.order_type_value = "Online";
+    } else {
+      vm.order_type_value = "Offline";
     }
   }
 }

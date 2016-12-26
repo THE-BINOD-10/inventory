@@ -18,8 +18,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        .withDataProp('data')
        .withOption('processing', true)
        .withOption('serverSide', true)
-       .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback);
+       .withPaginationType('full_numbers');
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Group Name').withTitle('Group Name'),
         DTColumnBuilder.newColumn('Members Count').withTitle('Members Count')
@@ -35,24 +34,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.update = true;
     vm.message = "";
     vm.model_data = {};
-
-    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
-            $scope.$apply(function() {
-                console.log(aData);
-                vm.service.apiCall("get_user_data/","get",{data_id:aData['DT_RowId']}).then(function(data){
-
-                  angular.copy(aData, vm.model_data)
-                  vm.model_data["groups"] = data.data.groups;
-                  vm.model_data["user_groups"] = data.data.user_groups;
-                  $state.go('app.ManageUsers.UpdateUser');
-                  $timeout(function(){$('.selectpicker').selectpicker();}, 500);
-                });
-            });
-        });
-        return nRow;
-    };
 
     vm.close = close;
     function close() {
@@ -106,6 +87,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           pop_msg(data.data);
           if(data.data == "Updated Successfully") {
             vm.close();
+            vm.reloadData();
           }
         }
       })

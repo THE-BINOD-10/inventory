@@ -1,26 +1,26 @@
-<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+<div id="page-pop" class="modal fade in over-x" tabindex="-1" role="dialog" style="display: block;">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
   <div class="modal-dialog model-custom modal-lg">
-    <div class="modal-content">
+    <div class="modal-content mw55">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
         <h4 class="modal-title">{{showCase.title}}</h4> </div>
       <!-- body-->
       <div class="modal-body">
           <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label for="lr_number" class="control-label"> LR Number </label>
                 <input class="form-control" ng-model="showCase.model_data.lr_number" type="text" name="lr_number">
               </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label for="carrier_name" class="control-label"> Carrier Name </label>
                 <input class="form-control" ng-model="showCase.model_data.carrier_name" type="text" name="carrier_name">
               </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label for="scan_sku" class="control-label"> Scan SKU </label>
                 <textarea class="form-control" rows="1" ng-model="showCase.model_data.scan_sku" type="text" name="scan_sku" ng-keydown="showCase.scan_sku($event, showCase.model_data.scan_sku)"></textarea>
@@ -33,21 +33,22 @@
             </div>
           </div>
           <div class="row">
-            <table class="table table-stk">
-              <thead>
-                <tr>
-                  <th>WMS CODE</th>
-                  <th>PO Quantity</th>
-                  <th ng-if="showCase.permissions.pallet_switch">Pallet Number</th>
-                  <th>Received Quantity</th>
-                  <th ng-if="showCase.permissions.use_imei">Serial Number</th>
-                  <th>Unit Price</th>
-                  <th ng-if="showCase.permissions.pallet_switch" class="plus"></th>
-                  <th class="detail"></th>
-                <tr>
-              </thead>
-              <tbody ng-repeat="records in showCase.model_data.data">
-                <tr ng-repeat="data in records">
+            <div class="col-md-12">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>WMS CODE</th>
+                    <th>PO Quantity</th>
+                    <th ng-if="showCase.permissions.pallet_switch">Pallet Number</th>
+                    <th>Received Quantity</th>
+                    <th ng-if="showCase.permissions.use_imei">Serial Number</th>
+                    <th>Unit Price</th>
+                    <th ng-if="showCase.permissions.pallet_switch" class="plus"></th>
+                    <th class="detail"></th>
+                  <tr>
+                </thead>
+                <tbody ng-repeat="records in showCase.model_data.data">
+                  <tr ng-repeat="data in records">
                     <input type="hidden" name="supplier_id" value="{{showCase.model_data.supplier_id}}">
                     <input type="hidden" name="id" value="{{data.order_id}}">
                     <input type="hidden" name="new_sku" value="{{data.is_new}}">
@@ -78,9 +79,10 @@
                         </div>
                       </span>
                     </td>
-                </tr>
-              </tbody>
-            </table>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
           <div class="row">
             <center>
@@ -91,10 +93,10 @@
       </div>
       <!-- body end-->
       <div class="modal-footer">
-        <button ng-if="(!(showCase.print_enable))" type="button" class="pull-left btn pop pop-green" ng-click="showCase.close_po(form)">Close PO</button>
-        <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.confirm_grn(form)">Generate GRN</button>
-        <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-green" ng-click="showCase.submit(form)">Save</button>
-        <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
+        <button ng-if="(!(showCase.print_enable))" type="button" class="pull-left btn pop pop-green col-xs-12 col-sm-3 col-md-2" ng-click="showCase.close_po(form)">Close PO</button>
+        <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.submit(form)">Save</button>
+        <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-4 col-md-3" data-dismiss="modal" ng-click="showCase.confirm_grn(form)">Generate GRN</button>
+        <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green pull-right" ng-click="showCase.print_grn()">Print</button>
       </div>
     </div>
     <!-- /.modal-content -->

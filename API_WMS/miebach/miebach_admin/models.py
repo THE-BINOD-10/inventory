@@ -1112,6 +1112,8 @@ class ProductionStages(models.Model):
     class Meta:
         db_table = 'PRODUCTION_STAGES'
         unique_together = ('user', 'stage_name')
+    def __unicode__(self):
+        return self.stage_name
 
 class OrdersAPI(models.Model):
     user = models.PositiveIntegerField(default=0)
@@ -1223,6 +1225,7 @@ class SizeMaster(models.Model):
         unique_together = ('user', 'size_name')
 
 class Brands(models.Model):
+    user = models.ForeignKey(User)
     brand_name = models.CharField(max_length=64, default='')
 
     class Meta:
@@ -1236,6 +1239,13 @@ class UserBrand(models.Model):
 
     class Meta:
         db_table = 'USER_BRAND'
+
+class GroupStage(models.Model):
+    user = models.ForeignKey(User)
+    stages_list = models.ManyToManyField(ProductionStages)
+
+    class Meta:
+	db_table = 'GROUP_STAGE'
 
 class Integrations(models.Model):
     user = models.PositiveIntegerField()
@@ -1269,9 +1279,23 @@ class FileDump(models.Model):
     class Meta:
         db_table = 'FILE_DUMP'
 
-@receiver(post_save, sender=SKUMaster)
-def create_user_sku_file(sender, **kwargs):
-    from rest_api.views.common import get_user_sku_data
-    sku = kwargs.get('instance')
-    get_user_sku_data(sku)
+class UserStages(models.Model):
+    user = models.ForeignKey(User)
+    stages_list = models.ManyToManyField(ProductionStages)
 
+    class Meta:
+	db_table = 'USER_STAGE'
+
+class GroupBrand(models.Model):
+    group = models.ForeignKey(Group)
+    brand_list = models.ManyToManyField(Brands)
+
+    class Meta:
+        db_table = 'GROUP_BRAND'
+
+class GroupStages(models.Model):
+    group = models.ForeignKey(Group)
+    stages_list = models.ManyToManyField(ProductionStages)
+
+    class Meta:
+        db_table = 'GROUP_STAGE_MAP'

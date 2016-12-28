@@ -21,8 +21,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
        .withOption('processing', true)
        .withOption('serverSide', true)
        .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback);
-
+       .withOption('initComplete', function( settings ) {
+         vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
+       });
     vm.dtInstance = {};
 
     vm.reloadData = reloadData;
@@ -57,42 +58,5 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       vm.reloadData();
     });
 
-    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        // Unbind first in order to avoid any duplicate handler (see https://github.com/l-lin/angular-datatables/issues/87)
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
-            $scope.$apply(function() {
-                console.log(aData);
-                $http.get('http://176.9.181.43:7878/rest_api/get_sku_data/?data_id='+aData.DT_RowAttr["data-id"]).success(function(data, status, headers, config) {
-
-                  console.log(data);
-                });
-                $state.go('app.masters.SKUMaster.update');
-            });
-        });
-        if(vm.filter_enable){
-          vm.filter_enable = false;
-          vm.apply_filters.add_search_boxes();
-        }
-        return nRow;
-    } 
-
-    vm.filter_enable = true;
-
-    vm.closeUpdate = closeUpdate;
-    function closeUpdate() {
-
-      $state.go('app.masters.SKUMaster');
-    }
-
-    addSearchBox();
-    vm.addSearchBox = addSearchBox;
-    function addSearchBox () {
-    $("thead > tr > th").each( function () {
-        $(this).addClass("rm-blur")
-        var title = $("thead > tr > th").eq( $(this).index() ).text();
-        $(this).html( '<span>'+title+'</span><input style="width: 94%;border: 1px solid #AAA; padding: 5px;margin-right: 24px;" type="text" data-column="'+$(this).index()+'"class=" hide search-input-text" placeholder="Search '+title+'" />' );
-    });
-  }
   }
 

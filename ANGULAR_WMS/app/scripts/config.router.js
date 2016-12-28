@@ -1012,10 +1012,6 @@ var app = angular.module('urbanApp')
             title: 'Pending Payment Tracker'
           }
         })
-        .state('app.PaymentTracker.UpdateOrder', {
-            url: '/UpdateOrder',
-            templateUrl: 'views/outbound/toggle/update_order.html'
-          })
 
       // Reports routes
       .state('app.reports', {
@@ -1298,6 +1294,10 @@ var app = angular.module('urbanApp')
           .state('app.ManageUsers.ChangePassword', {
             url: '/ChangePassword',
             templateUrl: 'views/manage_users/change_password.html'
+          })
+          .state('app.ManageUsers.GroupDetails', {
+            url: '/GroupDetails',
+            templateUrl: 'views/manage_users/group_details.html'
           })
 
       //register

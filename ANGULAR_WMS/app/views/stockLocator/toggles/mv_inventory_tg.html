@@ -11,30 +11,28 @@
           </div>
           <div class="modal-body">
             <div class="row">
-              <div class="col-md-4">
+              <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> WMS Code * </label>
                   <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="WMSCodesLoading" ng-model="showCase.model_data.wms_code" ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code ,'search_wms_codes?', $event, '', 'WMS Code')" required> 
                </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class=control-label"> Source Location * </label>
                   <input ng-model="showCase.model_data.source_loc" type="text" name="source_loc" class="form-control" required>
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> Destination Location * </label>
                   <input ng-model="showCase.model_data.dest_loc" type="text" name="dest_loc" class="form-control" required>
                 </div>
               </div>
-            </div>
-            <div class="row">
-              <div class="col-md-4">
+              <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> Quantity * </label>
-                  <input ng-model="showCase.model_data.quantity" type="text" name="quantity" class="form-control" decimal-number required>
+                  <input ng-model="showCase.model_data.quantity" type="text" name="quantity" class="form-control" ng-class="service.get_decimal_perm()" required>
                 </div>
               </div>
             </div>

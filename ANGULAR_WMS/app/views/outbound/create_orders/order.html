@@ -1,60 +1,58 @@
-        <div>
+        <div class="">
           <form id="order-create" name="form" role="form" ui-jq="validate">
             <div class="clearfix">
               <div class="row mt10 mb10 pr10 pl10">
-                <div class="col-md-6 col-sm-4 col-xs-4">
+                <div class="col-md-3 col-sm-3 col-xs-6">
                   <button type="button" class="btn btn-primary pull-left" ng-click="showCase.open_customer_pop()">New Customer</button>
                 </div>
-                <div class="col-md-6 col-sm-8 col-xs-8">
-                  <div class="col-md-8 col-sm-8 col-xs-6">
-              	    <label class="switch switch-sm square pull-right ml10">
-                        <div>
-                          <input type="checkbox" ng-model="showCase.custom_order">
-                          <span>
-                            <i class="handle"></i>
-                          </span>
-                        </div>
-                    </label>
-                    <span class="pull-right" align="right">CUSTOM ORDER</span>
-              	  </div>
-  		  <div class="col-md-4 col-sm-4 col-xs-6">
-		    <button type="button" class="btn btn-primary pull-right" ng-click="showCase.catlog=true;showCase.details=true;">View Catalog</button>
-                  </div>
-		</div>
+                <div class="col-md-6 col-sm-6 col-xs-6">
+              	  <label class="switch switch-sm square pull-right ml10">
+                    <div>
+                      <input type="checkbox" ng-model="showCase.custom_order">
+                      <span>
+                        <i class="handle"></i>
+                      </span>
+                    </div>
+                  </label>
+                  <span class="pull-right" align="right">CUSTOM ORDER</span>
+                </div>
+  		<div class="col-md-3 col-sm-3 col-xs-12">
+		  <button type="button" class="btn btn-primary pull-right" ng-click="showCase.catlog=true;showCase.details=true;">View Catalog</button>
+                </div>
               </div>
               <div class="row col-md-12">
-                <div class="col-md-4">
+                <div class="col-md-4 col-sm-4 col-xs-6">
                   <div class="form-group">
                     <label class="control-label">Customer ID</label>
                     <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Customer ID/Name/Number" typeahead="address.customer_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_customer_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.customer_id" typeahead-on-select="showCase.get_customer_data($item, $model, $label, $event)">
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4 col-sm-4 col-xs-6">
                   <div class="form-group">
                     <label class="control-label">Customer Name</label>
                     <input name="customer_name" ng-model="showCase.model_data.customer_name" class="form-control" type="text" >
                     <!--ng-focus="showCase.check_id(showCase.model_data.customer_id)">-->
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4 col-sm-4 col-xs-6">
                   <div class="form-group">
                     <label class="control-label">Telephone</label>
                     <input name="telephone" ng-model="showCase.model_data.telephone" class="form-control" type="text" whole-number maxlength="10">
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4 col-sm-4 col-xs-6">
                   <div class="form-group">
                     <label class="control-label">Shipment Date *</label>
                     <input name="shipment_date" ui-jq="datepicker" ng-model="showCase.model_data.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" readonly>
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4 col-sm-4 col-xs-6">
                   <div class="form-group">
                     <label class="control-label">Email</label>
                     <input name="email_id" class="form-control" type="email" ng-model="showCase.model_data.email_id">
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4 col-sm-4 col-xs-6">
                   <div class="form-group">
                     <label class="control-label">Address</label>
                     <textarea rows="4" class="form-control" cols="27" name="address" ng-model="showCase.model_data.address"></textarea>
@@ -86,8 +84,12 @@
                       <option value="" selected></option>
                       <option>Credit Card</option>
                       <option>Debit Card</option>
-                      <option>Cash On Delivery</option>
                       <option>Cash</option>
+                      <option>NEFT</option>
+                      <option>RTGS</option>
+                      <option>IMPS</option>
+                      <option>Online Transfer</option>
+                      <option>Cash Remittance</option>
                     </select>
                   </td>
                   <td>
@@ -143,21 +145,22 @@
             </table>
                  </div>
                 <div class="col-md-12" style="padding-bottom:0px;">
-                  <div class="col-md-7">
+                  <div class="col-md-7 col-sm-6">
                   </div>
-                  <div class="col-md-2">
+                  <div class="col-md-2 col-sm-3 col-xs-6">
                     <p>Total Quantity: <b style="font-size:26px">{{showCase.final_data.total_quantity}}</b></p>
                   </div>
-                  <div class="col-md-3">
+                  <div class="col-md-3 col-sm-3 col-xs-6">
                     <p>Invoice Amount(Rs): <b style="font-size:26px">{{showCase.final_data.total_amount}}</b></p>
                   </div>
                 </div>
                 <div class="col-md-12" style="padding-bottom:0px;">
                   <hr>
 		<div class="row">
-		  <div class="col-md-6">
+		  <div class="col-md-6 col-sm-6 col-xs-6">
                     <button type="submit" class="btn btn-primary pull-right" style="margin: auto;display: block;" ng-disabled="showCase.bt_disable" ng-click="showCase.insert_order_data(form)">Create Order </button>
 		  </div>
+                  <div class="col-md-6 col-sm-6 col-xs-6">
 		    <button type="submit" class="btn btn-primary pull-left" style="margin: auto;display: block;" ng-if="showCase.custom_order" ng-click="showCase.show()">Create Custom SKU</button>
 		  </div>
                 </div>
@@ -166,7 +169,7 @@
           </form>
           <div ui-view></div>
         </div>
-      </tab>
+      <!--</tab>
       <tab heading="Create Stock Transfer Order" ng-if="permissions.multi_warehouse">
         <div ng-controller="CreateStockOrders as showCase">
           <form id="add_st">
@@ -214,4 +217,4 @@
             <div class="col-md-12 form-group clearfix" style="padding-bottom:0px;">
               <button type="button" class="btn btn-primary" id="st-create-order" ng-disabled="showCase.bt_disable" style="margin: auto;display: block;" ng-click="showCase.insert_order_data()">Create Transfer Order </button>
             </div>
-          </form>
+          </form>-->

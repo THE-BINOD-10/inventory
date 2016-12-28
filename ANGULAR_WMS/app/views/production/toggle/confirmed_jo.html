@@ -1,8 +1,8 @@
-<div id="page-pop" class="modal fade process-toggle in" id="po-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="display: block; padding-left: 13px;">
+<div id="page-pop" class="modal fade process-toggle in over-x" id="po-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="display: block; padding-left: 13px;">
   <!-- Modal -->
   <form id="jo-generate-picklist">
     <div class="modal-dialog modal-lg">
-      <div class="modal-content">
+      <div class="modal-content mw60">
         <div class="modal-header">
           <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">×</span>
           </button>
@@ -10,19 +10,19 @@
         <div class="modal-body">
           <div class="form-group clearfix">
            <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Jo Reference </label>
                 <input type="text" value="{{showCase.model_data.jo_reference}}" class="form-control" name="job_code" readonly>
               </div>
             </div>
-            <div class="col-md-4" ng-if="showCase.order_ids_list">
+            <div class="col-md-4 col-xs-6" ng-if="showCase.order_ids_list">
               <div class="form-group">
                 <label class="control-label"> Order Id </label>
                 <input type="text" value="{{showCase.order_ids_list}}" class="form-control" name="job_code" disabled>
               </div>
             </div>
-            <div class="col-md-4" ng-if="showCase.vendor_produce">
+            <div class="col-md-4 col-xs-6" ng-if="showCase.vendor_produce">
               <div class="form-group">
                 <label class="control-label"> Vendor id </label>
                 <input type="text" value="{{showCase.model_data.vendor_id}}" class="form-control" name="vendor_id" readonly>
@@ -35,59 +35,62 @@
             </div>
           </div>
           <div class="row">
-            <div class="col-md-3">
-              <label class="control-label"> Product SKU Code </label>
-            </div>
-            <div class="col-md-3">
-              <label class="control-label">Product SKU Quantity </label>
-            </div>
-            <div class="col-md-3">
-              <label class="control-label"> Material SKU Code </label>
-            </div>
-            <div class="col-md-3">
-              <label class="control-label"> Material SKU Quantity </label>
-            </div>
-          </div>
-          <div ng-repeat="data in showCase.model_data.results">
-          <div class="row field" ng-repeat="item in data.data">
-            <div class="col-md-3">
-              <input type="hidden" name="id" value="{{item.id}}">
-              <input ng-show="$first" ng-readonly="showCase.update" type="text" name="product_code" ng-model="data.product_code" class="form-control">
-            </div>
-            <div class="col-md-3">
-              <input ng-show="$first" type="text" name="product_quantity" ng-model="data.product_description" class="form-control" ng-readonly="showCase.update">
-            </div>
-            <div class="col-md-3">
-              <input type="text" name="material_code" ng-model="item.material_code" class="form-control" ng-readonly="showCase.update">
-            </div>
-            <div class="col-md-2">
-              <input type="text" name="material_quantity" class="form-control" value="{{item.material_quantity}}" ng-readonly="showCase.update">
-            </div>
-            <div class="col-md-1" style="padding-top: 10px;" ng-if="data.sku_extra_data.length > 0">
-              <span ng-show="$first">
-                  <div class="tooltip" style="color:#33cc66">Detail
-                    <span class="tooltiptext">
-                      <div>
-                        <div ng-if="data.product_images.length">
-                          <img ng-src="{{showCase.service.check_image_url(data.product_images[0])}}" style="width: 100%;">
-                        </div>
-                        <table style="margin: 0px;width: 100%;">
-                          <!--<thead>
-                            <tr><th align="right" style="text-align:right">property</th><th align="left">value</th>
-                            </tr>
-                          </thead>-->
-                          <tbody>
-                            <tr ng-repeat="tip in data.sku_extra_data">
-                              <td>{{tip.attribute_name}}</td><td>{{tip.attribute_value}}</td>
-                            </tr>
-                          </tbody>
-                        </table>
+            <div class="col-md-12">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Product SKU Code</th>
+                    <th>Product SKU Quantity</th>
+                    <th>Material SKU Code</th>
+                    <th>Material SKU Quantity</th>
+                    <th class="plus"></th>
+                  </tr>
+                </thead>
+                <tbody ng-repeat="data in showCase.model_data.results">
+                  <tr ng-repeat="item in data.data">
+                    <td>
+                      <input type="hidden" name="id" value="{{item.id}}">
+                      <input ng-show="$first" ng-readonly="showCase.update" type="text" name="product_code" ng-model="data.product_code" class="form-control">
+                    </td>
+                    <td>
+                      <input ng-show="$first" type="text" name="product_quantity" ng-model="data.product_description" class="form-control" ng-readonly="showCase.update">
+                    </td>
+                    <td>
+                      <input type="text" name="material_code" ng-model="item.material_code" class="form-control" ng-readonly="showCase.update">
+                    </td>
+                    <td>
+                      <input type="text" name="material_quantity" class="form-control" value="{{item.material_quantity}}" ng-readonly="showCase.update">
+                    </td>
+                    <td>
+                      <div style="padding-top: 10px;" ng-if="data.sku_extra_data.length > 0">
+                        <span ng-show="$first">
+                          <div class="tooltip" style="color:#33cc66">Detail
+                            <span class="tooltiptext">
+                              <div>
+                                <div ng-if="data.product_images.length">
+                                  <img ng-src="{{showCase.service.check_image_url(data.product_images[0])}}" style="width: 100%;">
+                                </div>
+                                <table style="margin: 0px;width: 100%;">
+                                <!--<thead>
+                                <tr><th align="right" style="text-align:right">property</th><th align="left">value</th>
+                                </tr>
+                                </thead>-->
+                                  <tbody>
+                                    <tr ng-repeat="tip in data.sku_extra_data">
+                                      <td>{{tip.attribute_name}}</td><td>{{tip.attribute_value}}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </span>
+                          </div>
+                        </span>
                       </div>
-                    </span>
-                  </div>
-              </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-          </div>
           </div>
           <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
          </div>

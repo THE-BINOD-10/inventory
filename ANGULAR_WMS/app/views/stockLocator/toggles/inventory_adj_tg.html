@@ -11,27 +11,25 @@
           </div>           
            <div class="modal-body">
            <div class="row">
-             <div class="col-md-4">
+             <div class="col-md-4 col-sm-4 col-xs-6">
                <div class="form-group">
                  <label cla4ss= control-label"> WMS Code * </label>
                  <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="WMSCodesLoading" ng-model="showCase.model_data.wms_code" ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code ,'search_wms_codes?', $event, '', 'WMS Code')" required>
                </div>
              </div>
-             <div class="col-md-4">
+             <div class="col-md-4 col-sm-4 col-xs-6">
                <div class="form-group">
                  <label class="control-label"> Location * </label>
                  <input type="text" name="location" class="form-control" ng-model="showCase.model_data.location" required>
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> Physical Quantity * </label>
-                  <input type="text" name="quantity"class="form-control" ng-model="showCase.model_data.quantity" decimal-number required>
+                  <input type="text" name="quantity"class="form-control" ng-model="showCase.model_data.quantity" ng-class="service.get_decimal_perm()" required>
                 </div>
               </div>
-            </div>
-            <div class="row">
-              <div class="col-md-4">
+              <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> Reason </label>
                   <input type="text" name="reason" class="form-control" ng-model="showCase.model_data.reason" value="">

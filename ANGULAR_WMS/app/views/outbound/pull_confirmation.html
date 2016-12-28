@@ -18,12 +18,17 @@
       <tab heading="Picked Orders">
         <div class="panel" ng-controller="PickedOrders as showCase">
           <div class="panel-header">
-            <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
-            <div class="pull-right" style="width: 160px;margin-right:10px;">
-              <select class="form-control" ng-model="showCase.market" ng-change="showCase.change_market(showCase.market)">
-                <option value="" selected>Select MarketPlace</option>
-                <option ng-repeat="market in showCase.market_places" value="{{market}}">{{market}}</option>
-              </select>
+            <div class="row">
+              <div class="col-md-6 col-sm-4 col-xs-0"></div>
+              <div class="col-md-3 col-sm-4 col-xs-6">
+                <select class="form-control" ng-model="showCase.market" ng-change="showCase.change_market(showCase.market)">
+                  <option value="" selected>Select MarketPlace</option>
+                  <option ng-repeat="market in showCase.market_places" value="{{market}}">{{market}}</option>
+                </select>
+              </div>
+              <div class="col-md-3 col-sm-4 col-xs-6">
+                <button type="button" style="width: 100%" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+              </div>
             </div>
           </div>
           <div class="panel-body">

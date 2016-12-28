@@ -264,6 +264,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^add_group/$', 'add_group'),
     url(r'^get_user_data/$', 'get_user_data'),
     url(r'^update_user/$', 'update_user'),
+    url(r'^get_group_data/$', 'get_group_data'),
 
     #common
     url(r'^set_timezone/$', 'set_timezone'),

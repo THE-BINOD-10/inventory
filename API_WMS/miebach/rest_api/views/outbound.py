@@ -18,7 +18,7 @@ from itertools import groupby
 
 @csrf_exempt
 def get_batch_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_dict={}):
-
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
     lis = ['id', 'sku__sku_code', 'title', 'total']
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
@@ -32,6 +32,7 @@ def get_batch_data(start_index, stop_index, temp_data, search_term, order_term, 
     if order_term == 'desc':
         order_data = '-%s' % order_data
     search_params = get_filtered_params(filters, ['sku__sku_code', 'title', 'total'])
+    search_params['sku_id__in'] = sku_master_ids
 
     if search_term:
         mapping_results = OrderDetail.objects.filter(**data_dict).values('sku__sku_code', 'title', 'sku_code').distinct().\
@@ -63,6 +64,7 @@ def get_batch_data(start_index, stop_index, temp_data, search_term, order_term, 
 @csrf_exempt
 def get_order_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_dict={}):
 
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
     lis = ['id', 'order_id', 'sku__sku_code', 'title', 'quantity', 'shipment_date', 'marketplace']
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
@@ -81,6 +83,8 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
         order_search = search_params['order_id__icontains']
         search_params['order_id__icontains'] = ''.join(re.findall('\d+', order_search))
         search_params['order_code__icontains'] = ''.join(re.findall('\D+', order_search))
+
+    search_params['sku_id__in'] = sku_master_ids
 
     if search_term:
         master_data = OrderDetail.objects.filter(Q(sku__sku_code__icontains = search_term, status=1) | Q(order_id__icontains = search_term,
@@ -140,6 +144,7 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
 @csrf_exempt
 def open_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, status=''):
 
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     status_dict = eval(status)
     filter_params = {}
     if isinstance(status_dict, dict):
@@ -154,8 +159,10 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         filter_params['picked_quantity__gt'] = 0
     if status == 'batch_picked':
         col_num = col_num - 1
+
     if search_term:
-        master_data = Picklist.objects.filter( Q(picklist_number__icontains = search_term) | Q( remarks__icontains = search_term ),
+        master_data = Picklist.objects.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).\
+                                       filter( Q(picklist_number__icontains = search_term) | Q( remarks__icontains = search_term ),
                                                Q(order__sku__user = user.id) | Q(stock__sku__user=user.id), **filter_params).\
                                        values('picklist_number', 'remarks').distinct()
 
@@ -163,11 +170,13 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         order_data = PICK_LIST_HEADERS.values()[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        master_data = Picklist.objects.filter(Q(order__sku__user = user.id) | Q(stock__sku__user=user.id), **filter_params).\
+        master_data = Picklist.objects.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).\
+                                       filter(Q(order__sku__user = user.id) | Q(stock__sku__user=user.id), **filter_params).\
                                        values('picklist_number', 'remarks').distinct().order_by(order_data)
         master_data = [ key for key,_ in groupby(master_data)]
     else:
-        master_data = Picklist.objects.filter( Q(order__sku__user = user.id) | Q(stock__sku__user=user.id), **filter_params).\
+        master_data = Picklist.objects.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).\
+                                       filter( Q(order__sku__user = user.id) | Q(stock__sku__user=user.id), **filter_params).\
                                        values('picklist_number', 'remarks').distinct()
 
     temp_data['recordsTotal'] = len( master_data )
@@ -192,14 +201,17 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
 @csrf_exempt
 def get_customer_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['Shipment Number', 'Customer ID', 'Customer Name', 'Total Quantity']
     all_data = OrderedDict()
     if search_term:
-        results = ShipmentInfo.objects.filter(Q(order_shipment__shipment_number__icontains=search_term) |
+        results = ShipmentInfo.objects.filter(order__sku_id__in=sku_master_ids).\
+                                       filter(Q(order_shipment__shipment_number__icontains=search_term) |
                                               Q(order__customer_id__icontains=search_term) | Q(order__customer_name__icontains=search_term),
                                               order_shipment__user=user.id).order_by('order_id')
     else:
-        results = ShipmentInfo.objects.filter(order_shipment__user=user.id).order_by('order_id')
+        results = ShipmentInfo.objects.filter(order__sku_id__in=sku_master_ids).\
+                                       filter(order_shipment__user=user.id).order_by('order_id')
     for result in results:
         tracking = ShipmentTracking.objects.filter(shipment_id=result.id, shipment__order__user=user.id).order_by('-creation_date').\
                                             values_list('ship_status', flat=True)
@@ -1083,7 +1095,7 @@ def get_picked_data(data_id, user, marketplace=''):
             wms_code = order.order.sku.wms_code
             if order.order_type == 'combo' and order.sku_code:
                 wms_code = order.sku_code
-            data.append({'wms_code': wms_code, 'zone': 'NO STOCK', 'location': 'NO STOCK', 'reserved_quantity': order.reserved_quantity, 'picked_quantity': order.picked_quantity, 'stock_id': 0, 'picklist_number': data_id, 'id': order.id, 'order_id': order.order.order_id, 'image': '', 'title': order.order.title, 'order_detail_id': order.order_id})
+            data.append({'wms_code': wms_code, 'zone': 'NO STOCK', 'location': 'NO STOCK', 'reserved_quantity': order.reserved_quantity, 'picked_quantity': order.picked_quantity, 'stock_id': 0, 'picklist_number': data_id, 'id': order.id, 'order_id': order.order.order_id, 'image': '', 'title': order.order.title, 'order_detail_id': order.order_id, 'image': order.order.sku.image_url})
             continue
 
         picklist_location = PicklistLocation.objects.filter(Q(picklist__order__sku__user=user) | Q(stock__sku__user=user), picklist_id=order.id)
@@ -2164,6 +2176,7 @@ def generate_order_invoice(request, user=''):
 @csrf_exempt
 def get_shipment_picked(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, user_dict={}, filters={}):
 
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     if user_dict:
         user_dict = eval(user_dict)
     lis = ['id', 'order__order_id', 'order__sku__sku_code', 'order__title', 'order__customer_id', 'order__customer_name',
@@ -2179,7 +2192,8 @@ def get_shipment_picked(start_index, stop_index, temp_data, search_term, order_t
     search_params = get_filtered_params(filters, lis[1:])
 
     if search_term:
-        master_data = Picklist.objects.filter(Q(order__order_id__icontains = search_term) |
+        master_data = Picklist.objects.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).\
+                                       filter(Q(order__order_id__icontains = search_term) |
                                               Q(order__sku__sku_code__icontains = search_term) |
                                               Q(order__title__icontains = search_term) | Q(order__customer_id__icontains = search_term) |
                                               Q(order__customer_name__icontains = search_term) | Q(picked_quantity__icontains = search_term) |
@@ -2190,10 +2204,12 @@ def get_shipment_picked(start_index, stop_index, temp_data, search_term, order_t
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        master_data = Picklist.objects.filter(**data_dict).filter(**search_params).order_by(order_data).\
+        master_data = Picklist.objects.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids), **data_dict).\
+                                       filter(**search_params).order_by(order_data).\
                                        values_list('order_id', flat=True).distinct()
     else:
-        master_data = Picklist.objects.filter(**data_dict).filter(**search_params).order_by('updation_date').\
+        master_data = Picklist.objects.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids), **data_dict).\
+                                       filter(**search_params).order_by('updation_date').\
                                        values_list('order_id', flat=True).distinct()
 
     temp_data['recordsTotal'] = len(master_data)

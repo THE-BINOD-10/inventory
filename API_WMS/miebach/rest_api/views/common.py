@@ -334,7 +334,8 @@ def get_user_results(start_index, stop_index, temp_data, search_term, order_term
         group = admin_group[0].group
     if group:
         if search_term:
-            master_data = group.user_set.filter().exclude(id=user.id)
+            master_data = group.user_set.filter(Q(username__icontains=search_term) | Q(first_name__icontains=search_term) |
+                                                Q(email__icontains=search_term)).exclude(id=user.id)
         elif order_term:
             if order_term == 'asc':
                 master_data = group.user_set.filter().exclude(id=user.id).order_by(lis[col_num])
@@ -1095,6 +1096,8 @@ def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity
 @get_admin_user
 def add_group_data(request, user=''):
     permissions = Permission.objects.all()
+    prod_stages = ProductionStages.objects.filter(user=user.id).values_list('stage_name',flat=True)
+    brands = Brands.objects.filter(user=user.id).values_list('brand_name',flat=True)
     perms_list = []
     ignore_list = ['session', 'webhookdata', 'swxmapping', 'userprofile', 'useraccesstokens', 'contenttype', 'user',
                    'permission','group','logentry']
@@ -1105,28 +1108,58 @@ def add_group_data(request, user=''):
         if not temp in perms_list and not temp in ignore_list:
             if temp in reversed_perms.keys() and reversed_perms[temp] not in perms_list:
                 perms_list.append(reversed_perms[temp])
-    return HttpResponse(json.dumps({'perms_list': perms_list}))
+    return HttpResponse(json.dumps({'perms_list': perms_list, 'prod_stages': list(prod_stages), 'brands': list(brands)}))
 
 @csrf_exempt
 @login_required
 @get_admin_user
 def add_group(request, user=''):
+    perm_selected_list = ''
+    stages_list = ''
     selected_list = ''
+    brands_list = ''
     group = ''
     permission_dict = copy.deepcopy(PERMISSION_DICT)
     reversed_perms = OrderedDict(( ([(value, key) for key, value in permission_dict.iteritems()]) ))
-    selected = request.POST.get('selected')
+    selected = request.POST.get('perm_selected')
+    stages = request.POST.get('stage_selected')
+    brands = request.POST.get('brand_selected')
     if selected:
         selected_list = selected.split(',')
+    if stages:
+        stages_list = stages.split(',')
+    if brands:
+        brands_list = brands.split(',')
+
     name = request.POST.get('name')
     if name:
         name = user.username + ' ' + name
     group_exists = Group.objects.filter(name=name)
     if group_exists:
          return HttpResponse('Group Name already exists')
-    if not group_exists and selected_list:
+    if not group_exists and (selected_list or stages_list or brands_list):
         group,created = Group.objects.get_or_create(name=name)
+        if stages_list:
+            stage_group = GroupStages.objects.create(group = group)
+        if brands_list:
+            brand_group = GroupBrand.objects.create(group = group)
+        for stage in stages_list:
+            if not stage:
+                continue
+	    stage_obj = ProductionStages.objects.filter(stage_name = stage, user=user.id)
+            if stage_obj:
+                stage_group.stages_list.add(stage_obj[0])
+                stage_group.save()
+	for brand in brands_list:
+            if not brand:
+                continue
+	    brand_obj = Brands.objects.filter(brand_name=brand, user=user.id)
+            if brand_obj:
+                brand_group.brand_list.add(brand_obj[0])
+	        brand_group.save()
         for perm in selected_list:
+            if not perm:
+                continue
             perm = permission_dict.get(perm, '')
             permissions = Permission.objects.filter(codename__icontains=perm)
             for permission in permissions:
@@ -1280,10 +1313,11 @@ def save_stages(request, user=''):
 @login_required
 @get_admin_user
 def search_wms_codes(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     data_id = request.GET.get('q', '')
     sku_type = request.GET.get('type', '')
     extra_filter = {}
-    data = SKUMaster.objects.filter(Q(wms_code__icontains = data_id) | Q(sku_desc__icontains = data_id), user=user.id).order_by('wms_code')
+    data = sku_master.filter(Q(wms_code__icontains = data_id) | Q(sku_desc__icontains = data_id), user=user.id).order_by('wms_code')
     wms_codes = []
     count = 0
     if data:
@@ -1519,9 +1553,9 @@ def get_sku_catalogs_data(request, user, request_data={}):
             break
     return data, start, stop
 
-def get_user_sku_data(sku):
+def get_user_sku_data(user):
     request = {}
-    user = User.objects.get(id=sku.user)
+    #user = User.objects.get(id=sku.user)
     brands_data = get_sku_categories_data(request, user, request_data={'file': True})
     skus_data = get_sku_catalogs_data(request, user, request_data={'file': True})
     path = 'static/text_files'
@@ -1554,7 +1588,7 @@ def get_file_checksum(request,user=''):
 
 @get_admin_user
 def search_wms_data(request, user=''):
-
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     search_key = request.GET.get('q', '')
     total_data = []
 
@@ -1562,10 +1596,53 @@ def search_wms_data(request, user=''):
       return HttpResponse(json.dumps(total_data))
 
     lis = ['wms_code', 'sku_desc']
-    master_data = SKUMaster.objects.filter(Q(wms_code__icontains = search_key) | Q(sku_desc__icontains = search_key),user=user.id)
+    master_data = sku_master.filter(Q(wms_code__icontains = search_key) | Q(sku_desc__icontains = search_key),user=user.id)
 
     for data in master_data[:30]:
 
         total_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc})
     return HttpResponse(json.dumps(total_data))
 
+def insert_update_brands(user):
+    request = {}
+    #user = User.objects.get(id=sku.user)
+    sku_master = list(SKUMaster.objects.filter(user=user.id).exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
+    for brand in sku_master:
+        brand_instance = Brands.objects.filter(brand_name=brand, user_id=user.id)
+        if not brand_instance:
+            Brands.objects.create(brand_name=brand, user_id=user.id)
+    deleted_brands = Brands.objects.filter(user_id=user.id).exclude(brand_name__in=sku_master).delete()
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_group_data(request, user=''):
+    data_id = request.GET.get('data_id', '')
+    if not data_id:
+        return HttpResponse("Data id not found")
+    data_dict = {}
+    permission_dict = copy.deepcopy(PERMISSION_DICT)
+    reversed_perms = OrderedDict(( ([(value, key) for key, value in permission_dict.iteritems()]) ))
+    group = Group.objects.get(id=data_id)
+    group_name = (group.name).replace(user.username + ' ', '')
+    brands = list(GroupBrand.objects.filter(group_id=group.id).values_list('brand_list__brand_name', flat=True))
+    stages = list(GroupStages.objects.filter(group_id=group.id).values_list('stages_list__stage_name',flat=True))
+    permissions = group.permissions.values_list('codename', flat=True)
+    perms = []
+    for perm in permissions:
+        temp = perm.split('_')[-1]
+        if temp in reversed_perms.keys() and (reversed_perms[temp] not in perms):
+            perms.append(reversed_perms[temp])
+    return HttpResponse(json.dumps({'group_name': group_name, 'data': {'brands': brands, 'stages': stages, 'permissions': perms}}))
+
+def get_sku_master(user,sub_user):
+    sku_master = SKUMaster.objects.filter(user=user.id)
+    sku_master_ids = sku_master.values_list('id',flat=True)
+
+    if not sub_user.is_staff:
+        sub_user_groups = sub_user.groups.filter().exclude(name=user.username).values_list('name', flat=True)
+        brands_list = GroupBrand.objects.filter(group__name__in=sub_user_groups).values_list('brand_list__brand_name', flat=True)
+        sku_master = sku_master.filter(sku_brand__in=brands_list)
+        sku_master_ids = sku_master.values_list('id',flat=True)
+
+    return sku_master, sku_master_ids

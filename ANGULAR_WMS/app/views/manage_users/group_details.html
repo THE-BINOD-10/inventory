@@ -1,0 +1,45 @@
+<div class="modal fade in" id="page-pop" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="overflow: hidden; display: block; padding-right: 15px;">
+  <!-- Modal -->
+  <form id="add_user" name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+    <div class="modal fade in" id="locationModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="display: block;">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">×</span>
+            </button>
+            <h4 class="modal-title" id="myLargeModalLabel">Group Data</h4>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <div class="col-md-4">
+                <p>Group Name: <b>{{showCase.group_data.group_name}}</b></p>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <hr>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4" ng-repeat="(k,v) in showCase.group_data.data" ng-if="showCase.group_data.data[k]">
+                <div class="panel panel-success panel-bordered">
+                  <div class="panel-heading">
+                    {{k}}
+                  </div>
+                  <div class="panel-body">
+                    <ol>
+                      <li ng-repeat="item in showCase.group_data.data[k]"> {{item}} </li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

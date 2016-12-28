@@ -572,6 +572,9 @@ def get_sku_file_mapping(reader, file_type):
 
 def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 
+    zone_master = ZoneMaster.objects.filter(user=user.id).values('id', 'zone')
+    zones = map(lambda d: d['zone'], zone_master)
+    zone_ids = map(lambda d: d['id'], zone_master)
     sku_file_mapping = get_sku_file_mapping(reader, file_type)
     for row_idx in range(1, no_of_rows):
         if not sku_file_mapping:
@@ -594,15 +597,17 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                 wms_code = cell_data
                 data_dict[key] = wms_code
                 if wms_code:
-                    if not sku_data:
-                        sku_data = SKUMaster.objects.filter(wms_code = wms_code,user=user.id)
-                        if sku_data:
-                            sku_data = sku_data[0]
+                    sku_data = SKUMaster.objects.filter(wms_code = wms_code,user=user.id)
+                    if sku_data:
+                        sku_data = sku_data[0]
 
             elif key == 'zone_id':
                 zone_id = None
                 if cell_data:
-                    zone_id = ZoneMaster.objects.get(zone=cell_data.upper(),user=user.id).id
+                    cell_data = cell_data.upper()
+                    if cell_data in zones:
+                        #zone_id = ZoneMaster.objects.get(zone=cell_data.upper(),user=user.id).id
+                        zone_id = zone_ids[zones.index(cell_data)]
                     if sku_data and cell_data:
                         sku_data.zone_id = zone_id
                     data_dict[key] = zone_id
@@ -651,6 +656,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             data_dict['sku_code'] = data_dict['wms_code']
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
+
+    get_user_sku_data(user)
+    insert_update_brands(user)
     return 'success'
 
 

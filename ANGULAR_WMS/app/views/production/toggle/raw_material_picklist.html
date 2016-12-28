@@ -7,7 +7,7 @@
           <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">×</span>
           </button>
           <h4 class="modal-title" id="myLargeModalLabel">Raw Material Picklist</h4> </div>
-        <div class="modal-body" style="padding: 15px 20px;">
+        <div class="modal-body">
           <div class="row">
             <div class="col-md-12">
               <h5>Job Order: <b>{{showCase.model_data.job_code}}</b></h5>
@@ -18,22 +18,24 @@
               <hr>
             </div>
           </div> 
-         <div class="row">
-           <table> 
-             <thead>
-               <tr>
-                 <th ng-if="showCase.permissions.show_image">Image</th>
-                 <th>WMS Code </th>
-                 <th>Title</th>
-                 <th>Zone</th>
-                 <th>Location</th>
-                 <th ng-if="showCase.permissions.pallet_switch">Pallet Code</th>
-                 <th>Reserved Quantity</th>
-                 <th>Picked Quantity</th>
-               </tr>
-             </thead>
-             <tbody ng-repeat="data in showCase.model_data.data">   
-               <tr  ng-repeat="record in data.sub_data" class="field">
+         <div class="row over-x">
+           <div class="col-md-12">
+             <table class="table mw60"> 
+               <thead>
+                 <tr>
+                   <th ng-if="showCase.permissions.show_image">Image</th>
+                   <th>WMS Code </th>
+                   <th>Title</th>
+                   <th>Zone</th>
+                   <th>Location</th>
+                   <th ng-if="showCase.permissions.pallet_switch">Pallet Code</th>
+                   <th>Reserved Quantity</th>
+                   <th>Picked Quantity</th>
+                   <th class="plus"></th>
+                 </tr>
+               </thead>
+               <tbody ng-repeat="data in showCase.model_data.data">   
+                 <tr  ng-repeat="record in data.sub_data" class="field">
                    <input type="hidden" name="order_id_{{data.id}}"  value="{{data.id}}">
                    <input type="hidden" name="stock_id_{{data.id}}" value="{{data.stock_id}}">
                    <input type="hidden" name="orig_location_{{data.id}}"  value="{{data.location}}">
@@ -46,9 +48,10 @@
                    <td><input type="text" name="reserved_quantity_{{data.id}}" class="form-control" value="{{data.reserved_quantity}}" ng-readonly="showCase.update"></td>
                    <td><input type="text" name="picked_quantity_{{data.id}}" class="form-control" ng-model="record.picked_quantity" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
                    <td><i ng-click="showCase.update_data($index, data, $last)" ng-class="($last)? 'fa fa-plus-square-o' : 'fa fa-minus-square-o'"></i> </td>
-               </tr>
-             </tbody>
-           </table>
+                 </tr>
+               </tbody>
+             </table>
+           </div>
          </div>
          <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
         </div>

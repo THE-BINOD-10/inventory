@@ -1295,6 +1295,10 @@ var app = angular.module('urbanApp')
             url: '/ChangePassword',
             templateUrl: 'views/manage_users/change_password.html'
           })
+          .state('app.ManageUsers.GroupDetails', {
+            url: '/GroupDetails',
+            templateUrl: 'views/manage_users/group_details.html'
+          })
 
       //register
       .state('app.Register', {

@@ -1012,38 +1012,43 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
         location = LocationMaster.objects.filter(location=loc, zone__user=user.id)
         if not location:
             return 'Invalid Location'
-    if not quantity:
+    if quantity == '':
         return 'Quantity should not be empty'
 
-    quantity = float(quantity)
     total_stock_quantity = 0
-    stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=location[0].id, sku__user=user.id)
-    for stock in stocks:
-        total_stock_quantity += float(stock.quantity)
+    if quantity:
+        quantity = float(quantity)
+        stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=location[0].id, sku__user=user.id)
+        for stock in stocks:
+            total_stock_quantity += float(stock.quantity)
 
-    remaining_quantity = total_stock_quantity - quantity
-    for stock in stocks:
-        if total_stock_quantity < quantity:
-            stock.quantity += abs(remaining_quantity)
-            stock.save()
-            break
-        else:
-            stock_quantity = float(stock.quantity)
-            if remaining_quantity == 0:
+        remaining_quantity = total_stock_quantity - quantity
+        for stock in stocks:
+            if total_stock_quantity < quantity:
+                stock.quantity += abs(remaining_quantity)
+                stock.save()
                 break
-            elif stock_quantity >= remaining_quantity:
-                setattr(stock, 'quantity', stock_quantity - remaining_quantity)
-                stock.save()
-                remaining_quantity = 0
-            elif stock_quantity < remaining_quantity:
-                setattr(stock, 'quantity', 0)
-                stock.save()
-                remaining_quantity = remaining_quantity - stock_quantity
-    if not stocks:
-        dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=float(quantity), status=1,
-                                  creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now(), location_id=location[0].id,
-                                  sku_id=sku_id)
-        dest_stocks.save()
+            else:
+                stock_quantity = float(stock.quantity)
+                if remaining_quantity == 0:
+                    break
+                elif stock_quantity >= remaining_quantity:
+                    setattr(stock, 'quantity', stock_quantity - remaining_quantity)
+                    stock.save()
+                    remaining_quantity = 0
+                elif stock_quantity < remaining_quantity:
+                    setattr(stock, 'quantity', 0)
+                    stock.save()
+                    remaining_quantity = remaining_quantity - stock_quantity
+        if not stocks:
+            dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=float(quantity), status=1,
+                                      creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now(), location_id=location[0].id,
+                                      sku_id=sku_id)
+            dest_stocks.save()
+    if quantity == 0:
+        StockDetail.objects.filter(sku_id=sku_id, location_id=location[0].id, sku__user=user.id).update(quantity=0)
+        location[0].filled_capacity = 0
+        location[0].save()
 
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
     data_dict['cycle'] = cycle_id

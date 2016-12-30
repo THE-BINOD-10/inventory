@@ -105,11 +105,14 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     for data in master_data[start_index:stop_index]:
         sku = SKUMaster.objects.get(sku_code=data.sku.sku_code,user=user.id)
         sku_code = sku.sku_code
+        order_id = data.order_code + str(data.order_id)
+        if data.original_order_id:
+            order_id = data.original_order_id
         if sku_code == 'TEMP':
             sku_code = data.sku_code
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data.id, data.sku.sku_code)
 
-        temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('Order ID', data.order_code + str(data.order_id)), ('SKU Code', sku_code),
+        temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('Order ID', order_id), ('SKU Code', sku_code),
                                                  ('Title', data.title),('id', count), ('Product Quantity', data.quantity),
                                                  ('Shipment Date', get_local_date(request.user, data.shipment_date)),
                                                  ('Marketplace', data.marketplace), ('DT_RowClass', 'results'),

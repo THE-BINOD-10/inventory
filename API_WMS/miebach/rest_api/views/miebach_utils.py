@@ -450,6 +450,9 @@ UNI_COMMERCE_EXCEL1 = {'order_id': 8, 'channel_name': 2, 'sku_code': 6, 'custome
 
 UNI_WARE_EXCEL = {'order_id': 12, 'channel_name': 2, 'sku_code': 1, 'quantity': 34}
 
+UNI_WARE_EXCEL1 = {'order_id': 0, 'email_id': 5, 'telephone': 20, 'customer_name': 13, 'address': [14, 15], 'city': 16, 'state': 17,
+                   'pin_code': 19, 'title': 33, 'channel_name': 37, 'sku_code': 31, 'invoice_amount': 42, 'discount': 46}
+
 EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'get_sku_filter_data', 'location_wise': 'get_location_stock_data',
                         'goods_receipt': 'get_po_filter_data', 'receipt_summary': 'get_receipt_filter_data',
                         'sku_stock': 'print_sku_wise_data', 'sku_wise_purchases': 'sku_wise_purchase_data',

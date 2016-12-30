@@ -1468,10 +1468,12 @@ def get_invoice_data(order_ids, user):
                                             annotate(total=Sum('picked_quantity'))
                 if picklist:
                     quantity = picklist[0].total
-            unit_price = ((float(dat.invoice_amount)/ float(dat.quantity)) * quantity) - discount - tax
+            unit_price = ((float(dat.invoice_amount)/ float(dat.quantity))) - discount - tax
             unit_price = "%.2f" % unit_price
-
-            data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(dat.invoice_amount),
+            sku_code = dat.sku.sku_code
+            if ':' in sku_code:
+                sku_code = sku_code.split(':')[0]
+            data.append({'order_id': order_id, 'sku_code': sku_code, 'title': title, 'invoice_amount': str(dat.invoice_amount),
                          'quantity': quantity, 'tax': "%.2f" % tax, 'unit_price': unit_price, 'vat': vat, 'mrp_price': mrp_price,
                          'discount': discount})
 

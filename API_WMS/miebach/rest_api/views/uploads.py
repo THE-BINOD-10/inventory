@@ -181,8 +181,12 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data['invoice_amount'] += int(get_cell_data(row_idx, 11, reader, file_type))
             elif key == 'vat':
                 cell_data = ''
+                import pdb;pdb.set_trace()
                 if isinstance(value, list):
-                    amount = float(get_cell_data(row_idx, value[0], reader, file_type))
+                    quantity = 1
+                    if 'quantity' in order_mapping.keys():
+                        quantity = float(get_cell_data(row_idx, order_mapping['quantity'], reader, file_type))
+                    amount = float(get_cell_data(row_idx, value[0], reader, file_type))/quantity
                     rate = float(get_cell_data(row_idx, value[1], reader, file_type))
                     tax_value = amount - rate
                     vat = "%.2f" % (float(tax_value * 100) / rate)

@@ -1067,6 +1067,7 @@ def view_picklist(request, user=''):
         order_count_len = len(filter(lambda x: len(str(x))>0, order_count))
         if order_count_len == 1:
             single_order = str(order_count[0])
+
     return HttpResponse(json.dumps({'data': data, 'picklist_id': data_id,
                                     'show_image': show_image, 'use_imei': use_imei,
                                     'order_status': data[0]['status'], 'user': request.user.id, 'single_order': single_order,

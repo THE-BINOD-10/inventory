@@ -9,23 +9,23 @@
     <div class="panel tab-content" id="configurations">
       <div class="notifications top-right"></div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-th fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i> 
+          <strong style="line-height: 34px;" class="pull-left ml20"> Inbound/ Outbound mail Notifications</strong>
         </div>
-        <div class="col-md-3"> <strong> Inbound/ Outbound mail Notifications</strong>
-        </div>
-        <div class="col-md-2">
+        <div class="col-md-2 col-sm-4 col-xs-4">
           <select id="maxOption2" class="selectpicker show-menu-arrow form-control" multiple ng-change="showCase.mail_alerts_change()">
             <option ng-selected="showCase.check_selected(value)" ng-repeat="(key, value) in showCase.model_data.mail_options"> {{key}}</option>
           </select>
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-envelope-o fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-envelope-o fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Send [PO] Messages and Email</strong>
         </div>
-        <div class="col-md-3"><strong> Send [PO] Messages and Email</strong>
-        </div>
-        <div class="col-md-2">
-          <label class="switch switch-sm square">
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
             <div>
               <input type="checkbox" ng-model="showCase.model_data.send_message" ng-change="showCase.switches(showCase.model_data.send_message,1)">
               <span>
@@ -36,12 +36,12 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-th fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-th fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Batch Processing Required </strong>
         </div>
-        <div class="col-md-3"> <strong> Batch Processing Required </strong>
-        </div>
-        <div class="col-md-2">
-          <label class="switch switch-sm square">
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
             <div>
               <input type="checkbox" ng-model="showCase.model_data.batch_switch" ng-change="showCase.switches(showCase.model_data.batch_switch,2)">
               <span>
@@ -52,11 +52,11 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="glyphicon glyphicon-sort fa-15px"></i></a>
-        </div>
-        <div class="col-md-3"><strong> First In First Out Required </strong> </div>
-        <div class="col-md-2">
-          <label class="switch switch-sm square">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="glyphicon glyphicon-sort fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> First In First Out Required </strong> </div>
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
             <div>
               <input type="checkbox" ng-model="showCase.model_data.fifo_switch" ng-change="showCase.switches(showCase.model_data.fifo_switch,3)">
               <span>
@@ -67,11 +67,12 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-rupee fa-15px" style="font-size: 18px;"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-rupee fa-15px pull-left" style="font-size: 18px; line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Show MRP In Invoice </strong>
         </div>
-        <div class="col-md-3"><strong> Show MRP In Invoice </strong> </div>
-        <div class="col-md-2">
-          <label class="switch switch-sm square">
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
             <div>
               <input type="checkbox" ng-model="showCase.model_data.show_mrp" ng-change="showCase.switches(showCase.model_data.show_mrp,17)">
               <span>
@@ -82,11 +83,12 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-file-image-o fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-file-image-o fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Show Images in Picklist </strong>
         </div>
-        <div class="col-md-3"> <strong> Show Images in Picklist </strong> </div>
-        <div class="col-md-2">
-          <label class="switch switch-sm square">
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
             <div>
               <input type="checkbox" ng-model="showCase.model_data.show_image" ng-change="showCase.switches(showCase.model_data.show_image,4)">
               <span>
@@ -97,11 +99,12 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-exchange fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-exchange fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Enable/Disable Cross Stock</strong>
         </div>
-        <div class="col-md-3"> <strong> Enable/Disable Cross Stock</strong> </div>
-        <div class="col-md-2">
-          <label class="switch switch-sm square">
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
             <div>
               <input type="checkbox" ng-model="showCase.model_data.back_order" ng-change="showCase.switches(showCase.model_data.back_order,5)">
               <span>
@@ -112,11 +115,12 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-list-ol fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-list-ol fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Use Serial Numbers for SKUs</strong> 
         </div>
-        <div class="col-md-3"> <strong> &nbsp; Use Serial Numbers for SKUs</strong> </div>
-        <div class="col-md-2">
-          <label class="switch switch-sm square">
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
             <div>
               <input type="checkbox" ng-model="showCase.model_data.use_imei" ng-change="showCase.switches(showCase.model_data.use_imei,6)">
               <span>
@@ -127,11 +131,12 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-archive fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-archive fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Pallet Enable/Disable</strong> 
         </div>
-        <div class="col-md-3"> <strong> &nbsp; Pallet Enable/Disable</strong> </div>
-        <div class="col-md-2">
-          <label class="switch switch-sm square">
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
             <div>
               <input type="checkbox" ng-model="showCase.model_data.pallet_switch" ng-change="showCase.switches(showCase.model_data.pallet_switch,7)">
               <span>
@@ -142,11 +147,12 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-server fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-server fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Production Enable/Disable</strong> 
         </div>
-        <div class="col-md-3"> <strong> &nbsp; Production Enable/Disable</strong> </div>
-        <div class="col-md-2">
-          <label class="switch switch-sm square">
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
             <div>
               <input type="checkbox" ng-model="showCase.model_data.production_switch" ng-change="showCase.switches(showCase.model_data.production_switch,8)">
               <span>
@@ -157,11 +163,12 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-server fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-server fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> POS Enable/Disable</strong> 
         </div>
-        <div class="col-md-3"> <strong> &nbsp; POS Enable/Disable</strong> </div>
-        <div class="col-md-2">
-          <label class="switch switch-sm square">
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
             <div>
               <input type="checkbox" ng-model="showCase.model_data.pos_switch" ng-change="showCase.switches(showCase.model_data.pos_switch,9)">
               <span>
@@ -172,11 +179,12 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-server fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-server fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Auto PO Enable/Disable</strong> 
         </div>
-        <div class="col-md-3"> <strong> &nbsp; Auto PO Enable/Disable</strong> </div>
-        <div class="col-md-2">
-          <label class="switch switch-sm square">
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
             <div>
               <input type="checkbox" ng-model="showCase.model_data.auto_po_switch" ng-change="showCase.switches(showCase.model_data.auto_po_switch,10)">
               <span>
@@ -187,11 +195,12 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-server fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-server fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Generate Picklist for out of stock orders</strong>
         </div>
-        <div class="col-md-3"> <strong> &nbsp; Generate Picklist for out of stock orders</strong> </div>
-        <div class="col-md-2">
-          <label class="switch switch-sm square">
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
             <div>
               <input type="checkbox" ng-model="showCase.model_data.no_stock_switch" ng-change="showCase.switches(showCase.model_data.no_stock_switch,11)">
               <span>
@@ -202,11 +211,12 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-server fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-server fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20">Decimal Quantity</strong>
         </div>
-        <div class="col-md-3"> <strong> &nbsp; Decimal Quantity</strong> </div>
-        <div class="col-md-2">
-          <label class="switch switch-sm square">
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
             <div>
               <input type="checkbox" ng-model="showCase.model_data.float_switch" ng-change="showCase.switches(showCase.model_data.float_switch,15)">
               <span>
@@ -217,23 +227,25 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px" ng-if="showCase.model_data.float_switch">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-server fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-server fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Decimal Limit</strong> 
         </div>
-        <div class="col-md-3"> <strong> &nbsp; Decimal Limit</strong> </div>
-        <div class="col-md-2">
+        <div class="col-md-2 col-sm-3 col-xs-4">
           <select class="form-control" ng-model="showCase.model_data.decimal_limit" ng-change="showCase.decimal_limit_save = true;">
             <option ng-selected="item == showCase.model_data.decimal_limit" ng-repeat="item in [1,2,3,4,5,6]" value="{{item}}">{{item}}</option>
           </select>
         </div>
-        <div class="col-md-1"><i ng-if="showCase.decimal_limit_save" ng-click="showCase.decimal_limit_save = false; showCase.switches(showCase.model_data.decimal_limit,18)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+        <div class="col-md-1 col-sm-1 col-xs-3"><i ng-if="showCase.decimal_limit_save" ng-click="showCase.decimal_limit_save = false; showCase.switches(showCase.model_data.decimal_limit,18)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-envelope fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-envelope fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Automatic Invoice Generation</strong>
         </div>
-        <div class="col-md-3"> <strong> &nbsp; Automatic Invoice Generation</strong> </div>
-        <div class="col-md-2">
-          <label class="switch switch-sm square">
+        <div class="col-md-2 col-sm-3 col-xs-4">
+          <label class="switch switch-sm square mt5">
             <div>
               <input type="checkbox" ng-model="showCase.model_data.automate_invoice" ng-change="showCase.switches(showCase.model_data.automate_invoice,16)">
               <span>
@@ -244,63 +256,68 @@
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px" ng-init="showCase.online_enable_save = false">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-shopping-cart fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-shopping-cart fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Online Percentage ( 0% ) </strong> 
         </div>
-        <div class="col-md-3 online-percentage"> <strong> Online Percentage ( 0% ) </strong> </div>
-        <div class="col-md-1">
+        <div class="col-md-1 col-sm-2 col-xs-3">
             <input type="number" class="form-control online-input" id="online_percentage" maxlength="3" ng-model="showCase.model_data.online_percentage" ng-change="showCase.online_enable_save = true">
         </div>
-        <div class="col-md-1"><i ng-if="showCase.online_enable_save" ng-click="showCase.online_enable_save = false; showCase.switches(showCase.model_data.online_percentage,12)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
+        <div class="col-md-1 col-sm-1 col-xs-1"><i ng-if="showCase.online_enable_save" ng-click="showCase.online_enable_save = false; showCase.switches(showCase.model_data.online_percentage,12)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px;clear: both;" ng-init="showCase.alert_enable_save = false">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-envelope fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-envelope fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Alerts for Unprocessed PO's/Orders</strong>
         </div>
-        <div class="col-md-3 mail-alerts"> <strong> Alerts for Unprocessed PO's/Orders</strong> </div>
-        <div class="col-md-2">
-          <div class="col-md-6" style="padding-left:0px">
+        <div class="col-md-2 col-sm-4 col-xs-12">
+          <div class="col-md-6 col-sm-4 col-xs-3" style="padding-left:0px">
             <input type="number" class="form-control alerts-input" id="mail_alerts" maxlength="3" ng-model="showCase.model_data.mail_alerts" ng-change="showCase.alert_enable_save = true"> </div>
-          <div class="col-md-3" style="padding:0 0 0 6px"><b>Days</b>
+          <div class="col-md-3 col-sm-2 col-xs-4" style="padding:0 0 0 6px"><b>Days</b>
           </div>
-          <div class="col-md-1"><i ng-if="showCase.alert_enable_save" ng-click="showCase.alert_enable_save = false; showCase.switches(showCase.model_data.mail_alerts,13)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
+          <div class="col-md-1 col-sm-1 col-xs-2"><i ng-if="showCase.alert_enable_save" ng-click="showCase.alert_enable_save = false; showCase.switches(showCase.model_data.mail_alerts,13)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px" ng-init="showCase.prefix_enable_save = false">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-outdent fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-outdent fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> PO Prefix </strong>
         </div>
-        <div class="col-md-3 po-prefix"> <strong> PO Prefix </strong> </div>
-        <div class="col-md-2">
-          <div class="col-md-6" style="padding-left:0px">
-            <input type="text" class="form-control invoice-prefix" id="invoice_prefix" ng-model="showCase.model_data.prefix" ng-change="showCase.prefix_enable_save = true">
-          </div>
-          <div class="col-md-1"><i ng-if="showCase.prefix_enable_save" ng-click="showCase.prefix_enable_save = false; showCase.switches(showCase.model_data.prefix,14)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
+        <div class="col-md-1 col-sm-2 col-xs-3">
+          <input type="text" class="form-control invoice-prefix" id="invoice_prefix" ng-model="showCase.model_data.prefix" ng-change="showCase.prefix_enable_save = true">
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-1">
+          <i ng-if="showCase.prefix_enable_save" ng-click="showCase.prefix_enable_save = false; showCase.switches(showCase.model_data.prefix,14)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-step-forward fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-step-forward fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Production Stages </strong>
         </div>
-        <div class="col-md-3 sku-groups"> <strong> Production Stages </strong> </div>
-        <div class="bootstrap-tagsinput col-md-6">
+        <div class="bootstrap-tagsinput col-md-6 col-sm-6 col-xs-8">
           <input class="stages" type="text" value="{{showCase.model_data.all_stages}}" ui-jq="tagsInput"/>
         </div>
-        <div class="col-md-1"><i ng-click="showCase.update_stages()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+        <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_stages()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
-        <div class="col-md-1" style="width: 3%;"><a><i class="fa fa-tags fa-15px"></i></a>
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-tags fa-15px"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> SKU Groups </strong>
         </div>
-        <div class="col-md-3 sku-groups"> <strong> SKU Groups </strong> </div>
-        <div class="bootstrap-tagsinput col-md-6">
+        <div class="bootstrap-tagsinput col-md-6 col-sm-6 col-xs-8">
           <input id="tags" type="text" value="{{showCase.model_data.all_groups}}" ui-jq="tagsInput"/>
         </div>
-        <div class="col-md-1"><i ng-click="showCase.update_sku_groups()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+        <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_sku_groups()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px"> <div class="col-md-12"><button class="btn btn-primary" role="button" data-toggle="collapse" ng-click="showCase.toggle_reports();">Configure Mail Reports</a>
       </div>
       </div>
       <div class="row" ng-if="showCase.show_mail_reports">
-        <div class="col-md-1"></div>
-        <div class="col-md-10">
+        <div class="col-md-1 col-sm-1 co-xs-1"></div>
+        <div class="col-md-10 col-sm-10 co-xs-10">
         <div class="panel">
           <div class="panel-heading border">
            Add Mail Reports:

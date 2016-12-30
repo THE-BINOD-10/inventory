@@ -8,25 +8,25 @@
         <form id="order-shipment" class="filters">
           <div class="clearfix">
             <div class="row col-md-12">
-              <div class="col-md-4">
+              <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label">From Date</label>
                   <input name="from_date" class="form-control" type="text" ng-model="showCase.model_data.from_date" ui-jq="datepicker">
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label">To Date</label>
                   <input name="to_date" class="form-control hasDatepicker" id="shipment_date" type="text" ng-model="showCase.model_data.to_date" ui-jq="datepicker">
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label">PO Number</label>
                   <input name="open_po" class="form-control" type="text" ng-model="showCase.model_data.open_po">
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label">WMS Code</label>
                   <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code,'search_wms_codes?', $event)" ng-model="showCase.model_data.wms_code">

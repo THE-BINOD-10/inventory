@@ -66,8 +66,8 @@
         if( special.indexOf(data) > -1) {
           deferredStatus.resolve(String(this.roles.permissions[data]));
         } else if(data == "is_superuser") {
-          deferredStatus.resolve(String(this.roles.permissions.is_superuser));
-        } else if(Boolean(this.roles.permissions.is_staff) || Boolean(this.roles.permissions.is_superuser)) {
+          deferredStatus.resolve(String(this.roles.permissions["is_superuser"]));
+        } else if(Boolean(this.roles.permissions["is_staff"]) || Boolean(this.roles.permissions["is_superuser"])) {
           deferredStatus.resolve("true");
         } else if (!(this.roles.permissions[data])) {
           deferredStatus.resolve("false");

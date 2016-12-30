@@ -32,12 +32,15 @@ def get_filtered_params(filters, data_list):
 
 @csrf_exempt
 def get_po_suggestions(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['supplier__id', 'supplier__id', 'supplier__name', 'total', 'order_type']
 
     search_params = get_filtered_params(filters, lis[1:])
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
+
+    search_params['sku_id__in'] = sku_master_ids
 
     if search_term:
         results = OpenPO.objects.exclude(status = 0).values('supplier_id', 'supplier__name', 'order_type').distinct().annotate(total=Sum('order_quantity')).\
@@ -118,19 +121,21 @@ def get_purchase_order_data(order):
 
 @csrf_exempt
 def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['PO Number', 'Order Date', 'Supplier ID', 'Supplier Name', 'Order Type', 'Receive Status']
     data_list = []
     data = []
     supplier_data = {}
     col_num1 = 0
     if search_term:
-        results = PurchaseOrder.objects.filter(Q(open_po__supplier_id__id = search_term) | Q(open_po__supplier__name__icontains = search_term)
+        results = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(Q(open_po__supplier_id__id = search_term) |
+                                                Q(open_po__supplier__name__icontains = search_term)
                                                |Q( order_id__icontains = search_term ) | Q(creation_date__regex=search_term),
                                               open_po__sku__user=user.id, received_quantity__lt=F('open_po__order_quantity')).\
                                         exclude(status__in=['location-assigned','confirmed-putaway']).\
                                         values_list('order_id', flat=True).distinct()
         stock_results = STPurchaseOrder.objects.exclude(po__open_po__isnull=True).exclude(po__status__in=['location-assigned',
-                                                        'confirmed-putaway', 'stock-transfer']).\
+                                                        'confirmed-putaway', 'stock-transfer']).filter(open_st__sku_id__in=sku_master_ids).\
                                                 filter(Q(open_st__warehouse__id__icontains = search_term) |
                                                        Q(open_st__warehouse__username__icontains = search_term) |
                                                        Q(po__order_id__icontains = search_term ) | Q(po__creation_date__regex=search_term),
@@ -138,7 +143,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                                        po__received_quantity__lt=F('open_st__order_quantity')).\
                                                 values_list('po__order_id', flat=True).distinct()
         rw_results = RWPurchase.objects.exclude(purchase_order__open_po__isnull=True).exclude(purchase_order__status__in=['location-assigned',
-                                                'confirmed-putaway', 'stock-transfer']).\
+                                                'confirmed-putaway', 'stock-transfer']).filter(rwo__job_order__product_code_id__in=sku_master_ids).\
                                                 filter(Q(rwo__vendor__id__icontains = search_term) |
                                                        Q(rwo__vendor__name__icontains = search_term) |
                                                        Q(purchase_order__creation_date__regex=search_term) |
@@ -150,16 +155,16 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         results.sort()
 
     elif order_term:
-        results = PurchaseOrder.objects.filter(open_po__sku__user = user.id, received_quantity__lt=F('open_po__order_quantity')).\
+        results = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(open_po__sku__user = user.id, received_quantity__lt=F('open_po__order_quantity')).\
                                         exclude(status__in=['location-assigned', 'confirmed-putaway']).values_list('order_id',
                                                 flat=True).distinct()
 
-        stock_results = STPurchaseOrder.objects.exclude(po__status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer']).\
+        stock_results = STPurchaseOrder.objects.filter(open_st__sku_id__in=sku_master_ids).exclude(po__status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer']).\
                                                 filter(po__open_po__isnull=True, open_st__sku__user = user.id,
                                                        po__received_quantity__lt=F('open_st__order_quantity')).\
                                                 values_list('po__order_id', flat=True).distinct()
         rw_results = RWPurchase.objects.exclude(purchase_order__status__in=['location-assigned',
-                                                'confirmed-putaway', 'stock-transfer']).\
+                                                'confirmed-putaway', 'stock-transfer']).filter(rwo__job_order__product_code_id__in=sku_master_ids).\
                                         filter(rwo__vendor__user = user.id, purchase_order__open_po__isnull=True,
                                                purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')).\
                                         values_list('purchase_order__order_id', flat=True).distinct()
@@ -272,6 +277,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
 
 @csrf_exempt
 def get_quality_check_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['Purchase Order ID', 'Supplier ID', 'Supplier Name', 'Order Type', 'Total Quantity']
     all_data = OrderedDict()
 
@@ -287,16 +293,19 @@ def get_quality_check_data(start_index, stop_index, temp_data, search_term, orde
     rw_filters = get_filtered_params(filters, rw_list)
 
     if search_term:
-        results = QualityCheck.objects.filter(Q(purchase_order__order_id__icontains=search_term) |
+        results = QualityCheck.objects.filter(purchase_order__open_po__sku_id__in=sku_master_ids).\
+                                       filter(Q(purchase_order__order_id__icontains=search_term) |
                                               Q(purchase_order__open_po__supplier__id__icontains=search_term) |
                                               Q(purchase_order__open_po__supplier__name__icontains=search_term),
                                               purchase_order__open_po__sku__user = user.id, status='qc_pending', putaway_quantity__gt=0,
                                               **qc_filters)
-        stock_results = STPurchaseOrder.objects.exclude(po__status__in=['confirmed-putaway', 'stock-transfer']).\
+        stock_results = STPurchaseOrder.objects.filter(open_st__sku_id__in=sku_master_ids).\
+                                                exclude(po__status__in=['confirmed-putaway', 'stock-transfer']).\
                                                 filter(Q(open_st__warehouse__username__icontains = search_term) |
                                                        Q(po__order_id__icontains = search_term ), open_st__sku__user=user.id, **st_filters).\
                                                  values_list('po_id', flat=True)
-        rw_results = RWPurchase.objects.exclude(purchase_order__status__in=['confirmed-putaway', 'stock-transfer']).\
+        rw_results = RWPurchase.objects.filter(rwo__job_order__product_code_id__in=sku_master_ids).\
+                                        exclude(purchase_order__status__in=['confirmed-putaway', 'stock-transfer']).\
                                         filter(Q(rwo__vendor__name__icontains = search_term) | Q(rwo__vendor__id__icontains = search_term) |
                                                Q(purchase_order__order_id__icontains = search_term ), rwo__vendor__user=user.id, **rw_filters).\
                                         values_list('purchase_order_id', flat=True)
@@ -306,15 +315,18 @@ def get_quality_check_data(start_index, stop_index, temp_data, search_term, orde
 
         results = list(chain(results, qc_results))
     else:
-        stock_results = STPurchaseOrder.objects.exclude(po__status__in=['confirmed-putaway', 'stock-transfer']).\
-                                                filter(open_st__sku__user=user.id, **st_filters).values_list('po_id', flat=True)
-        rw_results = RWPurchase.objects.exclude(purchase_order__status__in=['confirmed-putaway', 'stock-transfer']).\
+        stock_results = STPurchaseOrder.objects.filter(open_st__sku_id__in=sku_master_ids).exclude(po__status__in=['confirmed-putaway',
+                                                       'stock-transfer']).filter(open_st__sku__user=user.id, **st_filters).\
+                                                values_list('po_id', flat=True)
+        rw_results = RWPurchase.objects.filter(rwo__job_order__product_code_id__in=sku_master_ids).\
+                                        exclude(purchase_order__status__in=['confirmed-putaway', 'stock-transfer']).\
                                         filter(rwo__vendor__user=user.id, **rw_filters).\
                                         values_list('purchase_order_id', flat=True)
         stock_results = list(chain(stock_results, rw_results))
-        qc_results = QualityCheck.objects.filter(purchase_order_id__in=stock_results, status='qc_pending',
-                                                 putaway_quantity__gt=0, po_location__location__zone__user = user.id)
-        results = QualityCheck.objects.filter(status='qc_pending', putaway_quantity__gt=0, po_location__location__zone__user = user.id,
+        qc_results = QualityCheck.objects.filter(Q(purchase_order__open_po__sku_id__in=sku_master_ids) | Q(purchase_order_id__in=stock_results),
+                                                 status='qc_pending', putaway_quantity__gt=0, po_location__location__zone__user = user.id)
+        results = QualityCheck.objects.filter(Q(purchase_order__open_po__sku_id__in=sku_master_ids) | Q(purchase_order_id__in=stock_results)).\
+                                       filter(status='qc_pending', putaway_quantity__gt=0, po_location__location__zone__user = user.id,
                                               **qc_filters)
         results = list(chain(results, qc_results))
 
@@ -327,13 +339,14 @@ def get_quality_check_data(start_index, stop_index, temp_data, search_term, orde
     temp_data['recordsTotal'] = len(all_data)
     temp_data['recordsFiltered'] = len(all_data)
     for key, value in all_data.iteritems():
-        order = PurchaseOrder.objects.filter(order_id=key[0], open_po__sku__user=user.id)
+        order = PurchaseOrder.objects.filter(order_id=key[0], open_po__sku__user=user.id, open_po__sku_id__in=sku_master_ids)
         if not order:
-            order = STPurchaseOrder.objects.filter(po_id__order_id=key[0], open_st__sku__user=user.id)
+            order = STPurchaseOrder.objects.filter(po_id__order_id=key[0], open_st__sku__user=user.id, open_st__sku_id__in=sku_master_ids)
             if order:
                 order = [order[0].po]
             else:
-                order = [RWPurchase.objects.filter(purchase_order__order_id=key[0], rwo__vendor__user=user.id)[0].purchase_order]
+                order = [RWPurchase.objects.filter(purchase_order__order_id=key[0], rwo__vendor__user=user.id,
+                                                   rwo__job_order__product_code_id__in=sku_master_ids)[0].purchase_order]
         order = order[0]
         order_type = 'Purchase Order'
         if RWPurchase.objects.filter(purchase_order_id=order.id):
@@ -354,18 +367,22 @@ def get_quality_check_data(start_index, stop_index, temp_data, search_term, orde
 
 @csrf_exempt
 def get_order_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     supplier_data = {}
     lis = ['PO Number', 'Order Date', 'Supplier ID', 'Supplier Name', 'Order Type']
     if search_term:
-        results = PurchaseOrder.objects.filter(Q(open_po__supplier__name__icontains=search_term) | Q(open_po__supplier__id__icontains=search_term) | Q(order_id__icontains=search_term) | Q(creation_date__regex=search_term), open_po__sku__user = user.id).exclude(status__in=['', 'confirmed-putaway']).values_list('order_id', flat=True).distinct()
-        stock_results = STPurchaseOrder.objects.exclude(po__status__in=['','confirmed-putaway', 'stock-transfer']).\
-                                                filter(Q(open_st__warehouse__id__icontains = search_term) |
+        results = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(Q(open_po__supplier__name__icontains=search_term) |
+                                               Q(open_po__supplier__id__icontains=search_term) | Q(order_id__icontains=search_term) |
+                                               Q(creation_date__regex=search_term), open_po__sku__user = user.id).exclude(status__in=['',
+                                               'confirmed-putaway']).values_list('order_id', flat=True).distinct()
+        stock_results = STPurchaseOrder.objects.filter(open_st__sku_id__in=sku_master_ids).exclude(po__status__in=['','confirmed-putaway',
+                                                'stock-transfer']).filter(Q(open_st__warehouse__id__icontains = search_term) |
                                                        Q(open_st__warehouse__username__icontains = search_term) |
                                                        Q(po__order_id__icontains = search_term) | Q(po__creation_date__regex=search_term),
                                                        open_st__sku__user=user.id).\
                                                  values_list('po__order_id', flat=True).distinct()
-        rw_results = RWPurchase.objects.exclude(purchase_order__status__in=['','confirmed-putaway', 'stock-transfer']).\
-                                                filter(Q(rwo__vendor__id__icontains = search_term) |
+        rw_results = RWPurchase.objects.filter(rwo__job_order__product_code_id__in=sku_master_ids).exclude(purchase_order__status__in=['',
+                                               'confirmed-putaway', 'stock-transfer']).filter(Q(rwo__vendor__id__icontains = search_term) |
                                                        Q(rwo__vendor__name__icontains = search_term) |
                                                        Q(purchase_order__order_id__icontains = search_term) |
                                                        Q(purchase_order__creation_date__regex=search_term),
@@ -373,25 +390,30 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
                                                  values_list('purchase_order__order_id', flat=True).distinct()
         results = list(chain(results, stock_results, rw_results))
     elif order_term:
-        results = PurchaseOrder.objects.filter(open_po__sku__user = user.id).exclude(status__in=['', 'confirmed-putaway']).values_list('order_id', flat=True).distinct()
+        results = PurchaseOrder.objects.filter(open_po__sku__user = user.id, open_po__sku_id__in=sku_master_ids).exclude(status__in=['',
+                                               'confirmed-putaway']).values_list('order_id', flat=True).distinct()
         stock_results = STPurchaseOrder.objects.exclude(po__status__in=['','confirmed-putaway', 'stock-transfer']).\
-                                                filter(open_st__sku__user = user.id).values_list('po__order_id', flat=True).\
+                                                filter(open_st__sku__user = user.id, open_st__sku_id__in=sku_master_ids).\
                                                 values_list('po__order_id', flat=True).distinct()
-        rw_results = RWPurchase.objects.exclude(purchase_order__status__in=['','confirmed-putaway', 'stock-transfer']).\
+        rw_results = RWPurchase.objects.filter(rwo__job_order__product_code_id__in=sku_master_ids).exclude(purchase_order__status__in=['',
+                                        'confirmed-putaway', 'stock-transfer']).\
                                         filter(rwo__vendor__user = user.id).values_list('purchase_order__order_id', flat=True)
         results = list(chain(results, stock_results, rw_results))
     else:
-        results = PurchaseOrder.objects.filter(open_po__sku__user = user.id).exclude(status__in=['', 'confirmed-putaway']).values('order_id').distinct()
+        results = PurchaseOrder.objects.filter(open_po__sku__user = user.id, open_po__sku_id__in=sku_master_ids).exclude(status__in=['',
+                                               'confirmed-putaway']).values('order_id').distinct()
     data = []
     temp = []
     for result in results:
-        suppliers = PurchaseOrder.objects.filter(order_id=result, open_po__sku__user = user.id).exclude(status__in=['', 'confirmed-putaway'])
+        suppliers = PurchaseOrder.objects.filter(order_id=result, open_po__sku__user = user.id, open_po__sku_id__in=sku_master_ids).\
+                                          exclude(status__in=['', 'confirmed-putaway'])
         if not suppliers:
-            st_order_ids = STPurchaseOrder.objects.filter(po__order_id=result, open_st__sku__user = user.id).values_list('po_id', flat=True)
+            st_order_ids = STPurchaseOrder.objects.filter(po__order_id=result, open_st__sku__user = user.id,
+                                                          open_st__sku_id__in=sku_master_ids).values_list('po_id', flat=True)
             suppliers = PurchaseOrder.objects.filter(id__in=st_order_ids)
         if not suppliers:
-            rw_ids = RWPurchase.objects.filter(purchase_order__order_id=result, rwo__vendor__user = user.id).\
-                                              values_list('purchase_order_id', flat=True)
+            rw_ids = RWPurchase.objects.filter(purchase_order__order_id=result, rwo__vendor__user = user.id,
+                                               rwo__job_order__product_code_id__in=sku_master_ids).values_list('purchase_order_id', flat=True)
             suppliers = PurchaseOrder.objects.filter(id__in=rw_ids)
         for supplier in suppliers:
             po_loc = POLocation.objects.filter(purchase_order_id=supplier.id, status=1, location__zone__user = user.id, quantity__gt=0)
@@ -424,10 +446,11 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
 
 @csrf_exempt
 def get_order_returns_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['returns__return_id', 'returns__return_date', 'returns__sku__wms_code', 'returns__sku__sku_desc',
            'location__zone__zone', 'location__location', 'quantity']
     if search_term:
-        master_data = ReturnsLocation.objects.filter(Q(returns__return_id__icontains=search_term) |
+        master_data = ReturnsLocation.objects.filter(returns__sku_id__in=sku_master_ids).filter(Q(returns__return_id__icontains=search_term) |
                                                      Q(returns__sku__sku_desc__icontains=search_term) |
                                                        Q(returns__sku__wms_code__icontains=search_term) | Q(quantity__icontains=search_term),
                                                        returns__sku__user = user.id , status=1, quantity__gt=0)
@@ -436,9 +459,11 @@ def get_order_returns_data(start_index, stop_index, temp_data, search_term, orde
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        master_data = ReturnsLocation.objects.filter(returns__sku__user = user.id, status=1, quantity__gt=0).order_by(order_data)
+        master_data = ReturnsLocation.objects.filter(returns__sku__user = user.id, status=1, quantity__gt=0,
+                                                     returns__sku_id__in=sku_master_ids).order_by(order_data)
     else:
-        master_data = ReturnsLocation.objects.filter(returns__sku__user = user.id, status=1, quantity__gt=0).order_by('returns__return_date')
+        master_data = ReturnsLocation.objects.filter(returns__sku__user = user.id, status=1, quantity__gt=0,
+                                                     returns__sku_id__in=sku_master_ids).order_by('returns__return_date')
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     count = 0;
@@ -484,6 +509,7 @@ def get_order_returns(start_index, stop_index, temp_data, search_term, order_ter
 @login_required
 @get_admin_user
 def generated_po_data(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     status_dict = {'Self Receipt': 'SR', 'Vendor Receipt': 'VR'}
     send_message = 'true'
     data = MiscDetail.objects.filter(user = request.user.id, misc_type='send_message')
@@ -492,7 +518,7 @@ def generated_po_data(request, user=''):
 
     generated_id = request.GET['supplier_id']
     record = OpenPO.objects.filter(Q(supplier_id=generated_id, status='Manual') | Q(supplier_id=generated_id, status='Automated'),
-                                     sku__user = user.id, order_type=status_dict[request.GET['order_type']])
+                                     sku__user = user.id, order_type=status_dict[request.GET['order_type']], sku_id__in=sku_master_ids)
 
     total_data = []
     status_dict = {'SR': 'Self Receipt', 'VR': 'Vendor Receipt'}
@@ -909,6 +935,7 @@ def delete_po(request, user=''):
 @login_required
 @get_admin_user
 def get_supplier_data(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     temp = get_misc_value('pallet_switch', user.id)
     order_ids = []
     headers = ['WMS CODE', 'PO Quantity', 'Received Quantity', 'Unit Price', '']
@@ -919,14 +946,15 @@ def get_supplier_data(request, user=''):
         headers.insert(-2, 'Serial Number')
     data = {}
     order_id = request.GET['supplier_id']
-    purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user = user.id,
+    purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user = user.id, open_po__sku_id__in=sku_master_ids,
                                                    received_quantity__lt=F('open_po__order_quantity')).exclude(status='location-assigned')
     if not purchase_orders:
-        st_orders = STPurchaseOrder.objects.filter(po__order_id=order_id, open_st__sku__user = user.id).\
+        st_orders = STPurchaseOrder.objects.filter(po__order_id=order_id, open_st__sku__user = user.id, open_st__sku_id__in=sku_master_ids).\
                                 exclude(po__status__in=['location-assigned', 'stock-transfer']).values_list('po_id', flat=True)
         purchase_orders = PurchaseOrder.objects.filter(id__in=st_orders)
     if not purchase_orders:
-        rw_orders = RWPurchase.objects.filter(purchase_order__order_id=order_id, rwo__vendor__user=user.id).\
+        rw_orders = RWPurchase.objects.filter(purchase_order__order_id=order_id, rwo__vendor__user=user.id,
+                                              rwo__job_order__product_code_id__in=sku_master_ids).\
                                        exclude(purchase_order__status__in=['location-assigned', 'stock-transfer']).\
                                        values_list('purchase_order_id', flat=True)
         purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
@@ -1704,16 +1732,17 @@ def confirm_sales_return(request, user=''):
 @login_required
 @get_admin_user
 def get_received_orders(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     all_data = {}
     temp = get_misc_value('pallet_switch', user.id)
     headers = ('WMS CODE', 'Location', 'Pallet Number', 'Original Quantity', 'Putaway Quantity', '')
     data = {}
     sku_total_quantities = OrderedDict()
     supplier_id = request.GET['supplier_id']
-    purchase_orders = PurchaseOrder.objects.filter(order_id=supplier_id, open_po__sku__user = user.id).exclude(
-                                                   status__in=['', 'confirmed-putaway'])
+    purchase_orders = PurchaseOrder.objects.filter(order_id=supplier_id, open_po__sku__user = user.id, open_po__sku_id__in=sku_master_ids).\
+                                            exclude(status__in=['', 'confirmed-putaway'])
     if not purchase_orders:
-        st_orders = STPurchaseOrder.objects.filter(po__order_id=supplier_id, open_st__sku__user = user.id).\
+        st_orders = STPurchaseOrder.objects.filter(po__order_id=supplier_id, open_st__sku__user = user.id, open_st__sku_id__in=sku_master_ids).\
                                 exclude(po__status__in=['', 'confirmed-putaway', 'stock-transfer']).values_list('po_id', flat=True)
         purchase_orders = PurchaseOrder.objects.filter(id__in=st_orders)
     for order in purchase_orders:
@@ -1776,14 +1805,16 @@ def validate_putaway(all_data,user):
                 loc = LocationMaster.objects.get(location = key[1],zone__user=user.id)
                 if 'Inbound' in loc.lock_status or 'Inbound and Outbound' in loc.lock_status:
                     status = 'Entered Location is locked for %s operations' % loc.lock_status
-                data = POLocation.objects.get(id=key[0], location__zone__user=user.id)
-                order_data = get_purchase_order_data(data.purchase_order)
 
-                if (float(data.purchase_order.received_quantity) - value) < 0:
-                    status = 'Putaway quantity should be less than the Received Quantity'
+                if key[0]:
+                    data = POLocation.objects.get(id=key[0], location__zone__user=user.id)
+                    order_data = get_purchase_order_data(data.purchase_order)
+
+                    if (float(data.purchase_order.received_quantity) - value) < 0:
+                        status = 'Putaway quantity should be less than the Received Quantity'
 
                 if back_order == "true":
-                    sku_code = order_data['sku_code']
+                    sku_code = key[4]
                     pick_res_quantity = PicklistLocation.objects.filter(picklist__order__sku__sku_code=sku_code,
                                                                         stock__location__zone__zone="BAY_AREA",
                                                                         status=1, picklist__status__icontains='open',
@@ -1854,6 +1885,7 @@ def putaway_location(data, value, exc_loc, user, order_id, po_id):
 @login_required
 @get_admin_user
 def putaway_data(request, user=''):
+    purchase_order_id= ''
     diff_quan = 0
     all_data = {}
     myDict = dict(request.GET.iterlists())
@@ -1862,16 +1894,18 @@ def putaway_data(request, user=''):
         if myDict['orig_data'][i]:
             myDict['orig_data'][i] = eval(myDict['orig_data'][i])
             for orig_data in myDict['orig_data'][i]:
-                cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i])
+                cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
                 all_data.setdefault(cond, 0)
                 all_data[cond] += float(orig_data['orig_quantity'])
 
         else:
-            cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i])
+            cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
             all_data.setdefault(cond, 0)
+            if not myDict['quantity'][i]:
+                myDict['quantity'][i] = 0
             all_data[cond] += float(myDict['quantity'][i])
 
-
+    all_data = OrderedDict(sorted(all_data.items(), reverse=True))
     status = validate_putaway(all_data,user)
     if status:
         return HttpResponse(status)
@@ -1880,56 +1914,84 @@ def putaway_data(request, user=''):
         loc = LocationMaster.objects.get(location=key[1], zone__user=user.id)
         loc1 = loc
         exc_loc = loc.id
-        data = POLocation.objects.get(id=key[0], location__zone__user=user.id)
+        if key[0]:
+            po_loc_data = POLocation.objects.filter(id=key[0], location__zone__user=user.id)
+            purchase_order_id = po_loc_data[0].purchase_order.order_id
+        else:
+            sku_master, sku_master_ids = get_sku_master(user, request.user)
+            results = PurchaseOrder.objects.filter(open_po__sku__user = user.id, open_po__sku_id__in=sku_master_ids,
+                                                   order_id=purchase_order_id, open_po__sku__wms_code=key[4]).exclude(status__in=['',
+                                                   'confirmed-putaway']).values_list('id', flat=True).distinct()
+            stock_results = STPurchaseOrder.objects.exclude(po__status__in=['','confirmed-putaway', 'stock-transfer']).\
+                                                    filter(open_st__sku__user = user.id, open_st__sku_id__in=sku_master_ids,
+                                                    open_st__sku__wms_code=key[4], po__order_id=purchase_order_id).\
+                                                    values_list('po_id', flat=True).distinct()
+            rw_results = RWPurchase.objects.filter(rwo__job_order__product_code_id__in=sku_master_ids,
+                                                   rwo__job_order__product_code__wms_code=key[4]).exclude(purchase_order__status__in=['',
+                                            'confirmed-putaway', 'stock-transfer'], purchase_order__order_id=purchase_order_id).\
+                                            filter(rwo__vendor__user = user.id).values_list('purchase_order_id', flat=True)
+            results = list(chain(results, stock_results, rw_results))
+            po_loc_data = POLocation.objects.filter(location__zone__user=user.id, purchase_order_id__in=results)
         if not value:
             continue
-        order_data = get_purchase_order_data(data.purchase_order)
-        putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
-        stock_data = StockDetail.objects.filter(location_id=exc_loc, receipt_number=data.purchase_order.order_id, sku_id=order_data['sku_id'],
-                                                sku__user=user.id)
-        pallet_mapping = PalletMapping.objects.filter(po_location_id=key[0],status=1)
-        if pallet_mapping:
+        count = value
+        for data in po_loc_data:
+            if not count:
+                break
+            if float(data.quantity) < count:
+                value = count - float(data.quantity)
+                count -= float(data.quantity)
+            else:
+                value = count
+                count = 0
+            order_data = get_purchase_order_data(data.purchase_order)
+            putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
             stock_data = StockDetail.objects.filter(location_id=exc_loc, receipt_number=data.purchase_order.order_id,
-                                                    sku_id=order_data['sku_id'], sku__user=user.id,
-                                                    pallet_detail_id=pallet_mapping[0].pallet_detail.id)
-        if pallet_mapping:
-            setattr(loc1, 'pallet_filled', float(loc1.pallet_filled) + 1)
-        else:
-            setattr(loc1, 'filled_capacity', float(loc1.filled_capacity) + float(value))
-        if loc1.pallet_filled > loc1.pallet_capacity:
-            setattr(loc1, 'pallet_capacity', loc1.pallet_filled)
-        loc1.save()
-        if stock_data:
-            stock_data = stock_data[0]
-            add_quan = float(stock_data.quantity) + float(value)
-            setattr(stock_data, 'quantity', add_quan)
+                                                    sku_id=order_data['sku_id'], sku__user=user.id)
+            pallet_mapping = PalletMapping.objects.filter(po_location_id=data.id,status=1)
             if pallet_mapping:
-                pallet_detail = pallet_mapping[0].pallet_detail
-                setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
-            stock_data.save()
-        else:
-            record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
-                           'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
-                           'quantity': value, 'status': 1, 'receipt_type': 'purchase order', 'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now()}
+                stock_data = StockDetail.objects.filter(location_id=exc_loc, receipt_number=data.purchase_order.order_id,
+                                                        sku_id=order_data['sku_id'], sku__user=user.id,
+                                                        pallet_detail_id=pallet_mapping[0].pallet_detail.id)
             if pallet_mapping:
-                record_data['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
-                pallet_mapping[0].status = 0
-                pallet_mapping[0].save()
-            stock_detail = StockDetail(**record_data)
-            stock_detail.save()
-        consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
+                setattr(loc1, 'pallet_filled', float(loc1.pallet_filled) + 1)
+            else:
+                setattr(loc1, 'filled_capacity', float(loc1.filled_capacity) + float(value))
+            if loc1.pallet_filled > loc1.pallet_capacity:
+                setattr(loc1, 'pallet_capacity', loc1.pallet_filled)
+            loc1.save()
+            if stock_data:
+                stock_data = stock_data[0]
+                add_quan = float(stock_data.quantity) + float(value)
+                setattr(stock_data, 'quantity', add_quan)
+                if pallet_mapping:
+                    pallet_detail = pallet_mapping[0].pallet_detail
+                    setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
+                stock_data.save()
+            else:
+                record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
+                               'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
+                               'quantity': value, 'status': 1, 'receipt_type': 'purchase order', 'creation_date': datetime.datetime.now(),
+                               'updation_date': datetime.datetime.now()}
+                if pallet_mapping:
+                    record_data['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
+                    pallet_mapping[0].status = 0
+                    pallet_mapping[0].save()
+                stock_detail = StockDetail(**record_data)
+                stock_detail.save()
+            consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 
-        #check_and_update_stock(order_data['sku_code'], user)
+            #check_and_update_stock(order_data['sku_code'], user)
 
-        putaway_quantity = POLocation.objects.filter(purchase_order_id=data.purchase_order_id,
-                                                     location__zone__user = user.id, status=0).\
-                                                     aggregate(Sum('original_quantity'))['original_quantity__sum']
-        if not putaway_quantity:
-            putaway_quantity = 0
-        if (float(order_data['order_quantity']) <= float(data.purchase_order.received_quantity)) and float(data.purchase_order.received_quantity) - float(putaway_quantity) <= 0:
-            data.purchase_order.status = 'confirmed-putaway'
+            putaway_quantity = POLocation.objects.filter(purchase_order_id=data.purchase_order_id,
+                                                         location__zone__user = user.id, status=0).\
+                                                         aggregate(Sum('original_quantity'))['original_quantity__sum']
+            if not putaway_quantity:
+                putaway_quantity = 0
+            if (float(order_data['order_quantity']) <= float(data.purchase_order.received_quantity)) and float(data.purchase_order.received_quantity) - float(putaway_quantity) <= 0:
+                data.purchase_order.status = 'confirmed-putaway'
 
-        data.purchase_order.save()
+            data.purchase_order.save()
 
     return HttpResponse('Updated Successfully')
 
@@ -1937,25 +1999,31 @@ def putaway_data(request, user=''):
 @login_required
 @get_admin_user
 def quality_check_data(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     headers = ('WMS CODE', 'Location', 'Quantity', 'Accepted Quantity', 'Rejected Quantity', 'Reason')
     data = []
+    stock_results = []
     po_reference = ''
     order_id = request.GET['order_id']
-    purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user = user.id)
+    purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user = user.id, open_po__sku_id__in=sku_master_ids)
     if not purchase_orders:
         purchase_orders = []
         stock_results = STPurchaseOrder.objects.exclude(po__status__in=['confirmed-putaway', 'stock-transfer']).\
-                                                filter(open_st__sku__user=user.id).values_list('po_id', flat=True)
+                                                filter(open_st__sku__user=user.id, open_st__sku_id__in=sku_master_ids).\
+                                                values_list('po_id', flat=True)
         qc_results = QualityCheck.objects.filter(purchase_order_id__in=stock_results, status='qc_pending',
                                                  po_location__location__zone__user = user.id)
         for qc in qc_results:
             purchase_orders.append(qc.purchase_order)
     for order in purchase_orders:
-        quality_check = QualityCheck.objects.filter(purchase_order_id=order.id, status='qc_pending',
+        quality_check = QualityCheck.objects.filter(Q(purchase_order__open_po__sku_id__in=sku_master_ids) |
+                                                    Q(purchase_order_id__in=stock_results),
+                                                    purchase_order_id=order.id, status='qc_pending',
                                                     po_location__location__zone__user = user.id)
         for qc_data in quality_check:
             purchase_data = get_purchase_order_data(qc_data.purchase_order)
-            po_reference = '%s%s_%s' % (qc_data.purchase_order.prefix, str(qc_data.purchase_order.creation_date).split(' ')[0].replace('-', ''), qc_data.purchase_order.order_id)
+            po_reference = '%s%s_%s' % (qc_data.purchase_order.prefix, str(qc_data.purchase_order.creation_date).split(' ')[0].\
+                                        replace('-', ''), qc_data.purchase_order.order_id)
             data.append({'id': qc_data.id, 'wms_code': purchase_data['wms_code'], 'location': qc_data.po_location.location.location,
                          'quantity': get_decimal_limit(user.id, qc_data.putaway_quantity),
                          'accepted_quantity': get_decimal_limit(user.id, qc_data.accepted_quantity),
@@ -2993,10 +3061,12 @@ def get_stage_index(stages, ind):
 
 @csrf_exempt
 def get_cancelled_putaway(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['id', 'picklist__order__order_id', 'picklist__order__sku__wms_code', 'picklist__order__sku__sku_desc',
            'location__zone__zone', 'location__location', 'quantity']
     if search_term:
-        master_data = CancelledLocation.objects.filter(Q(picklist__order__order_id__icontains=search_term) |
+        master_data = CancelledLocation.objects.filter(picklist__order__sku_id__in=sku_master_ids).\
+                                                filter(Q(picklist__order__order_id__icontains=search_term) |
                                                        Q(picklist__order__sku__sku_desc__icontains=search_term) |
                                                        Q(picklist__order__sku__wms_code__icontains=search_term) |
                                                        Q(quantity__icontains=search_term) |
@@ -3008,10 +3078,11 @@ def get_cancelled_putaway(start_index, stop_index, temp_data, search_term, order
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        master_data = CancelledLocation.objects.filter(picklist__order__sku__user = user.id, status=1, quantity__gt=0).order_by(order_data)
+        master_data = CancelledLocation.objects.filter(picklist__order__sku__user = user.id, status=1, quantity__gt=0,
+                                                       picklist__order__sku_id__in=sku_master_ids).order_by(order_data)
     else:
-        master_data = CancelledLocation.objects.filter(picklist__order__sku__user = user.id, status=1, quantity__gt=0).\
-                                                order_by('-creation_date')
+        master_data = CancelledLocation.objects.filter(picklist__order__sku__user = user.id, status=1, quantity__gt=0,
+                                                       picklist__order__sku_id__in=sku_master_ids).order_by('-creation_date')
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     count = 0;
@@ -3092,7 +3163,13 @@ def get_location_capacity(request, user=''):
         location_master = LocationMaster.objects.filter(zone__user=user.id, location=location)
         if not location_master:
             return HttpResponse(json.dumps({'message': 'Invalid Location'}))
-        capacity = int(location_master[0].max_capacity) - int(location_master[0].filled_capacity)
+        filled_capacity = int(location_master[0].filled_capacity)
+        max_capacity = int(location_master[0].max_capacity)
+        capacity = max_capacity - filled_capacity
+        if capacity < 0:
+            location_master[0].max_capacity = int(location_master[0].max_capacity) + int(abs(capacity))
+            location_master[0].save()
+            capacity = 0
 
     return HttpResponse(json.dumps({'capacity': capacity, 'message': 'Success'}))
 

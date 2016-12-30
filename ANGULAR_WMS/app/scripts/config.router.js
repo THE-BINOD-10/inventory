@@ -32,9 +32,9 @@ var app = angular.module('urbanApp')
 
                   Auth.status().then(function (resp) {
 
-                    if (Session.roles.permissions["setup_status"] == "true" && thisNext.name.indexOf("Register") == -1) {
+                    if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") == -1) {
                       $state.go("app.Register");
-                    } else if (Session.roles.permissions["setup_status"] == "false" && thisNext.name.indexOf("Register") > -1) {
+                    } else if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") > -1) {
                       $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});
                     } else if (typeof(next.permission) == "string") {
 
@@ -1141,7 +1141,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Inventory Adjustment Report',
+            title: 'Inventory Adjustment',
           }
         })
         .state('app.reports.InventoryAging', {

@@ -1,15 +1,21 @@
 <div ng-controller="SupplierWisePOsCtrl as showCase">
   <div class="page-layout reports">
     <div class='layout-header'>
-      <div class="pull-left" ng-include="'views/common/title.html'"></div>
-      <button type="button" style="margin-left: 10px" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, 'supplier_wise')" ng-disabled="showCase.service.print_enable">Download Excel</button>
-      <button type="button" class="btn btn-primary pull-right" ng-disabled="showCase.service.print_enable" ng-click="showCase.service.print_report(showCase.model_data, 'print_supplier_pos/?')">Print Report</button>
+      <div class="row">
+        <div class="col-md-6 col-sm-6 col-xs-12">
+          <div class="pull-left" ng-include="'views/common/title.html'"></div>
+        </div>
+        <div class="col-md-6 col-sm-6 col-xs-12">
+          <button type="button" style="margin-left: 10px" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, 'supplier_wise')" ng-disabled="showCase.service.print_enable">Download Excel</button>
+          <button type="button" class="btn btn-primary pull-right" ng-disabled="showCase.service.print_enable" ng-click="showCase.service.print_report(showCase.model_data, 'print_supplier_pos/?')">Print Report</button>
+        </div>
+      </div>
     </div>
     <div class="layout-sub-header">
         <form id="order-shipment" class="filters">
           <div class="clearfix">
             <div class="row col-md-12">
-              <div class="col-md-4">
+              <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label">Supplier</label>
                   <select name="supplier" class="form-control" ng-model="showCase.model_data.supplier">

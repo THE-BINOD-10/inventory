@@ -2,7 +2,7 @@
   <!-- Modal -->
   <form role="form" name="form">
     <div class="modal-dialog modal-lg confirm_shipment">
-      <div style="width:112%" class="modal-content">
+      <div class="modal-content">
         <div class="modal-header">
           <button aria-label="Close" data-dismiss="modal" class="close" type="button" ng-click="vm.close()"><span aria-hidden="true">×</span>
           </button>
@@ -10,13 +10,13 @@
         </div>
         <div class="modal-body">
           <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-4 col-ms-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Customer ID </label>
                 <input type="text" value="{{vm.model_data.customer_id}}" name="customer_id" class="form-control" disabled>
               </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4 col-ms-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Shipment Reference </label>
                 <input type="text" ng-model="vm.model_data.ship_reference" name="ship_reference" class="form-control">
@@ -28,8 +28,8 @@
               <hr>
             </div>
           </div>
-          <div class="row">
-            <table class="table table-stk">
+          <div class="row over-x">
+            <table class="table mw50">
               <thead>
                 <tr>
                   <th> Order ID </th>

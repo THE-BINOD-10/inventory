@@ -58,8 +58,10 @@ angular
           if ($scope.user.user_profile['trail_user'] == "true") {
             height = 30;
           }
-          $(".page-layout").css('height',$(window).height()-height);
-          $(".page-layout").css('overflow-y', 'auto');
+          if(!(angular.element(".page-layout").hasClass("no-scroll"))) {
+            $(".page-layout").css('height',$(window).height()-height);
+            $(".page-layout").css('overflow-y', 'auto');
+          }
         }, 1000)
       })
 
@@ -68,8 +70,11 @@ angular
           if ($scope.user.user_profile['trail_user'] == "true") {
             height = 30;
           }
-        $(".page-layout").css('height',$(window).height()-height);
-        $(".page-layout").css('overflow-y', 'auto');
+        if(!(angular.element(".page-layout").hasClass("no-scroll"))) {
+
+          $(".page-layout").css('height',$(window).height()-height);
+          $(".page-layout").css('overflow-y', 'auto');
+        }
       })
 
       $scope.scroll_bottom = function(e) {
@@ -160,7 +165,7 @@ angular
       $scope.show_tab = function(data) {
         if(special.indexOf(data) > -1) {
           return Session.roles.permissions[data];
-        } else if (Boolean(Session.roles.permissions.is_staff) || Boolean(Session.roles.permissions.is_superuser)) {
+        } else if (Boolean(Session.roles.permissions["is_staff"]) || Boolean(Session.roles.permissions["is_superuser"])) {
           return true;
         } else if (!(Session.roles.permissions[data])) {
           return false;

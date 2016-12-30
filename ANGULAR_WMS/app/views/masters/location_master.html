@@ -19,26 +19,28 @@
           <accordion-heading>
             {{zone.zone}}<i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': status.open, 'glyphicon-chevron-right': !status.open}"></i>
           </accordion-heading>
-          <table class="table mb0">
-            <thead>
-              <tr>
-                <th class="col-md-3">Location</th>
-                <th class="col-md-2">Capacity</th>
-                <th class="col-md-2">Put Sequence</th>
-                <th class="col-md-2">Get Sequence</th>
-                <th class="col-md-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr ng-repeat="location in zone.data" style="cursor:pointer" ng-click="showCase.open_location(location, zone.zone)">
-                <td>{{location.location}}</td>
-                <td>{{location.max_capacity}}</td>
-                <td>{{location.fill_sequence}}</td>
-                <td>{{location.pick_sequence}}</td>
-                <td>{{location.status}}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="over-x">
+            <table class="table mb0 mw40">
+              <thead>
+                <tr>
+                  <th class="col-md-3">Location</th>
+                  <th class="col-md-2">Capacity</th>
+                  <th class="col-md-2">Put Sequence</th>
+                  <th class="col-md-2">Get Sequence</th>
+                  <th class="col-md-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr ng-repeat="location in zone.data" style="cursor:pointer" ng-click="showCase.open_location(location, zone.zone)">
+                  <td>{{location.location}}</td>
+                  <td>{{location.max_capacity}}</td>
+                  <td>{{location.fill_sequence}}</td>
+                  <td>{{location.pick_sequence}}</td>
+                  <td>{{location.status}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </accordion-group>
       </accordion> 
       <div ui-view></div>

@@ -53,7 +53,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data["groups"] = data.data.groups;
                   vm.model_data["user_groups"] = data.data.user_groups;
                   $state.go('app.ManageUsers.UpdateUser');
-                  $timeout(function(){$('.selectpicker').selectpicker();}, 500);
+                  $timeout(function(){$('.selectpicker').selectpicker();}, 1000);
                 });
             });
         });
@@ -72,6 +72,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function add_user() {
 
       $state.go('app.ManageUsers.AddUser');
+      $timeout(function(){$('.selectpicker').selectpicker();}, 1000);
     }
 
     vm.adding_user = adding_user;
@@ -92,11 +93,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                  }
         });
       }
-    }
-
-    vm.add_group = add_group;
-    function add_group() {
-      $state.go('app.ManageUsers.AddGroup');
     }
 
   function pop_msg(msg) {

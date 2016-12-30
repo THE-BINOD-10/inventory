@@ -11,27 +11,27 @@
         <div class="modal-body">
           <div class="form-group clearfix">
             <div class="row col-md-12">
-              <div class="col-md-3">
+              <div class="col-md-3 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> Group Name * </label>
                   <input type="text" name="group_name" ng-model="showCase.group_name" class="form-control" value="{{showCase.model_data['User Name']}}" required>
                 </div>
               </div>
-              <div class="col-md-3">
+              <div class="col-md-3 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> Permissions * </label>
                  <select data-placeholder="Add Permission" multiple class="chosen permission" chosen style="width: 100%;" ng-model="showCase.PermMultipleSelect" ng-options="opt.name for opt in showCase.group_permissions" name="permission" required>
                   </select>
                 </div>
               </div>
-              <div class="col-md-3">
+              <div class="col-md-3 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> Stages * </label>
                  <select data-placeholder="Add Stages" multiple class="chosen stage" chosen style="width: 100%;" ng-model="showCase.StageMultipleSelect" ng-options="opt.name for opt in showCase.prod_stages" name="stage" required>
                   </select>
                 </div>
               </div>
-              <div class="col-md-3">
+              <div class="col-md-3 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> Brands * </label>
                  <select data-placeholder="Add Brands" multiple class="chosen brand" name="brand" chosen style="width: 100%;" ng-model="showCase.BrandmultipleSelect" ng-options="opt.name for opt in showCase.brands_list" required>

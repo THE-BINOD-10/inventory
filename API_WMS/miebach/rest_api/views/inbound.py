@@ -1805,14 +1805,16 @@ def validate_putaway(all_data,user):
                 loc = LocationMaster.objects.get(location = key[1],zone__user=user.id)
                 if 'Inbound' in loc.lock_status or 'Inbound and Outbound' in loc.lock_status:
                     status = 'Entered Location is locked for %s operations' % loc.lock_status
-                data = POLocation.objects.get(id=key[0], location__zone__user=user.id)
-                order_data = get_purchase_order_data(data.purchase_order)
 
-                if (float(data.purchase_order.received_quantity) - value) < 0:
-                    status = 'Putaway quantity should be less than the Received Quantity'
+                if key[0]:
+                    data = POLocation.objects.get(id=key[0], location__zone__user=user.id)
+                    order_data = get_purchase_order_data(data.purchase_order)
+
+                    if (float(data.purchase_order.received_quantity) - value) < 0:
+                        status = 'Putaway quantity should be less than the Received Quantity'
 
                 if back_order == "true":
-                    sku_code = order_data['sku_code']
+                    sku_code = key[4]
                     pick_res_quantity = PicklistLocation.objects.filter(picklist__order__sku__sku_code=sku_code,
                                                                         stock__location__zone__zone="BAY_AREA",
                                                                         status=1, picklist__status__icontains='open',
@@ -1883,6 +1885,7 @@ def putaway_location(data, value, exc_loc, user, order_id, po_id):
 @login_required
 @get_admin_user
 def putaway_data(request, user=''):
+    purchase_order_id= ''
     diff_quan = 0
     all_data = {}
     myDict = dict(request.GET.iterlists())
@@ -1891,16 +1894,18 @@ def putaway_data(request, user=''):
         if myDict['orig_data'][i]:
             myDict['orig_data'][i] = eval(myDict['orig_data'][i])
             for orig_data in myDict['orig_data'][i]:
-                cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i])
+                cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
                 all_data.setdefault(cond, 0)
                 all_data[cond] += float(orig_data['orig_quantity'])
 
         else:
-            cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i])
+            cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
             all_data.setdefault(cond, 0)
+            if not myDict['quantity'][i]:
+                myDict['quantity'][i] = 0
             all_data[cond] += float(myDict['quantity'][i])
 
-
+    all_data = OrderedDict(sorted(all_data.items(), reverse=True))
     status = validate_putaway(all_data,user)
     if status:
         return HttpResponse(status)
@@ -1909,56 +1914,84 @@ def putaway_data(request, user=''):
         loc = LocationMaster.objects.get(location=key[1], zone__user=user.id)
         loc1 = loc
         exc_loc = loc.id
-        data = POLocation.objects.get(id=key[0], location__zone__user=user.id)
+        if key[0]:
+            po_loc_data = POLocation.objects.filter(id=key[0], location__zone__user=user.id)
+            purchase_order_id = po_loc_data[0].purchase_order.order_id
+        else:
+            sku_master, sku_master_ids = get_sku_master(user, request.user)
+            results = PurchaseOrder.objects.filter(open_po__sku__user = user.id, open_po__sku_id__in=sku_master_ids,
+                                                   order_id=purchase_order_id, open_po__sku__wms_code=key[4]).exclude(status__in=['',
+                                                   'confirmed-putaway']).values_list('id', flat=True).distinct()
+            stock_results = STPurchaseOrder.objects.exclude(po__status__in=['','confirmed-putaway', 'stock-transfer']).\
+                                                    filter(open_st__sku__user = user.id, open_st__sku_id__in=sku_master_ids,
+                                                    open_st__sku__wms_code=key[4], po__order_id=purchase_order_id).\
+                                                    values_list('po_id', flat=True).distinct()
+            rw_results = RWPurchase.objects.filter(rwo__job_order__product_code_id__in=sku_master_ids,
+                                                   rwo__job_order__product_code__wms_code=key[4]).exclude(purchase_order__status__in=['',
+                                            'confirmed-putaway', 'stock-transfer'], purchase_order__order_id=purchase_order_id).\
+                                            filter(rwo__vendor__user = user.id).values_list('purchase_order_id', flat=True)
+            results = list(chain(results, stock_results, rw_results))
+            po_loc_data = POLocation.objects.filter(location__zone__user=user.id, purchase_order_id__in=results)
         if not value:
             continue
-        order_data = get_purchase_order_data(data.purchase_order)
-        putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
-        stock_data = StockDetail.objects.filter(location_id=exc_loc, receipt_number=data.purchase_order.order_id, sku_id=order_data['sku_id'],
-                                                sku__user=user.id)
-        pallet_mapping = PalletMapping.objects.filter(po_location_id=key[0],status=1)
-        if pallet_mapping:
+        count = value
+        for data in po_loc_data:
+            if not count:
+                break
+            if float(data.quantity) < count:
+                value = count - float(data.quantity)
+                count -= float(data.quantity)
+            else:
+                value = count
+                count = 0
+            order_data = get_purchase_order_data(data.purchase_order)
+            putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
             stock_data = StockDetail.objects.filter(location_id=exc_loc, receipt_number=data.purchase_order.order_id,
-                                                    sku_id=order_data['sku_id'], sku__user=user.id,
-                                                    pallet_detail_id=pallet_mapping[0].pallet_detail.id)
-        if pallet_mapping:
-            setattr(loc1, 'pallet_filled', float(loc1.pallet_filled) + 1)
-        else:
-            setattr(loc1, 'filled_capacity', float(loc1.filled_capacity) + float(value))
-        if loc1.pallet_filled > loc1.pallet_capacity:
-            setattr(loc1, 'pallet_capacity', loc1.pallet_filled)
-        loc1.save()
-        if stock_data:
-            stock_data = stock_data[0]
-            add_quan = float(stock_data.quantity) + float(value)
-            setattr(stock_data, 'quantity', add_quan)
+                                                    sku_id=order_data['sku_id'], sku__user=user.id)
+            pallet_mapping = PalletMapping.objects.filter(po_location_id=data.id,status=1)
             if pallet_mapping:
-                pallet_detail = pallet_mapping[0].pallet_detail
-                setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
-            stock_data.save()
-        else:
-            record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
-                           'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
-                           'quantity': value, 'status': 1, 'receipt_type': 'purchase order', 'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now()}
+                stock_data = StockDetail.objects.filter(location_id=exc_loc, receipt_number=data.purchase_order.order_id,
+                                                        sku_id=order_data['sku_id'], sku__user=user.id,
+                                                        pallet_detail_id=pallet_mapping[0].pallet_detail.id)
             if pallet_mapping:
-                record_data['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
-                pallet_mapping[0].status = 0
-                pallet_mapping[0].save()
-            stock_detail = StockDetail(**record_data)
-            stock_detail.save()
-        consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
+                setattr(loc1, 'pallet_filled', float(loc1.pallet_filled) + 1)
+            else:
+                setattr(loc1, 'filled_capacity', float(loc1.filled_capacity) + float(value))
+            if loc1.pallet_filled > loc1.pallet_capacity:
+                setattr(loc1, 'pallet_capacity', loc1.pallet_filled)
+            loc1.save()
+            if stock_data:
+                stock_data = stock_data[0]
+                add_quan = float(stock_data.quantity) + float(value)
+                setattr(stock_data, 'quantity', add_quan)
+                if pallet_mapping:
+                    pallet_detail = pallet_mapping[0].pallet_detail
+                    setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
+                stock_data.save()
+            else:
+                record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
+                               'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
+                               'quantity': value, 'status': 1, 'receipt_type': 'purchase order', 'creation_date': datetime.datetime.now(),
+                               'updation_date': datetime.datetime.now()}
+                if pallet_mapping:
+                    record_data['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
+                    pallet_mapping[0].status = 0
+                    pallet_mapping[0].save()
+                stock_detail = StockDetail(**record_data)
+                stock_detail.save()
+            consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 
-        #check_and_update_stock(order_data['sku_code'], user)
+            #check_and_update_stock(order_data['sku_code'], user)
 
-        putaway_quantity = POLocation.objects.filter(purchase_order_id=data.purchase_order_id,
-                                                     location__zone__user = user.id, status=0).\
-                                                     aggregate(Sum('original_quantity'))['original_quantity__sum']
-        if not putaway_quantity:
-            putaway_quantity = 0
-        if (float(order_data['order_quantity']) <= float(data.purchase_order.received_quantity)) and float(data.purchase_order.received_quantity) - float(putaway_quantity) <= 0:
-            data.purchase_order.status = 'confirmed-putaway'
+            putaway_quantity = POLocation.objects.filter(purchase_order_id=data.purchase_order_id,
+                                                         location__zone__user = user.id, status=0).\
+                                                         aggregate(Sum('original_quantity'))['original_quantity__sum']
+            if not putaway_quantity:
+                putaway_quantity = 0
+            if (float(order_data['order_quantity']) <= float(data.purchase_order.received_quantity)) and float(data.purchase_order.received_quantity) - float(putaway_quantity) <= 0:
+                data.purchase_order.status = 'confirmed-putaway'
 
-        data.purchase_order.save()
+            data.purchase_order.save()
 
     return HttpResponse('Updated Successfully')
 
@@ -3130,7 +3163,13 @@ def get_location_capacity(request, user=''):
         location_master = LocationMaster.objects.filter(zone__user=user.id, location=location)
         if not location_master:
             return HttpResponse(json.dumps({'message': 'Invalid Location'}))
-        capacity = int(location_master[0].max_capacity) - int(location_master[0].filled_capacity)
+        filled_capacity = int(location_master[0].filled_capacity)
+        max_capacity = int(location_master[0].max_capacity)
+        capacity = max_capacity - filled_capacity
+        if capacity < 0:
+            location_master[0].max_capacity = int(location_master[0].max_capacity) + int(abs(capacity))
+            location_master[0].save()
+            capacity = 0
 
     return HttpResponse(json.dumps({'capacity': capacity, 'message': 'Success'}))
 

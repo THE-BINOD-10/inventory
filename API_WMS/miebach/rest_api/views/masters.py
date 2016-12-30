@@ -397,7 +397,11 @@ def get_sku_data(request,user=''):
     sku_data['qc_check'] = data.qc_check
     sku_data['status'] = data.status
 
-    sizes_list = copy.deepcopy(SIZES_LIST)
+    size_names = SizeMaster.objects.filter(user=user.id)
+    sizes_list = []
+    for sizes in size_names:
+        sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
+    sizes_list.append({'size_name': '', 'size_values': copy.deepcopy(SIZES_LIST)})
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
     return  HttpResponse(json.dumps({'sku_data': sku_data,'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                                      'market_data':market_data, 'combo_data': combo_data, 'sizes_list': sizes_list}))
@@ -700,7 +704,12 @@ def update_customer_values(request,user=''):
                 value = 1
             else:
                 value = 0
-        setattr(data, key, value)
+        if key == 'email_id' and value:
+            customer_master = CustomerMaster.objects.exclude(customer_id=data_id).filter(user=user.id, email_id=value)
+            if customer_master:
+                return HttpResponse('Email Already exists')
+        else:
+            setattr(data, key, value)
 
     data.save()
     return HttpResponse('Updated Successfully')
@@ -1209,7 +1218,11 @@ def get_zones_list(request, user=''):
     zones_list = list(ZoneMaster.objects.filter(user=user.id).values_list('zone', flat=True))
     all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
-    sizes_list = copy.deepcopy(SIZES_LIST)
+    size_names = SizeMaster.objects.filter(user=user.id)
+    sizes_list = []
+    for sizes in size_names:
+        sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
+    sizes_list.append({'size_name': '', 'size_values': copy.deepcopy(SIZES_LIST)})
     return HttpResponse(json.dumps({'zones': zones_list, 'sku_groups': all_groups, 'market_places': market_places, 'sizes_list': sizes_list}))
 
 @csrf_exempt

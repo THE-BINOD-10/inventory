@@ -105,11 +105,14 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     for data in master_data[start_index:stop_index]:
         sku = SKUMaster.objects.get(sku_code=data.sku.sku_code,user=user.id)
         sku_code = sku.sku_code
+        order_id = data.order_code + str(data.order_id)
+        if data.original_order_id:
+            order_id = data.original_order_id
         if sku_code == 'TEMP':
             sku_code = data.sku_code
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data.id, data.sku.sku_code)
 
-        temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('Order ID', data.order_code + str(data.order_id)), ('SKU Code', sku_code),
+        temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('Order ID', order_id), ('SKU Code', sku_code),
                                                  ('Title', data.title),('id', count), ('Product Quantity', data.quantity),
                                                  ('Shipment Date', get_local_date(request.user, data.shipment_date)),
                                                  ('Marketplace', data.marketplace), ('DT_RowClass', 'results'),
@@ -1064,6 +1067,7 @@ def view_picklist(request, user=''):
         order_count_len = len(filter(lambda x: len(str(x))>0, order_count))
         if order_count_len == 1:
             single_order = str(order_count[0])
+
     return HttpResponse(json.dumps({'data': data, 'picklist_id': data_id,
                                     'show_image': show_image, 'use_imei': use_imei,
                                     'order_status': data[0]['status'], 'user': request.user.id, 'single_order': single_order,

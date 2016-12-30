@@ -12,47 +12,43 @@
           <div class="modal-body">
             <div class="form-group clearfix">
               <div class="row col-md-12">
-                <div class="col-md-4">
+                <div class="col-md-4 col-sm-4 col-xs-6">
                   <div class="form-group">
                     <label class="control-label">User Name *</label>
                     <input type="text" name="username" class="form-control" required>
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4 col-sm-4 col-xs-6">
                   <div class="form-group">
                     <label class="control-label">First Name *</label>
                     <input type="text" name="first_name" class="form-control" required>
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4 col-sm-4 col-xs-6">
                   <div class="form-group">
                     <label class="control-label">Last Name</label>
                     <input type="text" name="last_name" class="form-control">
                   </div>
                 </div>
-              </div>
-              <div class="row col-md-12">
-                <div class="col-md-4">
+                <div class="col-md-4 col-sm-4 col-xs-6">
                   <div class="form-group">
                     <label class="control-label">Email</label>
                     <input type="email" name="email" class="form-control">
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4 col-sm-4 col-xs-6">
                   <div class="form-group">
                     <label class="control-label">Password *</label>
                     <input type="password" name="password" class="form-control" required>
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4 col-sm-4 col-xs-6">
                   <div class="form-group">
                     <label class="control-label">Re-type Password</label>
                     <input type="password" name="re_password" class="form-control" required>
                   </div>
                 </div>
-              </div>
-              <div class="row col-md-12">
-                <div class="col-md-4">
+                <div class="col-md-4 col-sm-4 col-xs-6 hide">
                   <p>Groups</p>
                   <select id="maxOption2" class="selectpicker show-menu-arrow form-control" multiple name="perms">
                     <option ng-selected="showCase.check_selected(group)" ng-repeat="group in showCase.model_data.groups"> {{group}}</option>

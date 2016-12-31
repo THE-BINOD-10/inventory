@@ -181,7 +181,6 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data['invoice_amount'] += int(get_cell_data(row_idx, 11, reader, file_type))
             elif key == 'vat':
                 cell_data = ''
-                import pdb;pdb.set_trace()
                 if isinstance(value, list):
                     quantity = 1
                     if 'quantity' in order_mapping.keys():

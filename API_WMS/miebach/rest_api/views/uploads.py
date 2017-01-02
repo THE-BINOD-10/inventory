@@ -632,7 +632,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             elif key == 'sku_desc':
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
-                cell_data = str(cell_data)
+                cell_data = str(re.sub(r'[^\x00-\x7F]+','', cell_data))
                 if sku_data and cell_data:
                     sku_data.sku_desc = cell_data
                 data_dict[key] = cell_data

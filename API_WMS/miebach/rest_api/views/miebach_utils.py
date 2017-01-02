@@ -214,6 +214,15 @@ RECEIPT_SUMMARY = {('receipt_summary_form', 'summaryTable', 'Receipt Summary', '
 
 DISPATCH_SUMMARY = {('dispatch_summary_form', 'dispatchTable', 'Dispatch Summary', 'dispatch-wise', 13, 14, 'dispatch-report'): (['Order ID', 'WMS Code', 'Description', 'Quantity', 'Date'], ( (('From Date', 'from_date'),('To Date', 'to_date')), (('WMS Code', 'wms_code'),('SKU Code','sku_code') )) ),}
 
+ORDER_SUMMARY_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'}, {'label': 'To Date', 'name': 'to_date',
+                                   'type': 'date'}, {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}, {'label': 'Marketplace',
+                                   'name': 'marketplace', 'type': 'select'}],
+                      'dt_headers': ['Order ID', 'SKU Code', 'Description', 'Quantity', 'Order Date', 'Order Time', 'Marketplace'],
+                      'dt_url': 'get_order_summary_filter', 'excel_name': 'order_summary_report', 'print_url': 'print_order_summary_report',
+                     }
+
+REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT}
+
 SKU_WISE_STOCK = {('sku_wise_form','skustockTable','SKU Wise Stock Summary','sku-wise', 1, 2, 'sku-wise-report') : (['SKU Code', 'WMS Code', 'Product Description', 'SKU Category', 'Total Quantity'],( (('SKU Code', 'sku_code'), ('SKU Category', 'sku_category')), (('SKU Type', 'sku_type'), ('SKU Class', 'sku_class')),(('WMS Code','wms_code'),))),}
 
 SKU_WISE_PURCHASES =  {('sku_wise_purchase','skupurchaseTable','SKU Wise Purchase Orders','sku-purchase-wise', 1, 2, 'sku-wise-purchase-report') : (['PO Date', 'Supplier', 'SKU Code', 'Order Quantity', 'Received Quantity', 'Receipt Date', 'Status'],( (('WMS SKU Code', 'wms_code'),),)),}
@@ -458,7 +467,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'sku_stock': 'print_sku_wise_data', 'sku_wise_purchases': 'sku_wise_purchase_data',
                         'supplier_wise': 'get_supplier_details_data', 'sales_report': 'get_sales_return_filter_data',
                         'inventory_adjust_report': 'get_adjust_filter_data', 'inventory_aging_report': 'get_aging_filter_data',
-                        'stock_summary_report': 'get_stock_summary_data', 'daily_production_report': 'get_daily_production_data'}
+                        'stock_summary_report': 'get_stock_summary_data', 'daily_production_report': 'get_daily_production_data',
+                        'order_summary_report': 'get_order_summary_data'}
 
 SHIPMENT_STATUS = ['Dispatched', 'In Transit', 'Out for Delivery', 'Delivered']
 
@@ -1096,6 +1106,56 @@ def get_daily_production_data(search_params, user):
     temp_data['aaData'] = data
 
     return temp_data
+
+def get_order_summary_data(search_params, user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    lis = ['order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
+    temp_data = copy.deepcopy( AJAX_DATA )
+    search_parameters = {}
+
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date']  + datetime.timedelta(1), datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['sku__sku_code'] = search_params['sku_code']
+    if 'marketplace' in search_params:
+        search_parameters['marketplace'] = search_params['marketplace']
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    search_parameters['quantity__gt'] = 0
+    search_parameters['user'] = user.id
+
+    orders = OrderDetail.objects.filter(**search_parameters)
+    if search_params.get('order_term'):
+        order_data = lis[search_params['order_index']]
+        if search_params['order_term'] == 'desc':
+            order_data = "-%s" % order_data
+        orders = orders.order_by(order_data)
+
+    temp_data['recordsTotal'] = orders.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    if stop_index:
+        orders = orders[start_index:stop_index]
+
+    for data in orders:
+        date = get_local_date(user, data.creation_date).split(' ')
+        order_id = str(data.order_code) + str(data.order_id)
+        if data.original_order_id:
+            order_id = data.original_order_id
+        temp_data['aaData'].append(OrderedDict(( ('Order ID', order_id), ('SKU Code', data.sku.wms_code),
+                                                 ('Description', data.sku.sku_desc), ('Quantity', data.quantity),
+                                                 ('Order Date', ' '.join(date[0:3])), ('Order Time', ' '.join(date[3:5])),
+                                                 ('Marketplace', data.marketplace))  ))
+
+    return temp_data
+
 
 def html_excel_data(data, fname):
     from miebach_admin.views import *

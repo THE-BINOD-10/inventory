@@ -32,9 +32,9 @@ var app = angular.module('urbanApp')
 
                   Auth.status().then(function (resp) {
 
-                    if (Session.roles.permissions["setup_status"] == "true" && thisNext.name.indexOf("Register") == -1) {
+                    if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") == -1) {
                       $state.go("app.Register");
-                    } else if (Session.roles.permissions["setup_status"] == "false" && thisNext.name.indexOf("Register") > -1) {
+                    } else if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") > -1) {
                       $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});
                     } else if (typeof(next.permission) == "string") {
 
@@ -1141,7 +1141,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Inventory Adjustment Report',
+            title: 'Inventory Adjustment',
           }
         })
         .state('app.reports.InventoryAging', {
@@ -1178,6 +1178,18 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Daily Production Report',
+          }
+        })
+        .state('app.reports.OrderSummaryReport', {
+          url: '/OrderSummary',
+          templateUrl: 'views/reports/order_summary.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/order_summary.js');
+              }]
+          },
+          data: {
+            title: 'Order Summary Report',
           }
         })
 
@@ -1295,6 +1307,10 @@ var app = angular.module('urbanApp')
             url: '/ChangePassword',
             templateUrl: 'views/manage_users/change_password.html'
           })
+          .state('app.ManageUsers.GroupDetails', {
+            url: '/GroupDetails',
+            templateUrl: 'views/manage_users/group_details.html'
+          })
 
       //register
       .state('app.Register', {
@@ -1326,6 +1342,28 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/register/completed.html'
         })
         
+
+      //Customer page
+      .state('user.Customer', {
+          url: '/Customer',
+          templateUrl: 'views/outbound/create_orders.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/create_orders/create_orders.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/create_orders/create_stock_orders.js'
+                  ])
+                });
+              }]
+          },
+          data: {
+            title: 'Customer',
+            appClasses: 'bg-white usersession',
+            contentClasses: 'full-height'
+          }
+        })
 
       // User route 
       .state('user', {

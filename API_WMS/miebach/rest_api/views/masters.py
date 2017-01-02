@@ -77,6 +77,7 @@ def sku_master(request):
 
 @csrf_exempt
 def get_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    sku_master, sku_master_ids = get_sku_master(user,request.user)
     lis = ['wms_code', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'zone__zone', 'status']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
     search_params = get_filtered_params(filters, lis)
@@ -93,11 +94,11 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
         status_dict = {'active': 1, 'inactive': 0}
         if search_term.lower() in status_dict:
             search_terms = status_dict[search_term.lower()]
-            master_data = SKUMaster.objects.filter(status=search_terms, user=user.id, **search_params).order_by(order_data)
+            master_data = sku_master.filter(status=search_terms, user=user.id, **search_params).order_by(order_data)
         else:
-            master_data = SKUMaster.objects.filter(Q(sku_code__icontains=search_term) | Q(wms_code__icontains=search_term) | Q(sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(zone__zone__icontains=search_term), user=user.id, **search_params).order_by(order_data)
+            master_data = sku_master.filter(Q(sku_code__icontains=search_term) | Q(wms_code__icontains=search_term) | Q(sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(zone__zone__icontains=search_term), user=user.id, **search_params).order_by(order_data)
     else:
-        master_data = SKUMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
+        master_data = sku_master.filter( **search_params).order_by(order_data)
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
@@ -174,16 +175,17 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
 
 @csrf_exempt
 def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    sku_master, sku_master_ids = get_sku_master(user,request.user)
     order_data = SKU_SUPPLIER_MAPPING.values()[col_num]
     filter_params = get_filtered_params(filters, SKU_SUPPLIER_MAPPING.values())
 
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
-        mapping_results = SKUSupplier.objects.filter( Q(sku__id__icontains = search_term) | Q(preference__icontains = search_term) | Q(moq__icontains = search_term) | Q(sku__wms_code__icontains = search_term) | Q(supplier_code__icontains = search_term),sku__user=user.id, supplier__user=user.id, **filter_params ).order_by(order_data)
+        mapping_results = SKUSupplier.objects.filter(sku_id__in=sku_master_ids).filter( Q(sku__id__icontains = search_term) | Q(preference__icontains = search_term) | Q(moq__icontains = search_term) | Q(sku__wms_code__icontains = search_term) | Q(supplier_code__icontains = search_term),sku__user=user.id, supplier__user=user.id, **filter_params ).order_by(order_data)
 
     else:
-        mapping_results = SKUSupplier.objects.filter(sku__user = user.id, supplier__user=user.id, **filter_params).order_by(order_data)
+        mapping_results = SKUSupplier.objects.filter(sku_id__in=sku_master_ids).filter(sku__user = user.id, supplier__user=user.id, **filter_params).order_by(order_data)
 
     temp_data['recordsTotal'] = len(mapping_results)
     temp_data['recordsFiltered'] = len(mapping_results)
@@ -238,6 +240,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
 
 @csrf_exempt
 def get_bom_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    sku_master, sku_master_ids = get_sku_master(user,request.user)
     lis = ['product_sku__sku_code', 'product_sku__sku_desc']
 
     search_params = get_filtered_params(filters, lis)
@@ -245,10 +248,10 @@ def get_bom_results(start_index, stop_index, temp_data, search_term, order_term,
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if order_term:
-        master_data = BOMMaster.objects.filter(product_sku__user=user.id, **search_params).order_by(order_data).\
+        master_data = BOMMaster.objects.filter(product_sku_id__in=sku_master_ids).filter(product_sku__user=user.id, **search_params).order_by(order_data).\
                                         values('product_sku__sku_code', 'product_sku__sku_desc').distinct().order_by(order_data)
     if search_term:
-        master_data = BOMMaster.objects.filter(Q(product_sku__sku_code__icontains=search_term) |
+        master_data = BOMMaster.objects.filter(product_sku_id__in=sku_master_ids).filter(Q(product_sku__sku_code__icontains=search_term) |
                                                Q(product_sku__sku_desc__icontains=search_term), product_sku__user=user.id, **search_params).\
                                         values('product_sku__sku_code', 'product_sku__sku_desc').distinct().order_by(order_data)
     temp_data['recordsTotal'] = len(master_data)
@@ -393,8 +396,16 @@ def get_sku_data(request,user=''):
     sku_data['image_url'] = data.image_url
     sku_data['qc_check'] = data.qc_check
     sku_data['status'] = data.status
+    sku_data['size_type'] = 'Default'
+    sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
+    if sku_fields:
+        sku_data['size_type'] = sku_fields[0].field_value
 
-    sizes_list = copy.deepcopy(SIZES_LIST)
+    size_names = SizeMaster.objects.filter(user=user.id)
+    sizes_list = []
+    for sizes in size_names:
+        sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
+    sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
     return  HttpResponse(json.dumps({'sku_data': sku_data,'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                                      'market_data':market_data, 'combo_data': combo_data, 'sizes_list': sizes_list}))
@@ -485,7 +496,19 @@ def get_discount_results(start_index, stop_index, temp_data, search_term, order_
                                                  ('sku_discount', data.discount_percentage),('category_discount', category_discount),
                                                  ('DT_RowClass', 'results'),('DT_RowAttr', {'data-id': data.id}) )))
 
-
+def check_update_size_type(data, value):
+    sku_fields = SKUFields.objects.filter(sku_id=data.id, field_type='size_type')
+    size_master = SizeMaster.objects.filter(user=data.user, size_name=value)
+    if not size_master:
+        return
+    size_master = size_master[0]
+    if not sku_fields:
+        SKUFields.objects.create(sku_id=data.id, field_id=size_master.id, field_type='size_type', field_value=value,
+                                 creation_date=datetime.datetime.now())
+    else:
+        sku_fields[0].field_value = value
+        sku_fields[0].field_id = size_master.id
+        sku_fields[0].save()
 
 @csrf_exempt
 @login_required
@@ -519,11 +542,16 @@ def update_sku(request,user=''):
             zone = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})
             key = 'zone_id'
             value = zone.id
+        elif key == 'size_type':
+            check_update_size_type(data, value)
+            continue
         setattr(data, key, value)
 
     data.save()
 
     update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=data)
+    get_user_sku_data(user)
+    insert_update_brands(user)
 
     return HttpResponse('Updated Successfully')
 
@@ -689,15 +717,27 @@ def insert_mapping(request,user=''):
 def update_customer_values(request,user=''):
     data_id = request.POST['customer_id']
     data = get_or_none(CustomerMaster, {'customer_id': data_id, 'user': user.id})
+    create_login = request.POST.get('create_login', False)
     for key, value in request.POST.iteritems():
+        if key not in data.__dict__.keys():
+            continue
         if key == 'status':
             if value == 'Active':
                 value = 1
             else:
                 value = 0
-        setattr(data, key, value)
+        if key == 'email_id':
+            if not value:
+                continue
+            customer_master = CustomerMaster.objects.exclude(customer_id=data_id).filter(user=user.id, email_id=value)
+            if customer_master:
+                return HttpResponse('Email Already exists')
+        else:
+            setattr(data, key, value)
 
     data.save()
+    #if create_login:
+    #    create_update_user(data, password)
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt
@@ -1204,7 +1244,11 @@ def get_zones_list(request, user=''):
     zones_list = list(ZoneMaster.objects.filter(user=user.id).values_list('zone', flat=True))
     all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
-    sizes_list = copy.deepcopy(SIZES_LIST)
+    size_names = SizeMaster.objects.filter(user=user.id)
+    sizes_list = []
+    for sizes in size_names:
+        sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
+    sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
     return HttpResponse(json.dumps({'zones': zones_list, 'sku_groups': all_groups, 'market_places': market_places, 'sizes_list': sizes_list}))
 
 @csrf_exempt
@@ -1214,6 +1258,7 @@ def insert_sku(request,user=''):
     wms = request.POST['wms_code']
     description = request.POST['sku_desc']
     zone = request.POST['zone_id']
+    size_type = request.POST.get('size_type', '')
     if not wms or not description or not zone:
         return HttpResponse('Missing Required Fields')
     filter_params = {'zone': zone, 'user': user.id}
@@ -1252,10 +1297,14 @@ def insert_sku(request,user=''):
         image_file = request.FILES.get('files-0','')
         if image_file:
             save_image_file(image_file, sku_master, user)
+        if size_type:
+            check_update_size_type(sku_master, size_type)
         status_msg = 'New WMS Code Added'
 
         update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=sku_master)
 
+    insert_update_brands(user)
+    get_user_sku_data(user)
 
     return HttpResponse(status_msg)
 

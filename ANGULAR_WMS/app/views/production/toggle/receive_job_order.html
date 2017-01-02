@@ -9,13 +9,13 @@
           <h4 class="modal-title" id="myLargeModalLabel">Receive Job Order</h4> </div>
         <div class="modal-body" style="border:none;">
           <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Job Order </label>
                 <input type="text" value="{{showCase.model_data.job_code}}" class="form-control" name="job_code" disabled>
               </div>
             </div>
-            <div class="col-md-4" ng-if="showCase.order_ids_list">
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.order_ids_list">
               <div class="form-group">
                 <label class="control-label"> Order ID </label>
                 <input type="text" value="{{showCase.order_ids_list}}" class="form-control" name="order_ids" disabled>
@@ -25,8 +25,8 @@
           <div class="row">
             <hr>
           </div>
-          <div class="row">
-            <table class="table table-stk">
+          <div class="row over-x">
+            <table class="table mw55">
               <thead>
                 <tr>
                   <th> WMS Code </th>

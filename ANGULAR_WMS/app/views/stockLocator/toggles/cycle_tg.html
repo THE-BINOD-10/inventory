@@ -7,7 +7,7 @@
           </button>
           <h4 class="modal-title" id="myLargeModalLabel">Cycle Count</h4>
         </div>
-        <div class="modal-body" style="max-height: 500px;overflow-y: auto;">
+        <div class="modal-body">
           <div class="row">
             <div class="col-md-12">
               <h5>Cycle Count ID: <b>{{showCase.model_data.cycle_id}}</b></h5>
@@ -18,46 +18,46 @@
               <hr>
             </div>
           </div>
-         <div class="row">
-           <div class="col-md-3">
-             <label class="control-label"> WMS Code </label>
-           </div>
-           <div class="col-md-3">
-             <label class="control-label"> Zone </label>
-           </div>
-           <div class="col-md-2">
-             <label class="control-label"> Location </label>
-           </div>
-           <div class="col-md-2">
-             <label class="control-label"> Quantity </label>
-           </div>
-           <div class="col-md-2">
-             <label class="control-label"> Seen Quantity </label>
-           </div>
-         </div>
-          <div class="row field" ng-repeat="data in showCase.model_data.data">
-            <input type="hidden" name="id" class="form-control" value="{{data.id}}">
-            <div class="col-md-3">
-              <input type="text" name="wms_code" class="form-control" ng-model="data.wms_code" ng-readonly="showCase.update">
-            </div>
-            <div class="col-md-3">
-              <input type="text" name="zone" class="form-control" ng-model="data.zone" ng-readonly="showCase.update">
-            </div>
-            <div class="col-md-2">
-              <input type="text" name="location" class="form-control" ng-model="data.location" ng-readonly="showCase.update">
-            </div>
-            <div class="col-md-2">
-              <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-readonly="showCase.update">
-            </div>
-            <div class="col-md-2">
-              <input type="text" name="seen_quantity" class="form-control" ng-class="service.get_decimal_perm()" ng-model="data.seen_quantity">
+         <div class="row over-x">
+           <div class="col-md-12">
+             <table class="table mw55">
+                <thead>
+                  <tr>
+                    <td> WMS Code </td>
+                    <td> Zone </td>
+                    <td> Location </td>
+                    <td> Quantity </td>
+                    <td> Seen Quantity </td>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="data in showCase.model_data.data">
+                    <input type="hidden" name="id" class="form-control" value="{{data.id}}">
+                    <td>
+                      <input type="text" name="wms_code" class="form-control" ng-model="data.wms_code" ng-readonly="showCase.update">
+                    </td>
+                    <td>
+                      <input type="text" name="zone" class="form-control" ng-model="data.zone" ng-readonly="showCase.update">
+                    </td>
+                    <td>
+                      <input type="text" name="location" class="form-control" ng-model="data.location" ng-readonly="showCase.update">
+                    </td>
+                    <td>
+                      <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-readonly="showCase.update">
+                    </td>
+                    <td>
+                      <input type="text" name="seen_quantity" class="form-control" ng-class="service.get_decimal_perm()" ng-model="data.seen_quantity">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
           <div class="row hide insert-status"></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn pop pop-normal" ng-click="showCase.print()">Print</button>
-          <button type="submit" class="btn pop pop-green" ng-click="showCase.confirm_cycle()" ng-disabled="showCase.confirm_disable">Confirm Count</button>
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.confirm_cycle()" ng-disabled="showCase.confirm_disable">Confirm</button>
         </div>
       </div>
     </div>

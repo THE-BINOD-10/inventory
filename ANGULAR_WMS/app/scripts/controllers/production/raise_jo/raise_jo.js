@@ -203,7 +203,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
       reloadData();
     }
 
-  function check_exist(sku_data) {
+  function check_exist(sku_data, index) {
 
     var d = $q.defer();
     for(var i = 0; i < vm.model_data.results.length; i++) {
@@ -211,7 +211,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
       if(vm.model_data.results[i].$$hashKey != sku_data.$$hashKey && vm.model_data.results[i].product_code == sku_data.product_code) {
 
         d.resolve(false);
-        vm.model_data.results.splice(vm.model_data.results.length-1, 1);
+        vm.model_data.results.splice(index, 1);
         alert("It is already exist in index");
         break;
       } else if( i+1 == vm.model_data.results.length) {
@@ -221,14 +221,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
     return d.promise;
   }
 
-    vm.get_product_data = function(item, sku_data) {
+    vm.get_product_data = function(item, sku_data, index) {
       console.log(vm.model_data);
-      check_exist(sku_data).then(function(data){
+      check_exist(sku_data, index).then(function(data){
         if(data) {
           var elem = $.param({'sku_code': item});
           vm.service.apiCall('get_material_codes/','POST', {'sku_code': item}).then(function(data){
             if(data.message) {
-              sku_data.data = data.data;
+              if(data.data != "No Data Found") {
+                sku_data.data = data.data;
+              }
             }
           });
         }

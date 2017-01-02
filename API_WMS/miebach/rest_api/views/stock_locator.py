@@ -15,6 +15,7 @@ from miebach_utils import *
 
 @csrf_exempt
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'total', 'sku__measurement_type']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_category', 'total', 'product_code__measurement_type']
     search_params = get_filtered_params(filters, lis)
@@ -33,7 +34,9 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     status_track = StatusTracking.objects.filter(status_type='JO', status_id__in=job_ids,status_value__in=extra_headers, quantity__gt=0).\
                                           values('status_value', 'status_id').distinct().annotate(total=Sum('quantity'))
     status_ids = map(lambda d: d.get('status_id', ''), status_track)
-    sku_master = SKUMaster.objects.filter(user=user.id)
+
+    search_params['sku_id__in'] = sku_master_ids
+    search_params1['product_code_id__in'] = sku_master_ids
 
     if search_term:
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc', 'sku__sku_category').\
@@ -106,6 +109,7 @@ def get_sku_stock_data(start_index, stop_index, temp_data, search_term, order_te
 
 @csrf_exempt
 def get_stock_detail_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    sku_master, sku_master_ids = get_sku_master(user,request.user)
     lis = ['receipt_number','receipt_date', 'sku_id__wms_code','sku_id__sku_desc','location__zone__zone','location__location', 'quantity',
            'receipt_type', 'pallet_detail__pallet_code']
     order_data = lis[col_num]
@@ -115,6 +119,8 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
     if 'receipt_date__icontains' in search_params:
         search_params['receipt_date__regex'] = search_params['receipt_date__icontains']
         del search_params['receipt_date__icontains']
+    search_params['sku_id__in'] = sku_master_ids
+
     if search_term:
         master_data = StockDetail.objects.exclude(receipt_number=0).filter( Q(receipt_number__icontains = search_term) |
                                                   Q(sku__wms_code__icontains = search_term) |Q(quantity__icontains=search_term) |
@@ -149,17 +155,18 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
 
 @csrf_exempt
 def get_cycle_confirmed(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters=''):
+    sku_master, sku_master_ids = get_sku_master(user,request.user)
     lis = ['cycle', 'creation_date']
     if search_term:
-        cycle_data = CycleCount.objects.filter(Q(cycle__icontains=search_term) | Q(creation_date__regex=search_term),
+        cycle_data = CycleCount.objects.filter(sku_id__in=sku_master_ids).filter(Q(cycle__icontains=search_term) | Q(creation_date__regex=search_term),
                                                sku__user=user.id,status=1).order_by(lis[col_num]).values('cycle').distinct()
     elif order_term:
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        cycle_data = CycleCount.objects.filter(status='1',sku__user=user.id).order_by(order_data).values('cycle').distinct()
+        cycle_data = CycleCount.objects.filter(status='1',sku__user=user.id, sku_id__in=sku_master_ids).order_by(order_data).values('cycle').distinct()
     else:
-        cycle_data = CycleCount.objects.filter(status='1',sku__user=user.id).values('cycle').distinct()
+        cycle_data = CycleCount.objects.filter(status='1',sku__user=user.id, sku_id__in=sku_master_ids).values('cycle').distinct()
     data = []
 
     for count in cycle_data:
@@ -255,6 +262,7 @@ def insert_move_inventory(request, user=''):
 
 @csrf_exempt
 def get_cycle_count(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    sku_master, sku_master_ids = get_sku_master(user,request.user)
     search_params = {}
     lis = ['sku__wms_code', 'location__zone__zone', 'location__location', 'total']
     col_num = col_num - 1
@@ -264,6 +272,8 @@ def get_cycle_count(start_index, stop_index, temp_data, search_term, order_term,
         if key.replace('__icontains', '') in lis[:3]:
             key = key.replace('contains', 'exact')
         search_params[key] = value
+
+    search_params['sku_id__in'] = sku_master_ids
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:

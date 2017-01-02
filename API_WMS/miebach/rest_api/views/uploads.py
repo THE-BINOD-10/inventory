@@ -24,10 +24,13 @@ def error_file_download(error_file):
     return response
 
 def get_cell_data(row_idx, col_idx, reader='', file_type='xls'):
-    if file_type == 'csv':
-        cell_data = reader[row_idx][col_idx]
-    else:
-        cell_data = reader.cell(row_idx, col_idx).value
+    try:
+        if file_type == 'csv':
+            cell_data = reader[row_idx][col_idx]
+        else:
+            cell_data = reader.cell(row_idx, col_idx).value
+    except:
+        cell_data = ''
     return cell_data
 
 def get_order_mapping(reader, file_type):
@@ -88,6 +91,8 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(EASYOPS_ORDER_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Shipment' and get_cell_data(0, 1, reader, file_type) == 'Products':
         order_mapping = copy.deepcopy(UNI_WARE_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'Sale Order Item Code' and get_cell_data(0, 2, reader, file_type) == 'Reverse Pickup Code':
+        order_mapping = copy.deepcopy(UNI_WARE_EXCEL1)
 
     return order_mapping
 
@@ -160,7 +165,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_id = str(int(order_id))
                 if order_mapping.get('split_order_id', '') and '/' in order_id:
                     order_id = order_id.split('/')[0]
-                order_code = ''.join(re.findall('\D+', order_id))
+                order_code = (''.join(re.findall('\D+', order_id))).replace("'", "")
                 order_id = ''.join(re.findall('\d+', order_id))
                 if order_id:
                     order_data['order_id'] = int(order_id)
@@ -177,7 +182,10 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             elif key == 'vat':
                 cell_data = ''
                 if isinstance(value, list):
-                    amount = float(get_cell_data(row_idx, value[0], reader, file_type))
+                    quantity = 1
+                    if 'quantity' in order_mapping.keys():
+                        quantity = float(get_cell_data(row_idx, order_mapping['quantity'], reader, file_type))
+                    amount = float(get_cell_data(row_idx, value[0], reader, file_type))/quantity
                     rate = float(get_cell_data(row_idx, value[1], reader, file_type))
                     tax_value = amount - rate
                     vat = "%.2f" % (float(tax_value * 100) / rate)
@@ -572,6 +580,9 @@ def get_sku_file_mapping(reader, file_type):
 
 def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 
+    zone_master = ZoneMaster.objects.filter(user=user.id).values('id', 'zone')
+    zones = map(lambda d: d['zone'], zone_master)
+    zone_ids = map(lambda d: d['id'], zone_master)
     sku_file_mapping = get_sku_file_mapping(reader, file_type)
     for row_idx in range(1, no_of_rows):
         if not sku_file_mapping:
@@ -594,15 +605,17 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                 wms_code = cell_data
                 data_dict[key] = wms_code
                 if wms_code:
-                    if not sku_data:
-                        sku_data = SKUMaster.objects.filter(wms_code = wms_code,user=user.id)
-                        if sku_data:
-                            sku_data = sku_data[0]
+                    sku_data = SKUMaster.objects.filter(wms_code = wms_code,user=user.id)
+                    if sku_data:
+                        sku_data = sku_data[0]
 
             elif key == 'zone_id':
                 zone_id = None
                 if cell_data:
-                    zone_id = ZoneMaster.objects.get(zone=cell_data.upper(),user=user.id).id
+                    cell_data = cell_data.upper()
+                    if cell_data in zones:
+                        #zone_id = ZoneMaster.objects.get(zone=cell_data.upper(),user=user.id).id
+                        zone_id = zone_ids[zones.index(cell_data)]
                     if sku_data and cell_data:
                         sku_data.zone_id = zone_id
                     data_dict[key] = zone_id
@@ -619,7 +632,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             elif key == 'sku_desc':
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
-                cell_data = str(cell_data)
+                cell_data = str(re.sub(r'[^\x00-\x7F]+','', cell_data))
                 if sku_data and cell_data:
                     sku_data.sku_desc = cell_data
                 data_dict[key] = cell_data
@@ -651,6 +664,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             data_dict['sku_code'] = data_dict['wms_code']
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
+
+    get_user_sku_data(user)
+    insert_update_brands(user)
     return 'success'
 
 
@@ -1804,8 +1820,8 @@ def validate_inventory_adjust_form(open_sheet, user):
             elif col_idx == 2:
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid Quantity')
-                if cell_data == '':
-                    index_status.setdefault(row_idx, set()).add('Quantity should not be empty')
+                #if cell_data == '':
+                #    index_status.setdefault(row_idx, set()).add('Quantity should not be empty')
 
     if not index_status:
         return 'Success'

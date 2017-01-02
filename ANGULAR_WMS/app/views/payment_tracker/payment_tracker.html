@@ -23,16 +23,16 @@
             <h4 style="margin-top:0px;">Customer Name</h4>
           </div>
           <div class="col-md-3 col-sm-6 col-xs-6">
-            <h4 class="pull-left" style="margin-top:0px;">Invoice Amount</h4>
-            <span style="font-size: 14px;margin-left: 10px;" class="label label-danger pull-left">Rs{{showCase.payment_data.total_invoice_amount}}</span>
+            <h4 style="margin-top:0px;">Invoice Amount</h4>
+            <p style="font-size: 14px;" class="label label-danger pull-left">Rs{{showCase.payment_data.total_invoice_amount}}</p>
           </div>
           <div class="col-md-3 col-sm-6 col-xs-6">
-            <h4 class="pull-left" style="margin-top:0px;">Payment Received</h4>
-            <span style="font-size: 14px;margin-left: 10px;" class="label label-success pull-left">Rs{{showCase.payment_data.total_payment_receivable}}</span>
+            <h4 style="margin-top:0px;">Payment Received</h4>
+            <p style="font-size: 14px;" class="label label-success pull-left">Rs{{showCase.payment_data.total_payment_receivable}}</p>
           </div>
           <div class="col-md-3 col-sm-6 col-xs-6">
-            <h4 class="pull-left" style="margin-top:0px;">Payment Receivable</h4>
-            <span style="font-size: 14px;margin-left: 10px;" class="label label-warning pull-left">Rs{{showCase.payment_data.total_payment_receivable}}</span>
+            <h4 style="margin-top:0px;">Payment Receivable</h4>
+            <p style="font-size: 14px;" class="label label-warning pull-left">Rs{{showCase.payment_data.total_payment_receivable}}</p>
           </div>
         </div>
         <accordion close-others="oneAtATime" class="accordion">
@@ -42,7 +42,7 @@
                 <div class="col-md-1 col-sm-6 col-xs-6">
                   <b>{{payment.channel}}</b>
                 </div>
-                <div class="col-md-2 col-sm-5 col-xs-5">
+                <div class="col-md-2 col-sm-5 col-xs-6">
                   <b>{{payment.customer_name}}</b>
                 </div>
                 <div class="col-md-3 col-sm-6 col-xs-6">
@@ -72,7 +72,7 @@
                       <th>Receivable</th>
                       <th>Expected Date</th>
                       <th>Order Status</th>
-                      <th style="width: 200px;"></th>
+                      <th style="width: 200px;">Update Amount</th>
                     </tr>
                   </thead>
                   <tbody>

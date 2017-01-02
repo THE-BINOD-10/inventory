@@ -39,62 +39,62 @@
         <span>Masters</span>
       </a>
       <ul class="sub-menu">
-        <li ui-sref-active="active" ng-if="show_tab('add_skumaster')">
+        <li ui-sref-active="active" ng-show="show_tab('add_skumaster')">
           <a ui-sref="app.masters.SKUMaster">
             <span>SKU Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="show_tab('add_locationmaster')">
+        <li ui-sref-active="active" ng-show="show_tab('add_locationmaster')">
           <a ui-sref="app.masters.LocationMaster">
             <span>Location Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="show_tab('add_suppliermaster')">
+        <li ui-sref-active="active" ng-show="show_tab('add_suppliermaster')">
           <a ui-sref="app.masters.SupplierMaster">
             <span>Supplier Master</span>
           </a>
         </li>
         <li ui-sref-active="active">
-          <a ui-sref="app.masters.supplierSKUMapping" ng-if="show_tab('add_skusupplier')">
+          <a ui-sref="app.masters.supplierSKUMapping" ng-show="show_tab('add_skusupplier')">
             <span>Supplier-SKU Mapping</span>
           </a>
         </li>
         <li ui-sref-active="active">
-          <a ui-sref="app.masters.CustomerMaster" ng-if="show_tab('add_customermaster')">
+          <a ui-sref="app.masters.CustomerMaster" ng-show="show_tab('add_customermaster')">
             <span>Customer Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="show_tab('add_customersku') || show_tab('pos_switch')">
+        <li ui-sref-active="active" ng-show="show_tab('add_customersku') && show_tab('pos_switch')">
           <a ui-sref="app.masters.Customer-SKUMapping">
             <span>Customer-SKU Mapping</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="show_tab('add_bommaster') || show_tab('pos_switch')">
+        <li ui-sref-active="active" ng-show="show_tab('add_bommaster') && show_tab('production_switch')">
           <a ui-sref="app.masters.BOMMaster">
             <span>BOM Master</span>
           </a>
         </li>
-        <li ng-if="show_tab('multi_warehouse')" ui-sref-active="active">
+        <li ng-show="show_tab('multi_warehouse')" ui-sref-active="active">
           <a ui-sref="app.masters.WarehouseMaster">
             <span>Warehouse Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="show_tab('add_vendormaster') || show_tab('pos_switch')">
+        <li ui-sref-active="active" ng-show="show_tab('add_vendormaster') && show_tab('production_switch')">
           <a ui-sref="app.masters.VendorMaster">
             <span>Vendor Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="show_tab('add_categorydiscount') || show_tab('pos_switch')">
+        <li ui-sref-active="active" ng-show="show_tab('add_categorydiscount')">
           <a ui-sref="app.masters.DiscountMaster">
             <span>Discount Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="show_tab('add_productproperties')">
+        <li ui-sref-active="active" ng-show="show_tab('add_productproperties')">
           <a ui-sref="app.masters.CustomSKUMaster">
             <span>Custom SKU Template</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="show_tab('add_sizemaster')">
+        <li ui-sref-active="active" ng-show="show_tab('add_sizemaster')">
           <a ui-sref="app.masters.SizeMaster">
             <span>Size Master</span>
           </a>
@@ -110,27 +110,27 @@
         <span>Inbound</span>
       </a>
       <ul class="sub-menu">
-        <li ng-if="show_tab('add_openpo')" ui-sref-active="active">
+        <li ng-show="show_tab('add_openpo')" ui-sref-active="active">
           <a ui-sref="app.inbound.RaisePo">
             <span>Raise PO</span>
           </a>
         </li>
-        <li ng-if="show_tab('add_purchaseorder')" ui-sref-active="active">
+        <li ng-show="show_tab('add_purchaseorder')" ui-sref-active="active">
           <a ui-sref="app.inbound.RevceivePo">
             <span>Receive PO</span>
           </a>
         </li>
-        <li ng-if="show_tab('add_qualitycheck')" ui-sref-active="active">
+        <li ng-show="show_tab('add_qualitycheck')" ui-sref-active="active">
           <a ui-sref="app.inbound.QualityCheck">
             <span>Quality Check</span>
           </a>
         </li>
-        <li ng-if="show_tab('add_polocation')" ui-sref-active="active">
+        <li ng-show="show_tab('add_polocation')" ui-sref-active="active">
           <a ui-sref="app.inbound.PutAwayConfirmation">
             <span>Put away Confirmation</span>
           </a>
         </li>
-        <li ng-if="show_tab('add_orderreturns')" ui-sref-active="active">
+        <li ng-show="show_tab('add_orderreturns')" ui-sref-active="active">
           <a ui-sref="app.inbound.SalesReturns">
             <span>Sales Returns</span>
           </a>
@@ -146,23 +146,23 @@
         <span>Production</span>
       </a>
       <ul class="sub-menu">
-        <li ng-if="show_tab('add_jomaterial')" ui-sref-active="active">
+        <li ng-show="show_tab('add_jomaterial')" ui-sref-active="active">
           <a ui-sref="app.production.RaiseJO">
             <span>Raise JO</span>
           </a>
         </li>
-        <li ng-if="show_tab('add_materialpicklist')" ui-sref-active="active">
+        <li ng-show="show_tab('add_materialpicklist')" ui-sref-active="active">
           <a ui-sref="app.production.RMPicklist">
             <span>RM Picklist</span>
           </a>
         </li>
         <li ui-sref-active="active">
-          <a ui-sref="app.production.ReveiveJO" ng-if="show_tab('add_joborder')">
+          <a ui-sref="app.production.ReveiveJO" ng-show="show_tab('add_joborder')">
             <span>Receive JO</span>
           </a>
         </li>
         <li ui-sref-active="active">
-          <a ui-sref="app.production.JobOrderPutaway" ng-if="show_tab('add_rmlocation')">
+          <a ui-sref="app.production.JobOrderPutaway" ng-show="show_tab('add_rmlocation')">
             <span>Job Order Putaway</span>
           </a>
         </li>
@@ -182,27 +182,27 @@
             <span>Stock Summary</span>
           </a>
         </li>
-        <li ng-if="show_tab('add_stockdetail')" ui-sref-active="active">
+        <li ng-show="show_tab('add_stockdetail')" ui-sref-active="active">
           <a ui-sref="app.stockLocator.StockDetail">
             <span>Stock Detail</span>
           </a>
         </li>
-        <li ng-if="show_tab('vendorstock') || show_tab('production_switch')" ui-sref-active="active">
+        <li ng-show="show_tab('vendorstock') && show_tab('production_switch')" ui-sref-active="active">
           <a ui-sref="app.stockLocator.VendorStock">
             <span>Vendor Stock</span>
           </a>
         </li>
-        <li ng-if="show_tab('add_cyclecount')" ui-sref-active="active">
+        <li ng-show="show_tab('add_cyclecount')" ui-sref-active="active">
           <a ui-sref="app.stockLocator.CycleCount">
             <span>Cycle Count</span>
           </a>
         </li>
-        <li ng-if="show_tab('add_inventoryadjustment')" ui-sref-active="active">
+        <li ng-show="show_tab('add_inventoryadjustment')" ui-sref-active="active">
           <a ui-sref="app.stockLocator.MoveInventory">
             <span>Move Inventory</span>
           </a>
         </li>
-        <li ng-if="show_tab('add_inventoryadjustment')" ui-sref-active="active">
+        <li ng-show="show_tab('add_inventoryadjustment')" ui-sref-active="active">
           <a ui-sref="app.stockLocator.InventoryAdjustment">
             <span>Inventory Adjustment</span>
           </a>
@@ -218,27 +218,27 @@
         <span>Outbound</span>
       </a>
       <ul class="sub-menu">
-        <li ng-if="show_tab('add_orderdetail')" ui-sref-active="active">
+        <li ng-show="show_tab('add_orderdetail')" ui-sref-active="active">
           <a ui-sref="app.outbound.CreateOrders">
             <span>Create Orders</span>
           </a>
         </li>
-        <li ng-if="show_tab('add_picklist')" ui-sref-active="active">
+        <li ng-show="show_tab('add_picklist')" ui-sref-active="active">
           <a ui-sref="app.outbound.ViewOrders">
             <span>View Orders</span>
           </a>
         </li>
-        <li ng-if="show_tab('add_picklistlocation')" ui-sref-active="active">
+        <li ng-show="show_tab('add_picklistlocation')" ui-sref-active="active">
           <a ui-sref="app.outbound.PullConfirmation">
             <span>Pull Confirmation</span>
           </a>
         </li>
-        <li ng-if="show_tab('add_shipmentinfo')" ui-sref-active="active">
+        <li ng-show="show_tab('add_shipmentinfo')" ui-sref-active="active">
           <a ui-sref="app.outbound.ShipmentInfo">
             <span>Shipment Info</span>
           </a>
         </li>
-        <li ng-if="show_tab('multi_warehouse') || show_tab('add_stocktransfer')" ui-sref-active="active">
+        <li ng-show="show_tab('multi_warehouse') && show_tab('add_stocktransfer')" ui-sref-active="active">
           <a ui-sref="app.outbound.CreateStockTransfer">
             <span>Create Stock Transfer</span>
           </a>
@@ -303,7 +303,7 @@
             <span>Supplier Wise PO's</span>
           </a>
         </li>
-        <li ng-if="show_tab('add_orderreturns')" ui-sref-active="active">
+        <li ng-show="show_tab('add_orderreturns')" ui-sref-active="active">
           <a ui-sref="app.reports.SalesReturnReport">
             <span>Sales Return Report</span>
           </a>
@@ -328,10 +328,15 @@
             <span>Daily Production Report</span>
           </a>
         </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.OrderSummaryReport">
+            <span>Order Summary Report</span>
+          </a>
+        </li>
       </ul>
     </li>
     <!-- /extras -->
-    <li ng-if="show_tab('pos_switch')" ui-sref-active="active">
+    <li ng-show="show_tab('pos_switch')" ui-sref-active="active">
       <a href="http://pos.mieone.com/#/home?user_id={{user.userId}}&amp;user_name={{user.userName}}" target="_blank">
         <i class="fa fa-dashboard"></i>
         <span>POS</span>
@@ -340,7 +345,7 @@
 
 
     <!-- Channels -->
-    <li ng-if="user.userName == 'demo' || user.userName == 'pavechas'" ui-sref-active="active">
+    <li ng-show="user.userName == 'demo' || user.userName == 'pavechas'" ui-sref-active="active">
       <a ui-sref="app.channels">
         <i class="fa fa-tasks"></i>
         <span>Channels</span>
@@ -365,7 +370,7 @@
         <span><b style="display: inline-flex;width: 120px;">{{(user.user_profile['first_name'] == "")? user.userName:user.user_profile['first_name'];}}</b></span>
       </a>
       <ul class="sub-menu manage" style="position: absolute;bottom: 50px;width:100%">
-        <li ui-sref-active="active" ng-if="show_tab('is_staff')">
+        <li ui-sref-active="active" ng-show="show_tab('is_staff')">
           <a ui-sref="app.ManageUsers" style="padding: 0px">
             <i class="fa fa-group fa-fw"></i>
             <span>Manage Users</span>

@@ -1,18 +1,24 @@
-<div id="page-pop" class="modal fade in">
+<div id="page-pop" class="modal fade in over-x">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
     <div class="modal-dialog model-custom modal-lg">
-      <div class="modal-content">
+      <div class="modal-content mw60">
         <div class="modal-header">
+          <div class="row">
+            <div class="col-md-4 col-sm-4 col-xs-12">
+              <h4 class="modal-title pull-left">{{showCase.title}}</h4> 
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-12">
+              <p align="center"><b>{{user.user_profile.company_name}}</b></p>
+            </div>
+          </div>
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
-          <h4 class="modal-title pull-left">{{showCase.title}}</h4> 
-          <p align="center"><b>{{user.user_profile.company_name}}</b></p>
         </div>
         <div class="modal-body raise_po" ng-class="(showCase.confirm_print)? 'hide': 'show'">
           <div class="row" ng-if="(!(showCase.update))">
-            <div class="col-md-11">
+            <div class="col-md-11 col-sm-11 col-xs-10">
               <p align="right">Vendor Receipt</p>
             </div>
-            <div class="col-md-1">
+            <div class="col-md-1 col-sm-1 col-xs-2">
               <label class="switch switch-sm square">
                 <div>
                   <input type="checkbox" ng-model="showCase.vendor_receipt">
@@ -24,26 +30,26 @@
             </div>
           </div>
           <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Supplier ID/Name * </label>
                 <input type="text" autocomplete="off" ng-if="(!(showCase.update))" ng-model="showCase.model_data.supplier_id" name="supplier_id" placeholder="Search Supplier" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control" typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_id)" ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier')" required>
                 <input name="supplier_id" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.supplier_id" ng-readonly="showCase.update">
               </div>
             </div>
-            <div class="col-md-4" ng-if="showCase.vendor_receipt">
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.vendor_receipt">
               <div class="form-group">
                 <label class="control-label"> Vendor ID/Name * </label>
                 <input type="text" autocomplete="off" ng-show="(!(showCase.update))" name="vendor_id" class="form-control" placeholder="Search Vendor" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_vendor?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.vendor_id" typeahead-on-select="showCase.model_data.vendor_id = showCase.service.change_search_value(showCase.model_data.vendor_id)" ng-blur="showCase.service.checkSearchValue(showCase.model_data.vendor_id, 'search_vendor?', $event, '', 'Vendor')" required>
                  <input name="vendor_id" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.vendor_id" ng-readonly="showCase.update">
               </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> PO Name </label>
                 <input type="text" ng-model="showCase.model_data.po_name" name="po_name" class="form-control"> </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Ship To </label>
                 <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control"> </div>
@@ -53,39 +59,41 @@
             <div class="col-md-12"><hr></div>
           </div>
           <div class="row">
-            <table class="table table-stk">
-              <thead>
-                <tr>
-                  <th>WMS Code *</th>
-                  <th>Supplier Code</th>
-                  <th>Quantity *</th>
-                  <th>Price</th>
-                  <th>Remarks</th>
-                  <th class="plus"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr ng-repeat="product in showCase.model_data.data">
-                  <td>
-                    <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="showCase.update">
-                    <input type="text" autocomplete="off" ng-readonly="(product.pk > 0)" name="wms_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" ng-blur="showCase.check_sku_list(product.$$hashKey, product.fields.sku.wms_code, $index);" typeahead-on-select="showCase.get_sku_details(product)">
-                  </td>
-                  <td>
-                    <input id="wms1" ng-model="product.fields.supplier_code" type="text" name="supplier_code" class="form-control " value="">
-                  </td>
-                  <td>
-                    <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control" ng-class="service.get_decimal_perm()">
-                  </td>
-                  <td>
-                    <input type="text" ng-model="product.fields.price" name="price" class="form-control" decimal-number>
-                  </td>
-                  <td>
-                    <input type="text" ng-model="product.fields.remarks" name="remarks" class="form-control">
-                  </td> 
-                  <td><i ng-click="showCase.update_data($index)" ng-class="showCase.service.isLast($last)"></i></td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="col-md-12">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>WMS Code*</th>
+                    <th>Supplier Code</th>
+                    <th>Quantity*</th>
+                    <th>Price</th>
+                    <th>Remarks</th>
+                    <th class="plus"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="product in showCase.model_data.data">
+                    <td>
+                      <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="showCase.update">
+                      <input type="text" autocomplete="off" ng-readonly="(product.pk > 0)" name="wms_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" ng-blur="showCase.check_sku_list(product.$$hashKey, product.fields.sku.wms_code, $index);" typeahead-on-select="showCase.get_sku_details(product)">
+                    </td>
+                    <td>
+                      <input id="wms1" ng-model="product.fields.supplier_code" type="text" name="supplier_code" class="form-control " value="">
+                    </td>
+                    <td>
+                      <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control" ng-class="service.get_decimal_perm()">
+                    </td>
+                    <td>
+                      <input type="text" ng-model="product.fields.price" name="price" class="form-control" decimal-number>
+                    </td>
+                    <td>
+                      <input type="text" ng-model="product.fields.remarks" name="remarks" class="form-control">
+                    </td> 
+                    <td><i ng-click="showCase.update_data($index)" ng-class="showCase.service.isLast($last)"></i></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
           <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
         </div>

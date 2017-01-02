@@ -64,7 +64,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         threshold_quantity:"",
                         online_percentage:"",
                         status:0,
-                        qc_check:0,
+                        qc_check:1,
                         sku_brand: "",
                         sku_size: "",
                         style_name: "",
@@ -142,6 +142,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.isEmptyMarket = (data.market_data.length > 0) ? false : true;
                   vm.combo = (vm.model_data.combo_data.length > 0) ? true: false;
                   vm.model_data.sku_data.image_url = vm.service.check_image_url(vm.model_data.sku_data.image_url);
+                  vm.change_size_type(vm.model_data.sku_data.size_type);
                   $state.go('app.masters.SKUMaster.update');
                  }
                 });
@@ -258,10 +259,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.zones = data.zones;
         vm.model_data.sku_data.zone = vm.model_data.zones[0];
         vm.model_data.groups = data.sku_groups;
-        vm.model_data.sku_data.sku_group = vm.model_data.groups[0];
+        vm.model_data.sku_data.sku_group = '';
         vm.model_data.market_list = data.market_places;
         vm.model_data.sizes_list = data.sizes_list;
         vm.model_data.sku_data.sku_size = vm.model_data.sizes_list[0];
+        vm.model_data.sku_data.size_type = "Default";
+        vm.change_size_type();
       }
     });
     vm.model_data.sku_data.status = vm.status_data[1];
@@ -274,6 +277,45 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $timeout(function () {
       $(".insert-status > h4").text("");
     }, 3000);
+  }
+
+  vm.change_size_type = function(item) {
+
+    if(!(item)) {
+      item = "Default";
+    }
+    angular.forEach(vm.model_data.sizes_list, function(record) {
+
+      if(item == record.size_name)  {
+        vm.model_data.sizes = record.size_values;
+
+        if(vm.model_data.sku_data.sku_size && (vm.model_data.sizes.indexOf(vm.model_data.sku_data.sku_size) != -1)) {
+          console.log("it is there")
+        } else {
+          vm.model_data.sku_data.sku_size = vm.model_data.sizes[0];
+        }
+      }     
+    })
+  }
+
+  vm.find_sizes = function(item) {
+
+    if(item) {
+      angular.forEach(vm.model_data.sizes_list, function(record) {
+
+        if(record.size_values.indexOf(item) != -1) {
+          vm.model_data.sizes = record.size_values;
+        }
+      })
+    } else {
+      angular.forEach(vm.model_data.sizes_list, function(record) {
+        if(record.size_name == '') {
+          record.size_values.push('');
+          vm.model_data.sizes = record.size_values;
+          vm.model_data.sku_data.sku_size = '';
+        }
+      })
+    }
   }
 }
 

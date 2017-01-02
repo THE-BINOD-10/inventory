@@ -1322,7 +1322,11 @@ def search_wms_codes(request, user=''):
     data_id = request.GET.get('q', '')
     sku_type = request.GET.get('type', '')
     extra_filter = {}
-    data = sku_master.filter(Q(wms_code__icontains = data_id) | Q(sku_desc__icontains = data_id), user=user.id).order_by('wms_code')
+    data_exact = sku_master.filter(Q(wms_code__iexact = data_id) | Q(sku_desc__iexact = data_id), user=user.id).order_by('wms_code')
+    exact_ids = list(data_exact.values_list('id', flat=True))
+    data = sku_master.exclude(id__in=exact_ids).filter(Q(wms_code__icontains = data_id) | Q(sku_desc__icontains = data_id),
+                              user=user.id).order_by('wms_code')
+    data = list(chain(data_exact, data))
     wms_codes = []
     count = 0
     if data:
@@ -1430,6 +1434,8 @@ def get_invoice_data(order_ids, user):
             title = dat.title
             if not title:
                 title = dat.sku.sku_desc
+            if ':' in dat.sku.sku_desc:
+                title = dat.sku.sku_desc.split(':')[0]
             if not order_date:
                 order_date = get_local_date(user, dat.creation_date, send_date='true')
                 order_date = order_date.strftime("%d %b %Y")
@@ -1470,10 +1476,8 @@ def get_invoice_data(order_ids, user):
                     quantity = picklist[0].total
             unit_price = ((float(dat.invoice_amount)/ float(dat.quantity))) - discount - tax
             unit_price = "%.2f" % unit_price
-            sku_code = dat.sku.sku_code
-            if ':' in sku_code:
-                sku_code = sku_code.split(':')[0]
-            data.append({'order_id': order_id, 'sku_code': sku_code, 'title': title, 'invoice_amount': str(dat.invoice_amount),
+
+            data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(dat.invoice_amount),
                          'quantity': quantity, 'tax': "%.2f" % tax, 'unit_price': unit_price, 'vat': vat, 'mrp_price': mrp_price,
                          'discount': discount})
 
@@ -1546,6 +1550,8 @@ def get_sku_catalogs_data(request, user, request_data={}):
     #sku_master = [ key for key,_ in groupby(sku_master)]
     product_styles = list(OrderedDict.fromkeys(product_styles))
     data = []
+    if is_file:
+        start, stop = 0, len(product_styles)
     for product in product_styles[start: stop]:
         sku_object = SKUMaster.objects.filter(user=user.id, sku_class=product)
         sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence').\
@@ -1590,8 +1596,19 @@ def get_file_checksum(request,user=''):
     file_data = list(FileDump.objects.filter(name=name, user=user.id).values('name', 'checksum', 'path'))
     if file_data:
         file_data = file_data[0]
+    return HttpResponse(json.dumps({'file_data': file_data}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_file_content(request,user=''):
+    name = request.GET.get('name', '')
+    file_content = ''
+    file_data = list(FileDump.objects.filter(name=name, user=user.id).values('name', 'checksum', 'path'))
+    if file_data:
+        file_data = file_data[0]
         file_content = open(file_data['path'], 'r').read()
-    return HttpResponse(json.dumps({'file_data': file_data, 'file_content': eval(file_content)}))
+    return HttpResponse(json.dumps({'file_content': eval(file_content)}))
 
 @get_admin_user
 def search_wms_data(request, user=''):
@@ -1653,3 +1670,30 @@ def get_sku_master(user,sub_user):
         sku_master_ids = sku_master.values_list('id',flat=True)
 
     return sku_master, sku_master_ids
+
+def create_update_user(data, password):
+    """
+    Creating a new Customer User
+    """
+    full_name = data.name
+    username = data.email_id
+    password = password
+    email = data.email_id
+    if not username:
+        username = email
+    status = 'Missing required fields'
+    if username and password:
+        user = User.objects.filter(username=username, email=email)
+        status = "User already exists"
+        if not user:
+            user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name)
+            user.save()
+            hash_code = hashlib.md5(b'%s:%s' % (user.id, email)).hexdigest()
+            if user:
+                prefix = re.sub('[^A-Za-z0-9]+', '', user.username)[:3].upper()
+                user_profile = UserProfile.objects.create(phone_number=data.phone_number, user_id=user.id, api_hash=hash_code,
+                                                          prefix=prefix, user_type='Customer')
+                user_profile.save()
+            status = 'User Added Successfully'
+
+    return status

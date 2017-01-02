@@ -1180,6 +1180,18 @@ var app = angular.module('urbanApp')
             title: 'Daily Production Report',
           }
         })
+        .state('app.reports.OrderSummaryReport', {
+          url: '/OrderSummary',
+          templateUrl: 'views/reports/order_summary.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/order_summary.js');
+              }]
+          },
+          data: {
+            title: 'Order Summary Report',
+          }
+        })
 
       // configuration route
       .state('app.configurations', {
@@ -1330,6 +1342,28 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/register/completed.html'
         })
         
+
+      //Customer page
+      .state('user.Customer', {
+          url: '/Customer',
+          templateUrl: 'views/outbound/create_orders.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/create_orders/create_orders.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/create_orders/create_stock_orders.js'
+                  ])
+                });
+              }]
+          },
+          data: {
+            title: 'Customer',
+            appClasses: 'bg-white usersession',
+            contentClasses: 'full-height'
+          }
+        })
 
       // User route 
       .state('user', {

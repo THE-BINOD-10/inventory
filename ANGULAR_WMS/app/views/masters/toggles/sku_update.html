@@ -44,7 +44,10 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> SKU Group </label>
-                <select class="form-control" name="sku_group" ng-model="showCase.model_data.sku_data.sku_group" ng-init="showCase.model_data.sku_data.sku_group" ng-options="group for group in showCase.model_data.groups"></select>
+                <select class="form-control" name="sku_group" ng-model="showCase.model_data.sku_data.sku_group">
+                  <option ng-selected="showCase.model_data.sku_data.sku_group == ''" value="">Default</option>
+                  <option ng-repeat="group in showCase.model_data.groups" ng-selected="showCase.model_data.sku_data.sku_group == group" value="{{group}}">{{group}}</option>
+                </select>
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -61,9 +64,17 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
+                <label class="control-label"> Size Type </label>
+                <select class="form-control" name="size_type" ng-model="showCase.model_data.sku_data.size_type" ng-change="showCase.change_size_type(showCase.model_data.sku_data.size_type)">
+                  <option ng-repeat = "type in showCase.model_data.sizes_list" value="{{type.size_name}}" ng-selected="type.size_name == showCase.model_data.sku_data.size_type">{{type.size_name}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
                 <label class="control-label"> Size </label>
                 <select class="form-control" name="sku_size" ng-model="showCase.model_data.sku_data.sku_size">
-                  <option ng-repeat = "size in showCase.model_data.sizes_list" value="{{size}}" ng-selected="showCase.model_data.sku_data.sku_size == size">{{size}}</option>
+                  <option ng-repeat = "size in showCase.model_data.sizes" value="{{size}}" ng-selected="showCase.model_data.sku_data.sku_size == size">{{size}}</option>
                 </select>
               </div>
             </div>

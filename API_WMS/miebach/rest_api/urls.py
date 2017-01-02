@@ -189,12 +189,14 @@ urlpatterns = patterns('rest_api.views',
 
     # Reports
     #url(r'^location_wise_filter/$','location_wise_filter'),
+    url(r'^get_report_data/$', 'get_report_data'),
     url(r'^get_supplier_details/$', 'get_supplier_details'),
     url(r'^get_sku_filter/$', 'get_sku_filter'),
     url(r'^get_po_filter/$', 'get_po_filter'),
     url(r'^get_location_filter/$', 'get_location_filter'),
     url(r'^get_receipt_filter/$', 'get_receipt_filter'),
     url(r'^get_dispatch_filter/$', 'get_dispatch_filter'),
+    url(r'^get_order_summary_filter/$', 'get_order_summary_filter'),
     url(r'^get_sku_stock_filter/$', 'get_sku_stock_filter'),
     url(r'^get_sales_return_filter/$','get_sales_return_filter'),
     url(r'^get_sku_purchase_filter/$','get_sku_purchase_filter'),
@@ -218,6 +220,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^print_stock_summary_report/$', 'print_stock_summary_report'),
     url(r'^get_daily_production_report/$', 'get_daily_production_report'),
     url(r'^print_daily_production_report/$', 'print_daily_production_report'),
+    url(r'^print_order_summary_report/$', 'print_order_summary_report'),
 
     #uploads
     url(r'^order_form/$', 'order_form'),
@@ -269,6 +272,7 @@ urlpatterns = patterns('rest_api.views',
     #common
     url(r'^set_timezone/$', 'set_timezone'),
     url(r'^get_file_checksum/$', 'get_file_checksum'),
+    url(r'^get_file_content/$', 'get_file_content'),
 
     #Retailone
     url(r'^get_marketplace_data/$', 'get_marketplace_data'),

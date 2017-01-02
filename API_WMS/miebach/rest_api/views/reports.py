@@ -12,6 +12,20 @@ from miebach_admin.models import *
 from common import *
 from miebach_utils import *
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_report_data(request, user=''):
+    data = {}
+    report_name = request.GET.get('report_name', '')
+    if report_name:
+        data = REPORT_DATA_NAMES.get(report_name, {})
+    filter_keys = map(lambda d: d.get('name', ''), data.get('filters', ''))
+    if 'marketplace' in filter_keys:
+        data_index = data['filters'].index(filter(lambda person: 'marketplace' in person['name'], data['filters'])[0])
+        data['filters'][data_index]['values'] = list(OrderDetail.objects.exclude(marketplace='').filter(quantity__gt=0,
+                                                     user = user.id).values_list('marketplace', flat=True).distinct())
+    return HttpResponse(json.dumps({'data': data}))
 
 @csrf_exempt
 @login_required
@@ -91,7 +105,6 @@ def print_receipt_summary(request, user=''):
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
 
-
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -99,6 +112,14 @@ def get_dispatch_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_dispatch_data(search_params, user)
 
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_order_summary_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_order_summary_data(search_params, user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
@@ -117,6 +138,18 @@ def print_stock_summary_report(request, user=''):
 
     headers, search_params, filter_params = get_search_params(request)
     report_data = get_stock_summary_data(search_params, user)
+    report_data = report_data['aaData']
+
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+@get_admin_user
+def print_order_summary_report(request, user=''):
+    search_parameters = {}
+
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_order_summary_data(search_params, user)
     report_data = report_data['aaData']
 
     if report_data:

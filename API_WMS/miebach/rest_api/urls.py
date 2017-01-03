@@ -186,6 +186,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^get_customer_master_id/$', 'get_customer_master_id'),
     url(r'^search_wms_data/$', 'search_wms_data'),
     url(r'^update_payment_status/$', 'update_payment_status'),
+    url(r'^create_orders_data/$', 'create_orders_data'),
 
     # Reports
     #url(r'^location_wise_filter/$','location_wise_filter'),

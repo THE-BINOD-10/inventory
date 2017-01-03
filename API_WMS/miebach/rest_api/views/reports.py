@@ -146,8 +146,8 @@ def print_stock_summary_report(request, user=''):
 
 @get_admin_user
 def print_order_summary_report(request, user=''):
+    html_data = {}
     search_parameters = {}
-
     headers, search_params, filter_params = get_search_params(request)
     report_data = get_order_summary_data(search_params, user)
     report_data = report_data['aaData']

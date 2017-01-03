@@ -15,6 +15,7 @@
             </div>
           </label>
           <span class="pull-right" align="right">CUSTOM ORDER</span>
+          <input name="custom_order" type="hidden" value="{{showCase.custom_order}}">
         </div>
         <div class="col-md-3 col-sm-3 col-xs-12">
           <button type="button" class="btn btn-primary pull-right" ng-click="showCase.catlog=true;showCase.details=true;">View Catalog</button>
@@ -50,6 +51,14 @@
           <div class="form-group">
             <label class="control-label">Email</label>
             <input name="email_id" class="form-control" type="email" ng-model="showCase.model_data.email_id">
+          </div>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="form-group">
+            <label class="control-label">Tax Type</label>
+            <select class="form-control" name="tax_type" ng-model="showCase.model_data.tax_type" ng-change="showCase.change_tax_type();">
+              <option ng-repeat="(type,value) in showCase.create_order_data.taxes" ng-selected="showCase.model_data.tax_type == type" value="{{type}}">{{type}}</option>
+            </select>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
@@ -111,7 +120,7 @@
               <th>Amount</th>
               <th>Tax(%)</th>
               <th>Total Amount</th>
-              <th ng-if="showCase.custom_order">Remarks</th>
+              <th>Remarks</th>
               <th class="plus"></th>
             </tr>
           </thead>
@@ -136,13 +145,31 @@
               <td>
                 <input type="text" name="invoice_amount" class="form-control" ng-model="data.total_amount" ng-change="showCase.cal_total()" decimal-number>
               </td>
-	      <td ng-if="showCase.custom_order">
+	      <td>
                 <input type="text" name="remarks" class="form-control" ng-model="data.remarks">
               </td>
               <td><i style="font-size: 20px;padding-top: 7px;cursor: pointer;margin-left: -15px;" ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
             </tr>
           </tbody>
         </table>
+      </div>
+      <div class="row mr10 ml10 mr10">
+        <div class="col-md-12">
+          <a href="javascript:;" class="btn btn-success btn-xs" ng-click="showCase.model_data.other_charges.push({name: '', amount: ''})">Add Other Charges(+)</a>
+        </div>
+        <div class="col-md-12">
+          <div class="row mt20" ng-repeat="charge in showCase.model_data.other_charges">
+            <div class="col-md-3 col-sm-4 col-xs-6">
+              <input type="text" class="form-control" placeholder="Enter Charge Name" ng-model="charge.name" name="charge_name">
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-3">
+              <input type="text" class="form-control" placeholder="Enter Amount" ng-model="charge.amount" ng-change="showCase.cal_total()" decimal-number name="charge_amount">
+            </div>
+            <div class="col-md-1 col-sm-1 col-xs-2">
+              <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="showCase.model_data.other_charges.splice($index, 1);showCase.cal_total();"></i>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="row" style="padding-bottom:0px;">
         <div class="col-md-7 col-sm-6">

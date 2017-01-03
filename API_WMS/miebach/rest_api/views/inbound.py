@@ -634,6 +634,7 @@ def switches(request, user=''):
                     'automate_invoice': request.GET.get('automate_invoice', ''),
                     'show_mrp': request.GET.get('show_mrp', ''),
                     'decimal_limit': request.GET.get('decimal_limit', ''),
+                    'picklist_sort_by': request.GET.get('picklist_sort_by', ''),
                   }
 
 

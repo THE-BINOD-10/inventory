@@ -29,4 +29,3 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   })
 
   }
-

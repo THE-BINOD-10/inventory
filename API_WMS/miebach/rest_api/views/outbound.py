@@ -719,7 +719,11 @@ def get_picklist_data(data_id,user_id):
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
             else:
                 sku_total_quantities[wms_code] = float(order.reserved_quantity)
-        data = sorted(data, key=itemgetter('sequence'))
+
+        if get_misc_value('picklist_sort_by', user_id) == 'true':
+            data = sorted(data, key=itemgetter('order_id'))
+        else:
+            data = sorted(data, key=itemgetter('sequence'))
         return data, sku_total_quantities
     else:
         for order in picklist_orders:
@@ -853,7 +857,10 @@ def send_picklist_mail(picklist, request):
 
     email = picklist.order.email_id
     if email:
-        send_mail([email], 'Order %s on %s is ready to be shipped by the seller' % (picklist.order.order_id, request.user.username), rendered)
+        try:
+            send_mail([email], 'Order %s on %s is ready to be shipped by the seller' % (picklist.order.order_id, request.user.username), rendered)
+        except:
+            print 'mail issue'
 
 def get_picklist_batch(picklist, value, all_picklists):
     if picklist.order and picklist.stock:
@@ -1516,6 +1523,8 @@ def insert_order_data(request, user=''):
     payment_received = request.GET.get('payment_received', '')
     tax_percent = request.GET.get('tax', '')
     telephone = request.GET.get('telephone', '')
+    custom_order = request.GET.get('custom_order', '')
+    created_order_id = ''
     if valid_status:
         return HttpResponse(valid_status)
     for i in range(0, len(myDict['sku_id'])):
@@ -1524,12 +1533,12 @@ def insert_order_data(request, user=''):
         order_data['order_id'] = order_id
         order_data['order_code'] = 'MN'
         order_data['marketplace'] = 'Offline'
-        if 'remarks' in myDict.keys():
+        if custom_order == 'true':
             order_data['order_code'] = 'CO'
         order_data['user'] = user.id
 
         for key, value in request.GET.iteritems():
-            if key in ['payment_received']:
+            if key in ['payment_received', 'charge_name', 'charge_amount', 'custom_order']:
                 continue
             if key == 'sku_id':
                 if not myDict[key][i]:
@@ -1578,6 +1587,8 @@ def insert_order_data(request, user=''):
                     order_summary_dict['tax_value'] = "%.2f" % tax_value
             elif key == 'order_taken_by':
                 order_summary_dict['order_taken_by'] = value
+            elif key == 'tax_type':
+                order_summary_dict['tax_type'] = value
             else:
                 order_data[key] = value
 
@@ -1595,11 +1606,13 @@ def insert_order_data(request, user=''):
                     payment_received = float(order_data['invoice_amount']) - float(payment_received)
                     order_payment = float(payment_received)
                 order_data['payment_received'] = order_payment
-                
+
             order_detail = OrderDetail(**order_data)
             order_detail.save()
 
-            if order_summary_dict.get('vat', '') or order_summary_dict.get('tax_value', ) or order_summary_dict.get('order_taken_by', ''):
+            created_order_id = order_detail.order_code + str(order_detail.order_id)
+            if order_summary_dict.get('vat', '') or order_summary_dict.get('tax_value', ) or order_summary_dict.get('order_taken_by', '') or \
+               order_summary_dict.get('tax_type', ''):
                 order_summary_dict['order_id'] = order_detail.id
                 order_summary = CustomerOrderSummary(**order_summary_dict)
                 order_summary.save()
@@ -1611,6 +1624,11 @@ def insert_order_data(request, user=''):
 
     if invalid_skus:
         return HttpResponse("Invalid SKU: %s" % ', '.join(invalid_skus))
+    if created_order_id:
+        for i in range(0, len(myDict['charge_name'])):
+            if myDict['charge_name'][i] and myDict['charge_amount'][i]:
+                OrderCharges.objects.create(user_id=user.id, order_id=created_order_id, charge_name=myDict['charge_name'][i],
+                                            charge_amount=myDict['charge_amount'][i], creation_date=datetime.datetime.now())
 
     misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type='order', misc_value='true')
     if misc_detail and order_detail:
@@ -2432,13 +2450,13 @@ def payment_tracker(request, user=''):
         total_invoice_amount += sum_data['invoice_amount__sum']
         total_payment_receivable += receivable
         customer_data.append({'channel': data['marketplace'] ,'customer_id': data['customer_id'], 
-                              'customer_name': data['customer_name'], 'payment_received': sum_data['payment_received__sum'], 
-                              'payment_receivable': receivable,
-                              'invoice_amount': sum_data['invoice_amount__sum']})
+                              'customer_name': data['customer_name'], 'payment_received': "%.2f" % sum_data['payment_received__sum'], 
+                              'payment_receivable': "%.2f" % receivable,
+                              'invoice_amount': "%.2f" % sum_data['invoice_amount__sum']  })
     response["data"] = customer_data
-    response.update({'total_payment_received': get_decimal_limit(user.id, total_payment_received),
-                     'total_invoice_amount': get_decimal_limit(user.id, total_invoice_amount),
-                     'total_payment_receivable': get_decimal_limit(user.id, total_payment_receivable)})
+    response.update({'total_payment_received': "%.2f" % total_payment_received,
+                     'total_invoice_amount': "%.2f" % total_invoice_amount,
+                     'total_payment_receivable': "%.2f" % total_payment_receivable})
     return HttpResponse(json.dumps(response))
 
 @login_required
@@ -2488,10 +2506,11 @@ def get_customer_payment_tracker(request, user=''):
                 expected_date = picked_date.strftime("%d %b, %Y")
         
         sum_data = total_data.filter(order_id = data['order_id']).aggregate(Sum('invoice_amount'), Sum('payment_received'))
-        order_data.append({"order_id": data['order_id'], 'display_order': order_id, 'account': data['payment_mode'],
-                           "inv_amount": sum_data['invoice_amount__sum'],
-                           "receivable": sum_data['invoice_amount__sum']-sum_data['payment_received__sum'], 
-                           "received": sum_data['payment_received__sum'], 'order_status': order_status, 'expected_date': expected_date})
+        order_data.append({'order_id': data['order_id'], 'display_order': order_id, 'account': data['payment_mode'],
+                           'inv_amount': "%.2f" % sum_data['invoice_amount__sum'],
+                           'receivable': "%.2f" % (sum_data['invoice_amount__sum']-sum_data['payment_received__sum']),
+                           'received': '%.2f' % sum_data['payment_received__sum'], 'order_status': order_status,
+                           'expected_date': expected_date})
     response["data"] = order_data
     return HttpResponse(json.dumps(response))
 
@@ -2530,3 +2549,9 @@ def update_payment_status(request, user=''):
                     payment = 0
                 order.save()
     return HttpResponse("Success")
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def create_orders_data(request, user=''):
+    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': TAX_TYPES}))

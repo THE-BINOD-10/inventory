@@ -255,6 +255,22 @@
           </label>
         </div>
       </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-envelope fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20">Picklist Sort By Order Sequence</strong>
+        </div>
+        <div class="col-md-2 col-sm-3 col-xs-4">
+          <label class="switch switch-sm square mt5">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.picklist_sort_by" ng-change="showCase.switches(showCase.model_data.picklist_sort_by,19)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
       <div class="row col-md-12" style="padding-bottom: 15px" ng-init="showCase.online_enable_save = false">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa fa-shopping-cart fa-15px pull-left" style="line-height: 34px;"></i>

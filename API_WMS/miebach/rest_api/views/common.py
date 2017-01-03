@@ -444,6 +444,7 @@ def configurations(request, user=''):
     automate_invoice = get_misc_value('automate_invoice', user.id)
     show_mrp = get_misc_value('show_mrp', user.id)
     decimal_limit = get_misc_value('decimal_limit', user.id)
+    picklist_sort_by = get_misc_value('picklist_sort_by', user.id)
     all_groups = SKUGroups.objects.filter(user=user.id).values_list('group', flat=True)
     all_groups = str(','.join(all_groups))
 
@@ -503,7 +504,7 @@ def configurations(request, user=''):
                                                              'auto_po_switch': auto_po_switch, 'no_stock_switch': no_stock_switch,
                                                              'float_switch': float_switch, 'all_stages': all_stages,
                                                              'automate_invoice': automate_invoice, 'show_mrp': show_mrp,
-                                                             'decimal_limit': decimal_limit}))
+                                                             'decimal_limit': decimal_limit, 'picklist_sort_by': picklist_sort_by}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers):
@@ -1474,7 +1475,7 @@ def get_invoice_data(order_ids, user):
                                             annotate(total=Sum('picked_quantity'))
                 if picklist:
                     quantity = picklist[0].total
-            unit_price = ((float(dat.invoice_amount)/ float(dat.quantity))) - discount - tax
+            unit_price = ((float(dat.invoice_amount)/ float(dat.quantity))) - discount - (tax/float(dat.quantity))
             unit_price = "%.2f" % unit_price
 
             data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(dat.invoice_amount),
@@ -1513,6 +1514,15 @@ def get_sku_categories_data(request, user, request_data={}):
     categories = list(sku_master.exclude(sku_category='').filter(**filter_params).values_list('sku_category', flat=True).distinct())
     brands = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
     return brands, categories
+
+def resize_image(url):
+    #from PIL import Image
+    #image = Image.open(url)
+    #height = 600
+    #width = 400
+    #imageresize = image.resize((height ,width), Image.ANTIALIAS)
+    #imageresize.save('resize_200_200_aa.jpg', 'JPEG', quality=75)
+    print url
 
 def get_sku_catalogs_data(request, user, request_data={}):
     if not request_data:
@@ -1561,6 +1571,10 @@ def get_sku_catalogs_data(request, user, request_data={}):
             sku_variants = list(sku_object.values(*get_values))
             sku_variants = get_style_variants(sku_variants, user)
             sku_styles[0]['variants'] = sku_variants
+
+            if sku_styles[0]['image_url']:
+                sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'])
+
             data.append(sku_styles[0])
         if not is_file and len(data) >= 20:
             break

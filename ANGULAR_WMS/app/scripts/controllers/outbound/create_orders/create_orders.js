@@ -9,7 +9,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.company_name = Session.user_profile.company_name;
   vm.model_data = {}
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
-                            customer_id: "", payment_received: "", order_taken_by: ""};
+                            customer_id: "", payment_received: "", order_taken_by: "", other_charges: []};
 
   angular.copy(empty_data, vm.model_data);
   vm.isLast = isLast;
@@ -524,6 +524,13 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
       vm.final_data.total_amount += Number(record.total_amount);
       vm.final_data.total_quantity += Number(record.quantity);
     })
+    if(vm.model_data.other_charges) {
+      angular.forEach(vm.model_data.other_charges, function(record){
+        if(record.amount){
+          vm.final_data.total_amount += Number(record.amount);
+        }
+      })
+    }
   }
   vm.cal_percentage = function(data) {
 
@@ -587,10 +594,6 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   }
 
   vm.tax = 0;
-  console.log(Session);
-  if(Session.userName == 'sagar_fab') {
-    vm.tax = 5.5;
-  }
   vm.model_data.data[0].tax = vm.tax;
   empty_data.data[0].tax = vm.tax;
 
@@ -665,6 +668,29 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     } else {
       vm.order_type_value = "Offline";
     }
+  }
+
+  vm.create_order_data = {}
+  vm.get_create_order_data = function(){
+    vm.service.apiCall("create_orders_data/").then(function(data){
+
+      if(data.message) {
+        vm.create_order_data = data.data;
+        vm.model_data.tax_type = 'VAT'
+        vm.change_tax_type();
+      }
+    })
+  }
+  vm.get_create_order_data();
+
+  vm.change_tax_type = function() {
+
+    vm.tax = vm.create_order_data.taxes[vm.model_data.tax_type];
+    angular.forEach(vm.model_data.data, function(record) {
+      record.tax = vm.create_order_data.taxes[vm.model_data.tax_type];
+      vm.cal_percentage(record)
+    })
+    vm.cal_total();
   }
 }
 

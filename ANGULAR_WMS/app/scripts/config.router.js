@@ -34,8 +34,8 @@ var app = angular.module('urbanApp')
 
                     if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") == -1) {
                       $state.go("app.Register");
-                    } else if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") > -1) {
-                      $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});
+                    /*} else if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") > -1) {
+                      $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});*/
                     } else if (typeof(next.permission) == "string") {
 
                       var perm_list = next.permission.split("&");

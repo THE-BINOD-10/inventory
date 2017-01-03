@@ -1040,6 +1040,10 @@ def add_warehouse_user(request, user=''):
         user_profile_dict['user_id'] = new_user.id
         user_profile_dict['location'] = user_profile_dict['state']
         user_profile_dict['prefix'] = new_user.username[:3]
+        if not user_profile_dict.get('pin_code', 0):
+            user_profile_dict['pin_code'] = 0
+        if not user_profile_dict.get('phone_number', 0):
+            user_profile_dict['phone_number'] = 0
         user_profile = UserProfile(**user_profile_dict)
         user_profile.save()
         group,created = Group.objects.get_or_create(name=new_user.username)

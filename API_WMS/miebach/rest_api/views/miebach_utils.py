@@ -546,6 +546,10 @@ EASYOPS_CANCEL_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumbe
 
 ORDER_DETAIL_STATES = {0: 'Picklist generated', 1: 'Newly Created', 2: 'Dispatched', 3: 'Cancelled', 4: 'Returned'}
 
+PAYMENT_MODES = ['Credit Card', 'Debit Card', 'Cash', 'NEFT', 'RTGS', 'IMPS', 'Online Transfer', 'Cash Remittance', 'Cheque']
+
+TAX_TYPES = OrderedDict(( ('VAT', 5.5), ('CST', 2) ))
+
 def fn_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):

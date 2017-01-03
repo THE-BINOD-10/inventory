@@ -18,6 +18,63 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
                                   }
                   }
 
+    vm.reports = {};
+
+    vm.get_view_url = function(type, dir) {
+
+      if(type) {
+        return 'views/common/' + dir + '/' + type + '.html';
+      } else {
+        return  '';
+      }
+    }
+
+    vm.get_report_data = function(name){
+      var send = {};
+      var d = $q.defer();
+      if(vm.reports[name]) {
+        d.resolve(vm.reports[name]);
+      } else {
+        vm.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data){
+
+          if(data.message) {
+            vm.reports[name] = data.data.data;
+            d.resolve(vm.reports[name]);
+          }   
+        })  
+      }
+      return d.promise;   
+    }
+
+    vm.get_report_dt = function(filters, data) {
+
+      var d = $q.defer();
+      var send = {dtOptions: '', dtColumns: '', empty_data: {}};
+
+      angular.forEach(data.filters, function(data){
+
+        send.empty_data[data.name] = ""
+      });
+
+      send.dtOptions = DTOptionsBuilder.newOptions()
+       .withOption('ajax', {
+              url: Session.url + data.dt_url + '/',
+              type: 'GET',
+              data: send.empty_data,
+              xhrFields: {
+                withCredentials: true
+              }
+           })
+       .withDataProp('data')
+       .withOption('processing', true)
+       .withOption('serverSide', true)
+       .withPaginationType('full_numbers');
+
+      send.dtColumns = vm.build_colums(data.dt_headers);
+      d.resolve(send);
+      return d.promise;
+    }
+
     vm.scan = function(event, field, url) {
 
       var d = $q.defer();

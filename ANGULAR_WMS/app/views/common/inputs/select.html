@@ -1,0 +1,6 @@
+<div class="form-group">
+  <label class="control-label">{{field.label}}</label>
+  <select name="{{field.name}}" class="form-control" ng-model="showCase.model_data[field.name]">
+    <option ng-repeat="market in field.values" value="{{market}}">{{market}}</option>
+  </select>
+</div>

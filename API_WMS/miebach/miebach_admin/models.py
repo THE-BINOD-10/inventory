@@ -173,6 +173,18 @@ class OrderDetail(models.Model):
     def __unicode__(self):
         return str(self.sku)
 
+class OrderCharges(models.Model):
+    id = BigAutoField(primary_key=True)
+    order_id = models.CharField(max_length=128, default='')
+    user = models.ForeignKey(User, blank=True, null=True)
+    charge_name = models.CharField(max_length=128, default='')
+    charge_amount = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_CHARGES'
+
 class SKUQuantity(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster)
@@ -911,8 +923,9 @@ class CustomerOrderSummary(models.Model):
     discount = models.FloatField(default = 0)
     vat = models.FloatField(default=0)
     mrp = models.FloatField(default=0)
-    issue_type=models.CharField(max_length=64, default='')
+    issue_type = models.CharField(max_length=64, default='')
     tax_value = models.FloatField(default=0)
+    tax_type = models.CharField(max_length=64, default='')
     order_taken_by = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

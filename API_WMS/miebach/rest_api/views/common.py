@@ -80,7 +80,8 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
                                              'registered_date': get_local_date(request.user, user_profile.creation_date),
                                              'email': request.user.email, 
-                                             'trail_user': status_dict[int(user_profile.is_trail)], 'company_name': user_profile.company_name}
+                                             'trail_user': status_dict[int(user_profile.is_trail)], 'company_name': user_profile.company_name,
+                                             'user_type': user_profile.user_type}
 
     setup_status ='false'
     if 'completed' not in user_profile.setup_status:
@@ -1718,8 +1719,9 @@ def create_update_user(data, password):
             if user:
                 prefix = re.sub('[^A-Za-z0-9]+', '', user.username)[:3].upper()
                 user_profile = UserProfile.objects.create(phone_number=data.phone_number, user_id=user.id, api_hash=hash_code,
-                                                          prefix=prefix, user_type='Customer')
+                                                          prefix=prefix, user_type='customer')
                 user_profile.save()
+                CustomerUserMapping.objects.create(customer_id=data.id, user_id=user.id, creation_date=datetime.datetime.now())
             status = 'User Added Successfully'
 
     return status

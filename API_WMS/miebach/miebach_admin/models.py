@@ -531,6 +531,17 @@ class CustomerMaster(models.Model):
     class Meta:
         db_table = 'CUSTOMER_MASTER'
 
+class CustomerUserMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    customer = models.ForeignKey(CustomerMaster, blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CUSTOMER_USER_MAPPING'
+
+
 class OrderReturns(models.Model):
     id = BigAutoField(primary_key=True)
     return_id = models.CharField(max_length=256)
@@ -568,7 +579,8 @@ class UserProfile(models.Model):
     multi_warehouse = models.IntegerField(default=0)
     is_trail = models.IntegerField(default=0)
     api_hash = models.CharField(max_length=256, default='')
-    setup_status = models.CharField(max_length=60, default='completed') 
+    setup_status = models.CharField(max_length=60, default='completed')
+    user_type = models.CharField(max_length=60, default='warehouse_user')
 
     class Meta:
         db_table = 'USER_PROFILE'

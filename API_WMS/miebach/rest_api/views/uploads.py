@@ -916,7 +916,7 @@ def validate_supplier_form(open_sheet, user_id):
     write_error_file(f_name, index_status, open_sheet, SUPPLIER_HEADERS, 'Supplier')
     return f_name
 
-def supplier_excel_upload(request, open_sheet, user):
+def supplier_excel_upload(request, open_sheet, user, demo_data=False):
     for row_idx in range(1, open_sheet.nrows):
         sku_code = ''
         wms_code = ''
@@ -927,6 +927,10 @@ def supplier_excel_upload(request, open_sheet, user):
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 supplier_data['id'] = cell_data
+                if demo_data:
+                    user_profile = UserProfile.objects.filter(user_id=user.id)
+                    if user_profile:
+                        supplier_data['id'] = user_profile[0].prefix + '_' + supplier_data['id']
             if col_idx == 1:
                 supplier_data['name']  = cell_data
                 if not isinstance(cell_data, (str, unicode)):
@@ -943,6 +947,7 @@ def supplier_excel_upload(request, open_sheet, user):
 
         supplier = SupplierMaster.objects.filter(id=supplier_data['id'], user=user.id)
         if not supplier:
+            supplier_data['creation_date'] = datetime.datetime.now()
             supplier_data['user'] = user.id
             supplier = SupplierMaster(**supplier_data)
             supplier.save()

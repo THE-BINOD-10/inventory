@@ -1312,3 +1312,14 @@ class GroupStages(models.Model):
 
     class Meta:
         db_table = 'GROUP_STAGE_MAP'
+
+
+class ContactUs(models.Model):
+    full_name = models.CharField(max_length=64, default='')
+    email = models.EmailField(max_length=64)
+    contact = models.CharField(max_length=20, default='')
+    company = models.CharField(max_length=64, default='')
+    query = models.CharField(max_length=255, default='')
+
+    class Meta:
+	db_table = "CONTACT_US"

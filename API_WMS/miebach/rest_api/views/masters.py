@@ -732,6 +732,7 @@ def update_customer_values(request,user=''):
             customer_master = CustomerMaster.objects.exclude(customer_id=data_id).filter(user=user.id, email_id=value)
             if customer_master:
                 return HttpResponse('Email Already exists')
+            setattr(data, key, value)
         else:
             setattr(data, key, value)
 

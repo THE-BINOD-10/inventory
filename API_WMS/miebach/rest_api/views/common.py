@@ -148,6 +148,8 @@ def create_user(request):
                                                           company_name=request.POST.get('company', ''), user_id=user.id, api_hash=hash_code,
                                                           is_trail=1, prefix=prefix, setup_status='')
                 user_profile.save()
+            user.is_staff=1
+            user.save()
             user = authenticate(username=username, password=password)
             login(request, user)
             status = 'User Added Successfully'
@@ -1266,6 +1268,8 @@ def load_demo_data(request, user=''):
         if key in ['order_upload', 'sku_upload']:
             func_params.append(open_sheet.nrows)
             func_params.append(value['file_name'])
+        elif key == 'supplier_upload':
+            func_params.append(True)
         eval(value['function_name'])(*func_params)
 
     if request.GET.get('first_time', ''):
@@ -1484,12 +1488,22 @@ def get_invoice_data(order_ids, user):
 
     invoice_date = get_local_date(user, invoice_date, send_date='true')
     invoice_date = invoice_date.strftime("%d %b %Y")
+    order_charges = {}
+
+    total_invoice_amount = total_invoice
+    if order_id:
+        order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
+        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount'))
+        total_charge_amount = order_charge_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
+        if total_charge_amount:
+            total_invoice_amount = float(total_charge_amount) + total_invoice
 
     invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'marketplace': marketplace,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
                     'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % total_tax, 'total_mrp': total_mrp,
-                    'invoice_no': 'TI/1116/' + order_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(total_invoice)}
+                    'invoice_no': 'TI/1116/' + order_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(total_invoice),
+                    'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount}
 
     return invoice_data
 
@@ -1572,8 +1586,6 @@ def get_sku_catalogs_data(request, user, request_data={}):
             sku_variants = get_style_variants(sku_variants, user)
             sku_styles[0]['variants'] = sku_variants
 
-            if sku_styles[0]['image_url']:
-                sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'])
 
             data.append(sku_styles[0])
         if not is_file and len(data) >= 20:

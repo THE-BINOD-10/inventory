@@ -672,7 +672,10 @@ def get_picklist_data(data_id,user_id):
                 sku_total_quantities[wms_code] = float(order.reserved_quantity)
         data = batch_data.values()
 
-        data = sorted(data, key=itemgetter('sequence'))
+        if get_misc_value('picklist_sort_by', user_id) == 'true':
+            data = sorted(data, key=itemgetter('order_id'))
+        else:
+            data = sorted(data, key=itemgetter('sequence'))
         return data, sku_total_quantities
 
     elif order_status == "open":
@@ -944,7 +947,7 @@ def picklist_confirmation(request, user=''):
                     confirm_no_stock(picklist, float(val['picked_quantity']))
                     continue
 
-                if val['wms_code'] == 'TEMP' and val['wmscode']:
+                if val['wms_code'] == 'TEMP' and val.get('wmscode', ''):
                     if picklist.order:
                         map_status = create_market_mapping(picklist.order, val)
                     if map_status == 'true':

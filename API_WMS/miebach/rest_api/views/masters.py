@@ -233,9 +233,15 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
 
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
+        login_created = 'false'
+        customer_login = CustomerUserMapping.objects.filter(customer_id=data.id)
+        if customer_login:
+            login_created = 'true'
+
         temp_data['aaData'].append(OrderedDict(( ('customer_id', data.customer_id), ('name', data.name), ('address', data.address),
                                                  ('phone_number', data.phone_number), ('email_id', data.email_id), ('status', status),
                                                  ('tin_number', data.tin_number), ('credit_period', data.credit_period),
+                                                 ('login_created', login_created),
                                                  ('DT_RowId', data.customer_id), ('DT_RowClass', 'results') )))
 
 @csrf_exempt
@@ -717,7 +723,8 @@ def insert_mapping(request,user=''):
 def update_customer_values(request,user=''):
     data_id = request.POST['customer_id']
     data = get_or_none(CustomerMaster, {'customer_id': data_id, 'user': user.id})
-    create_login = request.POST.get('create_login', False)
+    create_login = request.POST.get('create_login', '')
+    password = request.POST.get('password', '')
     for key, value in request.POST.iteritems():
         if key not in data.__dict__.keys():
             continue
@@ -732,12 +739,13 @@ def update_customer_values(request,user=''):
             customer_master = CustomerMaster.objects.exclude(customer_id=data_id).filter(user=user.id, email_id=value)
             if customer_master:
                 return HttpResponse('Email Already exists')
+            setattr(data, key, value)
         else:
             setattr(data, key, value)
 
     data.save()
-    #if create_login:
-    #    create_update_user(data, password)
+    if create_login == 'true':
+        create_update_user(data, password)
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt
@@ -745,6 +753,8 @@ def update_customer_values(request,user=''):
 @get_admin_user
 def insert_customer(request, user=''):
     customer_id = request.POST['customer_id']
+    create_login = request.POST.get('create_login', '')
+    password = request.POST.get('password', '')
     if not customer_id:
         return HttpResponse('Missing Required Fields')
     data = filter_or_none(CustomerMaster, {'customer_id': customer_id, 'user': user.id})
@@ -773,6 +783,9 @@ def insert_customer(request, user=''):
         customer_master = CustomerMaster(**data_dict)
         customer_master.save()
         status_msg = 'New Customer Added'
+        if create_login == 'true':
+            create_update_user(customer_master, password)
+
 
     return HttpResponse(status_msg)
 

@@ -44,11 +44,42 @@ def book_trial(request, user=''):
         hash_code = hashlib.md5(b'%s:%s' % (full_name, email)).hexdigest()
         book_trial = BookTrial.objects.create(full_name = full_name, email = email, contact = contact, company = company, hash_code=hash_code,
                      status=1)
-        html = '<p>link: http://anant.mieone.com:9001/#/signup?hashcode='+hash_code+'</p>'
-        send_mail([email], 'StokeOne 30 day trial', html)
+        html = '<p> Hi %s, </p> <p> Thanks for using our demo version . This is valid for 30 Days. </p> To signup please click given link </p><p>link: http://%s/#/signup?hashcode=%s </p>' %(full_name, "176.9.181.43:7654", hash_code)
+        send_mail([email], 'StockOne 30 day trial', html)
         status = "Added Successfully"
+
+	subject = "NEW FREE TRIAL SIGNUP"
+	body = "<p> Following user requested for FREE TRIAL</p>  <p> NAME : %s</p> <p> Email : %s</p> <p> CONTACT: %s</p> <p> COMPANY: %s</p>" %(full_name, email, contact, company)
+	inform_mail(subject, body)
     else:
         status = "Email Already exists"
     return HttpResponse(status)
 
+def inform_mail(subject, body):
+    """sending mail to concerned Miebach team"""
+    recipient = ['abhishek@headrun.com', 'sreekanth@mieone.com']
+    try:
+    	send_mail(recipient, subject, body)
+    except:
+        print "some issue there"
+
+
+@csrf_exempt 
+def contact_us(request):
+    full_name = request.POST.get('full_name')
+    email = request.POST.get('email')
+    contact = request.POST.get('contact')
+    company = request.POST.get('company')
+    query = request.POST.get('query')
+
+    ContactUs.objects.create(full_name = full_name, email = email, contact= contact, company= company, query=query)
+
+    html = "<p>Hi %s </p> <p> Thanks for contacting us. </p> <p> Our team will get back to you shortly. </p> <p> Thanks, </p> <p> Mieone Team </p>" %(full_name)
+    send_mail([email], 'StockOne Query Auto Response', html)
+    status = "Success"
+    subject = "NEW QUERY GENERATED"
+    body = "<p> Following user created a query</p>  <p> NAME : %s</p> <p> Email : %s</p> <p> CONTACT: %s</p> <p> COMPANY: %s</p> <p> QUERY: %s</p>" %(full_name, email, contact, company, query)
+    inform_mail(subject, body)
+
+    return HttpResponse(status)
 

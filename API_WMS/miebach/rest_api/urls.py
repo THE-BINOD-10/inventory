@@ -283,4 +283,5 @@ urlpatterns = patterns('rest_api.views',
 
     #stockone
     url(r'^book_trial/$','book_trial'),
+    url(r'^contact_us/$','contact_us'),
     )

@@ -1050,7 +1050,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
                                       sku_id=sku_id)
             dest_stocks.save()
     if quantity == 0:
-        StockDetail.objects.filter(sku_id=sku_id, location_id=location[0].id, sku__user=user.id).update(quantity=0)
+        StockDetail.objects.filter(sku_id=sku_id, location__location=location[0].location, sku__user=user.id).update(quantity=0)
         location[0].filled_capacity = 0
         location[0].save()
 
@@ -1078,7 +1078,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
     dat = InventoryAdjustment(**data)
     dat.save()
 
-    #check_and_update_stock(wmscode, user)
+    check_and_update_stock(wmscode, user)
 
     return 'Added Successfully'
 
@@ -1269,7 +1269,7 @@ def load_demo_data(request, user=''):
         if key in ['order_upload', 'sku_upload']:
             func_params.append(open_sheet.nrows)
             func_params.append(value['file_name'])
-        elif key == 'supplier_upload':
+        elif key in ['supplier_upload', 'purchase_order_upload']:
             func_params.append(True)
         eval(value['function_name'])(*func_params)
 
@@ -1530,21 +1530,41 @@ def get_sku_categories_data(request, user, request_data={}):
     brands = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
     return brands, categories
 
-def resize_image(url):
-    #from PIL import Image
-    #image = Image.open(url)
-    #height = 600
-    #width = 400
-    #imageresize = image.resize((height ,width), Image.ANTIALIAS)
-    #imageresize.save('resize_200_200_aa.jpg', 'JPEG', quality=75)
-    print url
+def resize_image(url, user):
+
+    path = 'static/images/resized/'
+    folder = str(user.id)
+
+    height = 600
+    width = 400
+
+    if url:
+        new_file_name = url.split("/")[-1].split(".")[0]+"_"+str(height)+"_"+str(width)+"."+url.split(".")[1]
+        file_name = url.split(".")
+        file_name = "%s_%s_%s.%s" %(file_name[0], height, width, file_name[1])
+
+        if not os.path.exists(path + folder):
+            os.makedirs(path + folder)
+
+        if os.path.exists(path+folder+"/"+new_file_name):
+            return "/"+path+folder+"/"+new_file_name;
+
+        else:
+            from PIL import Image
+            temp_url = url[1:]
+            image = Image.open(temp_url)
+            imageresize = image.resize((height ,width), Image.ANTIALIAS)
+            imageresize.save(path+folder+"/"+new_file_name, 'JPEG', quality=75)
+            return "/"+path+folder+"/"+new_file_name
+    else:
+        return url
 
 def get_sku_catalogs_data(request, user, request_data={}):
     if not request_data:
         request_data = request.GET
     from rest_api.views.outbound import get_style_variants
     filter_params = {'user': user.id}
-    get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size', 'style_name']
+    get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size', 'style_name', 'sale_through']
     sku_category = request_data.get('category', '')
     sku_class = request_data.get('sku_class', '')
     sku_brand = request_data.get('brand', '')
@@ -1587,6 +1607,7 @@ def get_sku_catalogs_data(request, user, request_data={}):
             sku_variants = get_style_variants(sku_variants, user)
             sku_styles[0]['variants'] = sku_variants
 
+            #sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'],user)
 
             data.append(sku_styles[0])
         if not is_file and len(data) >= 20:

@@ -163,6 +163,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_id = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
                 if isinstance(order_id, float):
                     order_id = str(int(order_id))
+                order_data['original_order_id'] = order_id
                 if order_mapping.get('split_order_id', '') and '/' in order_id:
                     order_id = order_id.split('/')[0]
                 order_code = (''.join(re.findall('\D+', order_id))).replace("'", "")
@@ -177,6 +178,11 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_data['order_code'] = 'MN'
             elif key == 'quantity':
                 order_data[key] = int(get_cell_data(row_idx, value, reader, file_type))
+            elif key == 'invoice_amount':
+                if get_cell_data(row_idx, value, reader, file_type):
+                    order_data[key] = int(get_cell_data(row_idx, value, reader, file_type))
+                else:
+                    order_data[key] = 0
             elif key == 'item_name':
                 order_data['invoice_amount'] += int(get_cell_data(row_idx, 11, reader, file_type))
             elif key == 'vat':
@@ -226,6 +232,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 discount = get_cell_data(row_idx, value, reader, file_type)
                 if discount:
                     order_summary_dict['discount'] = get_cell_data(row_idx, value, reader, file_type)
+            elif key == 'quantity_count':
+                if isinstance(value, (list)):
+                    try:
+                        cell_data = get_cell_data(row_idx, value[0], reader, file_type)
+                        order_data['quantity'] = len(cell_data.split(value[1]))
+                    except:
+                        order_data['quantity'] = 1
             else:
                 order_data[key] = get_cell_data(row_idx, value, reader, file_type)
         order_data['user'] = user.id
@@ -1347,7 +1360,7 @@ def validate_purchase_order(open_sheet, user):
     wb.save('%s.purchase_order_form.xls' % user)
     return '%s.purchase_order_form.xls' % user
 
-def purchase_order_excel_upload(request, open_sheet, user):
+def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
     order_ids = {}
     for row_idx in range(1, open_sheet.nrows):
         order_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
@@ -1359,6 +1372,10 @@ def purchase_order_excel_upload(request, open_sheet, user):
                     cell_data = int(cell_data)
                 else:
                     cell_data = cell_data.upper()
+                if demo_data:
+                    user_profile = UserProfile.objects.filter(user_id=user.id)
+                    if user_profile:
+                        cell_data = user_profile[0].prefix + '_' + cell_data
                 supplier = SupplierMaster.objects.filter(user=user.id, id=cell_data)
                 if supplier:
                     order_data['supplier_id'] = cell_data

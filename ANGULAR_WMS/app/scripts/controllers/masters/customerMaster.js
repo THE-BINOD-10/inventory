@@ -49,6 +49,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
+                vm.model_data['create_login'] = false;
                 angular.copy(aData, vm.model_data);
                 vm.update = true;
                 vm.title = "Update Customer";
@@ -62,7 +63,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
   vm.status_data = ["Inactive", "Active"];
-  var empty_data = {customer_id: "", name: "", email_id: "", address: "", phone_number: "", status: ""};
+  var empty_data = {customer_id: "", name: "", email_id: "", address: "", phone_number: "", status: "", create_login: false};
   vm.model_data = {};
 
   vm.base = function() {

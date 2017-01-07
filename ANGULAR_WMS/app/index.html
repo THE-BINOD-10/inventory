@@ -118,6 +118,11 @@
     <script src="/scripts/extentions/plugins/bootstrap-select/bootstrap-select.min.js"></script>
     <link rel="stylesheet" href="/scripts/extentions/plugins/bootstrap-select/bootstrap-select.min.css">
 
+
+    <!--local data-->
+    <script src="scripts/App/dexie.js"></script>
+    <script src="scripts/App/offlineDB.js"></script>
+
     <script src="scripts/app.js"></script>
     <script src="scripts/app.main.js"></script>
     <script src="scripts/config.router.js"></script>
@@ -140,5 +145,14 @@
     <script src="scripts/services/wms_service.js"></script>
     <script src="scripts/services/table_service.js"></script>
     <!-- endbuild -->
+   
+    <!--register service worker-->
+    <script src="sw_reg.js"></script>
+
+    <SCRIPT type="text/javascript">
+	window.history.forward();
+	function noBack() { window.history.forward(); }
+    </SCRIPT>
+
 </body>
 </html>

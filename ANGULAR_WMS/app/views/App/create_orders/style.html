@@ -1,0 +1,69 @@
+<div class="clearfix">
+  <div class="row style-menu" style="line-height: 40px;">
+    <div class="col-md-4 col-sm-4 col-xs-6">
+      <div class="menu-left">
+        <span ng-click="showCase.detailed_list=true;showCase.style_open=false;showCase.orderspage=false;showCase.change_brand(showCase.brand);"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="showCase.catlog=false;showCase.style_open=false;showCase.details=true;showCase.detailed_list=false;showCase.orderspage=false" title="Go to Brand Page">Back To Brands</span>
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-6 hidden-xs">
+      <h4 align="center">CREATE ORDERS</h4>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-6">
+      <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="$state.go('user.signin')"></a>
+      <a href="" class="pull-right" ng-click="showCase.catlog=false;showCase.details=false;showCase.detailed_list=false;showCase.style_open=false;showCase.orderspage=true">
+        <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" title="Go To Cart Page"></i>
+      </a> 
+    </div>
+  </div>
+</br>
+<div class="style-body">
+  <div class="row">
+    <div class="col-md-4">
+      <img ng-src="{{ showCase.service.check_image_url(showCase.style_data[0]['image_url']) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail">
+      <h5 align="center"><b>{{showCase.style_data[0].style_name}}</b></h5>
+    </div>
+    <div class="col-md-8">
+      <div class="row">
+        <div class="table-responsive">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th ng-show="showCase.check_stock">Stock</th>
+                <th ng-show="showCase.check_stock">In Transit</th>
+                <th>Quantity</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="style in showCase.style_data">
+                <td>{{style.sku_size}}</td>
+                <td ng-show="showCase.check_stock">{{style.physical_stock}}</td>
+                <td ng-show="showCase.check_stock">{{style.intransit_quantity}}</td>
+                <td><input class="form-control" ng-model="style.quantity" ng-change="showCase.change_style_quantity(showCase.style_data);" ng-class="service.get_decimal_perm()"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-4 pull-right">
+          <span class="pull-right">Total: <b style="font-size:24px">{{showCase.style_total_quantity}}</b></span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 col-sm-6 col-xs-6">
+          <button type="button" class="btn btn-warning btn-round btn-outline btn-lg pull-right" ng-click="showCase.enable_stock()">CHECK STOCK</button>
+        </div>
+        <div class="col-md-6 col-sm-6 col-xs-6">
+          <button type="button" class="btn btn-warning btn-round btn-lg pull-left" ng-click="showCase.add_to_cart()">ADD TO CART</button>   
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+  </div>
+</div>
+ 
+</div>
+</div>

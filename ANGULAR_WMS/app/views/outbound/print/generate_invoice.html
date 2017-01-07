@@ -81,7 +81,7 @@
       </tr>
     </thead>
     <tbody>
-      <tr ng-repeat="record in showCase.pdf_data.data">
+      <tr ng-repeat="record in showCase.pdf_data.data" ng-class="(user.userName == 'adam_clothing')? 'rm-brdr' : '';">
         <td>
           {{record.sku_code}}
         </td>
@@ -104,7 +104,7 @@
           {{record.invoice_amount}}
         </td>
       </tr>
-      <tr>
+      <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14)">
        <td colspan="2" style="text-align:left"><b>Total: &#8377;</b></td>
        <td>{{showCase.pdf_data.total_quantity}}</td>
        <td ng-if="permissions.show_mrp"></td>
@@ -118,26 +118,23 @@
   </table>
 </div>
 
-<!--<div class="row mb15" style="padding: 0px 18px;">
+<div class="row mb15" style="padding: 0px 18px;" ng-if="showCase.pdf_data.order_charges">
   <div class="col-xs-12">
     <div class="row">
       <div class="col-xs-6">
       </div>
       <div class="col-xs-6 text-right">
-        <address class="no-margin" style="margin:0px;padding:0px">
-          <strong>Total Quantity:</strong>{{showCase.pdf_data.total_quantity}}<br>
+        <address class="no-margin" style="margin:0px;padding:0px" ng-repeat="charge in showCase.pdf_data.order_charges">
+          <strong>{{charge.charge_name}} :</strong> {{charge.charge_amount}}<br>
         </address>
         <address class="no-margin" style="margin:0px;padding:0px">
-          <strong>Total Tax:</strong>{{showCase.pdf_data.total_tax}}<br>
-        </address>
-        <address class="no-margin" style="margin:0px;padding:0px">
-          <strong>Total Amount:</strong>{{showCase.pdf_data.total_invoice}}<br>
+          <strong>Total Amount :</strong> {{showCase.pdf_data.total_invoice_amount}}<br>
         </address>
       </div>
     </div>
   </div>
+  <hr>
 </div>
-<hr>-->
 <div class="row" style="padding: 0px 18px;">
   <div class="col-xs-12">
     <b>Amount in words: &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{showCase.pdf_data.price_in_words}}</span></b>
@@ -173,7 +170,7 @@
           <strong>Buyer's VAT TIN:</strong>{{showCase.pdf_data.customer_details[0].tin_number}}<br>
         </address>
         <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
-          <strong>Company's PAN:</strong>ABEFS4899J<br>i
+          <strong>Company's PAN:</strong>ABEFS4899J<br>
         </address>
         <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
           <strong>VAT TIN NO:</strong>27621087850-V<br>
@@ -188,7 +185,7 @@
 
     </div>
     <div class="row">
-        <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.print_data($('.print'), 'invoice')">
+        <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.print_invoice($('.print'), 'invoice')">
           <i class="ti-printer mr5"></i>Print
         </button>
     </div>

@@ -143,7 +143,7 @@ def update_returns(orders, user='', company_name=''):
 
             for order in order_items:
                 sku_code = eval(order_mapping['sku'])
-                if not sku_code:
+                if not sku_code or not order_id:
                     continue
                 filter_params['sku__sku_code'] = sku_code
                 order_data = OrderDetail.objects.filter(**filter_params)
@@ -205,6 +205,9 @@ def update_cancelled(orders, user='', company_name=''):
                                                  location_id=picklist.stock.location_id, creation_date=datetime.datetime.now(), status=1)
                                     picklist.status = 'cancelled'
                                     picklist.save()
+                            else:
+                                picklist.status = 'cancelled'
+                                picklist.save()
                         order_det.status = 3
                         order_det.save()
     except:

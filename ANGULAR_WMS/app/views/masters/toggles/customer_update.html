@@ -7,14 +7,14 @@
         <h4 class="modal-title">{{showCase.title}}</h4> </div>
       <!-- body-->
       <div class="modal-body">
-          <div class="row hide">
+          <div class="row">
             <div class="col-md-11 col-sm-11 col-xs-10">
               <p align="right">Create Login</p>
             </div>
             <div class="col-md-1 col-sm-1 col-xs-2">
               <label class="switch switch-sm square">
                 <div>
-                  <input type="checkbox" ng-model="showCase.create_login">
+                  <input type="checkbox" ng-model="showCase.model_data.create_login">
                   <span>
                     <i class="handle"></i>
                   </span>
@@ -81,7 +81,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-md-4 hide" ng-if="showCase.create_login">
+            <div class="col-md-4" ng-if="showCase.model_data.create_login">
               <div class="row">
                 <div class="col-md-12">
                   <div class="form-group">

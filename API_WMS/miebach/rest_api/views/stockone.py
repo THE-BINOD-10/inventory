@@ -24,7 +24,7 @@ import requests
 import traceback
 import hashlib
 from mail_server import send_mail
-
+import datetime
 #retail_orders_url = 'http://176.9.181.39:8000/orders/'
 #RETAIL_ADD_MARKETPLACE_URL = 'http://dev.retail.one/api/v1/marketplaces/'
 #EXTRA_INFO_FIELDS = ['flipkart_advantage']
@@ -44,7 +44,7 @@ def book_trial(request, user=''):
         hash_code = hashlib.md5(b'%s:%s' % (full_name, email)).hexdigest()
         book_trial = BookTrial.objects.create(full_name = full_name, email = email, contact = contact, company = company, hash_code=hash_code,
                      status=1)
-        html = '<p> Hi %s, </p> <p> Thanks for using our demo version . This is valid for 30 Days. </p> To signup please click given link </p><p>link: http://%s/#/signup?hashcode=%s </p>' %(full_name, "176.9.181.43:7654", hash_code)
+        html = '<p> Hi %s, </p> <p> Thanks for using our demo version . This is valid for 30 Days. </p> To signup please click given link </p><p>link: https://%s/#/signup?hashcode=%s </p>' %(full_name, "go.stockone.in", hash_code)
         send_mail([email], 'StockOne 30 day trial', html)
         status = "Added Successfully"
 
@@ -72,7 +72,7 @@ def contact_us(request):
     company = request.POST.get('company')
     query = request.POST.get('query')
 
-    ContactUs.objects.create(full_name = full_name, email = email, contact= contact, company= company, query=query)
+    ContactUs.objects.create(full_name = full_name, email = email, contact= contact, company= company, query=query, added_dt = datetime.datetime.now())
 
     html = "<p>Hi %s </p> <p> Thanks for contacting us. </p> <p> Our team will get back to you shortly. </p> <p> Thanks, </p> <p> Mieone Team </p>" %(full_name)
     send_mail([email], 'StockOne Query Auto Response', html)

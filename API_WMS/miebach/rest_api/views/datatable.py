@@ -18,7 +18,8 @@ from miebach_utils import *
 from retailone import *
 
 @fn_timer
-def sku_excel_download(search_params, temp_data, headers, user):
+def sku_excel_download(search_params, temp_data, headers, user, request):
+    sku_master, sku_master_ids = get_sku_master(user,request.user)
     headers = SKU_MASTER_EXCEL_HEADERS
     status_dict = {'1': 'Active', '0': 'Inactive'}
     marketplace_list = Marketplaces.objects.filter(user=user.id).values_list('name').distinct()
@@ -43,7 +44,7 @@ def sku_excel_download(search_params, temp_data, headers, user):
         else:
             search_terms["status__icontains"] = "none"
     search_terms["user"] =  user.id
-    sku_master = SKUMaster.objects.filter(**search_terms)
+    sku_master = sku_master.filter(**search_terms)
     sku_ids = sku_master.values_list('id', flat=True)
     master_data = MarketplaceMapping.objects.exclude(sku_type='').filter(sku_id__in=sku_ids, sku_type__in=marketplace_list)
     marketplaces = master_data.values_list('sku_type', flat=True).distinct()
@@ -142,7 +143,7 @@ def results_data(request, user=''):
         for key, value in special_keys.iteritems():
             search_params[key] = value
         if request.POST.get('datatable', '') == 'SKUMaster':
-            excel_data = sku_excel_download(filter_params, temp_data, headers, user)
+            excel_data = sku_excel_download(filter_params, temp_data, headers, user, request)
             return HttpResponse(str(excel_data))
         if request.POST.get('datatable', '') == 'StockSummaryEasyops':
             excel_data = easyops_stock_excel_download(filter_params, temp_data, headers, user, request)

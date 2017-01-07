@@ -1332,6 +1332,7 @@ class ContactUs(models.Model):
     contact = models.CharField(max_length=20, default='')
     company = models.CharField(max_length=64, default='')
     query = models.CharField(max_length=255, default='')
+    added_dt = models.DateTimeField(auto_now_add=True)
 
     class Meta:
 	db_table = "CONTACT_US"

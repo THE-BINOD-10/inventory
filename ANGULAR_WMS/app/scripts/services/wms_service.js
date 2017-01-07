@@ -587,6 +587,20 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       return d.promise;
     }
 
+  vm.get_style = function(type) {
+
+    if(Session.userName = "adam_clothing") {
+
+      if( type == "font") { 
+        return {"font-size": "10px"}
+      } else if(type == "td") {
+        return {"font-size": "10px", "border-top": "1px solid #fff", "border-bottom": "1px solid #fff", "padding": "5px 10px"}
+      } else if(type == "tr") {
+        return {"border-top": "1px solid rgba(128, 128, 128, 0.14)"}
+      }
+    }
+  }
+
   //printing
   vm.print_data = function(data, title) {
     if(!(data)) {
@@ -606,8 +620,42 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     mywindow.document.write('<html><head><title>'+title+'</title>');
     mywindow.document.write('<link rel="stylesheet" type="text/css" href="vendor/bootstrap/dist/css/bootstrap.min.css" />');
     mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/urban.css" />');
-    mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page.css" />');
+    mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page.css" media="print"/>');
     mywindow.document.write('<script type="text/javascript" src="vendor/jquery/dist/jquery.min.js"></script>');
+    mywindow.document.write('</head><body>');
+    mywindow.document.write(print_div);
+    mywindow.document.write('</body></html>');
+
+    mywindow.document.close();
+    mywindow.focus();
+
+    $timeout(function(){
+      mywindow.print();
+      mywindow.close();
+    }, 3000);
+
+    return true;
+  }
+
+  vm.print_invoice = function(data, title) {
+    if(!(data)) {
+      data = $('.print:visible').clone();
+    } else {
+      data = $(data).clone();
+    }
+    var print_div= "<div class='print'></div>";
+    print_div= $(print_div).html(data);
+    print_div = $(print_div).clone();
+
+    $(print_div).find(".modal-body").css('max-height', 'none');
+    $(print_div).find(".modal-footer").remove();
+    print_div = $(print_div).html();
+
+    var mywindow = window.open('', title, 'height=400,width=600');
+    mywindow.document.write('<html><head><title>'+title+'</title>');
+    mywindow.document.write('<link rel="stylesheet" type="text/css" href="vendor/bootstrap/dist/css/bootstrap.min.css" />');
+    mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/urban.css" />');
+    mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page.css" media="print"/>');
     mywindow.document.write('</head><body>');
     mywindow.document.write(print_div);
     mywindow.document.write('</body></html>');

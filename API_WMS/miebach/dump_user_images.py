@@ -30,5 +30,4 @@ def dump_user_images(source_user, dest_user):
         print source.image_url
     print 'success'
 
-#dump_user_images(3, 10)
 

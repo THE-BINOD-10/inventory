@@ -956,7 +956,7 @@ def picklist_confirmation(request, user=''):
                         return HttpResponse(map_status)
                 pic_check_data, status = validate_location_stock(val, all_locations, all_skus, user)
                 if status:
-                    return HttpResponse(status)
+                    continue
                 if float(picklist.reserved_quantity) > float(val['picked_quantity']):
                     picking_count = float(val['picked_quantity'])
                 else:
@@ -2558,3 +2558,45 @@ def update_payment_status(request, user=''):
 @get_admin_user
 def create_orders_data(request, user=''):
     return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': TAX_TYPES}))
+
+@csrf_exempt
+def get_order_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    lis = ['id', 'customer_name', 'order_id', 'sku__sku_category', 'total']
+    data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
+
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    search_params = get_filtered_params(filters, lis[:1])
+    search_params['sku_id__in'] = sku_master_ids
+
+    if search_term:
+        mapping_results = OrderDetail.objects.filter(**data_dict).values('customer_name', 'order_id', 'sku__sku_category',
+                                              'order_code', 'original_order_id').distinct().\
+                                              annotate(total=Sum('quantity')).filter(Q(customer_name__icontains=search_term) |
+                                              Q(order_id__icontains=search_term) | Q(sku__sku_category__icontains=search_term),
+                                              **search_params).order_by(order_data)
+    else:
+        mapping_results = OrderDetail.objects.filter(**data_dict).values('customer_name', 'order_id', 'sku__sku_category',
+                                              'order_code', 'original_order_id').distinct().\
+                                              annotate(total=Sum('quantity')).filter(**search_params).order_by(order_data)
+
+
+    temp_data['recordsTotal'] = mapping_results.count()
+    temp_data['recordsFiltered'] = mapping_results.count()
+
+    index = 0
+    for dat in mapping_results[start_index:stop_index]:
+        order_id = dat['order_code'] + str(dat['order_id'])
+        if dat['original_order_id']:
+            order_id = dat['original_order_id']
+        check_values = order_id + '<>' + dat['customer_name']
+        checkbox = "<input type='checkbox' name='%s' value='%s'>" % (check_values, dat['total'])
+
+        temp_data['aaData'].append(OrderedDict(( ('data_value', check_values), ('Customer Name', dat['customer_name']),
+                                                 ('Order ID', order_id), ('Category', dat['sku__sku_category']),
+                                                 ('Total Quantity', dat['total']),
+                                                 ('id', index), ('DT_RowClass', 'results') )))
+        index += 1
+

@@ -180,7 +180,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data[key] = int(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'invoice_amount':
                 if get_cell_data(row_idx, value, reader, file_type):
-                    order_data[key] = int(get_cell_data(row_idx, value, reader, file_type))
+                    order_data[key] = float(get_cell_data(row_idx, value, reader, file_type))
                 else:
                     order_data[key] = 0
             elif key == 'item_name':

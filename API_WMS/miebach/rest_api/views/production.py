@@ -137,6 +137,43 @@ def get_confirmed_jo(start_index, stop_index, temp_data, search_term, order_term
                                     'Receive Status': receive_status, 'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data.job_code}})
 
 @csrf_exempt
+def get_confirmed_jo_all(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    parent_stages = get_user_stages(user, user)
+    lis = ['job_code', 'product_code__sku_code', 'product_code__sku_category', 'creation_date', 'received_quantity']
+    filter_params = {'product_code_id__in': sku_master_ids, 'product_code__user': user.id,
+                     'status__in': ['grn-generated', 'pick_confirm', 'partial_pick'], 'product_quantity__gt': F('received_quantity')}
+    if not request.user.is_staff and parent_stages:
+        stages = get_user_stages(user, request.user)
+        status_ids = StatusTracking.objects.filter(status_value__in=stages,status_type='JO', quantity__gt=0).values_list('status_id',flat=True)
+        filter_params['id__in'] = status_ids
+
+    if order_term:
+        order_data = lis[col_num]
+        if order_term == 'desc':
+            order_data = '-%s' % order_data
+        master_data = JobOrder.objects.filter(**filter_params).order_by(order_data).\
+                                       values('job_code', 'product_code__sku_code', 'product_code__sku_category')
+    if search_term:
+        master_data = JobOrder.objects.filter(Q(job_code__icontains=search_term), **filter_params).values('job_code', 'product_code__sku_code',\
+		 			'product_code__sku_category').order_by(order_data)
+    master_data = [ key for key,_ in groupby(master_data)]
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data_id in master_data[start_index:stop_index]:
+        receive_status = 'Yet to Receive'
+        data = JobOrder.objects.filter(job_code=data_id['job_code'], product_code__sku_code=data_id['product_code__sku_code'], product_code__user=user.id, status__in=['grn-generated', 'pick_confirm', 'partial_pick'])
+        for dat in data:
+            if dat.received_quantity:
+                receive_status = 'Partially Received'
+                break
+        data = data[0]
+        temp_data['aaData'].append({'Job Code': data.job_code, 'Creation Date': get_local_date(request.user, data.creation_date),
+				    'SKU Code': data_id['product_code__sku_code'], 'SKU Category': data_id['product_code__sku_category'],
+                                    'Receive Status': receive_status, 'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data.id}})
+
+
+@csrf_exempt
 def get_jo_confirmed(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['job_code', 'creation_date', 'order_type']
@@ -166,6 +203,7 @@ def get_jo_confirmed(start_index, stop_index, temp_data, search_term, order_term
         temp_data['aaData'].append({'': checkbox, 'Job Code': data.job_code,
                                     'Creation Date': get_local_date(request.user, data.creation_date), 'Order Type': order_type, 'DT_RowClass': 'results',
                                     'DT_RowAttr': {'data-id': data.job_code}})
+
 
 @csrf_exempt
 def get_received_jo(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
@@ -1006,19 +1044,35 @@ def validate_picklist(data, user):
 def confirmed_jo_data(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     stages = get_user_stages(user, request.user)
-    job_code = request.GET['data_id']
+    job_code = request.GET.get('data_id', '')
+    job_id = request.GET.get('job_id', '')
     all_data = []
     order_ids = []
+    sku_brands = []
+    sku_categories = []
+    creation_date = ''
     headers = copy.deepcopy(RECEIVE_JO_TABLE_HEADERS)
     stages = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     temp = get_misc_value('pallet_switch', user.id)
-    record = JobOrder.objects.filter(job_code=job_code, product_code__user=user.id,
-                                     product_code_id__in=sku_master_ids, status__in=['grn-generated', 'pick_confirm', 'partial_pick'])
+    
+    filter_params = {'product_code__user': user.id, 'product_code_id__in': sku_master_ids, 'status__in': ['grn-generated', 'pick_confirm',
+                     'partial_pick']}
+    if job_code:
+        filter_params['job_code'] = job_code
+    else:
+        filter_params['id'] = job_id
+
+    record = JobOrder.objects.filter(**filter_params)
     if temp == 'true':
         headers.insert(2, 'Pallet Number')
         headers.append('')
     for rec in record:
         stage_quantity = 0
+        if not job_code:
+            job_code = rec.job_code
+        if not creation_date:
+            creation_date = get_local_date(user, rec.creation_date, send_date='true')
+            creation_date = creation_date.strftime("%d %b %Y")
         pallet_mapping = PalletMapping.objects.filter(pallet_detail__user=user.id,po_location__job_order__job_code=rec.job_code,
                                                       po_location__job_order__product_code__wms_code=rec.product_code.wms_code, status=2)
         pallet_ids = list(pallet_mapping.values_list('id', flat=True))
@@ -1030,6 +1084,13 @@ def confirmed_jo_data(request, user=''):
 
         sku_cat = rec.product_code.sku_category
         stages_list = copy.deepcopy(stages)
+
+        if rec.product_code.sku_brand and rec.product_code.sku_brand not in sku_brands:
+            sku_brands.append(rec.product_code.sku_brand)
+
+        if rec.product_code.sku_category and rec.product_code.sku_category not in sku_categories:
+            sku_categories.append(rec.product_code.sku_category)
+
         for tracking in status_track:
             rem_stages = stages_list
             if tracking.status_value in stages_list:
@@ -1077,7 +1138,9 @@ def confirmed_jo_data(request, user=''):
                                  'pallet_number': '', 'stages_list': stages_list, 'pallet_id': '', 'status_track_id': ''}],
                                  'sku_extra_data': sku_extra_data, 'product_images': product_images })
 
-    return HttpResponse(json.dumps({'data': all_data, 'job_code': job_code, 'temp': temp, 'order_ids': order_ids}))
+    return HttpResponse(json.dumps({'data': all_data, 'job_code': job_code, 'temp': temp, 'order_ids': order_ids,
+                                    'sku_brands': ','.join(sku_brands), 'sku_categories': ','.join(sku_categories),
+                                    'creation_date': creation_date }))
 
 def insert_pallet_data(temp_dict, po_location_id, status=''):
     if not status:

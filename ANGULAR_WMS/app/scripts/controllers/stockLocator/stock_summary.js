@@ -1,11 +1,12 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('StockSummaryCtrl',['$scope', '$http', '$state', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'colFilters' , 'Service', ServerSideProcessingCtrl]);
+  .controller('StockSummaryCtrl',['$scope', '$http', '$state', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'colFilters' , 'Service', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data) {
     var vm = this;
     vm.service = Service;
+    vm.g_data = Data.stock_summary;
     vm.apply_filters = colFilters;
     vm.filters = {'datatable': 'StockSummary', 'search0':'', 'search1':'', 'search2':'', 'search3':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -30,13 +31,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         this.dtInstance.reloadData();
     }
 
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
-        DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
-        DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
-        DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
-        DTColumnBuilder.newColumn('Unit of Measurement').withTitle('Unit of Measurement')
-    ];
+    
+
+    vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers);
 
     $scope.$on('change_filters_data', function(){
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;

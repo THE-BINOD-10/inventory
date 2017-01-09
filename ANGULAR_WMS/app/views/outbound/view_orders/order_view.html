@@ -1,0 +1,9 @@
+<div class="panel" ng-controller="OrderView as showCase">
+  <div class="panel-header">
+    <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+  </div>
+  <div ng-include="'views/common/datatable.html'">
+  <div class="panel-footer">
+    <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_picklist()">Generate Picklist</button>
+  </div>
+</div>

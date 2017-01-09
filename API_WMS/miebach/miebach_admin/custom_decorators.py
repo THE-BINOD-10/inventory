@@ -3,7 +3,7 @@ from sellerworx_api import SellerworxAPI
 from django.contrib.auth.models import User
 from django.contrib import auth
 from datetime import datetime
-from models import UserProfile, UserAccessTokens,AdminGroups
+from models import UserProfile, UserAccessTokens, AdminGroups, CustomerUserMapping
 from django.contrib.auth.models import User,Permission,Group
 from django.http import HttpResponse
 import re
@@ -85,6 +85,13 @@ def get_admin_user(f):
             admin_group  = AdminGroups(**admin_dict)
             admin_group.save()
             user.groups.add(group)
+
+        user_profile = UserProfile.objects.filter(user_id=request.user.id)
+        if user_profile and user_profile[0].user_type == 'customer':
+            cus_mapping = CustomerUserMapping.objects.filter(user_id=request.user.id)
+            if cus_mapping:
+                user_id = cus_mapping[0].customer.user
+                user = User.objects.get(id=user_id)
 
         kwargs['user'] = user
         return f(request, *args, **kwargs)

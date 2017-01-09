@@ -16,8 +16,9 @@ from miebach_utils import *
 @csrf_exempt
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'total', 'sku__measurement_type']
-    lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_category', 'total', 'product_code__measurement_type']
+    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand', 'total', 'sku__measurement_type']
+    lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_category', 'product_code__sku_brand', 'total',
+            'product_code__measurement_type']
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
     order_data = lis[col_num]
@@ -39,7 +40,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     search_params1['product_code_id__in'] = sku_master_ids
 
     if search_term:
-        master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc', 'sku__sku_category').\
+        master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc', 'sku__sku_category',
+                                           'sku__sku_brand').\
                                           distinct().annotate(total=Sum('quantity')).filter(Q(sku__wms_code__icontains=search_term) |
                                           Q(sku__sku_desc__icontains=search_term) | Q(sku__sku_category__icontains=search_term) |
                                           Q(total__icontains=search_term), sku__user=user.id, status=1, quantity__gt=0,**search_params)
@@ -47,26 +49,28 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).filter(Q(product_code__wms_code__icontains=search_term) |
                                       Q(product_code__sku_desc__icontains=search_term) | Q(product_code__sku_category__icontains=search_term),
                                       **search_params1).values_list('product_code__wms_code',
-                                         'product_code__sku_desc', 'product_code__sku_category').distinct()
+                                         'product_code__sku_desc', 'product_code__sku_category', 'product_code__sku_brand').distinct()
         master_data = list(chain(master_data, master_data1))
         
 
     else:
-        master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc', 'sku__sku_category').distinct().\
+        master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc', 'sku__sku_category',
+                                          'sku__sku_brand').distinct().\
                                           annotate(total=Sum('quantity')).filter(sku__user = user.id, quantity__gt=0, **search_params).\
                                           order_by(order_data)
         wms_codes = map(lambda d: d[0], master_data)
-        master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).filter(**search_params1).values_list('product_code__wms_code', 'product_code__sku_desc',
-                                         'product_code__sku_category').distinct()
+        master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).filter(**search_params1).values_list('product_code__wms_code',
+                                         'product_code__sku_desc', 'product_code__sku_category', 'product_code__sku_brand').distinct()
         master_data = list(chain(master_data, master_data1))
 
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for ind, data in enumerate(master_data[start_index:stop_index]):
-        total = data[3] if len(data) > 3 else 0
+        total = data[4] if len(data) > 4 else 0
         sku = sku_master.get(wms_code=data[0], user=user.id)
         temp_data['aaData'].append(OrderedDict(( ('WMS Code', data[0]), ('Product Description', data[1]),
-                                                 ('SKU Category', data[2]), ('Quantity', total), ('Unit of Measurement', sku.measurement_type),
+                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]), ('Quantity', total),
+                                                 ('Unit of Measurement', sku.measurement_type),
                                                  ('DT_RowId', data[0]) )))
 
 

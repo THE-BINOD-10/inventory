@@ -66,6 +66,7 @@ def add_user_permissions(request, response_data, user=''):
     status_dict = {1: 'true', 0: 'false'}
     multi_warehouse = 'false'
     user_profile = UserProfile.objects.get(user_id=user.id)
+    request_user_profile = UserProfile.objects.get(user_id=request.user.id)
     #warehouses = UserGroups.objects.filter(Q(user__username=user.username) | Q(admin_user__username=user.username))
     #if warehouses:
     #    multi_warehouse = 'true'
@@ -81,7 +82,7 @@ def add_user_permissions(request, response_data, user=''):
                                              'registered_date': get_local_date(request.user, user_profile.creation_date),
                                              'email': request.user.email, 
                                              'trail_user': status_dict[int(user_profile.is_trail)], 'company_name': user_profile.company_name,
-                                             'user_type': user_profile.user_type}
+                                             'user_type': request_user_profile.user_type}
 
     setup_status ='false'
     if 'completed' not in user_profile.setup_status:
@@ -249,7 +250,7 @@ data_datatable = {#masters
                   'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed',\
                   'PickelistGenerated':'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo',\
                   'PutawayConfirmation': 'get_received_jo', 'ProductionBackOrders': 'get_rm_back_order_data',
-                  'RaiseRWO': 'get_saved_rworder',\
+                  'RaiseRWO': 'get_saved_rworder', 'ReceiveJOSKU': "get_confirmed_jo_all", \
                   #stock locator
                   'StockSummary': 'get_stock_results', 'OnlinePercentage': 'get_sku_stock_data',\
                   'StockDetail': 'get_stock_detail_results', 'CycleCount': 'get_cycle_count',\
@@ -261,6 +262,7 @@ data_datatable = {#masters
                   'ShipmentInfo':'get_customer_results', 'ShipmentPickedOrders': 'get_shipment_picked',\
                   'PullToLocate': 'get_cancelled_putaway',\
                   'StockTransferOrders': 'get_stock_transfer_orders', 'OutboundBackOrders': 'get_back_order_data',\
+                  'OrderView': 'get_order_view_data',
                   #manage users
                   'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
                   #retail one

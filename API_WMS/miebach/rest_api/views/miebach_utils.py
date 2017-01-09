@@ -455,7 +455,7 @@ MYNTRA_EXCEL = {'invoice_amount': 14, 'marketplace': 'Myntra', 'sku_code': 2, 'q
 UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code': 1}
 
 UNI_COMMERCE_EXCEL1 = {'order_id': 8, 'channel_name': 2, 'sku_code': 6, 'customer_name': 9, 'email_id': 10, 'telephone': 11,
-                       'address': [12, 13, 14], 'state': 15, 'pin_code': 16, 'invoice_amount': 19}
+                       'address': [12, 13, 14], 'state': 15, 'pin_code': 16, 'invoice_amount': 19, 'quantity_count': [20, ',']}
 
 UNI_WARE_EXCEL = {'order_id': 12, 'channel_name': 2, 'sku_code': 1, 'quantity': 34}
 

@@ -771,8 +771,8 @@ def confirm_no_stock(picklist, p_quantity=0):
     if 'batch_open' in picklist.status:
         pi_status = 'batch_picked'
 
-    #if picklist.order:
-    #    check_and_update_order(picklist.order.user, picklist.order.original_order_id)
+    if picklist.order:
+        check_and_update_order(picklist.order.user, picklist.order.original_order_id)
     if float(picklist.reserved_quantity) <= 0:
         picklist.status = pi_status
     picklist.save()
@@ -1019,8 +1019,8 @@ def picklist_confirmation(request, user=''):
                     else:
                         picklist.status = 'picked'
 
-                    #if picklist.order:
-                    #    check_and_update_order(user.id, picklist.order.original_order_id) 
+                    if picklist.order:
+                        check_and_update_order(user.id, picklist.order.original_order_id) 
                     all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
 
                     misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type='dispatch', misc_value='true')
@@ -1627,7 +1627,7 @@ def insert_order_data(request, user=''):
 
     if invalid_skus:
         return HttpResponse("Invalid SKU: %s" % ', '.join(invalid_skus))
-    if created_order_id:
+    if created_order_id and 'charge_name' in myDict.keys():
         for i in range(0, len(myDict['charge_name'])):
             if myDict['charge_name'][i] and myDict['charge_amount'][i]:
                 OrderCharges.objects.create(user_id=user.id, order_id=created_order_id, charge_name=myDict['charge_name'][i],

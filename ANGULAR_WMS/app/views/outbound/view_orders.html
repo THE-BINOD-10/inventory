@@ -64,6 +64,9 @@
           </div>
         </div>
       </tab>
+      <!--<tab heading="Order View">
+        <div ng-include="'views/outbound/view_orders/order_view.html'"></div>
+      </tab>-->
       <tab heading="Stock Transfer Order" ng-if="show_tab('multi_warehouse') || show_tab('add_stocktransfer')">
         <div class="panel" ng-controller="StockTransferOrders as showCase">
           <div class="panel-header">

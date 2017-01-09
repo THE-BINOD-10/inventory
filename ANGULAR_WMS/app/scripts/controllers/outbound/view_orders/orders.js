@@ -5,7 +5,7 @@ angular.module('urbanApp', ['datatables'])
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q) {
     var vm = this;
-    $state.go($state.current, {}, {reload: true});
+    //$state.go($state.current, {}, {reload: true});
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;

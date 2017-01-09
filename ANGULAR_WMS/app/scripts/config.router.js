@@ -16,7 +16,12 @@ var app = angular.module('urbanApp')
 
       var skipAsync = false;
 
-            $rootScope.$on("$stateChangeStart", function (event, next) {
+            $rootScope.$on("$stateChangeStart", function (event, next, toPrms, from, fromPrms) {
+
+              if(next.name == from.name) {
+
+                return;
+              }
 
               if (skipAsync) {
 
@@ -34,20 +39,31 @@ var app = angular.module('urbanApp')
 
                     if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") == -1) {
                       $state.go("app.Register");
+                      return;
                     /*} else if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") > -1) {
                       $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});*/
                     } else if (typeof(next.permission) == "string") {
 
                       var perm_list = next.permission.split("&");
+                      var check_status = false;
                       for(var i=0; i < perm_list.length; i++) {
 
-                        Session.check_permission(perm_list[i]).then(function(resp) {
+                        if(!(Session.check_permission(perm_list[i]))) {
+                          check_status = true;
+                          break;
+                        }
+                        /*Session.check_permission(perm_list[i]).then(function(resp) {
 
                           if(resp == "false" || resp == "undefined") {
+                            
                             $state.go(PERMISSION_DENIED, {"location": "replace"});
                             return;
                           }
-                        });
+                        });*/
+                      }
+                      if(check_status) {
+                        $state.go(PERMISSION_DENIED, {"location": "replace"});
+                        return;
                       }
                     }
 
@@ -596,6 +612,11 @@ var app = angular.module('urbanApp')
             permission: 'add_joborder&production_switch',
             templateUrl: 'views/production/toggle/receive_job_order.html'
           })
+          .state('app.production.ReveiveJO.Print', {
+            url: '/Print',
+            permission: 'add_joborder&production_switch',
+            templateUrl: 'views/production/print/job_order_sheet.html'
+          })
         .state('app.production.JobOrderPutaway', {
           url: '/JobOrderPutaway',
           permission: 'add_rmlocation&production_switch',
@@ -800,6 +821,10 @@ var app = angular.module('urbanApp')
                              'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
                             ]
                         }]).then(function () {
+
+                return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/order_view.js');
+              }).then(function () {
+
                 return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/orders.js');
               });
                     }]

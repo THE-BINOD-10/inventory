@@ -61,23 +61,29 @@
     var special = ["add_shipmentinfo", "add_qualitycheck", "pos_switch", "production_switch", "setup_status"];
     this.check_permission = function(data) {
 
-      deferredStatus = $q.defer();
+      //deferredStatus = $q.defer();
       if (this.roles.permissions) {
         if( special.indexOf(data) > -1) {
-          deferredStatus.resolve(String(this.roles.permissions[data]));
+          return this.roles.permissions[data];
+          //deferredStatus.resolve(String(this.roles.permissions[data]));
         } else if(data == "is_superuser") {
-          deferredStatus.resolve(String(this.roles.permissions["is_superuser"]));
+          return this.roles.permissions["is_superuser"];
+          //deferredStatus.resolve(String(this.roles.permissions["is_superuser"]));
         } else if(Boolean(this.roles.permissions["is_staff"]) || Boolean(this.roles.permissions["is_superuser"])) {
-          deferredStatus.resolve("true");
+          return true;
+          //deferredStatus.resolve("true");
         } else if (!(this.roles.permissions[data])) {
-          deferredStatus.resolve("false");
+          return false;
+          //deferredStatus.resolve("false");
         } else {
-          deferredStatus.resolve("true");
+          return true;
+          //deferredStatus.resolve("true");
         }
       } else {
-        deferredStatus.resolve("false");
+        return false;
+        //deferredStatus.resolve("false");
       }
-      return deferredStatus.promise;
+      //return deferredStatus.promise;
     }
   });
 

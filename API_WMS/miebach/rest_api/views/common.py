@@ -262,7 +262,7 @@ data_datatable = {#masters
                   'ShipmentInfo':'get_customer_results', 'ShipmentPickedOrders': 'get_shipment_picked',\
                   'PullToLocate': 'get_cancelled_putaway',\
                   'StockTransferOrders': 'get_stock_transfer_orders', 'OutboundBackOrders': 'get_back_order_data',\
-                  'OrderView': 'get_order_view_data',
+                  'OrderView': 'get_order_view_data', 'OrderCategoryView': 'get_order_category_view_data',
                   #manage users
                   'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
                   #retail one

@@ -538,7 +538,6 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
     return stock_status, picklist_number
 
 
-
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -2560,7 +2559,7 @@ def create_orders_data(request, user=''):
     return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': TAX_TYPES}))
 
 @csrf_exempt
-def get_order_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}):
+def get_order_category_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['id', 'customer_name', 'order_id', 'sku__sku_category', 'total']
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
@@ -2589,9 +2588,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
     index = 0
     for dat in mapping_results[start_index:stop_index]:
         order_id = dat['order_code'] + str(dat['order_id'])
-        if dat['original_order_id']:
-            order_id = dat['original_order_id']
-        check_values = order_id + '<>' + dat['customer_name']
+        check_values = order_id + '<>' + dat['sku__sku_category']
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (check_values, dat['total'])
 
         temp_data['aaData'].append(OrderedDict(( ('data_value', check_values), ('Customer Name', dat['customer_name']),
@@ -2599,4 +2596,129 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
                                                  ('Total Quantity', dat['total']),
                                                  ('id', index), ('DT_RowClass', 'results') )))
         index += 1
+
+@csrf_exempt
+def get_order_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    lis = ['id', 'customer_name', 'order_id', 'marketplace', 'total', 'creation_date']
+    data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
+
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    search_params = get_filtered_params(filters, lis[:1])
+    search_params['sku_id__in'] = sku_master_ids
+
+    all_orders = OrderDetail.objects.filter(**data_dict)
+    if search_term:
+        mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id', 'marketplace').\
+                                              distinct().annotate(total=Sum('quantity')).filter(Q(customer_name__icontains=search_term) |
+                                              Q(order_id__icontains=search_term) | Q(sku__sku_category__icontains=search_term),
+                                              **search_params).order_by(order_data)
+    else:
+        mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id', 'marketplace').\
+                                              distinct().annotate(total=Sum('quantity')).filter(**search_params).order_by(order_data)
+
+
+    temp_data['recordsTotal'] = mapping_results.count()
+    temp_data['recordsFiltered'] = mapping_results.count()
+
+    index = 0
+    for dat in mapping_results[start_index:stop_index]:
+        order_id = dat['order_code'] + str(dat['order_id'])
+        check_values = order_id
+        creation_date = all_orders.filter(order_id=dat['order_id'], order_code=dat['order_code'], user=user.id)[0].creation_date
+        checkbox = "<input type='checkbox' name='%s' value='%s'>" % (check_values, dat['total'])
+
+        temp_data['aaData'].append(OrderedDict(( ('data_value', check_values), ('Customer Name', dat['customer_name']),
+                                                 ('Order ID', order_id), ('Market Place', dat['marketplace']),
+                                                 ('Total Quantity', dat['total']),
+                                                 ('Creation Date', get_local_date(request.user, creation_date)),
+                                                 ('id', index), ('DT_RowClass', 'results') )))
+        index += 1
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def order_category_generate_picklist(request, user=''):
+    data = []
+    order_data = []
+    stock_status = ''
+    out_of_stock = []
+    picklist_number = get_picklist_number(user)
+
+    sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
+    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
+    all_orders = OrderDetail.objects.prefetch_related('sku').filter(status=1, user=user.id, quantity__gt=0)
+
+    fifo_switch = get_misc_value('fifo_switch', user.id)
+    if fifo_switch == 'true':
+        stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by('receipt_date')
+        data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
+        stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
+    else:
+        stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by('location_id__pick_sequence')
+        stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
+    sku_stocks = stock_detail1 | stock_detail2
+    for key, value in request.POST.iteritems():
+        if key in PICKLIST_SKIP_LIST:
+            continue
+
+        order_filter = {'quantity__gt': 0 }
+        if '<>' in key: 
+            key = key.split('<>')
+            order_id, sku_category = key
+            order_filter['sku__sku_category'] = sku_category
+        else:
+            order_id = key
+        order_code = ''.join(re.findall('\D+', order_id))
+        order_id = ''.join(re.findall('\d+', order_id))
+        order_filter['order_id'] = order_id
+        order_filter['order_code'] = order_code
+
+        order_detail = all_orders.filter(**order_filter).order_by('shipment_date')
+
+        stock_status, picklist_number = picklist_generation(order_detail, request, picklist_number, user, sku_combos, sku_stocks,\
+                                                            status = 'open', remarks='')
+
+        if stock_status:
+            out_of_stock = out_of_stock + stock_status
+
+    if out_of_stock:
+        stock_status = 'Insufficient Stock for SKU Codes ' + ', '.join(list(set(out_of_stock)))
+    else:
+        stock_status = ''
+
+    show_image = 'false'
+    use_imei = 'false'
+    order_status = ''
+    headers = list(PROCESSING_HEADER)
+    data1 = MiscDetail.objects.filter(user=user.id, misc_type='show_image')
+    if data1:
+        show_image = data1[0].misc_value
+    if show_image == 'true':
+        headers.insert(0, 'Image')
+    imei_data = MiscDetail.objects.filter(user=user.id, misc_type='use_imei')
+    if imei_data:
+        use_imei = imei_data[0].misc_value
+    if use_imei == 'true':
+        headers.insert(-1, 'Serial Number')
+    if get_misc_value('pallet_switch', user.id) == 'true':
+        headers.insert(headers.index('Location') + 1, 'Pallet Code')
+
+    data, sku_total_quantities = get_picklist_data(picklist_number + 1, user.id)
+    if not stock_status:
+        order_status = data[0]['status']
+        if order_status == 'open':
+            headers.insert(headers.index('WMS Code'),'Order ID')
+            order_count = list(set(map(lambda d: d.get('order_no', ''), data)))
+            order_count_len = len(filter(lambda x: len(str(x))>0, order_count))
+            if order_count_len == 1:
+                single_order = str(order_count[0])
+
+    return HttpResponse(json.dumps({'data': data, 'headers': headers,
+                           'picklist_id': picklist_number + 1,'stock_status': stock_status, 'show_image': show_image,
+                           'use_imei': use_imei, 'order_status': order_status, 'user': request.user.id}))
+
 

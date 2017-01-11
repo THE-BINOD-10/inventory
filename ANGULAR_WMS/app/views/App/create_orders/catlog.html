@@ -12,7 +12,7 @@
       <h3 ng-if="!(showCase.brands_logos[showCase.brand])">{{showCase.brand}}</h3>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-3">
-       <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 15px;" ng-click="$state.go('user.signin')"></a>
+       <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 15px;" ng-click="showCase.auth.logout()"></a>
       <a href="" class="pull-right" ng-click="showCase.catlog=false;showCase.details=false;showCase.detailed_list=false;showCase.orderspage=true">
         <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 15px;" title="Go To Cart Page"></i>
       </a>
@@ -48,7 +48,7 @@
       <a ng-repeat="cate in showCase.all_cate" ng-click="showCase.tag_details(cate,showCase.brand);showCase.make_bold($event)" class="cat-tags" href="" ng-class="($fisrt)? 'ct-selected': 'not-selected'">{{cate}}</a>
     </div>
   </div>
-  <div class="item-display row">
+  <div class="item-display row" ng-if="showCase.catlog_data.data.length > 0">
     <div class="col-md-2 col-sm-3 col-xs-4 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="showCase.open_style(item.sku_class);showCase.detailed_list=false;">
       <div>
         <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
@@ -62,7 +62,7 @@
     </div>
     <input type="hidden" name="index" value="{{showCase.catlog_data.index}}">
   </div>
- 
+  <div ng-if="showCase.loading" class="loader"></div>
 </div>
 </div>
 

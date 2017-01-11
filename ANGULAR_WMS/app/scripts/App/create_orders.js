@@ -8,6 +8,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.auth = Auth;
   vm.order_type = false;
   vm.order_type_value = "Offline";
+  vm.loading = true;
   vm.company_name = Session.user_profile.company_name;
   vm.model_data = {}
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
@@ -276,6 +277,7 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
   }
 
   vm.get_category = function(status, scroll) {
+    vm.loading = true;
     vm.scroll_data = false;
     var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true}
     var temp_catlog_data=[];  
@@ -292,10 +294,11 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
          if(skus.length>0){
             skus.forEach(function(sku_item){
                vm.catlog_data.data.push(sku_item);
-            });  
-          }
-        vm.scroll_data = false;      
-      });  
+            });
+         }
+         vm.loading = false;
+         vm.scroll_data = false;      
+        });  
      });
      
      /*
@@ -897,10 +900,12 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
    vm.all_brands = {Offline: [], Online: []}
    vm.get_brands = function() {
 
+    vm.loading = true;
     vm.brands = [];
     if(vm.all_brands[vm.order_type_value].length > 0) {
 
       vm.brands = vm.all_brands[vm.order_type_value];
+      vm.loading = false;
     } else {
       var item_data=getSkuBrands(vm.order_type_value);
       item_data.then(function(data){
@@ -910,6 +915,18 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
           vm.brands.push(record.sku_brand);
         })
         vm.all_brands[vm.order_type_value] = vm.brands;
+        vm.loading = false;
+      });
+
+      var temp_brands = []
+      item_data=getSkuBrands('Online');
+      item_data.then(function(data){
+
+        angular.forEach(data, function(record){
+
+          temp_brands.push(record.sku_brand);
+        })
+        vm.all_brands['Online'] = temp_brands;
       });
     }
    }

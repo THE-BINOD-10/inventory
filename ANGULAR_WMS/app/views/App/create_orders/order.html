@@ -1,6 +1,5 @@
 <div>
-
- <div class="row style-menu" style="line-height: 40px;">
+  <div class="row style-menu" style="line-height: 40px;">
     <div class="col-md-6 col-sm-6 col-xs-6">
       <div class="menu-left">
         <span ng-click="showCase.catlog=false;showCase.details=true;showCase.detailed_list=false;showCase.orderspage=false"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
@@ -8,18 +7,9 @@
       </div>
     </div>
     <div class="col-md-6 col-sm-6 col-xs-6">
-      <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="$state.go('user.signin')"></a>
+      <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.auth.logout()"></a>
     </div>
   </div>
-
- <!--<div class="row style-menu">
-    <div class="col-md-4 col-sm-4 col-xs-6">
-  <div class="menu-left">
-   <span ng-click="showCase.catlog=false;showCase.details=true;showCase.detailed_list=false;showCase.orderspage=false"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
-        <span ng-click="showCase.catlog=false;showCase.details=true;showCase.detailed_list=false;showCase.orderspage=false" title="Go to Brand Page">Back</span>
-  </div>
-  </div>
-  </div>-->
 
   <form id="order-create" name="form" role="form" ui-jq="validate">
     <div class="ship-date" ng-if="showCase.model_data.data.length > 0">
@@ -32,6 +22,7 @@
         <button type="button" class="btn btn-primary pull-right" ng-click="showCase.catlog=true;showCase.style_open=false;showCase.check_stock=false">View Catalog</button>
       </div> 
       <div class="row col-md-12">
+        <input type="hidden" name="user_type" value={{user.user_profile['user_type']}}>
         <div class="col-md-4">
           <div class="form-group">
             <label class="control-label">Customer ID</label>
@@ -101,34 +92,9 @@
           <button type="button" class="btn btn-warning btn-lg col-xs-12" ng-if="showCase.model_data.data.length == 0" ng-click="showCase.catlog=false;showCase.details=true;showCase.detailed_list=false;showCase.orderspage=false">SHOP NOW</button>
         </div>
       </div>
-            <!--<table class="table table-stk">
-              <thead>
-                <tr>
-                  <th>SKU Code/WMS Code *</th>
-                  <th>Quantity</th>
-                  <th>Invoice Amount</th>
-                  <th class="plus"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr ng-repeat="data in showCase.model_data.data">
-                  <td>
-                    <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" ng-blur="showCase.service.checkSearchValue(data.sku_id,'search_wms_codes?', $event)">
-                  </td>
-                  <td>
-                    <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()"> </div>
-                  </td>
-                  <td>
-                    <input type="text" name="invoice_amount" class="form-control" ng-model="data.invoice_amount" decimal-number>
-                  </td>
-                  <td><i style="font-size: 20px;padding-top: 7px;cursor: pointer;margin-left: -15px;" ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
-                </tr>
-              </tbody>
-            </table>-->
     </div>
 
     <div class="col-md-12" style="padding-bottom:0px;">
-      <!--<hr>-->
       <button type="submit" class="btn btn-primary hide" style="margin: auto;display: block;" ng-disabled="showCase.bt_disable" ng-click="showCase.insert_order_data(form)">Create Order </button>
     </div>
   </form>

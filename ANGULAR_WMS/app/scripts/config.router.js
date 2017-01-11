@@ -38,11 +38,13 @@ var app = angular.module('urbanApp')
 
                     if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") == -1) {
                       $state.go("app.Register",  {"location": "replace"});
+                      return;
                     /*} else if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") > -1) {
                       $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});*/
                     } else if((Session.user_profile.user_type == "customer") && (thisNext.name.indexOf("App.createorder") == -1)) {
 
                        $state.go(LOGIN_REDIRECT_STATE_CUSTOMER,  {"location": "replace"})
+                       return;
                     } else if (typeof(next.permission) == "string") {
 
                       var perm_list = next.permission.split("&");

@@ -1,6 +1,6 @@
 <div>
   <div class="row style-menu">
-    <div class="col-md-4 col-sm-4 col-xs-0">
+    <div class="col-md-4 col-sm-4 col-xs-6">
       <div class="online-toggle ml10">
         <span>Offline</span>
         <label class="switch switch-info switch-sm square">
@@ -12,7 +12,7 @@
         <span>Online</span>
       </div>
     </div>
-    <div class="col-md-4 col-sm-4 col-xs-6">
+    <div class="col-md-4 col-sm-4 col-xs-6 hidden-xs">
       <h4 align="center">CREATE ORDERS</h4>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-6">
@@ -27,6 +27,7 @@
       <img ng-src="/images/brand-logos/{{(showCase.brands_images[brand])? showCase.brands_images[brand]: 'red.png'}}" ng-click="showCase.change_brand(brand);showCase.detailed_list=true;showCase.details=false;"style="width:216px; height: 157px;cursor:pointer;">
       <p ng-if="(!(showCase.brands_images[brand]))" style="color: #fff;text-align: center;font-size: 20px;z-index: 1000;position: absolute;top: 30px;width: 100%;">{{brand}}</p>
     </div>
+    <div ng-if="showCase.loading" class="loader"></div>
   </div>
 
    

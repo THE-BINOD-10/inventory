@@ -1,22 +1,14 @@
-
-<div>
-<div class="page-layout" scrolly="showCase.scroll(e)" ng-class="(user.userName == 'sagar_fab')? 'create_red': 'create_default'">
-  <div>
-    <div class="layout-header">
-      <div ng-include="'views/App/create_orders/company_name.html'"></div>
-    </div>
-   <div class="layout-body" style="background-color: white;">
-    <div>
-    
- <div ng-include="'views/App/create_orders/details.html'"
- ng-if="(!(showCase.catlog)) && showCase.details"></div>
-
-  <div ng-include="'views/App/create_orders/order.html'" ng-if="showCase.orderspage"></div>
-     
-  <div ng-include="'views/App/create_orders/style.html'" ng-if="showCase.catlog && showCase.style_open"></div>
-     
+<div class="page-layout" scrolly="showCase.scroll(e)" ng-class="(user.user_profile.company_name == 'Sagar Fab International')? 'create_red': 'create_default'">
+  <div class="layout-header">
+    <div ng-include="'views/App/create_orders/company_name.html'"></div>
+  </div>
+  <div class="layout-body" style="background-color: white;">
+    <div>   
+      <div ng-include="'views/App/create_orders/details.html'" ng-if="(!(showCase.catlog)) && showCase.details"></div>
+      <div ng-include="'views/App/create_orders/order.html'" ng-if="showCase.orderspage"></div> 
+      <div ng-include="'views/App/create_orders/style.html'" ng-if="showCase.catlog && showCase.style_open"></div> 
       <div ng-include="'views/App/create_orders/catlog.html'" ng-if="showCase.detailed_list"></div>
-     </div>
     </div>
-   </div>
+  </div>
+</div>
 

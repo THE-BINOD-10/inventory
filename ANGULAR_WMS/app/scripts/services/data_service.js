@@ -28,10 +28,17 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
   
   //View Orders
 
-    //Order View
-    self.order_view = {
-
-                        tb_headers: ['Customer Name', 'Order ID', 'Category', 'Total Quantity']
+    //Other View
+    self.other_view = {
+           
+                        views: ['OrderView', 'OrderCategoryView'],
+                        view: 'OrderView',
+                        generate_picklist_urls : { 'OrderView': 'order_category_generate_picklist/',
+                                                   'OrderCategoryView': 'order_category_generate_picklist/'
+                                                 },
+                        tb_headers: { 'OrderView': ['Customer Name', 'Order ID', 'Market Place', 'Total Quantity', 'Creation Date'],
+                                      'OrderCategoryView': ['Customer Name', 'Order ID', 'Category', 'Total Quantity']
+                                    }
                       }
 }
 

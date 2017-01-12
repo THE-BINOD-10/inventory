@@ -2128,10 +2128,15 @@ def get_style_variants(sku_master, user, customer_id=''):
     purchase_orders = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id).\
                                            values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
                                            total_received=Sum('received_quantity'))
+    reserved_quantities = PicklistLocation.objects.filter(stock__sku__user=user.id, status=1).values('stock__sku_id').distinct().\
+                                       annotate(in_reserved=Sum('reserved'))
+
     stocks = map(lambda d: d['sku_id'], stock_objs)
     intransit_skus = map(lambda d: d['open_po__sku_id'], purchase_orders)
     intransit_ordered = map(lambda d: d['total_order'], purchase_orders)
     intransit_received = map(lambda d: d['total_received'], purchase_orders)
+    reserved_skus = map(lambda d: d['stock__sku_id'], reserved_quantities)
+    reserved_quans = map(lambda d: d['in_reserved'], reserved_quantities)
     for ind, sku in enumerate(sku_master):
         stock_quantity = 0
         if sku['id'] in stocks:
@@ -2145,6 +2150,10 @@ def get_style_variants(sku_master, user, customer_id=''):
             diff_quantity = float(total_ordered) - float(total_received)
             if diff_quantity > 0:
                 intransit_quantity = diff_quantity
+        if sku['id'] in reserved_skus and stock_quantity:
+            res_value = reserved_quans[reserved_skus.index(sku['id'])]
+            if res_value:
+                stock_quantity = stock_quantity - res_value
         sku_master[ind]['physical_stock'] = stock_quantity
         sku_master[ind]['intransit_quantity'] = intransit_quantity
         if customer_id:

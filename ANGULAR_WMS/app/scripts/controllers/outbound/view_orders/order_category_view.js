@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('OrderView',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('OrderCategoryView',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data) {
 
@@ -17,7 +17,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       .withOption('ajax', {
               url: Session.url+'results_data/',
               type: 'POST',
-              data: {'datatable': 'OrderView'},
+              data: {'datatable': 'OrderCategoryView'},
               xhrFields: {
                 withCredentials: true
               }
@@ -44,7 +44,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
          console.log("completed")
        });
 
-    vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers['OrderView']);
+    vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers['OrderCategoryView']);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
       .renderWith(function(data, type, full, meta) {
         if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {

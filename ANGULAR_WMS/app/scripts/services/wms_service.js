@@ -342,6 +342,11 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       });
     };
 
+    /* State Refresh */
+    vm.state_refresh = function() {
+      $state.go($state.current, {}, {reload: true});
+    }
+
     /* Switches */
     vm.switches = function(value, name) {
       vm.apiCall("switches/?"+name+"="+String(value)).then(function(data){

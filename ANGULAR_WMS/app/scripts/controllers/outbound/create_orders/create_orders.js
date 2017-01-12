@@ -122,10 +122,10 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   vm.tag_details = function(cat_name, brand) {
 
+    vm.category = cat_name;
     if(cat_name == "All") {
       cat_name = "";
     }
-    vm.category = cat_name;
     vm.catlog_data.index = "";
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value} 
@@ -148,7 +148,11 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   vm.get_category = function(status, scroll) {
     vm.scroll_data = false;
-    var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
+    var cat_name = vm.category;
+    if(vm.category == "All") {
+      cat_name = "";
+    }
+    var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value}
     vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
 
@@ -190,7 +194,6 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     angular.copy([], vm.catlog_data.data);
     vm.category = '';
     var all = $(".cat-tags");
-    vm.remove_bold(all);
     vm.get_category(true);
   }
 
@@ -203,7 +206,6 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     vm.category = '';
     vm.style='';
     var all = $(".cat-tags");
-    vm.remove_bold(all);
     var data = {brand: vm.brand, sale_through: vm.order_type_value}
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
       if(data.message) {
@@ -213,9 +215,6 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
           vm.all_cate.push("All")
           vm.category = vm.all_cate[0];
           vm.get_category(true);
-          $timeout(function () {
-            $(".cat-tags:first").addClass("ct-selected"); 
-          }, 1000);
         }
       }
     })
@@ -596,19 +595,6 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.tax = 0;
   vm.model_data.data[0].tax = vm.tax;
   empty_data.data[0].tax = vm.tax;
-
-  vm.make_bold = function(e) {
-
-    console.log(e);
-    var all = $(e.toElement).parent().find(".cat-tags");
-    vm.remove_bold(all);
-    $(e.toElement).addClass("ct-selected");
-  }
-  vm.remove_bold = function(e) {
-    angular.forEach(e, function(item){
-      $(item).removeClass("ct-selected");
-    })
-  }
 
   /*Create customer */
   vm.status_data = ["Inactive", "Active"];

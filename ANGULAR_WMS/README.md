@@ -8,8 +8,12 @@ Installing requirements:
   command : npm install --global bower grunt-cli
 
 3.Run npm install.
+  command : npm install
 
 4.Run bower install.
+  commang : bower install
+
+5.After installing bower it will install all dependencies in "bower_componentes" directory.Move bower_componentes folder into app directory with the name "vendor".
 
 5.Change api url in following directory.
   directory : 'app/scripts/extensions/auth/session.js'

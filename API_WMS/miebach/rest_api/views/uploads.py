@@ -105,7 +105,6 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         if not order_mapping:
             break
 
-        sku_id = ''
         cell_data = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
         title = ''
         if 'title' in order_mapping.keys():
@@ -118,20 +117,23 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         else:
             sku_code = cell_data.upper()
 
-        sku_master=SKUMaster.objects.filter(sku_code=sku_code,user=user.id)
-        if sku_master:
-            sku_id = sku_master[0].id
-        else:
-            market_mapping = ''
-            if sku_code:
-                market_mapping = MarketplaceMapping.objects.filter(marketplace_code=sku_code, sku__user=user.id, sku__status=1)
-            if not market_mapping and title:
-                market_mapping = MarketplaceMapping.objects.filter(description=title, sku__user=user.id, sku__status=1)
-            if market_mapping:
-                sku_id = market_mapping[0].sku_id
+        sku_codes = sku_code.split(',')
+        for sku_code in sku_codes:
+            sku_id = ''
+            sku_master=SKUMaster.objects.filter(sku_code=sku_code,user=user.id)
+            if sku_master:
+                sku_id = sku_master[0].id
+            else:
+                market_mapping = ''
+                if sku_code:
+                    market_mapping = MarketplaceMapping.objects.filter(marketplace_code=sku_code, sku__user=user.id, sku__status=1)
+                if not market_mapping and title:
+                    market_mapping = MarketplaceMapping.objects.filter(description=title, sku__user=user.id, sku__status=1)
+                if market_mapping:
+                    sku_id = market_mapping[0].sku_id
 
-        if not sku_id:
-            index_status.setdefault(count, set()).add('SKU Mapping Not Available')
+            if not sku_id:
+                index_status.setdefault(count, set()).add('SKU Mapping Not Available')
         count += 1
 
     if index_status and file_type == 'csv':
@@ -183,14 +185,22 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_data[key] = float(get_cell_data(row_idx, value, reader, file_type))
                 else:
                     order_data[key] = 0
+                sku_length = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
+                if ',' in sku_length:
+                    sku_length = len(sku_length.split(','))
+                    order_data[key] = float(get_cell_data(row_idx, value, reader, file_type))/sku_length
+
             elif key == 'item_name':
                 order_data['invoice_amount'] += int(get_cell_data(row_idx, 11, reader, file_type))
             elif key == 'vat':
                 cell_data = ''
                 if isinstance(value, list):
                     quantity = 1
+                    sku_length = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
                     if 'quantity' in order_mapping.keys():
                         quantity = float(get_cell_data(row_idx, order_mapping['quantity'], reader, file_type))
+                    elif ',' in sku_length:
+                        quantity = len(sku_length.split(','))
                     amount = float(get_cell_data(row_idx, value[0], reader, file_type))/quantity
                     rate = float(get_cell_data(row_idx, value[1], reader, file_type))
                     tax_value = amount - rate
@@ -250,21 +260,6 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         else:
             cell_data = sku_code.upper()
 
-        sku_master=SKUMaster.objects.filter(sku_code=cell_data, user=user.id)
-        if sku_master:
-            order_data['sku_id'] = sku_master[0].id
-        else:
-            market_mapping = ''
-            if cell_data:
-                market_mapping = MarketplaceMapping.objects.filter(marketplace_code=cell_data, sku__user=user.id, sku__status=1)
-            if not market_mapping and order_data['title']:
-                market_mapping = MarketplaceMapping.objects.filter(description=order_data['title'], sku__user=user.id, sku__status=1)
-            if market_mapping:
-                order_data['sku_id'] = market_mapping[0].sku_id
-            else:
-                order_data['sku_id'] = SKUMaster.objects.get(sku_code='TEMP', user=user.id).id
-                order_data['sku_code'] = sku_code
-
         if not order_data.get('order_id', ''):
             order_detail = OrderDetail.objects.filter(order_code='MN',user=user.id).order_by('-order_id')
             if order_detail:
@@ -274,24 +269,41 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data['order_id'] = 1001
                 order_data['order_code'] = 'MN'
 
-        order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], sku=order_data['sku_id'], user=user.id)
-        if not order_obj:
-            if not 'shipment_date' in order_mapping.keys():
-                order_data['shipment_date'] = datetime.datetime.now()
-            order_detail = OrderDetail(**order_data)
-            order_detail.save()
-            if order_data['sku_id'] not in sku_ids:
-                sku_ids.append(order_data['sku_id'])
-            if order_summary_dict.get('vat', '') or order_summary_dict.get('tax_value', '') or order_summary_dict.get('mrp', '') or\
-                                                                                               order_summary_dict.get('discount', ''):
-                order_summary_dict['order_id'] = order_detail.id
-                order_summary = CustomerOrderSummary(**order_summary_dict)
-                order_summary.save()
+        sku_codes = cell_data.split(',')
+        for cell_data in sku_codes:
+            sku_master=SKUMaster.objects.filter(sku_code=cell_data, user=user.id)
+            if sku_master:
+                order_data['sku_id'] = sku_master[0].id
+            else:
+                market_mapping = ''
+                if cell_data:
+                    market_mapping = MarketplaceMapping.objects.filter(marketplace_code=cell_data, sku__user=user.id, sku__status=1)
+                if not market_mapping and order_data['title']:
+                    market_mapping = MarketplaceMapping.objects.filter(description=order_data['title'], sku__user=user.id, sku__status=1)
+                if market_mapping:
+                    order_data['sku_id'] = market_mapping[0].sku_id
+                else:
+                    order_data['sku_id'] = SKUMaster.objects.get(sku_code='TEMP', user=user.id).id
+                    order_data['sku_code'] = sku_code
 
-        elif order_data['sku_id'] in sku_ids:
-            order_obj = order_obj[0]
-            order_obj.quantity = order_obj.quantity + order_data['quantity']
-            order_obj.save()
+            order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], sku=order_data['sku_id'], user=user.id)
+            if not order_obj:
+                if not 'shipment_date' in order_mapping.keys():
+                    order_data['shipment_date'] = datetime.datetime.now()
+                order_detail = OrderDetail(**order_data)
+                order_detail.save()
+                if order_data['sku_id'] not in sku_ids:
+                    sku_ids.append(order_data['sku_id'])
+                if order_summary_dict.get('vat', '') or order_summary_dict.get('tax_value', '') or order_summary_dict.get('mrp', '') or\
+                                                                                                   order_summary_dict.get('discount', ''):
+                    order_summary_dict['order_id'] = order_detail.id
+                    order_summary = CustomerOrderSummary(**order_summary_dict)
+                    order_summary.save()
+
+            elif order_data['sku_id'] in sku_ids:
+                order_obj = order_obj[0]
+                order_obj.quantity = order_obj.quantity + order_data['quantity']
+                order_obj.save()
 
 
     return 'success'

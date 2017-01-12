@@ -1526,9 +1526,11 @@ def insert_order_data(request, user=''):
     tax_percent = request.GET.get('tax', '')
     telephone = request.GET.get('telephone', '')
     custom_order = request.GET.get('custom_order', '')
+    user_type = request.GET.get('user_type', '')
     created_order_id = ''
     if valid_status:
         return HttpResponse(valid_status)
+
     for i in range(0, len(myDict['sku_id'])):
         order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
         order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
@@ -1540,7 +1542,7 @@ def insert_order_data(request, user=''):
         order_data['user'] = user.id
 
         for key, value in request.GET.iteritems():
-            if key in ['payment_received', 'charge_name', 'charge_amount', 'custom_order']:
+            if key in ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type']:
                 continue
             if key == 'sku_id':
                 if not myDict[key][i]:
@@ -1609,6 +1611,7 @@ def insert_order_data(request, user=''):
                     order_payment = float(payment_received)
                 order_data['payment_received'] = order_payment
 
+            order_data['creation_date'] = datetime.datetime.now()
             order_detail = OrderDetail(**order_data)
             order_detail.save()
 

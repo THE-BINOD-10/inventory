@@ -770,6 +770,8 @@ def insert_customer(request, user=''):
     if not data:
         data_dict = copy.deepcopy(CUSTOMER_DATA)
         for key, value in request.POST.iteritems():
+            if key in ['create_login', 'password']:
+                continue
             if key == 'status':
                 if value == 'Active':
                     value = 1

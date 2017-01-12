@@ -27,6 +27,12 @@ class CollectData:
                 user_access_token = UserAccessTokens.objects.filter(user_profile__user_id=user.id)
                 if user_access_token:
                     access_token = user_access_token[0].access_token
+                self.client_id = ''
+                self.secret = ''
+                integrations = Integrations.objects.filter(user=user.id)
+                if integrations:
+                    self.client_id = integrations[0].client_id
+                    self.secret = integrations[0].secret
                 data = query_class(token=access_token, user=user)
                 print data
                 func(data, user=user, company_name=self.company_name)
@@ -82,8 +88,8 @@ class CollectData:
 
     def run_main(self):
         threads = []
-        thread_obj = [ self.get_user_orders, self.shipped_orders, self.returned_orders, self.cancelled_orders ]
-        #thread_obj = [ self.get_user_orders]
+        #thread_obj = [ self.get_user_orders, self.shipped_orders, self.returned_orders, self.cancelled_orders ]
+        thread_obj = [ self.get_user_orders]
         #thread_obj = [ self.shipped_orders ]
         #thread_obj = [ self.returned_orders ]
         #thread_obj = [ self.cancelled_orders ]

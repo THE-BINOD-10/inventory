@@ -275,7 +275,7 @@ PUT_AWAY = OrderedDict([('PO Number','open_po_id'),('Order Date','creation_date'
 SKU_MASTER_HEADERS = OrderedDict([('WMS SKU Code', 'wms_code'), ('Product Description', 'sku_desc'), ('SKU Type', 'sku_type'), ('SKU Category', 'sku_category'), ('SKU Class', 'sku_class'), ('Zone', 'zone_id'), ('Status', 'status')])
 
 SKU_MASTER_EXCEL_HEADERS = ['WMS SKU Code', 'Product Description', 'SKU Type', 'SKU Category', 'SKU Brand', 'SKU Class', 'Style Name',
-                            'SKU Size', 'SKU Group', 'Zone', 'Price', 'MRP Price', 'Measurement Type', 'Status']
+                            'SKU Size', 'SKU Group', 'Zone', 'Price', 'MRP Price', 'Measurement Type', 'Sequence', 'Sale Through', 'Status']
 
 SIZE_MASTER_HEADERS = OrderedDict([('Size Name', 'size_name'), ('Sizes', 'size_value')])
 

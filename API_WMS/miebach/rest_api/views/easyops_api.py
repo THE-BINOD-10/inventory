@@ -3,7 +3,7 @@ import urlparse
 import json
 import create_environment
 from urllib import urlencode
-from miebach_admin.models import UserAccessTokens, UserProfile
+from miebach_admin.models import UserAccessTokens, UserProfile, Integrations
 from urlparse import urlparse, urljoin, urlunparse, parse_qs
 import sys
 import traceback
@@ -73,7 +73,12 @@ class EasyopsAPI:
         """ Collecting access token """
         self.user = user
         data = eval(self.auth_data)
-
+        integrations = Integrations.objects.filter(user=user.id)
+        if integrations:
+            self.client_id = integrations[0].client_id
+            self.secret = integrations[0].secret
+            if self.client_id:
+                data = (self.client_id, self.secret)
         auth_url = urljoin(self.host, self.auth_url)
         if self.auth:
             json_response = requests.post(auth_url, headers=self.headers, auth=data, verify=False).json()

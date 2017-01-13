@@ -15,6 +15,9 @@ from common import *
 from miebach_utils import *
 from operator import itemgetter
 from itertools import groupby
+import datetime
+from utils import *
+log = init_logger('logs/outbound.log')
 
 @csrf_exempt
 def get_batch_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_dict={}):
@@ -884,7 +887,7 @@ def get_picklist_batch(picklist, value, all_picklists):
 @login_required
 @get_admin_user
 def picklist_confirmation(request, user=''):
-
+    st_time = datetime.datetime.now()
     data = {}
     all_data = {}
     auto_skus = []
@@ -923,7 +926,6 @@ def picklist_confirmation(request, user=''):
         else:
             picklist = picks_all.get(id=key)
         count = 0
-
         if not picklist_batch:
             picklist_batch = get_picklist_batch(picklist, value, all_picklists)
         for i in range(0,len(value)):
@@ -941,7 +943,6 @@ def picklist_confirmation(request, user=''):
             for picklist in picklist_batch:
                 if count == 0:
                     continue
-
                 if not picklist.stock:
                     confirm_no_stock(picklist, float(val['picked_quantity']))
                     continue
@@ -966,7 +967,6 @@ def picklist_confirmation(request, user=''):
 
                 if 'imei' in val.keys() and val['imei'] and picklist.order:
                     insert_order_serial(picklist, val)
-
                 reserved_quantity1 = picklist.reserved_quantity
                 tot_quan = 0
                 for stock in total_stock:
@@ -1010,7 +1010,6 @@ def picklist_confirmation(request, user=''):
                     if stock.pallet_detail:
                         update_picklist_pallet(stock, picking_count1)
                     stock.save()
-
                 picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
                 if picklist.reserved_quantity == 0:
                     if picklist.status == 'batch_open':
@@ -1026,6 +1025,12 @@ def picklist_confirmation(request, user=''):
 
                     if misc_detail and picklist.order:
                         send_picklist_mail(picklist, request)
+		    if picklist.picked_quantity > 0 and picklist.order:
+			if picklist.order.telephone:
+			    order_dispatch_message(picklist.order, user)
+			else:
+			    log.info("No telephone no for this order")
+
 
                 picklist.save()
                 count = count - picking_count1
@@ -1044,6 +1049,10 @@ def picklist_confirmation(request, user=''):
             #invoice_data['invoice_date'] = get_local_date(user, datetime.datetime.now())
             return HttpResponse(json.dumps({'data': invoice_data, 'status': 'invoice'}))
 
+    end_time = datetime.datetime.now()
+    duration = end_time - st_time
+    log.info("process completed")
+    log.info("total time -- %s" %(duration))
     return HttpResponse('Picklist Confirmed')
 
 @csrf_exempt

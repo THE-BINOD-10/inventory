@@ -22,9 +22,16 @@ def update_orders(orders, user='', company_name=''):
 
             order_details = copy.deepcopy(ORDER_DATA)
             data = orders
-            order_id = ''.join(re.findall('\d+', data[order_mapping['order_id']]))
-            order_code = ''.join(re.findall('\D+', data[order_mapping['order_id']]))
-            filter_params = {'user': user.id, 'order_id': order_id}
+            original_order_id = data[order_mapping['order_id']]
+            
+            order_code = ''.join(re.findall('\D+', original_order_id))
+            order_id = ''.join(re.findall('\d+', original_order_id))
+            if '/' in original_order_id:
+                order_id = original_order_id.split('/')[0]
+                order_id = str(''.join(re.findall('\d+', order_id)))
+            if len(str(order_id)) > 20:
+                order_id = str(order_id)[:20]
+            filter_params = {'user': user.id, 'order_id': order_id, 'order_code': order_code}
             if order_code:
                 filter_params['order_code'] = order_code
             order_items = [orders]
@@ -39,16 +46,16 @@ def update_orders(orders, user='', company_name=''):
 
                 order_det = OrderDetail.objects.filter(**filter_params)
 
-                if order_det:
+                if order_det and len(str(eval(order_mapping['id']))) < 10:
                     order_det = order_det[0]
                     swx_mapping = SWXMapping.objects.filter(local_id = order_det.id, swx_type='order', app_host=company_name)
                     if swx_mapping:
                         for mapping in swx_mapping:
-                            mapping.swx_id = data[order_mapping['id']]
+                            mapping.swx_id = eval(order_mapping['id'])
                             mapping.updation_date = NOW
                             mapping.save()
                     else:
-                        mapping = SWXMapping(local_id=order_det.id, swx_id=data[order_mapping['id']], swx_type='order',
+                        mapping = SWXMapping(local_id=order_det.id, swx_id=eval(order_mapping['id']), swx_type='order',
                                              creation_date=NOW,updation_date=NOW, app_host=company_name)
                         mapping.save()
                     continue
@@ -56,7 +63,7 @@ def update_orders(orders, user='', company_name=''):
                 if order_det:
                     continue
 
-                order_details['original_order_id'] = data[order_mapping['order_id']]
+                order_details['original_order_id'] = original_order_id
                 order_details['order_id'] = order_id
                 order_details['order_code'] = order_code
                 if not order_code:
@@ -85,8 +92,8 @@ def update_orders(orders, user='', company_name=''):
                 order_detail.save()
 
                 swx_mapping = SWXMapping.objects.filter(local_id = order_detail.id, swx_type='order', app_host=company_name)
-                if not swx_mapping:
-                    mapping = SWXMapping(local_id=order_detail.id, swx_id=data[order_mapping['id']], swx_type='order', creation_date=NOW,
+                if not swx_mapping and len(str(eval(order_mapping['id']))) < 10:
+                    mapping = SWXMapping(local_id=order_detail.id, swx_id=eval(order_mapping['id']), swx_type='order', creation_date=NOW,
                                          updation_date=NOW, app_host=company_name)
                     mapping.save()
     except:

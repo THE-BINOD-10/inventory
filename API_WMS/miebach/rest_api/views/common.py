@@ -1550,7 +1550,7 @@ def get_sku_categories_data(request, user, request_data={}):
     sku_master = SKUMaster.objects.filter(**filter_params)
     categories = list(sku_master.exclude(sku_category='').filter(**filter_params).values_list('sku_category', flat=True).distinct())
     brands = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
-    return brands, categories
+    return brands, sorted(categories)
 
 def resize_image(url, user):
 

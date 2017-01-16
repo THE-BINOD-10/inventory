@@ -778,14 +778,17 @@ def confirm_no_stock(picklist, request, user, p_quantity=0):
     if float(picklist.reserved_quantity) <= 0:
         picklist.status = pi_status
         if picklist.order:
-            misc_detail = MiscDetail.objects.filter(user=picklist.order.user, misc_type='dispatch', misc_value='true')
+            try:
+                misc_detail = MiscDetail.objects.filter(user=picklist.order.user, misc_type='dispatch', misc_value='true')
 
-            if misc_detail:
-                send_picklist_mail(picklist, request)
-                if picklist.picked_quantity > 0 and picklist.order.telephone:
-                    order_dispatch_message(picklist.order, user)
-                else:
-                    log.info("No telephone no for this order")
+                if misc_detail:
+                    send_picklist_mail(picklist, request)
+                    if picklist.picked_quantity > 0 and picklist.order.telephone:
+                        order_dispatch_message(picklist.order, user)
+                    else:
+                        log.info("No telephone no for this order")
+            except:
+                log.info("Error in mail or phone")
     picklist.save()
 
 def validate_location_stock(val, all_locations, all_skus, user):
@@ -1032,13 +1035,15 @@ def picklist_confirmation(request, user=''):
 
                     misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type='dispatch', misc_value='true')
 
-                    if misc_detail and picklist.order:
-                        send_picklist_mail(picklist, request)
-                        if picklist.picked_quantity > 0 and picklist.order.telephone:
-                            order_dispatch_message(picklist.order, user)
-                        else:
-                            log.info("No telephone no for this order")
-
+                    try:
+                        if misc_detail and picklist.order:
+                            send_picklist_mail(picklist, request)
+                            if picklist.picked_quantity > 0 and picklist.order.telephone:
+                                order_dispatch_message(picklist.order, user)
+                            else:
+                                log.info("No telephone no for this order")
+                    except:
+                        log.info("Error in mail or phone")
 
                 picklist.save()
                 count = count - picking_count1

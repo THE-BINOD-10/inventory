@@ -522,7 +522,7 @@ EASYOPS_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumb
                          'shipment_date': 'orders["orderDate"]',
                          'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]'}
 
-EASYOPS_SHIPPED_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'channel',
+EASYOPS_SHIPPED_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'channel',
                          'sku': 'order["easyopsSku"]',
                          'title': 'order["productTitle"]', 'quantity': 'order["quantity"]',
                          'shipment_date': 'orders["orderDate"]',

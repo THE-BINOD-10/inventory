@@ -23,7 +23,6 @@ def update_orders(orders, user='', company_name=''):
             order_details = copy.deepcopy(ORDER_DATA)
             data = orders
             original_order_id = data[order_mapping['order_id']]
-            
             order_code = ''.join(re.findall('\D+', original_order_id))
             order_id = ''.join(re.findall('\d+', original_order_id))
             if '/' in original_order_id:
@@ -31,7 +30,7 @@ def update_orders(orders, user='', company_name=''):
                 order_id = str(''.join(re.findall('\d+', order_id)))
             if len(str(order_id)) > 20:
                 order_id = str(order_id)[:20]
-            filter_params = {'user': user.id, 'order_id': order_id, 'order_code': order_code}
+            filter_params = {'user': user.id, 'order_id': order_id, 'order_code': order_code, 'original_order_id': original_order_id}
             if order_code:
                 filter_params['order_code'] = order_code
             order_items = [orders]
@@ -46,7 +45,7 @@ def update_orders(orders, user='', company_name=''):
 
                 order_det = OrderDetail.objects.filter(**filter_params)
 
-                if order_det and len(str(eval(order_mapping['id']))) < 10:
+                if order_det and len(str(eval(order_mapping['id']))) < 10 and isinstance(eval(order_mapping['id']), int):
                     order_det = order_det[0]
                     swx_mapping = SWXMapping.objects.filter(local_id = order_det.id, swx_type='order', app_host=company_name)
                     if swx_mapping:
@@ -92,7 +91,7 @@ def update_orders(orders, user='', company_name=''):
                 order_detail.save()
 
                 swx_mapping = SWXMapping.objects.filter(local_id = order_detail.id, swx_type='order', app_host=company_name)
-                if not swx_mapping and len(str(eval(order_mapping['id']))) < 10:
+                if not swx_mapping and len(str(eval(order_mapping['id']))) < 10 and isinstance(eval(order_mapping['id']), int):
                     mapping = SWXMapping(local_id=order_detail.id, swx_id=eval(order_mapping['id']), swx_type='order', creation_date=NOW,
                                          updation_date=NOW, app_host=company_name)
                     mapping.save()
@@ -106,11 +105,8 @@ def update_shipped(orders, user='', company_name=''):
         orders = orders.get(order_mapping['items'], [])
         order_details = {}
         for ind, orders in enumerate(orders):
-            order_id = ''.join(re.findall('\d+', orders[order_mapping['order_id']]))
-            order_code = ''.join(re.findall('\D+', orders[order_mapping['order_id']]))
-            filter_params = {'order__user': user.id, 'order__order_id': order_id}
-            if order_code:
-                filter_params['order__order_code'] = order_code
+            original_order_id = orders[order_mapping['order_id']]
+            filter_params = {'order__user': user.id, 'order__original_order_id': original_order_id}
             order_items = [orders]
             if order_mapping.get('order_items', ''):
                 order_items = eval(order_mapping['order_items'])
@@ -137,20 +133,17 @@ def update_returns(orders, user='', company_name=''):
         orders = orders.get(order_mapping['items'], [])
         order_details = {}
         for ind, orders in enumerate(orders):
-            order_id = ''.join(re.findall('\d+', orders[order_mapping['order_id']]))
-            order_code = ''.join(re.findall('\D+', orders[order_mapping['order_id']]))
             return_date = orders[order_mapping['return_date']]
             return_date = parser.parse(return_date)
             return_id = orders[order_mapping['return_id']]
-            filter_params = {'user': user.id, 'order_id': order_id}
-            if order_code:
-                filter_params['order_code'] = order_code
+            original_order_id = orders[order_mapping['order_id']]
+            filter_params = {'user': user.id, 'original_order_id': original_order_id}
             if order_mapping.get('order_items', ''):
                 order_items = eval(order_mapping['order_items'])
 
             for order in order_items:
                 sku_code = eval(order_mapping['sku'])
-                if not sku_code or not order_id:
+                if not sku_code or not original_order_id:
                     continue
                 filter_params['sku__sku_code'] = sku_code
                 order_data = OrderDetail.objects.filter(**filter_params)
@@ -181,8 +174,6 @@ def update_cancelled(orders, user='', company_name=''):
         order_details = {}
         for ind, orders in enumerate(orders):
             original_order_id = orders[order_mapping['order_id']]
-            order_id = ''.join(re.findall('\d+', original_order_id))
-            order_code = ''.join(re.findall('\D+', original_order_id))
             filter_params = {'user': user.id, 'original_order_id': original_order_id}
             order_items = [orders]
             if order_mapping.get('order_items', ''):

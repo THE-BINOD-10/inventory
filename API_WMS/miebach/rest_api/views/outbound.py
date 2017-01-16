@@ -762,7 +762,7 @@ def get_picklist_data(data_id,user_id):
         return data, sku_total_quantities
 
 
-def confirm_no_stock(picklist, p_quantity=0):
+def confirm_no_stock(picklist, request, user, p_quantity=0):
     if float(picklist.reserved_quantity) - p_quantity >= 0:
         picklist.reserved_quantity = float(picklist.reserved_quantity) - p_quantity
         picklist.picked_quantity = float(picklist.picked_quantity) + p_quantity
@@ -777,6 +777,15 @@ def confirm_no_stock(picklist, p_quantity=0):
         check_and_update_order(picklist.order.user, picklist.order.original_order_id)
     if float(picklist.reserved_quantity) <= 0:
         picklist.status = pi_status
+        if picklist.order:
+            misc_detail = MiscDetail.objects.filter(user=picklist.order.user, misc_type='dispatch', misc_value='true')
+
+            if misc_detail:
+                send_picklist_mail(picklist, request)
+                if picklist.picked_quantity > 0 and picklist.order.telephone:
+                    order_dispatch_message(picklist.order, user)
+                else:
+                    log.info("No telephone no for this order")
     picklist.save()
 
 def validate_location_stock(val, all_locations, all_skus, user):
@@ -850,7 +859,7 @@ def update_picklist_pallet(stock, picking_count1):
 
 def send_picklist_mail(picklist, request):
     headers = ['Product Details', 'Seller Details', 'Ordered Quantity', 'Total']
-    items = [picklist.stock.sku.sku_desc, request.user.username, picklist.order.quantity, picklist.order.invoice_amount]
+    items = [picklist.order.sku.sku_desc, request.user.username, picklist.order.quantity, picklist.order.invoice_amount]
 
     data_dict = {'customer_name': picklist.order.customer_name, 'order_id': picklist.order.order_id,
                  'address': picklist.order.address, 'phone_number': picklist.order.telephone, 'items': items,
@@ -922,7 +931,7 @@ def picklist_confirmation(request, user=''):
             scan_wms_codes = map(lambda d: d['wms_code'], value)
             picklist_batch = picks_all.filter(Q(stock__sku__wms_code__in=scan_wms_codes) | Q(order__sku__wms_code=scan_wms_codes),
                                         reserved_quantity__gt=0, status__icontains='open')
-        
+
         else:
             picklist = picks_all.get(id=key)
         count = 0
@@ -944,7 +953,7 @@ def picklist_confirmation(request, user=''):
                 if count == 0:
                     continue
                 if not picklist.stock:
-                    confirm_no_stock(picklist, float(val['picked_quantity']))
+                    confirm_no_stock(picklist, request, user, float(val['picked_quantity']))
                     continue
 
                 if val['wms_code'] == 'TEMP' and val.get('wmscode', ''):
@@ -1018,18 +1027,17 @@ def picklist_confirmation(request, user=''):
                         picklist.status = 'picked'
 
                     if picklist.order:
-                        check_and_update_order(user.id, picklist.order.original_order_id) 
+                        check_and_update_order(user.id, picklist.order.original_order_id)
                     all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
 
                     misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type='dispatch', misc_value='true')
 
                     if misc_detail and picklist.order:
                         send_picklist_mail(picklist, request)
-		    if picklist.picked_quantity > 0 and picklist.order:
-			if picklist.order.telephone:
-			    order_dispatch_message(picklist.order, user)
-			else:
-			    log.info("No telephone no for this order")
+                        if picklist.picked_quantity > 0 and picklist.order.telephone:
+                            order_dispatch_message(picklist.order, user)
+                        else:
+                            log.info("No telephone no for this order")
 
 
                 picklist.save()

@@ -22,7 +22,9 @@ import hashlib
 import os
 from generate_reports import *
 from num2words import num2words
-
+import datetime
+from utils import *
+log = init_logger('logs/common.log')
 # Create your views here.
 
 def process_date(value):
@@ -607,6 +609,24 @@ def order_creation_message(items, telephone, order_id):
         total_amount += int(item[3])
     data += ', '.join(items_data)
     data += '\n\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
+    send_sms(telephone, data)
+
+def order_dispatch_message(order, user):
+
+    data = 'Your order with ID %s has been successfully picked and ready for dispatch by %s %s :' % (order.order_id, user.first_name, user.last_name)
+    total_quantity = 0
+    total_amount = 0
+    telephone = order.telephone
+    items_data = []
+    items = OrderDetail.objects.filter(order_id = order.order_id, order_code= order.order_code, user = user.id)
+    for item in items:
+        #sku_desc = (item.title[:30] + '..') if len(item.title) > 30 else item.title
+        items_data.append('\n %s  Qty: %s' % (item.sku.sku_code, int(item.quantity)))
+        total_quantity += int(item.quantity)
+        total_amount += int(item.invoice_amount)
+    data += ', '.join(items_data)
+    data += '\n\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
+    log.info(data)
     send_sms(telephone, data)
 
 def enable_mail_reports(request):
@@ -1530,7 +1550,7 @@ def get_sku_categories_data(request, user, request_data={}):
     sku_master = SKUMaster.objects.filter(**filter_params)
     categories = list(sku_master.exclude(sku_category='').filter(**filter_params).values_list('sku_category', flat=True).distinct())
     brands = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
-    return brands, categories
+    return brands, sorted(categories)
 
 def resize_image(url, user):
 

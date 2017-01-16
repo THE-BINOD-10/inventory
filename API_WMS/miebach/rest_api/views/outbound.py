@@ -2298,7 +2298,7 @@ def generate_order_jo_data(request, user=''):
         value = order_detail.quantity
         if bom_master:
             for bom in bom_master:
-                data.append({'material_code': bom.material_sku.sku_code, 'material_quantity': float(bom.material_quantity) * float(value),
+                data.append({'material_code': bom.material_sku.sku_code, 'material_quantity': float(bom.material_quantity),
                              'id': ''})
         all_data.append({'order_id': data_id, 'product_code': order_detail.sku.sku_code, 'product_description': order_detail.quantity,
                          'sub_data': data})

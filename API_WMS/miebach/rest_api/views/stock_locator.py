@@ -16,9 +16,11 @@ from miebach_utils import *
 @csrf_exempt
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand', 'total', 'sku__measurement_type']
+    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand', 'total', 'total', 'total', 'sku__measurement_type']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_category', 'product_code__sku_brand', 'total',
-            'product_code__measurement_type']
+            'total', 'total', 'product_code__measurement_type']
+    sort_cols = ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity', 'Total Quantity',
+                'Unit of Measurement']
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
     order_data = lis[col_num]
@@ -51,7 +53,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                       **search_params1).values_list('product_code__wms_code',
                                          'product_code__sku_desc', 'product_code__sku_category', 'product_code__sku_brand').distinct()
         master_data = list(chain(master_data, master_data1))
-        
+
 
     else:
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc', 'sku__sku_category',
@@ -64,14 +66,42 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         master_data = list(chain(master_data, master_data1))
 
     temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    reserved_instances = PicklistLocation.objects.filter(status=1, picklist__order__user=user.id).values('stock__sku__wms_code').\
+                             distinct().annotate(reserved=Sum('reserved'))
+    raw_res_instances = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id).\
+                                           values('material_picklist__jo_material__material_code__wms_code').distinct().\
+                                           annotate(rm_reserved=Sum('reserved'))
+
+    reserveds = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
+    reserved_quantities = map(lambda d: d['reserved'], reserved_instances)
+    raw_reserveds = map(lambda d: d['material_picklist__jo_material__material_code__wms_code'], raw_res_instances)
+    raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
     for ind, data in enumerate(master_data[start_index:stop_index]):
+        reserved = 0
         total = data[4] if len(data) > 4 else 0
         sku = sku_master.get(wms_code=data[0], user=user.id)
+        if data[0] in reserveds:
+            reserved += float(reserved_quantities[reserveds.index(data[0])])
+        if data[0] in raw_reserveds:
+            reserved += float(raw_reserved_quantities[raw_reserveds.index(data[0])])
+
+        quantity = total - reserved
+        if quantity < 0:
+            quantity = 0
         temp_data['aaData'].append(OrderedDict(( ('WMS Code', data[0]), ('Product Description', data[1]),
-                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]), ('Quantity', total),
+                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]), ('Quantity', quantity),
+                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
                                                  ('Unit of Measurement', sku.measurement_type),
                                                  ('DT_RowId', data[0]) )))
+
+    #sort_col = sort_cols[col_num]
+    #if order_term == 'asc':
+    #    temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col))
+    #else:
+    #    temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
+    #temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
 
 def get_sku_stock_data(start_index, stop_index, temp_data, search_term, order_term, col_num):

@@ -788,6 +788,7 @@ def check_location(location, user, quantity=0):
 
 def inventory_excel_upload(request, open_sheet, user):
     RECORDS = list(EXCEL_RECORDS)
+    sku_codes = []
     pallet_switch = get_misc_value('pallet_switch', user.id)
     if pallet_switch == 'true' and 'Pallet Number' not in EXCEL_HEADERS:
         EXCEL_HEADERS.append('Pallet Number')
@@ -810,6 +811,9 @@ def inventory_excel_upload(request, open_sheet, user):
                 cell_data = str(cell_data)
                 data = SKUMaster.objects.filter(wms_code=cell_data, user=user.id)
                 inventory_data['sku_id'] = data[0].id
+
+                if cell_data not in sku_codes:
+                    sku_codes.append(cell_data)
                 if not data:
                     break
                 continue
@@ -876,6 +880,8 @@ def inventory_excel_upload(request, open_sheet, user):
             location_master = LocationMaster.objects.get(id=inventory_data.get('location_id', ''), zone__user=user.id)
             location_master.filled_capacity += inventory_data.get('quantity', 0)
             location_master.save()
+
+    check_and_update_stock(sku_codes, user)
 
     return 'success'
 
@@ -1880,6 +1886,8 @@ def inventory_adjust_upload(request, user=''):
     status = validate_inventory_adjust_form(open_sheet, str(user.id))
     if status != 'Success':
         return HttpResponse(status)
+
+    sku_codes = []
     for row_idx in range(1, open_sheet.nrows):
         cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
         if not cycle_count:
@@ -1894,6 +1902,8 @@ def inventory_adjust_upload(request, user=''):
                     cell_data = int(cell_data)
                 cell_data = str(cell_data)
                 wms_code = cell_data
+                if wms_code not in sku_codes:
+                    sku_codes.append(wms_code)
             elif col_idx == 1:
                 loc = cell_data
             elif col_idx == 2:
@@ -1901,6 +1911,8 @@ def inventory_adjust_upload(request, user=''):
             elif col_idx == 3:
                reason = cell_data
         adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user)
+
+    check_and_update_stock(sku_codes, user)
     return HttpResponse('Success')
 
 @csrf_exempt

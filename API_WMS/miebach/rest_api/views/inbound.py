@@ -635,6 +635,7 @@ def switches(request, user=''):
                     'show_mrp': request.GET.get('show_mrp', ''),
                     'decimal_limit': request.GET.get('decimal_limit', ''),
                     'picklist_sort_by': request.GET.get('picklist_sort_by', ''),
+                    'stock_sync': request.GET.get('stock_sync', '')
                   }
 
 
@@ -920,6 +921,7 @@ def insert_inventory_adjust(request, user=''):
     reason = request.GET['reason']
     loc = request.GET['location']
     status = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user)
+    check_and_update_stock([wmscode], user)
 
     return HttpResponse(status)
 
@@ -1890,6 +1892,7 @@ def putaway_data(request, user=''):
     diff_quan = 0
     all_data = {}
     myDict = dict(request.GET.iterlists())
+    sku_codes = []
     for i in range(0, len(myDict['id'])):
         po_data = ''
         if myDict['orig_data'][i]:
@@ -1982,7 +1985,8 @@ def putaway_data(request, user=''):
                 stock_detail.save()
             consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 
-            check_and_update_stock(order_data['sku_code'], user)
+            if order_data['sku_code'] not in sku_codes:
+                sku_codes.append(order_data['sku_code'])
 
             putaway_quantity = POLocation.objects.filter(purchase_order_id=data.purchase_order_id,
                                                          location__zone__user = user.id, status=0).\
@@ -1993,6 +1997,7 @@ def putaway_data(request, user=''):
                 data.purchase_order.status = 'confirmed-putaway'
 
             data.purchase_order.save()
+    check_and_update_stock(sku_codes, user)
 
     return HttpResponse('Updated Successfully')
 

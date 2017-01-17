@@ -20,6 +20,9 @@
      alert ("Local DB creation failed: " + e);
   });
 
+  function capitalize(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  }
 
   function setloginStatus(statuses){
       db.open();
@@ -192,7 +195,7 @@
   if(skuBrand.trim().length>0){
      return  db.sku_data.where("sku_brand").equalsIgnoreCase(skuBrand)
                 .and(function(sku){
-                  if((sku.sale_through == sale_thru) && (temp_catlog_data.indexOf(sku.sku_class)==-1)) {
+                  if((capitalize(sku.sale_through) == sale_thru) && (temp_catlog_data.indexOf(sku.sku_class)==-1)) {
                      temp_catlog_data.push(sku.sku_class);
                      return true;
                   }else{
@@ -239,7 +242,7 @@
            return true;
        }).and(function(sku){
 
-       if((sku.sale_through == sale_thru) && (temp_catelog_data.indexOf(sku.sku_class)==-1)){
+       if((capitalize(sku.sale_through) == sale_thru) && (temp_catelog_data.indexOf(sku.sku_class)==-1)){
          temp_catelog_data.push(sku.sku_class);
          return true;
        }else{
@@ -260,7 +263,7 @@
          
      }).and(function(sku){
 
-       if((sku.sale_through == sale_thru) && (temp_catelog_data.indexOf(sku.sku_class)==-1)){
+       if((capitalize(sku.sale_through) == sale_thru) && (temp_catelog_data.indexOf(sku.sku_class)==-1)){
          temp_catelog_data.push(sku.sku_class);
         return true;
        }else{
@@ -273,7 +276,7 @@
 
   return db.sku_data.where("sku_class").startsWithIgnoreCase(skustyle)         
         .and(function(sku){
-          if((sku.sale_through == sale_thru) && (temp_catelog_data.indexOf(sku.sku_class)==-1)){
+          if((capitalize(sku.sale_through) == sale_thru) && (temp_catelog_data.indexOf(sku.sku_class)==-1)){
             temp_catelog_data.push(sku.sku_class);
             return true;
           }else{
@@ -288,7 +291,7 @@
     var styles = [];
     return  db.sku_data.where("sku_class").equalsIgnoreCase(skustyle)
             .and(function(sku){
-          if((sku.sale_through == sale_thru) && (styles.indexOf(sku.wms_code)==-1)){
+          if((capitalize(sku.sale_through) == sale_thru) && (styles.indexOf(sku.wms_code)==-1)){
             styles.push(sku.wms_code);
             return true;
           }else{
@@ -296,6 +299,7 @@
           }
 
     }).toArray();
+
  }
 
   

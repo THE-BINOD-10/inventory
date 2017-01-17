@@ -209,11 +209,13 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
 
   vm.tag_details = function(cat_name, brand) {
 
-   var temp_catlog_data=[];
-   if(cat_name == "All") {
+    vm.category = cat_name;
+    if(cat_name == "All") {
       cat_name = "";
     }
-    vm.category = cat_name;
+
+    var temp_catlog_data=[];
+
     vm.catlog_data.index = "";
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true} 
     vm.catlog_data.index = ""
@@ -279,10 +281,14 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
   vm.get_category = function(status, scroll) {
     vm.loading = true;
     vm.scroll_data = false;
+    var cat_name = vm.category;
+    if(vm.category == "All") {
+      cat_name = "";
+    }
     var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true}
     var temp_catlog_data=[];  
     
-   var cat_Dbdata=getCategoryData(vm.brand,vm.category,vm.style, vm.order_type_value);
+   var cat_Dbdata=getCategoryData(vm.brand, cat_name, vm.style, vm.order_type_value);
         cat_Dbdata.then(function(skus){
         console.log("items are "+skus);
         
@@ -837,14 +843,15 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
   vm.make_bold = function(e) {
 
     console.log(e);
-    var all = $(e.toElement).parent().find(".cat-tags");
-    vm.remove_bold(all);
-    $(e.toElement).addClass("ct-selected");
+    //var all = $(e.toElement).parent().find(".cat-tags");
+    //vm.remove_bold(all);
+    //$(e.toElement).addClass("ct-selected");
   }
   vm.remove_bold = function(e) {
-    angular.forEach(e, function(item){
-      $(item).removeClass("ct-selected");
-    })
+    //angular.forEach(e, function(item){
+    //  $(item).removeClass("ct-selected");
+    //})
+    console.log(e);
   }
 
   /*Create customer */

@@ -114,14 +114,13 @@ class EasyopsAPI:
         json_response = self.get_response(url)
         return json_response
 
-    def update_sku_count(self, sku_id, stock_count, token='', user=''):
+    def update_sku_count(self, data={}, token='', user=''):
         """ Updating SKU count for a particular User """
-        data = {}
         if user:
             self.user = user
             self.get_user_token(user)
 
-        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'update_stock', '')) % (sku_id, stock_count)
+        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'update_stock', ''))
         #data = eval(LOAD_CONFIG.get(self.company_name, 'update_stock_dict', '') % stock_count)
         json_response = self.get_response(url, data, put=True)
         return json_response

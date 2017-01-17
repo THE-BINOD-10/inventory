@@ -1533,6 +1533,16 @@ def create_order_json(order_detail, json_dat={}):
     if json_data:
         OrderJson.objects.create(order_id=order_detail.id, json_data=json.dumps(json_data), creation_date=datetime.datetime.now())
 
+def get_order_customer_details(order_data, request):
+    customer_user = CustomerUserMapping.objects.filter(user_id=request.user.id)
+    if customer_user:
+        order_data['customer_id'] = customer_user[0].customer.customer_id
+        order_data['customer_name'] = customer_user[0].customer.name
+        order_data['telephone'] = customer_user[0].customer.phone_number
+        order_data['email_id'] = customer_user[0].customer.email_id
+        order_data['address'] = customer_user[0].customer.address
+    return order_data
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1623,6 +1633,8 @@ def insert_order_data(request, user=''):
 
         order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'], user=user.id, sku_id=order_data['sku_id'], order_code=order_data['order_code'])
         if not order_obj:
+            if user_type == 'customer':
+                order_data = get_order_customer_details(order_data, request)
             if payment_received:
                 order_payment = 0
                 if float(order_data['invoice_amount']) < float(payment_received):

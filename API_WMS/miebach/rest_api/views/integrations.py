@@ -30,7 +30,8 @@ def update_orders(orders, user='', company_name=''):
                 order_id = str(''.join(re.findall('\d+', order_id)))
             if len(str(order_id)) > 20:
                 order_id = str(order_id)[:20]
-            filter_params = {'user': user.id, 'order_id': order_id, 'order_code': order_code, 'original_order_id': original_order_id}
+            filter_params = {'user': user.id, 'order_id': order_id}
+            filter_params1 = {'user': user.id, 'original_order_id': original_order_id}
             if order_code:
                 filter_params['order_code'] = order_code
             order_items = [orders]
@@ -42,8 +43,12 @@ def update_orders(orders, user='', company_name=''):
                 sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
                 if sku_master:
                     filter_params['sku_id'] = sku_master[0].id
+                    filter_params1['sku_id'] = sku_master[0].id
 
                 order_det = OrderDetail.objects.filter(**filter_params)
+                order_det1 = OrderDetail.objects.filter(**filter_params1)
+                if not order_det:
+                    order_det = order_det1
 
                 if order_det and len(str(eval(order_mapping['id']))) < 10 and isinstance(eval(order_mapping['id']), int):
                     order_det = order_det[0]

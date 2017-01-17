@@ -9,7 +9,8 @@ self.importScripts('./scripts/App/offlineDB.js');
  var version        = "0.0.1-build03.0.24",
       cacheName     = "stock1-app-" + version,
       Directory     ="";
- var APICALL        ="http://176.9.181.43:7654/rest_api/";   
+ var APICALL        ="https://api.stockone.in/rest_api/";
+// var APICALL        ="http://176.9.181.43:7654/rest_api/";   
 
  var filesToBeCached = [
        Directory+ "/",
@@ -257,11 +258,15 @@ self.importScripts('./scripts/App/offlineDB.js');
 
       checkSum().then(function (result) {
 
-          getContent().then(function(result){
-             event.ports[0].postMessage("1");
-           }).catch(function(err){
+          if(result) {
+            getContent().then(function(result){
                event.ports[0].postMessage("1");
-           }); 
+             }).catch(function(err){
+                 event.ports[0].postMessage("1");
+             }); 
+          } else {
+             event.ports[0].postMessage("1");
+          }
      
       }).catch(function () {
 		event.ports[0].postMessage("1");

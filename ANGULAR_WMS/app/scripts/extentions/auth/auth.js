@@ -100,7 +100,7 @@
                }
 
                if(resp.message == "Success") {
-                 if(resp.data.user_profile["user_type"] == "customer") {
+                 if(resp.data.user_profile["user_type"] == "customer" || true) {
                    deferredStatus.resolve(resp.message);
                  }
                }

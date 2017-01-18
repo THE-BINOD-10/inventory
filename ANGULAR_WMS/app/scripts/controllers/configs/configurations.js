@@ -8,7 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.service = Service;
   vm.model_data = {
                     'send_message': false, 'batch_switch': false, 'fifo_switch': false, 'show_image': false,
-                    'back_order': false, 'use_imei': false, 'pallet_switch': false, 'production_switch': false,
+                    'back_order': false, 'use_imei': false, 'pallet_switch': false, 'production_switch': false,'stock_sync': false,
                     'pos_switch': false, 'auto_po_switch': false, 'no_stock_switch': false, 'online_percentage': 0,
                     'mail_alerts': 0, 'prefix': '', 'all_groups': '', 'mail_options': [{'id': 1,'name': 'Default'}],
                     'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '',
@@ -19,7 +19,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      6: 'use_imei', 7: 'pallet_switch', 8: 'production_switch', 9: 'pos_switch',
                      10: 'auto_po_switch', 11: 'no_stock_switch', 12:'online_percentage', 13: 'mail_alerts',
                      14: 'invoice_prefix', 15: 'float_switch', 16: 'automate_invoice', 17: 'show_mrp', 18: 'decimal_limit',
-                     19: 'picklist_sort_by'}
+                     19: 'picklist_sort_by', 20: 'stock_sync'}
   vm.empty = {};
   vm.message = "";
 

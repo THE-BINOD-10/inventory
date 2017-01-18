@@ -21,7 +21,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
   self.stock_summary = {
 
-                         tb_headers: ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Unit of Measurement']
+                         tb_headers: ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity', 'Total Quantity', 'Unit of Measurement']
                        }
 
   /*** Outbound **/

@@ -21,7 +21,7 @@ def save_image_file(image_file, data, user, extra_image='', saved_file_path='', 
     extension = image_file.name.split('.')[-1]
     path = 'static/images/'
     folder = str(user.id)
-    image_name = str(data.wms_code)
+    image_name = str(data.wms_code).replace('/', '--')
     if extra_image:
         image_name = image_file.name.strip('.' + image_file.name.split('.')[-1])
     if not os.path.exists(path + folder):
@@ -233,10 +233,10 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
 
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
-        login_created = 'false'
+        login_created = False
         customer_login = CustomerUserMapping.objects.filter(customer_id=data.id)
         if customer_login:
-            login_created = 'true'
+            login_created = True
 
         temp_data['aaData'].append(OrderedDict(( ('customer_id', data.customer_id), ('name', data.name), ('address', data.address),
                                                  ('phone_number', data.phone_number), ('email_id', data.email_id), ('status', status),
@@ -717,6 +717,13 @@ def insert_mapping(request,user=''):
     sku_supplier.save()
     return HttpResponse('Added Successfully')
 
+def update_customer_password(data, password):
+    customer_user_map = CustomerUserMapping.objects.filter(customer_id=data.id, customer__user=data.user)
+    if customer_user_map:
+        customer_user = customer_user_map[0].user
+        customer_user.set_password(password)
+        customer_user.save()
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -724,6 +731,7 @@ def update_customer_values(request,user=''):
     data_id = request.POST['customer_id']
     data = get_or_none(CustomerMaster, {'customer_id': data_id, 'user': user.id})
     create_login = request.POST.get('create_login', '')
+    login_created = request.POST.get('login_created', '')
     password = request.POST.get('password', '')
     for key, value in request.POST.iteritems():
         if key not in data.__dict__.keys():
@@ -746,6 +754,8 @@ def update_customer_values(request,user=''):
     data.save()
     if create_login == 'true':
         create_update_user(data, password)
+    if login_created == 'true' and password:
+        update_customer_password(data, password)
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt

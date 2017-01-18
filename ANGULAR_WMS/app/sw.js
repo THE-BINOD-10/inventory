@@ -368,8 +368,11 @@ self.importScripts('./scripts/App/offlineDB.js');
 
  self.addEventListener('sync', function(event) {
    if(event.tag == 'place_order') {
-    console.log("sync place order fired ");
-    event.waitUntil(getOrderKeys());
+     console.log("sync place order fired ");
+
+     setTimeout(function(){
+       event.waitUntil(getOrderKeys());
+     }, 2000);
    }
  });
 

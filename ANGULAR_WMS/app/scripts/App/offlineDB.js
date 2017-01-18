@@ -6,7 +6,7 @@
     db.version(2).stores({
          brands:'sku_brand',
      categories:'sku_category',
-       sku_data:'id,sku_desc,style_name,wms_code,sku_size,sku_brand,sku_category,sku_class,image_url,price,mrp,intransit_quantity,physical_stock,sale_through',
+       sku_data:'id,sku_desc,style_name,wms_code,sku_size,sku_brand,sku_category,sku_class,image_url,price,mrp,intransit_quantity,physical_stock,sale_through,total_quantity',
       checksum:'check_sum',
       placeorder:'++id,time,order,status',
      loginstatus:'loginstatus',

@@ -1643,8 +1643,9 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
 
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
-            sku_variants = get_style_variants(sku_variants, user)
+            sku_variants, total_quantity = get_style_variants(sku_variants, user)
             sku_styles[0]['variants'] = sku_variants
+            sku_styles[0]['total_quantity'] = total_quantity
 
             #sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'],user)
 

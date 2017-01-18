@@ -1276,6 +1276,8 @@ class Integrations(models.Model):
     user = models.PositiveIntegerField()
     name = models.CharField(max_length=64, default='')
     api_instance = models.CharField(max_length=64, default='')
+    client_id = models.CharField(max_length=64, default='')
+    secret = models.CharField(max_length=256, default='')
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

@@ -15,6 +15,9 @@ from common import *
 from miebach_utils import *
 from operator import itemgetter
 from itertools import groupby
+import datetime
+from utils import *
+log = init_logger('logs/outbound.log')
 
 @csrf_exempt
 def get_batch_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_dict={}):
@@ -759,7 +762,7 @@ def get_picklist_data(data_id,user_id):
         return data, sku_total_quantities
 
 
-def confirm_no_stock(picklist, p_quantity=0):
+def confirm_no_stock(picklist, request, user, p_quantity=0):
     if float(picklist.reserved_quantity) - p_quantity >= 0:
         picklist.reserved_quantity = float(picklist.reserved_quantity) - p_quantity
         picklist.picked_quantity = float(picklist.picked_quantity) + p_quantity
@@ -774,6 +777,18 @@ def confirm_no_stock(picklist, p_quantity=0):
         check_and_update_order(picklist.order.user, picklist.order.original_order_id)
     if float(picklist.reserved_quantity) <= 0:
         picklist.status = pi_status
+        if picklist.order:
+            try:
+                misc_detail = MiscDetail.objects.filter(user=picklist.order.user, misc_type='dispatch', misc_value='true')
+
+                if misc_detail:
+                    send_picklist_mail(picklist, request)
+                    if picklist.picked_quantity > 0 and picklist.order.telephone:
+                        order_dispatch_message(picklist.order, user)
+                    else:
+                        log.info("No telephone no for this order")
+            except:
+                log.info("Error in mail or phone")
     picklist.save()
 
 def validate_location_stock(val, all_locations, all_skus, user):
@@ -847,7 +862,7 @@ def update_picklist_pallet(stock, picking_count1):
 
 def send_picklist_mail(picklist, request):
     headers = ['Product Details', 'Seller Details', 'Ordered Quantity', 'Total']
-    items = [picklist.stock.sku.sku_desc, request.user.username, picklist.order.quantity, picklist.order.invoice_amount]
+    items = [picklist.order.sku.sku_desc, request.user.username, picklist.order.quantity, picklist.order.invoice_amount]
 
     data_dict = {'customer_name': picklist.order.customer_name, 'order_id': picklist.order.order_id,
                  'address': picklist.order.address, 'phone_number': picklist.order.telephone, 'items': items,
@@ -884,7 +899,7 @@ def get_picklist_batch(picklist, value, all_picklists):
 @login_required
 @get_admin_user
 def picklist_confirmation(request, user=''):
-
+    st_time = datetime.datetime.now()
     data = {}
     all_data = {}
     auto_skus = []
@@ -919,11 +934,10 @@ def picklist_confirmation(request, user=''):
             scan_wms_codes = map(lambda d: d['wms_code'], value)
             picklist_batch = picks_all.filter(Q(stock__sku__wms_code__in=scan_wms_codes) | Q(order__sku__wms_code=scan_wms_codes),
                                         reserved_quantity__gt=0, status__icontains='open')
-        
+
         else:
             picklist = picks_all.get(id=key)
         count = 0
-
         if not picklist_batch:
             picklist_batch = get_picklist_batch(picklist, value, all_picklists)
         for i in range(0,len(value)):
@@ -941,9 +955,8 @@ def picklist_confirmation(request, user=''):
             for picklist in picklist_batch:
                 if count == 0:
                     continue
-
                 if not picklist.stock:
-                    confirm_no_stock(picklist, float(val['picked_quantity']))
+                    confirm_no_stock(picklist, request, user, float(val['picked_quantity']))
                     continue
 
                 if val['wms_code'] == 'TEMP' and val.get('wmscode', ''):
@@ -966,7 +979,6 @@ def picklist_confirmation(request, user=''):
 
                 if 'imei' in val.keys() and val['imei'] and picklist.order:
                     insert_order_serial(picklist, val)
-
                 reserved_quantity1 = picklist.reserved_quantity
                 tot_quan = 0
                 for stock in total_stock:
@@ -1010,7 +1022,6 @@ def picklist_confirmation(request, user=''):
                     if stock.pallet_detail:
                         update_picklist_pallet(stock, picking_count1)
                     stock.save()
-
                 picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
                 if picklist.reserved_quantity == 0:
                     if picklist.status == 'batch_open':
@@ -1019,13 +1030,20 @@ def picklist_confirmation(request, user=''):
                         picklist.status = 'picked'
 
                     if picklist.order:
-                        check_and_update_order(user.id, picklist.order.original_order_id) 
+                        check_and_update_order(user.id, picklist.order.original_order_id)
                     all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
 
                     misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type='dispatch', misc_value='true')
 
-                    if misc_detail and picklist.order:
-                        send_picklist_mail(picklist, request)
+                    try:
+                        if misc_detail and picklist.order:
+                            send_picklist_mail(picklist, request)
+                            if picklist.picked_quantity > 0 and picklist.order.telephone:
+                                order_dispatch_message(picklist.order, user)
+                            else:
+                                log.info("No telephone no for this order")
+                    except:
+                        log.info("Error in mail or phone")
 
                 picklist.save()
                 count = count - picking_count1
@@ -1044,6 +1062,10 @@ def picklist_confirmation(request, user=''):
             #invoice_data['invoice_date'] = get_local_date(user, datetime.datetime.now())
             return HttpResponse(json.dumps({'data': invoice_data, 'status': 'invoice'}))
 
+    end_time = datetime.datetime.now()
+    duration = end_time - st_time
+    log.info("process completed")
+    log.info("total time -- %s" %(duration))
     return HttpResponse('Picklist Confirmed')
 
 @csrf_exempt
@@ -1511,6 +1533,16 @@ def create_order_json(order_detail, json_dat={}):
     if json_data:
         OrderJson.objects.create(order_id=order_detail.id, json_data=json.dumps(json_data), creation_date=datetime.datetime.now())
 
+def get_order_customer_details(order_data, request):
+    customer_user = CustomerUserMapping.objects.filter(user_id=request.user.id)
+    if customer_user:
+        order_data['customer_id'] = customer_user[0].customer.customer_id
+        order_data['customer_name'] = customer_user[0].customer.name
+        order_data['telephone'] = customer_user[0].customer.phone_number
+        order_data['email_id'] = customer_user[0].customer.email_id
+        order_data['address'] = customer_user[0].customer.address
+    return order_data
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1526,9 +1558,11 @@ def insert_order_data(request, user=''):
     tax_percent = request.GET.get('tax', '')
     telephone = request.GET.get('telephone', '')
     custom_order = request.GET.get('custom_order', '')
+    user_type = request.GET.get('user_type', '')
     created_order_id = ''
     if valid_status:
         return HttpResponse(valid_status)
+
     for i in range(0, len(myDict['sku_id'])):
         order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
         order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
@@ -1540,7 +1574,7 @@ def insert_order_data(request, user=''):
         order_data['user'] = user.id
 
         for key, value in request.GET.iteritems():
-            if key in ['payment_received', 'charge_name', 'charge_amount', 'custom_order']:
+            if key in ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type']:
                 continue
             if key == 'sku_id':
                 if not myDict[key][i]:
@@ -1599,6 +1633,8 @@ def insert_order_data(request, user=''):
 
         order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'], user=user.id, sku_id=order_data['sku_id'], order_code=order_data['order_code'])
         if not order_obj:
+            if user_type == 'customer':
+                order_data = get_order_customer_details(order_data, request)
             if payment_received:
                 order_payment = 0
                 if float(order_data['invoice_amount']) < float(payment_received):
@@ -1609,6 +1645,7 @@ def insert_order_data(request, user=''):
                     order_payment = float(payment_received)
                 order_data['payment_received'] = order_payment
 
+            order_data['creation_date'] = datetime.datetime.now()
             order_detail = OrderDetail(**order_data)
             order_detail.save()
 
@@ -2273,7 +2310,7 @@ def generate_order_jo_data(request, user=''):
         value = order_detail.quantity
         if bom_master:
             for bom in bom_master:
-                data.append({'material_code': bom.material_sku.sku_code, 'material_quantity': float(bom.material_quantity) * float(value),
+                data.append({'material_code': bom.material_sku.sku_code, 'material_quantity': float(bom.material_quantity),
                              'id': ''})
         all_data.append({'order_id': data_id, 'product_code': order_detail.sku.sku_code, 'product_description': order_detail.quantity,
                          'sub_data': data})

@@ -217,7 +217,8 @@ DISPATCH_SUMMARY = {('dispatch_summary_form', 'dispatchTable', 'Dispatch Summary
 ORDER_SUMMARY_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'}, {'label': 'To Date', 'name': 'to_date',
                                    'type': 'date'}, {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}, {'label': 'Marketplace',
                                    'name': 'marketplace', 'type': 'select'}],
-                      'dt_headers': ['Order ID', 'SKU Code', 'Description', 'Quantity', 'Order Date', 'Order Time', 'Marketplace'],
+                      'dt_headers': ['Order ID', 'Customer Name', 'SKU Code', 'Description', 'Quantity', 'Order Date', 'Order Time',
+                                     'Marketplace'],
                       'dt_url': 'get_order_summary_filter', 'excel_name': 'order_summary_report', 'print_url': 'print_order_summary_report',
                      }
 
@@ -454,8 +455,8 @@ MYNTRA_EXCEL = {'invoice_amount': 14, 'marketplace': 'Myntra', 'sku_code': 2, 'q
 
 UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code': 1}
 
-UNI_COMMERCE_EXCEL1 = {'order_id': 8, 'channel_name': 2, 'sku_code': 6, 'customer_name': 9, 'email_id': 10, 'telephone': 11,
-                       'address': [12, 13, 14], 'state': 15, 'pin_code': 16, 'invoice_amount': 19, 'quantity_count': [20, ',']}
+UNI_COMMERCE_EXCEL1 = {'order_id': 8, 'channel_name': 2, 'sku_code': 20, 'customer_name': 9, 'email_id': 10, 'telephone': 11,
+                       'address': [12, 13, 14], 'state': 15, 'pin_code': 16, 'invoice_amount': 19}
 
 UNI_WARE_EXCEL = {'order_id': 12, 'channel_name': 2, 'sku_code': 1, 'quantity': 34}
 
@@ -515,13 +516,13 @@ PERMISSION_DICT = OrderedDict((
                                ("Raise Stock Transfer", "openst"), ("Create Stock Transfer", "stocktransfer"),
                              ))
 
-EASYOPS_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'channel',
+EASYOPS_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'channel',
                          'sku': 'order["easyopsSku"]',
                          'title': 'order["productTitle"]', 'quantity': 'order["quantity"]',
                          'shipment_date': 'orders["orderDate"]',
                          'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]'}
 
-EASYOPS_SHIPPED_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'channel',
+EASYOPS_SHIPPED_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'channel',
                          'sku': 'order["easyopsSku"]',
                          'title': 'order["productTitle"]', 'quantity': 'order["quantity"]',
                          'shipment_date': 'orders["orderDate"]',
@@ -1114,7 +1115,7 @@ def get_daily_production_data(search_params, user):
 def get_order_summary_data(search_params, user):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    lis = ['order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
+    lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
     temp_data = copy.deepcopy( AJAX_DATA )
     search_parameters = {}
 
@@ -1153,7 +1154,7 @@ def get_order_summary_data(search_params, user):
         order_id = str(data.order_code) + str(data.order_id)
         if data.original_order_id:
             order_id = data.original_order_id
-        temp_data['aaData'].append(OrderedDict(( ('Order ID', order_id), ('SKU Code', data.sku.wms_code),
+        temp_data['aaData'].append(OrderedDict(( ('Order ID', order_id), ('Customer Name', data.customer_name), ('SKU Code', data.sku.wms_code),
                                                  ('Description', data.sku.sku_desc), ('Quantity', data.quantity),
                                                  ('Order Date', ' '.join(date[0:3])), ('Order Time', ' '.join(date[3:5])),
                                                  ('Marketplace', data.marketplace))  ))

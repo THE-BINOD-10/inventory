@@ -22,7 +22,9 @@ import hashlib
 import os
 from generate_reports import *
 from num2words import num2words
-
+import datetime
+from utils import *
+log = init_logger('logs/common.log')
 # Create your views here.
 
 def process_date(value):
@@ -450,6 +452,7 @@ def configurations(request, user=''):
     show_mrp = get_misc_value('show_mrp', user.id)
     decimal_limit = get_misc_value('decimal_limit', user.id)
     picklist_sort_by = get_misc_value('picklist_sort_by', user.id)
+    stock_sync = get_misc_value('stock_sync', user.id)
     all_groups = SKUGroups.objects.filter(user=user.id).values_list('group', flat=True)
     all_groups = str(','.join(all_groups))
 
@@ -509,7 +512,8 @@ def configurations(request, user=''):
                                                              'auto_po_switch': auto_po_switch, 'no_stock_switch': no_stock_switch,
                                                              'float_switch': float_switch, 'all_stages': all_stages,
                                                              'automate_invoice': automate_invoice, 'show_mrp': show_mrp,
-                                                             'decimal_limit': decimal_limit, 'picklist_sort_by': picklist_sort_by}))
+                                                             'decimal_limit': decimal_limit, 'picklist_sort_by': picklist_sort_by,
+                                                             'stock_sync': stock_sync}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers):
@@ -607,6 +611,24 @@ def order_creation_message(items, telephone, order_id):
         total_amount += int(item[3])
     data += ', '.join(items_data)
     data += '\n\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
+    send_sms(telephone, data)
+
+def order_dispatch_message(order, user):
+
+    data = 'Your order with ID %s has been successfully picked and ready for dispatch by %s %s :' % (order.order_id, user.first_name, user.last_name)
+    total_quantity = 0
+    total_amount = 0
+    telephone = order.telephone
+    items_data = []
+    items = OrderDetail.objects.filter(order_id = order.order_id, order_code= order.order_code, user = user.id)
+    for item in items:
+        #sku_desc = (item.title[:30] + '..') if len(item.title) > 30 else item.title
+        items_data.append('\n %s  Qty: %s' % (item.sku.sku_code, int(item.quantity)))
+        total_quantity += int(item.quantity)
+        total_amount += int(item.invoice_amount)
+    data += ', '.join(items_data)
+    data += '\n\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
+    log.info(data)
     send_sms(telephone, data)
 
 def enable_mail_reports(request):
@@ -1080,8 +1102,6 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
     dat = InventoryAdjustment(**data)
     dat.save()
 
-    check_and_update_stock(wmscode, user)
-
     return 'Added Successfully'
 
 def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity=''):
@@ -1356,24 +1376,40 @@ def get_order_id(user_id):
 
     return order_id
 
-def check_and_update_stock(wms_code, user):
+def check_and_update_stock(wms_codes, user):
+    stock_sync = get_misc_value('stock_sync', user.id)
+    if not stock_sync == 'true':
+        return
     from rest_api.views.easyops_api import *
     integrations = Integrations.objects.filter(user=user.id)
+    stock_instances = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE']).filter(sku__wms_code__in=wms_codes,
+                                          sku__user=user.id).values('sku__wms_code').distinct().annotate(total_sum=Sum('quantity'))
+
+    reserved_instances = Picklist.objects.exclude(order__order_code='MN').filter(status__icontains='picked', order__user=user.id,
+                                                  picked_quantity__gt=0, order__sku__wms_code__in=wms_codes).\
+                                          values('order__sku__wms_code').distinct().\
+                                         annotate(total_reserved=Sum('picked_quantity'))
+    stocks = map(lambda d: d['sku__wms_code'], stock_instances)
+    stocks_quantities = map(lambda d: d['total_sum'], stock_instances)
+    reserveds = map(lambda d: d['order__sku__wms_code'], reserved_instances)
+    reserved_quantities = map(lambda d: d['total_reserved'], reserved_instances)
     for integrate in integrations:
+        data = []
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        stock_instance = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE']).filter(sku__wms_code=wms_code,
-                                                     sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
-        reserved_instance = Picklist.objects.filter(status__icontains='picked', order__user=user.id, picked_quantity__gt=0,
-                                                    order__sku__wms_code=wms_code).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
-        if not stock_instance:
-            stock_instance = 0
-        if not reserved_instance:
-            reserved_instance = 0
-        sku_count = float(stock_instance) + float(reserved_instance)
-        sku_count = int(sku_count)
-        if sku_count < 0:
-            sku_count = 0
-        obj.update_sku_count(wms_code, sku_count, user=user)
+        for wms_code in wms_codes:
+            wms_code = (str(wms_code)).lower()
+            stock_quantity = 0
+            reserved_quantity = 0
+            if wms_code in stocks:
+                stock_quantity = stocks_quantities[stocks.index(wms_code)]
+            if wms_code in reserveds:
+                reserved_quantity = reserved_quantities[reserveds.index(wms_code)]
+            sku_count = float(stock_quantity) + float(reserved_quantity)
+            sku_count = int(sku_count)
+            if sku_count < 0:
+                sku_count = 0
+            data.append({'sku': wms_code, 'quantity': sku_count})
+        obj.update_sku_count(data=data, user=user)
 
 def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_ids=[]):
     extra_data = []
@@ -1510,13 +1546,14 @@ def get_invoice_data(order_ids, user):
 
     return invoice_data
 
-def get_sku_categories_data(request, user, request_data={}):
+def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
     if not request_data:
         request_data = request.GET
     filter_params = {'user': user.id}
     sku_brand = request_data.get('brand', '')
     sku_category = request_data.get('category', '')
-    is_catalog = request_data.get('is_catalog', '')
+    if not is_catalog:
+        is_catalog = request_data.get('is_catalog', '')
     sale_through = request_data.get('sale_through', '')
     if sku_brand:
         filter_params['sku_brand'] = sku_brand
@@ -1530,7 +1567,7 @@ def get_sku_categories_data(request, user, request_data={}):
     sku_master = SKUMaster.objects.filter(**filter_params)
     categories = list(sku_master.exclude(sku_category='').filter(**filter_params).values_list('sku_category', flat=True).distinct())
     brands = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
-    return brands, categories
+    return brands, sorted(categories)
 
 def resize_image(url, user):
 
@@ -1561,7 +1598,7 @@ def resize_image(url, user):
     else:
         return url
 
-def get_sku_catalogs_data(request, user, request_data={}):
+def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if not request_data:
         request_data = request.GET
     from rest_api.views.outbound import get_style_variants
@@ -1571,7 +1608,8 @@ def get_sku_catalogs_data(request, user, request_data={}):
     sku_class = request_data.get('sku_class', '')
     sku_brand = request_data.get('brand', '')
     sku_category = request_data.get('category', '')
-    is_catalog = request_data.get('is_catalog', '')
+    if not is_catalog:
+        is_catalog = request_data.get('is_catalog', '')
     indexes = request_data.get('index', '0:20')
     is_file = request_data.get('file', '')
     sale_through = request_data.get('sale_through', '')
@@ -1594,13 +1632,12 @@ def get_sku_catalogs_data(request, user, request_data={}):
 
     sku_master = SKUMaster.objects.exclude(sku_class='').filter(**filter_params).order_by('sequence')
     product_styles = sku_master.values_list('sku_class', flat=True).distinct()
-    #sku_master = [ key for key,_ in groupby(sku_master)]
     product_styles = list(OrderedDict.fromkeys(product_styles))
     data = []
     if is_file:
         start, stop = 0, len(product_styles)
     for product in product_styles[start: stop]:
-        sku_object = SKUMaster.objects.filter(user=user.id, sku_class=product)
+        sku_object = sku_master.filter(user=user.id, sku_class=product)
         sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence').\
                                        order_by('-image_url')
 
@@ -1619,8 +1656,8 @@ def get_sku_catalogs_data(request, user, request_data={}):
 def get_user_sku_data(user):
     request = {}
     #user = User.objects.get(id=sku.user)
-    brands_data = get_sku_categories_data(request, user, request_data={'file': True})
-    skus_data = get_sku_catalogs_data(request, user, request_data={'file': True})
+    brands_data = get_sku_categories_data(request, user, request_data={'file': True}, is_catalog='true')
+    skus_data = get_sku_catalogs_data(request, user, request_data={'file': True}, is_catalog='true')
     path = 'static/text_files'
     if not os.path.exists(path):
         os.makedirs(path)

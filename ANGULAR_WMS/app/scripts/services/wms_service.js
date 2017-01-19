@@ -22,7 +22,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
    vm.pull_order_now = function() {
 
-      vm.apiCall("pull_orders_now/").then(function(){
+      vm.apiCall("pull_orders_now/").then(function(data){
         if(data.message) {
 
           if(data.data == "Success") {

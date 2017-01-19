@@ -36,6 +36,9 @@
               <div class="col-md-2 col-sm-4 col-xs-6 mb10">
                 <button type="button" class="btn btn-primary pull-right" style="width: 100%" ng-click="showCase.excel()">Download Excel</button>
               </div>
+              <div class="col-md-2 col-sm-4 col-xs-6 mb10" ng-if="user.roles.permissions['show_pull_now']">
+                <button type="button" class="btn btn btn-warning" style="width: 100%" ng-click="showCase.service.pull_order_now()">Pull Now</button>
+              </div> 
             </div>
           </div>
           <div class="panel-body">

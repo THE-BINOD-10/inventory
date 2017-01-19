@@ -9,7 +9,7 @@ self.importScripts('./scripts/App/offlineDB.js');
  var version        = "0.0.1-build03.0.24",
       cacheName     = "stock1-app-" + version,
       Directory     ="";
- var APICALL        ="https://api.stockone.in/rest_api/";
+ var APICALL        ="https://wms.mieone.com/rest_api/";
 // var APICALL        ="http://176.9.181.43:7654/rest_api/";   
 
  var filesToBeCached = [

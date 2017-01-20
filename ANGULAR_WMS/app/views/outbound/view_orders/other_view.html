@@ -1,0 +1,9 @@
+<div class="panel" ng-controller="OtherView as showCase">
+  <div class="panel-header">
+    <select class="form-control pull-right mr10" style="width: 155px;" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
+      <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == showCase.g_data.view"> {{view}}</option>
+    </select>
+  </div>
+  <div class="panel-body" ng-include="showCase.get_url()">
+  </div>
+</div>

@@ -2,11 +2,15 @@
 
 var LOGIN_STATE = "user.signin",
     LOGIN_REDIRECT_STATE = "app.dashboard",
+    LOGIN_REDIRECT_STATE_CUSTOMER = "user.App.createorder",
     PERMISSION_DENIED = "app.denied";
 
 var app = angular.module('urbanApp')
   app.run(['$rootScope', '$state', '$stateParams', 'Auth', 'AUTH_EVENTS', 'Session',
         function ($rootScope, $state, $stateParams, Auth, AUTH_EVENTS, Session) {
+      if(Session.user_profile.user_type == "customer") {
+        LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_CUSTOMER;
+      }
       $rootScope.$state = $state;
       $rootScope.$stateParams = $stateParams;
       $rootScope.$on('$stateChangeSuccess', function () {
@@ -42,6 +46,10 @@ var app = angular.module('urbanApp')
                       return;
                     /*} else if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") > -1) {
                       $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});*/
+                    } else if((Session.user_profile.user_type == "customer") && (thisNext.name.indexOf("App.createorder") == -1)) {
+
+                       $state.go(LOGIN_REDIRECT_STATE_CUSTOMER,  {"location": "replace"})
+                       return;
                     } else if (typeof(next.permission) == "string") {
 
                       var perm_list = next.permission.split("&");
@@ -88,7 +96,16 @@ var app = angular.module('urbanApp')
 
             $rootScope.$on(AUTH_EVENTS.loginSuccess, function () {
 
-              $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});
+              if (Session.user_profile.user_type == "customer") {
+                $state.go(LOGIN_REDIRECT_STATE_CUSTOMER, {"location": "replace"});
+              } else {
+                $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});
+              }
+            });
+
+            $rootScope.$on(AUTH_EVENTS.loginSuccess, function () {
+
+              $state.go(LOGIN_STATE, {"location": "replace"});
             });
 
             function goToLogin () {
@@ -1439,6 +1456,37 @@ var app = angular.module('urbanApp')
             contentClasses: 'full-height'
           }
         })
+        .state('user.App', {
+          url: '/App',
+          templateUrl: 'views/App/app.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/App/app.js');
+                    }]
+          },
+	  data: {
+            appClasses: 'bg-white usersession',
+            contentClasses: 'full-height'
+          }
+        })
+         .state('user.App.Products', {
+           url: '/Products',
+           templateUrl: 'views/App/products.html',
+           resolve: {
+             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+               return $ocLazyLoad.load('scripts/App/skutable.js');
+                    }]
+           }
+         })
+         .state('user.App.createorder', {
+           url: '/createorder',
+           templateUrl: 'views/App/create_orders.html',
+           resolve: {
+             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+               return $ocLazyLoad.load('scripts/App/create_orders.js');
+                    }]
+           }
+         })
         .state('app.denied', {
           url: '/PermissionDenied',
           templateUrl: 'views/permission_denied.html',

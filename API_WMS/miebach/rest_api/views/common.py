@@ -24,6 +24,8 @@ from generate_reports import *
 from num2words import num2words
 import datetime
 from utils import *
+from django.core.serializers.json import DjangoJSONEncoder
+
 log = init_logger('logs/common.log')
 # Create your views here.
 
@@ -69,6 +71,10 @@ def add_user_permissions(request, response_data, user=''):
     multi_warehouse = 'false'
     user_profile = UserProfile.objects.get(user_id=user.id)
     request_user_profile = UserProfile.objects.get(user_id=request.user.id)
+    show_pull_now = False
+    integrations = Integrations.objects.filter(user=user.id, status=1)
+    if integrations:
+        show_pull_now = True
     #warehouses = UserGroups.objects.filter(Q(user__username=user.username) | Q(admin_user__username=user.username))
     #if warehouses:
     #    multi_warehouse = 'true'
@@ -80,9 +86,10 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['roles']['permissions']['is_superuser'] = status_dict[int(request.user.is_superuser)]
     response_data['data']['roles']['permissions']['is_staff'] = status_dict[int(request.user.is_staff)]
     response_data['data']['roles']['permissions']['multi_warehouse'] = multi_warehouse
+    response_data['data']['roles']['permissions']['show_pull_now'] = show_pull_now
     response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
                                              'registered_date': get_local_date(request.user, user_profile.creation_date),
-                                             'email': request.user.email, 
+                                             'email': request.user.email,
                                              'trail_user': status_dict[int(user_profile.is_trail)], 'company_name': user_profile.company_name,
                                              'user_type': request_user_profile.user_type}
 
@@ -259,16 +266,18 @@ data_datatable = {#masters
                   'MoveInventory': 'get_move_inventory', 'InventoryAdjustment': 'get_move_inventory',\
                   'ConfirmCycleCount': 'get_cycle_confirmed','VendorStockTable': 'get_vendor_stock',\
                   #outbound
-                  'ViewOrdersB': 'get_batch_data', 'ViewOrders': 'get_order_results', 'OpenOrders': 'open_orders',\
+                  'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders',\
                   'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders',\
                   'ShipmentInfo':'get_customer_results', 'ShipmentPickedOrders': 'get_shipment_picked',\
                   'PullToLocate': 'get_cancelled_putaway',\
                   'StockTransferOrders': 'get_stock_transfer_orders', 'OutboundBackOrders': 'get_back_order_data',\
-                  'OrderView': 'get_order_view_data', 'OrderCategoryView': 'get_order_category_view_data',
+                  'CustomerOrderView': 'get_order_view_data', 'CustomerCategoryView': 'get_order_category_view_data',
                   #manage users
                   'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
                   #retail one
-                  'channels_list': 'get_marketplace_data'
+                  'channels_list': 'get_marketplace_data',
+                  #Integrations
+                  'OrderSyncTable': 'get_order_sync_issues'
                  }
 
 def filter_by_values(model_obj, search_params, filter_values):
@@ -1636,16 +1645,29 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     data = []
     if is_file:
         start, stop = 0, len(product_styles)
+
+    stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku__sku_class').distinct().\
+                                     annotate(in_stock=Sum('quantity'))
+    reserved_quantities = PicklistLocation.objects.filter(stock__sku__user=user.id, status=1).values('stock__sku__sku_class').distinct().\
+                                       annotate(in_reserved=Sum('reserved'))
+    stock_skus = map(lambda d: d['sku__sku_class'], stock_objs)
+    stock_quans = map(lambda d: d['in_stock'], stock_objs)
+    reserved_skus = map(lambda d: d['stock__sku__sku_class'], reserved_quantities)
+    reserved_quans = map(lambda d: d['in_reserved'], reserved_quantities)
     for product in product_styles[start: stop]:
         sku_object = sku_master.filter(user=user.id, sku_class=product)
         sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence').\
                                        order_by('-image_url')
-
+        total_quantity = 0
+        if product in stock_skus:
+            total_quantity = stock_quans[stock_skus.index(product)]
+        if product in reserved_skus:
+            total_quantity = total_quantity + float(reserved_quans[reserved_skus.index(product)])
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
-            sku_variants, total_quantity = get_style_variants(sku_variants, user)
+            sku_variants = get_style_variants(sku_variants, user, total_quantity=total_quantity)
             sku_styles[0]['variants'] = sku_variants
-            sku_styles[0]['total_quantity'] = total_quantity
+            sku_styles[0]['style_quantity'] = total_quantity
 
             #sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'],user)
 
@@ -1719,6 +1741,8 @@ def insert_update_brands(user):
     request = {}
     #user = User.objects.get(id=sku.user)
     sku_master = list(SKUMaster.objects.filter(user=user.id).exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
+    if not 'All' in sku_master:
+        sku_master.append('All')
     for brand in sku_master:
         brand_instance = Brands.objects.filter(brand_name=brand, user_id=user.id)
         if not brand_instance:
@@ -1754,7 +1778,8 @@ def get_sku_master(user,sub_user):
     if not sub_user.is_staff:
         sub_user_groups = sub_user.groups.filter().exclude(name=user.username).values_list('name', flat=True)
         brands_list = GroupBrand.objects.filter(group__name__in=sub_user_groups).values_list('brand_list__brand_name', flat=True)
-        sku_master = sku_master.filter(sku_brand__in=brands_list)
+        if not 'All' in brands_list:
+            sku_master = sku_master.filter(sku_brand__in=brands_list)
         sku_master_ids = sku_master.values_list('id',flat=True)
 
     return sku_master, sku_master_ids
@@ -1786,3 +1811,37 @@ def create_update_user(data, password):
             status = 'User Added Successfully'
 
     return status
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def pull_orders_now(request, user=''):
+    from rest_api.views.easyops_api import *
+    integrations = Integrations.objects.filter(user=user.id)
+    for integrate in integrations:
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        obj.get_pending_orders(user=user)
+    return HttpResponse("Success")
+
+@csrf_exempt
+def get_order_sync_issues(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}):
+    lis = ['order_id', 'sku_code', 'reason', 'creation_date']
+    order_data = lis[col_num]
+    filter_params = get_filtered_params(filters, lis)
+
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        master_data = OrdersTrack.objects.filter( Q(order_id__icontains = search_term) | Q(sku_code__icontains = search_term) |
+                                                  Q(reason__icontains = search_term) , **filter_params ).order_by(order_data)
+
+    else:
+        master_data = OrdersTrack.objects.filter(user = user.id, **filter_params).order_by(order_data)
+
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = master_data.count()
+
+    for result in master_data[start_index : stop_index]:
+        temp_data['aaData'].append(OrderedDict(( ('Order ID', result.order_id), ('SKU Code', result.sku_code),
+                                                 ('Reason', result.reason), ('Created Date', get_local_date(user, result.creation_date)),
+                                                 ('DT_RowClass', 'results'), ('DT_RowId', result.id) )))

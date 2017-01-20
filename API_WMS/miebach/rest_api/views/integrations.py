@@ -3,6 +3,7 @@ from common import *
 from dateutil import parser
 import traceback
 import ConfigParser
+import datetime
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read('rest_api/views/configuration.cfg')
@@ -25,11 +26,11 @@ def update_orders(orders, user='', company_name=''):
             original_order_id = data[order_mapping['order_id']]
             order_code = ''.join(re.findall('\D+', original_order_id))
             order_id = ''.join(re.findall('\d+', original_order_id))
-            if '/' in original_order_id:
-                order_id = original_order_id.split('/')[0]
-                order_id = str(''.join(re.findall('\d+', order_id)))
-            if len(str(order_id)) > 20:
-                order_id = str(order_id)[:20]
+            #if '/' in original_order_id and len(original_order_id) > 20:
+            #    order_id = original_order_id.split('/')[0]
+            #    order_id = str(''.join(re.findall('\d+', order_id)))
+            #if len(str(order_id)) > 20:
+            #    order_id = str(order_id)[:20]
             filter_params = {'user': user.id, 'order_id': order_id}
             filter_params1 = {'user': user.id, 'original_order_id': original_order_id}
             if order_code:
@@ -44,6 +45,12 @@ def update_orders(orders, user='', company_name=''):
                 if sku_master:
                     filter_params['sku_id'] = sku_master[0].id
                     filter_params1['sku_id'] = sku_master[0].id
+                else:
+                    orders_track = OrdersTrack.objects.filter(order_id=original_order_id, sku_code=data['sku'], user=user.id)
+                    if not orders_track:
+                        OrdersTrack.objects.create(order_id=original_order_id, sku_code=sku_code, status=1, user=user.id,
+                                               reason = "SKU Mapping doesn't exists", creation_date=datetime.datetime.now())
+                    continue
 
                 order_det = OrderDetail.objects.filter(**filter_params)
                 order_det1 = OrderDetail.objects.filter(**filter_params1)

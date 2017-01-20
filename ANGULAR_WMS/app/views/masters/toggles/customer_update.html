@@ -7,7 +7,7 @@
         <h4 class="modal-title">{{showCase.title}}</h4> </div>
       <!-- body-->
       <div class="modal-body">
-          <div class="row">
+          <div class="row" ng-hide="showCase.model_data.login_created">
             <div class="col-md-11 col-sm-11 col-xs-10">
               <p align="right">Create Login</p>
             </div>
@@ -49,7 +49,7 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Credit Period </label>
-                <input type="text" name="credit_period" class="form-control number" ng-model="showCase.model_data.credit_period" maxlength="256">           
+                <input type="text" name="credit_period" class="form-control number" ng-model="showCase.model_data.credit_period" maxlength="256">
               </div>
             </div>
             <div class="col-md-4">
@@ -77,6 +77,15 @@
                     <select class="form-control customer_status" ng-model="showCase.model_data.status" name="status">
                       <option ng-repeat="status in showCase.status_data" value="{{status}}">{{status}}</option>
                     </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4" ng-if="showCase.model_data.login_created && !(showCase.model_data.create_login)">
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="form-group">
+                    <a ng-click="showCase.model_data.create_login = true" style="color: #33cc66; text-decoration: underline;"> Change Password </a>
                   </div>
                 </div>
               </div>

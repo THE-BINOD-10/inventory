@@ -282,6 +282,9 @@ urlpatterns = patterns('rest_api.views',
     url(r'^pull_market_data/$', 'pull_market_data'),
     url(r'^add_market_credentials/$', 'add_market_credentials'),
 
+    #Integrations
+    url(r'^pull_orders_now/$', 'pull_orders_now'),
+
     #stockone
     url(r'^book_trial/$','book_trial'),
     url(r'^contact_us/$','contact_us'),

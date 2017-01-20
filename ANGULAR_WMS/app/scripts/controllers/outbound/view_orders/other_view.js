@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('OrderView',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('OtherView',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data) {
 
@@ -9,15 +9,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   vm.service = Service;
   vm.g_data = Data.other_view;
   vm.permissions = Session.roles.permissions;
+  var render = false
 
+  var create_table = function() {
+
+    render = true;
     vm.selected = {};
     vm.selectAll = false;
+    $scope.selectAll = true;
     vm.bt_disable = true;
     vm.dtOptions = DTOptionsBuilder.newOptions()
       .withOption('ajax', {
               url: Session.url+'results_data/',
               type: 'POST',
-              data: {'datatable': 'OrderView'},
+              data: {'datatable': vm.g_data.view},
               xhrFields: {
                 withCredentials: true
               }
@@ -41,10 +46,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       .withPaginationType('full_numbers')
       .withOption('rowCallback', rowCallback)
       .withOption('initComplete', function( settings ) {
-         console.log("completed")
+         vm.apply_scope();
        });
 
-    vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers['OrderView']);
+    vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers[vm.g_data.view]);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
       .renderWith(function(data, type, full, meta) {
         if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
@@ -53,22 +58,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.selected[meta.row] = vm.selectAll;
         return vm.service.frontHtml + meta.row + vm.service.endHtml;
       }))
-
-  vm.change_datatable = function() {
-
-    vm.dtInstance._renderer.options.ajax.data['datatable'] = vm.g_data.view;
-    var temp = {};
-    temp = vm.service.build_colums(vm.g_data.tb_headers[vm.g_data.view]);
-    temp.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
-      .renderWith(function(data, type, full, meta) {
-        if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-          vm.selected = {};
-        }
-        vm.selected[meta.row] = vm.selectAll;
-        return vm.service.frontHtml + meta.row + vm.service.endHtml;
-      }))
-    vm.dtColumns = temp;
-  }
 
   vm.dtInstance = {};
 
@@ -79,10 +68,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     $('.custom-table').DataTable().draw();
   };
 
-  vm.render = function() {
-    vm.dtInstance._renderer.rerender();
   }
 
+  create_table();
+
+  vm.apply_scope = function() {
+
+    $timeout(function(){
+
+      console.log("apply scope")
+      $scope.$apply();
+    }, 2000)
+  }
+
+  vm.change_datatable = function() {
+    create_table();
+  }
     vm.excel = excel;
     function excel() {
       angular.copy(vm.dtColumns,colFilters.headers);
@@ -128,7 +129,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                                                          picked_quantity: value, scan: ""});
                   }
             $state.go('app.outbound.ViewOrders.Picklist');
-            vm.pop_msg(vm.model_data.stock_status);
             vm.reloadData();
           }
         });
@@ -182,11 +182,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.confirm_disable = false;
     }
 
-  vm.message = "";
-  vm.pop_msg =  function(msg) {
-    vm.message = msg;
-    $timeout(function () {
-      vm.message = "";
-    }, 3000);
+  vm.get_url = function() {
+
+    return 'views/outbound/view_orders/views/'+vm.g_data.view+'.html';
   }
 }

@@ -10,6 +10,7 @@ self.importScripts('./scripts/App/offlineDB.js');
       cacheName     = "stock1-app-" + version,
       Directory     ="";
  var APICALL        ="https://wms.mieone.com/rest_api/";
+ var UIAPICALL      ="https://wms.mieone.com/";
 // var APICALL        ="http://176.9.181.43:7654/rest_api/";   
 
  var filesToBeCached = [
@@ -170,7 +171,7 @@ self.importScripts('./scripts/App/offlineDB.js');
            return client.focus();  
          }  
         if (clients.openWindow) {
-         return clients.openWindow('https://stock1-27e13.firebaseapp.com/#/App/createorder');  
+         return clients.openWindow(UIAPICALL+'#/App/createorder');  
         }
       })
     );
@@ -368,8 +369,11 @@ self.importScripts('./scripts/App/offlineDB.js');
 
  self.addEventListener('sync', function(event) {
    if(event.tag == 'place_order') {
-    console.log("sync place order fired ");
-    event.waitUntil(getOrderKeys());
+     console.log("sync place order fired ");
+
+     setTimeout(function(){
+       event.waitUntil(getOrderKeys());
+     }, 2000);
    }
  });
 
@@ -424,10 +428,7 @@ self.importScripts('./scripts/App/offlineDB.js');
               });
               */
 
-              return response.text().then(function(data){
-                  console.log("response is"+data);
-                 
-                 var data=deleteOrder(order_data.time); 
+               var data=deleteOrder(order_data.time); 
                       data.then(function(count){
                          console.log("record deleted");
                       }).catch(function(err){
@@ -442,9 +443,9 @@ self.importScripts('./scripts/App/offlineDB.js');
                   tag: "place order",
                   "sound":"./sounds/notification_sound.mp3"
 
-              });
+                });
 
-            });
+               return true;
            }
           
          });

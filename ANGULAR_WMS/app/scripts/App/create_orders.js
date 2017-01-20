@@ -165,12 +165,12 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
 vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'bio-wash.jpg',
         'Scala': 'scala.jpg','Scott International': 'scott.jpg', 'Scott Young': 'scott-young.jpg', 'Spark': 'spark.jpg',
-        'Star - 11': 'star-11.jpg','Super Sigma': 'super-sigma-dryfit.jpg', 'Sulphur Cotton': 'sulphur-cottnt.jpg', 'Sulphur Dryfit': 'sulphur-dryfit.jpg', 'Spring': 'spring.jpg', '100% Cotton': '100cotton.jpg', 'Sprint': 'sprint.jpg', 'Supreme': 'supreme.jpg'}
+        'Star - 11': 'star-11.jpg','Super Sigma': 'super-sigma-dryfit.jpg', 'Sulphur Cotton': 'sulphur-cottnt.jpg', 'Sulphur Dryfit': 'sulphur-dryfit.jpg', 'Spring': 'spring.jpg', '100% Cotton': '100cotton.jpg', 'Sprint': 'sprint.jpg', 'Supreme': 'supreme.jpg', 'Sport': 'sport.jpg'}
 
         vm.brands_logos = {'7 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
         'Scala': 'scala-1.png','Scott International': 'scott-1.png', 'Scott Young': 'scott-young-1.png', 'Spark': 'spark-1.png',
         'Star - 11': 'star-11-1.png','Super Sigma': 'super-sigma-dryfit-1.png', 'Sulphur Cotton': 'sulphur-cottnt-1.png',                             'Sulphur Dryfit': 'sulphur-dryfit-1.png', 'Spring': 'spring-1.png', '100% Cotton': '100-cotton-1.png', 'Sprint': 'sprint-1.png',
-        'Supreme': 'supreme-1.png'}
+        'Supreme': 'supreme-1.png', 'Sport': 'sport-1.png'}
 
  vm.get_category(true);
   
@@ -209,11 +209,13 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
 
   vm.tag_details = function(cat_name, brand) {
 
-   var temp_catlog_data=[];
-   if(cat_name == "All") {
+    vm.category = cat_name;
+    if(cat_name == "All") {
       cat_name = "";
     }
-    vm.category = cat_name;
+
+    var temp_catlog_data=[];
+
     vm.catlog_data.index = "";
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true} 
     vm.catlog_data.index = ""
@@ -279,10 +281,14 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
   vm.get_category = function(status, scroll) {
     vm.loading = true;
     vm.scroll_data = false;
+    var cat_name = vm.category;
+    if(vm.category == "All") {
+      cat_name = "";
+    }
     var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true}
     var temp_catlog_data=[];  
     
-   var cat_Dbdata=getCategoryData(vm.brand,vm.category,vm.style, vm.order_type_value);
+   var cat_Dbdata=getCategoryData(vm.brand, cat_name, vm.style, vm.order_type_value);
         cat_Dbdata.then(function(skus){
         console.log("items are "+skus);
         
@@ -837,14 +843,15 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
   vm.make_bold = function(e) {
 
     console.log(e);
-    var all = $(e.toElement).parent().find(".cat-tags");
-    vm.remove_bold(all);
-    $(e.toElement).addClass("ct-selected");
+    //var all = $(e.toElement).parent().find(".cat-tags");
+    //vm.remove_bold(all);
+    //$(e.toElement).addClass("ct-selected");
   }
   vm.remove_bold = function(e) {
-    angular.forEach(e, function(item){
-      $(item).removeClass("ct-selected");
-    })
+    //angular.forEach(e, function(item){
+    //  $(item).removeClass("ct-selected");
+    //})
+    console.log(e);
   }
 
   /*Create customer */

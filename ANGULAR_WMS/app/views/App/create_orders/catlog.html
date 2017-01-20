@@ -45,7 +45,7 @@
     <div class="col-md-1 col-sm-1 col-xs-12">
     </div>
     <div class="col-md-10 col-sm-10 col-xs-12">
-      <a ng-repeat="cate in showCase.all_cate" ng-click="showCase.tag_details(cate,showCase.brand);showCase.make_bold($event)" class="cat-tags" href="" ng-class="($fisrt)? 'ct-selected': 'not-selected'">{{cate}}</a>
+      <a ng-repeat="cate in showCase.all_cate" ng-click="showCase.tag_details(cate,showCase.brand);" class="cat-tags" href="" ng-class="(cate == showCase.category)? 'ct-selected': 'not-selected'">{{cate}}</a>
     </div>
   </div>
   <div class="item-display row" ng-if="showCase.catlog_data.data.length > 0">
@@ -54,9 +54,10 @@
         <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
         <br>
         <div>
-          <span class="style_name" title="{{ item.sku_class }}">{{ item.sku_class }}</span>
+          <span class="style_name" style="font-size: 14px;" title="{{ item.sku_class }}">{{ item.sku_class }}</span>
           <p class="style_name" style="font-size: 12px;" title="{{ item.style_name }}">{{ item.style_name }}</p>
-          <span style="font-size: 20px;">&#8377;-{{ item.mrp }}</span>
+          <p style="font-size: 14px;margin: 2px 2px;"> <span style="padding: 2px 15px;font-size: 14px;font-weight: 500;background: #ccc;" class="style_name">Stock : {{ item.style_quantity }}</span></p>
+          <span style="font-size: 14px;">&#8377; {{ item.mrp }}</span>
         </div>
       </div>
     </div>

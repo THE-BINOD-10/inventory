@@ -2251,13 +2251,13 @@ def generate_order_invoice(request, user=''):
     return HttpResponse(json.dumps(invoice_data))
 
 @csrf_exempt
-def get_shipment_picked(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, user_dict={}, filters={}):
+def get_shipment_picked(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, user_dict={}):
 
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     if user_dict:
         user_dict = eval(user_dict)
-    lis = ['id', 'order__order_id', 'order__sku__sku_code', 'order__title', 'order__customer_id', 'order__customer_name',
-           'picked_quantity', 'order__marketplace']
+    lis = ['id','order__order_id', 'order__sku__sku_code', 'order__title', 'order__customer_id', 'order__customer_name',
+           'order__marketplace', 'picked_quantity']
     data_dict = {'status__icontains': 'picked', 'order__user': user.id, 'picked_quantity__gt': 0}
 
     if user_dict.get('market_place', ''):

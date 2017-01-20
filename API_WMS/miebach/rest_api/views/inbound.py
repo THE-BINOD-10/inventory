@@ -1574,6 +1574,8 @@ def check_returns(request, user=''):
     request_return_id = request.GET.get('return_id', '')
     if request_order_id:
         filter_params = {'order__user': user.id, 'status__in': ['picked', 'batch_picked', 'dispatched'], 'picked_quantity__gt': 0}
+        filter_params1 = {'order__user': user.id, 'status__in': ['picked', 'batch_picked', 'dispatched'], 'picked_quantity__gt': 0,
+                          'order__original_order_id': request_order_id}
         order_id = re.findall('\d+', request_order_id)
         order_code = re.findall('\D+', request_order_id)
         if order_id:
@@ -1582,6 +1584,8 @@ def check_returns(request, user=''):
             filter_params['order__order_code'] = ''.join(order_code[0])
 
         picklists = Picklist.objects.filter(**filter_params)
+        if not picklists:
+            picklists = Picklist.objects.filter(**filter_params1)
         if not picklists:
             status = 'Order Id is invalid'
         for picklist in picklists:

@@ -1546,10 +1546,12 @@ def get_order_customer_details(order_data, request):
 @csrf_exempt
 @login_required
 @get_admin_user
+@fn_timer
 def insert_order_data(request, user=''):
     myDict = dict(request.GET.iterlists())
-    order_id = get_order_id(user.id)
+    #order_id = get_order_id(user.id)
 
+    order_id = ''
     invalid_skus = []
     items = []
     valid_status = validate_order_form(myDict, request, user)
@@ -1566,7 +1568,7 @@ def insert_order_data(request, user=''):
     for i in range(0, len(myDict['sku_id'])):
         order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
         order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
-        order_data['order_id'] = order_id
+        #order_data['order_id'] = order_id
         order_data['order_code'] = 'MN'
         order_data['marketplace'] = 'Offline'
         if custom_order == 'true':
@@ -1631,6 +1633,9 @@ def insert_order_data(request, user=''):
         if not order_data['sku_id'] or invalid_skus or not order_data['quantity']:
             continue
 
+        if not order_id:
+            order_id = get_order_id(user.id)
+        order_data['order_id'] = order_id
         order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'], user=user.id, sku_id=order_data['sku_id'], order_code=order_data['order_code'])
         if not order_obj:
             if user_type == 'customer':
@@ -2161,6 +2166,7 @@ def get_sku_categories(request, user=''):
     return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'stages_list': stages_list}))
 
 def get_style_variants(sku_master, user, customer_id=''):
+    total_quantity = 0
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku_id').distinct().annotate(in_stock=Sum('quantity'))
     purchase_orders = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id).\
                                            values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
@@ -2193,11 +2199,12 @@ def get_style_variants(sku_master, user, customer_id=''):
                 stock_quantity = stock_quantity - res_value
         sku_master[ind]['physical_stock'] = stock_quantity
         sku_master[ind]['intransit_quantity'] = intransit_quantity
+        total_quantity += stock_quantity
         if customer_id:
             customer_sku = CustomerSKU.objects.filter(sku__user=user.id, customer_name__customer_id=customer_id, sku__wms_code=sku['wms_code'])
             if customer_sku:
                 sku_master[ind]['price'] = customer_sku[0].price
-    return sku_master
+    return sku_master, total_quantity
 
 @csrf_exempt
 @login_required
@@ -2229,15 +2236,15 @@ def get_sku_variants(request, user=''):
     sku_master = list(SKUMaster.objects.filter(**filter_params).values(*get_values).order_by('sequence'))
     sku_master = [ key for key,_ in groupby(sku_master)]
 
-    sku_master = get_style_variants(sku_master, user, customer_id)
-        
+    sku_master, total_quantity = get_style_variants(sku_master, user, customer_id)
+
     return HttpResponse(json.dumps({'data': sku_master}))
 
 @csrf_exempt
 @login_required
 @get_admin_user
 def generate_order_invoice(request, user=''):
-    
+
     order_ids = request.GET.get('order_ids', '')
     invoice_data = get_invoice_data(order_ids, user)
 

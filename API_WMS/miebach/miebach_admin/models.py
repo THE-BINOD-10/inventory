@@ -139,7 +139,8 @@ class SKUSupplier(models.Model):
 class OrderDetail(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
-    order_id = models.BigIntegerField()
+    #order_id = models.BigIntegerField()
+    order_id = models.DecimalField(max_digits=25, decimal_places=0, primary_key=True)
     original_order_id = models.CharField(max_length=128,default='')
     customer_id = models.PositiveIntegerField(default=0)
     customer_name = models.CharField(max_length=256,default='')

@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('Orders',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', ServerSideProcessingCtrl]);
+  .controller('Orders',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, Data) {
     var vm = this;
     //$state.go($state.current, {}, {reload: true});
     vm.service = Service;
@@ -13,8 +13,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.special_key = {market_places: "", customer_id: ""}
-  if (Session.roles.permissions.batch_switch) {
-    vm.filters = {'datatable': 'ViewOrdersB', 'search0':'', 'search1':'', 'search2': '', 'special_key': JSON.stringify(vm.special_key)}
+
+
+    vm.g_data = Data.other_view;
+
+    vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'special_key': JSON.stringify(vm.special_key)}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -48,72 +51,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
-            .renderWith(function(data, type, full, meta) {
-                if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                  vm.selected = {};
-                }
-                vm.selected[meta.row] = vm.selectAll;
-                vm.seleted_rows.push(full);
-                return vm.service.frontHtml + meta.row + vm.service.endHtml;
-            }).notSortable(),
-        DTColumnBuilder.newColumn('sku_code').withTitle('SKU Code'),
-        DTColumnBuilder.newColumn('title').withTitle('Title'),
-        DTColumnBuilder.newColumn('total_quantity').withTitle('Total Quantity')
-    ];
-  } else {
+    vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers[vm.g_data.view]);
+    vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+      .renderWith(function(data, type, full, meta) {
+        if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+          vm.selected = {}; 
+        }   
+        vm.selected[meta.row] = vm.selectAll;
+        return vm.service.frontHtml + meta.row + vm.service.endHtml;
+      }))
 
-    vm.filters = {'datatable': 'ViewOrders', 'search0':'', 'search1':'', 'search2': '' , 'search3': '' , 'search4': '' , 'special_key': JSON.stringify(vm.special_key)}
-    vm.dtOptions = DTOptionsBuilder.newOptions()
-       .withOption('ajax', {
-              url: Session.url+'results_data/',
-              type: 'POST',
-              data: vm.filters,
-              xhrFields: {
-                withCredentials: true
-              }
-           })
-       .withDataProp('data')
-       .withOption('drawCallback', function(settings) {
-         vm.service.make_selected(settings, vm.selected);
-       })
-       .withOption('lengthMenu', [100, 200, 300, 400, 500])
-       .withOption('pageLength', 100)
-       .withOption('processing', true)
-       .withOption('serverSide', true)
-       .withOption('createdRow', function(row, data, dataIndex) {
-            $compile(angular.element(row).contents())($scope);
-        })
-        .withOption('headerCallback', function(header) {
-            if (!vm.headerCompiled) {
-                vm.headerCompiled = true;
-                $compile(angular.element(header).contents())($scope);
-            }
-        })
-       .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback)
-       .withOption('initComplete', function( settings ) {
-         vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
-       });
 
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
-            .renderWith(function(data, type, full, meta) {
-                if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                  vm.selected = {};
-                }
-                vm.selected[meta.row] = vm.selectAll;
-                vm.seleted_rows.push(full);
-                return vm.service.frontHtml + meta.row + vm.service.endHtml;
-            }).notSortable(),
-        DTColumnBuilder.newColumn('Order ID').withTitle('Order ID'),
-        DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
-        DTColumnBuilder.newColumn('Title').withTitle('Title'),
-        DTColumnBuilder.newColumn('Product Quantity').withTitle('Product Quantity'),
-        DTColumnBuilder.newColumn('Shipment Date').withTitle('Shipment Date'),
-        DTColumnBuilder.newColumn('Marketplace').withTitle('Marketplace')
-    ];
+   vm.dtInstance = {};
+    vm.reloadData = reloadData;
+
+    function reloadData () {
+        vm.dtInstance.reloadData();
+    };
 
    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
 
@@ -159,14 +113,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
      })
    }
 
-  }
-    vm.dtInstance = {};
-    vm.reloadData = reloadData;
-
-    function reloadData () {
-        vm.dtInstance.reloadData();
-    };
-
     vm.excel = excel;
     function excel() {
       angular.copy(vm.dtColumns,colFilters.headers);
@@ -201,12 +147,58 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.generate = generate;
     function generate() {
+      for(var key in vm.selected){
+        console.log(vm.selected[key]);
+        if(vm.selected[key]) {
+          vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData);
+        }
+      }
+      if(vm.generate_data.length > 0) {
+        console.log(vm.generate_data);
+        var data = {};
+        if(vm.g_data.view == 'OrderView') {
+
+          for(var i=0;i<vm.generate_data.length;i++) {
+            data[$(vm.generate_data[i][""]).attr("name")]= vm.generate_data[i]['SKU Code'];
+          }
+          data["ship_reference"] = vm.ship_reference;
+        } else if(vm.g_data.view == 'SKUView') {
+
+          for(var i=0;i<vm.generate_data.length;i++) {
+            data[vm.generate_data[i].data_value]= vm.generate_data[i].total_quantity;
+          }
+        } else if(vm.g_data.view == 'CustomerOrderView' || vm.g_data.view == 'CustomerCategoryView'){
+          for(var i=0;i<vm.generate_data.length;i++) {
+            data[vm.generate_data[i]["data_value"]]= vm.generate_data[i]['Total Quantity'];
+          }
+        }
+        vm.service.apiCall(vm.g_data.generate_picklist_urls[vm.g_data.view], 'POST', data).then(function(data){
+          if(data.message) {
+            angular.copy(data.data, vm.model_data);
+            for(var i=0; i<vm.model_data.data.length; i++){
+                    vm.model_data.data[i]['sub_data'] = [];
+                    var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
+                    vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
+                                                         location: vm.model_data.data[i].location,
+                                                         orig_location: vm.model_data.data[i].location,
+                                                         picked_quantity: value, scan: ""});
+                  }
+            $state.go('app.outbound.ViewOrders.Picklist');
+            reloadData();
+            pop_msg(data.data.stock_status);
+          }
+        });
+        vm.generate_data = [];
+      }
+    }
+
+   /*
       if(vm.permissions.batch_switch){
         batch_generate_picklist();
       } else {
         generate_picklist();
       }
-    }
+    }*/
 
     vm.model_transfer = {};
     vm.transfer = transfer;
@@ -603,6 +595,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       });
       data = [];
   }
+
   vm.get_product_data = function(item, sku_data) {
       console.log(vm.model_data);
       check_exist(sku_data).then(function(data){
@@ -683,7 +676,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       Service.apiCall("confirm_back_order/", "POST", elem).then(function(data){
         if(data.message) {vm.confirm_disable = true; vm.message = data.data; reloadData();};
       });
-    }
+  }
 
   vm.raise_stock_transfer = function() {
 
@@ -696,6 +689,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
     Service.stock_transfer = JSON.stringify(data)
     $state.go('app.outbound.ViewOrders.ST')
+  }
+
+  vm.change_datatable = function() {
+    Data.other_view.view =  vm.g_data.view;
+    $state.go($state.current, {}, {reload: true}); 
   }
 
   }

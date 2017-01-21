@@ -307,7 +307,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       });
    }
 
-    vm.get_sku_details = function(product) {
+    vm.get_sku_details = function(product, item) {
+      product.fields.sku.wms_code = item.wms_code;
       if (typeof(vm.model_data.supplier_id) == "undefined" || vm.model_data.supplier_id.length == 0){
         return false;
       } else {

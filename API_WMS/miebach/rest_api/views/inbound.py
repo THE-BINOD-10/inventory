@@ -1619,7 +1619,7 @@ def check_returns(request, user=''):
                          'return_quantity': order_data.quantity, 'damaged_quantity': order_data.damaged_quantity})
 
     if not status:
-        return HttpResponse(json.dumps(data))
+        return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder))
     return HttpResponse(status)
 
 @csrf_exempt

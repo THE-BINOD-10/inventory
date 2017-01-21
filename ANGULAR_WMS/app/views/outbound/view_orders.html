@@ -12,10 +12,26 @@
                 <button type="button" class="btn btn btn-danger" style="width: 100%" ng-click="$state.go('app.outbound.BackOrders')">Back Orders</button>
                 <!--<button type="button" class="btn btn-success pull-right" style="margin-left:10px;" ng-click="showCase.add_order()">Create Order</button>-->
               </div>
-              <div class="col-md-2 col-sm-0 col-xs-0">
+              <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right">
+                <button type="button" class="btn btn-primary pull-right" style="width: 100%" ng-click="showCase.excel()">Download Excel</button>
               </div>
-              <div class="col-md-2 col-sm-4 col-xs-6 mb10" style="height: 34px;">
-                <label class="switch switch-sm square pull-right mr30 mt5">
+              <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right" ng-if="user.roles.permissions['show_pull_now']">
+                <button type="button" class="btn btn btn-warning" style="width: 100%" ng-click="showCase.service.pull_order_now()">Pull Now</button>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 col-sm-hidden col-xs-hidden">
+              </div>
+              <div class="col-md-2 col-sm-4 col-xs-6" style="line-height: 34px;">
+                <span style="float:right">Select View: </span>
+              </div>
+              <div class="col-md-2 col-sm-4 col-xs-6 mb10" style="height: 34px;padding-left: 0px;">
+                <select class="form-control pull-right" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
+                  <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == showCase.g_data.view"> {{view}}</option>
+                </select>
+              </div>
+              <div class="hide">
+                <label class="hide switch switch-sm square pull-right mr30 mt5">
                   <div>
                     <input type="checkbox" ng-model="showCase.permissions.batch_switch" ng-change="showCase.service.switches(showCase.permissions.batch_switch,'batch_switch')">
                     <span>
@@ -33,12 +49,6 @@
                   <option ng-repeat="market in showCase.market_list" > {{market}}</option>
                 </select>
               </div>
-              <div class="col-md-2 col-sm-4 col-xs-6 mb10">
-                <button type="button" class="btn btn-primary pull-right" style="width: 100%" ng-click="showCase.excel()">Download Excel</button>
-              </div>
-              <div class="col-md-2 col-sm-4 col-xs-6 mb10" ng-if="user.roles.permissions['show_pull_now']">
-                <button type="button" class="btn btn btn-warning" style="width: 100%" ng-click="showCase.service.pull_order_now()">Pull Now</button>
-              </div> 
             </div>
           </div>
           <div class="panel-body">
@@ -47,13 +57,13 @@
           </div>
           <div class="panel-footer">
             <div class="col-md-2 col-sm-4 col-xs-6 mb10">
-              <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable" ng-if="!(showCase.permissions.batch_switch)">Raise PO</button>
+              <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable" ng-if="showCase.g_data.view == 'OrderView'">Raise PO</button>
             </div>
             <div class="col-md-2 col-sm-4 col-xs-6 mb10">
-              <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.raise_jo()" ng-disabled="showCase.bt_disable" ng-if="!(showCase.permissions.batch_switch)">Raise JO</button>
+              <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.raise_jo()" ng-disabled="showCase.bt_disable" ng-if="showCase.g_data.view == 'OrderView'">Raise JO</button>
             </div>
             <div class="col-md-2 col-sm-4 col-xs-6 mb10">
-              <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.raise_stock_transfer()" ng-disabled="showCase.bt_disable" ng-if="!(showCase.permissions.batch_switch)">Raise Stock Transfer</button>
+              <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.raise_stock_transfer()" ng-disabled="showCase.bt_disable" ng-if="showCase.g_data.view == 'OrderView'">Raise Stock Transfer</button>
             </div>
             <div class="col-md-2 col-sm-0 col-xs-0">
             </div>
@@ -67,12 +77,15 @@
           </div>
         </div>
       </tab>
+      <!--<tab heading="Other View">
+        <div ng-include="'views/outbound/view_orders/other_view.html'"></div>
+      </tab>
       <tab heading="Order View">
         <div ng-include="'views/outbound/view_orders/order_view.html'"></div>
       </tab>
       <tab heading="Order Category View">
         <div ng-include="'views/outbound/view_orders/order_category_view.html'"></div>
-      </tab>
+      </tab>-->
       <tab heading="Stock Transfer Order" ng-if="show_tab('multi_warehouse') || show_tab('add_stocktransfer')">
         <div class="panel" ng-controller="StockTransferOrders as showCase">
           <div class="panel-header">

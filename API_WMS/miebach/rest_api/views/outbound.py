@@ -300,6 +300,14 @@ def get_picklist_locations(data_dict, user):
 @get_admin_user
 def generate_picklist(request, user=''):
     remarks = request.POST['ship_reference']
+    filters = request.POST.get('filters', '')
+    order_filter = {'status': 1, 'user': user.id, 'quantity__gt': 0}
+    if filters:
+        filters = eval(filters)
+        if filters['market_places']:
+            order_filter['marketplace__in'] = (filters['market_places']).split(',')
+        if filters.get('customer_id', ''):
+            order_filter['customer_id'] = filters['customer_id']
     data = []
     stock_status = ''
     out_of_stock = []
@@ -308,7 +316,7 @@ def generate_picklist(request, user=''):
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
-    all_orders = OrderDetail.objects.prefetch_related('sku').filter(status=1, user=user.id, quantity__gt=0)
+    all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
     if fifo_switch == 'true':
@@ -320,7 +328,7 @@ def generate_picklist(request, user=''):
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     sku_stocks = stock_detail1 | stock_detail2
     for key, value in request.POST.iteritems():
-        if key in ('sortingTable_length', 'fifo-switch', 'ship_reference', 'remarks'):
+        if key in ('sortingTable_length', 'fifo-switch', 'ship_reference', 'remarks', 'filters'):
             continue
 
         order_data = OrderDetail.objects.get(id=key,user=user.id)
@@ -546,7 +554,15 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
 @login_required
 @get_admin_user
 def batch_generate_picklist(request, user=''):
-    remarks = request.POST.get('remarks', '')
+    remarks = request.POST.get('ship_reference', '')
+    filters = request.POST.get('filters', '')
+    order_filter = {'status': 1, 'user': user.id, 'quantity__gt': 0}
+    if filters:
+        filters = eval(filters)
+        if filters['market_places']:
+            order_filter['marketplace__in'] = (filters['market_places']).split(',')
+        if filters.get('customer_id', ''):
+            order_filter['customer_id'] = filters['customer_id']
 
     data = []
     order_data = []
@@ -556,7 +572,7 @@ def batch_generate_picklist(request, user=''):
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
-    all_orders = OrderDetail.objects.prefetch_related('sku').filter(status=1, user=user.id, quantity__gt=0)
+    all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
     if fifo_switch == 'true':
@@ -568,7 +584,7 @@ def batch_generate_picklist(request, user=''):
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     sku_stocks = stock_detail1 | stock_detail2
     for key, value in request.POST.iteritems():
-        if key in PICKLIST_SKIP_LIST:
+        if key in PICKLIST_SKIP_LIST or key in ['filters']:
             continue
 
         key = key.split('<>')
@@ -2722,6 +2738,14 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
 @login_required
 @get_admin_user
 def order_category_generate_picklist(request, user=''):
+    filters = request.POST.get('filters', '')
+    order_filter = {'status': 1, 'user': user.id, 'quantity__gt': 0}
+    if filters:
+        filters = eval(filters)
+        if filters['market_places']:
+            order_filter['marketplace__in'] = (filters['market_places']).split(',')
+        if filters.get('customer_id', ''):
+            order_filter['customer_id'] = filters['customer_id']
     data = []
     order_data = []
     stock_status = ''
@@ -2730,7 +2754,7 @@ def order_category_generate_picklist(request, user=''):
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
-    all_orders = OrderDetail.objects.prefetch_related('sku').filter(status=1, user=user.id, quantity__gt=0)
+    all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
     if fifo_switch == 'true':
@@ -2742,11 +2766,11 @@ def order_category_generate_picklist(request, user=''):
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     sku_stocks = stock_detail1 | stock_detail2
     for key, value in request.POST.iteritems():
-        if key in PICKLIST_SKIP_LIST:
+        if key in PICKLIST_SKIP_LIST or key in ['filters']:
             continue
 
         order_filter = {'quantity__gt': 0 }
-        if '<>' in key: 
+        if '<>' in key:
             key = key.split('<>')
             order_id, sku_category = key
             order_filter['sku__sku_category'] = sku_category

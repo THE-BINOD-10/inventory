@@ -172,6 +172,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             data[vm.generate_data[i]["data_value"]]= vm.generate_data[i]['Total Quantity'];
           }
         }
+        data['filters'] = vm.dtInstance.DataTable.context[0].ajax.data['special_key'];
         vm.service.apiCall(vm.g_data.generate_picklist_urls[vm.g_data.view], 'POST', data).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);

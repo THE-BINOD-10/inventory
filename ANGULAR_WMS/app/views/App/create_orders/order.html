@@ -1,0 +1,102 @@
+<div>
+  <div class="row style-menu" style="line-height: 40px;">
+    <div class="col-md-6 col-sm-6 col-xs-6">
+      <div class="menu-left">
+        <span ng-click="showCase.catlog=false;showCase.details=true;showCase.detailed_list=false;showCase.orderspage=false"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="showCase.catlog=false;showCase.details=true;showCase.detailed_list=false;showCase.orderspage=false" title="Go to Brand Page">Back To Brands</span>
+      </div>
+    </div>
+    <div class="col-md-6 col-sm-6 col-xs-6">
+      <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.auth.logout()"></a>
+    </div>
+  </div>
+
+  <form id="order-create" name="form" role="form" ui-jq="validate">
+    <div class="ship-date" ng-if="showCase.model_data.data.length > 0">
+      <p class="pull-left"><b>Shipment Date: </b><span class="text-success">{{showCase.model_data.shipment_date}}</span></p>
+      <input name="shipment_date" type="text" class="form-control" ng-model="showCase.model_data.shipment_date" ui-jq="datepicker">
+      <a href="javascript:;" class="text-success pull-right" ng-model="showCase.model_data.shipment_date">Change</a>
+    </div>
+    <div class="clearfix hide">
+      <div class="row col-md-11">
+        <button type="button" class="btn btn-primary pull-right" ng-click="showCase.catlog=true;showCase.style_open=false;showCase.check_stock=false">View Catalog</button>
+      </div> 
+      <div class="row col-md-12">
+        <input type="hidden" name="user_type" value={{user.user_profile['user_type']}}>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label class="control-label">Customer ID</label>
+            <input name="customer_id" ng-model="showCase.model_data.customer_id" class="form-control" type="text" ng-blur="showCase.get_customer_data(showCase.model_data.customer_id)">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label class="control-label">Customer Name</label>
+            <input name="customer_name" ng-model="showCase.model_data.customer_name" class="form-control" type="text">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label class="control-label">Telephone</label>
+            <input name="telephone" ng-model="showCase.model_data.telephone" class="form-control" type="text" whole-number maxlength="10">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label class="control-label">Shipment Date *</label>
+            <input ui-jq="datepicker" ng-model="showCase.model_data.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" readonly>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label class="control-label">Email</label>
+            <input name="email_id" class="form-control" type="email" ng-model="showCase.model_data.email_id">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label class="control-label">Address</label>
+            <textarea rows="4" class="form-control" cols="27" name="address" ng-model="showCase.model_data.address"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="form-group clearfix" style="padding: 0px 10px;margin-top: 10px; margin-bottom: 50px">
+      <!--<hr>-->
+      <div class="row">
+        <div ng-repeat="data in showCase.model_data.data" class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="data.sku_id">
+          <input type="hidden" name="sku_id" class="form-control" value="{{data.sku_id}}">
+          <input type="hidden" name="invoice_amount" class="form-control" value="{{data.invoice_amount}}">
+          <div class="col-md-6 col-sm-6 col-xs-7">
+            <h4 align="left"><b>{{data.sku_id}}</b></h4>
+            <p align="left">{{data.sku_desc}}</p>
+            <h5 align="left"><b>Rs {{data.invoice_amount}}</b></h5>
+            <p align="left"><span ng-click="showCase.remove_item($index)" class="text-danger">Remove</span></p>
+          </div>
+          <div class="col-md-6 col-sm-6 col-xs-5">
+            <div class="col-md-12 col-sm-12 col-xs-12">
+              <img style="display: block;margin: auto;height: 100px;" ng-src="{{showCase.service.check_image_url(data.image_url)}}" style="height: 100px;"></img>
+              <p align="center" class="quantity">
+                <i class="fa fa-minus" ng-click="showCase.change_cart_quantity(data, false)"></i>
+                <input class="form-control" name="quantity" ng-model="data.quantity" ng-change="showCase.change_amount(data)">
+                <i class="fa fa-plus" ng-click="showCase.change_cart_quantity(data, true)"></i>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="cart">
+          <button type="button" class="btn btn-white btn-lg col-xs-6" ng-if="showCase.model_data.data.length > 0" ng-click="showCase.catlog = true;showCase.style_open=true;showCase.orderspage=false">CONTINUE</button>
+          <button type="button" id ="place_order" class="btn btn-warning btn-lg col-xs-6" ng-if="showCase.model_data.data.length > 0" ng-click="showCase.insert_order_data()">PLACE ORDER</button>
+          <button type="button" class="btn btn-warning btn-lg col-xs-12" ng-if="showCase.model_data.data.length == 0" ng-click="showCase.catlog=false;showCase.details=true;showCase.detailed_list=false;showCase.orderspage=false">SHOP NOW</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-12" style="padding-bottom:0px;">
+      <button type="submit" class="btn btn-primary hide" style="margin: auto;display: block;" ng-disabled="showCase.bt_disable" ng-click="showCase.insert_order_data(form)">Create Order </button>
+    </div>
+  </form>
+</div>
+

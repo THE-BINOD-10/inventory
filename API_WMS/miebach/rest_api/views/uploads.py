@@ -168,7 +168,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data['original_order_id'] = order_id
                 if order_mapping.get('split_order_id', '') and '/' in order_id:
                     order_id = order_id.split('/')[0]
-                order_code = (''.join(re.findall('\D+', order_id))).replace("'", "")
+                order_code = (''.join(re.findall('\D+', order_id))).replace("'", "").replace("`", "")
                 order_id = ''.join(re.findall('\d+', order_id))
                 if order_id:
                     order_data['order_id'] = int(order_id)

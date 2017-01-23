@@ -140,7 +140,7 @@ def get_confirmed_jo(start_index, stop_index, temp_data, search_term, order_term
 def get_confirmed_jo_all(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     parent_stages = get_user_stages(user, user)
-    lis = ['job_code', 'product_code__sku_code', 'product_code__sku_category', 'creation_date', 'received_quantity']
+    lis = ['job_code', 'product_code__sku_code', 'product_code__sku_brand', 'product_code__sku_category', 'creation_date', 'received_quantity']
     filter_params = {'product_code_id__in': sku_master_ids, 'product_code__user': user.id,
                      'status__in': ['grn-generated', 'pick_confirm', 'partial_pick'], 'product_quantity__gt': F('received_quantity')}
     if not request.user.is_staff and parent_stages:
@@ -153,7 +153,7 @@ def get_confirmed_jo_all(start_index, stop_index, temp_data, search_term, order_
         if order_term == 'desc':
             order_data = '-%s' % order_data
         master_data = JobOrder.objects.filter(**filter_params).order_by(order_data).\
-                                       values('job_code', 'product_code__sku_code', 'product_code__sku_category')
+                                       values('job_code', 'product_code__sku_code', 'product_code__sku_category', 'product_code__sku_brand')
     if search_term:
         master_data = JobOrder.objects.filter(Q(job_code__icontains=search_term), **filter_params).values('job_code', 'product_code__sku_code',\
 		 			'product_code__sku_category').order_by(order_data)
@@ -170,7 +170,8 @@ def get_confirmed_jo_all(start_index, stop_index, temp_data, search_term, order_
         data = data[0]
         temp_data['aaData'].append({'Job Code': data.job_code, 'Creation Date': get_local_date(request.user, data.creation_date),
 				    'SKU Code': data_id['product_code__sku_code'], 'SKU Category': data_id['product_code__sku_category'],
-                                    'Receive Status': receive_status, 'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data.id}})
+				    'SKU Brand': data_id['product_code__sku_brand'], 'Receive Status': receive_status, 'DT_RowClass': 'results', 
+				    'DT_RowAttr': {'data-id': data.id}})
 
 
 @csrf_exempt

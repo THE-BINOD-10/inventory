@@ -14,7 +14,7 @@ MAIL_TO = [ 'sreekanth@mieone.com' ]
 
 class CollectData:
     def __init__(self, company_name='', api_object = ''):
-        users_list = Integrations.objects.filter(name=company_name).values_list('user', flat=True)
+        users_list = Integrations.objects.filter(name=company_name, status=1).values_list('user', flat=True)
         self.users = User.objects.filter(id__in=users_list)
         self.easyops_api = eval(api_object)(company_name=company_name, warehouse='default')
         self.company_name = company_name

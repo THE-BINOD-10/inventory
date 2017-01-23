@@ -60,15 +60,16 @@ def get_batch_data(start_index, stop_index, temp_data, search_term, order_term, 
         check_values = dat['sku__sku_code'] + '<>' + sku_code
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (check_values, dat['total'])
 
-        temp_data['aaData'].append(OrderedDict(( ('data_value', check_values), ('sku_code', sku_code), ('title', dat['title']),
-                                                 ('total_quantity', dat['total']), ('id', index), ('DT_RowClass', 'results') )))
+        temp_data['aaData'].append(OrderedDict(( ('data_value', check_values), ('SKU Code', sku_code), ('Title', dat['title']),
+                                                 ('Total Quantity', dat['total']), ('id', index), ('DT_RowClass', 'results') )))
         index += 1
 
 @csrf_exempt
-def get_order_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_dict={}):
+def get_order_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, user_dict={}):
 
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    user_dict = eval(user_dict)
+    if user_dict:
+        user_dict = eval(user_dict)
     lis = ['id', 'order_id', 'sku__sku_code', 'title', 'quantity', 'shipment_date', 'marketplace']
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
 
@@ -197,7 +198,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
         dat = 'picklist_id'
         count += 1
-        if status == 'batch_picked':                                    
+        if status == 'batch_picked':
             dat = 'picklist_id'
 
             checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data['picklist_number'], data['picklist_number'])
@@ -299,6 +300,14 @@ def get_picklist_locations(data_dict, user):
 @get_admin_user
 def generate_picklist(request, user=''):
     remarks = request.POST['ship_reference']
+    filters = request.POST.get('filters', '')
+    order_filter = {'status': 1, 'user': user.id, 'quantity__gt': 0}
+    if filters:
+        filters = eval(filters)
+        if filters['market_places']:
+            order_filter['marketplace__in'] = (filters['market_places']).split(',')
+        if filters.get('customer_id', ''):
+            order_filter['customer_id'] = filters['customer_id']
     data = []
     stock_status = ''
     out_of_stock = []
@@ -307,7 +316,7 @@ def generate_picklist(request, user=''):
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
-    all_orders = OrderDetail.objects.prefetch_related('sku').filter(status=1, user=user.id, quantity__gt=0)
+    all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
     if fifo_switch == 'true':
@@ -319,7 +328,7 @@ def generate_picklist(request, user=''):
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     sku_stocks = stock_detail1 | stock_detail2
     for key, value in request.POST.iteritems():
-        if key in ('sortingTable_length', 'fifo-switch', 'ship_reference', 'remarks'):
+        if key in ('sortingTable_length', 'fifo-switch', 'ship_reference', 'remarks', 'filters'):
             continue
 
         order_data = OrderDetail.objects.get(id=key,user=user.id)
@@ -545,7 +554,15 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
 @login_required
 @get_admin_user
 def batch_generate_picklist(request, user=''):
-    remarks = request.POST.get('remarks', '')
+    remarks = request.POST.get('ship_reference', '')
+    filters = request.POST.get('filters', '')
+    order_filter = {'status': 1, 'user': user.id, 'quantity__gt': 0}
+    if filters:
+        filters = eval(filters)
+        if filters['market_places']:
+            order_filter['marketplace__in'] = (filters['market_places']).split(',')
+        if filters.get('customer_id', ''):
+            order_filter['customer_id'] = filters['customer_id']
 
     data = []
     order_data = []
@@ -555,7 +572,7 @@ def batch_generate_picklist(request, user=''):
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
-    all_orders = OrderDetail.objects.prefetch_related('sku').filter(status=1, user=user.id, quantity__gt=0)
+    all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
     if fifo_switch == 'true':
@@ -567,7 +584,7 @@ def batch_generate_picklist(request, user=''):
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     sku_stocks = stock_detail1 | stock_detail2
     for key, value in request.POST.iteritems():
-        if key in PICKLIST_SKIP_LIST:
+        if key in PICKLIST_SKIP_LIST or key in ['filters']:
             continue
 
         key = key.split('<>')
@@ -663,7 +680,7 @@ def get_picklist_data(data_id,user_id):
                 if order.reserved_quantity == 0:
                     continue
 
-                batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'picked_quantity': order.reserved_quantity, 'id': order.id, 'invoice_amount': invoice, 'price': invoice * order.reserved_quantity, 'image': image, 'order_id': order.order_id, 'status': order.status, 'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title}
+                batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'picked_quantity': order.reserved_quantity, 'id': order.id, 'invoice_amount': invoice, 'price': invoice * order.reserved_quantity, 'image': image, 'order_id': str(order.order_id), 'status': order.status, 'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
@@ -688,7 +705,7 @@ def get_picklist_data(data_id,user_id):
                 if order.order_type == 'combo' and order.sku_code:
                     wms_code = order.sku_code
                 invoice_amount = order.order.invoice_amount
-                order_id = order.order.order_id
+                order_id = str(order.order.order_id)
                 sku_code = order.order.sku_code
                 title = order.order.title
             else:
@@ -718,7 +735,7 @@ def get_picklist_data(data_id,user_id):
                 image = stock_id.sku.image_url
                 wms_code = stock_id.sku.wms_code
 
-            data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'order_id': order.order_id, 'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': invoice_amount, 'price': invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'order_no': order_id,'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title})
+            data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'order_id': str(order.order_id), 'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': invoice_amount, 'price': invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'order_no': order_id,'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -752,7 +769,7 @@ def get_picklist_data(data_id,user_id):
             if order.reserved_quantity == 0:
                 continue
 
-            data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'order_id': order.order_id, 'stock_id': st_id, 'picked_quantity':order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': order.order.invoice_amount, 'price': order.order.invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'pallet_code': pallet_code, 'sku_code': order.order.sku_code, 'title': order.order.title })
+            data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'order_id': str(order.order_id), 'stock_id': st_id, 'picked_quantity':order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': order.order.invoice_amount, 'price': order.order.invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'pallet_code': pallet_code, 'sku_code': order.order.sku_code, 'title': order.order.title })
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -1116,7 +1133,7 @@ def view_picked_orders(request, user=''):
     if show_image == 'true' and 'Image' not in headers:
         headers = list(headers)
         headers.insert(0, 'Image')
-    return HttpResponse(json.dumps({'data': data, 'picklist_id': data_id, 'show_image': show_image}))
+    return HttpResponse(json.dumps({'data': data, 'picklist_id': data_id, 'show_image': show_image}, cls=DjangoJSONEncoder))
 
 def get_picked_data(data_id, user, marketplace=''):
     pick_filter = {'picklist_number': data_id, 'picked_quantity__gt': 0}
@@ -1233,7 +1250,7 @@ def get_customer_sku(request, user=''):
         return HttpResponse(json.dumps({'data': data,
                                   'shipment_id': '',#order_shipment[0].id,
                                   'display_fields': '',
-                                  'marketplace': '', 'shipment_number': ship_no}))
+                                  'marketplace': '', 'shipment_number': ship_no}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
 @login_required
@@ -2097,7 +2114,7 @@ def shipment_info_data(request, user=''):
             ship_reference = orders.order_packaging.order_shipment.shipment_reference
 
     return HttpResponse(json.dumps({'data': data, 'customer_id': customer_id, 'ship_status': SHIPMENT_STATUS,
-                                    'ship_reference': ship_reference}))
+                                    'ship_reference': ship_reference}, cls=DjangoJSONEncoder))
 
 @csrf_exempt
 @get_admin_user
@@ -2117,7 +2134,7 @@ def update_shipment_status(request, user=''):
                 order_shipment = shipment_info.order_packaging.order_shipment
                 order_shipment.shipment_reference = ship_reference
                 order_shipment.save()
-                
+
     return HttpResponse("Updated Successfully")
 
 @csrf_exempt
@@ -2165,8 +2182,7 @@ def get_sku_categories(request, user=''):
     stages_list = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'stages_list': stages_list}))
 
-def get_style_variants(sku_master, user, customer_id=''):
-    total_quantity = 0
+def get_style_variants(sku_master, user, customer_id='', total_quantity=0):
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku_id').distinct().annotate(in_stock=Sum('quantity'))
     purchase_orders = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id).\
                                            values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
@@ -2199,12 +2215,12 @@ def get_style_variants(sku_master, user, customer_id=''):
                 stock_quantity = stock_quantity - res_value
         sku_master[ind]['physical_stock'] = stock_quantity
         sku_master[ind]['intransit_quantity'] = intransit_quantity
-        total_quantity += stock_quantity
+        sku_master[ind]['style_quantity'] = total_quantity
         if customer_id:
             customer_sku = CustomerSKU.objects.filter(sku__user=user.id, customer_name__customer_id=customer_id, sku__wms_code=sku['wms_code'])
             if customer_sku:
                 sku_master[ind]['price'] = customer_sku[0].price
-    return sku_master, total_quantity
+    return sku_master
 
 @csrf_exempt
 @login_required
@@ -2236,7 +2252,7 @@ def get_sku_variants(request, user=''):
     sku_master = list(SKUMaster.objects.filter(**filter_params).values(*get_values).order_by('sequence'))
     sku_master = [ key for key,_ in groupby(sku_master)]
 
-    sku_master, total_quantity = get_style_variants(sku_master, user, customer_id)
+    sku_master = get_style_variants(sku_master, user, customer_id=customer_id)
 
     return HttpResponse(json.dumps({'data': sku_master}))
 
@@ -2559,9 +2575,9 @@ def get_customer_payment_tracker(request, user=''):
                     expected_date = expected_date.strftime("%d %b, %Y")
             if not expected_date:
                 expected_date = picked_date.strftime("%d %b, %Y")
-        
+
         sum_data = total_data.filter(order_id = data['order_id']).aggregate(Sum('invoice_amount'), Sum('payment_received'))
-        order_data.append({'order_id': data['order_id'], 'display_order': order_id, 'account': data['payment_mode'],
+        order_data.append({'order_id': str(data['order_id']), 'display_order': order_id, 'account': data['payment_mode'],
                            'inv_amount': "%.2f" % sum_data['invoice_amount__sum'],
                            'receivable': "%.2f" % (sum_data['invoice_amount__sum']-sum_data['payment_received__sum']),
                            'received': '%.2f' % sum_data['payment_received__sum'], 'order_status': order_status,
@@ -2612,15 +2628,27 @@ def create_orders_data(request, user=''):
     return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': TAX_TYPES}))
 
 @csrf_exempt
-def get_order_category_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}):
+def get_order_category_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, user_dict={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
+    user_dict = eval(user_dict)
     lis = ['id', 'customer_name', 'order_id', 'sku__sku_category', 'total']
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
+
+    if user_dict.get('market_places', ''):
+        marketplace = user_dict['market_places'].split(',')
+        data_dict['marketplace__in'] = marketplace
+    if user_dict.get('customer_id', ''):
+        data_dict['customer_id'], data_dict['customer_name'] = user_dict['customer_id'].split(':')
 
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    search_params = get_filtered_params(filters, lis[:1])
+    search_params = get_filtered_params(filters, lis[1:])
+ 
+    if 'order_id__icontains' in search_params.keys():
+        order_search = search_params['order_id__icontains']
+        search_params['order_id__icontains'] = ''.join(re.findall('\d+', order_search))
+        search_params['order_code__icontains'] = ''.join(re.findall('\D+', order_search))
     search_params['sku_id__in'] = sku_master_ids
 
     if search_term:
@@ -2651,15 +2679,30 @@ def get_order_category_view_data(start_index, stop_index, temp_data, search_term
         index += 1
 
 @csrf_exempt
-def get_order_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}):
+def get_order_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_dict={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
+    user_dict = eval(user_dict)
     lis = ['id', 'customer_name', 'order_id', 'marketplace', 'total', 'creation_date']
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
 
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    search_params = get_filtered_params(filters, lis[:1])
+
+    if user_dict.get('market_places', ''):
+        marketplace = user_dict['market_places'].split(',')
+        data_dict['marketplace__in'] = marketplace
+    if user_dict.get('customer_id', ''):
+        data_dict['customer_id'], data_dict['customer_name'] = user_dict['customer_id'].split(':') 
+    search_params = get_filtered_params(filters, lis[1:])
+
+    if 'shipment_date__icontains' in search_params.keys():
+        search_params['shipment_date__regex'] = search_params['shipment_date__icontains']
+        del search_params['shipment_date__icontains']
+    if 'order_id__icontains' in search_params.keys():
+        order_search = search_params['order_id__icontains']
+        search_params['order_id__icontains'] = ''.join(re.findall('\d+', order_search))
+        search_params['order_code__icontains'] = ''.join(re.findall('\D+', order_search))
     search_params['sku_id__in'] = sku_master_ids
 
     all_orders = OrderDetail.objects.filter(**data_dict)
@@ -2695,6 +2738,14 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
 @login_required
 @get_admin_user
 def order_category_generate_picklist(request, user=''):
+    filters = request.POST.get('filters', '')
+    order_filter = {'status': 1, 'user': user.id, 'quantity__gt': 0}
+    if filters:
+        filters = eval(filters)
+        if filters['market_places']:
+            order_filter['marketplace__in'] = (filters['market_places']).split(',')
+        if filters.get('customer_id', ''):
+            order_filter['customer_id'] = filters['customer_id']
     data = []
     order_data = []
     stock_status = ''
@@ -2703,7 +2754,7 @@ def order_category_generate_picklist(request, user=''):
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
-    all_orders = OrderDetail.objects.prefetch_related('sku').filter(status=1, user=user.id, quantity__gt=0)
+    all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
     if fifo_switch == 'true':
@@ -2715,11 +2766,11 @@ def order_category_generate_picklist(request, user=''):
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     sku_stocks = stock_detail1 | stock_detail2
     for key, value in request.POST.iteritems():
-        if key in PICKLIST_SKIP_LIST:
+        if key in PICKLIST_SKIP_LIST or key in ['filters']:
             continue
 
         order_filter = {'quantity__gt': 0 }
-        if '<>' in key: 
+        if '<>' in key:
             key = key.split('<>')
             order_id, sku_category = key
             order_filter['sku__sku_category'] = sku_category

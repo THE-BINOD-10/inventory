@@ -112,7 +112,7 @@ def get_dispatch_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_dispatch_data(search_params, user)
 
-    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+    return HttpResponse(json.dumps(temp_data, cls=DjangoJSONEncoder), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -363,7 +363,7 @@ def get_sales_return_filter_data(search_params, user):
 def get_sales_return_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_sales_return_filter_data(search_params, user)
-    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+    return HttpResponse(json.dumps(temp_data, cls=DjangoJSONEncoder), content_type='application/json')
 
 @get_admin_user
 def print_sales_returns(request, user=''):

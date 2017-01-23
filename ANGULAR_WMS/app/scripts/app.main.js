@@ -157,13 +157,16 @@ angular
 
         Auth.logout().then(function () {
 
-                   $rootScope.$broadcast(AUTH_EVENTS.logoutSuccess);
+                 $state.go("user.signin");
+                   //$rootScope.$broadcast(AUTH_EVENTS.logoutSuccess);
                  }) 
       }
     
       var special = ["add_shipmentinfo", "add_qualitycheck", "pos_switch", "production_switch", "setup_status"];
       $scope.show_tab = function(data) {
-        if(special.indexOf(data) > -1) {
+        if(!(Session.roles)) {
+          return false;
+        } else if (special.indexOf(data) > -1) {
           return Session.roles.permissions[data];
         } else if (Boolean(Session.roles.permissions["is_staff"]) || Boolean(Session.roles.permissions["is_superuser"])) {
           return true;

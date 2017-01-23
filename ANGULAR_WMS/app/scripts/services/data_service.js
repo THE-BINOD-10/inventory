@@ -52,5 +52,14 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
       self.other_view.view = 'OrderView'
     }
+
+    /** login page maintainance **/
+    self.login_data = {
+
+      state_name: '',
+      login_type: '',
+      customers: { sagarfab: 'user.sagarfab'},
+      default: 'user.signin'
+    }
 }
 

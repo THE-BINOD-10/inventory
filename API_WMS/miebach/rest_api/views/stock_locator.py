@@ -431,7 +431,7 @@ def get_id_cycle(request, user=''):
 @get_admin_user
 def stock_summary_data(request, user=''):
     wms_code = request.GET['wms_code']
-    stock_data = StockDetail.objects.exclude(receipt_number=0).filter(sku_id__wms_code=wms_code, quantity__gt=0, sku__user = user.id)
+    stock_data = StockDetail.objects.exclude(receipt_number=0).filter(sku_id__wms_code=wms_code, sku__user = user.id)
     zones_data = {}
     production_stages = []
     for stock in stock_data:

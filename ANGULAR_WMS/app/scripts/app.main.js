@@ -162,8 +162,12 @@ angular
       }
     
       var special = ["add_shipmentinfo", "add_qualitycheck", "pos_switch", "production_switch", "setup_status"];
+      var labels_list = ["MASTERS_LABEL", "INBOUND_LABEL", "PRODUCTION_LABEL", "STOCK_LABEL", "OUTBOUND_LABEL", "SHIPMENT_LABEL", 
+      "OTHERS_LABEL", "PAYMENT_LABEL"];
       $scope.show_tab = function(data) {
-        if(special.indexOf(data) > -1) {
+        if(labels_list.indexOf(data) > -1) {
+          return Session.roles.labels[data];
+        }else if(special.indexOf(data) > -1) {
           return Session.roles.permissions[data];
         } else if (Boolean(Session.roles.permissions["is_staff"]) || Boolean(Session.roles.permissions["is_superuser"])) {
           return true;

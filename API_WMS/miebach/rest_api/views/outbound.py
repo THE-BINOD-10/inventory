@@ -622,12 +622,33 @@ def batch_generate_picklist(request, user=''):
                            'picklist_id': picklist_number + 1,'stock_status': stock_status, 'show_image': show_image,
                            'use_imei': use_imei, 'order_status': order_status, 'user': request.user.id}))
 
+def get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks, reserved_instances):
+    stock_left = 0
+    if wms_code in stock_skus and not location == 'NO STOCK':
+        if location in map(lambda d: d['location__location'], filter(lambda person: person['sku__wms_code'] == wms_code, stocks)):
+            stock_left = float(filter(lambda person: person['sku__wms_code'] == wms_code and person['location__location'] == location,\
+                               stocks)[0]['quantity'])
+        if wms_code in reserved_skus:
+            if location in map(lambda d: d['stock__location__location'],\
+               filter(lambda person: person['stock__sku__wms_code'] == wms_code, reserved_instances)):
+                st_res_quan = filter(lambda person: person['stock__sku__wms_code'] == wms_code and \
+                                     person['stock__location__location'] == location, reserved_instances)[0]['reserved']
+                stock_left -= float(st_res_quan)
+        if stock_left < 0:
+            stock_left = 0
+    return stock_left
 
 def get_picklist_data(data_id,user_id):
 
     sku_total_quantities = {}
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user_id) | Q(stock__sku__user=user_id), picklist_number=data_id)
     pick_stocks = StockDetail.objects.filter(sku__user=user_id)
+    stocks = pick_stocks.filter(quantity__gt=0).values('sku__wms_code', 'location__location').distinct().annotate(quantity=Sum('quantity'))
+    reserved_instances = PicklistLocation.objects.filter(status=1, picklist__order__user=user_id).values('stock__sku__wms_code',
+                                 'stock__location__location').\
+                                 distinct().annotate(reserved=Sum('reserved'))
+    stock_skus = map(lambda d: d['sku__wms_code'], stocks)
+    reserved_skus = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
     data = []
     if not picklist_orders:
         return data, sku_total_quantities
@@ -679,8 +700,14 @@ def get_picklist_data(data_id,user_id):
             if match_condition not in batch_data:
                 if order.reserved_quantity == 0:
                     continue
+                stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks, reserved_instances)
+                last_picked_locs = ''
+                if location == 'NO STOCK':
+                    last_picked = pick_stocks.filter(sku__wms_code=wms_code).order_by('-updation_date').values_list('location__location',
+                                                     flat=True).distinct()[:2]
+                    last_picked_locs = ','.join(last_picked)
 
-                batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'picked_quantity': order.reserved_quantity, 'id': order.id, 'invoice_amount': invoice, 'price': invoice * order.reserved_quantity, 'image': image, 'order_id': str(order.order_id), 'status': order.status, 'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title}
+                batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'picked_quantity': order.reserved_quantity, 'id': order.id, 'invoice_amount': invoice, 'price': invoice * order.reserved_quantity, 'image': image, 'order_id': str(order.order_id), 'status': order.status, 'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
@@ -735,7 +762,14 @@ def get_picklist_data(data_id,user_id):
                 image = stock_id.sku.image_url
                 wms_code = stock_id.sku.wms_code
 
-            data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'order_id': str(order.order_id), 'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': invoice_amount, 'price': invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'order_no': order_id,'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title})
+            stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks, reserved_instances)
+            last_picked_locs = ''
+            if location == 'NO STOCK':
+                last_picked = pick_stocks.filter(sku__wms_code=wms_code).order_by('-updation_date').values_list('location__location',
+                                                 flat=True).distinct()[:2]
+                last_picked_locs = ','.join(last_picked)
+
+            data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'order_id': str(order.order_id), 'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': invoice_amount, 'price': invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'order_no': order_id,'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -768,8 +802,19 @@ def get_picklist_data(data_id,user_id):
 
             if order.reserved_quantity == 0:
                 continue
+            stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks, reserved_instances)
+            last_picked_locs = ''
+            if location == 'NO STOCK':
+                last_picked = pick_stocks.filter(sku__wms_code=wms_code).order_by('-updation_date').values_list('location__location',
+                                                 flat=True).distinct()[:2]
+                last_picked_locs = ','.join(last_picked)
 
-            data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'order_id': str(order.order_id), 'stock_id': st_id, 'picked_quantity':order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': order.order.invoice_amount, 'price': order.order.invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'pallet_code': pallet_code, 'sku_code': order.order.sku_code, 'title': order.order.title })
+            data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity,
+                         'picklist_number': data_id, 'order_id': str(order.order_id), 'stock_id': st_id,
+                         'picked_quantity':order.reserved_quantity, 'id': order.id, 'sequence': sequence,
+                         'invoice_amount': order.order.invoice_amount, 'price': order.order.invoice_amount * order.reserved_quantity,
+                         'image': image, 'status': order.status, 'pallet_code': pallet_code, 'sku_code': order.order.sku_code,
+                         'title': order.order.title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs })
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -1991,6 +2036,22 @@ def generate_jo_data(request, user=''):
         all_data.append({'product_code': key, 'product_description': value,
                          'sub_data': data})
     return HttpResponse(json.dumps({'data': all_data}))
+
+@csrf_exempt
+@get_admin_user
+def create_stock_transfer_data(request, user=''):
+    all_data = []
+    title = 'Create Stock Transfer'
+    data = []
+    key = request.POST.get('WMS Code')
+    quantity = int(request.POST.get('Ordered Quantity', 0))
+    supplier_data = SKUSupplier.objects.filter(sku__wms_code=key, sku__user=user.id)
+    if supplier_data:
+        price = supplier_data[0].price * quantity;
+    else:
+        price = 0
+
+    return HttpResponse(json.dumps({'price': price}))
 
 def get_shipment_number(user):
     order_shipment = OrderShipment.objects.filter(user = user.id).order_by('-shipment_number')

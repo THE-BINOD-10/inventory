@@ -28,6 +28,8 @@ ADJUST_INVENTORY_EXCEL_HEADERS = ['WMS Code', 'Location', 'Physical Quantity', '
 PERMISSION_KEYS =['add_qualitycheck', 'add_skustock', 'add_shipmentinfo', 'add_openpo', 'add_orderreturns', 'add_openpo', 'add_purchaseorder',
                   'add_joborder', 'add_materialpicklist', 'add_polocation', 'add_stockdetail', 'add_cyclecount', 'add_inventoryadjustment',
                   'add_orderdetail', 'add_picklist']
+LABEL_KEYS = ["MASTERS_LABEL", "INBOUND_LABEL", "PRODUCTION_LABEL", "STOCK_LABEL", "OUTBOUND_LABEL", "SHIPMENT_LABEL", "OTHERS_LABEL",
+                "PAYMENT_LABEL"]
 
 SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sku_desc': '', 'sku_group': '', 'sku_type': '',
@@ -376,7 +378,9 @@ ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', 
                       'phone_number': '', 'prefix': '', 'location': ''}
 
 PICKLIST_EXCEL = OrderedDict(( ('WMS Code', 'wms_code'), ('Title', 'title'), ('Zone', 'zone'), ('Location', 'location'),
-                               ('Reserved Quantity', 'reserved_quantity')))
+                               ('Reserved Quantity', 'reserved_quantity'), ('Stock Left', 'stock_left'),
+                               ('Last Picked Location', 'last_picked_locs')
+                            ))
 
 SHOPCLUES_EXCEL = {'order_id': 1, 'quantity': 5, 'title': 3, 'invoice_amount': 20, 'address': 11, 'customer_name': 10,
                    'marketplace': 'Shopclues', 'sku_code': 15}
@@ -494,26 +498,30 @@ SKU_FIELD_TYPES = [{'field_name': 'sku_category', 'field_value': 'SKU Category'}
 
 PERMISSION_DICT = OrderedDict((
                                # Masters
-                               ("SKU Master", "skumaster"), ("Location Master", "locationmaster"), ("Supplier Master", "suppliermaster"),
-                               ("Supplier SKU Mapping", "skusupplier"), ("Customer Master", "customermaster"),
-                               ("Customer SKU Master", "customersku"), ("BOM Master", "bommaster"), ("Vendor Master", "vendormaster"),
-                               ("Discount Master", "categorydiscount"), ("Custom SKU Template", "productproperties"),
+                               ("MASTERS_LABEL", (("SKU Master", "skumaster"), ("Location Master", "locationmaster"), 
+                               ("Supplier Master", "suppliermaster"),("Supplier SKU Mapping", "skusupplier"), 
+                               ("Customer Master", "customermaster"),("Customer SKU Master", "customersku"), ("BOM Master", "bommaster"), 
+                               ("Vendor Master", "vendormaster"),("Discount Master", "categorydiscount"), 
+                               ("Custom SKU Template", "productproperties"),("Size Master", "sizemaster"))),
                                # Inbound
-                               ("Raise PO", "openpo"), ("Receive PO", "purchaseorder"), ("Quality Check", "qualitycheck"),
+                               ("INBOUND_LABEL", (("Raise PO", "openpo"), ("Receive PO", "purchaseorder"), ("Quality Check", "qualitycheck"),
                                ("Putaway Confirmation", "polocation"), ("Sales Returns", "orderreturns"),
-                               ("Returns Putaway", "returnslocation"),
+                               ("Returns Putaway", "returnslocation"))),
                                # Production
-                               ("Raise Job order", "jomaterial"), ("RM Picklist", "materialpicklist"), ("Receive Job Order", "joborder"),
-                               ("Job Order Putaway", "rmlocation"),
+                               ("PRODUCTION_LABEL", (("Raise Job order", "jomaterial"), ("RM Picklist", "materialpicklist"), 
+                               ("Receive Job Order", "joborder"),("Job Order Putaway", "rmlocation"))),
                                # Stock Locator
-                               ("Stock Detail", "stockdetail"), ("Vendor Stock", "vendorstock"), ("Cycle Count", "cyclecount"),
-                               ("Inventory Adjustment", "inventoryadjustment"),
+                               ("STOCK_LABEL",(("Stock Detail", "stockdetail"), ("Vendor Stock", "vendorstock"), ("Cycle Count", "cyclecount"),
+                               ("Inventory Adjustment", "inventoryadjustment"),("Stock Summary", "skustock"))),
                                # Outbound
-                               ("Create Orders", "orderdetail"), ("View Orders", "picklist"), ("Pull Confirmation", "picklistlocation"),
+                               ("OUTBOUND_LABEL",(("Create Orders", "orderdetail"), ("View Orders", "picklist"), 
+                               ("Pull Confirmation", "picklistlocation"))),
                                # Shipment Info
-                               ("Shipment Info", "shipmentinfo"),
+                               ("SHIPMENT_LABEL",(("Shipment Info", "shipmentinfo"))),
                                # Others
-                               ("Raise Stock Transfer", "openst"), ("Create Stock Transfer", "stocktransfer"),
+                               ("OTHERS_LABEL", (("Raise Stock Transfer", "openst"), ("Create Stock Transfer", "stocktransfer"))),
+                               # Payment
+                               ("PAYMENT_LABEL", (("PAYMENTS","paymentsummary")))
                              ))
 
 EASYOPS_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'channel',
@@ -644,8 +652,9 @@ class BigAutoField(models.fields.AutoField):
             return 'bigint AUTO_INCREMENT'
         return super(BigAutoField, self).db_type(connection)
 
-def get_sku_filter_data(search_params, user):
+def get_sku_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
+    from rest_api.views.common import get_sku_master
     temp_data = copy.deepcopy(AJAX_DATA)
     results_data = []
     search_parameters = {}
@@ -659,7 +668,8 @@ def get_sku_filter_data(search_params, user):
             search_parameters['%s__%s' % (data, 'iexact')] = search_params[data]
 
     search_parameters['user'] = user.id
-    sku_master = SKUMaster.objects.filter(**search_parameters)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    sku_master = sku_master.filter(**search_parameters)
 
     temp_data['recordsTotal'] = len(sku_master)
     temp_data['recordsFiltered'] = len(sku_master)
@@ -679,8 +689,10 @@ def get_sku_filter_data(search_params, user):
     return temp_data
 
 
-def get_location_stock_data(search_params, user):
+def get_location_stock_data(search_params, user, sub_user):
     from miebach_admin.models import *
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
     results_data = copy.deepcopy( AJAX_DATA )
     total_quantity = 0
     search_parameters = {}
@@ -699,6 +711,7 @@ def get_location_stock_data(search_params, user):
     stock_detail = []
     search_parameters['quantity__gt'] = 0
     search_parameters['sku__user'] = user.id
+    search_parameters['sku_id__in'] = sku_master_ids
     if search_parameters:
         stock_detail = StockDetail.objects.exclude(receipt_number=0).filter(**search_parameters)
         total_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
@@ -717,8 +730,10 @@ def get_location_stock_data(search_params, user):
                                                     ('Receipt Date', str(data.receipt_date).split('+')[0]) )))
     return results_data, total_quantity
 
-def get_receipt_filter_data(search_params, user):
+def get_receipt_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
     lis = ['open_po__supplier__name', 'order_id', 'open_po__sku__wms_code', 'open_po__sku__sku_desc', 'received_quantity']
     temp_data = copy.deepcopy( AJAX_DATA )
@@ -742,6 +757,7 @@ def get_receipt_filter_data(search_params, user):
     purchase_order = []
     search_parameters['open_po__sku__user'] = user.id
     search_parameters['status__in'] = ['grn-generated', 'location-assigned', 'confirmed-putaway']
+    search_parameters['open_po__sku_id__in'] = sku_master_ids
 
     purchase_order = PurchaseOrder.objects.filter(**search_parameters)
     if search_params.get('order_term'):
@@ -763,9 +779,11 @@ def get_receipt_filter_data(search_params, user):
                                     ('Receipt Number', data.open_po_id), ('Received Quantity', data.received_quantity) )))
     return temp_data
 
-def get_dispatch_data(search_params, user):
+def get_dispatch_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'stock__location__location', 'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date']
     temp_data = copy.deepcopy( AJAX_DATA )
     search_parameters = {}
@@ -787,6 +805,7 @@ def get_dispatch_data(search_params, user):
     search_parameters['status__contains'] = 'picked'
     search_parameters['stock__gt'] = 0
     search_parameters['order__user'] = user.id
+    search_parameters['stock__sku_id__in'] = sku_master_ids
 
     picklist = Picklist.objects.filter(**search_parameters)
     if search_params.get('order_term'):
@@ -814,9 +833,11 @@ def get_dispatch_data(search_params, user):
 
     return temp_data
 
-def sku_wise_purchase_data(search_params, user):
+def sku_wise_purchase_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from itertools import chain
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
     data_list = []
     received_list = []
     temp_data = copy.deepcopy( AJAX_DATA )
@@ -828,6 +849,7 @@ def sku_wise_purchase_data(search_params, user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     search_parameters['open_po__sku__user'] = user.id
+    search_parameters['open_po__sku_id__in'] = sku_master_ids
     purchase_orders = PurchaseOrder.objects.filter(**search_parameters)
     temp_data['recordsTotal'] = len(purchase_orders)
     temp_data['recordsFiltered'] = len(purchase_orders)
@@ -865,8 +887,10 @@ def sku_wise_purchase_data(search_params, user):
 
     return temp_data
 
-def get_po_filter_data(search_params, user):
+def get_po_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['order_id', 'open_po__supplier_id', 'open_po__supplier__name', 'received_quantity']
     search_parameters = {}
     start_index = search_params.get('start', 0)
@@ -890,6 +914,7 @@ def get_po_filter_data(search_params, user):
 
 
     search_parameters['open_po__sku__user'] = user.id
+    search_parameters['open_po__sku_id__in'] = sku_master_ids
     result_values = ['order_id', 'open_po__supplier_id', 'open_po__supplier_id__name', 'prefix']
     purchase_order = PurchaseOrder.objects.exclude(status='').filter(**search_parameters).values(*result_values).distinct()
     if 'order_term' not in search_params:
@@ -950,8 +975,10 @@ def get_purchase_order_data(order):
 
     return order_data
 
-def get_stock_summary_data(search_params, user):
+def get_stock_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     search_stage = search_params.get('stage', '')
@@ -972,6 +999,7 @@ def get_stock_summary_data(search_params, user):
             job_filter['%s__%s__%s' % ('product_code', data, 'iexact')] = search_params[data]
 
     search_parameters['sku__user'] = user.id
+    search_parameters['sku_id__in'] = sku_master_ids
 
     sku_master = StockDetail.objects.exclude(receipt_number=0).values_list('sku_id', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_brand',
                                               'sku__sku_category').distinct().annotate(total=Sum('quantity')).filter(quantity__gt=0,
@@ -1040,9 +1068,11 @@ def get_stock_summary_data(search_params, user):
 
     return temp_data
 
-def get_daily_production_data(search_params, user):
+def get_daily_production_data(search_params, user, sub_user):
     from miebach_admin.models import JobOrder, ProductionStages, StatusTrackingSummary
     from rest_api.views.common import get_local_date
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     all_data = OrderedDict()
@@ -1055,6 +1085,7 @@ def get_daily_production_data(search_params, user):
     stage_filter = {'user': user.id}
     if search_stage:
         stage_filter['stage_name'] = search_stage
+    search_parameters['product_code_id__in'] = sku_master_ids
     extra_headers =  list(ProductionStages.objects.filter(**stage_filter).order_by('order').values_list('stage_name', flat=True))
     job_orders = JobOrder.objects.filter(product_code__user=user.id, status__in=['grn-generated', 'pick_confirm', 'partial_pick',
                                          'location-assigned', 'confirmed-putaway'], **search_parameters)
@@ -1112,9 +1143,11 @@ def get_daily_production_data(search_params, user):
 
     return temp_data
 
-def get_order_summary_data(search_params, user):
+def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
     temp_data = copy.deepcopy( AJAX_DATA )
     search_parameters = {}
@@ -1135,6 +1168,7 @@ def get_order_summary_data(search_params, user):
 
     search_parameters['quantity__gt'] = 0
     search_parameters['user'] = user.id
+    search_parameters['sku_id__in'] = sku_master_ids
 
     orders = OrderDetail.objects.filter(**search_parameters)
     if search_params.get('order_term'):

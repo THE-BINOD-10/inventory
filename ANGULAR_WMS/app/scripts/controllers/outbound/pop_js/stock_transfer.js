@@ -1,6 +1,6 @@
 'use strict';
 
-function StockTransferPOP($scope, $http, $state, Session, colFilters, Service) {
+function StockTransferPOP($scope, $http, $state, $timeout, Session, colFilters, Service) {
 
   var vm = this;
   var state_data = Service.stock_transfer;
@@ -8,7 +8,6 @@ function StockTransferPOP($scope, $http, $state, Session, colFilters, Service) {
   vm.pop_data = {};
   var empty_data = {data: [{wms_code: "", order_quantity: "", price: ""}], warehouse_name: ""};
   angular.copy(empty_data, vm.pop_data);
-
   if(state_data)  {
 
     angular.copy(JSON.parse(state_data), vm.pop_data.data);
@@ -40,7 +39,7 @@ function StockTransferPOP($scope, $http, $state, Session, colFilters, Service) {
     }
   })
   vm.bt_disable = false; 
-  vm.insert_order_data = function(data) {
+  /*vm.insert_order_data = function(data) {
     if (data.$valid) {
       vm.bt_disable = true;
       console.log(form);
@@ -60,10 +59,48 @@ function StockTransferPOP($scope, $http, $state, Session, colFilters, Service) {
     } else {
       vm.service.pop_msg("Fill Required Fields");
     }
+  }*/
+
+    function pop_msg(msg) {
+      vm.message = msg;
+      $timeout(function () {
+          vm.message = "";
+      }, 2000);
+      //reloadData();
+    }
+
+    /*vm.reloadData = reloadData;
+
+    function reloadData () {
+        vm.dtInstance.reloadData();
+    };*/
+
+
+  vm.insert_order_data = function(data) {
+     if (data.$valid) {
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serialize();
+      $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+        $http({
+               method: 'POST',
+               url:Session.url+'confirm_st/',
+               withCredential: true,
+               data: elem
+               }).success(function(data, status, headers, config) {
+                  if(data == 'Confirmed Successfully') {
+                    //vm.close();
+                    //vm.reloadData();
+                    pop_msg(data);
+                  } else {
+                    pop_msg(data);
+                  }
+              });
+     }
   }
 
 }
 
 angular
   .module('urbanApp')
-  .controller('StockTransferPOP', ['$scope', '$http', '$state', 'Session', 'colFilters', 'Service', StockTransferPOP]);
+  .controller('StockTransferPOP', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', StockTransferPOP]);

@@ -746,6 +746,32 @@ position:fixed;
 
   border-top: 0px !important;
   border-bottom: 0px !important;
-  padding: 5px 15px !important;
+  padding: 5px 5px !important;
   font-size: 10px !important;
 }
+
+.fs12 {
+
+  font-size: 12px !important;
+}
+
+.fs10 {
+
+      font-size: 10px !important;
+}
+
+.fs14 {
+
+      font-size: 14px !important;
+}
+
+.rm-padding th {
+  font-size: 11px !important;
+  padding: 5px 5px !important;
+}
+
+.rm-padding td {
+  font-size: 11px !important;
+  padding: 5px 5px !important;
+}
+

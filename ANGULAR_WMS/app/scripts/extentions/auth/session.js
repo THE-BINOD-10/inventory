@@ -6,7 +6,7 @@
     var that = this;
     //that.host = 'https://api.stockone.in/';
     //that.host = 'http://dev.stockone.in/';
-    that.host = 'http://176.9.181.43:7655/';
+    that.host = 'https://wms.mieone.com/';
     that.url = that.host+'rest_api/';
 
     function resetSession () {

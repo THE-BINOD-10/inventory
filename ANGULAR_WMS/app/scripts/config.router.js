@@ -19,6 +19,7 @@ var app = angular.module('urbanApp')
       FastClick.attach(document.body);
 
       var skipAsync = false;
+      var states = ['user.signin', 'user.signup', 'user.sagarfab']
 
             $rootScope.$on("$stateChangeStart", function (event, next, toPrms, from, fromPrms) {
 
@@ -1475,6 +1476,19 @@ var app = angular.module('urbanApp')
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
               return $ocLazyLoad.load('scripts/controllers/signup.js');
+                    }]
+          },
+          data: {
+            appClasses: 'bg-white usersession',
+            contentClasses: 'full-height'
+          }
+        })
+        .state('user.sagarfab', {
+          url: '/sagarfab_login',
+          templateUrl: 'views/customers/sagarfab_login.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/controllers/session.js');
                     }]
           },
           data: {

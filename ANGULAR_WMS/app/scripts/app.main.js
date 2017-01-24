@@ -157,7 +157,8 @@ angular
 
         Auth.logout().then(function () {
 
-                   $rootScope.$broadcast(AUTH_EVENTS.logoutSuccess);
+                 $state.go("user.signin");
+                   //$rootScope.$broadcast(AUTH_EVENTS.logoutSuccess);
                  }) 
       }
     

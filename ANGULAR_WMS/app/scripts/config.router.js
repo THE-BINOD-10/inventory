@@ -19,6 +19,7 @@ var app = angular.module('urbanApp')
       FastClick.attach(document.body);
 
       var skipAsync = false;
+      var states = ['user.signin', 'user.signup', 'user.sagarfab']
 
             $rootScope.$on("$stateChangeStart", function (event, next, toPrms, from, fromPrms) {
 
@@ -668,6 +669,16 @@ var app = angular.module('urbanApp')
             url: '/BackOrderPO',
             templateUrl: 'views/outbound/toggle/backorder_po.html'
           })
+          .state('app.outbound.BackOrders.ST', {
+            url: '/ST',
+            permission: 'add_picklist',
+            templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/pop_js/stock_transfer.js');
+              }]
+            },
+          })
           .state('app.production.BackOrders.RWO', {
             url: '/BackOrderRWO',
             templateUrl: 'views/production/toggle/update_rwo.html'
@@ -1061,6 +1072,22 @@ var app = angular.module('urbanApp')
           }
         })
 
+      // Orders Sync Issues
+      .state('app.OrdersSyncIssues', {
+          url: '/OrdersSyncIssues',
+          templateUrl: 'views/orders_sync_issues/orders_sync_issues.html',
+          authRequired: true,
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/orders_sync_issues/orders_sync_issues.js'
+                  ]);
+                }]
+          },
+          data: {
+              title: 'Orders Sync Issues'
+          }
+      })
       // Reports routes
       .state('app.reports', {
           template: '<div ui-view></div>',
@@ -1449,6 +1476,19 @@ var app = angular.module('urbanApp')
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
               return $ocLazyLoad.load('scripts/controllers/signup.js');
+                    }]
+          },
+          data: {
+            appClasses: 'bg-white usersession',
+            contentClasses: 'full-height'
+          }
+        })
+        .state('user.sagarfab', {
+          url: '/sagarfab_login',
+          templateUrl: 'views/customers/sagarfab_login.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/controllers/session.js');
                     }]
           },
           data: {

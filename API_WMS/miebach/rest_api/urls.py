@@ -165,6 +165,7 @@ urlpatterns = patterns('rest_api.views',
     url('^get_marketplaces_list/$', 'get_marketplaces_list'),
     url('^generate_po_data/$', 'generate_po_data'),
     url('^generate_jo_data/$', 'generate_jo_data'),
+    url('^create_stock_transfer_data/$', 'create_stock_transfer_data'),
     url('^shipment_info/$', 'shipment_info'),
     url('^insert_shipment_info/$', 'insert_shipment_info'),
     url('^shipment_info_data/$', 'shipment_info_data'),
@@ -262,7 +263,9 @@ urlpatterns = patterns('rest_api.views',
     url(r'^update_mail_configuration/$', 'update_mail_configuration'),
     url(r'^send_mail_reports/$', 'send_mail_reports'),
     url(r'^save_stages/$', 'save_stages'),
+)
 
+urlpatterns += patterns('rest_api.views',
     #manage users
     url(r'^add_user/$', 'add_user'),
     url(r'^add_group_data/$', 'add_group_data'),
@@ -284,6 +287,7 @@ urlpatterns = patterns('rest_api.views',
 
     #Integrations
     url(r'^pull_orders_now/$', 'pull_orders_now'),
+    url(r'^update_sync_issues/$', 'update_sync_issues'),
 
     #stockone
     url(r'^book_trial/$','book_trial'),

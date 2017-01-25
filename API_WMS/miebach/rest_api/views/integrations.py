@@ -45,12 +45,17 @@ def update_orders(orders, user='', company_name=''):
                 if sku_master:
                     filter_params['sku_id'] = sku_master[0].id
                     filter_params1['sku_id'] = sku_master[0].id
-                else:
-                    orders_track = OrdersTrack.objects.filter(order_id=original_order_id, sku_code=data['sku'], user=user.id)
-                    if not orders_track:
-                        OrdersTrack.objects.create(order_id=original_order_id, sku_code=sku_code, status=1, user=user.id,
-                                               reason = "SKU Mapping doesn't exists", creation_date=datetime.datetime.now())
-                    continue
+                elif sku_code and not sku_master:
+                    SKUMaster.objects.create(sku_code=sku_code, wms_code=sku_code,user=user.id, status=1, creation_date=NOW,
+                                                          online_percentage=0)
+                    sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+                    filter_params['sku_id'] = sku_master.id
+                    filter_params1['sku_id'] = sku_master.id
+                    #orders_track = OrdersTrack.objects.filter(order_id=original_order_id, sku_code=data['sku'], user=user.id)
+                    #if not orders_track:
+                    #    OrdersTrack.objects.create(order_id=original_order_id, sku_code=sku_code, status=1, user=user.id,
+                    #                           reason = "SKU Mapping doesn't exists", creation_date=datetime.datetime.now())
+                    #continue
 
                 order_det = OrderDetail.objects.filter(**filter_params)
                 order_det1 = OrderDetail.objects.filter(**filter_params1)
@@ -79,12 +84,13 @@ def update_orders(orders, user='', company_name=''):
                 order_details['order_code'] = order_code
                 if not order_code:
                     order_details['order_code'] = 'OD'
-                if not sku_master:
-                    orders_track = OrdersTrack.objects.filter(order_id=order_details['order_id'], sku_code=sku_code, user=user.id)
-                    if not orders_track:
-                        OrdersTrack.objects.create(order_id=order_details['order_id'], sku_code=sku_code, status=1, user=user.id,
-                                                   reason = "SKU Mapping doesn't exists", creation_date=NOW)
-                    continue
+                #if not sku_master:
+                #    sku_master = SKUMaster.objects.create(sku_code=sku_code, user=user.id, status=1, creation_date=NOW)
+                #    orders_track = OrdersTrack.objects.filter(order_id=order_details['order_id'], sku_code=sku_code, user=user.id)
+                #    if not orders_track:
+                #        OrdersTrack.objects.create(order_id=order_details['order_id'], sku_code=sku_code, status=1, user=user.id,
+                #                                   reason = "SKU Mapping doesn't exists", creation_date=NOW)
+                #    continue
 
                 order_details['sku_id'] = sku_master[0].id
                 order_details['title'] = eval(order_mapping['title'])

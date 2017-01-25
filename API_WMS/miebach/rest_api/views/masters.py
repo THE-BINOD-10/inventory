@@ -14,6 +14,7 @@ from miebach_utils import *
 from django.core import serializers
 import os
 from django.core.files.base import ContentFile
+from sync_sku import *
 
 # Create your views here.
 
@@ -1334,6 +1335,11 @@ def insert_sku(request,user=''):
 
     insert_update_brands(user)
     get_user_sku_data(user)
+
+    all_users = get_related_users(user.id)
+    sync_sku_switch = get_misc_value('sku_sync', user.id)
+    if all_users and sync_sku_switch == 'true':
+        create_sku([sku_master], all_users)
 
     return HttpResponse(status_msg)
 

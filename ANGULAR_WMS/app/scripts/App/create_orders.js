@@ -967,6 +967,13 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
      vm.get_brands();
      vm.get_cats();
    }
+
+   vm.logout = function(){
+
+     Auth.logout().then(function(){
+       $state.go("user.sagarfab");
+     })
+   }
 }
 
 angular

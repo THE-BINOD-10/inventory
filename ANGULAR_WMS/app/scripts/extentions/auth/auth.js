@@ -53,7 +53,6 @@
           Session.unset();
           deferredStatus = null;
           deleteDB();
-          $state.go("user.signin"); 
         });
       };
 
@@ -65,6 +64,12 @@
         }
 
         deferredStatus = $q.defer();
+
+        if(Session.userName) {
+
+          deferredStatus.resolve("Success");
+          return deferredStatus.promise;
+        }
 
         $http.get(Session.url + "status/", {withCredentials: true}).then(function (resp) {
 

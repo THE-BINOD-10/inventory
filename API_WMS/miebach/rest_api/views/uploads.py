@@ -14,6 +14,7 @@ from common import *
 from miebach_utils import *
 from django.core import serializers
 import csv
+from sync_sku import insert_skus
 
 @csrf_exempt
 def error_file_download(error_file):
@@ -605,6 +606,7 @@ def get_sku_file_mapping(reader, file_type):
 
 def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 
+    all_sku_masters = []
     zone_master = ZoneMaster.objects.filter(user=user.id).values('id', 'zone')
     zones = map(lambda d: d['zone'], zone_master)
     zone_ids = map(lambda d: d['id'], zone_master)
@@ -692,9 +694,15 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             data_dict['sku_code'] = data_dict['wms_code']
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
+            all_sku_masters.append(sku_master)
 
     get_user_sku_data(user)
     insert_update_brands(user)
+
+    all_users = get_related_users(user.id)
+    sync_sku_switch = get_misc_value('sku_sync', user.id)
+    if all_users and sync_sku_switch == 'true' and all_sku_masters:
+        create_sku(all_sku_masters, all_users)
     return 'success'
 
 

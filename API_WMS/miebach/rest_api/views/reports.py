@@ -32,7 +32,7 @@ def get_report_data(request, user=''):
 @get_admin_user
 def get_sku_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_sku_filter_data(search_params, user)
+    temp_data = get_sku_filter_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
@@ -54,7 +54,7 @@ def print_sku(request, user=''):
 @get_admin_user
 def get_location_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data, total_quantity = get_location_stock_data(search_params, user)
+    temp_data, total_quantity = get_location_stock_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
@@ -79,7 +79,7 @@ def print_stock_location(request, user=''):
 @get_admin_user
 def get_po_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_po_filter_data(search_params, user)
+    temp_data = get_po_filter_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
@@ -88,7 +88,7 @@ def get_po_filter(request, user=''):
 @get_admin_user
 def get_receipt_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_receipt_filter_data(search_params, user)
+    temp_data = get_receipt_filter_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
@@ -110,7 +110,7 @@ def print_receipt_summary(request, user=''):
 @get_admin_user
 def get_dispatch_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_dispatch_data(search_params, user)
+    temp_data = get_dispatch_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data, cls=DjangoJSONEncoder), content_type='application/json')
 
@@ -119,7 +119,7 @@ def get_dispatch_filter(request, user=''):
 @get_admin_user
 def get_order_summary_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_order_summary_data(search_params, user)
+    temp_data = get_order_summary_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
@@ -128,7 +128,7 @@ def get_order_summary_filter(request, user=''):
 @get_admin_user
 def get_stock_summary_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_stock_summary_data(search_params, user)
+    temp_data = get_stock_summary_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
@@ -161,7 +161,7 @@ def print_order_summary_report(request, user=''):
 @get_admin_user
 def get_daily_production_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_daily_production_data(search_params, user)
+    temp_data = get_daily_production_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
@@ -190,7 +190,9 @@ def print_dispatch_summary(request, user=''):
     return HttpResponse(html_data)
 
 
-def print_sku_wise_data(search_params, user):
+def print_sku_wise_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class')
@@ -202,7 +204,7 @@ def print_sku_wise_data(search_params, user):
     stop_index = start_index + search_params.get('length', 0)
     search_parameters['user'] = user.id
 
-    sku_master = SKUMaster.objects.filter(**search_parameters)
+    sku_master = sku_master.filter(**search_parameters)
     temp_data['recordsTotal'] = len(sku_master)
     temp_data['recordsFiltered'] = len(sku_master)
 
@@ -225,7 +227,7 @@ def print_sku_wise_data(search_params, user):
 @get_admin_user
 def get_sku_stock_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = print_sku_wise_data(search_params, user)
+    temp_data = print_sku_wise_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
@@ -246,7 +248,7 @@ def print_sku_wise_stock(request, user=''):
 @get_admin_user
 def get_sku_purchase_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = sku_wise_purchase_data(search_params, user)
+    temp_data = sku_wise_purchase_data(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
@@ -263,13 +265,17 @@ def print_sku_wise_purchase(request, user=''):
     return HttpResponse(html_data)
 
 
-def get_supplier_details_data(search_params, user):
+def get_supplier_details_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    search_parameters = {}
+    search_parameters['open_po__sku_id__in'] = sku_master_ids
     supplier_data = {'aaData': []}
     supplier_name = search_params.get('supplier')
     if supplier_name:
-        suppliers = PurchaseOrder.objects.exclude(status='location-assigned').filter(open_po__supplier__id=supplier_name, received_quantity__lt=F('open_po__order_quantity'), open_po__sku__user=user.id)
+        suppliers = PurchaseOrder.objects.exclude(status='location-assigned').filter(open_po__supplier__id=supplier_name, received_quantity__lt=F('open_po__order_quantity'), open_po__sku__user=user.id, **search_parameters)
     else:
-        suppliers = PurchaseOrder.objects.exclude(status='location-assigned').filter(received_quantity__lt=F('open_po__order_quantity'), open_po__sku__user=user.id)
+        suppliers = PurchaseOrder.objects.exclude(status='location-assigned').filter(received_quantity__lt=F('open_po__order_quantity'), open_po__sku__user=user.id, **search_parameters)
 
     supplier_data['recordsTotal'] = len(suppliers)
     supplier_data['recordsFiltered'] = len(suppliers)
@@ -303,7 +309,7 @@ def get_supplier_details_data(search_params, user):
 @get_admin_user
 def get_supplier_details(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    supplier_data = get_supplier_details_data(search_params, user)
+    supplier_data = get_supplier_details_data(search_params, user, request.user)
     return HttpResponse(json.dumps(supplier_data), content_type='application/json')
 
 @csrf_exempt
@@ -401,7 +407,9 @@ def print_sales_returns(request, user=''):
     return HttpResponse(html_data)
 
 
-def get_adjust_filter_data(search_params, user):
+def get_adjust_filter_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     temp_data['draw'] = search_params.get('draw')
@@ -420,6 +428,7 @@ def get_adjust_filter_data(search_params, user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     search_parameters['cycle__sku__user'] = user.id
+    search_parameters['cycle__sku_id__in'] = sku_master_ids
     if search_parameters:
         adjustments = InventoryAdjustment.objects.filter(**search_parameters)
     temp_data['recordsTotal'] = len(adjustments)
@@ -436,7 +445,9 @@ def get_adjust_filter_data(search_params, user):
     return temp_data
 
 
-def get_aging_filter_data(search_params, user):
+def get_aging_filter_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     all_data = OrderedDict()
@@ -455,6 +466,7 @@ def get_aging_filter_data(search_params, user):
     stop_index = start_index + search_params.get('length', 0)
     search_parameters['sku__user'] = user.id
     search_parameters['quantity__gt'] = 0
+    search_parameters['sku_id__in'] = sku_master_ids
     filtered = StockDetail.objects.filter(**search_parameters).\
                                    values('receipt_date', 'sku__sku_code', 'sku__sku_desc', 'sku__sku_category', 'location__location').\
                                    annotate(total=Sum('quantity'))
@@ -479,7 +491,7 @@ def get_aging_filter_data(search_params, user):
 @get_admin_user
 def get_inventory_aging_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_aging_filter_data(search_params, user)
+    temp_data = get_aging_filter_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
@@ -537,7 +549,7 @@ def excel_reports(request, user=''):
             if 'date' in dat:
                 temp[1] = datetime.datetime.strptime(temp[1], '%m/%d/%Y')
             search_params[temp[0]] = temp[1]
-    report_data = func_name(search_params, user)
+    report_data = func_name(search_params, user, request.user)
     if isinstance(report_data, tuple):
         report_data = report_data[0]
     excel_data = print_excel(request,report_data, headers, excel_name)
@@ -548,7 +560,7 @@ def excel_reports(request, user=''):
 @get_admin_user
 def get_inventory_adjust_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_adjust_filter_data(search_params, user)
+    temp_data = get_adjust_filter_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt

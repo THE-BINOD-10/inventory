@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     vm.service = Service;
     vm.g_data = Data.stock_summary;
     vm.apply_filters = colFilters;
+    vm.tb_data = {};
     vm.filters = {'datatable': 'StockSummary', 'search0':'', 'search1':'', 'search2':'', 'search3':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -16,6 +17,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
               data: vm.filters,
               xhrFields: {
                 withCredentials: true
+              },
+              complete: function(jqXHR, textStatus) {
+                $scope.$apply(function(){
+                  angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
+                })
               }
            })
        .withDataProp('data')

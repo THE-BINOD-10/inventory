@@ -3,6 +3,7 @@
 function sessionCtrl($rootScope ,$scope, $state, $http, Auth, AUTH_EVENTS, Session) {
 
   $scope.process = false;
+  $scope.invalid = false;
 
   $scope.username = "";
   $scope.password = "";
@@ -18,6 +19,7 @@ function sessionCtrl($rootScope ,$scope, $state, $http, Auth, AUTH_EVENTS, Sessi
                   $scope.process = false;
                   $scope.username = "";
                   $scope.password = "";
+                  $scope.invalid = true;
                 } else {
                   console.log(Session);
                   if(Session.roles.permissions["setup_status"])  {
@@ -38,7 +40,7 @@ function sessionCtrl($rootScope ,$scope, $state, $http, Auth, AUTH_EVENTS, Sessi
          email: this.email,
          password: this.password
          });
-    
+
     Auth.signup(data).then(function () {
         $state.go('user.signin');
           });

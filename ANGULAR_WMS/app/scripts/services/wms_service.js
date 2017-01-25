@@ -671,7 +671,6 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     var mywindow = window.open('', title, 'height=400,width=600');
     mywindow.document.write('<html><head><title>'+title+'</title>');
     mywindow.document.write('<link rel="stylesheet" type="text/css" href="vendor/bootstrap/dist/css/bootstrap.min.css" />');
-    mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/urban.css" />');
     mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page.css" media="print"/>');
     mywindow.document.write('</head><body>');
     mywindow.document.write(print_div);

@@ -33,7 +33,7 @@
     <!-- /dashboard -->
 
     <!-- Masters -->
-    <li data-ng-class="{open: $state.includes('app.masters')}">
+    <li data-ng-class="{open: $state.includes('app.masters')}" ng-show="show_tab('MASERS_LABEL')">
       <a href="javascript:;">
         <i class="fa fa-cubes"></i>
         <span>Masters</span>
@@ -104,7 +104,7 @@
     <!-- /Masters -->
 
     <!-- Inbound -->
-    <li data-ng-class="{open: $state.includes('app.inbound')}">
+    <li data-ng-class="{open: $state.includes('app.inbound')}" ng-show="show_tab('INBOUND_LABEL')">
       <a href="javascript:;">
         <i class="fa fa-dropbox"></i>
         <span>Inbound</span>
@@ -140,7 +140,7 @@
     <!-- /forms -->
 
     <!-- tables -->
-    <li ng-show="show_tab('production_switch')" data-ng-class="{open: $state.includes('app.production')}">
+    <li data-ng-class="{open: $state.includes('app.production')}" ng-show="show_tab('PRODUCTION_LABEL')">
       <a href="javascript:;">
         <i class="fa fa-simplybuilt"></i>
         <span>Production</span>
@@ -171,13 +171,13 @@
     <!-- /tables -->
 
     <!-- charts -->
-    <li data-ng-class="{open: $state.includes('app.stockLocator')}">
+    <li data-ng-class="{open: $state.includes('app.stockLocator')}" ng-show="show_tab('STOCK_LABEL')">
       <a href="javascript:;">
         <i class="fa fa-list"></i>
         <span>Stock Locator</span>
       </a>
       <ul class="sub-menu">
-        <li ui-sref-active="active">
+        <li ng-show="show_tab('add_skustock')" ui-sref-active="active">
           <a ui-sref="app.stockLocator.StockSummary">
             <span>Stock Summary</span>
           </a>
@@ -212,7 +212,7 @@
     <!-- /charts -->
 
     <!-- maps -->
-    <li data-ng-class="{open: $state.includes('app.outbound')}">
+    <li data-ng-class="{open: $state.includes('app.outbound')}" ng-show="show_tab('OUTBOUND_LABEL')">
       <a href="javascript:;">
         <i class="fa fa-truck"></i>
         <span>Outbound</span>
@@ -247,10 +247,17 @@
     </li>
     <!-- /maps -->
 
-    <li ui-sref-active="active">
+    <li ui-sref-active="active" ng-show="show_tab('PAYMENT_LABEL')">
       <a ui-sref="app.PaymentTracker">
         <i class="fa fa-paypal"></i>
         <span>Payments</span>
+      </a>
+    </li>
+
+    <li ui-sref-active="active">
+      <a ui-sref="app.OrdersSyncIssues">
+         <i class="fa fa-refresh"></i>
+         <span>Orders Sync Issues</span>
       </a>
     </li>
 

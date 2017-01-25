@@ -45,17 +45,22 @@ def update_orders(orders, user='', company_name=''):
                 if sku_master:
                     filter_params['sku_id'] = sku_master[0].id
                     filter_params1['sku_id'] = sku_master[0].id
-                elif sku_code and not sku_master:
-                    SKUMaster.objects.create(sku_code=sku_code, wms_code=sku_code,user=user.id, status=1, creation_date=NOW,
-                                                          online_percentage=0)
-                    sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
-                    filter_params['sku_id'] = sku_master.id
-                    filter_params1['sku_id'] = sku_master.id
-                    #orders_track = OrdersTrack.objects.filter(order_id=original_order_id, sku_code=data['sku'], user=user.id)
-                    #if not orders_track:
-                    #    OrdersTrack.objects.create(order_id=original_order_id, sku_code=sku_code, status=1, user=user.id,
-                    #                           reason = "SKU Mapping doesn't exists", creation_date=datetime.datetime.now())
-                    #continue
+                else:
+                    #SKUMaster.objects.create(sku_code=sku_code, wms_code=sku_code,user=user.id, status=1, creation_date=NOW,
+                    #                                      online_percentage=0)
+                    #sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+                    #filter_params['sku_id'] = sku_master.id
+                    #filter_params1['sku_id'] = sku_master.id
+                    reason = ''
+                    if sku_code:
+                        reason = "SKU Mapping doesn't exists"
+                    else:
+                        reason = "SKU Code missing"
+                    orders_track = OrdersTrack.objects.filter(order_id=original_order_id, sku_code=sku_code, user=user.id)
+                    if not orders_track:
+                        OrdersTrack.objects.create(order_id=original_order_id, sku_code=sku_code, status=1, user=user.id,
+                                               reason = reason, creation_date=datetime.datetime.now())
+                    continue
 
                 order_det = OrderDetail.objects.filter(**filter_params)
                 order_det1 = OrderDetail.objects.filter(**filter_params1)

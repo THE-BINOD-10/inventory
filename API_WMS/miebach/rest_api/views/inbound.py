@@ -19,6 +19,7 @@ from operator import itemgetter
 from common import *
 from xmljson import badgerfish as bf
 from xml.etree.ElementTree import fromstring
+from sync_sku import insert_skus
 
 NOW = datetime.datetime.now()
 
@@ -635,7 +636,8 @@ def switches(request, user=''):
                     'show_mrp': request.GET.get('show_mrp', ''),
                     'decimal_limit': request.GET.get('decimal_limit', ''),
                     'picklist_sort_by': request.GET.get('picklist_sort_by', ''),
-                    'stock_sync': request.GET.get('stock_sync', '')
+                    'stock_sync': request.GET.get('stock_sync', ''),
+                    'sku_sync': request.GET.get('sku_sync', '')
                   }
 
 
@@ -645,6 +647,9 @@ def switches(request, user=''):
 
         toggle_field = key
         selection = value
+
+        if key == "sku_sync" and value == 'true':
+            insert_skus(user.id)
         break
 
     user_id = user.id

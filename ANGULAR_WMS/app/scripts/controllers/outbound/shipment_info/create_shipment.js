@@ -1,12 +1,13 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('CreateShipmentCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', ServerSideProcessingCtrl]);
+  .controller('CreateShipmentCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', 'colFilters', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, service, colFilters) {
 
     var vm = this;
     vm.service = service;
+    vm.apply_filters = colFilters;
     vm.sku_group = false;
 
     //table start
@@ -14,7 +15,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.selectAll = false;
 
     vm.filters_data = {customer: '', market_place:''}
-    vm.filters = {'datatable': 'ShipmentPickedOrders', 'ship_id':1/*, 'special_key': JSON.stringify(vm.filters_data)*/}
+    vm.filters = {'datatable': 'ShipmentPickedOrders', 'search0':'', 'search1':'', 'search2': ''}
+    //vm.filters = {'datatable': 'ShipmentPickedOrders', 'ship_id':1/*, 'special_key': JSON.stringify(vm.filters_data)*/}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -42,6 +44,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
        .withPaginationType('full_numbers')
        .withOption('RecordsTotal', function( settings ) {
          console.log("complete")
+       })
+       .withOption('initComplete', function( settings ) {
+         vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
     var columns = ["Order ID", "SKU Code","Title", "Customer ID", "Customer Name", "Marketplace", "Picked Quantity"]
@@ -56,8 +61,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                 }))
 
     vm.dtInstance = {};
+    vm.reloadData = reloadData;
+
+    function reloadData () {
+      vm.dtInstance.reloadData();
+    };
+    $scope.$on('change_filters_data', function(){
+      vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
+      vm.reloadData();
+    });
 
     //DATA table end
+
+
 
    vm.bt_disable = true; 
 
@@ -195,12 +211,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         if(data.message) {service.showNoty(data.data);};
       });
     }
-  }
-
-  vm.apply_filters = function() {
-
-    vm.dtInstance.DataTable.context[0].ajax.data['special_key'] = JSON.stringify(vm.filters_data);
-    vm.dtInstance.reloadData();  
   }
 
   }

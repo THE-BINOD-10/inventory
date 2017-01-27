@@ -234,7 +234,7 @@
             return sku_item_cat_check.sku_category.toLowerCase()===skucategory.toLowerCase();
           else
             return true;
-          
+
      }).and(function(sku_item_style_check){
          if(skustyle.trim().length>0)
             return sku_item_style_check.sku_class.toLowerCase().startsWith(skustyle.toLowerCase());  
@@ -248,19 +248,18 @@
        }else{
         return false;
         }
-        
+
     }).toArray();
-  
 
   }else if(skucategory.trim().length>0){
 
    return  db.sku_data.where("sku_category").equalsIgnoreCase(skucategory)
      .and(function(sku_item_style_check){
           if(skustyle.trim().length>0)
-            return sku_item_style_check.sku_class.toLowerCase().startsWith(skustyle.toLowerCase());  
+            return sku_item_style_check.sku_class.toLowerCase().startsWith(skustyle.toLowerCase());
          else
             return true;
-         
+
      }).and(function(sku){
 
        if((capitalize(sku.sale_through) == sale_thru) && (temp_catelog_data.indexOf(sku.sku_class)==-1)){
@@ -268,13 +267,12 @@
         return true;
        }else{
         return false;
-       } 
-        
+       }
     }).toArray();
 
    }else{
 
-  return db.sku_data.where("sku_class").startsWithIgnoreCase(skustyle)         
+  return db.sku_data.where("sku_class").startsWithIgnoreCase(skustyle)
         .and(function(sku){
           if((capitalize(sku.sale_through) == sale_thru) && (temp_catelog_data.indexOf(sku.sku_class)==-1)){
             temp_catelog_data.push(sku.sku_class);
@@ -282,11 +280,9 @@
           }else{
             return false;
           }
-       
-    }).toArray();
- 
+    }).sortBy('sku_class');
   }
- } 
+ }
  function getskuVarients(skustyle, sale_thru){
     var styles = [];
     return  db.sku_data.where("sku_class").equalsIgnoreCase(skustyle)
@@ -302,4 +298,3 @@
 
  }
 
-  

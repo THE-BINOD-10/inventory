@@ -34,7 +34,7 @@ var app = angular.module('urbanApp')
                 return;
               }
 
-              if (next.name != "user.signin" && next.name != "user.signup") { //(next.authRequired) {
+              if (states.indexOf(next.name) == -1) { //(next.authRequired) {
 
                 event.preventDefault();
 

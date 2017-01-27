@@ -221,6 +221,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
       });
     }
 
+    vm.create_stock_transfer = function() {
+        var data = [];
+        for(var key in vm.selected){
+            if(vm.selected[key]) {
+                var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData;
+                Service.apiCall("create_stock_transfer_data/", "POST", temp).then(function(api_data){
+                    console.log(temp);
+                    console.log(data);
+                    var price = api_data.data.price;
+                    data.push({wms_code: temp['WMS Code'], order_quantity: temp['Ordered Quantity'], price: price})
+                    Service.stock_transfer = JSON.stringify(data)
+                    $state.go('app.outbound.BackOrders.ST')
+                });
+            }
+        }
+   }
+
     function pop_msg(msg){
       vm.message = msg;
       $timeout(function () {

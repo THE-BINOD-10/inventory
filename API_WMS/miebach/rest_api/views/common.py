@@ -49,6 +49,7 @@ def number_in_words(value):
 
 def get_user_permissions(request, user):
     roles = {}
+    label_perms = []
     configuration = list(MiscDetail.objects.filter(user=user.id).values('misc_type', 'misc_value'))
     config = dict(zip(map(operator.itemgetter('misc_type'), configuration), map(operator.itemgetter('misc_value'), configuration)))
     user_perms = PERMISSION_KEYS
@@ -62,8 +63,25 @@ def get_user_permissions(request, user):
             user_perms.append(permission.codename)
     for perm in user_perms:
         roles[perm] = get_permission(request.user, perm)
+        if roles[perm]:
+            label_perms.append(perm.replace('add_', ''))
     roles.update(config)
-    return {'permissions': roles}
+    return {'permissions': roles, 'label_perms': label_perms}
+
+def get_label_permissions(request, user, role_perms):
+    label_keys = copy.deepcopy(LABEL_KEYS)
+    sub_label_keys = copy.deepcopy(PERMISSION_DICT)
+    labels = {}
+    for label in label_keys:
+        if request.user.is_staff:
+            labels[label] = True
+        else:
+            if set(map(lambda d: d[1], sub_label_keys[label])).intersection(role_perms):
+                labels[label] = True
+            else:
+                labels[label] = False
+
+    return labels
 
 @get_admin_user
 def add_user_permissions(request, response_data, user=''):
@@ -83,6 +101,7 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['userName'] = request.user.username
     response_data['data']['userId'] = request.user.id
     response_data['data']['roles'] = get_user_permissions(request, user)
+    response_data['data']['roles']['labels'] = get_label_permissions(request, user, response_data['data']['roles']['label_perms'])
     response_data['data']['roles']['permissions']['is_superuser'] = status_dict[int(request.user.is_superuser)]
     response_data['data']['roles']['permissions']['is_staff'] = status_dict[int(request.user.is_staff)]
     response_data['data']['roles']['permissions']['multi_warehouse'] = multi_warehouse
@@ -1142,7 +1161,14 @@ def add_group_data(request, user=''):
     ignore_list = ['session', 'webhookdata', 'swxmapping', 'userprofile', 'useraccesstokens', 'contenttype', 'user',
                    'permission','group','logentry']
     permission_dict = copy.deepcopy(PERMISSION_DICT)
-    reversed_perms = OrderedDict(( ([(value, key) for key, value in permission_dict.iteritems()]) ))
+    reversed_perms = {}
+    for key, value in permission_dict.iteritems():
+        sub_perms = permission_dict[key]
+        if len(sub_perms) == 2:
+            reversed_perms[sub_perms[1]] = sub_perms[0]
+        else:
+            for i in sub_perms:
+                reversed_perms[i[1]] = i[0]
     for permission in permissions:
         temp = permission.codename.split('_')[-1]
         if not temp in perms_list and not temp in ignore_list:
@@ -1160,7 +1186,12 @@ def add_group(request, user=''):
     brands_list = ''
     group = ''
     permission_dict = copy.deepcopy(PERMISSION_DICT)
-    reversed_perms = OrderedDict(( ([(value, key) for key, value in permission_dict.iteritems()]) ))
+    reversed_perms = {} 
+    for key, value in permission_dict.iteritems():
+        sub_perms = permission_dict[key]
+        for i in sub_perms:
+            reversed_perms[i[1]] = i[0] 
+    #reversed_perms = OrderedDict(( ([(value, key) for key, value in permission_dict.iteritems()]) ))
     selected = request.POST.get('perm_selected')
     stages = request.POST.get('stage_selected')
     brands = request.POST.get('brand_selected')
@@ -1186,24 +1217,36 @@ def add_group(request, user=''):
         for stage in stages_list:
             if not stage:
                 continue
-	    stage_obj = ProductionStages.objects.filter(stage_name = stage, user=user.id)
+	        stage_obj = ProductionStages.objects.filter(stage_name = stage, user=user.id)
             if stage_obj:
                 stage_group.stages_list.add(stage_obj[0])
                 stage_group.save()
-	for brand in brands_list:
+        for brand in brands_list:
             if not brand:
                 continue
-	    brand_obj = Brands.objects.filter(brand_name=brand, user=user.id)
+            brand_obj = Brands.objects.filter(brand_name=brand, user=user.id)
             if brand_obj:
                 brand_group.brand_list.add(brand_obj[0])
-	        brand_group.save()
+                brand_group.save()
         for perm in selected_list:
             if not perm:
                 continue
-            perm = permission_dict.get(perm, '')
-            permissions = Permission.objects.filter(codename__icontains=perm)
-            for permission in permissions:
-                group.permissions.add(permission)
+            for key, value in permission_dict.iteritems():
+                sub_perms = permission_dict[key]
+                if len(sub_perms) == 2:
+                    if sub_perms[0] == perm:
+                        permi = sub_perms[1]
+                        permissions = Permission.objects.filter(codename__icontains=permi)
+                        for permission in permissions:
+                            group.permissions.add(permission)
+                else:
+                    for i in sub_perms:
+                        if i[0] == perm:
+                            permi = i[1]
+                            #perm = permission_dict.get(perm, '')
+                            permissions = Permission.objects.filter(codename__icontains=permi)
+                            for permission in permissions:
+                                group.permissions.add(permission)
         user.groups.add(group)
     return HttpResponse('Updated Successfully')
 
@@ -1758,7 +1801,15 @@ def get_group_data(request, user=''):
         return HttpResponse("Data id not found")
     data_dict = {}
     permission_dict = copy.deepcopy(PERMISSION_DICT)
-    reversed_perms = OrderedDict(( ([(value, key) for key, value in permission_dict.iteritems()]) ))
+    reversed_perms = {}
+    for key, value in permission_dict.iteritems():
+        sub_perms = permission_dict[key]
+        if len(sub_perms) == 2:
+            reversed_perms[sub_perms[1]] = sub_perms[0]
+        else:
+            for i in sub_perms:
+                reversed_perms[i[1]] = i[0]
+    #reversed_perms = OrderedDict(( ([(value, key) for key, value in permission_dict.iteritems()]) ))
     group = Group.objects.get(id=data_id)
     group_name = (group.name).replace(user.username + ' ', '')
     brands = list(GroupBrand.objects.filter(group_id=group.id).values_list('brand_list__brand_name', flat=True))
@@ -1845,3 +1896,9 @@ def get_order_sync_issues(start_index, stop_index, temp_data, search_term, order
         temp_data['aaData'].append(OrderedDict(( ('Order ID', result.order_id), ('SKU Code', result.sku_code),
                                                  ('Reason', result.reason), ('Created Date', get_local_date(user, result.creation_date)),
                                                  ('DT_RowClass', 'results'), ('DT_RowId', result.id) )))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_sync_issues(request, user=''):
+    return HttpResponse("Success")

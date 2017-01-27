@@ -98,7 +98,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             });
         });
         return nRow;
-    } 
+    }
 
     vm.model_data = {};
 

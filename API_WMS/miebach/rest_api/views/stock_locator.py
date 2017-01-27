@@ -161,10 +161,10 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
                                                   Q(sku__wms_code__icontains = search_term) |Q(quantity__icontains=search_term) |
                                                   Q(location__zone__zone__icontains = search_term) | Q(sku__sku_code__icontains = search_term) |
                                                   Q(sku__sku_desc__icontains = search_term) | Q(location__location__icontains = search_term),
-                                                  quantity__gt=0,sku__user=user.id).filter(**search_params).order_by(order_data)
+                                                  sku__user=user.id).filter(**search_params).order_by(order_data)
 
     else:
-        master_data = StockDetail.objects.exclude(receipt_number=0).filter(quantity__gt=0, sku__user=user.id, **search_params).\
+        master_data = StockDetail.objects.exclude(receipt_number=0).filter(sku__user=user.id, **search_params).\
                                           order_by(order_data)
 
     temp_data['recordsTotal'] = len(master_data)
@@ -431,7 +431,7 @@ def get_id_cycle(request, user=''):
 @get_admin_user
 def stock_summary_data(request, user=''):
     wms_code = request.GET['wms_code']
-    stock_data = StockDetail.objects.exclude(receipt_number=0).filter(sku_id__wms_code=wms_code, quantity__gt=0, sku__user = user.id)
+    stock_data = StockDetail.objects.exclude(receipt_number=0).filter(sku_id__wms_code=wms_code, sku__user = user.id)
     zones_data = {}
     production_stages = []
     for stock in stock_data:

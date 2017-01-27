@@ -7,119 +7,11 @@
           <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
          <h4 class="modal-title">Invoice</h4>
         </div>
-        <div class="modal-body print print-invoice">
+        <div class="modal-body print print-invoice" style="over-flow: hidden">
 
 <div class="row col-md-12">
   <h4 style="margin-bottom:2px" align="center">Tax Invoice</h4>
 </div>
-<!--<div class="row col-md-12" style="margin-bottom:0px">
-  <table class="table table-bordered bl br mb0" style="margin-bottom:0px">
-    <tbody class="rm-padding">
-      <tr>
-        <td style="width: 60%;text-align:left" class="align-left">
-          <div class="row">
-            <div class="col-md-12">
-              <span><b>{{showCase.pdf_data.company_name}}</b></span>
-            </div>
-            <div class="col-md-12">
-              <span>{{showCase.pdf_data.company_address}}</span>
-            </div>
-            <div class="col-md-12">
-              <span>{{showCase.pdf_data.email}}</span>
-            </div>
-          </div>
-        </td>
-        <td rowspan="2" style="text-align:left">
-          <strong>Invoice Number:</strong>{{showCase.pdf_data.invoice_no}}<br>
-          <strong>Invoice Date:</strong>{{showCase.pdf_data.invoice_date}}<br>
-          <strong>Order Number:</strong>{{showCase.pdf_data.order_id}}<br>
-          <strong>Order Date:</strong>{{showCase.pdf_data.order_date}}<br>
-        </td>
-      </tr>
-      <tr>
-        <td style="width: 60%;text-align:left">
-          <address class="no-margin">
-                    <strong>To,</strong><br>
-            <div ng-if = "showCase.pdf_data.marketplace == 'Offline'">
-            <p ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
-            <p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].name">
-                &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].name}}</p>
-            <p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].address">
-                &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].address}}</p>
-            <p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].tin_number">
-                &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].tin_number}}</p>
-            <p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].customer_id">
-                &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].customer_id}}</p>
-            <p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].email_id">
-                &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].email_id}}</p>
-            </div>
-            <div ng-if = "showCase.pdf_data.marketplace != 'Offline'">
-                        {{showCase.pdf_data.marketplace}}<br>
-            </div>
-                </address>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
--->
-<!--
-<div class"row mb15">
-  <h4 align="center">{{showCase.pdf_data.company_name}}</h4>
-</div>
-
-<hr>
-  <p align="center">{{showCase.pdf_data.company_address}}</p>
-  <p align="center">{{showCase.pdf_data.email}}</p>
- <p align="center">VAT TIN NO: 27621087850-V CST TIN NO: 27621087850-C</p>
-<hr>
-<div class"row mb15">
-  <h4 align="center" style="text-decoration: underline;">Tax Invoice</h4>
-</div>
-
-<div class="row mb15" style="padding: 0px 18px;">
-  <div class="col-xs-12">
-    <div class="row">
-      <div class="col-xs-4">
-        <address class="no-margin">
-                    <strong>To,</strong><br>
-		    <div ng-if = "showCase.pdf_data.marketplace == 'Offline'">
-			<p ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
-			<p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].name">
-				&nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].name}}</p>
-			<p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].address">
-				&nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].address}}</p>
-			<p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].tin_number">
-				&nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].tin_number}}</p>
-			<p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].customer_id">
-				&nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].customer_id}}</p>
-			<p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].email_id">
-				&nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].email_id}}</p>
-		    </div>
-		    <div ng-if = "showCase.pdf_data.marketplace != 'Offline'">
-                        {{showCase.pdf_data.marketplace}}<br>
-		    </div>
-                </address>
-      </div>
-      <div class="col-xs-2"></div>
-      <div class="col-xs-6 text-right">
-        <address class="no-margin" style="margin:0px;padding:0px" ng-if="showCase.pdf_data.invoice_no">
-                    <strong>Invoice Number:</strong>{{showCase.pdf_data.invoice_no}}<br>
-                </address>
-        <address class="no-margin" style="margin:0px;padding:0px" ng-if="showCase.pdf_data.invoice_date">
-                    <strong>Invoice Date:</strong>{{showCase.pdf_data.invoice_date}}<br>
-                </address>
-        <address class="no-margin" style="margin:0px;padding:0px">
-                    <strong>Order Number:</strong>{{showCase.pdf_data.order_id}}<br>
-                </address>
-         <address class="no-margin" style="margin:0px;padding:0px">
-                    <strong>Order Date:</strong>{{showCase.pdf_data.order_date}}<br>
-                </address>
-      </div>
-    </div>
-  </div>
-</div>
--->
 <div class="row col-md-12" style="margin-top: 0px;">
   <table class="table table-bordered bl br mb0" style="margin-bottom:0px">
     <tbody class="rm-padding">
@@ -217,69 +109,71 @@
        <td></td>
        <td>{{showCase.pdf_data.total_invoice}}</td>
       </tr>
+      <tr class="rm-padding" ng-if="showCase.pdf_data.order_charges">
+        <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+          <div class="row">
+            <div class="col-xs-6">
+            </div>
+            <div class="col-xs-6 text-right fs12">
+              <address class="no-margin" style="margin:0px;padding:0px" ng-repeat="charge in showCase.pdf_data.order_charges">
+                <strong>{{charge.charge_name}} :</strong> {{charge.charge_amount}}<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px">
+                <strong>Total Amount :</strong> {{showCase.pdf_data.total_invoice_amount}}<br>
+              </address>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="rm-padding">
+        <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+          <b>Amount in words: &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{showCase.pdf_data.price_in_words}}</span></b>
+        </td>
+      </tr>
+      <tr class="rm-padding">
+        <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+          <div class="row">
+            <div class="col-xs-6 fs12">
+              <b>Dispatched Via:</b>
+            </div>
+            <div class="col-xs-6 text-right fs12" style="padding-right: 15px;">
+              <b>{{showCase.pdf_data.company_name}}</b>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-xs-12 fs12">
+              <span>DECLARATION:</span><br>
+              <span>We declare that this invoice hows actual price of the goods described inclusive of taxes and that all particulars are true and correct.</span>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="rm-padding" ng-if="user.userName == 'sagar_fab' || user.userName == 'adam_clothing'">
+        <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+          <div class="row">
+            <div class="col-xs-6 fs12">
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
+                <strong>Company's VAT TIN:</strong>29640707663<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
+                <strong>Buyer's VAT TIN:</strong>{{showCase.pdf_data.customer_details[0].tin_number}}<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
+                <strong>Company's PAN:</strong>ABEFS4899J<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
+                <strong>VAT TIN NO:</strong>27621087850-V<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
+                <strong>CST TIN NO:</strong>27621087850-C<br>
+              </address>
+            </div>
+          </div>
+        </td>
+      </tr>
     </tbody>
   </table>
 </div>
-
-<div class="row col-md-12" ng-if="showCase.pdf_data.order_charges">
-  <div class="row">
-    <div class="col-xs-6">
-    </div>
-    <div class="col-xs-6 text-right">
-      <address class="no-margin" style="margin:0px;padding:0px" ng-repeat="charge in showCase.pdf_data.order_charges">
-        <strong>{{charge.charge_name}} :</strong> {{charge.charge_amount}}<br>
-      </address>
-      <address class="no-margin" style="margin:0px;padding:0px">
-        <strong>Total Amount :</strong> {{showCase.pdf_data.total_invoice_amount}}<br>
-      </address>
-    </div>
-  </div>
-  <hr style="margin-top: 5px;margin-bottom: 5px;">
-</div>
-<div class="row col-md-12">
-  <b>Amount in words: &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{showCase.pdf_data.price_in_words}}</span></b>
-  <hr style="margin-top: 5px;margin-bottom: 5px;">
-</div>
-<div class="row col-md-12">
-  <div class="row">
-    <div class="col-xs-6">
-     <b>Dispatched Via:</b>
-    </div>
-    <div class="col-xs-6 text-right">
-      <b>{{showCase.pdf_data.company_name}}</b>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-xs-12">
-      <p>DECLARATION:</p>
-      <span>We declare that this invoice hows actual price of the goods described inclusive of taxes and that all particulars are true and correct.</span>
-    </div>
-  </div>
-</div>
-
-<div class="row col-md-12">
-  <hr style="margin-top: 5px;margin-bottom: 5px;">
-  <div class="row">
-    <div class="col-xs-6">
-      <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
-        <strong>Company's VAT TIN:</strong>29640707663<br>
-      </address>
-      <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
-        <strong>Buyer's VAT TIN:</strong>{{showCase.pdf_data.customer_details[0].tin_number}}<br>
-      </address>
-      <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
-        <strong>Company's PAN:</strong>ABEFS4899J<br>
-      </address>
-      <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
-        <strong>VAT TIN NO:</strong>27621087850-V<br>
-      </address>
-      <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
-        <strong>CST TIN NO:</strong>27621087850-C<br>
-      </address>
-    </div>
-  </div>
-</div>
-
     </div>
     <div class="row">
         <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.print_invoice($('.print'), 'invoice')">

@@ -81,12 +81,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go('app.masters.CustomerMaster');
   }
 
+  vm.get_customer_id = function() {
+
+    vm.service.apiCall("get_customer_master_id/").then(function(data){
+      if(data.message) {
+
+        vm.model_data["customer_id"] = data.data.customer_id;
+      }
+    });
+  }
+
   vm.add = add;
   function add() {
 
     vm.base();
+    vm.get_customer_id();
     $state.go('app.masters.CustomerMaster.customer');
-  } 
+  }
 
   vm.customer = function(url) {
     var data = $.param(vm.model_data);

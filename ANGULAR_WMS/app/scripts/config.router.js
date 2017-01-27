@@ -1494,10 +1494,10 @@ var app = angular.module('urbanApp')
          })
          .state('user.App.createorder', {
            url: '/createorder',
-           templateUrl: 'views/App/create_orders.html',
+           templateUrl: 'views/outbound/app/create_orders.html',
            resolve: {
              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-               return $ocLazyLoad.load('scripts/App/create_orders.js');
+               return $ocLazyLoad.load('scripts/controllers/outbound/app/create_orders.js');
                     }]
            }
          })

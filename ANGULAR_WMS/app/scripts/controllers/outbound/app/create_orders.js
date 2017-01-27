@@ -1,18 +1,16 @@
 'use strict';
 
-function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth) {
+function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth) {
 
   $scope.msg = "start";
   var vm = this;
+  vm.order_type_value = "offline";
   vm.service = Service;
-  vm.auth = Auth;
-  vm.order_type = false;
-  vm.order_type_value = "Offline";
-  vm.loading = true;
   vm.company_name = Session.user_profile.company_name;
   vm.model_data = {}
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
-                            customer_id: "", payment_received: "", order_taken_by: ""};
+                            customer_id: "", payment_received: "", order_taken_by: "", other_charges: []};
+
   angular.copy(empty_data, vm.model_data);
   vm.isLast = isLast;
     function isLast(check) {
@@ -59,7 +57,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     vm.model_data["customer_name"] = "";
     vm.model_data["telephone"] = "";
     vm.model_data["email_id"] = "";
-   vm.model_data["address"] = "";
+    vm.model_data["address"] = "";
   }
 
   vm.bt_disable = false;
@@ -70,38 +68,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-     
-       setplaceOrder(elem);
-     
-        if(navigator.serviceWorker.controller) {
-           navigator.serviceWorker.ready.then(function(reg) {
-           if(reg.sync) {
-             reg.sync.register('place_order')
-              .then(function(event) {
-                console.log('Sync registration successful', event);
-                colFilters.showNoty("Order placed successfully");
-                $scope.$apply(function(){
-                angular.copy(empty_data, vm.model_data);
-                });
-
-               // colFilters.showNoty("order placed in offline mode ");
-               // offlineOrders();   
-
-              }).catch(function(error) {
-                console.log('Sync registration failed', error);
-              });
-           }else{
-             console.log(" Sync not supported");
-           }
-         });
-       }else {
-         console.log("No active ServiceWorker");
-       }
-
-
-
-     /*
-     vm.service.apiCall('insert_order_data/', 'GET', elem).then(function(data){
+      vm.service.apiCall('insert_order_data/', 'GET', elem).then(function(data){
         if(data.message) {
           if("Success" == data.data) {
             angular.copy(empty_data, vm.model_data);
@@ -110,72 +77,20 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
           colFilters.showNoty(data.data);
         }
         vm.bt_disable = false;
-      })*/
+      })
     } else {
       colFilters.showNoty("Fill Required Fields");
     }
   }
 
-  vm.catlog = false;
+  vm.catlog = true;
+  vm.details = true;
   vm.categories = [];
   vm.category = "";
   vm.brand = "";
-  vm.brands=[];
-  vm.details = true;
+
   function change_filter_data() {
-  
-    /*db.brands.toArray().then(function(data){
-      console.log("brands are "+data);
-      $scope.$apply(function(){ 
-     if(data.length>0){
-        data.forEach(function(item){
-           vm.brands.push(item.sku_brand);
-        }); 
-       }else{
-       vm.details = false;
-       }
-     });
-    });*/
-    vm.get_brands();
-
-  /*db.categories.toArray().then(function(data){
-    $scope.$apply(function(){ 
-    if(data.length>0){  
-       data.forEach(function(item){ 
-         vm.categories.push(item.sku_category)
-       });
-     }
-    });
-  });
-  */
-  vm.get_cats();
- 
- /*
- vm.brands_images = {'6 Degree': 'SIX-DEGREES-1.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'BIO-COLLECTION-1.jpg',
-                   'Scala': 'SCALA-1.jpg','Scott International': 'SCOTT-1.jpg', 'Scott Young': 'SCOTT-YOUNG-1.jpg', 
-                   'Spark': 'spark-1.jpg','Star - 11': 'star-11.jpg','Super Sigma': 'super-sighma.jpg', 
-                   'Sulphur Cotton': 'sulphur-1.jpg', 'Sulphur Dryfit': 'sulphur-2.jpg'}
-
- vm.brands_logos = {'6 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
-                  'Scala': 'scala-1.png','Scott International': 'scott-1.png', 'Scott Young': 'scott-young-1.png', 
-                  'Spark': 'spark-1.png','Star - 11': 'star-11-1.png','Super Sigma': 'super-sigma-dryfit-1.png',
-                  'Sulphur Cotton': 'sulphur-cottnt-1.png','Sulphur Dryfit': 'sulphur-dryfit-1.png', 'Spring': 'spring-1.png', 
-                  '100% Cotton': '100-cotton-1.png', 'Sprint': 'sprint-1.png','Supreme': 'supreme-1.png'} 
-  */
-
-vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'bio-wash.jpg',
-        'Scala': 'scala.jpg','Scott International': 'scott.jpg', 'Scott Young': 'scott-young.jpg', 'Spark': 'spark.jpg',
-        'Star - 11': 'star-11.jpg','Super Sigma': 'super-sigma-dryfit.jpg', 'Sulphur Cotton': 'sulphur-cottnt.jpg', 'Sulphur Dryfit': 'sulphur-dryfit.jpg', 'Spring': 'spring.jpg', '100% Cotton': '100cotton.jpg', 'Sprint': 'sprint.jpg', 'Supreme': 'supreme.jpg', 'Sport': 'sport.jpg'}
-
-        vm.brands_logos = {'7 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
-        'Scala': 'scala-1.png','Scott International': 'scott-1.png', 'Scott Young': 'scott-young-1.png', 'Spark': 'spark-1.png',
-        'Star - 11': 'star-11-1.png','Super Sigma': 'super-sigma-dryfit-1.png', 'Sulphur Cotton': 'sulphur-cottnt-1.png',                             'Sulphur Dryfit': 'sulphur-dryfit-1.png', 'Spring': 'spring-1.png', '100% Cotton': '100-cotton-1.png', 'Sprint': 'sprint-1.png',
-        'Supreme': 'supreme-1.png', 'Sport': 'sport-1.png'}
-
- vm.get_category(true);
-  
-/*
-  var data = {brand: vm.brand, category: vm.category, is_catalog: true};
+    var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
   
       if(data.message) {
@@ -189,9 +104,9 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
 	/*vm.brands_images = {'6 Degree': '6degree.png', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'biowash.jpg', 'Scala': 'scala.png',
         'Scott International': 'scott.jpg', 'Scott Young': 'scottyoung.png', 'Spark': 'spark.jpg', 'Star - 11': 'star11.png',
 	 'Super Sigma': 'supersigma.jpg', 'Sulphur Cotton': 'dflt.jpg', 'Sulphur Dryfit': 'dflt.jpg'}*/
-   /*     vm.brands_images = {'6 Degree': 'SIX-DEGREES-1.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'BIO-COLLECTION-1.jpg', 
-	'Scala': 'SCALA-1.jpg','Scott International': 'SCOTT-1.jpg', 'Scott Young': 'SCOTT-YOUNG-1.jpg', 'Spark': 'spark-1.jpg', 
-	'Star - 11': 'star-11.jpg','Super Sigma': 'super-sighma.jpg', 'Sulphur Cotton': 'sulphur-1.jpg', 'Sulphur Dryfit': 'sulphur-2.jpg'}
+        vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'bio-wash.jpg', 
+	'Scala': 'scala.jpg','Scott International': 'scott.jpg', 'Scott Young': 'scott-young.jpg', 'Spark': 'spark.jpg', 
+	'Star - 11': 'star-11.jpg','Super Sigma': 'super-sigma-dryfit.jpg', 'Sulphur Cotton': 'sulphur-cottnt.jpg', 'Sulphur Dryfit': 'sulphur-dryfit.jpg', 'Spring': 'spring.jpg', '100% Cotton': '100cotton.jpg', 'Sprint': 'sprint.jpg', 'Supreme': 'supreme.jpg'}
 
         vm.brands_logos = {'6 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
         'Scala': 'scala-1.png','Scott International': 'scott-1.png', 'Scott Young': 'scott-young-1.png', 'Spark': 'spark-1.png',
@@ -200,9 +115,8 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
         vm.get_category(true);
       }
     });
-   */
   }
- //change_filter_data();
+  change_filter_data();
 
   vm.style = "";
   vm.catlog_data = {data: [], index: ""}
@@ -213,56 +127,12 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
     if(cat_name == "All") {
       cat_name = "";
     }
-
-    var temp_catlog_data=[];
-
     vm.catlog_data.index = "";
-    var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true} 
+    var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
+                sale_through: vm.order_type_value} 
     vm.catlog_data.index = ""
     vm.scroll_data = false;
-
-
-    var cat_Dbdata=getCategoryData(vm.brand,cat_name,vm.style, vm.order_type_value);
-        cat_Dbdata.then(function(skus){
-        console.log("items are "+skus);
-
-   $scope.$apply(function(){      
-          vm.catlog_data.index = "";
-          angular.copy([], vm.catlog_data.data);
-         
-         if(skus.length>0){
-              
-               angular.copy(skus,vm.catlog_data.data);
-             
-          }
-        vm.scroll_data = false;
-     });
-     });
-
-    
-
-  /*/
-    db.sku_data.where("sku_brand").equalsIgnoreCase(vm.brand).and(function(sku){
-        return sku.sku_category.toLowerCase()=== cat_name.toLowerCase();
-     }).and(function(sku_item){
-        return sku_item.sku_class.startsWith(vm.style);
-     }).and(function(sku){
-         if(temp_catlog_data.indexOf(sku.sku_class)==-1) {
-           temp_catlog_data.push(sku.sku_class);
-           return true;
-         }else{
-           return false;
-         }
-     }).toArray().then(function(skus){
-       angular.copy([], vm.catlog_data.data);
-       vm.catlog_data.index = "";
-       $scope.$apply(function(){   
-         angular.copy(skus,vm.catlog_data.data);
-       });       
-       vm.scroll_data = false;
-     });
-    
-   vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
+    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
     
 	if(data.message) {
         
@@ -275,40 +145,17 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
 	}
     })
 
-   */
   }
 
   vm.get_category = function(status, scroll) {
-    vm.loading = true;
     vm.scroll_data = false;
     var cat_name = vm.category;
     if(vm.category == "All") {
       cat_name = "";
     }
-    var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true}
-    var temp_catlog_data=[];  
-    
-   var cat_Dbdata=getCategoryData(vm.brand, cat_name, vm.style, vm.order_type_value);
-        cat_Dbdata.then(function(skus){
-        console.log("items are "+skus);
-        
-        $scope.$apply(function(){
-         if(status) {
-          vm.catlog_data.index = "";
-          angular.copy([], vm.catlog_data.data);
-         }
-         if(skus.length>0){
-            skus.forEach(function(sku_item){
-               vm.catlog_data.data.push(sku_item);
-            });
-         }
-         vm.loading = false;
-         vm.scroll_data = false;      
-        });  
-     });
-     
-     /*
-     vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
+    var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
+                sale_through: vm.order_type_value}
+    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
 
       if(data.message) {
 
@@ -324,7 +171,7 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
       }
       vm.scroll_data = true;
     })
-   */ 
+
   }
 
   vm.scroll_data = true;
@@ -348,48 +195,19 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
     angular.copy([], vm.catlog_data.data);
     vm.category = '';
     var all = $(".cat-tags");
-    vm.remove_bold(all);
     vm.get_category(true);
   }
 
   vm.all_cate = [];
   vm.change_brand = function(data) {
+
     vm.brand = data;
     vm.catlog_data.index = "";
     angular.copy([], vm.catlog_data.data);
     vm.category = '';
     vm.style='';
     var all = $(".cat-tags");
-    vm.remove_bold(all);
-    var data = {brand: vm.brand}
-    var category_data=[];  
-    
-    
-   var categories_data=getCategories(vm.brand, vm.order_type_value);  
-        categories_data.then(function(val){
-          val.forEach(function(data){
-           // console.log(data);       
-            if(category_data.indexOf(data.sku_category)==-1)
-              category_data.push(data.sku_category);
-         });
-       // console.log("list data count is "+brand_listData.length +" cat len "+caegory_data.length);
-          
-          if(category_data.length>0){
-             vm.all_cate=category_data; 
-             vm.all_cate.push("All");
-
-             vm.category = vm.all_cate[0];
-             vm.get_category(true);
-             $timeout(function () {
-               $(".cat-tags:first").addClass("ct-selected"); 
-             }, 1000);
-          }
-       });
-
- 
-
-        
-  /*
+    var data = {brand: vm.brand, sale_through: vm.order_type_value}
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
       if(data.message) {
 
@@ -398,12 +216,9 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
           vm.all_cate.push("All")
           vm.category = vm.all_cate[0];
           vm.get_category(true);
-          $timeout(function () {
-            $(".cat-tags:first").addClass("ct-selected"); 
-          }, 1000);
         }
       }
-    })*/
+    })
   }
 
   vm.show = function() {
@@ -598,45 +413,18 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
 
   vm.style_open = false;
   vm.style_data = [];
-  vm.open_style = function(data) {
-  
+  vm.open_style = function(data, item) {
 
-  var skuvarients=getskuVarients(data, vm.order_type_value);
-     skuvarients.then(function(varients){
-        vm.style_open = true;
-          vm.catlog=true;
-          vm.check_stock=true;
-       $scope.$apply(function(){
-         vm.style_data=[];
-           angular.forEach(varients,function(varient){
-             vm.style_data.push(varient);
-          })
-       });
-     });     
- /*
-  db.sku_data.where("sku_class").equalsIgnoreCase(data).toArray()
-       .then(function(varients){
-          vm.style_open = true;
-          vm.catlog=true;
-          vm.check_stock=true; 
-         
-          angular.forEach(varients,function(varient){
-             vm.style_data.push(varient);  
-          })
-         
-        });  
-   
+    var quantity = item.style_quantity;
     vm.service.apiCall("get_sku_variants/", "GET", {sku_class: data, is_catalog: true}).then(function(data) {
 
       if(data.message) {
         vm.style_open = true;
-        vm.catlog=true;
         vm.check_stock=true;
         vm.style_data = data.data.data;
+        vm.stock_quantity = quantity;
       }
     });
-   */ 
-        
     vm.style_total_quantity = 0;
   }
 
@@ -654,6 +442,9 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
   vm.check_item = function(sku) {
 
     var d = $q.defer();
+    if(vm.model_data.data.length == 0) {
+        d.resolve('true');
+    }
     angular.forEach(vm.model_data.data, function(data, index){
       if(data.sku_id == sku) {
         d.resolve(String(index));
@@ -668,20 +459,20 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
     if(vm.style_total_quantity > 0) {
       angular.forEach(vm.style_data, function(data){
 
-        if(data['quantity']) {
+        if (data['quantity']) {
           vm.check_item(data.wms_code).then(function(stat){
             console.log(stat)
             if(stat == "true") {
-              if(vm.model_data.data[0]["sku_id"] == ""){
+              if(vm.model_data.data.length > 0 && vm.model_data.data[0]["sku_id"] == "") {
                 vm.model_data.data[0].sku_id = data.wms_code;
-                vm.model_data.data[0]["image_url"] = data.image_url
                 vm.model_data.data[0].quantity = Number(data.quantity);
                 vm.model_data.data[0]['price'] = Number(data.price);
                 vm.model_data.data[0].invoice_amount = data.price*Number(data.quantity);
                 vm.model_data.data[0]['tax'] = vm.tax;
+                vm.model_data.data[0]['image_url'] = data.image_url;
                 vm.model_data.data[0]['total_amount'] = ((vm.model_data.data[0].invoice_amount/100)*vm.tax)+vm.model_data.data[0].invoice_amount;
               } else {
-                var temp = {sku_id: data.wms_code,image_url:data.image_url, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax}
+                var temp = {sku_id: data.wms_code, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax, image_url: data.image_url}
                 temp['total_amount'] = ((temp.invoice_amount/100)*vm.tax)+temp.invoice_amount;
                 vm.model_data.data.push(temp)
               }
@@ -693,11 +484,9 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
                vm.model_data.data[Number(stat)].total_amount = ((invoice/100)*vm.tax)+invoice;
             }
             vm.cal_total();
-            console.log("data is"+vm.model_data.data);
           });
         }
       });
-      console.log("last data is"+vm.model_data.data);
       vm.service.showNoty("Succesfully Added to Cart");
     } else {
       vm.service.showNoty("Please Enter Quantity");
@@ -712,35 +501,6 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
       vm.check_stock = true;
     }
   }
-
-  vm.change_cart_quantity = function(data, stat) {
-
-    if (stat) {
-      data.quantity = Number(data.quantity) + 1
-      vm.change_amount(data);
-    } else {
-      if (Number(data.quantity)> 1) {
-        data.quantity = Number(data.quantity) - 1
-        vm.change_amount(data);
-      }
-    }
-  }
-
-  vm.change_amount = function(data) {
-
-    var find_data=data;
-    data.quantity = Number(data.quantity);
-    data.invoice_amount = Number(data.price)*data.quantity;
-   
-  }
-
-  
-  vm.remove_item = function(index) {
-
-    vm.model_data.data.splice(index,1);
-  }
-
-
 
   vm.get_invoice = function(record, item) {
 
@@ -770,6 +530,13 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
       vm.final_data.total_amount += Number(record.total_amount);
       vm.final_data.total_quantity += Number(record.quantity);
     })
+    if(vm.model_data.other_charges) {
+      angular.forEach(vm.model_data.other_charges, function(record){
+        if(record.amount){
+          vm.final_data.total_amount += Number(record.amount);
+        }
+      })
+    }
   }
   vm.cal_percentage = function(data) {
 
@@ -833,26 +600,8 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
   }
 
   vm.tax = 0;
-  console.log(Session);
-  if(Session.userName == 'sagar_fab') {
-    vm.tax = 5.5;
-  }
   vm.model_data.data[0].tax = vm.tax;
   empty_data.data[0].tax = vm.tax;
-
-  vm.make_bold = function(e) {
-
-    console.log(e);
-    //var all = $(e.toElement).parent().find(".cat-tags");
-    //vm.remove_bold(all);
-    //$(e.toElement).addClass("ct-selected");
-  }
-  vm.remove_bold = function(e) {
-    //angular.forEach(e, function(item){
-    //  $(item).removeClass("ct-selected");
-    //})
-    console.log(e);
-  }
 
   /*Create customer */
   vm.status_data = ["Inactive", "Active"];
@@ -889,72 +638,23 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
     }
   }
 
-  function checkSyncData(){
-     console.log("call post message");
-     return new Promise(function(resolve, reject){
-        var msg_chan = new MessageChannel();
+  //Order type 
+  vm.order_type = false;
+  vm.order_type_value = "offline"
+  vm.change_order_type = function() {
 
-        msg_chan.port1.onmessage = function(event){
-            resolve();          
-         };
+    vm.catlog_data.index = "";
+    vm.get_order_type();
+    var data = {is_catalog: true, sale_through: vm.order_type_value};
+    vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
 
-        if(navigator.serviceWorker.controller){
-           navigator.serviceWorker.controller.postMessage("check_data",[msg_chan.port2]);
-         }
-    });
+      if(data.message) {
+
+        vm.brands = data.data.brands;
+      }
+    })
   }
-
-   vm.all_brands = {Offline: [], Online: []}
-   vm.get_brands = function() {
-
-    vm.loading = true;
-    vm.brands = [];
-    if(vm.all_brands[vm.order_type_value].length > 0) {
-
-      vm.brands = vm.all_brands[vm.order_type_value];
-      vm.loading = false;
-    } else {
-      var item_data=getSkuBrands(vm.order_type_value);
-      item_data.then(function(data){
- 
-        angular.forEach(data, function(record){
-  
-          vm.brands.push(record.sku_brand);
-        })
-        vm.all_brands[vm.order_type_value] = vm.brands;
-        vm.loading = false;
-      });
-
-      var temp_brands = []
-      item_data=getSkuBrands('Online');
-      item_data.then(function(data){
-
-        angular.forEach(data, function(record){
-
-          temp_brands.push(record.sku_brand);
-        })
-        vm.all_brands['Online'] = temp_brands;
-      });
-    }
-   }
-
-   vm.get_cats = function() {
-
-     vm.all_cate = [];
-    var item_data=getSkuBrands(vm.order_type_value);
-    item_data.then(function(data){
-
-      angular.forEach(data, function(record){
-
-        vm.all_cate.push(record.sku_category);
-      })
-    });
-   }
-   checkSyncData().then(function(){
-     change_filter_data();
-   });
-
-   vm.get_order_type = function() {
+  vm.get_order_type = function() {
 
     if(vm.order_type) {
       vm.order_type_value = "Online";
@@ -962,20 +662,53 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
       vm.order_type_value = "Offline";
     }
   }
-   vm.change_order_type = function(){
-     vm.order_type_value = (vm.order_type)? "Online" : "Offline";
-     vm.get_brands();
-     vm.get_cats();
-   }
 
-   vm.logout = function(){
+  vm.create_order_data = {}
+  vm.get_create_order_data = function(){
+    vm.service.apiCall("create_orders_data/").then(function(data){
+
+      if(data.message) {
+        vm.create_order_data = data.data;
+        vm.model_data.tax_type = 'VAT'
+        vm.change_tax_type();
+      }
+    })
+  }
+  vm.get_create_order_data();
+
+  vm.change_tax_type = function() {
+
+    vm.tax = vm.create_order_data.taxes[vm.model_data.tax_type];
+    angular.forEach(vm.model_data.data, function(record) {
+      record.tax = vm.create_order_data.taxes[vm.model_data.tax_type];
+      vm.cal_percentage(record)
+    })
+    vm.cal_total();
+  }
+  vm.logout = function(){
 
      Auth.logout().then(function(){
        $state.go("user.sagarfab");
-     })
+     })  
    }
+  vm.change_cart_quantity = function(data, stat) {
+
+    if (stat) {
+      data.quantity = Number(data.quantity) + 1 
+      vm.change_amount(data);
+    } else {
+      if (Number(data.quantity)> 1) {
+        data.quantity = Number(data.quantity) - 1 
+        vm.change_amount(data);
+      }   
+    }   
+  }
+  vm.remove_item = function(index) {
+
+    vm.model_data.data.splice(index,1);
+  }
 }
 
 angular
   .module('urbanApp')
-  .controller('CreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', CreateOrders]);
+  .controller('appCreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', appCreateOrders]);

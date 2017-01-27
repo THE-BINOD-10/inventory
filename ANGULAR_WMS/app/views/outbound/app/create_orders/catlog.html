@@ -1,0 +1,68 @@
+<div class="clearfix render-items">
+  <div class="row style-menu" style="height: 60px">
+    <div class="col-md-4 col-sm-4 col-xs-4">
+      <div class="menu-left" style="line-height: 60px">
+        <span ng-click="showCase.catlog=true;showCase.details=true;showCase.detailed_list=false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="showCase.catlog=true;showCase.details=true;showCase.detailed_list=false;" title="Go to Brand Page">Back</span>
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-5 brand-title">
+      <img ng-src="images/brands/{{showCase.brands_logos[showCase.brand]}}" ng-if="showCase.brands_logos[showCase.brand]" style="height: 60px;"/>
+      <h3 style="margin-top:10px;" ng-if="!(showCase.brands_logos[showCase.brand])">{{showCase.brand}}</h3>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-3">
+      <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;" ng-click="showCase.logout()">        </a>
+      <a href="" class="pull-right" ng-click="showCase.catlog=false;showCase.details=false;showCase.detailed_list=false;">
+        <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;" title="Go To Cart Page"></i>
+      </a>
+    </div>
+  </div>
+
+  <div class="row search-items mt15">
+    <div class="">
+      <div class="col-md-1 col-sm-1 col-xs-12">
+      </div>
+      <div class="col-md-8 col-sm-7 col-xs-8">
+        <div class="search-bar">
+          <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-change="showCase.catlog_data.index='';showCase.get_category(true, true);">
+          <i class="fa fa-search fa-lg" style="color: white;" aria-hidden="true"></i>
+        </div>
+      </div>
+      <div class="col-md-2 col-sm-3 col-xs-4">
+        <div>
+           <select name="Category" class="form-control" ng-model="showCase.brand" ng-change="showCase.change_brand(showCase.brand);">
+             <option value="" ng-selected="showCase.brand == ''">All Brands</option>
+             <option ng-repeat="cat in showCase.brands" value="{{cat}}" ng-selected="{{showCase.brand == cat}}">{{cat}}</option>
+           </select>
+        </div>
+      </div>
+      <div class="col-md-1 col-sm-1 col-xs-12">
+      </div>
+    </div>
+  </div>
+  <div class="tag-display row mt10">
+    <div class="col-md-1 col-sm-1 col-xs-12">
+    </div>
+    <div class="col-md-10 col-sm-10 col-xs-12">
+      <a ng-repeat="cate in showCase.all_cate" ng-click="showCase.tag_details(cate,showCase.brand)" class="cat-tags" href="" ng-class="(cate == showCase.category)? 'ct-selected': 'not-selected'">{{cate}}</a>
+    </div>
+  </div>
+  <div class="item-display row">
+    <div class="col-md-2 col-sm-3 col-xs-4 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="showCase.open_style(item.sku_class,item);showCase.detailed_list=false;">
+      <div>
+        <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
+        <br>
+        <div>
+          <span class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.sku_class }}</span>
+          <p class="style_name" style="font-size: 14px" style="font-size: 12px;" title="{{ item.variants[0].style_name }}">{{ item.variants[0].style_name }}</p>
+          <span style="font-size: 14px; padding:2px 15px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</span>
+          <br>
+          <span style="font-size: 14px">&#8377; {{ item.variants[0].mrp }}</span>
+        </div>
+      </div>
+    </div>
+    <input type="hidden" name="index" value="{{showCase.catlog_data.index}}">
+  </div>
+ 
+</div>
+</div>

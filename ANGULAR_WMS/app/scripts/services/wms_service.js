@@ -14,7 +14,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
                     style_detail: {
                                     head: {common:["SKU Code", "SKU Description"], sagar_fab: ["Size"]},
                                     keys: {common:["wms_code", "sku_desc"], sagar_fab: ["sku_size"]},
-                                    check_stock: {common:false, sagar_fab:true}
+                                    check_stock: {'common':false, 'sagar_fab':true}
                                   }
                   }
 

@@ -12,14 +12,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'pos_switch': false, 'auto_po_switch': false, 'no_stock_switch': false, 'online_percentage': 0,
                     'mail_alerts': 0, 'prefix': '', 'all_groups': '', 'mail_options': [{'id': 1,'name': 'Default'}],
                     'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '',
-                    'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false
+                    'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
                      6: 'use_imei', 7: 'pallet_switch', 8: 'production_switch', 9: 'pos_switch',
                      10: 'auto_po_switch', 11: 'no_stock_switch', 12:'online_percentage', 13: 'mail_alerts',
                      14: 'invoice_prefix', 15: 'float_switch', 16: 'automate_invoice', 17: 'show_mrp', 18: 'decimal_limit',
-                     19: 'picklist_sort_by', 20: 'stock_sync', 21: 'sku_sync'}
+                     19: 'picklist_sort_by', 20: 'stock_sync', 21: 'sku_sync', 22: 'auto_generate_picklist'}
   vm.empty = {};
   vm.message = "";
 
@@ -32,6 +32,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     });
     Session.roles.permissions[vm.switch_names[switch_num]] = value;
     Session.changeUserData();
+  }
+
+  vm.alertPopup = function(){
+      sweetAlert("Syncing b/n Users will take some time");
   }
 
   vm.example1model = [{'id': 1,'name': 'Default'}];
@@ -62,19 +66,35 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       });
       vm.model_data["mail_alerts"] = parseInt(vm.model_data["mail_alerts"]);
       vm.model_data["online_percentage"] = parseInt(vm.model_data["online_percentage"]);
+      vm.model_data["order_header_inputs"] = Session.roles.permissions["order_headers"].split(",")
       $timeout(function () {
         $('.selectpicker').selectpicker();
-        $(".bootstrap-select").change(function(){
-          var data = $(".selectpicker").val();
+        $(".mail_notifications .bootstrap-select").change(function(){
+          var data = $(".mail_notifications .selectpicker").val();
           var send = "";
           if (data) {
             for(var i = 0; i < data.length; i++) {
               send += data[i].slice(1)+",";
             }
-          } 
+          }
           vm.service.apiCall("enable_mail_reports/?data="+send.slice(0,-1)).then(function(data){
             if(data.message) {
-              Auth.status();
+              Auth.update();
+            }
+          });
+        })
+
+        $(".create_orders .bootstrap-select").change(function(){
+          var data = $(".create_orders .selectpicker").val();
+          var send = "";
+          if (data) {
+            for(var i = 0; i < data.length; i++) {
+              send += data[i].slice(1)+",";
+            }
+          }
+          vm.service.apiCall("switches/?order_headers="+send.slice(0,-1)).then(function(data){
+            if(data.message) {
+              Auth.update();
             }
           });
         })
@@ -85,21 +105,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     }
   })
 
-  vm.mail_alerts_change = function() {
-    var data = $('.selectpicker').val();
+  vm.mail_alerts_change = function(url, selector, item) {
+    var data = $(selector).val();
     var send = "";
     for(var i = 0; i < data.length; i++) {
       send += data[i].slice(1)+",";
     }
-    vm.service.apiCall("enable_mail_reports/?data="+send.slice(0,-1)).then(function(data){
+    vm.service.apiCall(url+"/?"+ item +"="+send.slice(0,-1)).then(function(data){
       if(data.message) {
         Auth.status();
       }
     });
   }
 
-  vm.check_selected = function(opt) {
-    return (vm.model_data.mail_inputs.indexOf(opt) > -1) ? true: false;
+  vm.check_selected = function(opt, name) {
+    if(!vm.model_data[name]) {
+      return false;
+    } else {
+      return (vm.model_data[name].indexOf(opt) > -1) ? true: false;
+    }
   }
 
   vm.check_mail = function(opt) {

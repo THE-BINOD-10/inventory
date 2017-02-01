@@ -1,19 +1,20 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('RawMaterialPicklistCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'printer', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('RawMaterialPicklistCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'printer', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session , printer, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session , printer, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data) {
     var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.vendor_produce = false;
+    vm.g_data = Data.confirm_orders;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
               type: 'POST',
-              data: {'datatable': 'RawMaterialPicklist'},
+              data: {'datatable': vm.g_data.view},
               xhrFields: {
                 withCredentials: true
               }
@@ -24,11 +25,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session , pri
        .withPaginationType('full_numbers')
        .withOption('rowCallback', rowCallback);
 
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn('Job Code').withTitle('Job Code'),
-        DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
-        DTColumnBuilder.newColumn('Order Type').withTitle('Order Type')
-    ];
+    vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers[vm.g_data.view]);
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $('td', nRow).unbind('click');
@@ -71,7 +68,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session , pri
     }
 
     vm.model_data = {}
-    vm.update = true; 
+    vm.update = true;
 
     vm.generate = function(url) {
       var elem = angular.element($('form'));
@@ -79,7 +76,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session , pri
       elem = $(elem).serializeArray();
       vm.service.apiCall(url, 'POST', elem).then(function(data){
         if(data.message) {
-          if(data.data == "Success") { 
+          if(data.data == "Success") {
             vm.close();
             reloadData();
           } else {
@@ -94,6 +91,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session , pri
       $timeout(function () {
           vm.message = "";
       }, 2000);
-    } 
+    }
+
+    vm.change_datatable = function() {
+      Data.confirm_orders.view = (vm.g_data.sku_view)? 'RawMaterialPicklistSKU': 'RawMaterialPicklist';
+      $state.go($state.current, {}, {reload: true});
+    }
   }
 

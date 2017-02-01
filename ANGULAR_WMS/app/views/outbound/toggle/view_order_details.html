@@ -1,9 +1,10 @@
-<div id="popup">
+<div id="popup" class="page-layout">
+  <form id="order-create" name="form" role="form" ui-jq="validate">
   <div class="row">
     <div class="container-fluid">
       <div class="left">
         <h4>
-          <span class="go-back" ng-click="$state.go('app.outbound.ViewOrders')">
+          <span class="go-back" ng-click="showCase.back_button()">
           <i class="fa fa-arrow-left fa-1x" aria-hidden="true"></i>
 	  View Orders</span>
           <span> / </span>
@@ -50,6 +51,14 @@
             <p>{{showCase.email}}</p>
           </div>
         </div>
+        <div class="row">
+          <div class="col-xs-3">
+            <b>MARKETPLACE:</b>
+          </div>
+          <div class="col-xs-6">
+            <p>{{showCase.market_place}}</p>
+          </div>
+        </div>
 
       </div>
       <div class="col-md-5">
@@ -87,45 +96,73 @@
     </div>
     <div class="row"><hr></div>
     <div class="row">
-      <div class="col-md-5" style="padding-left: 0px;">
+      <div class="col-md-4" style="padding-left: 0px;">
         <h5><b>ORDER DETAILS</b></h5>
       </div>
-      <div class="col-md-6"> 
-        <div class="col-xs-3">
+      <div class="col-md-4">
+        <div class="col-xs-6">
           <b>SHIPMENT DATE:</b>
         </div>
         <div class="col-xs-6">
           <p style="color: rgb(0, 86, 255);">{{showCase.shipment_date}}</p>
         </div>
       </div>
+      <div class="col-md-4">
+        <div class="col-md-6">
+          <b>STATUS:</b>
+        </div>
+        <div class="col-md-6">
+          <select ng-if="!showCase.input_status" class="form-control pull-right" name="status_type"
+                  ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
+            <option ng-repeat="type in showCase.status_type" ng-selected="showCase.ord_status == true">{{type}}</option>
+          </select>
+          <input ng-if="showCase.input_status" type="text" class="form-control" name="remarks" ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
+        </div>
+      </div>
     </div>
-    <div class="row">
-      <table class="table table-stk"> 
+    <div class="row over-x form-group">
+      <table class="table mw75">
         <thead>
           <tr>
             <th>ITEM CODE</th>
-            <!--<th>ITEM CODE</th>-->
             <th>PRODUCT TITLE </th>
             <th>QUANTITY</th>
-            <th>INVOICE AMT</th>
+            <th>INVOICE AMT (&#8377;)</th>
             <th>REMARKS</th>
-            <th>CUSTOMIZATION</th>
+            <!--<th>STATUS</th>-->
+            <th ng-if="!showCase.input_status" class="plus"></th>
           </tr>
         </thead>
         <tbody>
-          <tr>
+          <tr ng-repeat="data in showCase.model_data.data">
             <td>
-	      <img src="{{showCase.img_url}}" style="height: 75px;"></img>
-	      <p style="font-size: 15px; padding-top: 1%;">{{showCase.item_code}}</p>
-	    </td>
-            <!--<th>{{showCase.item_code}}</th>-->
-            <td>{{showCase.product_title}}</td>
-            <td>{{showCase.quantity}}</td>
-            <td>&#8377;{{showCase.invoice_amount}}</td>
-            <td>{{showCase.remarks}}</td>
-	    <td>
-            <p ng-repeat="each in showCase.cust_data">{{each[0]}}: {{each[1]}}</p>
-	    </td>
+	          <input type="text" autocomplete="off" placeholder="Search WMS Code" 
+	          typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')"
+	          typeahead-loading="loadingLocations"class="form-control" name="item_code" ng-model="data.item_code" 
+	          typeahead-on-select="showCase.get_sku_data(data, $item)" ng-readonly="data.default_status">
+              <img src="{{showCase.img_url}}" style="height: 75px; padding-top: 2%; padding-left: 30%;"></img>
+	        </td>
+            <td>
+              <input type="text" class="form-control" name="product_title" ng-model="data.product_title" ng-readonly="data.default_status">
+            </td>
+            <td>
+              <input type="text" class="form-control" name="quantity" ng-model="data.quantity" ng-readonly="showCase.input_status">
+            </td>
+            <td>
+              <input type="text" class="form-control" name="invoice_amount" ng-model="data.invoice_amount" ng-readonly="showCase.input_status">
+            </td>
+            <td>
+              <input type="text" class="form-control" name="remarks" ng-model="data.remarks" ng-readonly="showCase.input_status">
+            </td>
+	        <!--<td>
+	          <select ng-if="!showCase.input_status" class="form-control pull-right" name="status_type"
+	          ng-model="showCase.selected_status" ng-readonly="showCase.input_status">
+	            <option ng-repeat="type in showCase.status_type" ng-selected="type == showCase.selected_status">{{type}}</option>
+	          </select>
+	          <input ng-if="showCase.input_status" type="text" class="form-control" name="remarks" ng-model="data.order_status" ng-readonly="showCase.input_status">
+	        </td>-->
+	        <td ng-if="!showCase.input_status"><i style="font-size: 20px;padding-top: 7px;cursor: pointer;margin-left: -15px;"
+	        ng-click="showCase.update_order_details($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
           </tr>
         </tbody>
       </table>
@@ -134,7 +171,7 @@
     <div class="row">
       <div class="col-md-9">
       </div>
-      <div class="col-md-3">
+      <!--<div class="col-md-3">
         <div class="row">
           <div class="col-xs-5">
             Total Units:
@@ -151,8 +188,19 @@
             &#8377;{{showCase.invoice_amount}}
           </div>
         </div>
+      </div>-->
+    </div>
+    <div class="row" style="padding-bottom:2%;">
+      <div class="col-md-6">
+        <button type="submit" class="btn btn-primary" ng-if="!showCase.input_status" style="margin: auto;display: block;" 
+        ng-click="showCase.send_order_data(form)">Update </button>
+      </div>
+      <div class="col-md-6">
+        <button type="submit" class="btn btn-danger" ng-if="!showCase.input_status" style="margin: auto;display: block;"
+        ng-click="showCase.delete_order_data(showCase.order_id)">Delete Order </button>
       </div>
     </div>
   </div>
 </div>
+</form>
 </div>

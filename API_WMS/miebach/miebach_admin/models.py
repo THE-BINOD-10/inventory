@@ -942,7 +942,7 @@ class CustomerOrderSummary(models.Model):
     order_taken_by = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
-
+    status = models.CharField(max_length=24, default='')
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
 

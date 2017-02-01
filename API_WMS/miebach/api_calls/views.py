@@ -15,12 +15,13 @@ from django.db.models import Sum, Count
 import json
 import datetime
 from django.db.models import Q, F
+from django.core.serializers.json import DjangoJSONEncoder
 # Create your views here.
 
 NOW = datetime.datetime.now()
 
 def return_response(data, content_type='application/json'):
-    return HttpResponse(json.dumps(data), content_type=content_type)
+    return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder), content_type=content_type)
 
 def decide_and_return_response(request, **kwargs):
 
@@ -908,7 +909,7 @@ def get_skus(request):
     data = scroll_data(request, data, limit=limit)
 
     data['message'] = 'success'
-    return HttpResponse(json.dumps(data))
+    return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder))
 
 @csrf_exempt
 def get_user_skus(request):
@@ -939,4 +940,4 @@ def get_user_skus(request):
     data = scroll_data(request, data, limit=limit)
 
     data['message'] = 'success'
-    return HttpResponse(json.dumps(data))
+    return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder))

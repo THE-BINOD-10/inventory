@@ -57,7 +57,7 @@
           <div class="form-group">
             <label class="control-label">Tax Type</label>
             <select class="form-control" name="tax_type" ng-model="showCase.model_data.tax_type" ng-change="showCase.change_tax_type();">
-              <option ng-repeat="(type,value) in showCase.create_order_data.taxes" ng-selected="showCase.model_data.tax_type == type" value="{{type}}">{{type}}</option>
+              <option ng-repeat="(type,value) in showCase.create_order_data.taxes" ng-selected="showCase.model_data.tax_type == type" value="{{(type == 'DEFAULT')? '': type;}}">{{type}}</option>
             </select>
           </div>
         </div>
@@ -112,16 +112,17 @@
         </table>
       </div>
       <div class="row over-x">
-        <table class="table mw75">
+        <table class="table" ng-class="showCase.min_width">
           <thead>
             <tr>
               <th>SKU Code/WMS Code *</th>
+              <th> Description </th>
               <th>Quantity</th>
-              <th>Unit Price</th>
-              <th>Amount</th>
-              <th>Tax(%)</th>
-              <th>Total Amount</th>
-              <th>Remarks</th>
+              <th ng-show="showCase.fields.indexOf('Unit Price') == -1">Unit Price</th>
+              <th ng-show="showCase.fields.indexOf('Amount') == -1">Amount</th>
+              <th ng-show="showCase.fields.indexOf('Tax') == -1">Tax(%)</th>
+              <th ng-show="showCase.fields.indexOf('Total Amount') == -1">Total Amount</th>
+              <th ng-show="showCase.fields.indexOf('Remarks') == -1">Remarks</th>
               <th class="plus"></th>
             </tr>
           </thead>
@@ -132,21 +133,24 @@
                 <!--ng-blur="showCase.service.checkSearchValue(data.sku_id,'search_wms_codes?', $event);showCase.get_invoice(data)">-->
               </td>
               <td>
+                <input type="text" class="form-control" ng-model="data.description">
+              </td>
+              <td>
                 <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="data.invoice_amount = showCase.service.multi(data.quantity, data.price);showCase.cal_percentage(data)"> </div>
               </td>
-              <td>
+              <td ng-show="showCase.fields.indexOf('Unit Price') == -1">
                 <input type="text" class="form-control" ng-model="data.price" ng-change="showCase.change_unit_price(data)" decimal-number>
               </td>
-	      <td>
+	      <td ng-show="showCase.fields.indexOf('Amount') == -1">
 	        <input type="text" class="form-control" ng-model="data.invoice_amount"  ng-change="showCase.cal_percentage(data)" decimal-number>
 	      </td>
-              <td>
+              <td ng-show="showCase.fields.indexOf('Tax') == -1">
                 <input type="text" name="tax" class="form-control" ng-model="data.tax" decimal-number ng-change="showCase.cal_percentage(data)">
               </td>
-              <td>
+              <td ng-show="showCase.fields.indexOf('Total Amount') == -1">
                 <input type="text" name="invoice_amount" class="form-control" ng-model="data.total_amount" ng-change="showCase.cal_total()" decimal-number>
               </td>
-	      <td>
+	      <td ng-show="showCase.fields.indexOf('Remarks') == -1">
                 <input type="text" name="remarks" class="form-control" ng-model="data.remarks">
               </td>
               <td><i style="font-size: 20px;padding-top: 7px;cursor: pointer;margin-left: -15px;" ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>

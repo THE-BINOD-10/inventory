@@ -78,7 +78,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     reserved_quantities = map(lambda d: d['reserved'], reserved_instances)
     raw_reserveds = map(lambda d: d['material_picklist__jo_material__material_code__wms_code'], raw_res_instances)
     raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
-    temp_data['totalQuantity'] = sum([data[4] for data in master_data])
+    #temp_data['totalQuantity'] = sum([data[4] for data in master_data])
     for ind, data in enumerate(master_data[start_index:stop_index]):
         reserved = 0
         total = data[4] if len(data) > 4 else 0

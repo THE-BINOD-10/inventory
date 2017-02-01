@@ -10,14 +10,44 @@
 
  <script>
 $(document).ready(function(){
-    var today = new Date(),
-    month = today.toLocaleString('en-US', { month: "long" });
-    $('body').find('#date').html(today.toString().replace(/GMT.+/,""))
+    //var today = new Date(),
+    //month = today.toLocaleString('en-US', { month: "long" });
+    //$('body').find('#date').html(today.toString().replace(/GMT.+/,""))
+    var d = new Date();          
+    var n = d.toLocaleString([], { hour12: true});
+    var data = n.split(",")
+    $('body').find('#date').html(data[0]);
+    $('body').find('#time').html(data[1]);
 });
 </script>
  {% load tag_extras %}
 
-               <h5 style='position:relative;left:20px;'>{{ title }} <b>{{ picklist_id }}</b><p id='date'></p></h5>
+{% if customer_name %}
+<div class="row" style="padding-left: 2px;">
+  <div class="col-md-12">
+    <center><b>Customer Name: {{ customer_name }}</b></center>
+  </div>
+</div>
+{% endif %}
+<div class="row" style="padding-left: 2px;">
+  <div class="col-md-12">
+    <div class="col-md-6">
+      <span class="pull-left" style="float: left;"><b>Date: <span id="date"></span></b></span>
+    </div>
+    <div class="col-md-6" style="float: right;">
+      <span class="pull-right"><b>Order ID: {{ order_ids }}</b></span>
+    </div>
+  </div>
+  <br>
+  <div class="col-md-12">
+    <div class="col-md-6">
+      <span class="pull-left" style="float: left;"><b>Time: <span id="time"></span></b></span>
+    </div>
+    <div class="col-md-6">
+      <span class="pull-right" style="float: right;"><span style="font-size:18px">Total Quantity: {{total_quantity}}</span></span>
+    </div>
+  </div>
+</div>
 
                <div class="row" style="padding-left: 10px;">
                    <div class="col-md-3">
@@ -49,7 +79,7 @@ $(document).ready(function(){
                 </table>
                 </div>
                 <div class="col-md-1">
-                    <table class='table table-bordered' style="width: 100%; font-size: 12px;">
+                    <table class='table table-bordered' style="width: 100%; font-size: 12px; margin-bottom:5px;">
                         <tr><th colspan=3>Summary</th></tr>
                         <tr>
                             <th>Type</th>
@@ -63,7 +93,16 @@ $(document).ready(function(){
                           <tr><td>Total</td><td>{{ total_quantity }}</td><td>{{ total_price }}</td></tr>
                           </tbody>
                     </table>
-                    </div>
+                    <table style="width: 100%; font-size: 12px;padding-left:20px;">
+                      <tbody>
+                        <tr>
+                          <td>Order Placed by</td>
+                          <td style="text-align: center">Order Picked by</td>
+                          <td style="text-align: right">Order Verified by</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
                 <div class="row col-md-12 insert-status">{{ stock_status }}</div>
                 <div class="loading display-none">

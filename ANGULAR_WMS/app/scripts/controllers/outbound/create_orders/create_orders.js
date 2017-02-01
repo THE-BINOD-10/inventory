@@ -1,11 +1,12 @@
 'use strict';
 
-function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout) {
+function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Data) {
 
   $scope.msg = "start";
   var vm = this;
   vm.order_type_value = "offline";
   vm.service = Service;
+  vm.g_data = Data.create_orders
   vm.company_name = Session.user_profile.company_name;
   vm.model_data = {}
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
@@ -360,7 +361,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     }
     angular.forEach(data, function(record){
 
-      var temp = {sku_id: record.sku_code, quantity: Number(record.quantity), invoice_amount: "", price: Number(sizes.unit_price), tax: vm.tax, total_amount: ''}
+      var temp = {sku_id: record.sku_code, description: record.sku_desc, quantity: Number(record.quantity), invoice_amount: "", price: Number(sizes.unit_price), tax: vm.tax, total_amount: ''}
       temp.invoice_amount = temp.quantity*temp.price;
       temp.total_amount = ((temp.invoice_amount/100)*5.5)+temp.invoice_amount;
       vm.model_data.data.push(temp);
@@ -420,6 +421,8 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         vm.style_open = true;
         vm.check_stock=true;
         vm.style_data = data.data.data;
+        var quant_len = data.data.data.length-1;
+        vm.stock_quantity = vm.style_data[quant_len].style_quantity;
       }
     });
     vm.style_total_quantity = 0;
@@ -459,13 +462,14 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
             if(stat == "true") {
               if(vm.model_data.data[0]["sku_id"] == "") {
                 vm.model_data.data[0].sku_id = data.wms_code;
+                vm.model_data.data[0]['description'] = data.sku_desc;
                 vm.model_data.data[0].quantity = Number(data.quantity);
                 vm.model_data.data[0]['price'] = Number(data.price);
                 vm.model_data.data[0].invoice_amount = data.price*Number(data.quantity);
                 vm.model_data.data[0]['tax'] = vm.tax;
                 vm.model_data.data[0]['total_amount'] = ((vm.model_data.data[0].invoice_amount/100)*vm.tax)+vm.model_data.data[0].invoice_amount;
               } else {
-                var temp = {sku_id: data.wms_code, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax}
+                var temp = {sku_id: data.wms_code, description: data.sku_desc, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax}
                 temp['total_amount'] = ((temp.invoice_amount/100)*vm.tax)+temp.invoice_amount;
                 vm.model_data.data.push(temp)
               }
@@ -499,11 +503,13 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
     var sku = item.wms_code;
     record.sku_id = sku;
+    record["description"] = item.sku_desc;
     vm.service.apiCall("get_sku_variants/", "GET", {sku_code: sku, customer_id: vm.model_data.customer_id, is_catalog: true}).then(function(data) {
 
       if(data.message) {
         if(data.data.data.length == 1) {
           record["price"] = data.data.data[0].price;
+          record["description"] = data.data.data[0].sku_desc;
           if(!(record.quantity)) {
             record.quantity = 1
           }
@@ -662,7 +668,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
       if(data.message) {
         vm.create_order_data = data.data;
-        vm.model_data.tax_type = 'VAT'
+        vm.model_data.tax_type = 'DEFAULT';
         vm.change_tax_type();
       }
     })
@@ -671,15 +677,36 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   vm.change_tax_type = function() {
 
-    vm.tax = vm.create_order_data.taxes[vm.model_data.tax_type];
+    var tax_name = vm.model_data.tax_type;
+    if(!(vm.model_data.tax_type)) {
+        tax_name = 'DEFAULT';
+    }
+    vm.tax = vm.create_order_data.taxes[tax_name];
     angular.forEach(vm.model_data.data, function(record) {
-      record.tax = vm.create_order_data.taxes[vm.model_data.tax_type];
+      record.tax = vm.create_order_data.taxes[tax_name];
       vm.cal_percentage(record)
     })
     vm.cal_total();
+  }
+
+  vm.field_perm = {};
+  vm.min_width = "";
+  if(Session.user_profile['company_name'] == "Subhas Publications") {
+    vm.field_perm = vm.g_data.fields['Subhas Publications'];
+    vm.min_width = "";
+  } else {
+    vm.field_perm = vm.g_data.fields['other'];
+    vm.min_width = "mw75";
+  }
+
+  vm.fields = Session.roles.permissions["order_headers"];
+  if(!(vm.fields)) {
+    vm.fields = [];
+  } else {
+    vm.fields = vm.fields.split(",")
   }
 }
 
 angular
   .module('urbanApp')
-  .controller('CreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', CreateOrders]);
+  .controller('CreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Data', CreateOrders]);

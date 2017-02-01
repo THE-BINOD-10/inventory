@@ -51,6 +51,8 @@ def get_user_permissions(request, user):
     roles = {}
     label_perms = []
     configuration = list(MiscDetail.objects.filter(user=user.id).values('misc_type', 'misc_value'))
+    if 'order_headers' not in map(lambda d: d['misc_type'], configuration):
+        configuration.append({'misc_type': 'order_headers', 'misc_value': ''})
     config = dict(zip(map(operator.itemgetter('misc_type'), configuration), map(operator.itemgetter('misc_value'), configuration)))
     user_perms = PERMISSION_KEYS
     permissions = Permission.objects.all()
@@ -481,6 +483,7 @@ def configurations(request, user=''):
     decimal_limit = get_misc_value('decimal_limit', user.id)
     picklist_sort_by = get_misc_value('picklist_sort_by', user.id)
     stock_sync = get_misc_value('stock_sync', user.id)
+    auto_generate_picklist = get_misc_value('auto_generate_picklist', user.id)
     all_groups = SKUGroups.objects.filter(user=user.id).values_list('group', flat=True)
     all_groups = str(','.join(all_groups))
 
@@ -535,13 +538,14 @@ def configurations(request, user=''):
                                                              'mail_inputs': mail_inputs, 'mail_options': MAIL_REPORTS_DATA,
                                                              'mail_reports': MAIL_REPORTS, 'data_range': data_range,
                                                              'report_freq': report_freq, 'email': email,
-                                                             'reports_data': reports_data, 'display_none': display_none, 'is_config': 'true',
+                                                             'reports_data': reports_data, 'display_none': display_none, 
+                                                             'is_config': 'true', 'order_headers': ORDER_HEADERS_d,
                                                              'all_groups': all_groups, 'display_pos': display_pos,
                                                              'auto_po_switch': auto_po_switch, 'no_stock_switch': no_stock_switch,
                                                              'float_switch': float_switch, 'all_stages': all_stages,
                                                              'automate_invoice': automate_invoice, 'show_mrp': show_mrp,
                                                              'decimal_limit': decimal_limit, 'picklist_sort_by': picklist_sort_by,
-                                                             'stock_sync': stock_sync}))
+                                                             'stock_sync': stock_sync, 'auto_generate_picklist': auto_generate_picklist}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers):
@@ -1442,8 +1446,10 @@ def check_and_update_stock(wms_codes, user):
                                           values('order__sku__wms_code').distinct().\
                                          annotate(total_reserved=Sum('picked_quantity'))
     stocks = map(lambda d: d['sku__wms_code'], stock_instances)
+    stocks = [(str(x)).lower() for x in stocks]
     stocks_quantities = map(lambda d: d['total_sum'], stock_instances)
     reserveds = map(lambda d: d['order__sku__wms_code'], reserved_instances)
+    reserveds = [(str(x)).lower() for x in reserveds]
     reserved_quantities = map(lambda d: d['total_reserved'], reserved_instances)
     for integrate in integrations:
         data = []
@@ -1705,7 +1711,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if product in stock_skus:
             total_quantity = stock_quans[stock_skus.index(product)]
         if product in reserved_skus:
-            total_quantity = total_quantity + float(reserved_quans[reserved_skus.index(product)])
+            total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
             sku_variants = get_style_variants(sku_variants, user, total_quantity=total_quantity)

@@ -51,7 +51,7 @@ class EasyopsAPI:
             else:
                 self.get_access_token(self.user)
 
-    def get_response(self, url, data=None, put=False, auth=False):
+    def get_response(self, url, data=None, put=False, auth=False, is_first=True):
         """ Getting API response using request module """
         self.headers["Authorization"] = "Bearer " + self.token
         if put:
@@ -64,8 +64,9 @@ class EasyopsAPI:
         try:
             response = response.json()
         except:
-            self.get_access_token(self.user)
-            response = self.get_response(url, data, put)
+            if is_first:
+                self.get_access_token(self.user)
+                response = self.get_response(url, data, put, is_first=False)
 
         return response
 

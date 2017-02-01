@@ -233,6 +233,38 @@ def get_received_jo(start_index, stop_index, temp_data, search_term, order_term,
     temp_data['recordsFiltered'] = len(temp_data['aaData'])
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
+@csrf_exempt
+def get_rm_picklist_confirmed_sku(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    lis = ['job_code', 'product_code__sku_code', 'product_code__sku_brand', 'product_code__sku_category','creation_date', 'order_type']
+    if order_term:
+        order_data = lis[col_num]
+        if order_term == 'desc':
+            order_data = '-%s' % order_data
+        master_data = JobOrder.objects.filter(product_code__user=user.id, status='order-confirmed', product_code_id__in=sku_master_ids).\
+                                               order_by(order_data).values_list('job_code', flat=True)
+    if search_term:
+        master_data = JobOrder.objects.filter(product_code_id__in=sku_master_ids).filter(Q(job_code__icontains=search_term,
+                                              status='order-confirmed'), product_code__user=user.id).values_list('job_code', flat=True).\
+                                       order_by(order_data)
+    master_data = [ key for key,_ in groupby(master_data)]
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data_id in master_data[start_index:stop_index]:
+        data = JobOrder.objects.filter(job_code=data_id, product_code__user=user.id, status='order-confirmed')[0]
+        order_type = 'Job Order'
+        rw_purchase = RWOrder.objects.filter(job_order_id=data.id)
+        if rw_purchase:
+            order_type = 'Returnable Work Order'
+        if data.order_type == 'VP':
+            order_type = 'Vendor Produce'
+
+        checkbox = "<input type='checkbox' name='id' value='%s'>" % data_id
+        temp_data['aaData'].append({'': checkbox, 'Job Code': data.job_code, 'SKU Code': data.product_code.sku_code,
+                                    'SKU Brand': data.product_code.sku_brand, 'SKU Category': data.product_code.sku_category,
+                                    'Creation Date': get_local_date(request.user, data.creation_date), 'Order Type': order_type, 'DT_RowClass': 'results',
+                                    'DT_RowAttr': {'data-id': data.job_code}})
+
 @login_required
 @get_admin_user
 def generated_jo_data(request, user=''):

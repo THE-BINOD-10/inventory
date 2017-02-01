@@ -9,7 +9,7 @@ import sys
 import traceback
 import ConfigParser
 import datetime
-
+from rest_api.views.miebach_utils  import *
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read('rest_api/views/configuration.cfg')
 
@@ -90,6 +90,8 @@ class EasyopsAPI:
 
     def get_pending_orders(self, token='', user=''):
         """ Collecting all pending orders for a particular user """
+        order_mapping = eval(LOAD_CONFIG.get(self.company_name, 'order_mapping_dict', ''))
+        run_iterator = 1
         data = {}
         if user:
             self.user = user
@@ -97,13 +99,29 @@ class EasyopsAPI:
         if not token:
             self.get_user_token(user)
 
+        main_json_response = ""
+
         today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
         data = eval(LOAD_CONFIG.get(self.company_name, 'pending_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        offset = 0
+        while run_iterator:
+            url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'pending_orders', ''))
+            if LOAD_CONFIG.get(self.company_name, 'is_pagination', ''):
+                data.update(eval(LOAD_CONFIG.get(self.company_name, 'pagination_dict', '') % str(offset)))
 
-        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'pending_orders', ''))
+            json_response = self.get_response(url, data=data)
+            if len(json_response[order_mapping['items']]) > 0:
+                if offset == 0:
+                    main_json_response = json_response
+                else:
+                    main_json_response[order_mapping['items']].extend(json_response[order_mapping['items']])
 
-        json_response = self.get_response(url, data=data)
-        return json_response
+                offset += int(LOAD_CONFIG.get(self.company_name, 'page_size', 0))
+
+            else:
+                run_iterator = 0
+            print data
+        return main_json_response
 
     def get_stock_count(self, sku_id, token='', user=''):
         """ Getting Stock Count for a particular SKU """
@@ -139,51 +157,104 @@ class EasyopsAPI:
 
     def get_shipped_orders(self, token='', user=''):
         """ Collecting all shipped orders for a particular user """
+        order_mapping = eval(LOAD_CONFIG.get(self.company_name, 'order_mapping_dict', ''))
         data = {}
+        run_iterator = 1
         if user:
             self.user = user
         self.token = token
         if not token:
             self.get_user_token(user)
+        main_json_response = ""
 
         today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
         data = eval(LOAD_CONFIG.get(self.company_name, 'shipped_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        offset = 0
+        while run_iterator:
 
-        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'shipped_orders', ''))
+            url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'shipped_orders', ''))
+            if LOAD_CONFIG.get(self.company_name, 'is_pagination', ''):
+                data.update(eval(LOAD_CONFIG.get(self.company_name, 'pagination_dict', '') % str(offset)))
 
-        json_response = self.get_response(url, data=data)
+            json_response = self.get_response(url, data=data)
+            if len(json_response[order_mapping['items']]) > 0:
+                if offset == 0:
+                    main_json_response = json_response
+                else:
+                    main_json_response[order_mapping['items']].extend(json_response[order_mapping['items']])
+
+                offset += int(LOAD_CONFIG.get(self.company_name, 'page_size', 0))
+
+            else:
+                run_iterator = 0
+            print data
         return json_response
 
     def get_returned_orders(self, token='', user=''):
         """ Collecting all return orders for a particular user """
+        order_mapping = eval(LOAD_CONFIG.get(self.company_name, 'order_mapping_dict', ''))
+        run_iterator = 1
         data = {}
         if user:
             self.user = user
         self.token = token
         if not token:
             self.get_user_token(user)
-
-        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'returned_orders', ''))
+        main_json_response = ""
 
         today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
         data = eval(LOAD_CONFIG.get(self.company_name, 'returned_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
 
-        json_response = self.get_response(url, data=data)
+        offset = 0
+        while run_iterator:
+            url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'returned_orders', ''))
+            if LOAD_CONFIG.get(self.company_name, 'is_pagination', ''):
+                data.update(eval(LOAD_CONFIG.get(self.company_name, 'pagination_dict', '') % str(offset)))
+
+            json_response = self.get_response(url, data=data)
+            if len(json_response[order_mapping['items']]) > 0:
+                if offset == 0:
+                    main_json_response = json_response
+                else:
+                    main_json_response[order_mapping['items']].extend(json_response[order_mapping['items']])
+
+                offset += int(LOAD_CONFIG.get(self.company_name, 'page_size', 0))
+
+            else:
+                run_iterator = 0
+            print data
         return json_response
 
     def get_cancelled_orders(self, token='', user=''):
         """ Collecting all cancelled orders for a particular user """
+        order_mapping = eval(LOAD_CONFIG.get(self.company_name, 'order_mapping_dict', ''))
+        run_iterator = 1
         data = {}
         if user:
             self.user = user
         self.token = token
         if not token:
             self.get_user_token(user)
+        main_json_response = ""
 
         today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
         data = eval(LOAD_CONFIG.get(self.company_name, 'cancelled_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        offset = 0
+        while run_iterator:
+            url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'cancelled_orders', ''))
+            if LOAD_CONFIG.get(self.company_name, 'is_pagination', ''):
+                data.update(eval(LOAD_CONFIG.get(self.company_name, 'pagination_dict', '') % str(offset)))
 
-        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'cancelled_orders', ''))
+            json_response = self.get_response(url, data=data)
+            if len(json_response[order_mapping['items']]) > 0:
+                if offset == 0:
+                    main_json_response = json_response
+                else:
+                    main_json_response[order_mapping['items']].extend(json_response[order_mapping['items']])
 
-        json_response = self.get_response(url, data=data)
+                offset += int(LOAD_CONFIG.get(self.company_name, 'page_size', 0))
+
+            else:
+                run_iterator = 0
+            print data
         return json_response

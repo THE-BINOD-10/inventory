@@ -114,6 +114,25 @@
 
         return deferredStatus.promise;
       };
+
+      this.update = function () {
+
+        deferredStatus = $q.defer();
+
+        $http.get(Session.url + "status/", {withCredentials: true}).then(function (resp) {
+
+          resp = resp.data;
+
+          if ((resp.message != "Fail") && resp.data.userId) {
+             setloginStatus(resp);
+             Session.set(resp.data);
+
+          }
+
+          deferredStatus.resolve(resp.message);
+        })
+        return deferredStatus.promise;
+      };
   }]);
 
 }(window.angular));

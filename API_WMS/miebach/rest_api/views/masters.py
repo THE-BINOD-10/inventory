@@ -403,6 +403,7 @@ def get_sku_data(request,user=''):
     sku_data['image_url'] = data.image_url
     sku_data['qc_check'] = data.qc_check
     sku_data['status'] = data.status
+    sku_data['price'] = data.price
     sku_data['size_type'] = 'Default'
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:

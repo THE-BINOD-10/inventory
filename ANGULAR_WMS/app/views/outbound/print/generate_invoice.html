@@ -68,7 +68,7 @@
         <th><center>Description</center></th>
         <th><center>Qty</center></th>
         <th ng-if="permissions.show_mrp">MRP(&#8377;)</center></th>
-        <th><center>Unit Price</center></th>
+        <th><center>Rate</center></th>
         <th><center>Discount(&#8377;)</center></th>
         <th><center>VAT(%)</center></th>
         <th><center>Tax(&#8377;)</center></th>
@@ -77,10 +77,10 @@
     </thead>
     <tbody>
       <tr ng-repeat="record in showCase.pdf_data.data" class="rm-brdr">
-        <td>
+        <td style="text-align: left;">
           {{record.sku_code}}
         </td>
-        <td>
+        <td style="text-align: left;">
           {{record.title}}
         </td>
         <td>

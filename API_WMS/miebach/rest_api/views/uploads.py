@@ -14,7 +14,7 @@ from common import *
 from miebach_utils import *
 from django.core import serializers
 import csv
-from sync_sku import insert_skus
+from sync_sku import *
 
 @csrf_exempt
 def error_file_download(error_file):

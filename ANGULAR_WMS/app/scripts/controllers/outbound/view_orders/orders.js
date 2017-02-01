@@ -9,11 +9,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
+    vm.default_status = true;
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
+    vm.scroll_data = true;
     vm.special_key = {market_places: "", customer_id: ""}
 
+    vm.update_order_details = update_order_details;
+    function update_order_details(index, data, last) {
+      vm.default_status = false;
+      console.log(data);
+      if (last) {
+        vm.model_data.data.push({item_code:'', product_title:'', quantity:'', invoice_amount:'', remarks:'', order_status:'', default_status: false});
+      } else {
+        var data_to_delete = {};
+        data_to_delete['order_id'] = vm.order_id;
+        data_to_delete['item_code'] = data.item_code;
+        vm.service.apiCall('delete_order_data/', 'GET', data_to_delete).then(function(data){
+
+          if (data.message){
+              vm.model_data.data.splice(index,1);
+          }
+        });
+      }
+    }
 
     vm.g_data = Data.other_view;
 
@@ -69,47 +89,151 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.dtInstance.reloadData();
     };
 
-   function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+   vm.status_type = ["Cleared", "Blocked"];
+   vm.selected_status = '';
+
+   vm.isLast = isLast;
+    function isLast(check) {
+
+      var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
+      return cssClass
+    }
+
+  vm.send_order_data = function(form) {
+    var elem = angular.element($('form'));
+    elem = elem[0];
+    elem = $(elem).serializeArray();
+    if (elem[0].value == '? string: ?'){
+        elem[0].value = '';
+    }
+    elem.push({name: 'order id', value: vm.order_id}, {name: 'customer_id', value: vm.customer_id}, 
+              {name: 'customer_name', value: vm.customer_name},
+              {name: 'phone', value: vm.phone}, {name: 'email', value: vm.email}, {name: 'address', value: vm.address},
+              {name: 'shipment_date', value: vm.shipment_date}, {name: 'market_place', value: vm.market_place})
+    vm.service.apiCall('update_order_data/', 'GET', elem).then(function(data){
+        console.log(data);
+        vm.reloadData();
+        colFilters.showNoty('Saved sucessfully');
+    })
+  }
+
+  vm.back_button = function() {
+    vm.reloadData();
+    $state.go('app.outbound.ViewOrders')
+  }
+
+  vm.delete_order_data = function(ord_id) {
+
+      var delete_data = {};
+      delete_data['order_id'] = ord_id
+
+      vm.service.apiCall('order_delete/', 'GET', delete_data).then(function(data){
+          if (data.message) {
+            colFilters.showNoty(data.data);
+            vm.reloadData();
+            $state.go('app.outbound.ViewOrders');
+          }
+          })
+  }
+
+  vm.get_sku_data = function(record, item){
+
+  var sku = item.wms_code;
+
+  if (sku === vm.item_code){
+      colFilters.showNoty('WMS code already existed');
+  }
+  else {
+
+  record.item_code = sku;
+  record.product_title = item.sku_desc;
+
+  vm.service.apiCall("get_sku_variants/", "GET", {sku_code: sku, customer_id: vm.model_data.customer_id, is_catalog: true}).then(function(data) {
+
+    if(data.message) {
+        if(data.data.data.length == 1) {
+          record.invoice_amount = data.data.data[0].invoice_amount;
+          if(!(record.quantity)) {
+            record.quantity = 1;
+          }
+        }
+    }
+  });
+  }
+  }
+
+
+    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+
+    vm.ord_status = '';
 
      $('td:not(td:first)', nRow).unbind('click');
      $('td:not(td:first)', nRow).bind('click', function() {
-       
+         if ((vm.g_data.view == 'CustomerOrderView') || (vm.g_data.view == 'OrderView')) {
+
        $scope.$apply(function() {
-	
+
 	 console.log(aData);
-         $state.go('app.outbound.ViewOrders.OrderDetails'); 
-	 vm.service.apiCall("get_view_order_details/", "GET", {order_id: $(aData[""]).attr('name')}).then(function(data){
-	  
-	   vm.customer_id = data.data.data_dict[0].cust_id;
-	   vm.customer_name = data.data.data_dict[0].cust_name;
-	   vm.phone = data.data.data_dict[0].phone;
-	   vm.email = data.data.data_dict[0].email;
-	   vm.address = data.data.data_dict[0].address;
-	   vm.city = data.data.data_dict[0].city;
-	   vm.state = data.data.data_dict[0].state;
-	   vm.pin = data.data.data_dict[0].pin;
-	   vm.product_title = data.data.data_dict[0].product_title;
-	   vm.quantity = data.data.data_dict[0].quantity;
-	   vm.invoice_amount = data.data.data_dict[0].invoice_amount;
-	   vm.shipment_date = data.data.data_dict[0].shipment_date;
-	   vm.remarks = data.data.data_dict[0].remarks;
-	   vm.cust_data = data.data.data_dict[0].cus_data;
-	   vm.item_code = data.data.data_dict[0].item_code;
-	   vm.order_id = data.data.data_dict[0].order_id;
-	   var image_url = data.data.data_dict[0].image_url;
+         $state.go('app.outbound.ViewOrders.OrderDetails');
+
+         //vm.market_place = aData['Market Place'];
+	 vm.service.apiCall("get_view_order_details/", "GET", {id: $(aData[""]).attr('name'),order_id: aData["Order ID"]}).then(function(data){
+
+	  var all_order_details = data.data.data_dict[0].ord_data;
+      vm.ord_status = data.data.data_dict[0].status;
+
+      vm.model_data = {}
+      var empty_data = {data: []}
+      angular.copy(empty_data, vm.model_data);
+
+      if (vm.g_data.view == 'CustomerOrderView'){
+        vm.input_status = false;
+      }
+      else {
+        vm.input_status = true;
+      }
+      vm.order_input_status = false;
+
+      angular.forEach(all_order_details, function(value, key){
+
+	   vm.customer_id = value.cust_id;
+	   vm.customer_name = value.cust_name;
+	   vm.phone = value.phone;
+	   vm.email = value.email;
+	   vm.address = value.address;
+	   vm.city = value.city;
+	   vm.state = value.state;
+	   vm.pin = value.pin;
+	   vm.product_title = value.product_title;
+	   vm.quantity = value.quantity;
+	   vm.invoice_amount = value.invoice_amount;
+	   vm.shipment_date = value.shipment_date;
+	   vm.remarks = value.remarks;
+	   vm.cust_data = value.cus_data;
+	   vm.item_code = value.item_code;
+	   vm.order_id = value.order_id;
+	   vm.market_place = value.market_place;
+
+	   var image_url = value.image_url;
 	   vm.img_url = vm.service.check_image_url(image_url);
-	   var custom_data = data.data.data_dict[0].customization_data;
+	   /*var custom_data = value.customization_data;
+	   vm.market_place = value.market_place;
 	   if (custom_data.length === 0){
 
 	     vm.customization_data = '';
 	   }
 	   else {
-	
+
 	     var img_url = custom_data[0][3];
-	     vm.img_url = vm.service.check_image_url(img_url)	
-	   }
+	     vm.img_url = vm.service.check_image_url(img_url)
+	   }*/
+       console.log(vm.model_data);
+       vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity, 
+       invoice_amount: vm.invoice_amount, image_url: vm.img_url, remarks: vm.remarks, default_status: true})
+	 });
 	 });
        })
+     }
      })
    }
 
@@ -124,14 +248,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
       vm.reloadData();
     });
-
-    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        /*if(vm.filter_enable){
-          vm.filter_enable = false;
-          vm.apply_filters.add_search_boxes();
-        }*/
-        return nRow;
-    }
 
     vm.model_data = {};
     vm.filter_enable = true;

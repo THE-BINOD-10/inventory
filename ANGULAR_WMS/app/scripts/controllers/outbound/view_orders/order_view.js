@@ -95,10 +95,38 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
                 console.log(aData);
+                $state.go('app.outbound.ViewOrders.OrderDetails');
+                vm.service.apiCall("get_view_order_details/", "GET", {order_id: $(aData[""]).attr('name')}).then(function(data){
+                   vm.customer_id = data.data.data_dict[0].cust_id;
+                   vm.customer_name = data.data.data_dict[0].cust_name;
+                   vm.phone = data.data.data_dict[0].phone;
+                   vm.email = data.data.data_dict[0].email;
+                   vm.address = data.data.data_dict[0].address;
+                   vm.city = data.data.data_dict[0].city;
+                   vm.state = data.data.data_dict[0].state;
+                   vm.pin = data.data.data_dict[0].pin;
+                   vm.product_title = data.data.data_dict[0].product_title;
+                   vm.quantity = data.data.data_dict[0].quantity;
+                   vm.invoice_amount = data.data.data_dict[0].invoice_amount;
+                   vm.shipment_date = data.data.data_dict[0].shipment_date;
+                   vm.remarks = data.data.data_dict[0].remarks;
+                   vm.cust_data = data.data.data_dict[0].cus_data;
+                   vm.item_code = data.data.data_dict[0].item_code;
+                   vm.order_id = data.data.data_dict[0].order_id;;
+                   vm.img_url = vm.service.check_image_url('');
+                   var custom_data = data.data.data_dict[0].customization_data;
+                   if (custom_data.length === 0){
+                     vm.customization_data = '';
+                   }
+                   else {
+                     var img_url = custom_data[0][3];
+                     vm.img_url = vm.service.check_image_url(img_url)
+                   }
+                 })
             });
         });
         return nRow;
-    } 
+    }
 
     vm.model_data = {};
 

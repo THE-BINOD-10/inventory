@@ -293,3 +293,11 @@ urlpatterns += patterns('rest_api.views',
     url(r'^book_trial/$','book_trial'),
     url(r'^contact_us/$','contact_us'),
     )
+
+
+urlpatterns += patterns('rest_api.views',
+    url(r'^update_order_data/$', 'update_order_data'),
+    url(r'^picklist_delete/$', 'picklist_delete'),
+    url(r'^delete_order_data/$', 'delete_order_data'),
+    url(r'^order_delete/$', 'order_delete'),
+    )

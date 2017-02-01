@@ -81,12 +81,12 @@ angular.module('urbanApp', ['datatables'])
     vm.confirm_Orders = function() {
         var data = [];
         angular.forEach(vm.selected, function(value, key) {
+
           if(value) {
-            var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)];
-            data.push({id: temp['DT_RowId']});
+            var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData;
+            data.push({name: 'id', value: temp['DT_RowId']});
           }
         });
-
         Service.apiCall("update_sync_issues/", "POST", data).then(function(api_data){
           console.log(api_data);
         });

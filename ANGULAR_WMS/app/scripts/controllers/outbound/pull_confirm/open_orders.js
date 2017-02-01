@@ -165,9 +165,59 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   function print_pdf(id) {
     vm.service.apiCall('print_picklist/','GET',{data_id: id}).then(function(data){
       if(data.message) {
-        vm.service.print_data(data.data);
+        vm.service.print_data(data.data, 'picklist');
       }
     })
+  }
+
+  vm.cancel_picklist = function(pick_id) {
+    swal({
+      title: "Do you want to process these orders later!",
+      text: "Are you sure?",
+      type: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#DD6B55",
+      confirmButtonText: "Yes",
+      cancelButtonText: "No",
+      closeOnConfirm: true,
+      closeOnCancel: false
+    },
+    function(isConfirm){
+      if (isConfirm) {
+        vm.service.apiCall('picklist_delete/','GET',{key: 'process', picklist_id: pick_id}).then(function(data){
+          if (data.message) {
+            $state.go('app.outbound.PullConfirmation');
+            reloadData();
+          }
+        });
+      }
+    else {
+      swal({
+          title: "Do you want to delete this Picklist!",
+          text: "Are you sure?",
+          type: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#DD6B55",
+          confirmButtonText: "Yes",
+          cancelButtonText: "No",
+          closeOnConfirm: false,
+          closeOnCancel: true
+       },
+       function(isConfirm){
+         if (isConfirm) {
+           vm.service.apiCall('picklist_delete/','GET', {key: 'delete', picklist_id: pick_id}).then(function(data){
+                swal("Deleted!", "picklist is deleted", "success");
+           });
+           $state.go('app.outbound.PullConfirmation');
+           reloadData();
+         }
+         else {
+           $state.go('app.outbound.PullConfirmation');
+           reloadData();
+         }
+       });
+    }
+   });
   }
 
     vm.isLast = isLast;

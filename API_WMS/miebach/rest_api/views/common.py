@@ -51,6 +51,8 @@ def get_user_permissions(request, user):
     roles = {}
     label_perms = []
     configuration = list(MiscDetail.objects.filter(user=user.id).values('misc_type', 'misc_value'))
+    if 'order_headers' not in map(lambda d: d['misc_type'], configuration):
+        configuration.append({'misc_type': 'order_headers', 'misc_value': ''})
     config = dict(zip(map(operator.itemgetter('misc_type'), configuration), map(operator.itemgetter('misc_value'), configuration)))
     user_perms = PERMISSION_KEYS
     permissions = Permission.objects.all()
@@ -284,6 +286,7 @@ data_datatable = {#masters
                   'StockDetail': 'get_stock_detail_results', 'CycleCount': 'get_cycle_count',\
                   'MoveInventory': 'get_move_inventory', 'InventoryAdjustment': 'get_move_inventory',\
                   'ConfirmCycleCount': 'get_cycle_confirmed','VendorStockTable': 'get_vendor_stock',\
+                  'RawMaterialPicklistSKU': 'get_rm_picklist_confirmed_sku',\
                   #outbound
                   'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders',\
                   'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders',\
@@ -481,6 +484,7 @@ def configurations(request, user=''):
     decimal_limit = get_misc_value('decimal_limit', user.id)
     picklist_sort_by = get_misc_value('picklist_sort_by', user.id)
     stock_sync = get_misc_value('stock_sync', user.id)
+    auto_generate_picklist = get_misc_value('auto_generate_picklist', user.id)
     all_groups = SKUGroups.objects.filter(user=user.id).values_list('group', flat=True)
     all_groups = str(','.join(all_groups))
 
@@ -535,13 +539,14 @@ def configurations(request, user=''):
                                                              'mail_inputs': mail_inputs, 'mail_options': MAIL_REPORTS_DATA,
                                                              'mail_reports': MAIL_REPORTS, 'data_range': data_range,
                                                              'report_freq': report_freq, 'email': email,
-                                                             'reports_data': reports_data, 'display_none': display_none, 'is_config': 'true',
+                                                             'reports_data': reports_data, 'display_none': display_none, 
+                                                             'is_config': 'true', 'order_headers': ORDER_HEADERS_d,
                                                              'all_groups': all_groups, 'display_pos': display_pos,
                                                              'auto_po_switch': auto_po_switch, 'no_stock_switch': no_stock_switch,
                                                              'float_switch': float_switch, 'all_stages': all_stages,
                                                              'automate_invoice': automate_invoice, 'show_mrp': show_mrp,
                                                              'decimal_limit': decimal_limit, 'picklist_sort_by': picklist_sort_by,
-                                                             'stock_sync': stock_sync}))
+                                                             'stock_sync': stock_sync, 'auto_generate_picklist': auto_generate_picklist}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers):
@@ -1442,8 +1447,10 @@ def check_and_update_stock(wms_codes, user):
                                           values('order__sku__wms_code').distinct().\
                                          annotate(total_reserved=Sum('picked_quantity'))
     stocks = map(lambda d: d['sku__wms_code'], stock_instances)
+    stocks = [(str(x)).lower() for x in stocks]
     stocks_quantities = map(lambda d: d['total_sum'], stock_instances)
     reserveds = map(lambda d: d['order__sku__wms_code'], reserved_instances)
+    reserveds = [(str(x)).lower() for x in reserveds]
     reserved_quantities = map(lambda d: d['total_reserved'], reserved_instances)
     for integrate in integrations:
         data = []
@@ -1705,7 +1712,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if product in stock_skus:
             total_quantity = stock_quans[stock_skus.index(product)]
         if product in reserved_skus:
-            total_quantity = total_quantity + float(reserved_quans[reserved_skus.index(product)])
+            total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
             sku_variants = get_style_variants(sku_variants, user, total_quantity=total_quantity)
@@ -1768,17 +1775,43 @@ def search_wms_data(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     search_key = request.GET.get('q', '')
     total_data = []
+    limit = 10
 
     if not search_key:
       return HttpResponse(json.dumps(total_data))
 
     lis = ['wms_code', 'sku_desc']
-    master_data = sku_master.filter(Q(wms_code__icontains = search_key) | Q(sku_desc__icontains = search_key),user=user.id)
+    query_objects = sku_master.filter(Q(wms_code__icontains = search_key) | Q(sku_desc__icontains = search_key),user=user.id)
 
-    for data in master_data[:30]:
+    master_data = query_objects.filter(Q(wms_code__exact = search_key) | Q(sku_desc__exact = search_key),user=user.id)
+    if master_data:
+        master_data = master_data[0]
+        total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc})
 
-        total_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc})
+    master_data = query_objects.filter(Q(wms_code__istartswith = search_key) | Q(sku_desc__istartswith = search_key),user=user.id)
+    total_data = build_search_data(total_data, master_data, limit)
+
+    if len(total_data) < limit:
+        total_data = build_search_data(total_data, query_objects, limit)
     return HttpResponse(json.dumps(total_data))
+
+def build_search_data(to_data, from_data, limit):
+
+    if(len(to_data) >= limit):
+        return to_data
+    else:
+        for data in from_data:
+            if(len(to_data) >= limit):
+                break;
+            else:
+                status = True
+                for item in to_data:
+                    if(item['wms_code'] == data.wms_code):
+                        status = False
+                        break;
+                if status:
+                    to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc})
+        return to_data
 
 def insert_update_brands(user):
     request = {}

@@ -8,7 +8,22 @@
           <div ng-controller="RawMaterialPicklistCtrl as showCase">
             <div class="panel">
               <div class="panel-header">
-                <button type="button" class="btn btn btn-danger pull-right" ng-click="$state.go('app.production.BackOrders')">Back Orders</button>
+                <div class="row mt5">
+                  <div class="col-md-8 col-sm-8 col-xs-6 mb10" style="height: 34px;">
+                    <button type="button" class="btn btn btn-danger pull-left" ng-click="$state.go('app.production.BackOrders')">Back Orders</button>
+                  </div>
+                  <div class="col-md-4 col-sm-4 col-xs-6 mb10" style="height: 34px;">
+                    <label class="switch switch-sm square pull-right mr30 mt5">
+                      <div>
+                        <input type="checkbox" ng-model="showCase.g_data.sku_view" ng-change="showCase.change_datatable()" class="ng-pristine ng-valid">
+                        <span>
+                          <i class="handle"></i>
+                        </span>
+                      </div>
+                    </label>
+                    <label style="padding: 5px;" class="control-label pull-right"><b>Alternative View:</b></label>
+                  </div>
+                </div>
               </div>
               <div class="panel-body">
                 <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>

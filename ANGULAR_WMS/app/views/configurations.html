@@ -10,12 +10,23 @@
       <div class="notifications top-right"></div>
       <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-5 col-sm-8 col-xs-12">
-          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i> 
+          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
           <strong style="line-height: 34px;" class="pull-left ml20"> Inbound/ Outbound mail Notifications</strong>
         </div>
-        <div class="col-md-2 col-sm-4 col-xs-4">
-          <select id="maxOption2" class="selectpicker show-menu-arrow form-control" multiple ng-change="showCase.mail_alerts_change()">
-            <option ng-selected="showCase.check_selected(value)" ng-repeat="(key, value) in showCase.model_data.mail_options"> {{key}}</option>
+        <div class="col-md-2 col-sm-4 col-xs-4 mail_notifications">
+          <select id="maxOption2" class="selectpicker show-menu-arrow form-control" multiple ng-change="showCase.mail_alerts_change('enable_mail_reports', '#maxOption2', 'data')">
+            <option ng-selected="showCase.check_selected(value, 'mail_inputs')" ng-repeat="(key, value) in showCase.model_data.mail_options"> {{key}}</option>
+          </select>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> CreateOrder page headers</strong>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-4 create_orders">
+          <select id="create_orders" class="selectpicker show-menu-arrow form-control" multiple ng-change="showCase.mail_alerts_change('switches', '#create_orders', 'order_headers')">
+            <option ng-selected="showCase.check_selected(key, 'order_header_inputs')" ng-repeat="(key, value) in showCase.model_data.order_headers"> {{key}}</option>
           </select>
         </div>
       </div>
@@ -32,7 +43,23 @@
                 <i class="handle"></i>
               </span>
             </div>
-          </label> 
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-envelope-o fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Auto Generate Picklist</strong>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.auto_generate_picklist" ng-change="showCase.switches(showCase.model_data.auto_generate_picklist, 22)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
         </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
@@ -295,7 +322,7 @@
         <div class="col-md-2 col-sm-4 col-xs-4">
           <label class="switch switch-sm square mt5">
             <div>
-              <input type="checkbox" ng-model="showCase.model_data.sku_sync" ng-change="showCase.switches(showCase.model_data.sku_sync,21)">
+              <input type="checkbox" ng-model="showCase.model_data.sku_sync" ng-change="showCase.switches(showCase.model_data.sku_sync,21); showCase.alertPopup()">
               <span>
                 <i class="handle"></i>
               </span>

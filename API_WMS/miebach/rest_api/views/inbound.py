@@ -616,6 +616,7 @@ def modify_po_update(request, user=''):
 @csrf_exempt
 @get_admin_user
 def switches(request, user=''):
+
     toggle_data = { 'fifo_switch': request.GET.get('fifo_switch', ''),
                     'batch_switch': request.GET.get('batch_switch', ''),
                     'send_message': request.GET.get('send_message', ''),
@@ -637,13 +638,17 @@ def switches(request, user=''):
                     'decimal_limit': request.GET.get('decimal_limit', ''),
                     'picklist_sort_by': request.GET.get('picklist_sort_by', ''),
                     'stock_sync': request.GET.get('stock_sync', ''),
-                    'sku_sync': request.GET.get('sku_sync', '')
+                    'sku_sync': request.GET.get('sku_sync', ''),
+                    'auto_generate_picklist': request.GET.get('auto_generate_picklist', ''),
+                    'order_headers' : request.GET.get('order_headers', '')
                   }
-
-
+    toggle_field, selection = "", ""
     for key, value in toggle_data.iteritems():
         if not value:
-            continue
+            if key == 'order_headers':
+                value = ""
+            else:
+                continue
 
         toggle_field = key
         selection = value

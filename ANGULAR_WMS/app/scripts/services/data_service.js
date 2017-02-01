@@ -21,10 +21,29 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
   self.stock_summary = {
 
-                         tb_headers: ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity', 'Total Quantity', 'Unit of Measurement']
+                         tb_headers: ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Available Quantity', 'Reserved Quantity', 'Total Quantity', 'Unit of Measurement']
                        }
 
   /*** Outbound **/
+
+  //Create orders
+  self.create_orders= { fields:{
+                          'other':{ unit_price: true, amount: true, tax: true, total_amount: true, remarks: true },
+                          'Subhas Publications': {unit_price: false, amount: false, tax: false, total_amount: false, remarks: false}
+                        }
+                      }
+
+  /*** Production ***/
+
+    //RM Picklist
+    self.confirm_orders = {
+
+                            sku_view: false,
+                            view: 'RawMaterialPicklist',
+                            tb_headers: {'RawMaterialPicklistSKU': ['Job Code', 'SKU Code' , 'SKU Brand', 'SKU Category', 'Creation Date', 'Order Type'],
+                                         'RawMaterialPicklist': ['Job Code', 'Creation Date', 'Order Type']}
+
+                          }
 
   //View Orders
 
@@ -38,10 +57,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                                                    'OrderView': 'generate_picklist/',
                                                    'SKUView': 'batch_generate_picklist/'
                                                  },
-                        tb_headers: { 'CustomerOrderView': ['Customer Name', 'Order ID', 'Market Place', 'Total Quantity', 'Creation Date'],
-                                      'CustomerCategoryView': ['Customer Name', 'Order ID', 'Category', 'Total Quantity'],
+                        tb_headers: { 'CustomerOrderView': ['Customer Name', 'Order ID', 'Market Place', 'Total Quantity', 'Creation Date', 'Status'],
+                                      'CustomerCategoryView': ['Customer Name', 'Order ID', 'Category', 'Total Quantity', 'Status'],
                                       'SKUView': ['SKU Code','Title', 'Total Quantity'],
-                                      'OrderView': ['Order ID', 'SKU Code', 'Title', 'Product Quantity', 'Shipment Date']
+                                      'OrderView': ['Order ID', 'SKU Code', 'Title', 'Product Quantity', 'Shipment Date', 'Status']
                                     },
                         dt_data: {'OrderView': {}, 'OrderCategoryView': ''}
                       }

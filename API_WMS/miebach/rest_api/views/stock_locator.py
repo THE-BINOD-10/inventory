@@ -16,8 +16,8 @@ from miebach_utils import *
 @csrf_exempt
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand', 'total', 'total', 'total', 'sku__measurement_type']
-    lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_category', 'product_code__sku_brand', 'total',
+    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total', 'sku__measurement_type']
+    lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category', 'total',
             'total', 'total', 'product_code__measurement_type']
     sort_cols = ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity', 'Total Quantity',
                 'Unit of Measurement']
@@ -78,7 +78,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     reserved_quantities = map(lambda d: d['reserved'], reserved_instances)
     raw_reserveds = map(lambda d: d['material_picklist__jo_material__material_code__wms_code'], raw_res_instances)
     raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
-    temp_data['totalQuantity'] = sum([data[4] for data in master_data])
+    #temp_data['totalQuantity'] = sum([data[4] for data in master_data])
     for ind, data in enumerate(master_data[start_index:stop_index]):
         reserved = 0
         total = data[4] if len(data) > 4 else 0
@@ -92,7 +92,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         if quantity < 0:
             quantity = 0
         temp_data['aaData'].append(OrderedDict(( ('WMS Code', data[0]), ('Product Description', data[1]),
-                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]), ('Quantity', quantity),
+                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]), ('Available Quantity', quantity),
                                                  ('Reserved Quantity', reserved), ('Total Quantity', total),
                                                  ('Unit of Measurement', sku.measurement_type),
                                                  ('DT_RowId', data[0]) )))

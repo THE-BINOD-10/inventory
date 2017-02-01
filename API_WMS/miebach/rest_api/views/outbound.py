@@ -830,7 +830,7 @@ def get_picklist_data(data_id,user_id):
         return data, sku_total_quantities
 
 
-def confirm_no_stock(picklist, request, user, p_quantity=0):
+def confirm_no_stock(picklist, request, user, picks_all, p_quantity=0):
     if float(picklist.reserved_quantity) - p_quantity >= 0:
         picklist.reserved_quantity = float(picklist.reserved_quantity) - p_quantity
         picklist.picked_quantity = float(picklist.picked_quantity) + p_quantity
@@ -845,38 +845,38 @@ def confirm_no_stock(picklist, request, user, p_quantity=0):
         check_and_update_order(picklist.order.user, picklist.order.original_order_id)
     if float(picklist.reserved_quantity) <= 0:
         picklist.status = pi_status
-        if picklist.order:
-            try:
-                misc_detail = MiscDetail.objects.filter(user=picklist.order.user, misc_type='dispatch', misc_value='true')
-
-                if misc_detail:
-                    order_ids_list = [picklist.order.id]
-                    if order_ids_list:
-                        order_ids = [str(int(i)) for i in order_ids_list]
-                        order_ids = ','.join(order_ids)
-                    nv_data = get_invoice_data(order_ids, request.user)
-                    nv_data.update({'user': user})
-                    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
-                    c = Context(nv_data)
-                    rendered = t.render(c)
-                    file_name = 'dispatch_invoice.html'
-                    pdf_file = '%s.pdf' % "dispatch_invoice"
-                    file_ = open(file_name, "w+b")
-                    file_.write(rendered)
-                    file_.close()
-                    os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
-
-                    send_picklist_mail(picklist, request, user, pdf_file)
-                    if picklist.picked_quantity > 0 and picklist.order and misc_detail:
-                        if picklist.order.telephone:
-                            order_dispatch_message(picklist.order, user)
-                            pass
-                        else:
-                            log.info("No telephone no for this order")
-
-            except:
-                log.info("Error in mail or phone")
     picklist.save()
+    misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type='dispatch', misc_value='true')
+    if misc_detail and picklist.order:
+        order_picked_all = picks_all.filter(order__order_id=picklist.order.order_id, order__order_code=picklist.order.order_code,
+                           status__icontains='open')
+        if not order_picked_all:
+            #order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True)
+            all_picked_items = picks_all.filter(order__order_id=picklist.order.order_id,
+                                                order__order_code=picklist.order.order_code, status__icontains='picked')
+            order_ids_list = all_picked_items.values_list('order_id', flat=True)
+            if order_ids_list:
+                order_ids = [str(int(i)) for i in order_ids_list]
+                order_ids = ','.join(order_ids)
+            nv_data = get_invoice_data(order_ids, request.user)
+            nv_data.update({'user': user})
+            t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
+            c = Context(nv_data)
+            rendered = t.render(c)
+            file_name = 'dispatch_invoice.html'
+            pdf_file = '%s.pdf' % "dispatch_invoice"
+            file_ = open(file_name, "w+b")
+            file_.write(rendered)
+            file_.close()
+            os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
+
+            send_picklist_mail(all_picked_items, request, user, pdf_file)
+            if picklist.picked_quantity > 0 and picklist.order and misc_detail:
+                if picklist.order.telephone:
+                    order_dispatch_message(picklist.order, user)
+                    pass
+                else:
+                    log.info("No telephone no for this order")
 
 def validate_location_stock(val, all_locations, all_skus, user):
     status = []
@@ -947,13 +947,16 @@ def update_picklist_pallet(stock, picking_count1):
             pallet_mapping[0].save()
     pallet.save()
 
-def send_picklist_mail(picklist, request, user, pdf_file):
+def send_picklist_mail(picklists, request, user, pdf_file):
     headers = ['Product Details', 'Ordered Quantity', 'Total']
-    items = [picklist.order.sku.sku_desc, picklist.order.quantity, picklist.order.invoice_amount]
+    items = []
+    for picklist in picklists:
+        items.append([picklist.order.sku.sku_desc, picklist.order.quantity, picklist.order.invoice_amount])
+    picklist = picklists[0]
 
     user_data = UserProfile.objects.get(user_id = user.id);
     data_dict = {'customer_name': picklist.order.customer_name, 'order_id': picklist.order.order_id,
-                 'address': picklist.order.address, 'phone_number': picklist.order.telephone, 'items': items,
+                 'address': picklist.order.address, 'phone_number': picklist.order.telephone, 'all_items': items,
                  'headers': headers, 'query_contact': user_data.phone_number}
 
     t = loader.get_template('templates/dispatch_mail.html')
@@ -1044,7 +1047,7 @@ def picklist_confirmation(request, user=''):
                 if count == 0:
                     continue
                 if not picklist.stock:
-                    confirm_no_stock(picklist, request, user, float(val['picked_quantity']))
+                    confirm_no_stock(picklist, request, user, picks_all, float(val['picked_quantity']))
                     continue
 
                 if val['wms_code'] == 'TEMP' and val.get('wmscode', ''):
@@ -1121,36 +1124,38 @@ def picklist_confirmation(request, user=''):
                         check_and_update_order(user.id, picklist.order.original_order_id)
                     all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
 
-                    misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type='dispatch', misc_value='true')
-                    if misc_detail and picklist.order:
-
-			            #order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True)
-			            order_ids_list = [picklist.order.id]
-			            if order_ids_list:
-			                order_ids = [str(int(i)) for i in order_ids_list]
-			                order_ids = ','.join(order_ids)
-			            nv_data = get_invoice_data(order_ids, request.user)
-			            nv_data.update({'user': user})
-			            t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
-			            c = Context(nv_data)
-			            rendered = t.render(c)
-			            file_name = 'dispatch_invoice.html'
-			            pdf_file = '%s.pdf' % "dispatch_invoice"
-			            file_ = open(file_name, "w+b")
-			            file_.write(rendered)
-			            file_.close()
-			            os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
-
-			            send_picklist_mail(picklist, request, user, pdf_file)
-			            if picklist.picked_quantity > 0 and picklist.order and misc_detail:
-			                if picklist.order.telephone:
-			                    order_dispatch_message(picklist.order, user)
-			                    pass
-			                else:
-			                    log.info("No telephone no for this order")
-
-
                 picklist.save()
+                misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type='dispatch', misc_value='true')
+                if misc_detail and picklist.order:
+                    order_picked_all = picks_all.filter(order__order_id=picklist.order.order_id, order__order_code=picklist.order.order_code,
+                                       status__icontains='open')
+                    if not order_picked_all:
+                        #order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True)
+                        all_picked_items = picks_all.filter(order__order_id=picklist.order.order_id,
+                                                            order__order_code=picklist.order.order_code, status__icontains='picked')
+                        order_ids_list = all_picked_items.values_list('order_id', flat=True)
+                        if order_ids_list:
+                            order_ids = [str(int(i)) for i in order_ids_list]
+                            order_ids = ','.join(order_ids)
+                        nv_data = get_invoice_data(order_ids, request.user)
+                        nv_data.update({'user': user})
+                        t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
+                        c = Context(nv_data)
+                        rendered = t.render(c)
+                        file_name = 'dispatch_invoice.html'
+                        pdf_file = '%s.pdf' % "dispatch_invoice"
+                        file_ = open(file_name, "w+b")
+                        file_.write(rendered)
+                        file_.close()
+                        os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
+
+                        send_picklist_mail(all_picked_items, request, user, pdf_file)
+                        if picklist.picked_quantity > 0 and picklist.order and misc_detail:
+                            if picklist.order.telephone:
+                                order_dispatch_message(picklist.order, user)
+                                pass
+                            else:
+                                log.info("No telephone no for this order")
                 count = count - picking_count1
                 auto_skus.append(val['wms_code'])
 

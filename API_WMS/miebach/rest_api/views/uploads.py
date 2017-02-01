@@ -270,7 +270,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data['order_id'] = 1001
                 order_data['order_code'] = 'MN'
 
-        sku_codes = cell_data.split(',')
+        sku_codes = str(cell_data).split(',')
         for cell_data in sku_codes:
             sku_master=SKUMaster.objects.filter(sku_code=cell_data, user=user.id)
             if sku_master:

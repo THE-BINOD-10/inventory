@@ -64,7 +64,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
           vm.apply_filters.add_search_boxes();
         }
         return nRow;
-    } 
+    }
 
     vm.filter_enable = true;
     vm.model_data = {};

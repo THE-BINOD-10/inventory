@@ -850,11 +850,30 @@ def confirm_no_stock(picklist, request, user, p_quantity=0):
                 misc_detail = MiscDetail.objects.filter(user=picklist.order.user, misc_type='dispatch', misc_value='true')
 
                 if misc_detail:
-                    send_picklist_mail(picklist, request)
-                    if picklist.picked_quantity > 0 and picklist.order.telephone:
-                        order_dispatch_message(picklist.order, user)
-                    else:
-                        log.info("No telephone no for this order")
+                    order_ids_list = [picklist.order.id]
+                    if order_ids_list:
+                        order_ids = [str(int(i)) for i in order_ids_list]
+                        order_ids = ','.join(order_ids)
+                    nv_data = get_invoice_data(order_ids, request.user)
+                    nv_data.update({'user': user})
+                    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
+                    c = Context(nv_data)
+                    rendered = t.render(c)
+                    file_name = 'dispatch_invoice.html'
+                    pdf_file = '%s.pdf' % "dispatch_invoice"
+                    file_ = open(file_name, "w+b")
+                    file_.write(rendered)
+                    file_.close()
+                    os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
+
+                    send_picklist_mail(picklist, request, user, pdf_file)
+                    if picklist.picked_quantity > 0 and picklist.order and misc_detail:
+                        if picklist.order.telephone:
+                            order_dispatch_message(picklist.order, user)
+                            pass
+                        else:
+                            log.info("No telephone no for this order")
+
             except:
                 log.info("Error in mail or phone")
     picklist.save()
@@ -928,13 +947,14 @@ def update_picklist_pallet(stock, picking_count1):
             pallet_mapping[0].save()
     pallet.save()
 
-def send_picklist_mail(picklist, request):
-    headers = ['Product Details', 'Seller Details', 'Ordered Quantity', 'Total']
-    items = [picklist.order.sku.sku_desc, request.user.username, picklist.order.quantity, picklist.order.invoice_amount]
+def send_picklist_mail(picklist, request, user, pdf_file):
+    headers = ['Product Details', 'Ordered Quantity', 'Total']
+    items = [picklist.order.sku.sku_desc, picklist.order.quantity, picklist.order.invoice_amount]
 
+    user_data = UserProfile.objects.get(user_id = user.id);
     data_dict = {'customer_name': picklist.order.customer_name, 'order_id': picklist.order.order_id,
                  'address': picklist.order.address, 'phone_number': picklist.order.telephone, 'items': items,
-                 'headers': headers}
+                 'headers': headers, 'query_contact': user_data.phone_number}
 
     t = loader.get_template('templates/dispatch_mail.html')
     c = Context(data_dict)
@@ -943,7 +963,7 @@ def send_picklist_mail(picklist, request):
     email = picklist.order.email_id
     if email:
         try:
-            send_mail([email], 'Order %s on %s is ready to be shipped by the seller' % (picklist.order.order_id, request.user.username), rendered)
+            send_mail_attachment([email], '%s : Invoice No.%s' % (user_data.company_name, 'TI/1116/' + str(picklist.order.order_id)), rendered, files=[pdf_file])
         except:
             print 'mail issue'
 
@@ -1102,16 +1122,33 @@ def picklist_confirmation(request, user=''):
                     all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
 
                     misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type='dispatch', misc_value='true')
+                    if misc_detail and picklist.order:
 
-                    try:
-                        if misc_detail and picklist.order:
-                            send_picklist_mail(picklist, request)
-                            if picklist.picked_quantity > 0 and picklist.order.telephone:
-                                order_dispatch_message(picklist.order, user)
-                            else:
-                                log.info("No telephone no for this order")
-                    except:
-                        log.info("Error in mail or phone")
+			            #order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True)
+			            order_ids_list = [picklist.order.id]
+			            if order_ids_list:
+			                order_ids = [str(int(i)) for i in order_ids_list]
+			                order_ids = ','.join(order_ids)
+			            nv_data = get_invoice_data(order_ids, request.user)
+			            nv_data.update({'user': user})
+			            t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
+			            c = Context(nv_data)
+			            rendered = t.render(c)
+			            file_name = 'dispatch_invoice.html'
+			            pdf_file = '%s.pdf' % "dispatch_invoice"
+			            file_ = open(file_name, "w+b")
+			            file_.write(rendered)
+			            file_.close()
+			            os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
+
+			            send_picklist_mail(picklist, request, user, pdf_file)
+			            if picklist.picked_quantity > 0 and picklist.order and misc_detail:
+			                if picklist.order.telephone:
+			                    order_dispatch_message(picklist.order, user)
+			                    pass
+			                else:
+			                    log.info("No telephone no for this order")
+
 
                 picklist.save()
                 count = count - picking_count1
@@ -1341,6 +1378,16 @@ def print_picklist(request, user=''):
     data_id = request.GET['data_id']
     data, sku_total_quantities = get_picklist_data(data_id, user.id)
     all_data = {}
+    customer_name = ''
+    customer_data = list(set(map(lambda d: d.get('customer_name', ''), data)))
+    customer_data = filter(lambda x: len(x)>0, customer_data)
+    if customer_data:
+        customer_name = ','.join(customer_data)
+    order_ids = ''
+    order_data = list(set(map(lambda d: d.get('order_id', ''), data)))
+    order_data = filter(lambda x: len(x)>0, order_data)
+    if order_data:
+        order_ids = ','.join(order_data)
     total = 0
     total_price = 0
     type_mapping = SkuTypeMapping.objects.filter(user=user.id)
@@ -1365,7 +1412,8 @@ def print_picklist(request, user=''):
         total_price += float(value[1])
 
     return render(request, 'templates/toggle/print_picklist.html', {'data': data, 'all_data': all_data, 'headers': PRINT_PICKLIST_HEADERS,
-                                                                    'picklist_id': data_id,'total_quantity': total, 'total_price': total_price})
+                                                                    'picklist_id': data_id,'total_quantity': total, 'total_price': total_price,
+                                                                    'customer_name': customer_name, 'order_ids': order_ids})
 @csrf_exempt
 def get_batch_picked(data_ids, user_id):
     data = {}

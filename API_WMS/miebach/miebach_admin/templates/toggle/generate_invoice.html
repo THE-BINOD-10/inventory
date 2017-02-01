@@ -1,0 +1,213 @@
+ {% load tag_extras %}
+
+<style>
+  {% include 'toggle/bootstrap.min.css' %}
+  {% include 'toggle/page.css' %}
+</style>
+
+        <div class="print-invoice" style="padding-right: 10px;margin-right:10px">
+
+<div class="row col-md-12">
+  <h4 style="margin-bottom:2px" align="center">Tax Invoice</h4>
+</div>
+<div class="row col-md-12" style="margin-top: 0px;">
+  <table class="table table-bordered bl br mb0" style="margin-bottom:0px">
+    <tbody class="rm-padding">
+      <tr>
+        <td style="width: 60%;text-align:left" class="align-left">
+          <div class="row">
+            <div class="col-md-12">
+              <span><b>{{ company_name }}</b></span>
+            </div>
+            <div class="col-md-12">
+              <span>{{company_address}}</span>
+            </div>
+            <div class="col-md-12">
+              <span>{{email}}</span>
+            </div>
+          </div>
+        </td>
+        <td rowspan="2" style="text-align:left">
+          {% if invoice_no %}
+          <strong>Invoice Number:</strong>{{invoice_no}}<br>
+          {% endif %}
+          {% if invoice_date %}
+          <strong>Invoice Date:</strong>{{invoice_date}}<br>
+          {% endif %}
+          <strong>Order Number:</strong>{{order_id}}<br>
+          <strong>Order Date:</strong>{{order_date}}<br>
+        </td>
+      </tr>
+      <tr>
+        <td style="width: 60%;text-align:left">
+          <address class="no-margin">
+                    <strong>To,</strong><br>
+            <div>
+            {% if marketplace == 'Offline' %}
+                {% if customer_details.0.name == '' %}
+                    <p>{{marketplace}}</p>
+                {% endif %}
+                {% if customer_details.0.name %}
+                  <p class="cust_details">
+                    &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.name}}</p>
+                {% endif %}
+                {% if customer_details.0.address %}
+                    <p class="cust_details">
+                    &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.address}}</p>
+                {% endif %}
+                {% if customer_details.0.tin_number %}
+                    <p class="cust_details">
+                    &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.tin_number}}</p>
+                {% endif %}
+                {% if customer_details.0.customer_id %}
+                    <p class="cust_details">
+                    &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.customer_id}}</p>
+                {% endif %}
+                {% if customer_details.0.email_id %}
+                    <p class="cust_details">
+                    &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.email_id}}</p>
+                {%endif %}
+            {%endif %}
+            </div>
+            <div>
+              {% if marketplace != 'Offline' %}
+                        {{marketplace}}<br>
+              {%endif %}
+            </div>
+                </address>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <table class="table table-bordered bl br" style="margin-bottom: 5px;">
+    <thead>
+      <tr class="rm-padding">
+        <th><center>SKU Code</center></th>
+        <th><center>Description</center></th>
+        <th><center>Qty</center></th>
+        {% if permissions.show_mrp %}<th>MRP(&#8377;)</center></th>{% endif %}
+        <th><center>Rate</center></th>
+        <th><center>Discount(&#8377;)</center></th>
+        <th><center>VAT(%)</center></th>
+        <th><center>Tax(&#8377;)</center></th>
+        <th><center>Total(&#8377;)</center></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in data %}
+      <tr class="rm-brdr">
+        <td style="text-align: left;">
+          {{record.sku_code}}
+        </td>
+        <td style="text-align: left;">
+          {{record.title}}
+        </td>
+        <td>
+          {{record.quantity}}
+        </td>
+        {% if permissions.show_mrp %}
+        <td>{{record.mrp_price}}</td>
+        {% endif %}
+        <td>
+          {{record.unit_price}}
+        </td>
+        <td>{{record.discount}}</td>
+        <td>{{record.vat}}</td>
+        <td>
+          {{record.tax}}
+        </td>
+        <td>
+          {{record.invoice_amount}}
+        </td>
+      </tr>
+      {% endfor %}
+      <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14)" class="rm-padding">
+       <td colspan="2" style="text-align:left"><b>Total: &#8377;</b></td>
+       <td>{{total_quantity}}</td>
+       {% if permissions.show_mrp %}<td></td>{% endif %}
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td>{{total_invoice}}</td>
+      </tr>
+      {% if order_charges %}
+      <tr class="rm-padding">
+        <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
+          <div class="row">
+            <div class="col-xs-6">
+            </div>
+            <div class="col-xs-6 text-right fs12">
+              <address class="no-margin" style="margin:0px;padding:0px">
+                <strong>{{charge.charge_name}} :</strong> {{charge.charge_amount}}<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px">
+                <strong>Total Amount :</strong> {{total_invoice_amount}} <br>
+              </address>
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% endif %}
+      <tr class="rm-padding">
+        <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
+          <b>Amount in words: &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{price_in_words}} </span></b>
+        </td>
+      </tr>
+      <tr class="rm-padding">
+        <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
+          <div class="row">
+            <div class="col-xs-6 fs12">
+              <b>Dispatched Via:</b>
+            </div>
+            <div class="col-xs-6 text-right fs12" style="padding-right: 15px;">
+              <b>{{company_name}}</b>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-xs-12 fs12">
+              <span>DECLARATION:</span><br>
+              <span>We declare that this invoice hows actual price of the goods described inclusive of taxes and that all particulars are true and correct.</span>
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% if user.username == 'sagar_fab' %}
+      <tr class="rm-padding">
+        <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
+          <div class="row">
+            <div class="col-xs-6 fs12">
+              <address class="no-margin" style="margin:0px;padding:0px">
+                <strong>Company's VAT TIN:</strong>29640707663<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px">
+                <strong>Buyer's VAT TIN:</strong>{{ customer_details.0.tin_number }}<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px">
+                <strong>Company's PAN:</strong>ABEFS4899J<br>
+              </address>
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% endif %}
+      {% if user.username == 'adam_clothing' %}
+      <tr class="rm-padding">
+        <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
+          <div class="row">
+            <div class="col-xs-6 fs12">
+              <address class="no-margin" style="margin:0px;padding:0px">
+                <strong>VAT TIN NO:</strong>27621087850-V<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px">
+                <strong>CST TIN NO:</strong>27621087850-C<br>
+              </address>
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+    </div>

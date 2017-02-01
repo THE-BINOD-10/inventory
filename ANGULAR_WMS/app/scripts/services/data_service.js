@@ -21,7 +21,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
   self.stock_summary = {
 
-                         tb_headers: ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity', 'Total Quantity', 'Unit of Measurement']
+                         tb_headers: ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Available Quantity', 'Reserved Quantity', 'Total Quantity', 'Unit of Measurement']
                        }
 
   /*** Outbound **/
@@ -32,6 +32,18 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                           'Subhas Publications': {unit_price: false, amount: false, tax: false, total_amount: false, remarks: false}
                         }
                       }
+
+  /*** Production ***/
+
+    //RM Picklist
+    self.confirm_orders = {
+
+                            sku_view: false,
+                            view: 'RawMaterialPicklist',
+                            tb_headers: {'RawMaterialPicklistSKU': ['Job Code', 'SKU Code' , 'SKU Brand', 'SKU Category', 'Creation Date', 'Order Type'],
+                                         'RawMaterialPicklist': ['Job Code', 'Creation Date', 'Order Type']}
+
+                          }
 
   //View Orders
 

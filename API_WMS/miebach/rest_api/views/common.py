@@ -286,6 +286,7 @@ data_datatable = {#masters
                   'StockDetail': 'get_stock_detail_results', 'CycleCount': 'get_cycle_count',\
                   'MoveInventory': 'get_move_inventory', 'InventoryAdjustment': 'get_move_inventory',\
                   'ConfirmCycleCount': 'get_cycle_confirmed','VendorStockTable': 'get_vendor_stock',\
+                  'RawMaterialPicklistSKU': 'get_rm_picklist_confirmed_sku',\
                   #outbound
                   'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders',\
                   'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders',\
@@ -1774,17 +1775,43 @@ def search_wms_data(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     search_key = request.GET.get('q', '')
     total_data = []
+    limit = 10
 
     if not search_key:
       return HttpResponse(json.dumps(total_data))
 
     lis = ['wms_code', 'sku_desc']
-    master_data = sku_master.filter(Q(wms_code__icontains = search_key) | Q(sku_desc__icontains = search_key),user=user.id)
+    query_objects = sku_master.filter(Q(wms_code__icontains = search_key) | Q(sku_desc__icontains = search_key),user=user.id)
 
-    for data in master_data[:30]:
+    master_data = query_objects.filter(Q(wms_code__exact = search_key) | Q(sku_desc__exact = search_key),user=user.id)
+    if master_data:
+        master_data = master_data[0]
+        total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc})
 
-        total_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc})
+    master_data = query_objects.filter(Q(wms_code__istartswith = search_key) | Q(sku_desc__istartswith = search_key),user=user.id)
+    total_data = build_search_data(total_data, master_data, limit)
+
+    if len(total_data) < limit:
+        total_data = build_search_data(total_data, query_objects, limit)
     return HttpResponse(json.dumps(total_data))
+
+def build_search_data(to_data, from_data, limit):
+
+    if(len(to_data) >= limit):
+        return to_data
+    else:
+        for data in from_data:
+            if(len(to_data) >= limit):
+                break;
+            else:
+                status = True
+                for item in to_data:
+                    if(item['wms_code'] == data.wms_code):
+                        status = False
+                        break;
+                if status:
+                    to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc})
+        return to_data
 
 def insert_update_brands(user):
     request = {}

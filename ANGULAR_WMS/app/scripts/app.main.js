@@ -166,7 +166,9 @@ angular
       var labels_list = ["MASTERS_LABEL", "INBOUND_LABEL", "PRODUCTION_LABEL", "STOCK_LABEL", "OUTBOUND_LABEL", "SHIPMENT_LABEL", 
       "OTHERS_LABEL", "PAYMENT_LABEL"];
       $scope.show_tab = function(data) {
-        if(labels_list.indexOf(data) > -1) {
+        if (!(Session.userName)) {
+          return false;
+        } else if(labels_list.indexOf(data) > -1) {
           return Session.roles.labels[data];
         }else if(special.indexOf(data) > -1) {
           return Session.roles.permissions[data];

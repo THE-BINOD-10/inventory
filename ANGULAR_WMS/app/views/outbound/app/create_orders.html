@@ -1,5 +1,5 @@
 <p class="hide">{{showCase.details}}</p>
-<div class="page-layout" ng-controller="appCreateOrders as showCase" scrolly="showCase.scroll(e)" ng-class="(user.userName == 'sagar_fab')? 'create_red': 'create_default'">
+<div class="page-layout create_red" ng-controller="appCreateOrders as showCase" scrolly="showCase.scroll(e)">
   <div>
     <div class="layout-header" ng-if="!(showCase.detailed_list)">
       <div ng-include="'views/App/create_orders/company_name.html'"></div>

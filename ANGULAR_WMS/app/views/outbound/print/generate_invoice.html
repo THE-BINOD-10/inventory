@@ -9,7 +9,7 @@
         </div>
         <div class="modal-body print print-invoice" style="over-flow: hidden">
 
-<div class="row col-md-12">
+<div class="row col-md-12 hide">
   <h4 style="margin-bottom:2px" align="center">Tax Invoice</h4>
 </div>
 <div class="row col-md-12" style="margin-top: 0px;">
@@ -41,16 +41,16 @@
           <address class="no-margin">
                     <strong>To,</strong><br>
             <div ng-if = "showCase.pdf_data.marketplace == 'Offline'">
-            <p ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
-            <p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].name">
+            <p style="margin-bottom:0px" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
+            <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].name">
                 &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].name}}</p>
-            <p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].address">
+            <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].address">
                 &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].address}}</p>
-            <p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].tin_number">
+            <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].tin_number">
                 &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].tin_number}}</p>
-            <p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].customer_id">
+            <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].customer_id">
                 &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].customer_id}}</p>
-            <p class="cust_details" ng-if="showCase.pdf_data.customer_details[0].email_id">
+            <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].email_id">
                 &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].email_id}}</p>
             </div>
             <div ng-if = "showCase.pdf_data.marketplace != 'Offline'">
@@ -69,7 +69,7 @@
         <th><center>Qty</center></th>
         <th ng-if="permissions.show_mrp">MRP(&#8377;)</center></th>
         <th><center>Rate</center></th>
-        <th><center>Discount(&#8377;)</center></th>
+        <th><center>Disc(&#8377;)</center></th>
         <th><center>VAT(%)</center></th>
         <th><center>Tax(&#8377;)</center></th>
         <th><center>Total(&#8377;)</center></th>
@@ -176,7 +176,7 @@
 </div>
     </div>
     <div class="row">
-        <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.print_invoice($('.print'), 'invoice')">
+        <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.print_invoice($('.print'), 'Tax Invoice')">
           <i class="ti-printer mr5"></i>Print
         </button>
     </div>

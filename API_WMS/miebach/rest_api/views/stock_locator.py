@@ -196,10 +196,14 @@ def get_aggregate_data(user_groups, sku_list):
 
     data = []
     for user in user_groups:
+        available = 0
         total = StockDetail.objects.filter(sku__wms_code__in = list(sku_list), sku__user=user).aggregate(Sum('quantity'))['quantity__sum']
         stock_ids = StockDetail.objects.filter(sku__wms_code__in = list(sku_list), sku__user=user).values_list('id',flat=True)
         reserved = PicklistLocation.objects.filter(stock_id__in = stock_ids).aggregate(Sum('reserved'))['reserved__sum']
-        available = total - reserved
+        if total:
+            available = total
+        if reserved:
+            available = available - reserved
         ware_name = User.objects.filter(id=user).values_list('username', flat=True)[0]
         data.append({'ware': ware_name, 'available': available})
     return data

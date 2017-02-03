@@ -102,7 +102,7 @@ class EasyopsAPI:
 
         main_json_response = ""
 
-        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
+        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=7), datetime.time())
         data = eval(LOAD_CONFIG.get(self.company_name, 'pending_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
         offset = 0
         while run_iterator:
@@ -168,7 +168,7 @@ class EasyopsAPI:
             self.get_user_token(user)
         main_json_response = ""
 
-        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
+        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=7), datetime.time())
         data = eval(LOAD_CONFIG.get(self.company_name, 'shipped_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
         offset = 0
         while run_iterator:
@@ -203,7 +203,7 @@ class EasyopsAPI:
             self.get_user_token(user)
         main_json_response = ""
 
-        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
+        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=7), datetime.time())
         data = eval(LOAD_CONFIG.get(self.company_name, 'returned_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
 
         offset = 0
@@ -238,7 +238,7 @@ class EasyopsAPI:
             self.get_user_token(user)
         main_json_response = ""
 
-        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
+        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=7), datetime.time())
         data = eval(LOAD_CONFIG.get(self.company_name, 'cancelled_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
         offset = 0
         while run_iterator:

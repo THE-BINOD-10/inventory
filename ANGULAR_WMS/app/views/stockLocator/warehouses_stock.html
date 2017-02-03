@@ -1,0 +1,54 @@
+<div ng-controller="WarehousesStockCtrl as showCase">
+  <div class="page-layout">
+    <div class='layout-header' style="overflow: visible">
+      <div class="pull-left" ng-include="'views/common/title.html'"></div>
+    </div>
+    <div class="layout-body">
+      <div class="panel">
+
+        <div class="panel-header panel-heading border">
+
+          <div class="row">
+            <div class="col-md-2" ng-repeat="(key, value) in showCase.tb_data['ware_list']">
+              <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
+                <div class="overflow-hidden">
+                  <span class="widget-subtitle">{{key}}</span>
+                  <span class="widget-title bold">{{value}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!--<div class="row">
+            <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right" style="height: 34px;padding-left: 0px;">
+              <select class="form-control pull-right" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
+                <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == showCase.g_data.view"> {{view}}</option>
+              </select>
+            </div>
+            <div class="col-md-2 col-sm-4 col-xs-6 pull-right" style="line-height: 34px;">
+                <span style="float:right">Select View: </span>
+            </div>
+          </div>-->
+        </div>
+
+
+        <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
+          <div class="mr10 hide">
+            <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right" style="height: 34px;padding-left: 0px;">
+              <select class="form-control pull-right" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
+                <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == showCase.g_data.view"> {{view}}</option>
+              </select>
+            </div>
+            <div class="col-md-2 col-sm-4 col-xs-6 pull-right" style="line-height: 34px;">
+                <span style="float:right">Select View: </span>
+            </div>
+          </div>
+
+          <table ng-if="showCase.data_display" datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" 
+          dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>
+          <div ui-view></div>
+        </div>
+
+    </div>
+  </div>
+</div>

@@ -74,12 +74,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
             angular.copy(empty_data, vm.model_data);
             vm.final_data = {total_quantity:0,total_amount:0}
           }
-          colFilters.showNoty(data.data);
+          swal("Success!", "Your Order Has Been Placed Successfully", "success");
+          //vm.service.showNoty("Order Created Successfully", "success", "bottomRight");
         }
         vm.bt_disable = false;
       })
     } else {
-      colFilters.showNoty("Fill Required Fields");
+      vm.service.showNoty("Please Select Shipment Date", "success", "bottomRight");
     }
   }
 
@@ -96,7 +97,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       if(data.message) {
 
         vm.categories = data.data.categories;
-        
+
 	vm.brands = data.data.brands;
 	if (vm.brands.length === 0){
 	  vm.details = false;
@@ -106,12 +107,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 	 'Super Sigma': 'supersigma.jpg', 'Sulphur Cotton': 'dflt.jpg', 'Sulphur Dryfit': 'dflt.jpg'}*/
         vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'bio-wash.jpg', 
 	'Scala': 'scala.jpg','Scott International': 'scott.jpg', 'Scott Young': 'scott-young.jpg', 'Spark': 'spark.jpg', 
-	'Star - 11': 'star-11.jpg','Super Sigma': 'super-sigma-dryfit.jpg', 'Sulphur Cotton': 'sulphur-cottnt.jpg', 'Sulphur Dryfit': 'sulphur-dryfit.jpg', 'Spring': 'spring.jpg', '100% Cotton': '100cotton.jpg', 'Sprint': 'sprint.jpg', 'Supreme': 'supreme.jpg'}
+	'Star - 11': 'star-11.jpg','Super Sigma': 'super-sigma-dryfit.jpg', 'Sulphur Cotton': 'sulphur-cottnt.jpg', 'Sulphur Dryfit': 'sulphur-dryfit.jpg', 'Spring': 'spring.jpg', '100% Cotton': '100cotton.jpg', 'Sprint': 'sprint.jpg', 'Supreme': 'supreme.jpg', 'Sport': 'sport.jpg'}
 
         vm.brands_logos = {'6 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
         'Scala': 'scala-1.png','Scott International': 'scott-1.png', 'Scott Young': 'scott-young-1.png', 'Spark': 'spark-1.png',
         'Star - 11': 'star-11-1.png','Super Sigma': 'super-sigma-dryfit-1.png', 'Sulphur Cotton': 'sulphur-cottnt-1.png',                             'Sulphur Dryfit': 'sulphur-dryfit-1.png', 'Spring': 'spring-1.png', '100% Cotton': '100-cotton-1.png', 'Sprint': 'sprint-1.png',
-        'Supreme': 'supreme-1.png'}	
+        'Supreme': 'supreme-1.png', 'Sport': 'sport-1.png'}
         vm.get_category(true);
       }
     });
@@ -487,9 +488,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
           });
         }
       });
-      vm.service.showNoty("Succesfully Added to Cart");
+      vm.service.showNoty("Succesfully Added to Cart", "success", "bottomRight");
     } else {
-      vm.service.showNoty("Please Enter Quantity");
+      vm.service.showNoty("Please Enter Quantity", "success", "bottomRight");
     }
   }
 
@@ -707,6 +708,19 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     vm.model_data.data.splice(index,1);
   }
+
+  vm.date_changed = function(){
+    $('.datepicker').hide();
+  }
+  /*
+  $($window).on('hashchange', function(event) {
+    if(confirm("Do you really want to logout from mieone?") == true) {
+      Auth.logout();
+      $state.go("user.sagarfab");
+    } else {
+      event.preventDefault();
+    }
+  });*/
 }
 
 angular

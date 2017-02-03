@@ -138,17 +138,17 @@
     z-index: 90;
     top: -6px;
     width: 100%;
-    box-shadow: 0 2px 2px 0 rgba(0,0,0,.1);
-    padding: 15px 8px;
+    /*box-shadow: 0 2px 2px 0 rgba(0,0,0,.1);*/
+    padding: 10px 8px;
 }
 
 .ship-date > input {
 
     position: absolute;
-    width: 50px;
+    width: 70px;
     right: 6px;
-    height: 10px;
-    top: 20px;
+    height: 25px;
+    top: 10px;
     opacity: 0;
 }
 
@@ -157,6 +157,9 @@
     box-shadow: 0 1px 10px 0 rgba(0,0,0,.1);
     padding: 0px 5px;
     border-radius: 2px;
+    font-size: 16px;
+    background: rgba(0,0,0,.1);
+    cursor: pointer;
 }
 
 .loader {

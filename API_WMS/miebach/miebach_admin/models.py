@@ -18,7 +18,7 @@ class ZoneMaster(models.Model):
         db_table = 'ZONE_MASTER'
         unique_together = ('user', 'zone')
         index_together = ('user', 'zone')
- 
+
     def __unicode__(self):
         return str(self.zone)
 
@@ -552,7 +552,9 @@ class OrderReturns(models.Model):
     damaged_quantity = models.FloatField(default=0)
     sku = models.ForeignKey(SKUMaster, blank=True, null=True)
     return_type = models.CharField(max_length=64, default='')
+    reason = models.CharField(max_length=256,default='')
     status = models.CharField(max_length=64)
+    marketplace = models.CharField(max_length=32,default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

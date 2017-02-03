@@ -60,6 +60,9 @@ SUPPLIER_SKU_DATA = {'supplier_id': '', 'supplier_type': '',
 UPLOAD_ORDER_DATA = {'order_id': '', 'title': '','user': '',
              'sku_id': '', 'status': 1, 'shipment_date': datetime.datetime.now()}
 
+UPLOAD_SALES_ORDER_DATA = {'quantity': 0, 'damaged_quantity': 0, 'return_id': '', 'order_id': '', 'sku_id': '', 'return_date': '',
+                            'status': 1}
+
 LOCATION_GROUP_FIELDS = {'group': '', 'location_id': ''}
 
 LOC_DATA = {'zone_id': '', 'location': '',
@@ -151,6 +154,8 @@ SALES_RETURN_HEADERS = ['Return ID', 'Return Date', 'SKU Code', 'Product Descrip
 
 SALES_RETURN_TOGGLE = ['Return ID', 'SKU Code', 'Product Description', 'Shipping Quantity', 'Return Quantity', 'Damaged Quantity' ]
 
+SALES_RETURN_BULK = ['Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity', 'Return ID', 'Return Date(YYYY-MM-DD)' ]
+
 RETURN_DATA_FIELDS = ['sales-check', 'order_id', 'sku_code', 'customer_id', 'shipping_quantity', 'return_quantity', 'damaged_quantity', 'delete-sales']
 
 SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Preference', 'MOQ','Price']
@@ -237,6 +242,8 @@ LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequenc
 SKU_HEADERS = ['WMS Code','SKU Description', 'SKU Group', 'SKU Type', 'SKU Category', 'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size',
                'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url', 'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Status']
 
+SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity', 'Return Date(YYYY-MM-DD)']
+
 EXCEL_HEADERS = ['Receipt Number', 'Receipt Date(YYYY-MM-DD)',  'WMS SKU', 'Location', 'Quantity', 'Receipt Type']
 EXCEL_RECORDS = ('receipt_number', 'receipt_date', 'wms_code', 'location', 'wms_quantity', 'receipt_type')
 
@@ -248,7 +255,7 @@ PICKLIST_HEADER = ('ORDER ID', 'WMS Code', 'Title', 'Zone', 'Location', 'Reserve
 
 PICKLIST_HEADER1 = ('WMS Code', 'Title','Zone', 'Location', 'Reserved Quantity', 'Picked Quantity','')
 
-PRINT_PICKLIST_HEADERS = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity','Stock Left')
+PRINT_PICKLIST_HEADERS = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
 
 PROCESSING_HEADER = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity', '')
 
@@ -458,6 +465,37 @@ MYNTRA_EXCEL = {'invoice_amount': 14, 'marketplace': 'Myntra', 'sku_code': 2, 'q
                 'vat': [14, 11], 'mrp': 12, 'discount': 13}
 
 UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code': 1}
+
+# ---  Return Marketplace headers --
+GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
+                                   ('return_id', 1),  ('return_date', 5)))
+
+MYNTRA_RETURN_EXCEL = OrderedDict((('sku_id', [5,7]), ('quantity', 8), ('reason', 13), ('marketplace', "MYNTRA")))
+
+"""
+FLIPKART_RETURN_EXCEL = OrderedDict((('order_id', 4), ('sku_id', 10), ('quantity', 25), ('marketplace', "FLIPKART"),
+                                        ('return_id', 2),  ('return_date', 0)))
+
+
+GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
+                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
+
+GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
+                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
+
+GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
+                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
+
+GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
+                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
+
+GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
+                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
+
+
+"""
+
+#-- ----- -----
 
 UNI_COMMERCE_EXCEL1 = {'order_id': 8, 'channel_name': 2, 'sku_code': 20, 'customer_name': 9, 'email_id': 10, 'telephone': 11,
                        'address': [12, 13, 14], 'state': 15, 'pin_code': 16, 'invoice_amount': 19}

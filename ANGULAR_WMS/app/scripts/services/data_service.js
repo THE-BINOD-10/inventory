@@ -23,6 +23,14 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                          tb_headers: ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Available Quantity', 'Reserved Quantity', 'Total Quantity', 'Unit of Measurement']
                        }
+  //WareHouse stock
+  self.stock_view = {
+
+                      views: ['Available', 'Available+Intransit', 'Total'],
+                      view: 'Available'
+
+                    }
+
 
   /*** Outbound **/
 

@@ -1633,9 +1633,10 @@ def check_returns(request, user=''):
     return HttpResponse(status)
 
 @csrf_exempt
-def check_sku(request):
+@get_admin_user
+def check_sku(request, user=''):
     sku_code = request.GET.get('sku_code')
-    sku_master = SKUMaster.objects.filter(sku_code=sku_code)
+    sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
     if sku_master:
         return HttpResponse("confirmed")
     return HttpResponse("%s not found" % sku_code)
@@ -1681,6 +1682,55 @@ def create_return_order(data, i, user):
     else:
         return "", status
 
+def save_return_locations(order_returns, all_data, damaged_quantity, request, user):
+    order_returns = order_returns[0]
+    zone = order_returns.sku.zone
+    if zone:
+        put_zone = zone.zone
+    else:
+        put_zone = 'DEFAULT'
+    all_data.append({'received_quantity': float(order_returns.quantity), 'put_zone': put_zone})
+    if damaged_quantity:
+        all_data.append({'received_quantity': float(damaged_quantity), 'put_zone': 'DAMAGED_ZONE'})
+        all_data[0]['received_quantity'] = all_data[0]['received_quantity'] - float(damaged_quantity)
+    for data in all_data:
+        locations = get_returns_location(data['put_zone'], request, user)
+        received_quantity = data['received_quantity']
+        if not received_quantity:
+            continue
+        for location in locations:
+            total_quantity = POLocation.objects.filter(location_id=location.id, status=1,
+                                                       location__zone__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
+            if not total_quantity:
+                total_quantity = 0
+            filled_capacity = StockDetail.objects.filter(location_id=location.id, quantity__gt=0,
+                                                         sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
+            if not filled_capacity:
+                filled_capacity = 0
+            filled_capacity = float(total_quantity) + float(filled_capacity)
+            remaining_capacity = float(location.max_capacity) - float(filled_capacity)
+            if remaining_capacity <= 0:
+                continue
+            elif remaining_capacity < received_quantity:
+                location_quantity = remaining_capacity
+                received_quantity -= remaining_capacity
+            elif remaining_capacity >= received_quantity:
+                location_quantity = received_quantity
+                received_quantity = 0
+            return_location = ReturnsLocation.objects.filter(returns_id=order_returns.id, location_id=location.id, status=1)
+            if not return_location:
+                location_data = {'returns_id': order_returns.id, 'location_id': location.id, 'quantity': location_quantity, 'status': 1}
+                returns_data = ReturnsLocation(**location_data)
+                returns_data.save()
+            else:
+                return_location = return_location[0]
+                setattr(return_location, 'quantity', float(return_location.quantity) + location_quantity)
+                return_location.save()
+            if received_quantity == 0:
+                order_returns.status = 0
+                order_returns.save()
+                break
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1695,53 +1745,7 @@ def confirm_sales_return(request, user=''):
         order_returns = OrderReturns.objects.filter(id = data_dict['id'][i], status = 1)
         if not order_returns:
             continue
-        order_returns = order_returns[0]
-        zone = order_returns.sku.zone
-        if zone:
-            put_zone = zone.zone
-        else:
-            put_zone = 'DEFAULT'
-        all_data.append({'received_quantity': float(order_returns.quantity), 'put_zone': put_zone})
-        if data_dict['damaged'][i]:
-            all_data.append({'received_quantity': float(data_dict['damaged'][i]), 'put_zone': 'DAMAGED_ZONE'})
-            all_data[0]['received_quantity'] = all_data[0]['received_quantity'] - float(data_dict['damaged'][i])
-        for data in all_data:
-            locations = get_returns_location(data['put_zone'], request, user)
-            received_quantity = data['received_quantity']
-            if not received_quantity:
-                continue
-            for location in locations:
-                total_quantity = POLocation.objects.filter(location_id=location.id, status=1,
-                                                           location__zone__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
-                if not total_quantity:
-                    total_quantity = 0
-                filled_capacity = StockDetail.objects.filter(location_id=location.id, quantity__gt=0,
-                                                             sku__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
-                if not filled_capacity:
-                    filled_capacity = 0
-                filled_capacity = float(total_quantity) + float(filled_capacity)
-                remaining_capacity = float(location.max_capacity) - float(filled_capacity)
-                if remaining_capacity <= 0:
-                    continue
-                elif remaining_capacity < received_quantity:
-                    location_quantity = remaining_capacity
-                    received_quantity -= remaining_capacity
-                elif remaining_capacity >= received_quantity:
-                    location_quantity = received_quantity
-                    received_quantity = 0
-                return_location = ReturnsLocation.objects.filter(returns_id=order_returns.id, location_id=location.id, status=1)
-                if not return_location:
-                    location_data = {'returns_id': order_returns.id, 'location_id': location.id, 'quantity': location_quantity, 'status': 1}
-                    returns_data = ReturnsLocation(**location_data)
-                    returns_data.save()
-                else:
-                    return_location = return_location[0]
-                    setattr(return_location, 'quantity', float(return_location.quantity) + location_quantity)
-                    return_location.save()
-                if received_quantity == 0:
-                    order_returns.status = 0
-                    order_returns.save()
-                    break
+        save_return_locations(order_returns, all_data, data_dict['damaged'][i], request, user)
 
     return HttpResponse('Updated Successfully')
 

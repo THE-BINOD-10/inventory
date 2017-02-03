@@ -104,11 +104,6 @@ var app = angular.module('urbanApp')
               }
             });
 
-            $rootScope.$on(AUTH_EVENTS.loginSuccess, function () {
-
-              $state.go(LOGIN_STATE, {"location": "replace"});
-            });
-
             function goToLogin () {
 
               $state.go(LOGIN_STATE, {"location": "replace"});

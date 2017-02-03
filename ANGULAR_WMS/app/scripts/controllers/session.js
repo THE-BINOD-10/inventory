@@ -26,7 +26,6 @@ function sessionCtrl($rootScope ,$scope, $state, $http, Auth, AUTH_EVENTS, Sessi
 
                     $state.go('app.Register');
                   } else {
-                    $state.go('app.dashboard');
                     $rootScope.$broadcast(AUTH_EVENTS.loginSuccess);
                   }
                 }

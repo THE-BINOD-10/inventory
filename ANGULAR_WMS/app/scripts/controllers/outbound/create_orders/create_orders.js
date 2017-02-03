@@ -691,11 +691,9 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   vm.field_perm = {};
   vm.min_width = "";
-  if(Session.user_profile['company_name'] == "Subhas Publications") {
-    vm.field_perm = vm.g_data.fields['Subhas Publications'];
+  if(Session.roles.permissions["order_headers"]) {
     vm.min_width = "";
   } else {
-    vm.field_perm = vm.g_data.fields['other'];
     vm.min_width = "mw75";
   }
 

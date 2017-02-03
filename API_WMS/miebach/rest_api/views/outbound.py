@@ -71,7 +71,7 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     if user_dict:
         user_dict = eval(user_dict)
-    lis = ['id', 'order_id', 'sku__sku_code', 'title', 'quantity', 'shipment_date', 'marketplace', 'status']
+    lis = ['id', 'order_id', 'sku__sku_code', 'title', 'quantity', 'shipment_date', 'city', 'status']
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
 
     if user_dict.get('market_places', ''):
@@ -90,6 +90,12 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
         search_params['order_code__icontains'] = ''.join(re.findall('\D+', order_search))
 
     search_params['sku_id__in'] = sku_master_ids
+    order_taken_val_user = CustomerOrderSummary.objects.filter(order__user=user.id)
+    single_search = "no"
+    if 'city__icontains' in search_params.keys():
+        order_taken_val_user = CustomerOrderSummary.objects.filter(Q(order_taken_by__icontains=search_params['city__icontains']))
+        single_search = "yes"
+        del(search_params['city__icontains'])
 
     if search_term:
         master_data = OrderDetail.objects.filter(Q(sku__sku_code__icontains = search_term, status=1) | Q(order_id__icontains = search_term,
@@ -104,8 +110,8 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     else:
         master_data = OrderDetail.objects.filter(**data_dict).filter(**search_params).order_by('shipment_date')
 
-    temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
     for data in master_data[start_index:stop_index]:
         sku = SKUMaster.objects.get(sku_code=data.sku.sku_code,user=user.id)
@@ -121,13 +127,29 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
         if sku_code == 'TEMP':
             sku_code = data.sku_code
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data.id, data.sku.sku_code)
+        order_taken_val = ''
+        if order_taken_val_user:
+            order_taken_val = order_taken_val_user.filter(order = data.id)
+            if order_taken_val:
+                order_taken_val = order_taken_val[0].order_taken_by
+            else:
+                order_taken_val = ''
+        if single_search == "yes" and order_taken_val == '':
+            continue
 
         temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('Order ID', order_id), ('SKU Code', sku_code),
                                                  ('Title', data.title),('id', count), ('Product Quantity', data.quantity),
                                                  ('Shipment Date', get_local_date(request.user, data.shipment_date)),
                                                  ('Marketplace', data.marketplace), ('DT_RowClass', 'results'),
-                                                 ('DT_RowAttr', {'data-id': str(data.order_id)} ), ('Status', cust_status)) ) )
+                                                 ('DT_RowAttr', {'data-id': str(data.order_id)} ), ('Order Taken By', order_taken_val), ('Status', cust_status)) ) )
         count = count+1
+    col_val = ['Order ID', 'Order ID', 'SKU Code', 'Title', 'Product Quantity', 'Shipment Date', 'Order Taken By', 'Status']
+    if order_term and col_num == 6:
+        order_data = col_val[col_num]
+        if order_term == "asc":
+            temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data])
+        else:
+            temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data], reverse= True)
 
 
 @csrf_exempt
@@ -2766,7 +2788,7 @@ def create_orders_data(request, user=''):
 def get_order_category_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, user_dict={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
-    lis = ['id', 'customer_name', 'order_id', 'sku__sku_category', 'total', 'status']
+    lis = ['id', 'customer_name', 'order_id', 'sku__sku_category', 'total', 'city', 'status']
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
 
     if user_dict.get('market_places', ''):
@@ -2785,6 +2807,12 @@ def get_order_category_view_data(start_index, stop_index, temp_data, search_term
         search_params['order_id__icontains'] = ''.join(re.findall('\d+', order_search))
         search_params['order_code__icontains'] = ''.join(re.findall('\D+', order_search))
     search_params['sku_id__in'] = sku_master_ids
+    order_taken_val_user = CustomerOrderSummary.objects.filter(order__user=user.id)
+    single_search = "no"
+    if 'city__icontains' in search_params.keys():
+        single_search = "yes"
+        order_taken_val_user = CustomerOrderSummary.objects.filter(Q(order_taken_by__icontains=search_params['city__icontains']))
+        del(search_params['city__icontains'])
 
     if search_term:
         mapping_results = OrderDetail.objects.filter(**data_dict).values('customer_name', 'order_id', 'sku__sku_category',
@@ -2812,18 +2840,34 @@ def get_order_category_view_data(start_index, stop_index, temp_data, search_term
         order_id = dat['order_code'] + str(dat['order_id'])
         check_values = order_id + '<>' + dat['sku__sku_category']
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (check_values, dat['total'])
+        order_taken_val = ''
+        if order_taken_val_user:
+            order_taken_val = order_taken_val_user.filter(order__order_id = dat['order_id'])
+            if order_taken_val:
+                order_taken_val = order_taken_val[0].order_taken_by
+            else:
+                order_taken_val = ''
+        if single_search == "yes" and order_taken_val == '':
+            continue
 
         temp_data['aaData'].append(OrderedDict(( ('data_value', check_values), ('Customer Name', dat['customer_name']),
                                                  ('Order ID', order_id), ('Category', dat['sku__sku_category']),
-                                                 ('Total Quantity', dat['total']), ('Status', cust_status),
+                                                 ('Total Quantity', dat['total']), ('Order Taken By', order_taken_val), ('Status', cust_status),
                                                  ('id', index), ('DT_RowClass', 'results') )))
         index += 1
+    col_val = [ 'Customer Name', 'Customer Name', 'Order ID', 'Category', 'Total Quantity', 'Order Taken By', 'Status' ]
+    if order_term:
+        order_data = col_val[col_num]
+        if order_term == "asc":
+            temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data])
+        else:
+            temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data], reverse= True)
 
 @csrf_exempt
 def get_order_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_dict={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
-    lis = ['id', 'customer_name', 'order_id', 'marketplace', 'total', 'creation_date', 'status']
+    lis = ['id', 'customer_name', 'order_id', 'marketplace', 'total', 'creation_date', 'city', 'status']
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
 
     order_data = lis[col_num]
@@ -2834,7 +2878,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         marketplace = user_dict['market_places'].split(',')
         data_dict['marketplace__in'] = marketplace
     if user_dict.get('customer_id', ''):
-        data_dict['customer_id'], data_dict['customer_name'] = user_dict['customer_id'].split(':') 
+        data_dict['customer_id'], data_dict['customer_name'] = user_dict['customer_id'].split(':')
     search_params = get_filtered_params(filters, lis[1:])
 
     if 'shipment_date__icontains' in search_params.keys():
@@ -2845,6 +2889,12 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         search_params['order_id__icontains'] = ''.join(re.findall('\d+', order_search))
         search_params['order_code__icontains'] = ''.join(re.findall('\D+', order_search))
     search_params['sku_id__in'] = sku_master_ids
+    order_taken_val_user = CustomerOrderSummary.objects.filter(order__user=user.id)
+    single_search = "no"
+    if 'city__icontains' in search_params.keys():
+        order_taken_val_user = CustomerOrderSummary.objects.filter(Q(order_taken_by__icontains=search_params['city__icontains']))
+        single_search = "yes"
+        del(search_params['city__icontains'])
 
     all_orders = OrderDetail.objects.filter(**data_dict)
     if search_term:
@@ -2868,6 +2918,16 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         else:
             cust_status = ""
 
+        order_taken_val = ''
+        if order_taken_val_user:
+            order_taken_val = order_taken_val_user.filter(order__order_id = dat['order_id'])
+            if order_taken_val:
+                order_taken_val = order_taken_val[0].order_taken_by
+            else:
+                order_taken_val = ''
+        if single_search == "yes" and order_taken_val == '':
+            continue
+
         order_id = dat['order_code'] + str(dat['order_id'])
         check_values = order_id
         name = all_orders.filter(order_id=dat['order_id'], order_code=dat['order_code'], user=user.id)[0].id
@@ -2876,11 +2936,17 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
 
         temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('data_value', check_values), ('Customer Name', dat['customer_name']),
                                                  ('Order ID', order_id), ('Market Place', dat['marketplace']),
-                                                 ('Total Quantity', dat['total']),
+                                                 ('Total Quantity', dat['total']), ('Order Taken By', order_taken_val),
                                                  ('Creation Date', get_local_date(request.user, creation_date)),
                                                  ('id', index), ('DT_RowClass', 'results'), ('Status', cust_status) )))
         index += 1
-
+    col_val = ['Customer Name', 'Customer Name', 'Order ID', 'Market Place', 'Total Quantity', 'Creation Date', 'Order Taken By', 'Status']
+    if order_term:
+        order_data = col_val[col_num]
+        if order_term == "asc":
+            temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data])
+        else:
+            temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data], reverse= True)
 
 @csrf_exempt
 @login_required

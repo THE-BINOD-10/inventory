@@ -165,7 +165,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   function print_pdf(id) {
     vm.service.apiCall('print_picklist/','GET',{data_id: id}).then(function(data){
       if(data.message) {
-        vm.service.print_data(data.data, 'picklist');
+        var picklist_number = $($.parseHTML(data.data)).find("input").val()
+        if (picklist_number) {
+            picklist_number = 'Picklist_'+picklist_number
+        } else {
+            picklist_number = Picklist
+        }
+        vm.service.print_data(data.data, picklist_number);
       }
     })
   }

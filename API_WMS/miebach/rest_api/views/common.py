@@ -286,7 +286,7 @@ data_datatable = {#masters
                   'StockDetail': 'get_stock_detail_results', 'CycleCount': 'get_cycle_count',\
                   'MoveInventory': 'get_move_inventory', 'InventoryAdjustment': 'get_move_inventory',\
                   'ConfirmCycleCount': 'get_cycle_confirmed','VendorStockTable': 'get_vendor_stock',\
-                  'RawMaterialPicklistSKU': 'get_rm_picklist_confirmed_sku',\
+                  'Available':'get_warehouses_stock','Available+Intransit':'get_warehouses_stock','Total': 'get_warehouses_stock',\
                   #outbound
                   'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders',\
                   'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders',\
@@ -1527,6 +1527,7 @@ def get_invoice_data(order_ids, user):
         order_ids = order_ids.split(',')
         order_data = OrderDetail.objects.filter(id__in=order_ids)
         picklist = Picklist.objects.filter(order_id__in=order_ids).order_by('-updation_date')
+        picklist_obj = picklist
         if picklist:
             invoice_date = picklist[0].updation_date
         for dat in order_data:
@@ -1564,8 +1565,9 @@ def get_invoice_data(order_ids, user):
             else:
                 tax = float(float(dat.invoice_amount)/100) * vat
 
-            total_invoice += float(dat.invoice_amount)
-            total_quantity += int(dat.quantity)
+            #total_invoice += float(dat.invoice_amount)
+            #total_quantity += int(dat.quantity)
+            total_quantity =picklist_obj.aggregate(Sum('picked_quantity'))['picked_quantity__sum'] 
             total_tax += float(tax)
             total_mrp += float(mrp_price)
 
@@ -1577,10 +1579,13 @@ def get_invoice_data(order_ids, user):
                                             annotate(total=Sum('picked_quantity'))
                 if picklist:
                     quantity = picklist[0].total
-            unit_price = ((float(dat.invoice_amount)/ float(dat.quantity))) - discount - (tax/float(dat.quantity))
-            unit_price = "%.2f" % unit_price
 
-            data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(dat.invoice_amount),
+            unit_price = ((float(dat.invoice_amount)/ float(dat.quantity))) - discount - (tax/float(dat.quantity))
+            invoice_amount = unit_price * quantity
+            unit_price = "%.2f" % unit_price
+            total_invoice += invoice_amount
+
+            data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
                          'quantity': quantity, 'tax': "%.2f" % tax, 'unit_price': unit_price, 'vat': vat, 'mrp_price': mrp_price,
                          'discount': discount})
 
@@ -1929,6 +1934,22 @@ def get_order_sync_issues(start_index, stop_index, temp_data, search_term, order
         temp_data['aaData'].append(OrderedDict(( ('Order ID', result.order_id), ('SKU Code', result.sku_code),
                                                  ('Reason', result.reason), ('Created Date', get_local_date(user, result.creation_date)),
                                                  ('DT_RowClass', 'results'), ('DT_RowId', result.id) )))
+
+def check_and_return_mapping_id(sku_code, title, user):
+    sku_id = ''
+    sku_master=SKUMaster.objects.filter(sku_code=sku_code,user=user.id)
+    if sku_master:
+        sku_id = sku_master[0].id
+    else:
+        market_mapping = ''
+        if sku_code:
+            market_mapping = MarketplaceMapping.objects.filter(marketplace_code=sku_code, sku__user=user.id, sku__status=1)
+        if not market_mapping and title:
+            market_mapping = MarketplaceMapping.objects.filter(description=title, sku__user=user.id, sku__status=1)
+        if market_mapping:
+            sku_id = market_mapping[0].sku_id
+    return sku_id
+
 
 @csrf_exempt
 @login_required

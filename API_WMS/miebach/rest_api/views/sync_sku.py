@@ -41,13 +41,18 @@ def get_related_users(user_id):
     admin_user = UserGroups.objects.filter(admin_user_id = user_id)
 
     if not admin_user:
-        admin_user = UserGroups.objects.filter(user_id = user_id)[0].admin_user_id
+        admin_user_obj = UserGroups.objects.filter(user_id = user_id)
+        if admin_user_obj:
+            admin_user = admin_user_obj[0].admin_user_id
+        else:
+            admin_user = ''
     else:
         admin_user = user_id
 
-    all_users.append(admin_user)
-    all_normal_user = UserGroups.objects.filter(admin_user_id = admin_user).values_list('user_id', flat=True)
-    all_users.extend(all_normal_user)
+    if admin_user:
+        all_users.append(admin_user)
+        all_normal_user = UserGroups.objects.filter(admin_user_id = admin_user).values_list('user_id', flat=True)
+        all_users.extend(all_normal_user)
 
     log.info("all users %s" % all_users)
     return all_users

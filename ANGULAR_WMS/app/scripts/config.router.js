@@ -104,11 +104,6 @@ var app = angular.module('urbanApp')
               }
             });
 
-            $rootScope.$on(AUTH_EVENTS.loginSuccess, function () {
-
-              $state.go(LOGIN_STATE, {"location": "replace"});
-            });
-
             function goToLogin () {
 
               $state.go(LOGIN_STATE, {"location": "replace"});
@@ -705,6 +700,18 @@ var app = angular.module('urbanApp')
             url: '/Detail',
             templateUrl: 'views/stockLocator/toggles/detail.html'
           })
+        .state('app.stockLocator.WarehousesStock', {
+          url: '/WarehousesStock',
+          templateUrl: 'views/stockLocator/warehouses_stock.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/stockLocator/warehouses_stock.js');
+              }]
+          },
+          data: {
+            title: 'Warehouses Stock',
+          }
+        })
         .state('app.stockLocator.StockDetail', {
           url: '/StockDetail',
           permission: 'add_stockdetail',

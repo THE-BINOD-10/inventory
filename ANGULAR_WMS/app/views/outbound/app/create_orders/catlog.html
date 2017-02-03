@@ -1,16 +1,16 @@
-<div class="clearfix render-items">
-  <div class="row style-menu" style="height: 60px">
+<div class="clearfix render-items" style="padding-top: 60px;">
+  <div class="row style-menu" style="height: 60px;position: absolute;top:0px;width:100%;z-index:100">
     <div class="col-md-4 col-sm-4 col-xs-4">
       <div class="menu-left" style="line-height: 60px">
         <span ng-click="showCase.catlog=true;showCase.details=true;showCase.detailed_list=false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
         <span ng-click="showCase.catlog=true;showCase.details=true;showCase.detailed_list=false;" title="Go to Brand Page">Back</span>
       </div>
     </div>
-    <div class="col-md-4 col-sm-4 col-xs-5 brand-title">
+    <div class="col-md-4 col-sm-4 col-xs-4 brand-title">
       <img ng-src="images/brands/{{showCase.brands_logos[showCase.brand]}}" ng-if="showCase.brands_logos[showCase.brand]" style="height: 60px;"/>
       <h3 style="margin-top:10px;" ng-if="!(showCase.brands_logos[showCase.brand])">{{showCase.brand}}</h3>
     </div>
-    <div class="col-md-4 col-sm-4 col-xs-3">
+    <div class="col-md-4 col-sm-4 col-xs-4">
       <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;" ng-click="showCase.logout()">        </a>
       <a href="" class="pull-right" ng-click="showCase.catlog=false;showCase.details=false;showCase.detailed_list=false;">
         <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;" title="Go To Cart Page"></i>

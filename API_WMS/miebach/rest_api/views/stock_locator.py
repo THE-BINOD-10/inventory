@@ -125,7 +125,7 @@ def get_stock_counts(quantity, single_sku):
                 available = 'No SKU'
                 reserved = 0
             else:
-                reserved_da = PicklistLocation.objects.filter(stock_id=single_data['id']).values_list('reserved', flat=True)
+                reserved_da = PicklistLocation.objects.filter(stock__sku__sku_code=single_data['sku_code'], stock__sku__user=single_data['user']).values_list('reserved', flat=True)
                 if not reserved_da:
                     available = single_data['quantity']
                     reserved = 0
@@ -142,19 +142,20 @@ def get_quantity_data(user_groups, single_sku):
         exist = SKUMaster.objects.filter(sku_code = single_sku,user=user)
         ware = User.objects.filter(id=user).values_list('username', flat=True)[0]
         if exist:
-            quant = StockDetail.objects.filter(sku__user=user, sku__sku_code=single_sku).values('sku__user', 'quantity', 'id')
+            quant = StockDetail.objects.filter(sku__user=user, sku__sku_code=single_sku).values('sku__user', 'sku__sku_code').\
+                    annotate(total=Sum('quantity'))
             if quant:
-                stock_id = quant[0]['id']
+                sku_code = quant[0]['sku__sku_code']
                 user_id = quant[0]['sku__user']
-                quantity = quant[0]['quantity']
-                ret_list.append({'id': stock_id, 'user': user_id, 'quantity': quantity, 'name': ware})
+                quantity = quant[0]['total']
+                ret_list.append({'sku_code': sku_code, 'user': user_id, 'quantity': quantity, 'name': ware})
             else:
-                stock_id = 0
+                sku_code = ''
                 user_id = exist[0].user
                 quantity = ''
-                ret_list.append({'id': stock_id, 'user': user_id, 'quantity': quantity, 'name': ware})
+                ret_list.append({'sku_code': sku_code, 'user': user_id, 'quantity': quantity, 'name': ware})
         else:
-            quant = {'id': 0, 'user': 0, 'quantity': 'No SKU', 'name': ware}
+            quant = {'sku_code': '', 'user': 0, 'quantity': 'No SKU', 'name': ware}
             ret_list.append(quant)
     return ret_list
 
@@ -196,10 +197,16 @@ def get_aggregate_data(user_groups, sku_list):
 
     data = []
     for user in user_groups:
+        available = 0
         total = StockDetail.objects.filter(sku__wms_code__in = list(sku_list), sku__user=user).aggregate(Sum('quantity'))['quantity__sum']
-        stock_ids = StockDetail.objects.filter(sku__wms_code__in = list(sku_list), sku__user=user).values_list('id',flat=True)
-        reserved = PicklistLocation.objects.filter(stock_id__in = stock_ids).aggregate(Sum('reserved'))['reserved__sum']
-        available = total - reserved
+        #stock_ids = StockDetail.objects.filter(sku__wms_code__in = list(sku_list), sku__user=user).values_list('id',flat=True)
+        reserved = PicklistLocation.objects.filter(stock__sku__sku_code__in = list(sku_list)).aggregate(Sum('reserved'))['reserved__sum']
+        if total:
+            available = total
+        if reserved:
+            available = available - reserved
+        if available < 0:
+            available = 0
         ware_name = User.objects.filter(id=user).values_list('username', flat=True)[0]
         data.append({'ware': ware_name, 'available': available})
     return data

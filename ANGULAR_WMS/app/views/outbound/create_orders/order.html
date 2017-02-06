@@ -142,7 +142,7 @@
                 <input type="text" class="form-control" ng-model="data.price" ng-change="showCase.change_unit_price(data)" decimal-number>
               </td>
 	      <td ng-show="showCase.fields.indexOf('Amount') == -1">
-	        <input type="text" class="form-control" ng-model="data.invoice_amount"  ng-change="showCase.cal_percentage(data)" decimal-number name="invoice_amount">
+	        <input type="text" class="form-control" ng-model="data.invoice_amount"  ng-change="showCase.cal_percentage(data)" name="invoice_amount" decimal-number>
 	      </td>
               <td ng-show="showCase.fields.indexOf('Tax') == -1">
                 <input type="text" name="tax" class="form-control" ng-model="data.tax" decimal-number ng-change="showCase.cal_percentage(data)">

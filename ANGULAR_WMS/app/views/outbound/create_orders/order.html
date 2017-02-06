@@ -142,13 +142,13 @@
                 <input type="text" class="form-control" ng-model="data.price" ng-change="showCase.change_unit_price(data)" decimal-number>
               </td>
 	      <td ng-show="showCase.fields.indexOf('Amount') == -1">
-	        <input type="text" class="form-control" ng-model="data.invoice_amount"  ng-change="showCase.cal_percentage(data)" decimal-number>
+	        <input type="text" class="form-control" ng-model="data.invoice_amount"  ng-change="showCase.cal_percentage(data)" name="invoice_amount" decimal-number>
 	      </td>
               <td ng-show="showCase.fields.indexOf('Tax') == -1">
                 <input type="text" name="tax" class="form-control" ng-model="data.tax" decimal-number ng-change="showCase.cal_percentage(data)">
               </td>
               <td ng-show="showCase.fields.indexOf('Total Amount') == -1">
-                <input type="text" name="invoice_amount" class="form-control" ng-model="data.total_amount" ng-change="showCase.cal_total()" decimal-number>
+                <input type="text" name="total_amount" class="form-control" ng-model="data.total_amount" ng-change="showCase.cal_total()" decimal-number>
               </td>
 	      <td ng-show="showCase.fields.indexOf('Remarks') == -1">
                 <input type="text" name="remarks" class="form-control" ng-model="data.remarks">

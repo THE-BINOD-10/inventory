@@ -4,6 +4,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   $scope.msg = "start";
   var vm = this;
+
+  vm.catlog_display = false;
+  vm.brand_display = true;
+  vm.style_display = false;
+  vm.cart_disply = false;
+  vm.your_order_display = false;
+
   vm.order_type_value = "offline";
   vm.service = Service;
   vm.company_name = Session.user_profile.company_name;
@@ -84,8 +91,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
-  vm.catlog = true;
-  vm.details = true;
+  //vm.catlog = true;
+  //vm.details = true;
   vm.categories = [];
   vm.category = "";
   vm.brand = "";
@@ -171,6 +178,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         })
       }
       vm.scroll_data = true;
+      vm.add_scroll();
     })
 
   }
@@ -425,6 +433,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.style_data = data.data.data;
         vm.stock_quantity = quantity;
       }
+      vm.add_scroll();
     });
     vm.style_total_quantity = 0;
   }
@@ -704,6 +713,15 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       }   
     }   
   }
+
+  vm.change_amount = function(data) {
+
+    var find_data=data;
+    data.quantity = Number(data.quantity);
+    data.invoice_amount = Number(data.price)*data.quantity;
+   
+  }
+
   vm.remove_item = function(index) {
 
     vm.model_data.data.splice(index,1);
@@ -721,6 +739,45 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       event.preventDefault();
     }
   });*/
+
+  $( window ).resize(function() {
+    vm.add_scroll();
+  })
+
+  vm.add_scroll = function(){
+    $timeout(function() {
+    var height = $(window).height()
+    if(angular.element(".app_scroll")) {
+
+      var header = $(".layout-header").height();
+      var menu = $(".style-menu").height();
+      //var search = $(".search-box").height();
+      //search = (search)? search+25 : 0;
+      var cart = $(".cart").height();
+      $(".app_body").css('height',height-header-menu-cart);
+      $(".app_body").css('overflow-y', 'auto');
+    }
+    }, 500)
+  }
+  vm.add_scroll();
+
+  $scope.$watch(function(){
+    vm.add_scroll();
+  });
+
+  //you orders
+  vm.you_orders = false;
+  vm.order_data = {}
+  vm.get_orders = function(){
+
+    vm.service.apiCall("get_customer_orders/").then(function(data){
+      if(data.message) {
+
+        console.log(data.data);
+        angular.copy(data.data, vm.order_data);
+      }
+    })
+  }
 }
 
 angular

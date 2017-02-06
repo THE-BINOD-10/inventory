@@ -470,13 +470,14 @@ UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code'
 GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
                                    ('return_id', 1),  ('return_date', 5)))
 
+#MYNTRA_RETURN_EXCEL = OrderedDict((('sku_id', [5,7]), ('quantity', 8), ('reason', 13), ('marketplace', "MYNTRA")))
+
 MYNTRA_RETURN_EXCEL = OrderedDict((('sku_id', [5,7]), ('quantity', 8), ('reason', 13), ('marketplace', "MYNTRA")))
 
+UNIWEAR_RETURN_EXCEL = OrderedDict((('sku_id', 4), ('channel', 14),('reason', 12),
+                                        ('return_id', 5),  ('return_date', 8)))
+
 """
-FLIPKART_RETURN_EXCEL = OrderedDict((('order_id', 4), ('sku_id', 10), ('quantity', 25), ('marketplace', "FLIPKART"),
-                                        ('return_id', 2),  ('return_date', 0)))
-
-
 GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
                                    ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
 
@@ -1117,7 +1118,7 @@ def get_daily_production_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     all_data = OrderedDict()
-    cmp_data = ('sku_code', 'sku_brand')
+    cmp_data = ('sku_code', 'sku_brand', 'sku_class', 'sku_category')
     job_filter = {}
     for data in cmp_data:
         if data in search_params:
@@ -1127,6 +1128,9 @@ def get_daily_production_data(search_params, user, sub_user):
     if search_stage:
         stage_filter['stage_name'] = search_stage
     search_parameters['product_code_id__in'] = sku_master_ids
+    jo_code = search_params.get('jo_code', '')
+    if jo_code:
+        search_parameters['job_code'] = jo_code
     extra_headers =  list(ProductionStages.objects.filter(**stage_filter).order_by('order').values_list('stage_name', flat=True))
     job_orders = JobOrder.objects.filter(product_code__user=user.id, status__in=['grn-generated', 'pick_confirm', 'partial_pick',
                                          'location-assigned', 'confirmed-putaway'], **search_parameters)
@@ -1150,8 +1154,9 @@ def get_daily_production_data(search_params, user, sub_user):
         summary_date = summary.creation_date.strftime('%Y-%m-%d')
         
         summary_date_format = ' '.join(get_local_date(user, summary.creation_date).split(' ')[:3])
-        cond = (summary_date, job_order.job_code, job_order.product_code.sku_code, job_order.product_code.sku_brand,
-                job_order.product_code.sku_category, job_order.product_quantity, summary.processed_stage)
+        jo_creation_date = job_order.creation_date.strftime('%Y-%m-%d')
+        cond = (summary_date, job_order.job_code, jo_creation_date, job_order.product_code.sku_class, job_order.product_code.sku_code,
+                job_order.product_code.sku_brand,job_order.product_code.sku_category, job_order.product_quantity, summary.processed_stage)
         all_data.setdefault(cond, 0)
         all_data[cond] += float(summary.processed_quantity)
         #job_code = filter(lambda job_code_ids: job_code_ids['id'] == summary.status_tracking.status_id, job_code_ids)
@@ -1166,9 +1171,9 @@ def get_daily_production_data(search_params, user, sub_user):
 
 
     for key in all_data_keys:
-        data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('SKU Code', key[2]), ('Brand', key[3]),
-                                  ('SKU Category', key[4]), ('Total JO Quantity', key[5]), ('Reduced Quantity', all_data[key]),
-                                  ('Stage', key[6])
+        data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
+                                  ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]), ('Total JO Quantity', key[7]),
+                                  ('Reduced Quantity', all_data[key]),('Stage', key[8])
                    )))
 
 

@@ -19,8 +19,46 @@
     </div>
     <div class="layout-body">
       <div class="panel">
-        <div class="panel-header">
-          <p align="center" class="mt10 hide">Total Quantity: <span style="font-size: 18px">{{showCase.tb_data.totalQuantity}}</span></p>
+        <div class="panel-header panel-heading border">
+          <div class="row">
+            <div class = "col-md-12">
+                <div class="col-md-4">
+  <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
+    <div class="overflow-hidden">
+    <span class="widget-subtitle">TOTAL AVAILABLE QUANTITY</span>
+    <span class="widget-title bold">{{showCase.tb_data.totalAvailableQuantity}}</span>
+    </div>
+  </div>
+</div>
+                <div class="col-md-4">
+  <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
+    <div class="overflow-hidden">
+    <span class="widget-subtitle">TOTAL RESERVED QUANTITY</span>
+    <span class="widget-title bold">{{showCase.tb_data.totalReservedQuantity}}</span>
+    </div>
+  </div>
+</div>
+                <div class="col-md-4">
+  <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
+    <div class="overflow-hidden">
+    <span class="widget-subtitle">TOTAL QUANTITY</span>
+    <span class="widget-title bold" >{{showCase.tb_data.totalQuantity}}</span>
+    </div>
+  </div>
+</div>
+            </div>
+            <!--
+            <div class="col-md-4 col-sm-4 col-xs-12">
+              <p align="center" class="mt10">Total Quantity: <span style="font-size: 16px"><b>{{showCase.tb_data.totalQuantity}}</b></span></p>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-12">
+              <p align="center" class="mt10">Total Reserved Quantity: <span style="font-size: 16px"><b>{{showCase.tb_data.totalReservedQuantity}}</b></span></p>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-12">
+              <p align="center" class="mt10">Total Available Quantity: <span style="font-size: 16px"><b>{{showCase.tb_data.totalAvailableQuantity}}</b></span></p>
+            </div>
+            -->
+          </div>
         </div>
         <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
         <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>

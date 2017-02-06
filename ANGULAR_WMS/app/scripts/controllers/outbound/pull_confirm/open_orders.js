@@ -9,6 +9,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.permissions = Session.roles.permissions;
     vm.service = Service;
     vm.special_key = {status: 'open'};
+    vm.tb_data = {};
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -16,6 +17,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               data: {'datatable': 'OpenOrders', 'special_key':JSON.stringify(vm.special_key)},
               xhrFields: {
                 withCredentials: true
+              },
+              complete: function(jqXHR, textStatus) {
+                $scope.$apply(function(){
+                  angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
+                })
               }
            })
        .withDataProp('data')

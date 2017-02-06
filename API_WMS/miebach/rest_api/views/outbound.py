@@ -894,7 +894,7 @@ def validate_location_stock(val, all_locations, all_skus, user):
     loc_check = all_locations.filter(location = val['location'],zone__user=user.id )
     if not loc_check:
         status.append("Invalid Location %s" % val['location'])
-    pic_check_data = {'sku_id': wms_check[0].id, 'location_id': loc_check[0].id, 'sku__user': user.id, 'quantity__gt': 0}
+    pic_check_data = {'sku__wms_code': val['wms_code'], 'location__location': val['location'], 'sku__user': user.id, 'quantity__gt': 0}
     if 'pallet' in val and val['pallet']:
         pic_check_data['pallet_detail__pallet_code'] = val['pallet']
     pic_check = StockDetail.objects.filter(**pic_check_data)
@@ -1722,7 +1722,7 @@ def insert_order_data(request, user=''):
         order_data['user'] = user.id
 
         for key, value in request.GET.iteritems():
-            if key in ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type']:
+            if key in ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount']:
                 continue
             if key == 'sku_id':
                 if not myDict[key][i]:
@@ -1747,12 +1747,12 @@ def insert_order_data(request, user=''):
                 if value:
                     ship_date = value.split('/')
                     order_data[key] = datetime.date(int(ship_date[2]), int(ship_date[0]), int(ship_date[1]))
-            elif key == 'invoice_amount':
+            elif key == 'total_amount':
                 try:
                     value = float(myDict[key][i])
                 except:
                     value = 0
-                order_data[key] = value
+                order_data['invoice_amount'] = value
             elif key == 'customer_id':
                 if not value:
                     value = 0

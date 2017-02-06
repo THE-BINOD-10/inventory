@@ -104,6 +104,112 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     #    temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
     #temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
+def get_stock_counts(quantity, single_sku):
+
+    stock_count = []
+    for single_data in quantity:
+        purch = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=single_data['user'],open_po__sku__sku_code=single_sku).values('open_po__sku__sku_code').annotate(total_order=Sum('open_po__order_quantity'),total_received=Sum('received_quantity'))
+        purchases = map(lambda d: d['open_po__sku__sku_code'], purch)
+        total_order = map(lambda d: d['total_order'], purch)
+        total_received = map(lambda d: d['total_received'], purch)
+        if (total_order or total_received):
+            trans_quantity = float(total_order[0]) - float(total_received[0])
+        else:
+            trans_quantity = 0
+
+        if single_data['quantity'] == '':
+            available = 0
+            reserved = 0
+        else:
+            if single_data['quantity'] == 'No SKU':
+                available = 'No SKU'
+                reserved = 0
+            else:
+                reserved_da = PicklistLocation.objects.filter(stock__sku__sku_code=single_data['sku_code'], stock__sku__user=single_data['user']).values_list('reserved', flat=True)
+                if not reserved_da:
+                    available = single_data['quantity']
+                    reserved = 0
+                else:
+                    available = single_data['quantity'] - reserved_da[0]
+                    reserved = reserved_da[0]
+        stock_count.append({'available': available, 'name': single_data['name'], 'transit': trans_quantity, 'reserved': reserved})
+    return stock_count
+
+def get_quantity_data(user_groups, single_sku):
+
+    ret_list = []
+    for user in user_groups:
+        exist = SKUMaster.objects.filter(sku_code = single_sku,user=user)
+        ware = User.objects.filter(id=user).values_list('username', flat=True)[0]
+        if exist:
+            quant = StockDetail.objects.filter(sku__user=user, sku__sku_code=single_sku).values('sku__user', 'sku__sku_code').\
+                    annotate(total=Sum('quantity'))
+            if quant:
+                sku_code = quant[0]['sku__sku_code']
+                user_id = quant[0]['sku__user']
+                quantity = quant[0]['total']
+                ret_list.append({'sku_code': sku_code, 'user': user_id, 'quantity': quantity, 'name': ware})
+            else:
+                sku_code = ''
+                user_id = exist[0].user
+                quantity = ''
+                ret_list.append({'sku_code': sku_code, 'user': user_id, 'quantity': quantity, 'name': ware})
+        else:
+            quant = {'sku_code': '', 'user': 0, 'quantity': 'No SKU', 'name': ware}
+            ret_list.append(quant)
+    return ret_list
+
+def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+
+    warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id',flat=True)
+    ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
+    ware_list.append(user.username)
+    header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
+    headers = header + ware_list
+
+    user_groups = UserGroups.objects.filter(Q(admin_user_id=user.id)|Q(user_id=user.id))
+    if user_groups:
+        admin_user_id = user_groups[0].admin_user_id
+    user_groups = list(UserGroups.objects.filter(admin_user_id=admin_user_id).values_list('user_id',flat=True))
+    user_groups.append(user.id)
+    sku_master = SKUMaster.objects.filter(user__in=user_groups)
+    sku_codes = sku_master.values_list('sku_code',flat=True).distinct()
+    #sku_codes = StockDetail.objects.filter(sku__user__in=user_groups).values_list('sku__sku_code',flat=True).distinct()
+    data = get_aggregate_data(user_groups, sku_codes)
+    temp_data['ware_list'] = {}
+    temp_data['recordsTotal'] = len(sku_codes)
+    temp_data['recordsFiltered'] = len(sku_codes)
+
+    for one in data:
+        temp_data['ware_list'][one['ware']] = one['available']
+    for single_sku in sku_codes[start_index:stop_index]:
+        sku_brand = sku_master.filter(sku_code = single_sku).values_list('sku_brand',flat=True)[0]
+        sku_desc = sku_master.filter(sku_code = single_sku).values_list('sku_desc',flat=True)[0]
+        sku_category = sku_master.filter(sku_code = single_sku).values_list('sku_category',flat=True)[0]
+        quantity = get_quantity_data(user_groups, single_sku)
+        available_quantity = get_stock_counts(quantity, single_sku)
+        var = (OrderedDict(( (header[0], single_sku), (header[1], sku_brand), (header[2], sku_desc),(header[3], sku_category) )) )
+        for quant in available_quantity:
+            var[quant['name']] = quant['available']
+        temp_data['aaData'].append(var)
+
+def get_aggregate_data(user_groups, sku_list):
+
+    data = []
+    for user in user_groups:
+        available = 0
+        total = StockDetail.objects.filter(sku__wms_code__in = list(sku_list), sku__user=user).aggregate(Sum('quantity'))['quantity__sum']
+        #stock_ids = StockDetail.objects.filter(sku__wms_code__in = list(sku_list), sku__user=user).values_list('id',flat=True)
+        reserved = PicklistLocation.objects.filter(stock__sku__sku_code__in = list(sku_list)).aggregate(Sum('reserved'))['reserved__sum']
+        if total:
+            available = total
+        if reserved:
+            available = available - reserved
+        if available < 0:
+            available = 0
+        ware_name = User.objects.filter(id=user).values_list('username', flat=True)[0]
+        data.append({'ware': ware_name, 'available': available})
+    return data
 
 def get_sku_stock_data(start_index, stop_index, temp_data, search_term, order_term, col_num):
     if order_term:
@@ -552,3 +658,13 @@ def get_vendor_stock(start_index, stop_index, temp_data, search_term, order_term
                                                  ('Product Description', data['sku__sku_desc']), ('SKU Category', data['sku__sku_category']),
                                                  ('Quantity', get_decimal_limit(user.id, data['total'])), ('DT_RowId', data['sku__wms_code'])
                                               )))
+@csrf_exempt
+@get_admin_user
+def warehouse_headers(request, user=''):
+    warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id',flat=True)
+    ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
+    ware_list.append(request.user.username)
+    header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
+    headers = json.dumps(header + ware_list)
+    return HttpResponse(headers)
+

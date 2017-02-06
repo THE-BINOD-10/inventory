@@ -117,6 +117,14 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "customer_upload/",
                    dparam: "download-customer-file",
                    value: ""
+                 }, {
+                   title: "Sales Returns Download/ Upload",
+                   download: "Download Sales Returns Form",
+                   upload: "Upload Sales Returns Form",
+                   durl: "sales_returns_form/",
+                   uurl: "sales_returns_upload/",
+                   dparam: "download-sales-returns",
+                   value: ""
                  }
                  ]
 

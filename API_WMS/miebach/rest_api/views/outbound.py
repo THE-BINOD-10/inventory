@@ -1697,7 +1697,7 @@ def insert_order_data(request, user=''):
         order_data['user'] = user.id
 
         for key, value in request.GET.iteritems():
-            if key in ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type']:
+            if key in ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount']:
                 continue
             if key == 'sku_id':
                 if not myDict[key][i]:
@@ -1722,12 +1722,12 @@ def insert_order_data(request, user=''):
                 if value:
                     ship_date = value.split('/')
                     order_data[key] = datetime.date(int(ship_date[2]), int(ship_date[0]), int(ship_date[1]))
-            elif key == 'invoice_amount':
+            elif key == 'total_amount':
                 try:
                     value = float(myDict[key][i])
                 except:
                     value = 0
-                order_data[key] = value
+                order_data['invoice_amount'] = value
             elif key == 'customer_id':
                 if not value:
                     value = 0
@@ -3101,4 +3101,52 @@ def order_delete(request, user=""):
     log.info("total time -- %s" %(duration))
     return HttpResponse("Order is deleted")
 
+def get_only_date(request, date):
+    """" return only data like 01/01/17 """
+    date = get_local_date(request.user, date, True)
+    date = date.strftime("%m/%d/%Y")
+    return date
 
+@login_required
+@get_admin_user
+def get_customer_orders(request, user=""):
+    """ Return customer orders  """
+    response_data = {'data': []}
+    customer = CustomerUserMapping.objects.filter(user = request.user.id)
+
+    if customer:
+
+        customer_id = customer[0].customer.customer_id
+        orders = OrderDetail.objects.filter(customer_id = customer_id, user=user.id).order_by('-order_id')
+        picklist = Picklist.objects.filter(order__customer_id = customer_id, order__user=user.id)
+        response_data['data'] = list(orders.values('order_id', 'order_code').distinct().annotate(total_quantity=Sum('quantity'), total_inv_amt=Sum('invoice_amount')))
+
+        for record in response_data['data']:
+            data = orders.filter(order_id = int(record['order_id']), order_code = record['order_code'])
+            data_status = data.filter(status=1)
+            if data_status:
+                status = 'open'
+            else:
+                status = 'closed'
+                pick_status = picklist.filter(order__order_id = int(record['order_id']), order__order_code = record['order_code'], status__icontains = 'open')
+                if pick_status:
+                    status = 'open'
+            record['status'] = status
+            record['date'] = get_only_date(request, data[0].creation_date)
+    return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
+
+@login_required
+@get_admin_user
+def get_customer_order_detail(request, user=""):
+    """ Return customer order detail """
+
+    response_data = {'data': []}
+    order_id = request.GET['order_id']
+    order = OrderDetail.objects.filter(order_id = order_id, user=user.id)
+    response_data['data'] = list(order.values('id','order_id','creation_date', 'status', 'quantity', 'invoice_amount', 'sku__sku_code', 'sku__image_url', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class'))
+    import pdb;pdb.set_trace();
+    tax = CustomerOrderSummary.objects.filter(order__order_id = order_id, order__user = user.id).aggregate(Sum('tax_value'))['tax_value__sum']
+    if not tax:
+        tax = 0
+    response_data['tax'] = tax
+    return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))

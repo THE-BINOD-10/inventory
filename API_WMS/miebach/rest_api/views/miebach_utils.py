@@ -60,6 +60,9 @@ SUPPLIER_SKU_DATA = {'supplier_id': '', 'supplier_type': '',
 UPLOAD_ORDER_DATA = {'order_id': '', 'title': '','user': '',
              'sku_id': '', 'status': 1, 'shipment_date': datetime.datetime.now()}
 
+UPLOAD_SALES_ORDER_DATA = {'quantity': 0, 'damaged_quantity': 0, 'return_id': '', 'order_id': '', 'sku_id': '', 'return_date': '',
+                            'status': 1}
+
 LOCATION_GROUP_FIELDS = {'group': '', 'location_id': ''}
 
 LOC_DATA = {'zone_id': '', 'location': '',
@@ -151,6 +154,8 @@ SALES_RETURN_HEADERS = ['Return ID', 'Return Date', 'SKU Code', 'Product Descrip
 
 SALES_RETURN_TOGGLE = ['Return ID', 'SKU Code', 'Product Description', 'Shipping Quantity', 'Return Quantity', 'Damaged Quantity' ]
 
+SALES_RETURN_BULK = ['Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity', 'Return ID', 'Return Date(YYYY-MM-DD)' ]
+
 RETURN_DATA_FIELDS = ['sales-check', 'order_id', 'sku_code', 'customer_id', 'shipping_quantity', 'return_quantity', 'damaged_quantity', 'delete-sales']
 
 SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Preference', 'MOQ','Price']
@@ -237,6 +242,8 @@ LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequenc
 SKU_HEADERS = ['WMS Code','SKU Description', 'SKU Group', 'SKU Type', 'SKU Category', 'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size',
                'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url', 'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Status']
 
+SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity', 'Return Date(YYYY-MM-DD)']
+
 EXCEL_HEADERS = ['Receipt Number', 'Receipt Date(YYYY-MM-DD)',  'WMS SKU', 'Location', 'Quantity', 'Receipt Type']
 EXCEL_RECORDS = ('receipt_number', 'receipt_date', 'wms_code', 'location', 'wms_quantity', 'receipt_type')
 
@@ -248,7 +255,7 @@ PICKLIST_HEADER = ('ORDER ID', 'WMS Code', 'Title', 'Zone', 'Location', 'Reserve
 
 PICKLIST_HEADER1 = ('WMS Code', 'Title','Zone', 'Location', 'Reserved Quantity', 'Picked Quantity','')
 
-PRINT_PICKLIST_HEADERS = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity','Stock Left')
+PRINT_PICKLIST_HEADERS = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
 
 PROCESSING_HEADER = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity', '')
 
@@ -458,6 +465,38 @@ MYNTRA_EXCEL = {'invoice_amount': 14, 'marketplace': 'Myntra', 'sku_code': 2, 'q
                 'vat': [14, 11], 'mrp': 12, 'discount': 13}
 
 UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code': 1}
+
+# ---  Return Marketplace headers --
+GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
+                                   ('return_id', 1),  ('return_date', 5)))
+
+#MYNTRA_RETURN_EXCEL = OrderedDict((('sku_id', [5,7]), ('quantity', 8), ('reason', 13), ('marketplace', "MYNTRA")))
+
+MYNTRA_RETURN_EXCEL = OrderedDict((('sku_id', [5,7]), ('quantity', 8), ('reason', 13), ('marketplace', "MYNTRA")))
+
+UNIWEAR_RETURN_EXCEL = OrderedDict((('sku_id', 4), ('channel', 14),('reason', 12),
+                                        ('return_id', 5),  ('return_date', 8)))
+
+"""
+GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
+                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
+
+GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
+                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
+
+GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
+                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
+
+GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
+                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
+
+GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
+                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
+
+
+"""
+
+#-- ----- -----
 
 UNI_COMMERCE_EXCEL1 = {'order_id': 8, 'channel_name': 2, 'sku_code': 20, 'customer_name': 9, 'email_id': 10, 'telephone': 11,
                        'address': [12, 13, 14], 'state': 15, 'pin_code': 16, 'invoice_amount': 19}
@@ -1079,7 +1118,7 @@ def get_daily_production_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     all_data = OrderedDict()
-    cmp_data = ('sku_code', 'sku_brand')
+    cmp_data = ('sku_code', 'sku_brand', 'sku_class', 'sku_category')
     job_filter = {}
     for data in cmp_data:
         if data in search_params:
@@ -1089,6 +1128,9 @@ def get_daily_production_data(search_params, user, sub_user):
     if search_stage:
         stage_filter['stage_name'] = search_stage
     search_parameters['product_code_id__in'] = sku_master_ids
+    jo_code = search_params.get('jo_code', '')
+    if jo_code:
+        search_parameters['job_code'] = jo_code
     extra_headers =  list(ProductionStages.objects.filter(**stage_filter).order_by('order').values_list('stage_name', flat=True))
     job_orders = JobOrder.objects.filter(product_code__user=user.id, status__in=['grn-generated', 'pick_confirm', 'partial_pick',
                                          'location-assigned', 'confirmed-putaway'], **search_parameters)
@@ -1112,8 +1154,9 @@ def get_daily_production_data(search_params, user, sub_user):
         summary_date = summary.creation_date.strftime('%Y-%m-%d')
         
         summary_date_format = ' '.join(get_local_date(user, summary.creation_date).split(' ')[:3])
-        cond = (summary_date, job_order.job_code, job_order.product_code.sku_code, job_order.product_code.sku_brand,
-                job_order.product_code.sku_category, job_order.product_quantity, summary.processed_stage)
+        jo_creation_date = job_order.creation_date.strftime('%Y-%m-%d')
+        cond = (summary_date, job_order.job_code, jo_creation_date, job_order.product_code.sku_class, job_order.product_code.sku_code,
+                job_order.product_code.sku_brand,job_order.product_code.sku_category, job_order.product_quantity, summary.processed_stage)
         all_data.setdefault(cond, 0)
         all_data[cond] += float(summary.processed_quantity)
         #job_code = filter(lambda job_code_ids: job_code_ids['id'] == summary.status_tracking.status_id, job_code_ids)
@@ -1128,9 +1171,9 @@ def get_daily_production_data(search_params, user, sub_user):
 
 
     for key in all_data_keys:
-        data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('SKU Code', key[2]), ('Brand', key[3]),
-                                  ('SKU Category', key[4]), ('Total JO Quantity', key[5]), ('Reduced Quantity', all_data[key]),
-                                  ('Stage', key[6])
+        data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
+                                  ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]), ('Total JO Quantity', key[7]),
+                                  ('Reduced Quantity', all_data[key]),('Stage', key[8])
                    )))
 
 

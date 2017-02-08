@@ -120,19 +120,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
         sku_codes = sku_code.split(',')
         for sku_code in sku_codes:
-            sku_id = ''
-            sku_master=SKUMaster.objects.filter(sku_code=sku_code,user=user.id)
-            if sku_master:
-                sku_id = sku_master[0].id
-            else:
-                market_mapping = ''
-                if sku_code:
-                    market_mapping = MarketplaceMapping.objects.filter(marketplace_code=sku_code, sku__user=user.id, sku__status=1)
-                if not market_mapping and title:
-                    market_mapping = MarketplaceMapping.objects.filter(description=title, sku__user=user.id, sku__status=1)
-                if market_mapping:
-                    sku_id = market_mapping[0].sku_id
-
+            sku_id = check_and_return_mapping_id(sku_code, title, user)
             if not sku_id:
                 index_status.setdefault(count, set()).add('SKU Mapping Not Available')
         count += 1
@@ -204,8 +192,9 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                         quantity = len(sku_length.split(','))
                     amount = float(get_cell_data(row_idx, value[0], reader, file_type))/quantity
                     rate = float(get_cell_data(row_idx, value[1], reader, file_type))
-                    tax_value = amount - rate
-                    vat = "%.2f" % (float(tax_value * 100) / rate)
+                    tax_value_item = (amount - rate)
+                    tax_value = tax_value_item * quantity
+                    vat = "%.2f" % (float(tax_value_item * 100) / rate)
                     order_summary_dict['issue_type'] = 'order'
                     order_summary_dict['vat'] = vat
                     order_summary_dict['tax_value'] = "%.2f" % tax_value
@@ -342,24 +331,39 @@ def order_upload(request, user=''):
 
 @csrf_exempt
 def rewrite_excel_file(f_name, index_status, open_sheet):
-    wb = Workbook()
-    ws = wb.add_sheet(open_sheet.name)
+    #wb = Workbook()
+    #ws = wb.add_sheet(open_sheet.name)
+    wb1, ws1 = get_work_sheet(open_sheet.name, [], f_name)
+
+    if 'xlsx' in f_name:
+        header_style = wb1.add_format({'bold': True})
+    else:
+        header_style = easyxf('font: bold on')
+
     for row_idx in range(0, open_sheet.nrows):
         if row_idx == 0:
             for col_idx in range(0, open_sheet.ncols):
-                ws.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value, easyxf('font: bold on'))
-            ws.write(row_idx, col_idx + 1, 'Status', easyxf('font: bold on'))
+                ws1.write(row_idx, col_idx, str(open_sheet.cell(row_idx, col_idx).value), header_style)
+            ws1.write(row_idx, col_idx + 1, 'Status', header_style)
 
         else:
             for col_idx in range(0, open_sheet.ncols):
-                ws.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
+                #print row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value
+                if col_idx == 4 and 'xlsx' in f_name:
+                    date_format = wb1.add_format({'num_format': 'yyyy-mm-dd'})
+                    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value, date_format)
+                else:
+                    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
 
             index_data = index_status.get(row_idx, '')
             if index_data:
                 index_data = ', '.join(index_data)
-            ws.write(row_idx, col_idx + 1, index_data)
+                ws1.write(row_idx, col_idx + 1, index_data)
 
-    wb.save(f_name)
+    if 'xlsx' in f_name:
+        wb1.close()
+    else:
+        wb1.save(f_name)
 
 @csrf_exempt
 @get_admin_user
@@ -404,6 +408,16 @@ def sku_form(request, user=''):
         ws.write(data_count, 0, record.wms_code)
 
     return xls_to_response(wb, '%s.sku_form.xls' % str(user.id))
+
+@csrf_exempt
+@get_admin_user
+def sales_returns_form(request, user=''):
+    returns_file = request.GET['download-sales-returns']
+    if returns_file:
+        return error_file_download(returns_file)
+
+    wb, ws = get_work_sheet('returns', SALES_RETURNS_HEADERS)
+    return xls_to_response(wb, '%s.returns_form.xls' % str(user.id))
 
 @csrf_exempt
 @login_required
@@ -2045,7 +2059,6 @@ def customer_excel_upload(request, open_sheet, user):
             customer_data['user'] = user.id
             customer = CustomerMaster(**customer_data)
             customer.save()
-        
 
     return 'success'
 
@@ -2068,3 +2081,212 @@ def customer_upload(request, user=''):
         customer_excel_upload(request, open_sheet, user)
 
     return HttpResponse('Success')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def sales_returns_upload(request, user=''):
+    fname = request.FILES['files']
+    if (fname.name).split('.')[-1] == 'csv':
+        reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
+        no_of_rows = len(reader)
+        file_type = 'csv'
+    elif (fname.name).split('.')[-1] == 'xls' or (fname.name).split('.')[-1] == 'xlsx':
+        try:
+            data = fname.read()
+            if '<table' in data:
+                open_book, open_sheet = html_excel_data(data, fname)
+            else:
+                open_book = open_workbook(filename=None, file_contents=data)
+                open_sheet = open_book.sheet_by_index(0)
+        except:
+            return HttpResponse("Invalid File")
+        reader = open_sheet
+        no_of_rows = reader.nrows
+        file_type = 'xls'
+
+    status = validate_sales_return_form(request, reader, user, no_of_rows, fname, file_type=file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+
+    upload_status = sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
+    return HttpResponse('Success')
+
+@csrf_exempt
+def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_type='xls'):
+    sku_data = []
+    wms_data = []
+    index_status = {}
+    order_mapping = get_sales_returns_mapping(reader, file_type)
+    if not order_mapping:
+        return 'Invalid File'
+    for row_idx in range(1, no_of_rows):
+        print row_idx
+        for key, value in order_mapping.iteritems():
+            if isinstance(order_mapping[key], list):
+                cell_data = ''
+                for item in order_mapping[key]:
+                    cell_dat = get_cell_data(row_idx, item, reader, file_type)
+                    if isinstance(cell_dat, float):
+                        cell_dat = str(int(cell_dat))
+                    cell_data += cell_dat
+            else:
+                cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+
+            if key == 'sku_id':
+                sku_code = cell_data
+                if cell_data:
+                    sku_id = check_and_return_mapping_id(sku_code, '', user)
+                    if not sku_id:
+                        index_status.setdefault(row_idx, set()).add("WMS Code doesn't exists")
+                else:
+                    index_status.setdefault(row_idx, set()).add('WMS Code missing')
+            elif key == 'order_id':
+                if cell_data and sku_code:
+                    order_detail = OrderDetail.objects.filter(original_order_id=cell_data, sku_id__sku_code=sku_code, user=user.id)
+                    if not order_detail:
+                        index_status.setdefault(row_idx, set()).add("Order ID doesn't exists")
+
+            elif key == 'quantity':
+                if not isinstance(cell_data, (int, float)) and cell_data:
+                    if not cell_data.isdigit():
+                        index_status.setdefault(row_idx, set()).add('Invalid Return Quantity')
+
+                if cell_data and isinstance(cell_data, (int, float)):
+                    if int(cell_data) < 0:
+                        index_status.setdefault(row_idx, set()).add('Return Quantity should not be in negative')
+
+            elif key == 'damaged_quantity':
+                if not isinstance(cell_data, (int, float)) and cell_data:
+                    if not cell_data.isdigit():
+                        index_status.setdefault(row_idx, set()).add('Invalid Damaged Quantity')
+
+                if cell_data and isinstance(cell_data, (int, float)):
+                    if int(cell_data) < 0:
+                        index_status.setdefault(row_idx, set()).add('Damaged Quantity should not be in negative')
+
+            elif key == 'return_id':
+                sku_cod = get_cell_data(row_idx, order_mapping['sku_id'], reader, file_type)
+                return_cod = get_cell_data(row_idx, order_mapping['return_id'], reader, file_type)
+                if sku_cod and return_cod:
+                    return_obj = OrderReturns.objects.filter(return_id = return_cod, sku__sku_code = sku_cod, sku__user = user.id)
+                    if return_obj:
+                        index_status.setdefault(row_idx, set()).add('Return Order is already exist')
+
+    if not index_status:
+        return 'Success'
+
+    if index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        rewrite_excel_file(f_name, index_status, reader)
+        return f_name
+    elif index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        rewrite_csv_file(f_name, index_status, reader)
+        return f_name
+
+
+def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
+
+    from inbound import save_return_locations
+    index_status = {}
+    order_mapping = get_sales_returns_mapping(reader, file_type)
+    count = 1
+
+    for row_idx in range(1, no_of_rows):
+        all_data = []
+        order_data = copy.deepcopy(UPLOAD_SALES_ORDER_DATA)
+        if not order_mapping:
+            break
+        for key, value in order_mapping.iteritems():
+            if key == 'sku_id':
+                sku_code= ""
+                if isinstance(order_mapping[key], list):
+                    for item in order_mapping[key]:
+                        if isinstance(get_cell_data(row_idx, item, reader, file_type), float):
+                            content = int(get_cell_data(row_idx, item, reader, file_type))
+                        sku_code = "%s%s" %(sku_code, get_cell_data(row_idx, item, reader, file_type))
+                else:
+                    sku_code = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                sku_id = check_and_return_mapping_id(sku_code, '', user)
+                order_data['sku_id'] = sku_id
+            elif key == 'quantity':
+                order_data[key] = int(get_cell_data(row_idx, order_mapping[key], reader, file_type))
+                if not order_data[key]:
+                    order_data[key] = 0
+            elif key == 'damaged_quantity':
+                order_data[key] = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                if not order_data[key]:
+                    order_data[key] = 0
+            elif key == 'return_date':
+                cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                if cell_data:
+                    if isinstance(cell_data, str):
+                        order_data[key] = datetime.datetime.strptime(cell_data, "%d-%m-%Y %H:%M")
+                    else:
+                        order_data[key] = xldate_as_tuple(cell_data, 0)
+
+            elif key == "marketplace":
+                order_data[key] = value
+            elif key == "channel":
+                order_data["marketplace"] = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+            else:
+                cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                if cell_data:
+                    order_data[key] = cell_data
+
+            if "quantity" not in order_mapping.keys():
+                order_data['quantity'] = 1
+
+        if not order_data['return_date']:
+            order_data['return_date'] = datetime.datetime.now()
+
+        if (order_data['quantity'] or order_data['damaged_quantity']) and sku_id:
+            print order_data
+            returns = OrderReturns(**order_data)
+            returns.save()
+
+            if not returns.return_id:
+                returns.return_id = 'MN%s' % returns.id
+            returns.save()
+
+            save_return_locations([returns], all_data, order_data['damaged_quantity'], request, user)
+    return 'Success'
+
+def get_sales_returns_mapping(reader, file_type):
+
+    order_mapping = {}
+    if get_cell_data(0, 0, reader, file_type) == 'Return ID':
+        order_mapping = copy.deepcopy(GENERIC_RETURN_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
+        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'Sale Order Item Code':
+        order_mapping = copy.deepcopy(UNIWEAR_RETURN_EXCEL)
+    """
+    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
+        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
+        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
+        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
+        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
+        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
+
+    """
+    return order_mapping
+
+
+def sales_return_order(data,user):
+
+    return_details = {'return_id': '', 'return_date': datetime.datetime.now(), 'quantity': data['quantity'],
+                          'sku_id': sku_id, 'status': 1}
+
+    returns = OrderReturns(**return_details)
+    returns.save()
+
+    if not returns.return_id:
+        returns.return_id = 'MN%s' % returns.id
+    returns.save()
+    return returns.id

@@ -1,3 +1,5 @@
+import xlsxwriter
+
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
@@ -234,8 +236,9 @@ def get_search_params(request):
                     'order[0][dir]': 'order_term',
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date', 'wms_code': 'wms_code',
                     'supplier': 'supplier', 'sku_code': 'sku_code', 'sku_category': 'sku_category', 'sku_type': 'sku_type',
-                    'sku_class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po', 'marketplace': 'marketplace',
-                    'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage'}
+                    'sku_class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po',
+                    'marketplace': 'marketplace', 'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage',
+                    'sku_category': 'sku_category', 'jo_code': 'jo_code'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = { 'search0': 'search_0', 'search1': 'search_1',
                        'search2': 'search_2', 'search3': 'search_3',
@@ -286,6 +289,7 @@ data_datatable = {#masters
                   'StockDetail': 'get_stock_detail_results', 'CycleCount': 'get_cycle_count',\
                   'MoveInventory': 'get_move_inventory', 'InventoryAdjustment': 'get_move_inventory',\
                   'ConfirmCycleCount': 'get_cycle_confirmed','VendorStockTable': 'get_vendor_stock',\
+                  'Available':'get_available_stock','Available+Intransit':'get_availintra_stock','Total': 'get_avinre_stock',
                   'RawMaterialPicklistSKU': 'get_rm_picklist_confirmed_sku',\
                   #outbound
                   'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders',\
@@ -549,10 +553,15 @@ def configurations(request, user=''):
                                                              'stock_sync': stock_sync, 'auto_generate_picklist': auto_generate_picklist}))
 
 @csrf_exempt
-def get_work_sheet(sheet_name, sheet_headers):
-    wb = Workbook()
-    ws = wb.add_sheet(sheet_name)
-    header_style = easyxf('font: bold on')
+def get_work_sheet(sheet_name, sheet_headers, f_name=''):
+    if '.xlsx' in f_name:
+        wb = xlsxwriter.Workbook(f_name)
+        ws = wb.add_worksheet(sheet_name)
+        header_style = wb.add_format({'bold': True})
+    else:
+        wb = Workbook()
+        ws = wb.add_sheet(sheet_name)
+        header_style = easyxf('font: bold on')
     for count, header in enumerate(sheet_headers):
         ws.write(0, count, header, header_style)
     return wb, ws
@@ -1527,6 +1536,7 @@ def get_invoice_data(order_ids, user):
         order_ids = order_ids.split(',')
         order_data = OrderDetail.objects.filter(id__in=order_ids)
         picklist = Picklist.objects.filter(order_id__in=order_ids).order_by('-updation_date')
+        picklist_obj = picklist
         if picklist:
             invoice_date = picklist[0].updation_date
         for dat in order_data:
@@ -1564,8 +1574,9 @@ def get_invoice_data(order_ids, user):
             else:
                 tax = float(float(dat.invoice_amount)/100) * vat
 
-            total_invoice += float(dat.invoice_amount)
-            total_quantity += int(dat.quantity)
+            #total_invoice += float(dat.invoice_amount)
+            #total_quantity += int(dat.quantity)
+            #total_quantity =picklist_obj.filter(order__sku__sku_code=dat.sku.sku_code).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
             total_tax += float(tax)
             total_mrp += float(mrp_price)
 
@@ -1577,11 +1588,15 @@ def get_invoice_data(order_ids, user):
                                             annotate(total=Sum('picked_quantity'))
                 if picklist:
                     quantity = picklist[0].total
-            unit_price = ((float(dat.invoice_amount)/ float(dat.quantity))) - discount - (tax/float(dat.quantity))
-            unit_price = "%.2f" % unit_price
 
-            data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(dat.invoice_amount),
-                         'quantity': quantity, 'tax': "%.2f" % tax, 'unit_price': unit_price, 'vat': vat, 'mrp_price': mrp_price,
+            unit_price = ((float(dat.invoice_amount)/ float(dat.quantity))) - discount - (tax/float(dat.quantity))
+            invoice_amount = (float(dat.invoice_amount)/ float(dat.quantity)) * quantity
+            unit_price = "%.2f" % unit_price
+            total_invoice += invoice_amount
+            total_quantity += quantity
+
+            data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
+                         'quantity': quantity, 'tax': "%.2f" % (tax/float(dat.quantity) * quantity), 'unit_price': unit_price, 'vat': vat, 'mrp_price': mrp_price,
                          'discount': discount})
 
     invoice_date = get_local_date(user, invoice_date, send_date='true')
@@ -1929,6 +1944,22 @@ def get_order_sync_issues(start_index, stop_index, temp_data, search_term, order
         temp_data['aaData'].append(OrderedDict(( ('Order ID', result.order_id), ('SKU Code', result.sku_code),
                                                  ('Reason', result.reason), ('Created Date', get_local_date(user, result.creation_date)),
                                                  ('DT_RowClass', 'results'), ('DT_RowId', result.id) )))
+
+def check_and_return_mapping_id(sku_code, title, user):
+    sku_id = ''
+    sku_master=SKUMaster.objects.filter(sku_code=sku_code,user=user.id)
+    if sku_master:
+        sku_id = sku_master[0].id
+    else:
+        market_mapping = ''
+        if sku_code:
+            market_mapping = MarketplaceMapping.objects.filter(marketplace_code=sku_code, sku__user=user.id, sku__status=1)
+        if not market_mapping and title:
+            market_mapping = MarketplaceMapping.objects.filter(description=title, sku__user=user.id, sku__status=1)
+        if market_mapping:
+            sku_id = market_mapping[0].sku_id
+    return sku_id
+
 
 @csrf_exempt
 @login_required

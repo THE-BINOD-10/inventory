@@ -22,20 +22,28 @@ $(document).ready(function(){
 </script>
  {% load tag_extras %}
 <div style="margin-right:10px">
-{% if customer_name %}
+{% if customer_name and not marketplace %}
 <div class="row" style="padding-left: 2px;">
   <div class="col-md-12">
     <center><b>Customer Name: {{ customer_name }}</b></center>
   </div>
 </div>
 {% endif %}
+{% if marketplace %}
 <div class="row" style="padding-left: 2px;">
+  <div class="col-md-12">
+    <center><b>Marketplace: {{ marketplace }}</b></center>
+  </div>
+</div>
+{% endif %}
+<div class="row" style="padding-left: 2px;">
+  <input type="hidden" name="picklist_number" value="{{picklist_id}}">
   <div class="col-md-12">
     <div class="col-md-6">
       <span class="pull-left" style="float: left;"><b>Date: <span id="date"></span></b></span>
     </div>
     <div class="col-md-6" style="float: right;">
-      <span class="pull-right"><b>Order ID: {{ order_ids }}</b></span>
+      <span class="pull-right"><b>Order ID: {% if not marketplace %}{{ order_ids }} {% endif %}</b></span>
     </div>
   </div>
   <br>
@@ -72,14 +80,13 @@ $(document).ready(function(){
                         <td>{{ record.location }}</td>
                         <td>{{ record.reserved_quantity }}</td>
                         <td></td>
-                        <td></td>
                     </tr>
                     {% endfor %}
 
                 </table>
                 </div>
                 <div class="col-md-1">
-                    <table class='table table-bordered' style="width: 100%; font-size: 12px; margin-bottom:5px;">
+                    <table class='table table-bordered hide' style="width: 100%; font-size: 12px; margin-bottom:5px;">
                         <tr><th colspan=3>Summary</th></tr>
                         <tr>
                             <th>Type</th>

@@ -170,7 +170,7 @@ def print_daily_production_report(request, user=''):
     search_parameters = {}
 
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_daily_production_data(search_params, user)
+    report_data = get_daily_production_data(search_params, user, request.user)
     report_data = report_data['aaData']
 
     if report_data:
@@ -182,7 +182,7 @@ def print_dispatch_summary(request, user=''):
     search_parameters = {}
 
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_dispatch_data(search_params, user)
+    report_data = get_dispatch_data(search_params, user, request.user)
     report_data = report_data['aaData']
 
     if report_data:

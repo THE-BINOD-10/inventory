@@ -366,7 +366,7 @@ PICKLIST_SKIP_LIST = ('sortingTable_length', 'fifo-switch', 'ship_reference', 's
 
 MAIL_REPORTS = { 'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wise SKU'], 'receipt_note': ['Receipt Summary'], 'dispatch_summary': ['Dispatch Summary'], 'sku_wise': ['SKU Wise Stock'] }
 
-MAIL_REPORTS_DATA = {'Raise PO': 'raise_po', 'Receive PO': 'receive_po', 'Orders': 'order', 'Dispatch': 'dispatch'}
+MAIL_REPORTS_DATA = {'Raise PO': 'raise_po', 'Receive PO': 'receive_po', 'Orders': 'order', 'Dispatch': 'dispatch', 'Internal Mail' : 'internal_mail'}
 
 REPORTS_DATA = {'SKU List': 'sku_list', 'Location Wise SKU': 'location_wise_stock', 'Receipt Summary': 'receipt_note', 'Dispatch Summary': 'dispatch_summary', 'SKU Wise Stock': 'sku_wise'}
 
@@ -477,26 +477,6 @@ MYNTRA_RETURN_EXCEL = OrderedDict((('sku_id', [5,7]), ('quantity', 8), ('reason'
 UNIWEAR_RETURN_EXCEL = OrderedDict((('sku_id', 4), ('channel', 14),('reason', 12),
                                         ('return_id', 5),  ('return_date', 8)))
 
-"""
-GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
-                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
-
-GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
-                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
-
-GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
-                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
-
-GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
-                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
-
-GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
-                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
-
-
-"""
-
-#-- ----- -----
 
 UNI_COMMERCE_EXCEL1 = {'order_id': 8, 'channel_name': 2, 'sku_code': 20, 'customer_name': 9, 'email_id': 10, 'telephone': 11,
                        'address': [12, 13, 14], 'state': 15, 'pin_code': 16, 'invoice_amount': 19}
@@ -1143,7 +1123,7 @@ def get_daily_production_data(search_params, user, sub_user):
     if 'to_date' in search_params:
         status_filter['creation_date__lte'] = datetime.datetime.combine(search_params['to_date']  + datetime.timedelta(1), datetime.time())
     status_summary = StatusTrackingSummary.objects.filter(**status_filter)
-    
+
     job_order_ids = job_orders.values_list('job_code', flat=True).distinct()
 
     start_index = search_params.get('start', 0)
@@ -1152,7 +1132,7 @@ def get_daily_production_data(search_params, user, sub_user):
     for summary in status_summary:
         job_order = job_orders.get(id=summary.status_tracking.status_id)
         summary_date = summary.creation_date.strftime('%Y-%m-%d')
-        
+
         summary_date_format = ' '.join(get_local_date(user, summary.creation_date).split(' ')[:3])
         jo_creation_date = job_order.creation_date.strftime('%Y-%m-%d')
         cond = (summary_date, job_order.job_code, jo_creation_date, job_order.product_code.sku_class, job_order.product_code.sku_code,
@@ -1165,29 +1145,46 @@ def get_daily_production_data(search_params, user, sub_user):
     temp_data['recordsTotal'] = len(all_data.keys())
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
-    all_data_keys = all_data.keys()
-    if stop_index:
-        all_data_keys = all_data_keys[start_index:stop_index]
-
-
-    for key in all_data_keys:
-        data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
-                                  ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]), ('Total JO Quantity', key[7]),
-                                  ('Reduced Quantity', all_data[key]),('Stage', key[8])
-                   )))
-
-
     order_term = search_params.get('order_term', '')
     order_index = search_params.get('order_index', '')
 
-    if order_term == 'asc' and data and order_index:
+    if order_term == 'asc' and order_index:
+        all_data_keys = all_data.keys()
+
+        for key in all_data_keys:
+            data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
+                                      ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]), ('Total JO Quantity', key[7]),
+                                      ('Reduced Quantity', all_data[key]),('Stage', key[8])
+                       )))
         data = sorted(data, key=itemgetter(data[0].keys()[order_index]))
-    elif data and order_index:
+        temp_data['aaData'] = data[start_index:stop_index]
+        return temp_data
+
+    elif order_index:
+        all_data_keys = all_data.keys()
+
+        for key in all_data_keys:
+            data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
+                                      ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]), ('Total JO Quantity', key[7]),
+                                      ('Reduced Quantity', all_data[key]),('Stage', key[8])
+                       )))
         data = sorted(data, key=itemgetter(data[0].keys()[order_index]), reverse=True)
+        temp_data['aaData'] = data[start_index:stop_index]
+        return temp_data
 
-    temp_data['aaData'] = data
+    elif stop_index:
+        all_data_keys = all_data.keys()
+        all_data_keys = all_data_keys[start_index:stop_index]
 
-    return temp_data
+        for key in all_data_keys:
+            data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
+                                      ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]), ('Total JO Quantity', key[7]),
+                                      ('Reduced Quantity', all_data[key]),('Stage', key[8])
+                       )))
+        temp_data['aaData'] = data
+        return temp_data
+
+
 
 def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *

@@ -49,8 +49,8 @@ def update_orders(orders, user='', company_name=''):
                     SKUMaster.objects.create(sku_code=sku_code, wms_code=sku_code,user=user.id, status=1, creation_date=NOW,
                                                           online_percentage=0)
                     sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
-                    filter_params['sku_id'] = sku_master.id
-                    filter_params1['sku_id'] = sku_master.id
+                    filter_params['sku_id'] = sku_master[0].id
+                    filter_params1['sku_id'] = sku_master[0].id
                     #reason = ''
                     #if sku_code:
                     #    reason = "SKU Mapping doesn't exists"

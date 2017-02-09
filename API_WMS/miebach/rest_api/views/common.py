@@ -1524,7 +1524,10 @@ def check_and_update_order(user, order_id):
     integrations = Integrations.objects.filter(user=user.id)
     for integrate in integrations:
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        obj.confirm_picklist(order_id, user=user)
+        try:
+            obj.confirm_picklist(order_id, user=user)
+        except:
+            continue
 
 def get_invoice_number(user):
     invoice_number = 1

@@ -3216,5 +3216,7 @@ def get_customer_order_detail(request, user=""):
     tax = CustomerOrderSummary.objects.filter(order__order_id = order_id, order__user = user.id).aggregate(Sum('tax_value'))['tax_value__sum']
     if not tax:
         tax = 0
+    else:
+        tax = round(tax, 2)
     response_data['tax'] = tax
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))

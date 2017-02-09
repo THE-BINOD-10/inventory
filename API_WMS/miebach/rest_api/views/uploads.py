@@ -148,7 +148,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             continue
 
         for key, value in order_mapping.iteritems():
-            if key in ['marketplace', 'status', 'split_order_id'] or key not in order_mapping.keys():
+            if key in ['marketplace', 'status', 'split_order_id', 'recreate'] or key not in order_mapping.keys():
                 continue
             if key == 'order_id' and 'order_id' in order_mapping.keys():
                 order_id = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
@@ -159,6 +159,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_id = order_id.split('/')[0]
                 order_code = (''.join(re.findall('\D+', order_id))).replace("'", "").replace("`", "")
                 order_id = ''.join(re.findall('\d+', order_id))
+                if order_mapping.get('recreate', ""):
+                    order_exist = OrderDetail.objects.filter(Q(order_id = order_id, order_code=order_code) |
+                                                          Q(original_order_id=order_data['original_order_id']), marketplace = "JABONG_SC",
+                                                             user=user.id)
+                    if order_exist:
+                        order_id = ""
+
                 if order_id:
                     order_data['order_id'] = int(order_id)
                     order_data['order_code'] = 'OD'

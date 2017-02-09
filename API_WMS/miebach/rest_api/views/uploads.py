@@ -148,7 +148,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             continue
 
         for key, value in order_mapping.iteritems():
-            if key in ['marketplace', 'status', 'split_order_id'] or key not in order_mapping.keys():
+            if key in ['marketplace', 'status', 'split_order_id', 'recreate'] or key not in order_mapping.keys():
                 continue
             if key == 'order_id' and 'order_id' in order_mapping.keys():
                 order_id = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
@@ -159,6 +159,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_id = order_id.split('/')[0]
                 order_code = (''.join(re.findall('\D+', order_id))).replace("'", "").replace("`", "")
                 order_id = ''.join(re.findall('\d+', order_id))
+                if order_mapping.get('recreate', ""):
+                    order_exist = OrderDetail.objects.filter(Q(order_id = order_id, order_code=order_code) |
+                                                          Q(original_order_id=order_data['original_order_id']), marketplace = "JABONG_SC",
+                                                             user=user.id)
+                    if order_exist:
+                        order_id = ""
+
                 if order_id:
                     order_data['order_id'] = int(order_id)
                     order_data['order_code'] = 'OD'
@@ -641,7 +648,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             if key == 'wms_code':
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
-                cell_data = str(cell_data)
+                cell_data = str(xcode(cell_data))
 
                 wms_code = cell_data
                 data_dict[key] = wms_code
@@ -685,7 +692,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                 if not cell_data:
                     cell_data = 0
                 if sku_data and cell_data:
-                    sku_data.sku_desc = cell_data
+                    sku_data.threshold_quantity = cell_data
                 data_dict[key] = cell_data
 
             elif key == 'price':
@@ -1871,7 +1878,7 @@ def validate_inventory_adjust_form(open_sheet, user):
             if col_idx == 0:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
-                cell_data = str(cell_data)
+                cell_data = str(xcode(cell_data))
                 sku_master = SKUMaster.objects.filter(wms_code=cell_data, user=user)
                 if not sku_master:
                     index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
@@ -1922,7 +1929,7 @@ def inventory_adjust_upload(request, user=''):
             if col_idx == 0 and cell_data:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
-                cell_data = str(cell_data)
+                cell_data = str(xcode(cell_data))
                 wms_code = cell_data
                 if wms_code not in sku_codes:
                     sku_codes.append(wms_code)
@@ -2121,7 +2128,6 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
     if not order_mapping:
         return 'Invalid File'
     for row_idx in range(1, no_of_rows):
-        print row_idx
         for key, value in order_mapping.iteritems():
             if isinstance(order_mapping[key], list):
                 cell_data = ''
@@ -2134,6 +2140,8 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
 
             if key == 'sku_id':
+                if isinstance(cell_data, float):
+                    cell_data = str(int(cell_data))
                 sku_code = cell_data
                 if cell_data:
                     sku_id = check_and_return_mapping_id(sku_code, '', user)
@@ -2143,9 +2151,19 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                     index_status.setdefault(row_idx, set()).add('WMS Code missing')
             elif key == 'order_id':
                 if cell_data and sku_code:
-                    order_detail = OrderDetail.objects.filter(original_order_id=cell_data, sku_id__sku_code=sku_code, user=user.id)
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    order_id = ''.join(re.findall('\d+', cell_data))
+                    order_filter = {'order_id': order_id}
+                    order_code = ''.join(re.findall('\D+', cell_data))
+                    if order_code:
+                        order_filter['order_code'] = order_code
+                    order_detail = OrderDetail.objects.filter(Q(original_order_id=cell_data) | Q(**order_filter),
+                                                              sku_id__sku_code=sku_code, user=user.id)
                     if not order_detail:
                         index_status.setdefault(row_idx, set()).add("Order ID doesn't exists")
+                    elif int(order_detail[0].status) == 4:
+                        index_status.setdefault(row_idx, set()).add("Order Processed already")
 
             elif key == 'quantity':
                 if not isinstance(cell_data, (int, float)) and cell_data:
@@ -2208,8 +2226,26 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                         sku_code = "%s%s" %(sku_code, get_cell_data(row_idx, item, reader, file_type))
                 else:
                     sku_code = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                    if isinstance(sku_code, float):
+                        sku_code = str(int(sku_code))
                 sku_id = check_and_return_mapping_id(sku_code, '', user)
                 order_data['sku_id'] = sku_id
+            elif key == 'order_id':
+                cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                if cell_data and sku_code:
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    order_id = ''.join(re.findall('\d+', cell_data))
+                    order_filter = {'order_id': order_id}
+                    order_code = ''.join(re.findall('\D+', cell_data))
+                    if order_code:
+                        order_filter['order_code'] = order_code
+                    order_detail = OrderDetail.objects.filter(Q(original_order_id=cell_data) | Q(**order_filter),
+                                                              sku_id__sku_code=sku_code, user=user.id)
+                    if order_detail:
+                        order_data[key] = order_detail[0].id
+                        order_detail[0].status = 4
+                        order_detail[0].save()
             elif key == 'quantity':
                 order_data[key] = int(get_cell_data(row_idx, order_mapping[key], reader, file_type))
                 if not order_data[key]:
@@ -2262,19 +2298,6 @@ def get_sales_returns_mapping(reader, file_type):
         order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Sale Order Item Code':
         order_mapping = copy.deepcopy(UNIWEAR_RETURN_EXCEL)
-    """
-    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
-        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
-        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
-        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
-        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
-        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
-
-    """
     return order_mapping
 
 

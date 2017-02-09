@@ -22,6 +22,13 @@ angular.module('urbanApp', ['datatables'])
 
     vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
 
+    vm.excel = excel;
+    function excel() {
+      angular.copy(vm.dtColumns,colFilters.headers);
+      angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
+      colFilters.download_excel()
+    }
+
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -71,6 +78,11 @@ angular.module('urbanApp', ['datatables'])
     Data.stock_view.view =  vm.g_data.view;
     $state.go($state.current, {}, {reload: true});
   }
+
+    $scope.$on('change_filters_data', function(){
+      vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
+      vm.service.refresh(vm.dtInstance);
+    });
 
     vm.bt_disable = true;
     vm.button_fun = function() {

@@ -7,7 +7,16 @@
       </div>
     </div>
     <div class="col-md-6 col-sm-6 col-xs-6">
-      <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>
+      <div class="btn-group pull-right" role="group">
+        <a class="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <i class="fa fa-user fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;"></i>
+        </a>
+        <ul class="dropdown-menu">
+          <li><a ng-click="showCase.you_order_display = true;showCase.cart_display = false;showCase.get_orders();">Your Orders</a></li>
+          <li><a ng-click="showCase.logout()">Logout</a></li>
+        </ul>
+      </div> 
+      <a class="hide fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>
     </div>
   </div>
 
@@ -67,11 +76,13 @@
         <div ng-repeat="data in showCase.model_data.data" class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="data.sku_id">
           <input type="hidden" name="sku_id" class="form-control" value="{{data.sku_id}}">
           <input type="hidden" name="invoice_amount" class="form-control" value="{{data.invoice_amount}}">
-          <input type="hidden" name="total_amount" class="form-control" value="{{data.invoice_amount}}">
+          <input type="hidden" name="total_amount" class="form-control" value="{{data.total_amount}}">
+           <input type="hidden" name="tax" class="form-control" value="{{data.tax}}">
           <div class="col-md-6 col-sm-6 col-xs-7">
             <h4 align="left"><b>{{data.sku_id}}</b></h4>
             <p align="left">{{data.sku_desc}}</p>
-            <h5 align="left"><b>Rs {{data.invoice_amount}}</b></h5>
+            <h5 align="left" style="margin-bottom:0px;font-size: 16px;"><b>Rs {{data.invoice_amount}}</b></h5>
+            <p align="left" class="text-success" ng-if="data.quantity > 1" style="font-size: 12px;">{{data.quantity}} X Rs.{{data.price}}</p>
             <p align="left"><span ng-click="showCase.remove_item($index)" class="text-danger">Remove</span></p>
           </div>
           <div class="col-md-6 col-sm-6 col-xs-5">

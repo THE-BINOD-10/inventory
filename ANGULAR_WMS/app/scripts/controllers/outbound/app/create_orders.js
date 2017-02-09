@@ -10,6 +10,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.style_display = false;
   vm.cart_disply = false;
   vm.your_order_display = false;
+  vm.order_detail_display = false;
 
   vm.order_type_value = "offline";
   vm.service = Service;
@@ -81,7 +82,20 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
             angular.copy(empty_data, vm.model_data);
             vm.final_data = {total_quantity:0,total_amount:0}
           }
-          swal("Success!", "Your Order Has Been Placed Successfully", "success");
+            swal({
+              title: "Success!",
+              text: "Your Order Has Been Placed Successfully",
+              type: "success",
+              showCancelButton: false,
+              confirmButtonText: "OK",
+              closeOnConfirm: true
+              },
+              function(isConfirm){
+                vm.brand_display = true;
+                vm.cart_display = false;
+              }
+            )
+           //swal("Success!", "Your Order Has Been Placed Successfully", "success")
           //vm.service.showNoty("Order Created Successfully", "success", "bottomRight");
         }
         vm.bt_disable = false;
@@ -424,6 +438,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.style_data = [];
   vm.open_style = function(data, item) {
 
+    vm.style_data = [];
     var quantity = item.style_quantity;
     vm.service.apiCall("get_sku_variants/", "GET", {sku_class: data, is_catalog: true}).then(function(data) {
 
@@ -767,14 +782,34 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   //you orders
   vm.you_orders = false;
+  vm.orders_loading = false
   vm.order_data = {}
   vm.get_orders = function(){
 
+    vm.orders_loading = true;
+    vm.order_data = {}
     vm.service.apiCall("get_customer_orders/").then(function(data){
       if(data.message) {
 
         console.log(data.data);
         angular.copy(data.data, vm.order_data);
+      }
+      vm.orders_loading = false;
+    })
+  }
+
+  vm.order_details = {}
+  vm.open_order_detail = function(order){
+
+    vm.order_details = {}
+    vm.order_detail_display = true;
+    vm.you_order_display = false;
+    vm.service.apiCall("get_customer_order_detail/?order_id="+order.order_id).then(function(data){
+      if(data.message) {
+
+        console.log(data.data);
+        angular.copy(data.data, vm.order_details);
+        vm.order_details['order'] = order;
       }
     })
   }

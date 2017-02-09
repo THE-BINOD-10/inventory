@@ -82,6 +82,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
               Auth.update();
             }
           });
+          var build_data = send.split(",");
+          var temp = [];
+          angular.forEach(build_data, function(item){
+            if(item) {
+              temp.push(vm.model_data.mail_options[item]);
+            }
+          })
+          vm.model_data.mail_inputs = temp;
         })
 
         $(".create_orders .bootstrap-select").change(function(){
@@ -144,6 +152,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.update_stages = function() {
     var data = $(".stages").val();
     vm.service.apiCall("save_stages/?stage_names="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
+  vm.update_internal_mails = function() {
+    var data = $(".internal_mails").val();
+    vm.service.apiCall("get_internal_mails/?internal_mails="+data).then(function(data){
       if(data.message) {
         msg = data.data;
         $scope.showNoty();

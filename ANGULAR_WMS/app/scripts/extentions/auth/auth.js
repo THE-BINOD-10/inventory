@@ -17,7 +17,7 @@
 
           resp = resp.data;
           if (resp.message != "Fail") {
-             setloginStatus(resp);
+             //setloginStatus(resp);
              Session.set(resp.data);
             
           }
@@ -52,7 +52,7 @@
 
           Session.unset();
           deferredStatus = null;
-          deleteDB();
+          //deleteDB();
         });
       };
 
@@ -76,7 +76,7 @@
           resp = resp.data;
 
           if ((resp.message != "Fail") && resp.data.userId) {
-             setloginStatus(resp);
+             //setloginStatus(resp);
              Session.set(resp.data);
 
             if (resp.data.roles.permissions["setup_status"] == "true") {
@@ -92,7 +92,7 @@
        
         }).catch(function(err){
 
-            getloginStatus().then(function(resp){
+            /*getloginStatus().then(function(resp){
               if((resp.message != "Fail") && resp.data.userId) {
                  //TODO add the statusinto indexDb  
                  Session.set(resp.data);
@@ -109,7 +109,7 @@
                    deferredStatus.resolve(resp.message);
                  }
                }
-           });
+           });*/
        });
 
         return deferredStatus.promise;
@@ -124,7 +124,7 @@
           resp = resp.data;
 
           if ((resp.message != "Fail") && resp.data.userId) {
-             setloginStatus(resp);
+             /*setloginStatus(resp);*/
              Session.set(resp.data);
 
           }

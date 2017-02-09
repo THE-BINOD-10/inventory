@@ -1491,7 +1491,10 @@ def check_and_update_stock(wms_codes, user):
             if sku_count < 0:
                 sku_count = 0
             data.append({'sku': wms_code, 'quantity': sku_count})
-        obj.update_sku_count(data=data, user=user)
+        try:
+            obj.update_sku_count(data=data, user=user)
+        except:
+            continue
 
 def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_ids=[]):
     extra_data = []
@@ -1524,7 +1527,10 @@ def check_and_update_order(user, order_id):
     integrations = Integrations.objects.filter(user=user.id)
     for integrate in integrations:
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        obj.confirm_picklist(order_id, user=user)
+        try:
+            obj.confirm_picklist(order_id, user=user)
+        except:
+            continue
 
 def get_invoice_number(user):
     invoice_number = 1

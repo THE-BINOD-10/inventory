@@ -1,0 +1,61 @@
+<div class="your_orders">
+  <div class="row style-menu" style="line-height: 40px;">
+    <div class="col-md-4 col-sm-4 col-xs-6">
+      <div class="menu-left">
+        <span ng-click="showCase.brand_display = true;showCase.you_order_display = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="showCase.brand_display = true;showCase.you_order_display = false;" title="Go to Brand Page">Back To Brands</span>
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-4 hidden-xs">
+      <h4 align="center">MY ORDERS</h4>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-6">
+      <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>
+      <a href="" class="pull-right" ng-click="showCase.you_order_display = false;showCase.cart_display = true;">
+          <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" title="Go To Cart Page"></i>
+      </a>
+    </div>
+  </div>
+
+  <div class="clearfix app_body" style="padding-top: 40px; padding-bottom:20px;">
+    <div class="row">
+      <div class="col-md-3 col-sm-2 col-xs-hidden">
+      </div>
+      <div class="col-md-6 col-sm-8 col-xs-12">
+        <div class="order-list" ng-if="showCase.orders_loading">
+          <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+        </div>
+        <div class="order-list">
+          <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in showCase.order_data.data" ng-click="showCase.open_order_detail(order)">
+            <div class="row">
+              <div class="col-md-6 col-sm-6 col-xs-6">
+                <div class="order-id">
+                  <span class="order-label">Order on:</span>
+                  <span class="order-date">{{order.date}}</span>
+                </div>
+              </div>
+              <div class="col-md-6 col-sm-6 col-xs-6">
+                <span class="label pull-right text-uppercase" ng-class="(order.status == 'open')? 'label-success': 'label-danger';" style="font-size: 12px;">{{order.status}}</span>
+              </div>
+            </div>
+            <div class="row">
+              <section class="widget text-center no-margin">
+                <div class="widget-details col-xs-4 text-left">
+                  <small class="order-label">Order id</small>
+                  <h2 class="no-margin order-bold">{{order.order_id}}</h2></div>
+                <div class="widget-details col-xs-4 text-center">
+                  <small class="order-label">Order Quantity</small>
+                  <h2 class="no-margin order-bold">{{order.total_quantity}}</h2>
+                </div>
+                <div class="widget-details col-xs-4 text-right">
+                  <small class="order-label">Order Value</small>
+                  <h2 class="no-margin order-bold">Rs. {{order.total_inv_amt}}</h2>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

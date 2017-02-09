@@ -668,7 +668,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
       if(data.message) {
         vm.create_order_data = data.data;
-        vm.model_data.tax_type = 'DEFAULT';
+        vm.model_data.tax_type = 'VAT';
         vm.change_tax_type();
       }
     })

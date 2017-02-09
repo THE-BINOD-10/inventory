@@ -3259,6 +3259,7 @@ def get_customer_orders(request, user=""):
                     status = 'open'
             record['status'] = status
             record['date'] = get_only_date(request, data[0].creation_date)
+            record['total_inv_amt'] = round(record['total_inv_amt'], 2)
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
 @login_required
@@ -3270,8 +3271,12 @@ def get_customer_order_detail(request, user=""):
     order_id = request.GET['order_id']
     order = OrderDetail.objects.filter(order_id = order_id, user=user.id)
     response_data['data'] = list(order.values('id','order_id','creation_date', 'status', 'quantity', 'invoice_amount', 'sku__sku_code', 'sku__image_url', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class'))
+    for record in response_data['data']:
+        record['invoice_amount'] = round(record['invoice_amount'], 2)
     tax = CustomerOrderSummary.objects.filter(order__order_id = order_id, order__user = user.id).aggregate(Sum('tax_value'))['tax_value__sum']
     if not tax:
         tax = 0
+    else:
+        tax = round(tax, 2)
     response_data['tax'] = tax
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))

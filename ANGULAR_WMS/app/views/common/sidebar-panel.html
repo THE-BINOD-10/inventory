@@ -140,7 +140,7 @@
     <!-- /forms -->
 
     <!-- tables -->
-    <li data-ng-class="{open: $state.includes('app.production')}" ng-show="show_tab('PRODUCTION_LABEL')">
+    <li data-ng-class="{open: $state.includes('app.production')}" ng-show="show_tab('PRODUCTION_LABEL') && show_tab('production_switch')">
       <a href="javascript:;">
         <i class="fa fa-simplybuilt"></i>
         <span>Production</span>
@@ -350,6 +350,11 @@
         <li ui-sref-active="active">
           <a ui-sref="app.reports.OrderSummaryReport">
             <span>Order Summary Report</span>
+          </a>
+        </li>
+        <li>
+          <a ui-sref="app.reports.OpenJOReport">
+            <span>Open JO Report</span>
           </a>
         </li>
       </ul>

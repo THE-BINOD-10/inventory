@@ -82,7 +82,20 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
             angular.copy(empty_data, vm.model_data);
             vm.final_data = {total_quantity:0,total_amount:0}
           }
-          swal("Success!", "Your Order Has Been Placed Successfully", "success");
+            swal({
+              title: "Success!",
+              text: "Your Order Has Been Placed Successfully",
+              type: "success",
+              showCancelButton: false,
+              confirmButtonText: "OK",
+              closeOnConfirm: true
+              },
+              function(isConfirm){
+                vm.brand_display = true;
+                vm.cart_display = false;
+              }
+            )
+           //swal("Success!", "Your Order Has Been Placed Successfully", "success")
           //vm.service.showNoty("Order Created Successfully", "success", "bottomRight");
         }
         vm.bt_disable = false;

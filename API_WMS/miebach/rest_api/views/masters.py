@@ -755,7 +755,9 @@ def update_customer_values(request,user=''):
 
     data.save()
     if create_login == 'true':
-        create_update_user(data, password)
+        status_msg = create_update_user(data, password)
+        if 'already' in status_msg:
+            return HttpResponse(status_msg)
     if login_created == 'true' and password:
         update_customer_password(data, password)
     return HttpResponse('Updated Successfully')
@@ -798,7 +800,7 @@ def insert_customer(request, user=''):
         customer_master.save()
         status_msg = 'New Customer Added'
         if create_login == 'true':
-            create_update_user(customer_master, password)
+            status_msg = create_update_user(customer_master, password)
 
 
     return HttpResponse(status_msg)

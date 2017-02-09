@@ -10,6 +10,22 @@
         </div>
         <div class="modal-body">
           <div class="row">
+            <div class="col-md-11 col-sm-11 col-xs-10">
+              <p align="right">Merged Invoice</p>
+            </div>
+            <div class="col-md-1 col-sm-1 col-xs-2">
+              <label class="switch switch-sm square">
+                <div>
+                  <input type="hidden" value="{{showCase.merge_invoice}}" name="merge_invoice">
+                  <input type="checkbox" ng-model="showCase.merge_invoice">
+                  <span>
+                    <i class="handle"></i>
+                  </span>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="row">
             <div class="col-md-12">
               <h5>Picklist ID: <b>{{showCase.model_data.picklist_id}}</b></h5>
               <input type="hidden" value="{{showCase.model_data.single_order}}" name="single_order">

@@ -21,10 +21,23 @@ def get_report_data(request, user=''):
     if report_name:
         data = REPORT_DATA_NAMES.get(report_name, {})
     filter_keys = map(lambda d: d.get('name', ''), data.get('filters', ''))
+    filter_params = {'user': user.id}
+    sku_master = SKUMaster.objects.filter(**filter_params)
     if 'marketplace' in filter_keys:
         data_index = data['filters'].index(filter(lambda person: 'marketplace' in person['name'], data['filters'])[0])
-        data['filters'][data_index]['values'] = list(OrderDetail.objects.exclude(marketplace='').filter(quantity__gt=0,
-                                                     user = user.id).values_list('marketplace', flat=True).distinct())
+        data['filters'][data_index]['values'] = list(OrderDetail.objects.exclude(marketplace='').filter(quantity__gt=0))
+    if 'brand' in filter_keys:
+        data_index = data['filters'].index(filter(lambda person: 'brand' in person['name'], data['filters'])[0])
+        data['filters'][data_index]['values'] = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
+    if 'category' in filter_keys:
+        data_index = data['filters'].index(filter(lambda person: 'category' in person['name'], data['filters'])[0])
+        data['filters'][data_index]['values'] = list(sku_master.exclude(sku_category='').filter(**filter_params)
+                                                .values_list('sku_category', flat=True).distinct())
+    if 'stage' in filter_keys:
+        data_index = data['filters'].index(filter(lambda person: 'stage' in person['name'], data['filters'])[0])
+        data['filters'][data_index]['values'] = list(ProductionStages.objects.filter(user=user.id).order_by('order')
+                                                 .values_list('stage_name', flat=True))
+        data['filters'][data_index]['values'].extend(['Picked', 'Putaway pending', 'Picklist Generated', 'Created', 'Partially Picked'])
     return HttpResponse(json.dumps({'data': data}))
 
 @csrf_exempt
@@ -120,6 +133,15 @@ def get_dispatch_filter(request, user=''):
 def get_order_summary_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_order_summary_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_openjo_report_details(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_openjo_details(search_params, user, request.user)
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 

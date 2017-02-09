@@ -13,6 +13,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
+    vm.merge_invoice = false;
     vm.scroll_data = true;
     vm.special_key = {market_places: "", customer_id: ""}
 
@@ -259,6 +260,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       $state.go('app.outbound.ViewOrders');
       vm.message = "";
       vm.confirm_disable = false;
+      vm.merge_invoice = false;
     }
 
     vm.generate = generate;

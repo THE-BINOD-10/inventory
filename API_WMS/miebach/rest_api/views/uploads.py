@@ -685,7 +685,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                 if not cell_data:
                     cell_data = 0
                 if sku_data and cell_data:
-                    sku_data.sku_desc = cell_data
+                    sku_data.threshold_quantity = cell_data
                 data_dict[key] = cell_data
 
             elif key == 'price':
@@ -2121,7 +2121,6 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
     if not order_mapping:
         return 'Invalid File'
     for row_idx in range(1, no_of_rows):
-        print row_idx
         for key, value in order_mapping.iteritems():
             if isinstance(order_mapping[key], list):
                 cell_data = ''
@@ -2134,6 +2133,8 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
 
             if key == 'sku_id':
+                if isinstance(cell_data, float):
+                    cell_data = str(int(cell_data))
                 sku_code = cell_data
                 if cell_data:
                     sku_id = check_and_return_mapping_id(sku_code, '', user)
@@ -2143,9 +2144,19 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                     index_status.setdefault(row_idx, set()).add('WMS Code missing')
             elif key == 'order_id':
                 if cell_data and sku_code:
-                    order_detail = OrderDetail.objects.filter(original_order_id=cell_data, sku_id__sku_code=sku_code, user=user.id)
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    order_id = ''.join(re.findall('\d+', cell_data))
+                    order_filter = {'order_id': order_id}
+                    order_code = ''.join(re.findall('\D+', cell_data))
+                    if order_code:
+                        order_filter['order_code'] = order_code
+                    order_detail = OrderDetail.objects.filter(Q(original_order_id=cell_data) | Q(**order_filter),
+                                                              sku_id__sku_code=sku_code, user=user.id)
                     if not order_detail:
                         index_status.setdefault(row_idx, set()).add("Order ID doesn't exists")
+                    elif int(order_detail[0].status) == 4:
+                        index_status.setdefault(row_idx, set()).add("Order Processed already")
 
             elif key == 'quantity':
                 if not isinstance(cell_data, (int, float)) and cell_data:
@@ -2208,8 +2219,26 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                         sku_code = "%s%s" %(sku_code, get_cell_data(row_idx, item, reader, file_type))
                 else:
                     sku_code = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                    if isinstance(sku_code, float):
+                        sku_code = str(int(sku_code))
                 sku_id = check_and_return_mapping_id(sku_code, '', user)
                 order_data['sku_id'] = sku_id
+            elif key == 'order_id':
+                cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                if cell_data and sku_code:
+                    if isinstance(cell_data, float):
+                        cell_data = str(int(cell_data))
+                    order_id = ''.join(re.findall('\d+', cell_data))
+                    order_filter = {'order_id': order_id}
+                    order_code = ''.join(re.findall('\D+', cell_data))
+                    if order_code:
+                        order_filter['order_code'] = order_code
+                    order_detail = OrderDetail.objects.filter(Q(original_order_id=cell_data) | Q(**order_filter),
+                                                              sku_id__sku_code=sku_code, user=user.id)
+                    if order_detail:
+                        order_data[key] = order_detail[0].id
+                        order_detail[0].status = 4
+                        order_detail[0].save()
             elif key == 'quantity':
                 order_data[key] = int(get_cell_data(row_idx, order_mapping[key], reader, file_type))
                 if not order_data[key]:

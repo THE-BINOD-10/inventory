@@ -22,6 +22,13 @@ angular.module('urbanApp', ['datatables'])
 
     vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
 
+    vm.excel = excel;
+    function excel() {
+      angular.copy(vm.dtColumns,colFilters.headers);
+      angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
+      colFilters.download_excel()
+    }
+
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',

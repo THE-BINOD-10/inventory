@@ -64,11 +64,16 @@
         </div>
       </div>
       <div class="row">
-        <div class="col-md-6 col-sm-6 col-xs-6">
-          <button type="button" class="btn btn-warning btn-round btn-outline btn-lg pull-right" ng-click="showCase.enable_stock()" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">CHECK STOCK</button>
+        <div class="cart visible-xs-block visible-sm-block">
+          <div class="row" style="border-top:1px solid rgba(0,0,0,.1)">
+            <button type="button" id ="place_order" class="btn btn-warning btn-lg col-xs-12" ng-click="showCase.add_to_cart()">ADD TO CART</button>
+          </div>
+        </div> 
+        <div class="col-md-6 col-sm-6 col-xs-6 hide">
+          <button type="button" class="hide btn btn-warning btn-round btn-outline btn-lg pull-right" ng-click="showCase.enable_stock()" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">CHECK STOCK</button>
         </div>
-        <div class="col-md-6 col-sm-6 col-xs-6">
-          <button type="button" class="btn btn-warning btn-round btn-lg pull-left" ng-click="showCase.add_to_cart()">ADD TO CART</button>   
+        <div class="col-md-12 col-sm-12 col-xs-12 hidden-xs hidden-sm">
+           <button style="display:block;margin:auto" type="button" class="btn btn-warning btn-round btn-lg" ng-click="showCase.add_to_cart()">ADD TO CART</button>   
         </div>
       </div>
     </div>

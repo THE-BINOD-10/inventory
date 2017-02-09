@@ -311,6 +311,7 @@ urlpatterns += patterns('rest_api.views',
     url(r'warehouse_headers','warehouse_headers'),
 
     #reports
+    url(r'get_internal_mails','get_internal_mails'),
     url(r'^get_openjo_report/$', 'get_openjo_report'),
     url(r'^get_openjo_report_details/$', 'get_openjo_report_details'),
     )

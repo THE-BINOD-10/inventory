@@ -116,7 +116,7 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     for data in master_data[start_index:stop_index]:
         sku = SKUMaster.objects.get(sku_code=data.sku.sku_code,user=user.id)
         sku_code = sku.sku_code
-        order_id = data.order_code + str(data.order_id)
+        order_id = data.order_code + str(int(data.order_id))
         if data.original_order_id:
             order_id = data.original_order_id
         cust_status_obj = CustomerOrderSummary.objects.filter(order__order_id = data.order_id)
@@ -137,6 +137,10 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
         if single_search == "yes" and order_taken_val == '':
             continue
 
+        try:
+            order_id = int(float(order_id))
+        except:
+            order_id = str(order_id)
         temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('Order ID', order_id), ('SKU Code', sku_code),
                                                  ('Title', data.title),('id', count), ('Product Quantity', data.quantity),
                                                  ('Shipment Date', get_local_date(request.user, data.shipment_date)),
@@ -870,7 +874,6 @@ def get_picklist_data(data_id,user_id):
 
 
 def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, p_quantity=0):
-    #import pdb;pdb.set_trace()
     if float(picklist.reserved_quantity) - p_quantity >= 0:
         picklist.reserved_quantity = float(picklist.reserved_quantity) - p_quantity
         picklist.picked_quantity = float(picklist.picked_quantity) + p_quantity
@@ -983,7 +986,6 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt 
     items = []
     for picklist in picklists:
         if data_qt:
-            #import pdb;pdb.set_trace()
             qty = data_qt.get(picklist.order.sku.sku_code, 0)
             if not qty:
                 continue
@@ -2597,7 +2599,7 @@ def get_view_order_details(request, user=''):
     row_id = request.GET['id']
     order_code = ''.join(re.findall('\D+', main_id))
     order_id = ''.join(re.findall('\d+', main_id))
-    order_details = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user=user.id)
+    order_details = OrderDetail.objects.filter(Q(order_id = order_id, order_code = order_code) | Q(original_order_id=main_id), user=user.id)
     custom_data = OrderJson.objects.filter(order_id=row_id)
     status_obj = ''
     customer_order_summary = CustomerOrderSummary.objects.filter(order_id = row_id)

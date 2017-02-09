@@ -490,6 +490,7 @@ def configurations(request, user=''):
     stock_sync = get_misc_value('stock_sync', user.id)
     auto_generate_picklist = get_misc_value('auto_generate_picklist', user.id)
     all_groups = SKUGroups.objects.filter(user=user.id).values_list('group', flat=True)
+    internal_mails = get_misc_value('Internal Emails', user.id)
     all_groups = str(','.join(all_groups))
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
@@ -543,7 +544,8 @@ def configurations(request, user=''):
                                                              'mail_inputs': mail_inputs, 'mail_options': MAIL_REPORTS_DATA,
                                                              'mail_reports': MAIL_REPORTS, 'data_range': data_range,
                                                              'report_freq': report_freq, 'email': email,
-                                                             'reports_data': reports_data, 'display_none': display_none, 
+                                                             'reports_data': reports_data, 'display_none': display_none,
+                                                             'internal_mails' : internal_mails,
                                                              'is_config': 'true', 'order_headers': ORDER_HEADERS_d,
                                                              'all_groups': all_groups, 'display_pos': display_pos,
                                                              'auto_po_switch': auto_po_switch, 'no_stock_switch': no_stock_switch,
@@ -655,7 +657,7 @@ def order_creation_message(items, telephone, order_id):
     data += '\n\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
     send_sms(telephone, data)
 
-def order_dispatch_message(order, user):
+def order_dispatch_message(order, user, order_qt = ""):
 
     data = 'Your order with ID %s has been successfully picked and ready for dispatch by %s %s :' % (order.order_id, user.first_name, user.last_name)
     total_quantity = 0
@@ -665,9 +667,12 @@ def order_dispatch_message(order, user):
     items = OrderDetail.objects.filter(order_id = order.order_id, order_code= order.order_code, user = user.id)
     for item in items:
         #sku_desc = (item.title[:30] + '..') if len(item.title) > 30 else item.title
-        items_data.append('\n %s  Qty: %s' % (item.sku.sku_code, int(item.quantity)))
-        total_quantity += int(item.quantity)
-        total_amount += int(item.invoice_amount)
+        qty = int(order_qt.get(item.sku.sku_code, 0))
+        if not qty:
+            continue
+        items_data.append('\n %s  Qty: %s' % (item.sku.sku_code, qty))
+        total_quantity += qty
+        total_amount += int((item.invoice_amount / item.quantity) * qty)
     data += ', '.join(items_data)
     data += '\n\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
     log.info(data)
@@ -799,6 +804,16 @@ def update_mail_configuration(request, user=''):
 
     
     add_misc_email(user, email)
+
+    return HttpResponse('Success')
+
+@csrf_exempt
+@get_admin_user
+def get_internal_mails(request, user = ""):
+    """ saving internal mails from config page """
+    internal_emails = request.GET.get('internal_mails', '')
+
+    MiscDetail.objects.update_or_create(user = user.id, misc_type='Internal Emails', defaults={'misc_value': internal_emails})
 
     return HttpResponse('Success')
 
@@ -1519,7 +1534,7 @@ def get_invoice_number(user):
         invoice_number = int(invoice_detail[0].invoice_number) + 1
     return invoice_number
 
-def get_invoice_data(order_ids, user):
+def get_invoice_data(order_ids, user, merge_data = ""):
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''
@@ -1583,6 +1598,14 @@ def get_invoice_data(order_ids, user):
             picklist = Picklist.objects.exclude(order_type='combo').filter(order_id=dat.id).\
                                         aggregate(Sum('picked_quantity'))['picked_quantity__sum']
             quantity = picklist
+
+            if merge_data:
+                quantity_picked = merge_data.get(dat.sku.sku_code, "")
+                if quantity_picked:
+                    quantity = float(quantity_picked)
+                else:
+                    continue
+
             if not picklist:
                 picklist = Picklist.objects.filter(order_id=dat.id, order_type='combo', picked_quantity__gt=0).\
                                             annotate(total=Sum('picked_quantity'))
@@ -1966,3 +1989,6 @@ def check_and_return_mapping_id(sku_code, title, user):
 @get_admin_user
 def update_sync_issues(request, user=''):
     return HttpResponse("Success")
+
+def xcode(text, encoding='utf8', mode='strict'):
+    return text.encode(encoding, mode) if isinstance(text, unicode) else text

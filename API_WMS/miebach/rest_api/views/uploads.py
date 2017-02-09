@@ -641,7 +641,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             if key == 'wms_code':
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
-                cell_data = str(cell_data)
+                cell_data = str(xcode(cell_data))
 
                 wms_code = cell_data
                 data_dict[key] = wms_code
@@ -1871,7 +1871,7 @@ def validate_inventory_adjust_form(open_sheet, user):
             if col_idx == 0:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
-                cell_data = str(cell_data)
+                cell_data = str(xcode(cell_data))
                 sku_master = SKUMaster.objects.filter(wms_code=cell_data, user=user)
                 if not sku_master:
                     index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
@@ -1922,7 +1922,7 @@ def inventory_adjust_upload(request, user=''):
             if col_idx == 0 and cell_data:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
-                cell_data = str(cell_data)
+                cell_data = str(xcode(cell_data))
                 wms_code = cell_data
                 if wms_code not in sku_codes:
                     sku_codes.append(wms_code)
@@ -2262,19 +2262,6 @@ def get_sales_returns_mapping(reader, file_type):
         order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Sale Order Item Code':
         order_mapping = copy.deepcopy(UNIWEAR_RETURN_EXCEL)
-    """
-    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
-        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
-        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
-        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
-        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
-        order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
-
-    """
     return order_mapping
 
 

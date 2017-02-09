@@ -307,4 +307,7 @@ urlpatterns += patterns('rest_api.views',
 
     #stocklocator
     url(r'warehouse_headers','warehouse_headers'),
+
+    #saving internal mail
+    url(r'get_internal_mails','get_internal_mails'),
     )

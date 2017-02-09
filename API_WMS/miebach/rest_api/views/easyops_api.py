@@ -102,7 +102,7 @@ class EasyopsAPI:
 
         main_json_response = ""
 
-        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=7), datetime.time())
+        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
         data = eval(LOAD_CONFIG.get(self.company_name, 'pending_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
         offset = 0
         while run_iterator:
@@ -139,9 +139,18 @@ class EasyopsAPI:
             self.user = user
             self.get_user_token(user)
 
+        run_iterator = 1
         url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'update_stock', ''))
         #data = eval(LOAD_CONFIG.get(self.company_name, 'update_stock_dict', '') % stock_count)
-        json_response = self.get_response(url, data, put=True)
+        run_limit = len(data)
+        offset = 0
+        if LOAD_CONFIG.get(self.company_name, 'stock_pagination_limit', ''):
+            run_limit = int(LOAD_CONFIG.get(self.company_name, 'stock_pagination_limit', ''))
+        while run_iterator:
+            json_response = self.get_response(url, data[offset:(offset + run_limit)], put=True)
+            offset += run_limit
+            if offset >= len(data):
+                run_iterator = 0
         return json_response
 
     def confirm_picklist(self, order_id, token='', user=''):
@@ -158,7 +167,7 @@ class EasyopsAPI:
 
     def get_shipped_orders(self, token='', user=''):
         """ Collecting all shipped orders for a particular user """
-        order_mapping = eval(LOAD_CONFIG.get(self.company_name, 'order_mapping_dict', ''))
+        order_mapping = eval(LOAD_CONFIG.get(self.company_name, 'shipped_mapping_dict', ''))
         data = {}
         run_iterator = 1
         if user:
@@ -168,7 +177,7 @@ class EasyopsAPI:
             self.get_user_token(user)
         main_json_response = ""
 
-        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=7), datetime.time())
+        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
         data = eval(LOAD_CONFIG.get(self.company_name, 'shipped_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
         offset = 0
         while run_iterator:
@@ -189,11 +198,11 @@ class EasyopsAPI:
             else:
                 run_iterator = 0
             print data
-        return json_response
+        return main_json_response
 
     def get_returned_orders(self, token='', user=''):
         """ Collecting all return orders for a particular user """
-        order_mapping = eval(LOAD_CONFIG.get(self.company_name, 'order_mapping_dict', ''))
+        order_mapping = eval(LOAD_CONFIG.get(self.company_name, 'returned_mapping_dict', ''))
         run_iterator = 1
         data = {}
         if user:
@@ -203,7 +212,7 @@ class EasyopsAPI:
             self.get_user_token(user)
         main_json_response = ""
 
-        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=7), datetime.time())
+        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
         data = eval(LOAD_CONFIG.get(self.company_name, 'returned_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
 
         offset = 0
@@ -224,11 +233,11 @@ class EasyopsAPI:
             else:
                 run_iterator = 0
             print data
-        return json_response
+        return main_json_response
 
     def get_cancelled_orders(self, token='', user=''):
         """ Collecting all cancelled orders for a particular user """
-        order_mapping = eval(LOAD_CONFIG.get(self.company_name, 'order_mapping_dict', ''))
+        order_mapping = eval(LOAD_CONFIG.get(self.company_name, 'cancelled_mapping_dict', ''))
         run_iterator = 1
         data = {}
         if user:
@@ -238,7 +247,7 @@ class EasyopsAPI:
             self.get_user_token(user)
         main_json_response = ""
 
-        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=7), datetime.time())
+        today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
         data = eval(LOAD_CONFIG.get(self.company_name, 'cancelled_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
         offset = 0
         while run_iterator:
@@ -258,4 +267,4 @@ class EasyopsAPI:
             else:
                 run_iterator = 0
             print data
-        return json_response
+        return main_json_response

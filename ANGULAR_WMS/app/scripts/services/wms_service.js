@@ -216,7 +216,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     };
 
     vm.check_image_url = function(url)  {
-      if(url == "") {
+      if(!(url)) {
         return "images/wms/dflt.jpg";
       } else if((url.indexOf("static")) > -1 && (url != "/static/img/default-image.jpg")) {
         return Session.host+url.slice(1);

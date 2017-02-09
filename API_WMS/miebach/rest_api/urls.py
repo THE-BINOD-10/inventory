@@ -189,6 +189,8 @@ urlpatterns = patterns('rest_api.views',
     url(r'^update_payment_status/$', 'update_payment_status'),
     url(r'^create_orders_data/$', 'create_orders_data'),
     url(r'^order_category_generate_picklist/$', 'order_category_generate_picklist'),
+    url(r'^get_customer_orders/$', 'get_customer_orders'),
+    url(r'^get_customer_order_detail/$', 'get_customer_order_detail'),
 
     # Reports
     #url(r'^location_wise_filter/$','location_wise_filter'),
@@ -307,4 +309,7 @@ urlpatterns += patterns('rest_api.views',
 
     #stocklocator
     url(r'warehouse_headers','warehouse_headers'),
+
+    #saving internal mail
+    url(r'get_internal_mails','get_internal_mails'),
     )

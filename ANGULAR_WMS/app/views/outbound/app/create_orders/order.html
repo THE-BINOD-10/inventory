@@ -2,8 +2,8 @@
   <div class="row style-menu" style="line-height: 40px;">
     <div class="col-md-6 col-sm-6 col-xs-6">
       <div class="menu-left">
-        <span ng-click="showCase.brand_display = true;showCase.cart_display = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
-        <span ng-click="showCase.brand_display = true;showCase.cart_display = false;" title="Go to Brand Page">Back To Brands</span>
+        <span ng-click="$state.go('user.App.Brands')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="$state.go('user.App.Brands')" title="Go to Brand Page">Back To Brands</span>
       </div>
     </div>
     <div class="col-md-6 col-sm-6 col-xs-6">
@@ -12,7 +12,7 @@
           <i class="fa fa-user fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;"></i>
         </a>
         <ul class="dropdown-menu">
-          <li><a ng-click="showCase.you_order_display = true;showCase.cart_display = false;showCase.get_orders();">Your Orders</a></li>
+          <li><a ng-click="$state.go('user.App.MyOrders');showCase.get_orders();">Your Orders</a></li>
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div> 
@@ -21,11 +21,6 @@
   </div>
 
   <form id="order-create" name="form" role="form" ui-jq="validate">
-    <!--<div class="ship-date" ng-if="showCase.model_data.data.length > 0">
-      <p class="pull-left"><b>Shipment Date: </b><span class="text-success">{{showCase.model_data.shipment_date}}</span></p>
-      <input name="shipment_date" type="text" class="form-control" ng-model="showCase.model_data.shipment_date" ui-jq="datepicker">
-      <a href="javascript:;" class="text-success pull-right" ng-model="showCase.model_data.shipment_date">Change</a>
-    </div>-->
     <div class="clearfix hide">
       <div class="row col-md-11">
         <button type="button" class="btn btn-primary pull-right" ng-click="showCase.catlog=true;showCase.style_open=false;showCase.check_stock=false">View Catalog</button>
@@ -101,18 +96,14 @@
         <div class="cart">
           <div class="row" style="padding: 0px; padding-top:5px">
             <div class="ship-date" ng-if="showCase.model_data.data.length > 0">
-              <!--<p class="pull-left" style="margin-bottom:0px;font-size: 18px;"><b>Shipment Date: </b><span class="text-success">{{showCase.model_data.shipment_date}}</span></p>-->
               <p class="pull-left" style="margin-bottom:0px;font-size: 18px;"><span class="pull-left mr10"><b>Shipment Date: </b></span>
               <span>
                 <input name="shipment_date" type="text" class="form-control stk-readonly pull-left" ng-model="showCase.model_data.shipment_date" ui-jq="datepicker"  id="shipment_date" ng-change="showCase.date_changed()" required readonly style="width: 190px;" placeholder="Select Date">
               </span></p>
-              <!--
-              <input name="shipment_date" type="text" class="form-control" ng-model="showCase.model_data.shipment_date" ui-jq="datepicker" id="shipment_date" ng-change="showCase.date_changed()">
-              <a href="javascript:;" class="text-success pull-right" ng-model="showCase.model_data.shipment_date">Change</a>-->
             </div>
           </div>
           <div class="row" style="border-top:1px solid rgba(0,0,0,.1)">
-            <button type="button" class="btn btn-white btn-lg col-xs-6" ng-click="showCase.style_display = true;showCase.cart_display = false;">CONTINUE</button>
+            <button type="button" class="btn btn-white btn-lg col-xs-6" ng-click="$state.go('user.App.Products')">CONTINUE</button>
             <button type="button" id ="place_order" class="btn btn-warning btn-lg col-xs-6" ng-click="showCase.insert_order_data()">PLACE ORDER</button>
             <button type="button" class="btn btn-warning btn-lg col-xs-12 hide" ng-if="showCase.model_data.data.length == 0" ng-click="showCase.catlog=false;showCase.details=true;showCase.detailed_list=false;showCase.orderspage=false">SHOP NOW</button>
           </div>

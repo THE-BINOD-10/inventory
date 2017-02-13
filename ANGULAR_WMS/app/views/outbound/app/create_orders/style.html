@@ -1,8 +1,8 @@
-<div class="clearfix">
+<div class="clearfix" ng-controller="AppStyle as Style">
   <div class="row style-menu" style="line-height: 40px;">
     <div class="col-md-4 col-sm-4 col-xs-8">
       <div class="menu-left">
-        <span ng-click="showCase.catlog_display = true;showCase.style_display = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i>&nbsp; Back</span>
+        <span ng-click="$state.go('user.App.Products')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i>&nbsp; Back</span>
       </div>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-7 hidden-xs">
@@ -14,68 +14,70 @@
           <i class="fa fa-user fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;"></i>
         </a>
         <ul class="dropdown-menu">
-          <li><a ng-click="showCase.you_order_display = true;showCase.style_display = false;showCase.get_orders();">Your Orders</a></li>
+          <li><a ng-click="$state.go('user.App.MyOrders')">Your Orders</a></li>
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div> 
-      <a class="hide fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()">        </a>
-      <a href="" class="pull-right" ng-click="showCase.cart_display = true;showCase.style_display = false;">
+      <a class="hide fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()">          </a>
+      <a href="" class="pull-right" ng-click="$state.go('user.App.Cart')">
         <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" title="Go To Cart Page"></i>
       </a>
     </div>
   </div>
-<div class="app_body">
-</br>
-<div class="style-body">
-  <div class="row">
-    <div class="col-md-4" ng-if="showCase.style_data.length > 0">
-      <img ng-src="{{ showCase.service.check_image_url(showCase.style_data[0]['image_url']) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail">
-      <h5 align="center"><b>{{showCase.style_data[0].style_name}}</b></h5>
-    </div>
-    <div class="col-md-8">
+  <div class="app_body">
+    </br>
+    <div class="style-body">
       <div class="row">
-        <div class="table-responsive">
-          <table class="table table-bordered">
-            <thead>
-              <tr>
-                <th ng-repeat="head in (showCase.service.dyn_data.style_detail.head['sagar_fab'])?showCase.service.dyn_data.style_detail.head['sagar_fab']:showCase.service.dyn_data.style_detail.head['common'];">{{head}}</th>
-                <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">Stock</th>
-                <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">In Transit</th>
-                <th>Quantity</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr ng-repeat="style in showCase.style_data">
-                <td ng-repeat="head in (showCase.service.dyn_data.style_detail.keys['sagar_fab'])?showCase.service.dyn_data.style_detail.keys['sagar_fab']: showCase.service.dyn_data.style_detail.keys['common']">{{style[head]}}</th>
-                <td ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">{{style.physical_stock}}</td>
-                <td ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">{{style.intransit_quantity}}</td>
-                <td><input class="form-control" ng-model="style.quantity" ng-change="showCase.change_style_quantity(showCase.style_data);" ng-class="service.get_decimal_perm()"></td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="col-md-4" ng-if="Style.style_data.length > 0">
+          <img ng-src="{{ showCase.service.check_image_url(Style.style_data[0]['image_url']) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail">
+          <h5 align="center"><b>{{Style.style_data[0].style_name}}</b></h5>
         </div>
-      </div>
-      <div class="row">
-        <div class="col-md-6 col-sm-6 col-xs-6">
-          <span>Stock: <b style="font-size:24px">{{showCase.stock_quantity}}</b></span>
-        </div>
-        <div class="col-md-6 col-sm-6 col-xs-6">
-          <span class="pull-right">Total: <b style="font-size:24px">{{showCase.style_total_quantity}}</b></span>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-md-6 col-sm-6 col-xs-6">
-          <button type="button" class="btn btn-warning btn-round btn-outline btn-lg pull-right" ng-click="showCase.enable_stock()" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">CHECK STOCK</button>
-        </div>
-        <div class="col-md-6 col-sm-6 col-xs-6">
-          <button type="button" class="btn btn-warning btn-round btn-lg pull-left" ng-click="showCase.add_to_cart()">ADD TO CART</button>   
+        <div class="col-md-8">
+          <div class="row">
+            <div class="table-responsive">
+              <table class="table table-bordered">
+                <thead>
+                  <tr>
+                    <th ng-repeat="head in (showCase.service.dyn_data.style_detail.head['sagar_fab'])?showCase.service.dyn_data.style_detail.head['sagar_fab']:showCase.service.dyn_data.style_detail.head['common'];">{{head}}</th>
+                    <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">Stock</th>
+                    <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">In Transit</th>
+                    <th>Quantity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="style in Style.style_data">
+                    <td ng-repeat="head in (showCase.service.dyn_data.style_detail.keys['sagar_fab'])?showCase.service.dyn_data.style_detail.keys['sagar_fab']: showCase.service.dyn_data.style_detail.keys['common']">{{style[head]}}</th>
+                    <td ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">{{style.physical_stock}}</td>
+                    <td ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">{{style.intransit_quantity}}</td>
+                    <td><input class="form-control" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data);" ng-class="service.get_decimal_perm()"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 col-sm-6 col-xs-6">
+              <span>Stock: <b style="font-size:24px">{{Style.stock_quantity}}</b></span>
+            </div>
+            <div class="col-md-6 col-sm-6 col-xs-6">
+              <span class="pull-right">Total: <b style="font-size:24px">{{Style.style_total_quantity}}</b></span>
+            </div>
+          </div>
+          <div class="row">
+            <div class="cart visible-xs-block visible-sm-block">
+              <div class="row" style="border-top:1px solid rgba(0,0,0,.1)">
+                <button ng-disabled="Style.style_total_quantity == 0" type="button" id ="place_order" class="btn btn-warning btn-lg col-xs-12" ng-click="showCase.add_to_cart(Style.style_data);Style.make_empty()">ADD TO CART</button>
+              </div>
+            </div>
+            <div class="col-md-6 col-sm-6 col-xs-6 hide">
+              <button type="button" class="hide btn btn-warning btn-round btn-outline btn-lg pull-right" ng-click="showCase.enable_stock()" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">CHECK STOCK</button>
+            </div>
+            <div class="col-md-12 col-sm-12 col-xs-12 hidden-xs hidden-sm">
+              <button ng-disabled="Style.style_total_quantity == 0" style="display:block;margin:auto" type="button" class="btn btn-warning btn-round btn-lg" ng-click="showCase.add_to_cart(Style.style_data);Style.make_empty();">ADD TO CART</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
-  <div class="row">
-  </div>
-</div>
-</div> 
-</div>
 </div>

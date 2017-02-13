@@ -6,20 +6,26 @@
     </div>
     <div class="layout-body">
       <div class="panel">
-        <div class="panel-header">
-          <div class="row mt5">
-            <div class="col-md-10 col-sm-8 col-xs-6 mb10" style="height: 34px;">
-            </div>
-            <div class="col-md-2 col-sm-4 col-xs-6 mb10" style="height: 34px;">
-              <label class="switch switch-sm square pull-right mr30 mt5">
-                <div>
-                  <input type="checkbox" ng-model="showCase.sku_view" ng-change="showCase.change_sku_view(showCase.sku_view)" class="ng-pristine ng-valid">
-                  <span>
-                    <i class="handle"></i>
-                  </span>
+        <div class="panel-header panel-heading border">
+          <div class="row">
+            <div class="col-md-12">
+              <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
+                <div class="overflow-hidden">
+                  <div class="col-md-2 col-sm-4 col-xs-6" style="height: 34px;float: right;text-align: -webkit-auto;">
+                    <label class="switch switch-sm square pull-right mr30 mt5">
+                    <div>
+                        <input type="checkbox" ng-model="showCase.sku_view" ng-change="showCase.change_sku_view(showCase.sku_view)" class="ng-pristine ng-valid">
+                        <span>
+                        <i class="handle"></i>
+                        </span>
+                    </div>
+                    </label>
+                    <label style="padding: 5px;" class="control-label pull-right"><b>SKU View : </b></label>
+                  </div>
+                  <span class="widget-subtitle">AGGREGATED QUANTITY</span>
+                  <span class="widget-title bold ng-binding">{{ showCase.tb_data.totalReceivedQuantity }}</span>
                 </div>
-              </label>
-              <label style="padding: 5px;" class="control-label pull-right"><b>SKU View:</b></label>
+              </div>
             </div>
           </div>
         </div>

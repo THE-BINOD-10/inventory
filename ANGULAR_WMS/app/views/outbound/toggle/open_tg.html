@@ -76,8 +76,8 @@
              </thead>
              <tbody ng-repeat="data in showCase.model_data.data">
                <tr ng-repeat="record in data.sub_data">
-                 <input ng-if="showCase.model_data.order_status == 'batch_open'" type="hidden" name="order_id_{{data.id}}" value="{{data.order_no}}">
-                 <input ng-if="showCase.model_data.order_status == 'open'" type="hidden" name="order_id_{{data.id}}" value="{{data.order_no}}">
+                 <input ng-if="showCase.model_data.order_status == 'batch_open'" type="hidden" name="order_id_{{data.id}}" value="">
+                 <input ng-if="showCase.model_data.order_status == 'open'" type="hidden" name="order_id_{{data.id}}" value="">
                  <input type="hidden" name="stock_id_{{data.id}}" value="{{data.stock_id}}">
                  <input type="hidden" name="orig_loc_{{data.id}}" value="{{record.orig_location}}">
                  <input type="hidden" name="orig_wms_{{data.id}}" value="{{data.wms_code}}">

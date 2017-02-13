@@ -6,28 +6,50 @@
     <tabset class="box-tab">
       <tab heading="Picklist Generated">
         <div class="panel" ng-controller="OpenOrders as showCase">
-          <div class="panel-header">
-            <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+          <div class="panel-header panel-heading border">
+            <div class ="col-md-12">
+              <div class="widget bg-white" style="margin-bottom: 0;text-align: center;padding-top:0px">
+                <div class="overflow-hidden">
+                  <div class="col-md-2 col-sm-4 col-xs-6" style="height: 34px;float: left;text-align: -webkit-auto;">
+                    </div>
+                  <div class="col-md-2 col-sm-4 col-xs-6" style="height: 34px;float: right;text-align: -webkit-auto;">
+                    <div class="widget bg-white" style="margin-bottom: 0;text-align: center;padding-top: 0px !important;">
+                      <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+                    </div>
+                </div>
+                    <span class="widget-subtitle">AGGREGATED RESERVED QUANTITY</span>
+                    <span class="widget-title bold ng-binding">{{ showCase.tb_data.totalReservedQuantity }}</span>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="panel-body">
             <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
             <div ui-view></div>
-          </div> 
+          </div>
         </div>
       </tab>
       <tab heading="Picked Orders">
         <div class="panel" ng-controller="PickedOrders as showCase">
-          <div class="panel-header">
-            <div class="row">
-              <div class="col-md-8 col-sm-4 col-xs-0"></div>
-              <div class="col-md-2 col-sm-4 col-xs-6">
-                <select class="form-control" ng-model="showCase.market" ng-change="showCase.change_market(showCase.market)">
-                  <option value="" selected>Select MarketPlace</option>
-                  <option ng-repeat="market in showCase.market_places" value="{{market}}">{{market}}</option>
-                </select>
-              </div>
-              <div class="col-md-2 col-sm-4 col-xs-6">
-                <button type="button" style="width: 100%" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+          <div class="panel-header panel-heading border" style="padding:0px;">
+            <div class ="col-md-12" style="padding-left: 0px;">
+              <div class="widget bg-white" style="margin-bottom: 0;text-align: center;padding:0px;padding-bottom: 5px;">
+                <div class="overflow-hidden">
+                  <div class="col-md-3 col-sm-4 col-xs-6" style="float:left">
+                    <div class="widget bg-white" style="margin-bottom: 0;text-align: center;padding-top: 0px !important;">
+                    <select class="form-control" ng-model="showCase.market" ng-change="showCase.change_market(showCase.market)">
+                    <option value="" selected>Select MarketPlace</option>
+                    <option ng-repeat="market in showCase.market_places" value="{{market}}">{{market}}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-3 col-sm-4 col-xs-6" style="float:right">
+                    <button type="button" style="width: 100%" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+                </div>
+
+                  <span class="widget-subtitle">AGGREGATED PICKED QUANTITY</span>
+                  <span class="widget-title bold ng-binding">{{ showCase.tb_data.totalPickedQuantity }}</span>
+                </div>
               </div>
             </div>
           </div>

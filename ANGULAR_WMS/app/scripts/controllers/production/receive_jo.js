@@ -11,7 +11,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.sku_view = vm.g_data.sku_view;
     vm.table_name = (vm.g_data.sku_view)? 'ReceiveJOSKU' : 'ReceiveJO';
     vm.filters = {'datatable': vm.table_name};
-
+    vm.tb_data = {};
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -19,6 +19,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               data: vm.filters,
               xhrFields: {
                 withCredentials: true
+              },
+              complete: function(jqXHR, textStatus) {
+                $scope.$apply(function(){
+                  angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
+                })
               }
            })
        .withDataProp('data')

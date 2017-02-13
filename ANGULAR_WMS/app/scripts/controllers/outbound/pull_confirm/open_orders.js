@@ -34,7 +34,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('picklist_id').withTitle('Picklist ID'),
-        DTColumnBuilder.newColumn('picklist_note').withTitle('Picklist Note'),
+        DTColumnBuilder.newColumn('customer').withTitle('Customer / Marketplace').notSortable(),
+         DTColumnBuilder.newColumn('picklist_note').withTitle('Picklist Note'),
+        DTColumnBuilder.newColumn('reserved_quantity').withTitle('Reserved Quantity').notSortable(),
         DTColumnBuilder.newColumn('date').withTitle('Date')
     ];
 

@@ -1,9 +1,9 @@
-<div class="order_details">
+<div class="order_details" ng-controller="AppOrderDetails as order">
   <div class="row style-menu" style="line-height: 40px;">
     <div class="col-md-4 col-sm-4 col-xs-6">
       <div class="menu-left">
-        <span ng-click="showCase.you_order_display = true;showCase.order_detail_display = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
-        <span ng-click="showCase.you_order_display = true;showCase.order_detail_display = false;" title="Go to Brand Page">Back</span>
+        <span ng-click="$state.go('user.App.MyOrders')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="$state.go('user.App.MyOrders')" title="Go to Brand Page">Back</span>
       </div>
     </div>
     <div class="col-md-4 col-sm-4 hidden-xs">
@@ -11,7 +11,7 @@
     </div>
     <div class="col-md-4 col-sm-4 col-xs-6">
       <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>
-      <a href="" class="pull-right" ng-click="showCase.order_detail_display = false;showCase.cart_display = true;">
+      <a href="" class="pull-right" ng-click="$state.go('user.App.Cart')">
           <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" title="Go To Cart Page"></i>
       </a>
     </div>
@@ -26,13 +26,13 @@
           <div class="detail-item border-grey detail-bg-grey">
             <div class="row">
               <div class="col-md-6 col-sm-6 col-xs-9">
-                <h4 class="detail-black"><b>Order ID: {{showCase.order_details.order.order_id}}</b></h4>
+                <h4 class="detail-black"><b>Order ID: {{order.order_id}}</b></h4>
                 <div class="row border-grey">
                   <div class="col-md-4 col-sm-6 col-xs-6 no-padding">
                     <span>Order Quantity</span>
                   </div>
                   <div class="col-md-4 col-sm-6 col-xs-6 detail-black">
-                    <span>: {{showCase.order_details.order.total_quantity}}</span>
+                    <span>: {{order.order_details.sum_data.quantity}}</span>
                   </div>
                 </div>
                 <div class="row border-grey">
@@ -40,7 +40,7 @@
                     <span>Order Date</span>
                   </div>
                   <div class="col-md-4 col-sm-6 col-xs-6 detail-black">
-                    <span>: {{showCase.order_details.order.date}}</span>
+                    <span>: {{order.order_details.date}}</span>
                   </div>
                 </div>
                 <div class="row">
@@ -48,16 +48,19 @@
                     <span>Order Value</span>
                   </div>
                   <div class="col-md-4 col-sm-6 col-xs-6 detail-black">
-                    <span>: Rs. {{showCase.order_details.order.total_inv_amt-showCase.order_details.tax}}</span>
+                    <span>: Rs. {{order.order_details.sum_data.amount- order.order_details.tax  | number : 2}}</span>
                   </div>
                 </div>
               </div>
               <div class="col-md-6 col-sm-6 col-xs-3">
-                <span class="label pull-right text-uppercase" ng-class="(showCase.order_details.order.status == 'open')? 'label-success': 'label-danger';" style="font-size: 12px;">{{showCase.order_details.order.status}}</span>
+                <span class="label pull-right text-uppercase" ng-class="(order.order_details.status == 'open')? 'label-success': 'label-danger';" style="font-size: 12px;">{{order.order_details.status}}</span>
               </div>
             </div>
           </div>
-          <div class="detail-item border-grey" style="cursor: pointer" ng-repeat="data in showCase.order_details.data">
+          <div class="detail-item border-grey" ng-if="order.loading">
+             <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+          </div>
+          <div class="detail-item border-grey" style="cursor: pointer" ng-repeat="data in order.order_details.data">
             <div class="row">
               <section class="widget text-center no-margin">
                 <div class="widget-details col-md-4 col-sm-4 col-xs-4 text-right">
@@ -74,7 +77,7 @@
                 </div>
                 <div class="widget-details col-md-2 col-sm-2 col-xs-2 text-right">
                   <small class="order-label">Amt</small>
-                  <p class="no-margin order-bold detail-black">Rs. {{data.invoice_amount}}</p>
+                  <p class="no-margin order-bold detail-black">Rs. {{data.invoice_amount | number : 2}}</p>
                 </div>
               </section>
             </div>
@@ -89,7 +92,7 @@
                     <span class="pull-right">Total:</span>
                   </div>
                   <div class="col-xs-4 detail-black">
-                    <span>Rs. {{showCase.order_details.order.total_inv_amt-showCase.order_details.tax}}</span>
+                    <span>Rs. {{order.order_details.sum_data.amount-order.order_details.tax  | number : 2}}</span>
                   </div>
                 </div>
                 <div class="row">
@@ -97,7 +100,7 @@
                     <span class="pull-right">Applicable Tax:</span>
                   </div>
                   <div class="col-xs-4 detail-black">
-                    <span>Rs. {{showCase.order_details.tax}}</span>
+                    <span>Rs. {{order.order_details.tax  | number : 2}}</span>
                   </div>
                 </div>
                 <div class="row detail-black" style="font-size: 16px;">
@@ -105,7 +108,7 @@
                     <span class="pull-right"><b>Total Amount:</b></span>
                   </div>
                   <div class="col-xs-4">
-                    <span><b>Rs. {{showCase.order_details.order.total_inv_amt}}</b></span>
+                    <span><b>Rs. {{order.order_details.sum_data.amount | number : 2}}</b></span>
                   </div>
                 </div>
               </div>

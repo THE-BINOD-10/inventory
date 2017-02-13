@@ -281,15 +281,16 @@ data_datatable = {#masters
                   #production
                   'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed',\
                   'PickelistGenerated':'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo',\
-                  'PutawayConfirmation': 'get_received_jo', 'ProductionBackOrders': 'get_rm_back_order_data',
+                  'PutawayConfirmation': 'get_received_jo', 'PutawayConfirmationSKU':'get_received_jo',
+                  'ProductionBackOrders': 'get_rm_back_order_data',
                   'RaiseRWO': 'get_saved_rworder', 'ReceiveJOSKU': "get_confirmed_jo_all", \
+                  'RawMaterialPicklistSKU': 'get_rm_picklist_confirmed_sku',\
                   #stock locator
                   'StockSummary': 'get_stock_results', 'OnlinePercentage': 'get_sku_stock_data',\
                   'StockDetail': 'get_stock_detail_results', 'CycleCount': 'get_cycle_count',\
                   'MoveInventory': 'get_move_inventory', 'InventoryAdjustment': 'get_move_inventory',\
                   'ConfirmCycleCount': 'get_cycle_confirmed','VendorStockTable': 'get_vendor_stock',\
                   'Available':'get_available_stock','Available+Intransit':'get_availintra_stock','Total': 'get_avinre_stock',
-                  'RawMaterialPicklistSKU': 'get_rm_picklist_confirmed_sku',\
                   #outbound
                   'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders',\
                   'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders',\

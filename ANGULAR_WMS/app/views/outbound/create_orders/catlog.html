@@ -47,13 +47,14 @@
     </div>
   </div>
   <div class="item-display row">
-    <div class="col-md-2 col-sm-3 col-xs-4 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="showCase.open_style(item.sku_class);showCase.detailed_list=false;">
+    <div class="col-md-2 col-sm-3 col-xs-4 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="showCase.open_style(item);showCase.detailed_list=false;">
       <div>
         <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
         <br>
         <div>
           <span class="style_name" title="{{ item.sku_class }}">{{ item.sku_class }}</span>
           <p class="style_name" style="font-size: 12px;" title="{{ item.variants[0].style_name }}">{{ item.variants[0].style_name }}</p>
+          <span style="font-size: 14px; padding:2px 15px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</span></br>
           <span style="font-size: 20px;">&#8377; {{ item.variants[0].mrp }}</span>
         </div>
       </div>

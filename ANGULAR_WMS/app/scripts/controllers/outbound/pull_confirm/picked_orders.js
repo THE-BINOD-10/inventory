@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.special_key = {status: 'picked', market_place: ""}
+    vm.tb_data = {};
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -15,6 +16,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
               data: {'datatable': 'PickedOrders', 'special_key': JSON.stringify(vm.special_key)},
               xhrFields: {
                 withCredentials: true
+              },
+              complete: function(jqXHR, textStatus) {
+                $scope.$apply(function(){
+                  angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
+                })
               }
            })
        .withDataProp('data')
@@ -26,7 +32,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('picklist_id').withTitle('Picklist ID'),
+        DTColumnBuilder.newColumn('customer').withTitle('Customer / Marketplace').notSortable(),
         DTColumnBuilder.newColumn('picklist_note').withTitle('Picklist Note'),
+        DTColumnBuilder.newColumn('picked_quantity').withTitle('Picked Quantity').notSortable(),
         DTColumnBuilder.newColumn('date').withTitle('Date')
     ];
 

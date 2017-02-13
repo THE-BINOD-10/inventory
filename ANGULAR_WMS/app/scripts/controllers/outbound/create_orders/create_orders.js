@@ -413,16 +413,18 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   vm.style_open = false;
   vm.style_data = [];
+  vm.stock_quantity = 0;
   vm.open_style = function(data) {
 
-    vm.service.apiCall("get_sku_variants/", "GET", {sku_class: data, is_catalog: true}).then(function(data) {
+    vm.stock_quantity = data.style_quantity;
+    vm.service.apiCall("get_sku_variants/", "GET", {sku_class: data.sku_class, is_catalog: true}).then(function(data) {
 
       if(data.message) {
         vm.style_open = true;
         vm.check_stock=true;
         vm.style_data = data.data.data;
-        var quant_len = data.data.data.length-1;
-        vm.stock_quantity = vm.style_data[quant_len].style_quantity;
+        //var quant_len = data.data.data.length-1;
+        //vm.stock_quantity = vm.style_data[quant_len].style_quantity;
       }
     });
     vm.style_total_quantity = 0;

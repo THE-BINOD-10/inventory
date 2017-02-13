@@ -219,11 +219,19 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
     vm.check_image_url = function(url)  {
       if(!(url)) {
-        return "images/wms/dflt.jpg";
+        if(Session.user_profile.company_name == "Sagar Fab International") {
+          return "images/wms/sagar_default.jpg";
+        } else {
+          return "images/wms/dflt.jpg";
+        }
       } else if((url.indexOf("static")) > -1 && (url != "/static/img/default-image.jpg")) {
         return Session.host+url.slice(1);
       } else if(url == "/static/img/default-image.jpg") {
-        return "images/wms/dflt.jpg";
+        if(Session.user_profile.company_name == "Sagar Fab International") {
+          return "images/wms/sagar_default.jpg";
+        } else {
+          return "images/wms/dflt.jpg";
+        }
       } else {
         return url;
       }

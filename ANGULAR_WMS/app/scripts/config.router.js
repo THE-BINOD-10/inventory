@@ -2,12 +2,12 @@
 
 var LOGIN_STATE = "user.signin",
     LOGIN_REDIRECT_STATE = "app.dashboard",
-    LOGIN_REDIRECT_STATE_CUSTOMER = "user.App.createorder",
+    LOGIN_REDIRECT_STATE_CUSTOMER = "user.App.Brands",
     PERMISSION_DENIED = "app.denied";
 
 var app = angular.module('urbanApp')
-  app.run(['$rootScope', '$state', '$stateParams', 'Auth', 'AUTH_EVENTS', 'Session',
-        function ($rootScope, $state, $stateParams, Auth, AUTH_EVENTS, Session) {
+  app.run(['$rootScope', '$state', '$stateParams', 'Auth', 'AUTH_EVENTS', 'Session', '$timeout',
+        function ($rootScope, $state, $stateParams, Auth, AUTH_EVENTS, Session, $timeout) {
       if(Session.user_profile.user_type == "customer") {
         LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_CUSTOMER;
       }
@@ -23,9 +23,18 @@ var app = angular.module('urbanApp')
 
             $rootScope.$on("$stateChangeStart", function (event, next, toPrms, from, fromPrms) {
 
+              var prms = toPrms;
               if(next.name == from.name) {
 
                 return;
+              } else if ((states.indexOf(next.name) > -1) && Session.userName) {
+
+                if(confirm("Do you really want to logout from mieone?")) {
+                  Auth.logout();
+                } else {
+                  event.preventDefault();
+                  $timeout(function(){$(".preloader").removeClass("ng-show").addClass("ng-hide");}, 2000);
+                }
               }
 
               if (skipAsync) {
@@ -34,7 +43,7 @@ var app = angular.module('urbanApp')
                 return;
               }
 
-              if (states.indexOf(next.name) == -1) { //(next.authRequired) {
+              if (states.indexOf(next.name) == -1) {
 
                 event.preventDefault();
 
@@ -45,9 +54,7 @@ var app = angular.module('urbanApp')
                     if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") == -1) {
                       $state.go("app.Register");
                       return;
-                    /*} else if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") > -1) {
-                      $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});*/
-                    } else if((Session.user_profile.user_type == "customer") && (thisNext.name.indexOf("App.createorder") == -1)) {
+                    } else if((Session.user_profile.user_type == "customer") && (thisNext.name.indexOf("App") == -1)) {
 
                        $state.go(LOGIN_REDIRECT_STATE_CUSTOMER,  {"location": "replace"})
                        return;
@@ -61,14 +68,6 @@ var app = angular.module('urbanApp')
                           check_status = true;
                           break;
                         }
-                        /*Session.check_permission(perm_list[i]).then(function(resp) {
-
-                          if(resp == "false" || resp == "undefined") {
-                            
-                            $state.go(PERMISSION_DENIED, {"location": "replace"});
-                            return;
-                          }
-                        });*/
                       }
                       if(check_status) {
                         $state.go(PERMISSION_DENIED, {"location": "replace"});
@@ -88,7 +87,7 @@ var app = angular.module('urbanApp')
                     }
 
                     skipAsync = true;
-                    $state.go(next.name);
+                    $state.go(next.name, prms);
                   });
                 }(next));
               }
@@ -1528,35 +1527,56 @@ var app = angular.module('urbanApp')
         })
         .state('user.App', {
           url: '/App',
-          templateUrl: 'views/App/app.html',
+          templateUrl: 'views/outbound/app/create_orders.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-              return $ocLazyLoad.load('scripts/App/app.js');
+              return $ocLazyLoad.load('scripts/controllers/outbound/app/create_orders.js');
                     }]
           },
-	  data: {
+	      data: {
             appClasses: 'bg-white usersession',
             contentClasses: 'full-height'
           }
         })
-         .state('user.App.Products', {
-           url: '/Products',
-           templateUrl: 'views/App/products.html',
-           resolve: {
-             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-               return $ocLazyLoad.load('scripts/App/skutable.js');
-                    }]
-           }
-         })
-         .state('user.App.createorder', {
-           url: '/createorder',
-           templateUrl: 'views/outbound/app/create_orders.html',
-           resolve: {
-             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-               return $ocLazyLoad.load('scripts/controllers/outbound/app/create_orders.js');
-                    }]
-           }
-         })
+          .state('user.App.Brands', {
+            url: '/Brands',
+            templateUrl: 'views/outbound/app/create_orders/details.html'
+          })
+          .state('user.App.Products', {
+            url: '/Products',
+            templateUrl: 'views/outbound/app/create_orders/catlog.html'
+          })
+          .state('user.App.Style', {
+            url: '/Style?styleId',
+            templateUrl: 'views/outbound/app/create_orders/style.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/style.js');
+              }]
+            }
+          })
+          .state('user.App.Cart', {
+            url: '/Cart',
+            templateUrl: 'views/outbound/app/create_orders/order.html'
+          })
+          .state('user.App.MyOrders', {
+            url: '/MyOrders',
+            templateUrl: 'views/outbound/app/create_orders/your_orders.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/my_order.js');
+              }]
+            }
+          })
+          .state('user.App.OrderDetails', {
+            url: '/OrderDetails?orderId',
+            templateUrl: 'views/outbound/app/create_orders/order_detail.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/order_details.js');
+              }]
+            }
+          })
         .state('app.denied', {
           url: '/PermissionDenied',
           templateUrl: 'views/permission_denied.html',

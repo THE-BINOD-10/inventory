@@ -1412,6 +1412,7 @@ def validate_purchase_order(open_sheet, user):
 
 def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
     order_ids = {}
+    data_req = {}
     for row_idx in range(1, open_sheet.nrows):
         order_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
         data = copy.deepcopy(PO_DATA)
@@ -1480,9 +1481,74 @@ def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
             data['prefix'] = user_profile[0].prefix
         order = PurchaseOrder(**data)
         order.save()
-
+        mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
+    mail_status = purchase_upload_mail(request, mail_result_data)
     return 'success'
 
+def purchase_order_dict(data, data_req, purch, user, order):
+    if data.supplier.name in data_req.keys():
+        data_req[data.supplier.name].append({'sku_code': data.sku.sku_code, 'price': data.price, 'quantity': data.order_quantity, 
+                                             'purch': purch, 'user': user, 'purchase_order': order})
+    else:
+        data_req[data.supplier.name] = [{'sku_code': data.sku.sku_code, 'price': data.price, 'quantity': data.order_quantity, 
+                                         'purch': purch, 'user': user, 'purchase_order': order}]
+    return data_req
+
+def purchase_upload_mail(request, data_to_send):
+    from django.template import loader, Context
+    from inbound import write_and_mail_pdf
+    for key, value in data_to_send.iteritems():
+        status = ''
+        customization = ''
+        supplier_code = ''
+        supplier_mapping = SKUSupplier.objects.filter(sku_id = value[0]['purch'].sku_id, supplier_id = value[0]['purch'].supplier_id,
+                                                      sku__user = value[0]['user'].id)
+        if supplier_mapping:
+            supplier_code = supplier_mapping[0].supplier_code
+
+        supplier = value[0]['purch'].supplier
+        wms_code = value[0]['purch'].sku.wms_code
+        telephone = supplier.phone_number
+        name = supplier.name
+        order_id =  value[0]['purchase_order'].order_id
+        supplier_email = supplier.email_id
+        order_date = get_local_date(request.user, value[0]['purchase_order'].creation_date)
+        address = '\n'.join(supplier.address.split(','))
+        vendor_name = ''
+        vendor_address = ''
+        vendor_telephone = ''
+
+        if value[0]['purch'].order_type == 'VR':
+            vendor_address = value[0]['purch'].vendor.address
+            vendor_address = '\n'.join(vendor_address.split(','))
+            vendor_name = value[0]['purch'].vendor.name
+            vendor_telephone = value[0]['purch'].vendor.phone_number
+
+        po_reference = '%s%s_%s' % (value[0]['purchase_order'].prefix,
+                                    str(value[0]['purchase_order'].creation_date).split(' ')[0].replace('-', ''), order_id)
+
+        table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Unit Price', 'Amount')
+        po_data = []
+
+        amount = 0
+        total = 0
+        total_qty = 0
+        for one_stat in value:
+            amount = (one_stat['quantity']) * (one_stat['price'])
+            total += amount
+            total_qty += one_stat['quantity']
+            po_data.append((one_stat['sku_code'], '', '', one_stat['quantity'], '', one_stat['price'] ))
+
+        profile = UserProfile.objects.get(user=request.user.id)
+        t = loader.get_template('templates/toggle/po_download.html')
+        data_dictionary = { 'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
+                            'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference,
+                            'user_name': request.user.username, 'total_qty': total_qty, 'company_name': profile.company_name,
+                            'location': profile.location, 'w_address': profile.address, 'vendor_name': vendor_name,
+                            'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone, 'customization': customization }
+        c = Context(data_dictionary)
+        rendered = t.render(c)
+        write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0])
 
 @csrf_exempt
 @login_required

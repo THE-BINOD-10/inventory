@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
     var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
+    vm.tb_data = {};
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -14,6 +15,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
               data: {'datatable': 'PickelistGenerated'},
               xhrFields: {
                 withCredentials: true
+              },
+              complete: function(jqXHR, textStatus) {
+                $scope.$apply(function(){
+                  angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
+                })
               }
            })
        .withDataProp('data')
@@ -25,7 +31,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Job Code').withTitle('Job Code'),
         DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
-        DTColumnBuilder.newColumn('Order Type').withTitle('Order Type') 
+        DTColumnBuilder.newColumn('Order Type').withTitle('Order Type'),
+        DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
     ];
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {

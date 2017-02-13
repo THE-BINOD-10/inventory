@@ -1,34 +1,16 @@
-<p class="hide">{{showCase.details}}</p>
-<div class="page-layout no-scroll create_red app_scroll" ng-controller="appCreateOrders as showCase">
-  <div>
-    <div class="layout-header" ng-if="!(showCase.catlog_display)" style="min-height: initial;padding: 0px;">
-      <div ng-include="'views/App/create_orders/company_name.html'"></div>
-    </div>
-   <div class="layout-body" style="background-color: white;">
+<link rel="stylesheet" href="styles/App/app.css">
+<div class="app-body">
+  <p class="hide">{{showCase.details}}</p>
+  <div class="page-layout no-scroll create_red app_scroll" ng-controller="appCreateOrders as showCase">
     <div>
-      <div ng-include="'views/outbound/app/create_orders/order.html'" ng-if="showCase.cart_display"></div>
-      <!--<div ng-include="'views/outbound/create_orders/catlog.html'" ng-if="showCase.catlog && (!(showCase.style_open))"></div>-->
-      <div ng-include="'views/outbound/app/create_orders/style.html'" ng-if="showCase.style_display"></div>
-      <div ng-include="'views/outbound/app/create_orders/details.html'" ng-if="showCase.brand_display"></div>
-      <div ng-include="'views/outbound/app/create_orders/catlog.html'" ng-if="showCase.catlog_display"></div>
-      <div ng-include="'views/outbound/app/create_orders/your_orders.html'" ng-if="showCase.you_order_display"></div>
-      <div ng-include="'views/outbound/app/create_orders/order_detail.html'" ng-if="showCase.order_detail_display"></div>
-    </div>
-   </div>
- </div>
-  <!--<div class='layout-header'>
-    <div ng-controller="CreateOrders as showCase">
-      <div class="pull-left" ng-include="'views/common/title.html'" ng-if="(!(showCase.catlog))"></div>
+      <div class="layout-header" ng-if="$state.current.name != 'user.App.Products'" style="min-height: initial;padding: 0px;">
+        <div ng-include="'views/App/create_orders/company_name.html'"></div>
+      </div>
+      <div class="layout-body" style="background-color: white;">
+        <div>
+          <div ui-view></div>
+        </div>
+      </div>
     </div>
   </div>
-
-  <div class="layout-body" style="padding-top:3%;background-color: white;">
-    <div ng-controller="CreateOrders as showCase">
-      <div ng-include="'views/outbound/create_orders/order.html'" ng-if="(!(showCase.catlog))"></div>
-      <div ng-include="'views/outbound/create_orders/style.html'" ng-if="showCase.catlog && showCase.style_open"></div>
-      <div ng-include="'views/outbound/create_orders/details.html'" ng-if="showCase.details"></div>
-      <div ng-include="'views/outbound/create_orders/catlog.html'" ng-if="showCase.detailed_list"></div>
-    </div>
-  </div>
-  <div class="layout-body">
-</div>-->
+</div>

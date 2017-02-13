@@ -192,6 +192,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
             filter_params['order__marketplace'] = status_dict['market_place']
         filter_params['status__icontains'] = status
     if 'open' in status:
+        filter_params['status__icontains'] = "open"
         filter_params['reserved_quantity__gt'] = 0
     else:
         del filter_params['status__icontains']
@@ -199,34 +200,66 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     if status == 'batch_picked':
         col_num = col_num - 1
 
+    all_picks = Picklist.objects.filter(Q(order__sku__user = user.id) | Q(stock__sku__user=user.id), **filter_params)
+
     if search_term:
-        master_data = Picklist.objects.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).\
-                                       filter( Q(picklist_number__icontains = search_term) | Q( remarks__icontains = search_term ),
-                                               Q(order__sku__user = user.id) | Q(stock__sku__user=user.id), **filter_params).\
-                                       values('picklist_number', 'remarks').distinct()
+        master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids)|Q(stock__sku_id__in=sku_master_ids)).filter( Q(picklist_number__icontains = search_term) | Q( remarks__icontains = search_term ) | Q(order__marketplace__icontains=search_term) | Q(order__customer_name__icontains=search_term))
 
     elif order_term:
+        col_num = col_num - 1
         order_data = PICK_LIST_HEADERS.values()[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        master_data = Picklist.objects.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).\
-                                       filter(Q(order__sku__user = user.id) | Q(stock__sku__user=user.id), **filter_params).\
-                                       values('picklist_number', 'remarks').distinct().order_by(order_data)
-        master_data = [ key for key,_ in groupby(master_data)]
+        master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).order_by(order_data)
     else:
-        master_data = Picklist.objects.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).\
-                                       filter( Q(order__sku__user = user.id) | Q(stock__sku__user=user.id), **filter_params).\
-                                       values('picklist_number', 'remarks').distinct()
+        master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids))
 
-    temp_data['recordsTotal'] = len( master_data )
-    temp_data['recordsFiltered'] = len( master_data )
+    total_reserved_quantity = master_data.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
+    total_picked_quantity = master_data.aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+    master_data = master_data.values('picklist_number').distinct()
 
-    all_picks = Picklist.objects.filter(Q(order__sku__user = user.id) | Q(stock__sku__user=user.id))
+    if order_term:
+        master_data = [ key for key,_ in groupby(master_data)]
+
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    if not total_picked_quantity:
+        total_picked_quantity = 0
+    else:
+        temp_data['totalPickedQuantity'] = int(total_picked_quantity)
+
+    if not total_reserved_quantity:
+        temp_data['totalReservedQuantity'] = 0
+    else:
+        temp_data['totalReservedQuantity'] = int(total_reserved_quantity)
+
     count = 0
     for data in master_data[start_index:stop_index]:
-        create_date = all_picks.filter(picklist_number=data['picklist_number'])[0].creation_date
-        result_data = OrderedDict(( ('DT_RowAttr', { 'data-id': data['picklist_number'] }), ('picklist_note', data['remarks']),
-                                    ('date', get_local_date(request.user, create_date)), ('id', count), ('DT_RowClass', 'results') ))
+        create_date_value, order_marketplace, order_customer_name, picklist_id, remarks = '', [], [], '', ''
+        picklist_obj = all_picks.filter(picklist_number=data['picklist_number'])
+        reserved_quantity_sum_value = picklist_obj.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
+        if not reserved_quantity_sum_value:
+            reserved_quantity_sum_value = 0
+        picked_quantity_sum_value = picklist_obj.aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+        if not picked_quantity_sum_value:
+            picked_quantity_sum_value = 0
+        if picklist_obj:
+            order_marketplace = list(picklist_obj.exclude(order__marketplace='').values_list('order__marketplace',flat=True))
+            order_customer_name = list(picklist_obj.exclude(order__customer_name='').values_list('order__customer_name',flat=True))
+
+            order_marketplace1 = [str(x).upper() for x in order_marketplace]
+            if 'OFFLINE' in order_marketplace1 and len(set(order_marketplace1)) == 1:
+                prepare_str = ','.join(list(set(order_customer_name)))
+            else:
+                prepare_str = ','.join(list(set(order_marketplace)))
+
+            create_date_value = get_local_date(request.user, picklist_obj[0].creation_date)
+            remarks = picklist_obj[0].remarks
+            picklist_id = picklist_obj[0].picklist_number
+
+        result_data = OrderedDict(( ('DT_RowAttr', { 'data-id': picklist_id }), ('picklist_note', remarks),
+                                    ('reserved_quantity', reserved_quantity_sum_value), ('picked_quantity', picked_quantity_sum_value), ('customer', prepare_str),
+                                    ('date', create_date_value), ('id', count), ('DT_RowClass', 'results') ))
 
         dat = 'picklist_id'
         count += 1
@@ -235,7 +268,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
             checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data['picklist_number'], data['picklist_number'])
             result_data['checkbox'] = checkbox
-        result_data[dat] = data['picklist_number']
+        result_data[dat] = picklist_id
         temp_data['aaData'].append(result_data)
 
 @csrf_exempt
@@ -347,7 +380,7 @@ def generate_picklist(request, user=''):
     picklist_number = get_picklist_number(user)
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
+    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
@@ -603,7 +636,7 @@ def batch_generate_picklist(request, user=''):
     picklist_number = get_picklist_number(user)
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
+    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
@@ -896,12 +929,13 @@ def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, me
             quantity = p_quantity
         if picklist.order.order_id in picklists_send_mail.keys():
             if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
-                picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] += quantity
+                qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] )
+                picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] = qty + float(quantity)
             else:
-                picklists_send_mail[picklist.order.order_id].update({picklist.order.sku.sku_code : quantity})
+                picklists_send_mail[picklist.order.order_id].update({picklist.order.sku.sku_code : float(quantity)})
 
         else:
-            picklists_send_mail.update({picklist.order.order_id : {picklist.order.sku.sku_code : quantity}})
+            picklists_send_mail.update({picklist.order.order_id : {picklist.order.sku.sku_code : float(quantity)}})
         #picklists_send_mail.append({'order_id': picklist.order.order_id})
         #picklists_send_mail.append(data_count)
         #picklists_send_mail = [{'order_id': str(picklist.order.order_id)}, data_count]
@@ -976,6 +1010,7 @@ def update_picklist_pallet(stock, picking_count1):
     pallet.save()
 
 def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt = ""):
+    picklist_order_ids_list = []
     reciever = []
     internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
     misc_internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='internal_mail', misc_value='true')
@@ -985,12 +1020,15 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt 
     headers = ['Product Details', 'Ordered Quantity', 'Total']
     items = []
     for picklist in picklists:
+        if {picklist.order.order_id: picklist.order.sku.sku_code} in picklist_order_ids_list:
+            continue
         if data_qt:
             qty = data_qt.get(picklist.order.sku.sku_code, 0)
             if not qty:
                 continue
         else:
             qty = picklist.picked_quantity
+        picklist_order_ids_list.append({picklist.order.order_id: picklist.order.sku.sku_code})
         unit_price = float(picklist.order.invoice_amount)/float(picklist.order.quantity)
         items.append([picklist.order.sku.sku_desc, qty, float(qty) * unit_price])
     picklist = picklists[0]
@@ -1216,12 +1254,13 @@ def picklist_confirmation(request, user=''):
                         quantity = value[0]['picked_quantity']
                     if picklist.order.order_id in picklists_send_mail.keys():
                         if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
-                            picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] += quantity
+                            qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] )
+                            picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] = qty + float(quantity)
                         else:
-                            picklists_send_mail[picklist.order.order_id].update({picklist.order.sku.sku_code : quantity})
+                            picklists_send_mail[picklist.order.order_id].update({picklist.order.sku.sku_code : float(quantity)})
 
                     else:
-                        picklists_send_mail.update({picklist.order.order_id : {picklist.order.sku.sku_code : quantity}})
+                            picklists_send_mail.update({picklist.order.order_id : {picklist.order.sku.sku_code : float(quantity)}})
 
                     #picklists_send_mail.append({'order_id': picklist.order.order_id})
                     #picklists_send_mail.append(data_count)
@@ -1649,7 +1688,7 @@ def st_generate_picklist(request, user=''):
     picklist_number = get_picklist_number(user)
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
+    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(status=1, user=user.id, quantity__gt=0)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
@@ -3271,14 +3310,40 @@ def get_customer_order_detail(request, user=""):
 
     response_data = {'data': []}
     order_id = request.GET['order_id']
+    if not order_id:
+        return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
+
     order = OrderDetail.objects.filter(order_id = order_id, user=user.id)
+
+    if not order:
+        return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
+
     response_data['data'] = list(order.values('id','order_id','creation_date', 'status', 'quantity', 'invoice_amount', 'sku__sku_code', 'sku__image_url', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class'))
+
     for record in response_data['data']:
-        record['invoice_amount'] = round(record['invoice_amount'], 2)
+        tax_data = CustomerOrderSummary.objects.filter(order__id = record['id'], order__user = user.id)
+        if tax_data:
+            tax_data = tax_data[0]
+            record['invoice_amount'] = record['invoice_amount'] - tax_data.tax_value
+
     tax = CustomerOrderSummary.objects.filter(order__order_id = order_id, order__user = user.id).aggregate(Sum('tax_value'))['tax_value__sum']
     if not tax:
         tax = 0
+
+    order_ids = order.values_list('id', flat=True)
+    sum_data = order.aggregate(amount = Sum('invoice_amount'), quantity = Sum('quantity'))
+    response_data['sum_data'] = sum_data
+    data_status = order.filter(status=1)
+    if data_status:
+        status = 'open'
     else:
-        tax = round(tax, 2)
-    response_data['tax'] = tax
+        status = 'closed'
+        pick_status = Picklist.objects.filter(order_id__in = order_ids, status__icontains = 'open')
+
+        if pick_status:
+            status = 'open'
+    response_data['status'] = status
+    response_data['date'] = get_only_date(request, order[0].creation_date)
+
+    response_data['tax'] = round(tax,2)
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))

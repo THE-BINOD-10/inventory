@@ -1,17 +1,19 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('JOPutawayCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('JOPutawayCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data) {
     var vm = this;
     vm.service = Service;
+    vm.g_data = Data.order_putaway;
     vm.permissions = Session.roles.permissions;
+    vm.table_data = (vm.g_data.sku_view)?'PutawayConfirmationSKU':'PutawayConfirmation' ;
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
               type: 'POST',
-              data: {'datatable': 'PutawayConfirmation'},
+              data: {'datatable': vm.table_data},
               xhrFields: {
                 withCredentials: true
               }
@@ -22,10 +24,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        .withPaginationType('full_numbers')
        .withOption('rowCallback', rowCallback);
 
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn('Job Code').withTitle('Job Code'),
-        DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date')
-    ];
+    vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers[vm.table_data]);
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $('td', nRow).unbind('click');
@@ -141,5 +140,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.html = angular.element(".putaway_print").clone();
     $(vm.html).removeClass("hide")
     vm.service.print_data(vm.html, 'Job Order Putaway');
+  }
+
+  vm.change_sku_view = function(){
+    //Data.order_putaway.sku_view = (vm.g_data.sku_view)?'PutawayConfirmationSKU':'PutawayConfirmation';
+    Data.order_putaway.sku_view = vm.g_data.sku_view;
+    $state.go($state.current, {}, {reload: true});
   }
 }

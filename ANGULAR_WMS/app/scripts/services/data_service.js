@@ -11,8 +11,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
   // Receive Job Order
   self.receive_jo = {
                       sku_view: false,
-                      tb_headers: {'ReceiveJOSKU': ['Job Code', 'SKU Code' , 'SKU Brand', 'SKU Category', 'Creation Date', 'Receive Status'],
-                                    'ReceiveJO': ['Job Code', 'Creation Date', 'Receive Status']}
+                      tb_headers: {'ReceiveJOSKU': ['Job Code', 'SKU Code' , 'SKU Brand', 'SKU Category', 'Creation Date', 'Receive Status', 'Quantity'],
+                                    'ReceiveJO': ['Job Code', 'Creation Date', 'Receive Status', 'Quantity']
+                                  }
                     }
 
   /*** Stock Locator ***/
@@ -48,8 +49,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                             sku_view: false,
                             view: 'RawMaterialPicklist',
-                            tb_headers: {'RawMaterialPicklistSKU': ['Job Code', 'SKU Code' , 'SKU Brand', 'SKU Category', 'Creation Date', 'Order Type'],
-                                         'RawMaterialPicklist': ['Job Code', 'Creation Date', 'Order Type']}
+                            tb_headers: {'RawMaterialPicklistSKU': ['Job Code', 'SKU Code' , 'SKU Brand', 'SKU Category', 'Quantity', 'Order Type', 'Creation Date'],
+                                         'RawMaterialPicklist': ['Job Code', 'Creation Date', 'Order Type', 'Quantity']}
 
                           }
 
@@ -72,6 +73,17 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                                     },
                         dt_data: {'OrderView': {}, 'OrderCategoryView': ''}
                       }
+
+    /*** Production ***/
+    //Job Order Putaway
+
+    self.order_putaway = {
+        sku_view: false,
+        tb_headers: {
+                    'PutawayConfirmationSKU' : ['Job Code','SKU Code','SKU Brand','SKU Category', 'Creation Date'],
+                    'PutawayConfirmation': ['Job Code', 'Creation Date'] }
+    }
+
     if(Session.roles.permissions['batch_switch']) {
 
       self.other_view.view = 'SKUView'

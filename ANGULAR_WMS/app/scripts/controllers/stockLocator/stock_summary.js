@@ -37,9 +37,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         this.dtInstance.reloadData();
     }
 
-    
-
-    vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers);
+    vm.dtColumns = [
+        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
+        DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
+        DTColumnBuilder.newColumn('SKU Brand').withTitle('SKU Brand'),
+        DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
+        DTColumnBuilder.newColumn('Available Quantity').withTitle('Available Quantity').notSortable(),
+        DTColumnBuilder.newColumn('Reserved Quantity').withTitle('Reserved Quantity').notSortable(),
+        DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'),
+        DTColumnBuilder.newColumn('Unit of Measurement').withTitle('Unit of Measurement'),
+    ];
 
     $scope.$on('change_filters_data', function(){
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;

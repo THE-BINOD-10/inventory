@@ -751,6 +751,7 @@ class JOMaterial(models.Model):
     material_code = models.ForeignKey(SKUMaster)
     material_quantity = models.FloatField(default = 0)
     status = models.IntegerField(max_length=1, default=1)
+    unit_measurement_type = models.CharField(max_length=32, default = '')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

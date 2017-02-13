@@ -9,6 +9,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session , pri
     vm.permissions = Session.roles.permissions;
     vm.vendor_produce = false;
     vm.g_data = Data.confirm_orders;
+    vm.tb_data = {};
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -17,6 +18,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session , pri
               data: {'datatable': vm.g_data.view},
               xhrFields: {
                 withCredentials: true
+              },
+              complete: function(jqXHR, textStatus) {
+                $scope.$apply(function(){
+                  angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
+                })
               }
            })
        .withDataProp('data')

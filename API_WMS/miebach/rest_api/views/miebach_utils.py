@@ -283,7 +283,7 @@ STOCK_DET = ([('0','receipt_number'),('1','receipt_date'),('2','sku_id__sku_code
 
 ORDER_DETAIL_HEADERS = OrderedDict([('Order ID','order_id'),('SKU Code','sku_id__sku_code'),('Title','title'),('Product Quantity','quantity'),('Shipment Date','shipment_date')])
 
-PICK_LIST_HEADERS = OrderedDict([('Picklist ID','picklist_number'),('Picklist Note','remarks'),('Date','creation_date')])
+PICK_LIST_HEADERS = OrderedDict([('Picklist ID','picklist_number'), ('Customer / Marketplace','picklist_number'), ('Picklist Note','remarks'), ('Reserved Quantity', 'reserved_quantity'), ('Date','creation_date')])
 
 PO_SUGGESTIONS = OrderedDict([('0','creation_date'),('1','supplier_id'),('2','sku_id'),('3','order_quantity'),('4','price'),('5','status')])
 
@@ -329,7 +329,7 @@ REJECT_REASONS = ['Color Mismatch', 'Price Mismatch', 'Wrong Product', 'Package 
 QC_SERIAL_FIELDS = {'quality_check_id': '', 'serial_number_id': '', 'status': '','reason': ''}
 
 RAISE_JO_HEADERS = OrderedDict([('Product SKU Code', 'product_code'), ('Product SKU Quantity', 'product_quantity'),
-                                ('Material SKU Code', 'material_code'), ('Material SKU Quantity', 'material_quantity')])
+                                ('Material SKU Code', 'material_code'), ('Material SKU Quantity', 'material_quantity'), ('Measurement Type', 'measurement_type')])
 
 JO_PRODUCT_FIELDS = {'product_quantity': 0, 'received_quantity': 0, 'job_code': 0, 'jo_reference': '','status': 'open', 'product_code_id': ''}
 
@@ -516,8 +516,6 @@ RWO_FIELDS = {'vendor_id': '', 'job_order_id': '', 'status': 1}
 
 COMBO_SKU_EXCEL_HEADERS = ['SKU Code', 'Combo SKU']
 
-RAISE_JO_HEADERS = OrderedDict([('Product SKU Code', 'product_code'), ('Product SKU Quantity', 'product_quantity'),
-                                ('Material SKU Code', 'material_code'), ('Material SKU Quantity', 'material_quantity')])
 
 RWO_PURCHASE_FIELDS = {'purchase_order_id': '', 'rwo_id': ''}
 
@@ -579,7 +577,8 @@ EASYOPS_STOCK_HEADERS = OrderedDict([('Product Name', 'sku_desc'), ('Sku', 'wms_
 EASYOPS_RETURN_ORDER_MAPPING = {'order_id': 'orderId', 'items': 'data', 'return_id': 'rtnId',
                                 'return_date': 'returnDate', 'sku': 'order["easyopsSku"]',
                                 'damaged_quantity': 'order["badQty"]', 'return_quantity': 'order["goodQty"]',
-                                'return_type': 'orders["returnType"]', 'order_items': 'orders["lineItems"]'}
+                                'return_type': 'orders["returnType"]', 'order_items': 'orders["lineItems"]',
+                                'marketplace': 'orders["channel"]', 'reason': 'orders["returnReason"]'}
 
 EASYOPS_CANCEL_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'channel',
                                 'sku': 'order["easyopsSku"]',

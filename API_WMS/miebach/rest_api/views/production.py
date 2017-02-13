@@ -53,37 +53,59 @@ def get_open_jo(start_index, stop_index, temp_data, search_term, order_term, col
 @csrf_exempt
 def get_generated_jo(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['material_picklist__jo_material__job_order__job_code', 'material_picklist__creation_date', 'material_picklist__jo_material__job_order__order_type']
+    lis = ['material_picklist__jo_material__job_order__job_code', 'material_picklist__creation_date', 'material_picklist__jo_material__job_order__order_type', 'quantity']
     if order_term:
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
         master_data = RMLocation.objects.filter(material_picklist__jo_material__material_code_id__in=sku_master_ids).\
                                          filter(material_picklist__jo_material__material_code__user=user.id, material_picklist__status='open',
-                                                status=1).order_by(order_data).\
-                                         values_list('material_picklist__jo_material__job_order__job_code', flat=True)
+                                                status=1).order_by(order_data)
+        total_pick_quantity = master_data.aggregate(Sum('reserved'))
+        master_data = master_data.values_list('material_picklist__jo_material__job_order__job_code', flat=True)
     if search_term:
         master_data = RMLocation.objects.filter(material_picklist__jo_material__material_code_id__in=sku_master_ids).\
                                          filter(Q(material_picklist__jo_material__job_order__job_code__icontains=search_term,
                                                 material_picklist__status='open'),
-                                                material_picklist__jo_material__material_code__user=user.id, status=1).\
-                                         values_list('material_picklist__jo_material__job_order__job_code', flat=True).order_by(order_data)
-    master_data = [ key for key,_ in groupby(master_data)]
+                                                material_picklist__jo_material__material_code__user=user.id, status=1)
+
+        total_pick_quantity = master_data.aggregate(Sum('reserved'))
+        master_data = master_data.values_list('material_picklist__jo_material__job_order__job_code', flat=True)
+    master_data = list(OrderedDict.fromkeys(master_data))
     temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    temp_data['totalPicklistQuantity'] = int(total_pick_quantity['reserved__sum']) if total_pick_quantity['reserved__sum'] else "No Data"
     for data_id in master_data[start_index:stop_index]:
         data = MaterialPicklist.objects.filter(jo_material__material_code_id__in=sku_master_ids).\
                                         filter(jo_material__job_order__job_code=data_id, jo_material__material_code__user=user.id,
-                                               status='open')[0]
+                                               status='open')
+        mat_picklist_ids = data.values_list('id',flat=True)
+        data = data[0]
         order_type = 'Job Order'
         rw_purchase = RWOrder.objects.filter(job_order_id=data.jo_material.job_order.id)
         if rw_purchase:
             order_type = 'Returnable Work Order'
 
         checkbox = "<input type='checkbox' name='id' value='%s'>" % data_id
-        temp_data['aaData'].append({'': checkbox, 'Job Code': data.jo_material.job_order.job_code,
-                                    'Creation Date': get_local_date(request.user, data.creation_date), 'Order Type': order_type,
-                                    'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data.jo_material.job_order.job_code}})
+        job_order_quantity = RMLocation.objects.filter(material_picklist_id__in=mat_picklist_ids, status=1)
+        p_quantity = 0
+        pro_quantity = 0
+        for obj in job_order_quantity:
+            p_quantity = obj.reserved
+            if p_quantity:
+                pro_quantity += p_quantity
+
+        temp_data['aaData'].append({ '': checkbox, 'Job Code': data.jo_material.job_order.job_code,
+                                     'Creation Date': get_local_date(request.user, data.creation_date), 'Order Type': order_type,
+                                     'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data.jo_material.job_order.job_code}, 'Quantity' : pro_quantity })
+    col_val = ['Job Code', 'Creation Date', 'Order Type', 'Quantity']
+    if order_term and col_num == 3:
+        order_data = col_val[col_num]
+        if order_term == "asc":
+            temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data])
+        else:
+            temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data], reverse= True)
+
 
 def get_user_stages(user, sub_user):
     stages = list(ProductionStages.objects.filter(user=user.id).values_list('stage_name',flat=True))
@@ -105,7 +127,7 @@ def get_user_stages(user, sub_user):
 def get_confirmed_jo(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     parent_stages = get_user_stages(user, user)
-    lis = ['job_code', 'creation_date', 'received_quantity']
+    lis = ['job_code', 'creation_date', 'received_quantity', 'saved_quantity']
     filter_params = {'product_code_id__in': sku_master_ids, 'product_code__user': user.id,
                      'status__in': ['grn-generated', 'pick_confirm', 'partial_pick'], 'product_quantity__gt': F('received_quantity')}
     if not request.user.is_staff and parent_stages:
@@ -117,30 +139,44 @@ def get_confirmed_jo(start_index, stop_index, temp_data, search_term, order_term
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        master_data = JobOrder.objects.filter(**filter_params).order_by(order_data).\
-                                       values_list('job_code', flat=True)
+        master_data = JobOrder.objects.filter(**filter_params).order_by(order_data)
+        total_quantity = master_data.aggregate(Sum('product_quantity'))['product_quantity__sum']
+        partial_quantity = master_data.aggregate(Sum('received_quantity'))['received_quantity__sum']
+        master_data = master_data.values_list('job_code', flat=True)
     if search_term:
-        master_data = JobOrder.objects.filter(Q(job_code__icontains=search_term), **filter_params).values_list('job_code', flat=True).\
-                                       order_by(order_data)
+        master_data = JobOrder.objects.filter(Q(job_code__icontains=search_term), **filter_params)
+        total_quantity = master_data.aggregate(Sum('product_quantity'))['product_quantity__sum']
+        partial_quantity = master_data.aggregate(Sum('received_quantity'))['received_quantity__sum']
+        master_data = master_data.values_list('job_code', flat=True).order_by(order_data)
+
     master_data = [ key for key,_ in groupby(master_data)]
     temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    if not total_quantity:
+        temp_data['totalReceivedQuantity'] = 0
+    if not partial_quantity:
+        partial_quantity = 0
+    if total_quantity:
+        temp_data['totalReceivedQuantity'] = int(total_quantity) - int(partial_quantity)
     for data_id in master_data[start_index:stop_index]:
         receive_status = 'Yet to Receive'
         data = JobOrder.objects.filter(job_code=data_id, product_code__user=user.id, status__in=['grn-generated', 'pick_confirm', 'partial_pick'])
+        total_quantity = 0
         for dat in data:
+            total_quantity += dat.product_quantity
             if dat.received_quantity:
                 receive_status = 'Partially Received'
+                total_quantity = total_quantity - dat.received_quantity
                 break
         data = data[0]
         temp_data['aaData'].append({'Job Code': data.job_code, 'Creation Date': get_local_date(request.user, data.creation_date),
-                                    'Receive Status': receive_status, 'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data.job_code}})
+                                    'Receive Status': receive_status, 'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data.job_code}, 'Quantity' : total_quantity})
 
 @csrf_exempt
 def get_confirmed_jo_all(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     parent_stages = get_user_stages(user, user)
-    lis = ['job_code', 'product_code__sku_code', 'product_code__sku_brand', 'product_code__sku_category', 'creation_date', 'received_quantity']
+    lis = ['job_code', 'product_code__sku_code', 'product_code__sku_brand', 'product_code__sku_category', 'creation_date', 'received_quantity', 'product_quantity']
     filter_params = {'product_code_id__in': sku_master_ids, 'product_code__user': user.id,
                      'status__in': ['grn-generated', 'pick_confirm', 'partial_pick'], 'product_quantity__gt': F('received_quantity')}
     if not request.user.is_staff and parent_stages:
@@ -152,64 +188,115 @@ def get_confirmed_jo_all(start_index, stop_index, temp_data, search_term, order_
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        master_data = JobOrder.objects.filter(**filter_params).order_by(order_data).\
-                                       values('job_code', 'product_code__sku_code', 'product_code__sku_category', 'product_code__sku_brand')
+        master_data = JobOrder.objects.filter(**filter_params).order_by(order_data)
+        total_quantity = master_data.aggregate(Sum('product_quantity'))['product_quantity__sum']
+        partial_quantity = master_data.aggregate(Sum('received_quantity'))['received_quantity__sum']
+        master_data = master_data.values('job_code', 'product_code__sku_code', 'product_code__sku_category', 'product_code__sku_brand')
+        
     if search_term:
-        master_data = JobOrder.objects.filter(Q(job_code__icontains=search_term), **filter_params).values('job_code', 'product_code__sku_code',\
+        master_data = JobOrder.objects.filter(Q(job_code__icontains=search_term), **filter_params)
+        total_quantity = master_data.aggregate(Sum('product_quantity'))['product_quantity__sum']
+        partial_quantity = master_data.aggregate(Sum('received_quantity'))['received_quantity__sum']
+        master_data = master_data.values('job_code', 'product_code__sku_code',\
 		 			'product_code__sku_category').order_by(order_data)
     master_data = [ key for key,_ in groupby(master_data)]
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
+
+    if not total_quantity:
+        temp_data['totalReceivedQuantity'] = 0
+    if not partial_quantity:
+        partial_quantity = 0
+    if total_quantity:
+        temp_data['totalReceivedQuantity'] = int(total_quantity) - int(partial_quantity)
+
     for data_id in master_data[start_index:stop_index]:
         receive_status = 'Yet to Receive'
         data = JobOrder.objects.filter(job_code=data_id['job_code'], product_code__sku_code=data_id['product_code__sku_code'], product_code__user=user.id, status__in=['grn-generated', 'pick_confirm', 'partial_pick'])
+        total_quantity = 0
         for dat in data:
+            total_quantity += dat.product_quantity
             if dat.received_quantity:
                 receive_status = 'Partially Received'
+                total_quantity = total_quantity - dat.received_quantity
                 break
         data = data[0]
+        if not "product_code__sku_brand" in data_id.keys():
+            sku_brand = ''
+        else:
+            sku_brand = data_id['product_code__sku_brand']
+
+
         temp_data['aaData'].append({'Job Code': data.job_code, 'Creation Date': get_local_date(request.user, data.creation_date),
 				    'SKU Code': data_id['product_code__sku_code'], 'SKU Category': data_id['product_code__sku_category'],
-				    'SKU Brand': data_id['product_code__sku_brand'], 'Receive Status': receive_status, 'DT_RowClass': 'results', 
-				    'DT_RowAttr': {'data-id': data.id}})
+				    'SKU Brand': sku_brand, 'Receive Status': receive_status, 'DT_RowClass': 'results', 
+				    'DT_RowAttr': {'data-id': data.id}, 'Quantity' : total_quantity})
 
 
 @csrf_exempt
 def get_jo_confirmed(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['job_code', 'creation_date', 'order_type']
+    lis = ['job_code', 'creation_date', 'order_type', 'product_quantity']
+    master_data = JobOrder.objects.filter(product_code__user=user.id, status='order-confirmed', product_code_id__in=sku_master_ids)
     if order_term:
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        master_data = JobOrder.objects.filter(product_code__user=user.id, status='order-confirmed', product_code_id__in=sku_master_ids).\
-                                               order_by(order_data).values_list('job_code', flat=True)
+        master_data = master_data.order_by(order_data)
     if search_term:
-        master_data = JobOrder.objects.filter(product_code_id__in=sku_master_ids).filter(Q(job_code__icontains=search_term,
-                                              status='order-confirmed'), product_code__user=user.id).values_list('job_code', flat=True).\
-                                       order_by(order_data)
-    master_data = [ key for key,_ in groupby(master_data)]
+        master_data = master_data.filter(Q(job_code__icontains=search_term)| Q(product_quantity__icontains=search_term))
+    total_jo_quantity = master_data.aggregate(Sum('product_quantity'))['product_quantity__sum']
+    master_data = master_data.values_list('job_code', flat=True).distinct()
+    master_data = [key for key,_ in groupby(master_data)]
+    if col_num == 3:
+        master_data = list(set(master_data))
     temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    temp_data['totalJOQuantity'] = total_jo_quantity if total_jo_quantity else "No Data"
+
     for data_id in master_data[start_index:stop_index]:
-        data = JobOrder.objects.filter(job_code=data_id, product_code__user=user.id, status='order-confirmed')[0]
+        data = JobOrder.objects.filter(job_code=data_id, product_code__user=user.id, status='order-confirmed')
+        pro_quantity = 0
+        for obj in data:
+            jo_id = 0
+            created_date = ''
+            p_quantity = 0
+            p_quantity = obj.product_quantity
+            created_date = obj.creation_date
+            jo_id = obj.id
+            jo_order_type = obj.order_type
+            if p_quantity:
+                pro_quantity += p_quantity
+
         order_type = 'Job Order'
-        rw_purchase = RWOrder.objects.filter(job_order_id=data.id)
+        rw_purchase = RWOrder.objects.filter(job_order_id=jo_id)
         if rw_purchase:
             order_type = 'Returnable Work Order'
-        if data.order_type == 'VP':
+        if jo_order_type == 'VP':
             order_type = 'Vendor Produce'
 
         checkbox = "<input type='checkbox' name='id' value='%s'>" % data_id
-        temp_data['aaData'].append({'': checkbox, 'Job Code': data.job_code,
-                                    'Creation Date': get_local_date(request.user, data.creation_date), 'Order Type': order_type, 'DT_RowClass': 'results',
-                                    'DT_RowAttr': {'data-id': data.job_code}})
+        temp_data['aaData'].append({'': checkbox, 'Job Code': data_id,
+                                    'Creation Date': get_local_date(request.user, created_date), 'Order Type': order_type, 'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data_id}, 'Quantity' : pro_quantity })
+
+    col_val = ['Job Code', 'Creation Date', 'Order Type', 'Quantity']
+    if order_term and col_num == 3:
+        order_data = col_val[col_num]
+        if order_term == "asc":
+            temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data])
+        else:
+            temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data], reverse= True)
 
 
 @csrf_exempt
 def get_received_jo(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['job_code', 'creation_date']
+    datatable_name = request.POST.get('datatable')
+    if datatable_name == "PutawayConfirmationSKU":
+        lis = ['job_code', 'product_code__sku_code', 'product_code__sku_brand', 'product_code__sku_category', 'creation_date']
+    else:
+        lis = ['job_code', 'creation_date']
+
     if order_term:
         order_data = lis[col_num]
         if order_term == 'desc':
@@ -217,9 +304,12 @@ def get_received_jo(start_index, stop_index, temp_data, search_term, order_term,
         master_data = JobOrder.objects.filter(product_code__user=user.id, status__in=['location-assigned', 'grn-generated'],
                                               product_code_id__in=sku_master_ids).order_by(order_data).values_list('job_code', flat=True)
     if search_term:
-        master_data = JobOrder.objects.filter(Q(job_code__icontains=search_term),status__in=['location-assigned', 'grn-generated'],
+        if datatable_name == "PutawayConfirmation":
+            master_data = JobOrder.objects.filter(Q(job_code__icontains=search_term),status__in=['location-assigned', 'grn-generated'],
                                               product_code__user=user.id, product_code_id__in=sku_master_ids).\
                                        values_list('job_code', flat=True).order_by(order_data)
+        else:
+            master_data = JobOrder.objects.filter((Q(job_code__icontains=search_term) | Q(product_code__sku_code=search_term)|Q( product_code__sku_brand=search_term)|Q(product_code__sku_category=search_term)),status__in=['location-assigned', 'grn-generated'],product_code__user=user.id, product_code_id__in=sku_master_ids).values_list('job_code', flat=True).order_by(order_data)
 
     master_data = [ key for key,_ in groupby(master_data)]
     for data_id in master_data:
@@ -228,42 +318,72 @@ def get_received_jo(start_index, stop_index, temp_data, search_term, order_term,
             data = JobOrder.objects.filter(job_code=data_id, product_code__user=user.id, status__in=['location-assigned', 'grn-generated'])
             data = data[0]
             temp_data['aaData'].append({'Job Code': data.job_code, 'Creation Date': get_local_date(request.user, data.creation_date),
-                                        'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data.job_code}})
+                                        'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data.job_code}, 'SKU Code' : data.product_code.sku_code, 'SKU Brand' : data.product_code.sku_brand, 'SKU Category' : data.product_code.sku_category })
     temp_data['recordsTotal'] = len(temp_data['aaData'])
-    temp_data['recordsFiltered'] = len(temp_data['aaData'])
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
 @csrf_exempt
 def get_rm_picklist_confirmed_sku(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['job_code', 'product_code__sku_code', 'product_code__sku_brand', 'product_code__sku_category','creation_date', 'order_type']
+    lis = ['job_code', 'product_code__sku_code', 'product_code__sku_brand', 'product_code__sku_category', 'product_quantity', 'order_type', 'creation_date']
+    table_name = request.POST.get('datatable')
     if order_term:
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
         master_data = JobOrder.objects.filter(product_code__user=user.id, status='order-confirmed', product_code_id__in=sku_master_ids).\
-                                               order_by(order_data).values_list('job_code', flat=True)
+                                               order_by(order_data)
+        total_jo_quantity = master_data.aggregate(Sum('product_quantity'))['product_quantity__sum']
+        master_data = master_data.values_list('job_code', 'product_code__wms_code')
     if search_term:
-        master_data = JobOrder.objects.filter(product_code_id__in=sku_master_ids).filter(Q(job_code__icontains=search_term,
-                                              status='order-confirmed'), product_code__user=user.id).values_list('job_code', flat=True).\
-                                       order_by(order_data)
-    master_data = [ key for key,_ in groupby(master_data)]
+        if table_name == "RawMaterialPicklist":
+            master_data = JobOrder.objects.filter(product_code_id__in=sku_master_ids).filter((Q(job_code__icontains=search_term,status='order-confirmed')| Q(product_quantity__icontains=search_term,status='order-confirmed')), product_code__user=user.id)
+        else:
+            master_data = JobOrder.objects.filter(product_code_id__in=sku_master_ids, product_code__user=user.id, status='order-confirmed').filter((Q(job_code__icontains=search_term)| Q(product_quantity__icontains=search_term) | Q(product_code__sku_code__icontains=search_term) | Q(product_code__sku_brand__icontains=search_term) | Q(product_code__sku_category__icontains=search_term) | Q(order_type__icontains = search_term) ))
+
+        total_jo_quantity = master_data.aggregate(Sum('product_quantity'))['product_quantity__sum']
+        master_data = master_data.values_list('job_code', 'product_code__wms_code').order_by(order_data)
+    #master_data = [ key for key,_ in groupby(master_data)]
+    #master_data = list(set(master_data))
     temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    temp_data['totalJOQuantity'] = total_jo_quantity if total_jo_quantity else "No Data"
+
     for data_id in master_data[start_index:stop_index]:
-        data = JobOrder.objects.filter(job_code=data_id, product_code__user=user.id, status='order-confirmed')[0]
+        data = JobOrder.objects.filter(job_code=data_id[0], product_code__wms_code=data_id[1], product_code__user=user.id, status='order-confirmed')
+        pro_sku_code, pro_sku_brand, pro_sku_cat, pro_created_date, pro_order_type, pro_id  = '','','','','',''
+        pro_quantity = 0
+        for obj in data:
+            pro_sku_code = obj.product_code.sku_code
+            pro_sku_brand = obj.product_code.sku_brand
+            pro_sku_cat = obj.product_code.sku_category
+            pro_created_date = obj.creation_date
+            pro_order_type = obj.order_type
+            pro_id = obj.id
+            p_quantity = obj.product_quantity
+            if p_quantity:
+                pro_quantity += p_quantity
+            #emp_data['totalJOQuantity'] += pro_quantity
+
         order_type = 'Job Order'
-        rw_purchase = RWOrder.objects.filter(job_order_id=data.id)
+        rw_purchase = RWOrder.objects.filter(job_order_id=pro_id)
         if rw_purchase:
             order_type = 'Returnable Work Order'
-        if data.order_type == 'VP':
+        if pro_order_type == 'VP':
             order_type = 'Vendor Produce'
 
-        checkbox = "<input type='checkbox' name='id' value='%s'>" % data_id
-        temp_data['aaData'].append({'': checkbox, 'Job Code': data.job_code, 'SKU Code': data.product_code.sku_code,
-                                    'SKU Brand': data.product_code.sku_brand, 'SKU Category': data.product_code.sku_category,
-                                    'Creation Date': get_local_date(request.user, data.creation_date), 'Order Type': order_type, 'DT_RowClass': 'results',
-                                    'DT_RowAttr': {'data-id': data.job_code}})
+        checkbox = "<input type='checkbox' name='id' value='%s'>" % data_id[0]
+        temp_data['aaData'].append({'': checkbox, 'Job Code': data_id[0], 'SKU Code': pro_sku_code,
+                                    'SKU Brand': pro_sku_brand, 'SKU Category': pro_sku_cat,
+                                    'Creation Date': get_local_date(request.user, pro_created_date), 'Order Type': pro_order_type, 'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data_id[0]}, 'Quantity' : pro_quantity})
+    col_val = ['Job Code', 'SKU Code', 'SKU Brand', 'SKU Category', 'Quantity', 'Order Type', 'Creation Date']
+    if order_term:
+        order_data = col_val[col_num]
+        if order_term == "asc":
+            temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data])
+        else:
+            temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data], reverse= True)
 
 @login_required
 @get_admin_user
@@ -281,7 +401,7 @@ def generated_jo_data(request, user=''):
         record_data['product_description'] = rec.product_quantity
         record_data['data'] = []
         for jo_mat in jo_material:
-            dict_data = {'material_code': jo_mat.material_code.sku_code, 'material_quantity': jo_mat.material_quantity, 'id': jo_mat.id}
+            dict_data = {'material_code': jo_mat.material_code.sku_code, 'material_quantity': jo_mat.material_quantity, 'id': jo_mat.id, 'measurement_type' : jo_mat.unit_measurement_type}
             record_data['data'].append(dict_data)
         all_data['results'].append(record_data)
     all_data['jo_reference'] = jo_reference
@@ -314,8 +434,7 @@ def save_jo(request, user=''):
             data_id = data_dict['id'][i]
         cond = (data_dict['product_code'][i])
         all_data.setdefault(cond, [])
-        all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i],
-                               data_id, '' ]})
+        all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, '', data_dict['measurement_type'][i]] })
     status = validate_jo(all_data, user.id, jo_reference='', vendor_id=vendor_id)
     if not status:
         all_data = insert_jo(all_data, user.id, jo_reference, vendor_id=vendor_id, order_type=order_type)
@@ -413,6 +532,7 @@ def insert_jo(all_data, user, jo_reference, vendor_id='', order_type=''):
                     jo_material = JOMaterial.objects.get(id=data[2])
                     jo_material.material_quantity = float(data[1])
                     jo_material.material_code_id = sku.id
+                    jo_material.unit_measurement_type = data[4]
                     jo_material.save()
                     continue
                 jo_material_dict = copy.deepcopy(JO_MATERIAL_FIELDS)
@@ -420,6 +540,7 @@ def insert_jo(all_data, user, jo_reference, vendor_id='', order_type=''):
                 jo_material_dict['material_code_id'] = material_sku.id
                 jo_material_dict['job_order_id'] = job_order.id
                 jo_material_dict['material_quantity'] = float(data[1])
+                jo_material_dict['unit_measurement_type'] = data[4]
                 jo_material = JOMaterial(**jo_material_dict)
                 jo_material.save()
                 if data[3]:
@@ -483,8 +604,7 @@ def confirm_jo(request, user=''):
         tot_mat_qty += float(data_dict['material_quantity'][i])
         cond = (data_dict['product_code'][i])
         all_data.setdefault(cond, [])
-        all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id,
-                               order_id ]})
+        all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, order_id, data_dict['measurement_type'][i]]})
 
     status = validate_jo(all_data, user.id, jo_reference=jo_reference)
     if not status:
@@ -533,7 +653,7 @@ def get_material_codes(request, user=''):
         material_quantity = bom.material_quantity
         if bom.wastage_percent:
             material_quantity = float(bom.material_quantity) + ((float(bom.material_quantity)/100) * float(bom.wastage_percent))
-        all_data.append({'material_quantity': material_quantity, 'material_code': cond})
+        all_data.append({'material_quantity': material_quantity, 'material_code': cond, 'measurement_type': bom.unit_of_measurement})
     return HttpResponse(json.dumps(all_data), content_type='application/json')
 
 @csrf_exempt
@@ -557,7 +677,7 @@ def view_confirmed_jo(request, user=''):
 
         record_data['data'] = []
         for jo_mat in jo_material:
-            dict_data = {'material_code': jo_mat.material_code.sku_code, 'material_quantity': jo_mat.material_quantity, 'id': jo_mat.id}
+            dict_data = {'material_code': jo_mat.material_code.sku_code, 'material_quantity': jo_mat.material_quantity, 'id': jo_mat.id, 'measurement_type' : jo_mat.unit_measurement_type}
             record_data['data'].append(dict_data)
         all_data['results'].append(record_data)
     all_data['jo_reference'] = job_code
@@ -566,7 +686,7 @@ def view_confirmed_jo(request, user=''):
     if record[0].vendor:
         vendor_id = record[0].vendor.vendor_id
     all_data['vendor_id'] = vendor_id
-    all_data['order_ids'] = order_ids
+    all_data['order_ids'] = list(set(order_ids))
     return HttpResponse(json.dumps(all_data))
 
 @csrf_exempt
@@ -1926,8 +2046,7 @@ def save_rwo(request, user=''):
             data_id = data_dict['id'][i]
         cond = (data_dict['product_code'][i])
         all_data.setdefault(cond, [])
-        all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id,
-                               '' ]})
+        all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, '', '' ]})
     status = validate_jo(all_data, user.id, jo_reference='')
     if not status:
         all_data = insert_jo(all_data, user.id, jo_reference, vendor_id)
@@ -1960,8 +2079,7 @@ def confirm_rwo(request, user=''):
         tot_mat_qty += float(data_dict['material_quantity'][i])
         cond = (data_dict['product_code'][i])
         all_data.setdefault(cond, [])
-        all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id,
-                               '' ]})
+        all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, '', '' ]})
     status = validate_jo(all_data, user.id, jo_reference='')
     if not status:
         all_data = insert_jo(all_data, user.id, jo_reference, vendor_id)

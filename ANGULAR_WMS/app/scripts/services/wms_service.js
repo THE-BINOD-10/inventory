@@ -41,6 +41,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       }
     }
 
+    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS"];
+
     vm.get_report_data = function(name){
       var send = {};
       var d = $q.defer();

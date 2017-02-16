@@ -75,7 +75,7 @@ WSGI_APPLICATION = 'miebach.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'WMS_BAK',
+        'NAME': 'WMS_PERM',
         'USER': 'root',
         'PASSWORD': 'Hdrn^Miebach@',
         'TEST_MIRROR': 'default',
@@ -87,10 +87,10 @@ TEMPLATE_DIRS = (
     os.path.join(BASE_DIR, 'static', 'css'),
 )
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+#STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 STATICFILES_DIRS = (
-#        os.path.join(BASE_DIR, 'static'),
+        os.path.join(BASE_DIR, 'static'),
 )
 
 # Internationalization

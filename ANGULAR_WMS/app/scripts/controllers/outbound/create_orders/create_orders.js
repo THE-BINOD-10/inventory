@@ -10,7 +10,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.company_name = Session.user_profile.company_name;
   vm.model_data = {}
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
-                            customer_id: "", payment_received: "", order_taken_by: "", other_charges: []};
+                            customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: ""};
 
   angular.copy(empty_data, vm.model_data);
   vm.isLast = isLast;

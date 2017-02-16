@@ -49,6 +49,17 @@
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
+            <label class="control-label">Shipment Time Slot</label>
+            <select ng-model="showCase.model_data.shipment_time_slot" ng-init = "showCase.model_data.shipment_time_slot = ''" class="form-control" name="shipment_time_slot">
+              <option value="" ng-selected="showCase.model_data.shipment_time_slot == ''"></option>
+              <option value="9-12" ng-selected="showCase.model_data.shipment_time_slot == '9-12'">9-12</option>
+              <option value="12-3" ng-selected="showCase.model_data.shipment_time_slot == '12-3'">12-3</option>
+              <option value="3-6" ng-selected="showCase.model_data.shipment_time_slot == '3-6'">3-6</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="form-group">
             <label class="control-label">Email</label>
             <input name="email_id" class="form-control" type="email" ng-model="showCase.model_data.email_id">
           </div>

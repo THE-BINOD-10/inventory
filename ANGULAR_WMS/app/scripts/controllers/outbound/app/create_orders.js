@@ -10,7 +10,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.company_name = Session.user_profile.company_name;
   vm.model_data = {}
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
-                            customer_id: "", payment_received: "", order_taken_by: "", other_charges: []};
+                            customer_id: "", payment_received: "", order_taken_by: "", other_charges: [], shipment_time_slot: ""};
 
   angular.copy(empty_data, vm.model_data);
 
@@ -73,6 +73,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.service.apiCall('insert_order_data/', 'GET', elem).then(function(data){
         if(data.message) {
           if("Success" == data.data) {
+            vm.delete_customer_cart_data(vm.model_data.data);
             angular.copy(empty_data, vm.model_data);
             vm.final_data = {total_quantity:0,total_amount:0}
           }
@@ -440,6 +441,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
           });
         }
       });
+      $timeout(function(){vm.insert_customer_cart_data()}, 2000);
       vm.service.showNoty("Succesfully Added to Cart", "success", "bottomRight");
     } else {
       vm.service.showNoty("Please Enter Quantity", "success", "bottomRight");
@@ -662,11 +664,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var find_data=data;
     data.quantity = Number(data.quantity);
     data.invoice_amount = Number(data.price)*data.quantity;
-   
+    vm.update_customer_cart_data(data);
   }
 
   vm.remove_item = function(index) {
 
+    vm.delete_customer_cart_data([vm.model_data.data[index]]);
     vm.model_data.data.splice(index,1);
   }
 
@@ -699,6 +702,40 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.add_scroll();
   });
 
+  vm.insert_customer_cart_data = function(){
+
+    var send = JSON.stringify(vm.model_data.data);
+    vm.service.apiCall('insert_customer_cart_data/?data='+send).then(function(data){
+       console.log(data);
+    })
+  }
+
+  vm.get_customer_cart_data = function() {
+
+    vm.service.apiCall("get_customer_cart_data").then(function(data){
+      if(data.message) {
+
+        angular.copy(data.data.data,vm.model_data.data);
+      }
+    })
+  }
+  vm.get_customer_cart_data();
+
+  vm.update_customer_cart_data = function(data) {
+
+    var send = {'sku_code': data.sku_id, 'quantity': data.quantity}
+    vm.service.apiCall("update_customer_cart_data", "GET", send)
+  }
+
+  vm.delete_customer_cart_data = function(data) {
+
+    var send = {sku_codes: ""}
+    angular.forEach(data, function(record){
+      send.sku_codes = send.sku_codes + record.sku_id + ","
+    })
+    send.sku_codes = send.sku_codes.slice(0,-1);
+    vm.service.apiCall("delete_customer_cart_data", "GET", send)
+  }
 }
 
 angular

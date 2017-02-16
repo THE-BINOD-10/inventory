@@ -95,11 +95,26 @@
       <div class="row">
         <div class="cart">
           <div class="row" style="padding: 0px; padding-top:5px">
-            <div class="ship-date" ng-if="showCase.model_data.data.length > 0">
-              <p class="pull-left" style="margin-bottom:0px;font-size: 18px;"><span class="pull-left mr10"><b>Shipment Date: </b></span>
-              <span>
-                <input name="shipment_date" type="text" class="form-control stk-readonly pull-left" ng-model="showCase.model_data.shipment_date" ui-jq="datepicker"  id="shipment_date" ng-change="showCase.date_changed()" required readonly style="width: 190px;" placeholder="Select Date">
-              </span></p>
+            <div class="ship-date">
+              <div class="col-md-4 col-sm-5 col-xs-8">
+                <p class="pull-left" style="margin-bottom:0px;font-size: 18px;"><span class="pull-left mr10"><b>Shipment Date: </b></span>
+                <span>
+                  <input name="shipment_date" type="text" class="form-control stk-readonly pull-left" ng-model="showCase.model_data.shipment_date" ui-jq="datepicker"  id="shipment_date" ng-change="showCase.date_changed()" required readonly style="width: 170px;" placeholder="Select Date">
+                </span></p>
+              </div>
+              <div class="col-md-6 col-sm-6 col-xs-4">
+                <p class="pull-left" style="margin-bottom:0px;font-size: 18px;">
+                <span class="pull-left mr10"><b>Time: </b></span>
+                <span class="pull-left mr10">
+                <select ng-model="showCase.model_data.shipment_time_slot" ng-init = "showCase.model_data.shipment_time_slot = ''" class="form-control" name="shipment_time_slot">
+                  <option value="" ng-selected="showCase.model_data.shipment_time_slot == ''"></option>
+                  <option value="9-12" ng-selected="showCase.model_data.shipment_time_slot == '9-12'">9-12</option>
+                  <option value="12-3" ng-selected="showCase.model_data.shipment_time_slot == '12-3'">12-3</option>
+                  <option value="3-6" ng-selected="showCase.model_data.shipment_time_slot == '3-6'">3-6</option>
+                </select>
+                </span>
+                </p>
+              </div>
             </div>
           </div>
           <div class="row" style="border-top:1px solid rgba(0,0,0,.1)">

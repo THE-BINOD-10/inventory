@@ -475,29 +475,29 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       });
     };
 
-   vm.checkSearchValue2 = function(record,url, event, extra, msg) {
+    vm.checkSearchValue2 = function(record,url, event, extra, msg) {
       var val = record.sku_code;
       var type = "";
       if (!(val)) {
         return;
-      }    
+      }
       if (val.search(":") > -1) {
 
         val = val.split(":")[0];
-      }    
+      }
       if (extra) {
         type = extra;
-      }    
+      }
       var data = val
       return $http.get(Session.url+url, {
         params: {
-          q: val, 
-          type: type 
+          q: val,
+          type: type
         }
       }).then(function(response){
         var results = response.data;
         if ($(event.target).val() == val) {
-          if (results.length > 0) { 
+          if (results.length > 0) {
             if (results[0] == data) {
               $(event.target).val(val);
             } else if(results[0].search(val) > -1) {

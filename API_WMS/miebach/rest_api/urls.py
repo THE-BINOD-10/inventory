@@ -191,6 +191,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^order_category_generate_picklist/$', 'order_category_generate_picklist'),
     url(r'^get_customer_orders/$', 'get_customer_orders'),
     url(r'^get_customer_order_detail/$', 'get_customer_order_detail'),
+    url(r'^generate_pdf_file/$', 'generate_pdf_file'),
 
     # Reports
     #url(r'^location_wise_filter/$','location_wise_filter'),

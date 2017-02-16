@@ -1,0 +1,33 @@
+<div ng-controller="OneChannel as showCase" class = "ng-scope page-layout">
+  <div class='layout-header'>
+    <div class="row">
+      <div class="col-md-12 col-sm-12 col-xs-12">
+        <div ng-include="'views/common/title.html'"></div>
+      </div>
+    </div>
+  </div>
+      <div class="col-md-12 col-sm-12 col-xs-12" style="background: white;padding: 20px;">
+        <div class="row">
+	  <div class="table-filter">
+            <table id="channel_table" datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
+            <div ui-view></div>
+          </div>
+	  <div class="col-md-12" style="margin-left: 10px">
+            <h4 class="ml15">ADD CHANNELS FOR RESPECTIVE MARKETPLACES</h4>
+          </div>
+          <div class="col-md-12">
+            <table ng-if="showCase.logo" class = "table_fix">
+              <tr>
+                <td ng-repeat="logos in marketplace_logos" class="pl25" ng-click="showCase.add_channels('{{ logos.name }}')">
+                  <div class="widget widget_mod">
+                    <center><img src= "{{ path_name }}{{ logos.image_name }}" style="max-width: 100%;"></center>
+                  </div>
+                </td>
+             </tr>
+            </table>
+          </div>
+	</div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -756,6 +756,19 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     })
     return columns;
   }
+
+  vm.channels_logo_base_path = function(data) {
+    return "images/marketplaces/";
+  }
+
+  vm.showLoader = function(){
+    $("#overlay").removeClass("ng-hide").addClass("ng-show");
+  };
+
+  vm.hideLoader = function(){
+    $("#overlay").removeClass("ng-show").addClass("ng-hide");
+  };
+
 }
 
   app.directive('scrolly', function () {

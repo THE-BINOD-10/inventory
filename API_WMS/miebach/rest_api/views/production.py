@@ -374,9 +374,15 @@ def get_rm_picklist_confirmed_sku(start_index, stop_index, temp_data, search_ter
             order_type = 'Vendor Produce'
 
         checkbox = "<input type='checkbox' name='id' value='%s'>" % data_id[0]
+        ids_value = {}
+        if table_name == "RawMaterialPicklistSKU":
+            ids_value = {'id': data[0].id}
+        else:
+            ids_value = {'data-id': data_id[0]}
+
         temp_data['aaData'].append({'': checkbox, 'Job Code': data_id[0], 'SKU Code': pro_sku_code,
                                     'SKU Brand': pro_sku_brand, 'SKU Category': pro_sku_cat,
-                                    'Creation Date': get_local_date(request.user, pro_created_date), 'Order Type': pro_order_type, 'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data_id[0]}, 'Quantity' : pro_quantity})
+                                    'Creation Date': get_local_date(request.user, pro_created_date), 'Order Type': order_type, 'DT_RowClass': 'results', 'DT_RowAttr': ids_value, 'Quantity' : pro_quantity})
     col_val = ['Job Code', 'SKU Code', 'SKU Brand', 'SKU Category', 'Quantity', 'Order Type', 'Creation Date']
     if order_term:
         order_data = col_val[col_num]
@@ -653,7 +659,7 @@ def get_material_codes(request, user=''):
         material_quantity = bom.material_quantity
         if bom.wastage_percent:
             material_quantity = float(bom.material_quantity) + ((float(bom.material_quantity)/100) * float(bom.wastage_percent))
-        all_data.append({'material_quantity': material_quantity, 'material_code': cond, 'measurement_type': bom.unit_of_measurement})
+        all_data.append({'material_quantity': material_quantity, 'material_code': cond, 'measurement_type': (bom.unit_of_measurement).upper()})
     return HttpResponse(json.dumps(all_data), content_type='application/json')
 
 @csrf_exempt
@@ -661,11 +667,20 @@ def get_material_codes(request, user=''):
 @get_admin_user
 def view_confirmed_jo(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    job_code = request.POST['data_id']
+    job_code_data_id = request.POST.get('data_id', '')
+    job_code = request.POST.get('id', '')
+
+    filter_params = {'product_code__user':user.id, 'status':'order-confirmed', 'product_code_id__in' : sku_master_ids }
+    if job_code_data_id:
+        filter_params.update({'job_code' : job_code_data_id })
+    else:
+        filter_params.update({'id' : job_code })
+
     all_data = {'results': []}
     order_ids = []
     status_dict = {'SP': 'Self Produce', 'VP': 'Vendor Produce'}
-    record = JobOrder.objects.filter(job_code=job_code, product_code__user=user.id, status='order-confirmed', product_code_id__in=sku_master_ids)
+    record = JobOrder.objects.filter(**filter_params)
+
     for rec in record:
         record_data = {}
         jo_material = JOMaterial.objects.filter(job_order_id= rec.id,status=1)
@@ -695,7 +710,6 @@ def view_confirmed_jo(request, user=''):
 def jo_generate_picklist(request, user=''):
     all_data = {}
     job_code = request.POST.get('job_code','')
-    headers = list(PICKLIST_HEADER1)
     temp = get_misc_value('pallet_switch', user.id)
     data_dict = dict(request.POST.iterlists())
     for i in range(len(data_dict['product_code'])):
@@ -728,7 +742,7 @@ def jo_generate_picklist(request, user=''):
 @get_admin_user
 def view_rm_picklist(request, user=''):
     data_id = request.POST['data_id']
-    headers = list(PICKLIST_HEADER1)
+    headers = list(PRINT_PICKLIST_HEADERS)
     data = get_raw_picklist_data(data_id, user)
     show_image = get_misc_value('show_image', user.id)
     if show_image == 'true':
@@ -772,7 +786,7 @@ def get_raw_picklist_data(data_id, user):
                                                'stock_id': stock_id, 'picked_quantity': location.reserved,
                                                'pallet_code': pallet_code, 'id': location.id,
                                                'title': location.material_picklist.jo_material.material_code.sku_desc,
-                                               'image': picklist.jo_material.material_code.image_url}
+                                               'image': picklist.jo_material.material_code.image_url, 'measurement_type' : picklist.jo_material.unit_measurement_type}
             else:
                 batch_data[match_condition]['reserved_quantity'] += float(location.reserved)
                 batch_data[match_condition]['picked_quantity'] += float(location.reserved)
@@ -1772,9 +1786,7 @@ def print_rm_picklist(request, user=''):
         total += float(value[0])
         total_price += float(value[1])
 
-    return render(request, 'templates/toggle/print_picklist.html', {'data': data, 'all_data': all_data, 'headers': PRINT_PICKLIST_HEADERS,
-                                                                    'picklist_id': data_id,'total_quantity': total, 'total_price': total_price,
-                                                                    'title': title})
+    return render(request, 'templates/toggle/print_raw_material_picklist.html', {'data': data, 'all_data': all_data, 'headers': PRINT_PICKLIST_HEADERS,'job_id': data_id,'total_quantity': total, 'total_price': total_price,'title': title})
 
 @csrf_exempt
 def get_rm_back_order_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters='', special_key=''):
@@ -2220,7 +2232,6 @@ def consume_vendor_stock(all_data, user, job_code):
 def generate_vendor_picklist(request, user=''):
     all_data = {}
     job_code = request.POST.get('job_code','')
-    headers = list(PICKLIST_HEADER1)
     temp = get_misc_value('pallet_switch', user.id)
     data_dict = dict(request.POST.iterlists())
     for i in range(len(data_dict['product_code'])):

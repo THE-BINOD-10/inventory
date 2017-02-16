@@ -1,0 +1,66 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">{{showCase.title}}</h4>
+      </div>
+      <div class="modal-body">
+        <div class="clearfix">
+          <div class="row">
+            <div class="col-md-12">
+              <div class="invoice-totals ng-scope" style="text-align:left">
+                <div class="invoice-totals-row">
+                    <strong class="invoice-totals-title" style="display: inline-block;min-width: 150px;text-align: left;text-transform: uppercase;">Order ID </strong>
+                    <span class="invoice-totals-value">{{ showCase.model_data.order_id }}</span>
+                </div>
+                <div class="invoice-totals-row">
+                    <strong class="invoice-totals-title" style="display: inline-block;min-width: 150px;text-align: left;                        text-transform: uppercase;">SKU Code</strong>
+                    <span class="invoice-totals-value">{{ sku_name }}</span>
+                </div>
+                <div class="invoice-totals-row">
+                    <strong class="invoice-totals-title" style="display: inline-block;min-width: 150px;text-align: left;text-transform: uppercase;">Marketplace</strong>
+                    <span class="invoice-totals-value">{{ showCase.model_data.marketplace }}</span>
+                </div>
+                <div class="invoice-totals-row">
+                    <strong class="invoice-totals-title" style="display: inline-block;min-width: 150px;text-align: left;text-transform: uppercase;">Channel SKU</strong>
+                    <span class="invoice-totals-value">{{ showCase.model_data.channel_sku }}</span>
+                </div>
+                <div class="invoice-totals-row">
+                    <strong class="invoice-totals-title" style="display: inline-block;min-width: 150px;text-align: left;text-transform: uppercase;">Title</strong>
+                    <span class="invoice-totals-value">{{ showCase.model_data.title }}</span>
+                </div>
+                <div class="invoice-totals-row">
+                    <strong class="invoice-totals-title" style="display: inline-block;min-width: 150px;text-align: left;text-transform: uppercase;">Qunatity</strong>
+                    <span class="invoice-totals-value">{{ showCase.model_data.quantity }}</span>
+                </div>
+                <div class="invoice-totals-row">
+                    <strong class="invoice-totals-title" style="display: inline-block;min-width: 150px;text-align: left;text-transform: uppercase;">Shipment Date</strong>
+                    <span class="invoice-totals-value">{{ showCase.model_data.shipment_date }}</span>
+                </div>
+                <div class="invoice-totals-row">
+                    <strong class="invoice-totals-title" style="display: inline-block;min-width: 150px;text-align: left;text-transform: uppercase;">Reason</strong>
+                    <span class="invoice-totals-value">{{ showCase.model_data.reason }}</span>
+                </div>
+              </div>
+            </div>
+    <div class="col-md-12">
+      <div class="form-group">
+        <label class="col-sm-2 control-label pt5 pl0 bold"> MAP TO SKU</label>
+          <div class="col-sm-10">
+            <input style="width:40%" type="text" autocomplete="off" name="sku_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue2(showCase.model_data,'search_wms_codes?', $event)" ng-model="showCase.model_data.sku_code" value="" required/>
+          </div>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+        <div class="modal-footer">
+            <button type="button" class="pull-left btn pop pop-red col-xs-12 col-sm-3 col-md-2 ng-scope" ng-click="showCase.delete_order(form)">Delete</button>
+            <button type="submit" class="btn pop pop-green" ng-click="showCase.confirm_orders(form)" ng-disabled="!(form.$valid)">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

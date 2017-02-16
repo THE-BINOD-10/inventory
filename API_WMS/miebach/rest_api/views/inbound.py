@@ -661,7 +661,7 @@ def switches(request, user=''):
 
         if key == "sku_sync" and value == 'true':
             insert_skus(user.id)
-        break
+            break
 
     user_id = user.id
     if toggle_field != 'invoice_prefix':
@@ -2843,6 +2843,7 @@ def save_qc_serials(scan_data, user):
 @login_required
 @get_admin_user
 def returns_putaway_data(request, user=''):
+    return_wms_codes = []
     stock = StockDetail.objects.filter(sku__user=user.id).order_by('-receipt_number')
     if stock:
         receipt_number = int(stock[0].receipt_number) + 1
@@ -2867,6 +2868,7 @@ def returns_putaway_data(request, user=''):
             status = 'Missing zone or location or quantity'
         if not status:
             sku_id = returns_data.returns.sku_id
+            return_wms_codes.append(returns_data.returns.sku.wms_code)
             stock_data = StockDetail.objects.filter(location_id=location_id[0].id, receipt_number=receipt_number, sku_id=sku_id,
                                                     sku__user=user.id)
             if stock_data:
@@ -2887,6 +2889,8 @@ def returns_putaway_data(request, user=''):
             returns_data.save()
             status = 'Updated Successfully'
 
+    return_wms_codes = list(set(return_wms_codes))
+    check_and_update_stock(return_wms_codes, user)
     return HttpResponse(status)
 
 @login_required

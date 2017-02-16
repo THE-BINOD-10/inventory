@@ -1175,12 +1175,19 @@ class OrdersTrack(models.Model):
     order_id = models.CharField(max_length=64, default='')
     reason = models.CharField(max_length=126, default='')
     status = models.IntegerField(default=1)
+    quantity =models.FloatField(default=0)
+    marketplace = models.CharField(max_length=64, default='')
+    title = models.CharField(max_length=255, default='')
+    channel_sku = models.CharField(max_length=64, default='')
+    shipment_date = models.DateTimeField(blank = True, null = True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    mapped_sku_code = models.CharField(max_length=64, default='')
+    company_name = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'ORDERS_TRACK'
-        unique_together = ('user', 'sku_code', 'order_id')
+        unique_together = ('user', 'sku_code', 'order_id','channel_sku')
 
 class POTaxMaster(models.Model):
     user = models.PositiveIntegerField(default=0)

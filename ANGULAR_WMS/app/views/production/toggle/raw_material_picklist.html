@@ -31,6 +31,7 @@
                    <th ng-if="showCase.permissions.pallet_switch">Pallet Code</th>
                    <th>Reserved Quantity</th>
                    <th>Picked Quantity</th>
+                   <th>Units Of Measurement</th>
                    <th class="plus"></th>
                  </tr>
                </thead>
@@ -47,6 +48,7 @@
                    <td ng-if="showCase.permissions.pallet_switch"><input type="text" name="pallet_{{data.id}}" class="form-control" value="{{data.pallet_code}}" ng-readonly="showCase.update"></td>
                    <td><input type="text" name="reserved_quantity_{{data.id}}" class="form-control" value="{{data.reserved_quantity}}" ng-readonly="showCase.update"></td>
                    <td><input type="text" name="picked_quantity_{{data.id}}" class="form-control" ng-model="record.picked_quantity" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
+                   <td><input type="text" name="measurement_type_{{data.id}}" class="form-control"value="{{data.measurement_type}}" ng-readonly="showCase.update"></td>
                    <td><i ng-click="showCase.update_data($index, data, $last)" ng-class="($last)? 'fa fa-plus-square-o' : 'fa fa-minus-square-o'"></i> </td>
                  </tr>
                </tbody>

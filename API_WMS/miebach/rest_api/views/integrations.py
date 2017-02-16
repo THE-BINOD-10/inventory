@@ -12,12 +12,14 @@ def update_orders(orders, user='', company_name=''):
     order_mapping = eval(LOAD_CONFIG.get(company_name, 'order_mapping_dict', ''))
     NOW = datetime.datetime.now()
     try:
+        if not orders:
+            orders = {}
         orders = orders.get(order_mapping['items'], [])
         order_details = {}
         for ind, orders in enumerate(orders):
 
             can_fulfill = orders.get('can_fulfill', '1')
-            channel_name = orders.get(order_mapping['channel'], '')
+            channel_name = eval(order_mapping['channel'])
             if can_fulfill == '0':
                 continue
 
@@ -46,21 +48,26 @@ def update_orders(orders, user='', company_name=''):
                     filter_params['sku_id'] = sku_master[0].id
                     filter_params1['sku_id'] = sku_master[0].id
                 else:
-                    SKUMaster.objects.create(sku_code=sku_code, wms_code=sku_code,user=user.id, status=1, creation_date=NOW,
-                                                          online_percentage=0)
-                    sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
-                    filter_params['sku_id'] = sku_master[0].id
-                    filter_params1['sku_id'] = sku_master[0].id
-                    #reason = ''
-                    #if sku_code:
-                    #    reason = "SKU Mapping doesn't exists"
-                    #else:
-                    #    reason = "SKU Code missing"
-                    #orders_track = OrdersTrack.objects.filter(order_id=original_order_id, sku_code=sku_code, user=user.id)
-                    #if not orders_track:
-                    #    OrdersTrack.objects.create(order_id=original_order_id, sku_code=sku_code, status=1, user=user.id,
-                    #                           reason = reason, creation_date=datetime.datetime.now())
-                    #continue
+                    #SKUMaster.objects.create(sku_code=sku_code, wms_code=sku_code,user=user.id, status=1, creation_date=NOW,
+                    #                                      online_percentage=0)
+                    #sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+                    #filter_params['sku_id'] = sku_master[0].id
+                    #filter_params1['sku_id'] = sku_master[0].id
+                    reason = ''
+                    channel_sku = eval(order_mapping['channel_sku'])
+                    if sku_code:
+                        reason = "SKU Mapping doesn't exists"
+                        orders_track = OrdersTrack.objects.filter(order_id=original_order_id, sku_code=sku_code, user=user.id)
+                    else:
+                        reason = "SKU Code missing"
+                        orders_track = OrdersTrack.objects.filter(order_id=original_order_id, channel_sku = channel_sku, user=user.id)
+                    if not orders_track:
+                        OrdersTrack.objects.create(order_id=original_order_id, sku_code=sku_code, status=1, user=user.id,
+                                            marketplace = channel_name, title = eval(order_mapping['title']), company_name = company_name,
+                                    channel_sku= channel_sku, shipment_date = eval(order_mapping['shipment_date']),
+                                                quantity = eval(order_mapping['quantity']),
+                                               reason = reason, creation_date = NOW)
+                    continue
 
                 order_det = OrderDetail.objects.filter(**filter_params)
                 order_det1 = OrderDetail.objects.filter(**filter_params1)
@@ -87,21 +94,12 @@ def update_orders(orders, user='', company_name=''):
                 order_details['original_order_id'] = original_order_id
                 order_details['order_id'] = order_id
                 order_details['order_code'] = order_code
-                if not order_code:
-                    order_details['order_code'] = 'OD'
-                #if not sku_master:
-                #    sku_master = SKUMaster.objects.create(sku_code=sku_code, user=user.id, status=1, creation_date=NOW)
-                #    orders_track = OrdersTrack.objects.filter(order_id=order_details['order_id'], sku_code=sku_code, user=user.id)
-                #    if not orders_track:
-                #        OrdersTrack.objects.create(order_id=order_details['order_id'], sku_code=sku_code, status=1, user=user.id,
-                #                                   reason = "SKU Mapping doesn't exists", creation_date=NOW)
-                #    continue
 
                 order_details['sku_id'] = sku_master[0].id
                 order_details['title'] = eval(order_mapping['title'])
                 order_details['user'] = user.id
                 order_details['quantity'] = eval(order_mapping['quantity'])
-                order_details['shipment_date'] = data.get('ship_by', '')
+                order_details['shipment_date'] = NOW
                 if not order_details['shipment_date']:
                     order_details['shipment_date'] = eval(order_mapping['shipment_date'])
                 order_details['marketplace'] = channel_name
@@ -112,6 +110,17 @@ def update_orders(orders, user='', company_name=''):
 
                 order_detail = OrderDetail(**order_details)
                 order_detail.save()
+
+                #order_issue_objs = OrdersTrack.objects.filter(user = user.id, Q(order_id = order_details['order_id'])|Q(channel_sku= eval(order_mapping['channel_sku'])))
+
+                order_issue_objs = OrdersTrack.objects.filter(user = user.id, order_id = order_details['order_id'], sku_code = sku_code).exclude(mapped_sku_code = "", sku_code = "")
+
+                order_issue_objs = OrdersTrack.objects.filter(user = user.id, order_id = order_details['order_id'], channel_sku= eval(order_mapping['channel_sku'])).exclude(mapped_sku_code = "", sku_code = "", channel_sku= "")
+
+                if order_issue_objs:
+                    order_issue_objs.mapped_sku_code = sku_code
+                    order_issue_objs.status = 0
+                    order_issue_objs.save()
 
                 swx_mapping = SWXMapping.objects.filter(local_id = order_detail.id, swx_type='order', app_host=company_name)
                 if not swx_mapping and len(str(eval(order_mapping['id']))) < 10 and isinstance(eval(order_mapping['id']), int):
@@ -161,6 +170,7 @@ def update_returns(orders, user='', company_name=''):
             return_id = orders[order_mapping['return_id']]
             original_order_id = orders[order_mapping['order_id']]
             filter_params = {'user': user.id, 'original_order_id': original_order_id}
+            order_items = [orders]
             if order_mapping.get('order_items', ''):
                 order_items = eval(order_mapping['order_items'])
 
@@ -188,7 +198,7 @@ def update_returns(orders, user='', company_name=''):
                     if not sku_obj:
                         continue
                     qty = eval(order_mapping['return_quantity']) + eval(order_mapping['damaged_quantity'])
-                    order_data = OrderDetail.objects.create(user = user.id, order_id = _order_id, order_code = _order_code, status = 4, original_order_id = original_order_id, marketplace = eval(order_mapping['return_type']), quantity = qty, sku = sku_obj[0], shipment_date = NOW.date())
+                    order_data = OrderDetail.objects.create(user = user.id, order_id = _order_id, order_code = _order_code, status = 4, original_order_id = original_order_id, marketplace = eval(order_mapping['marketplace']), quantity = qty, sku = sku_obj[0], shipment_date = NOW.date())
 
                 else:
                     order_data = order_data[0]
@@ -204,6 +214,7 @@ def update_returns(orders, user='', company_name=''):
                 return_data['order_id'] = order_data.id
                 return_data['reason'] = eval(order_mapping['reason'])
                 return_data['sku_id'] = order_data.sku_id
+                return_data['marketplace'] = eval(order_mapping['marketplace'])
                 order_returns = OrderReturns(**return_data)
                 order_returns.save()
     except:

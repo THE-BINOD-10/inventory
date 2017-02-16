@@ -111,13 +111,13 @@ def update_orders(orders, user='', company_name=''):
                 order_detail = OrderDetail(**order_details)
                 order_detail.save()
 
-                #order_issue_objs = OrdersTrack.objects.filter(user = user.id, Q(order_id = order_details['order_id'])|Q(channel_sku= eval(order_mapping['channel_sku'])))
+                order_issue_objs = OrdersTrack.objects.filter(user = user.id, order_id = original_order_id, sku_code = sku_code).exclude(mapped_sku_code = "", channel_sku = "")
 
-                order_issue_objs = OrdersTrack.objects.filter(user = user.id, order_id = order_details['order_id'], sku_code = sku_code).exclude(mapped_sku_code = "", sku_code = "")
-
-                order_issue_objs = OrdersTrack.objects.filter(user = user.id, order_id = order_details['order_id'], channel_sku= eval(order_mapping['channel_sku'])).exclude(mapped_sku_code = "", sku_code = "", channel_sku= "")
+                if not order_issue_objs:
+                    order_issue_objs = OrdersTrack.objects.filter(user = user.id, order_id = original_order_id, channel_sku= eval(order_mapping['channel_sku'])).exclude(mapped_sku_code = "", sku_code = "")
 
                 if order_issue_objs:
+                    order_issue_objs = order_issue_objs[0]
                     order_issue_objs.mapped_sku_code = sku_code
                     order_issue_objs.status = 0
                     order_issue_objs.save()

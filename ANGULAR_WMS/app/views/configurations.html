@@ -18,6 +18,11 @@
             <option ng-selected="showCase.check_selected(value, 'mail_inputs')" ng-repeat="(key, value) in showCase.model_data.mail_options"> {{key}}</option>
           </select>
         </div>
+        <div class="bootstrap-tagsinput col-md-4 col-sm-4 col-xs-10" ng-if="showCase.check_selected('internal_mail', 'mail_inputs')">
+          <input class="internal_mails" type="text" value="{{showCase.model_data.internal_mails}}" ui-jq="tagsInput"/>
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2" ng-if="showCase.check_selected('internal_mail', 'mail_inputs')"><i ng-click="showCase.update_internal_mails()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+        </div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-5 col-sm-8 col-xs-12">

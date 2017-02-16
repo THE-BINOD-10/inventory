@@ -140,7 +140,7 @@ class OrderDetail(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
     #order_id = models.BigIntegerField()
-    order_id = models.DecimalField(max_digits=35, decimal_places=0, primary_key=True)
+    order_id = models.DecimalField(max_digits=50, decimal_places=0, primary_key=True)
     original_order_id = models.CharField(max_length=128,default='')
     customer_id = models.PositiveIntegerField(default=0)
     customer_name = models.CharField(max_length=256,default='')
@@ -751,6 +751,7 @@ class JOMaterial(models.Model):
     material_code = models.ForeignKey(SKUMaster)
     material_quantity = models.FloatField(default = 0)
     status = models.IntegerField(max_length=1, default=1)
+    unit_measurement_type = models.CharField(max_length=32, default = '')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -942,6 +943,7 @@ class CustomerOrderSummary(models.Model):
     tax_value = models.FloatField(default=0)
     tax_type = models.CharField(max_length=64, default='')
     order_taken_by = models.CharField(max_length=128, default='')
+    shipment_time_slot = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=24, default='')
@@ -1341,3 +1343,29 @@ class ContactUs(models.Model):
 
     class Meta:
 	db_table = "CONTACT_US"
+
+class CustomerCartData(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    customer_user = models.ForeignKey(User, related_name='customer_user', blank=True, null=True)
+    sku = models.ForeignKey(SKUMaster)
+    quantity = models.FloatField(default=1)
+    tax = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "CUSTOMER_CART_DATA"
+
+    def json(self):
+        invoice_amount = self.quantity * self.sku.price
+        return {
+            'sku_id': self.sku.sku_code,
+            'quantity': self.quantity,
+            'price': self.sku.price,
+            'unit_price': self.sku.price,
+            'invoice_amount': invoice_amount,
+            'tax': self.tax,
+            'total_amount': ((invoice_amount * self.tax)/100) + invoice_amount,
+            'image_url': self.sku.image_url
+        }

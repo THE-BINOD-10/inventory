@@ -229,7 +229,22 @@ ORDER_SUMMARY_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 't
                       'dt_url': 'get_order_summary_filter', 'excel_name': 'order_summary_report', 'print_url': 'print_order_summary_report',
                      }
 
-REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT}
+JO_STATUS_REP_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'}, {'label': 'To Date', 'name': 'to_date',
+                                   'type': 'date'}, {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}, {'label': 'SKU Class',
+                                   'name': 'sku_class', 'type': 'input'}, {'label': 'SKU Category', 'name': 'sku_category',
+                                   'type': 'select'}, {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'select'}, {'label': 'JO Code', 
+                                   'name': 'jo_code', 'type': 'input'}],
+                     }
+
+OPEN_JO_REP_DICT = {'filters': [{'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}, {'label': 'SKU Class','name': 'class',
+                                 'type': 'input'}, {'label': 'SKU Category', 'name': 'category','type': 'select'}, {'label': 'SKU Brand',
+                                 'name': 'brand', 'type': 'select'}, {'label': 'JO Code','name': 'jo_code', 'type': 'input'},
+                                 {'label': 'Stages', 'name': 'stage', 'type': 'select'}],
+                    'dt_headers': ['JO Code', 'Jo Creation Date', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Code', 'Stage', 'Quantity'],
+                    'dt_url': 'get_openjo_report_details', 'excel_name': '', 'print_url': '',
+                   }
+
+REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'jo_status_report': JO_STATUS_REP_DICT, 'open_jo_report': OPEN_JO_REP_DICT}
 
 SKU_WISE_STOCK = {('sku_wise_form','skustockTable','SKU Wise Stock Summary','sku-wise', 1, 2, 'sku-wise-report') : (['SKU Code', 'WMS Code', 'Product Description', 'SKU Category', 'Total Quantity'],( (('SKU Code', 'sku_code'), ('SKU Category', 'sku_category')), (('SKU Type', 'sku_type'), ('SKU Class', 'sku_class')),(('WMS Code','wms_code'),))),}
 
@@ -268,7 +283,7 @@ STOCK_DET = ([('0','receipt_number'),('1','receipt_date'),('2','sku_id__sku_code
 
 ORDER_DETAIL_HEADERS = OrderedDict([('Order ID','order_id'),('SKU Code','sku_id__sku_code'),('Title','title'),('Product Quantity','quantity'),('Shipment Date','shipment_date')])
 
-PICK_LIST_HEADERS = OrderedDict([('Picklist ID','picklist_number'),('Picklist Note','remarks'),('Date','creation_date')])
+PICK_LIST_HEADERS = OrderedDict([('Picklist ID','picklist_number'), ('Customer / Marketplace','picklist_number'), ('Picklist Note','remarks'), ('Reserved Quantity', 'reserved_quantity'), ('Date','creation_date')])
 
 PO_SUGGESTIONS = OrderedDict([('0','creation_date'),('1','supplier_id'),('2','sku_id'),('3','order_quantity'),('4','price'),('5','status')])
 
@@ -314,7 +329,7 @@ REJECT_REASONS = ['Color Mismatch', 'Price Mismatch', 'Wrong Product', 'Package 
 QC_SERIAL_FIELDS = {'quality_check_id': '', 'serial_number_id': '', 'status': '','reason': ''}
 
 RAISE_JO_HEADERS = OrderedDict([('Product SKU Code', 'product_code'), ('Product SKU Quantity', 'product_quantity'),
-                                ('Material SKU Code', 'material_code'), ('Material SKU Quantity', 'material_quantity')])
+                                ('Material SKU Code', 'material_code'), ('Material SKU Quantity', 'material_quantity'), ('Measurement Type', 'measurement_type')])
 
 JO_PRODUCT_FIELDS = {'product_quantity': 0, 'received_quantity': 0, 'job_code': 0, 'jo_reference': '','status': 'open', 'product_code_id': ''}
 
@@ -366,7 +381,7 @@ PICKLIST_SKIP_LIST = ('sortingTable_length', 'fifo-switch', 'ship_reference', 's
 
 MAIL_REPORTS = { 'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wise SKU'], 'receipt_note': ['Receipt Summary'], 'dispatch_summary': ['Dispatch Summary'], 'sku_wise': ['SKU Wise Stock'] }
 
-MAIL_REPORTS_DATA = {'Raise PO': 'raise_po', 'Receive PO': 'receive_po', 'Orders': 'order', 'Dispatch': 'dispatch'}
+MAIL_REPORTS_DATA = {'Raise PO': 'raise_po', 'Receive PO': 'receive_po', 'Orders': 'order', 'Dispatch': 'dispatch', 'Internal Mail' : 'internal_mail'}
 
 REPORTS_DATA = {'SKU List': 'sku_list', 'Location Wise SKU': 'location_wise_stock', 'Receipt Summary': 'receipt_note', 'Dispatch Summary': 'dispatch_summary', 'SKU Wise Stock': 'sku_wise'}
 
@@ -467,8 +482,8 @@ MYNTRA_EXCEL = {'invoice_amount': 14, 'marketplace': 'Myntra', 'sku_code': 2, 'q
 UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code': 1}
 
 # ---  Return Marketplace headers --
-GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
-                                   ('return_id', 1),  ('return_date', 5)))
+GENERIC_RETURN_EXCEL = OrderedDict((('sku_id', 2), ('order_id', 1), ('quantity', 3), ('damaged_quantity', 4),
+                                   ('return_id', 0),  ('return_date', 5)))
 
 #MYNTRA_RETURN_EXCEL = OrderedDict((('sku_id', [5,7]), ('quantity', 8), ('reason', 13), ('marketplace', "MYNTRA")))
 
@@ -477,29 +492,9 @@ MYNTRA_RETURN_EXCEL = OrderedDict((('sku_id', [5,7]), ('quantity', 8), ('reason'
 UNIWEAR_RETURN_EXCEL = OrderedDict((('sku_id', 4), ('channel', 14),('reason', 12),
                                         ('return_id', 5),  ('return_date', 8)))
 
-"""
-GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
-                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
-
-GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
-                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
-
-GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
-                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
-
-GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
-                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
-
-GENERIC_RETURN_EXCEL = OrderedDict((('order_id', 0), ('sku_id', 2), ('return_quantity', 3), ('damaged_quantity', 4), 
-                                   ('return_id', 1),  ('return_date', 5), ('marketplace', "MYNTRA")))
-
-
-"""
-
-#-- ----- -----
 
 UNI_COMMERCE_EXCEL1 = {'order_id': 8, 'channel_name': 2, 'sku_code': 20, 'customer_name': 9, 'email_id': 10, 'telephone': 11,
-                       'address': [12, 13, 14], 'state': 15, 'pin_code': 16, 'invoice_amount': 19}
+                       'address': [12, 13, 14], 'state': 15, 'pin_code': 16, 'invoice_amount': 19, 'recreate': True}
 
 UNI_WARE_EXCEL = {'order_id': 12, 'channel_name': 2, 'sku_code': 1, 'quantity': 34}
 
@@ -521,8 +516,6 @@ RWO_FIELDS = {'vendor_id': '', 'job_order_id': '', 'status': 1}
 
 COMBO_SKU_EXCEL_HEADERS = ['SKU Code', 'Combo SKU']
 
-RAISE_JO_HEADERS = OrderedDict([('Product SKU Code', 'product_code'), ('Product SKU Quantity', 'product_quantity'),
-                                ('Material SKU Code', 'material_code'), ('Material SKU Quantity', 'material_quantity')])
 
 RWO_PURCHASE_FIELDS = {'purchase_order_id': '', 'rwo_id': ''}
 
@@ -584,7 +577,8 @@ EASYOPS_STOCK_HEADERS = OrderedDict([('Product Name', 'sku_desc'), ('Sku', 'wms_
 EASYOPS_RETURN_ORDER_MAPPING = {'order_id': 'orderId', 'items': 'data', 'return_id': 'rtnId',
                                 'return_date': 'returnDate', 'sku': 'order["easyopsSku"]',
                                 'damaged_quantity': 'order["badQty"]', 'return_quantity': 'order["goodQty"]',
-                                'return_type': 'orders["returnType"]', 'order_items': 'orders["lineItems"]'}
+                                'return_type': 'orders["returnType"]', 'order_items': 'orders["lineItems"]',
+                                'marketplace': 'orders["channel"]', 'reason': 'orders["returnReason"]'}
 
 EASYOPS_CANCEL_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'channel',
                                 'sku': 'order["easyopsSku"]',
@@ -1143,7 +1137,7 @@ def get_daily_production_data(search_params, user, sub_user):
     if 'to_date' in search_params:
         status_filter['creation_date__lte'] = datetime.datetime.combine(search_params['to_date']  + datetime.timedelta(1), datetime.time())
     status_summary = StatusTrackingSummary.objects.filter(**status_filter)
-    
+
     job_order_ids = job_orders.values_list('job_code', flat=True).distinct()
 
     start_index = search_params.get('start', 0)
@@ -1151,10 +1145,10 @@ def get_daily_production_data(search_params, user, sub_user):
 
     for summary in status_summary:
         job_order = job_orders.get(id=summary.status_tracking.status_id)
-        summary_date = summary.creation_date.strftime('%Y-%m-%d')
-        
-        summary_date_format = ' '.join(get_local_date(user, summary.creation_date).split(' ')[:3])
-        jo_creation_date = job_order.creation_date.strftime('%Y-%m-%d')
+        summary_date = get_local_date(user, summary.creation_date).split(' ')
+        summary_date = ' '.join(summary_date[0:3])
+        jo_creation_date = get_local_date(user, job_order.creation_date).split(' ')
+        jo_creation_date = ' '.join(jo_creation_date[0:3])
         cond = (summary_date, job_order.job_code, jo_creation_date, job_order.product_code.sku_class, job_order.product_code.sku_code,
                 job_order.product_code.sku_brand,job_order.product_code.sku_category, job_order.product_quantity, summary.processed_stage)
         all_data.setdefault(cond, 0)
@@ -1165,29 +1159,148 @@ def get_daily_production_data(search_params, user, sub_user):
     temp_data['recordsTotal'] = len(all_data.keys())
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
-    all_data_keys = all_data.keys()
-    if stop_index:
+    order_term = search_params.get('order_term', '')
+    order_index = search_params.get('order_index', '')
+
+    if order_term == 'asc' and order_index:
+        all_data_keys = all_data.keys()
+
+        for key in all_data_keys:
+            data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
+                                      ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]), ('Total JO Quantity', key[7]),
+                                      ('Reduced Quantity', all_data[key]),('Stage', key[8])
+                       )))
+        data = sorted(data, key=itemgetter(data[0].keys()[order_index]))
+        temp_data['aaData'] = data[start_index:stop_index]
+        return temp_data
+
+    elif order_index or (order_index == 0 and order_term == 'desc'):
+        all_data_keys = all_data.keys()
+
+        for key in all_data_keys:
+            data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
+                                      ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]), ('Total JO Quantity', key[7]),
+                                      ('Reduced Quantity', all_data[key]),('Stage', key[8])
+                       )))
+        data = sorted(data, key=itemgetter(data[0].keys()[order_index]), reverse=True)
+        temp_data['aaData'] = data[start_index:stop_index]
+        return temp_data
+
+    elif stop_index:
+        all_data_keys = all_data.keys()
         all_data_keys = all_data_keys[start_index:stop_index]
 
+        for key in all_data_keys:
+            data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
+                                      ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]), ('Total JO Quantity', key[7]),
+                                      ('Reduced Quantity', all_data[key]),('Stage', key[8])
+                       )))
+        temp_data['aaData'] = data
+        return temp_data
 
-    for key in all_data_keys:
-        data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
-                                  ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]), ('Total JO Quantity', key[7]),
-                                  ('Reduced Quantity', all_data[key]),('Stage', key[8])
-                   )))
+def get_openjo_details(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    lis = ['jo_id', 'jo_creation_date', 'sku__brand', 'sku__sku_category', 'sku__sku_class', 'sku__sku_code', 'stage', 'quantity']
+    temp_data = copy.deepcopy( AJAX_DATA )
+    search_parameters = {}
+    final_data = []
 
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    search_parameters['product_code__id__in'] = list(sku_master_ids)
+    if 'sku_code' in search_params:
+        search_parameters['product_code__sku_code'] = search_params['sku_code']
+    if 'sku_class' in search_params:
+        search_parameters['product_code__sku_class'] = search_params['sku_class']
+    if 'sku_category' in search_params:
+        search_parameters['product_code__sku_category'] = search_params['sku_category']
+    if 'sku_brand' in search_params:
+        search_parameters['product_code__sku_brand'] = search_params['sku_brand']
+    if 'job_code' in search_params:
+        search_parameters['job_code'] = int(search_params['job_code'])
+    if 'stage' in search_params:
+        jos = JobOrder.objects.filter(**search_parameters).exclude(status = 'confirmed-putaway')
+        if search_params['stage'] == 'Putaway pending':
+            jos = jos.filter(status__in = ['location-assigned', 'grn-generated'])
+        elif search_params['stage'] == 'Picklist Generated':
+            jos = jos.filter(status = 'picklist_gen')
+        elif search_params['stage'] == 'Created':
+            jos = jos.filter(status__in = ['open', 'order-confirmed'])
+        elif search_params['stage'] == 'Partially Picked':
+            jos = jos.filter(status = 'partial_pick')
+        elif search_params['stage'] == 'Picked':
+            jos = jos.filter(status = 'pick_confirm')
+        else:
+            jos = jos.filter(status = 'pick_confirm')
+            jos = list(jos.filter(**search_parameters).values_list('id', flat=True))
+            jos = StatusTracking.objects.filter(status_id__in = jos, status_value = search_params['stage'], status_type='JO').values_list('status_id', flat=True)
+            jos = JobOrder.objects.filter(id__in=jos)
+    else:
+        jos = JobOrder.objects.filter(**search_parameters).exclude(status = 'confirmed-putaway')
+
+    for data in jos:
+        if (data.status == 'open') or (data.status == 'order-confirmed'):
+            stage = 'Created'
+            quantity = data.product_quantity
+            final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
+        elif data.status == 'picklist_gen':
+            stage = 'Picklist Generated'
+            quantity = data.product_quantity
+            final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
+        elif (data.status == 'location-assigned') or (data.status == 'grn-generated'):
+            stage = 'Putaway pending'
+            quantity = data.product_quantity
+            final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
+        elif (data.status == 'pick_confirm'):
+            stages_list = StatusTracking.objects.filter(status_id = data.id).values_list('original_quantity', 'status_value')
+            if 'stage' in search_params:
+                stages_list = StatusTracking.objects.filter(status_id = data.id, status_value = search_params['stage']).values_list('original_quantity', 'status_value')
+            if stages_list:
+                for sing_stage in stages_list:
+                    stage = sing_stage[1]
+                    quantity = sing_stage[0]
+                    final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
+            else:
+                stage = 'Picked'
+                quantity = data.product_quantity
+                final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
+        elif (data.status == 'partial_pick'):
+            MaterialPicklist.objects.filter(jo_material__job_order__job_code= data.id)
+            stage = 'Partially Picked'
+            quantity = data.product_quantity
+            final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
+
+    temp_data['recordsTotal'] = len(final_data)
+    temp_data['recordsFiltered'] = len(final_data)
 
     order_term = search_params.get('order_term', '')
     order_index = search_params.get('order_index', '')
 
-    if order_term == 'asc' and data and order_index:
-        data = sorted(data, key=itemgetter(data[0].keys()[order_index]))
-    elif data and order_index:
-        data = sorted(data, key=itemgetter(data[0].keys()[order_index]), reverse=True)
+    last_data = []
+    for one_data in final_data:
+        date = get_local_date(user, one_data['data'].creation_date).split(' ')
+        last_data.append(OrderedDict(( ('JO Code', one_data['data'].job_code), ('Jo Creation Date', ' '.join(date[0:3])),
+                                                 ('SKU Brand', one_data['data'].product_code.sku_brand),
+                                                 ('SKU Category', one_data['data'].product_code.sku_category),
+                                                 ('SKU Class', one_data['data'].product_code.sku_class),
+                                                 ('SKU Code', one_data['data'].product_code.sku_code),
+                                                 ('Stage', one_data['stage']), ('Quantity', one_data['quantity']))  ))
 
-    temp_data['aaData'] = data
-
-    return temp_data
+    if order_term == 'asc' and order_index:
+        last_data = sorted(last_data, key=itemgetter(last_data[0].keys()[order_index]))
+        temp_data['aaData'] = last_data[start_index:stop_index]
+        return temp_data
+    elif order_index or (order_index == 0 and order_term == 'desc'):
+        last_data = sorted(last_data, key=itemgetter(last_data[0].keys()[order_index]), reverse=True)
+        temp_data['aaData'] = last_data[start_index:stop_index]
+        return temp_data
+    elif stop_index:
+        temp_data['aaData'] = last_data[start_index:stop_index]
+        return temp_data
 
 def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *

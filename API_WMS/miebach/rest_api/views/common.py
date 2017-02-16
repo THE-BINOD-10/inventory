@@ -235,10 +235,9 @@ def get_search_params(request):
     data_mapping = {'start': 'start', 'length': 'length', 'draw': 'draw', 'search[value]': 'search_term',
                     'order[0][dir]': 'order_term',
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date', 'wms_code': 'wms_code',
-                    'supplier': 'supplier', 'sku_code': 'sku_code', 'sku_category': 'sku_category', 'sku_type': 'sku_type',
-                    'sku_class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po',
-                    'marketplace': 'marketplace', 'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage',
-                    'sku_category': 'sku_category', 'jo_code': 'jo_code'}
+                    'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category', 'sku_category': 'sku_category', 'sku_type': 'sku_type',
+                    'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po', 'marketplace': 'marketplace',
+                    'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'job_code', 'sku_class': 'sku_class'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = { 'search0': 'search_0', 'search1': 'search_1',
                        'search2': 'search_2', 'search3': 'search_3',
@@ -282,15 +281,16 @@ data_datatable = {#masters
                   #production
                   'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed',\
                   'PickelistGenerated':'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo',\
-                  'PutawayConfirmation': 'get_received_jo', 'ProductionBackOrders': 'get_rm_back_order_data',
+                  'PutawayConfirmation': 'get_received_jo', 'PutawayConfirmationSKU':'get_received_jo',
+                  'ProductionBackOrders': 'get_rm_back_order_data',
                   'RaiseRWO': 'get_saved_rworder', 'ReceiveJOSKU': "get_confirmed_jo_all", \
+                  'RawMaterialPicklistSKU': 'get_rm_picklist_confirmed_sku',\
                   #stock locator
                   'StockSummary': 'get_stock_results', 'OnlinePercentage': 'get_sku_stock_data',\
                   'StockDetail': 'get_stock_detail_results', 'CycleCount': 'get_cycle_count',\
                   'MoveInventory': 'get_move_inventory', 'InventoryAdjustment': 'get_move_inventory',\
                   'ConfirmCycleCount': 'get_cycle_confirmed','VendorStockTable': 'get_vendor_stock',\
                   'Available':'get_available_stock','Available+Intransit':'get_availintra_stock','Total': 'get_avinre_stock',
-                  'RawMaterialPicklistSKU': 'get_rm_picklist_confirmed_sku',\
                   #outbound
                   'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders',\
                   'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders',\
@@ -490,6 +490,7 @@ def configurations(request, user=''):
     stock_sync = get_misc_value('stock_sync', user.id)
     auto_generate_picklist = get_misc_value('auto_generate_picklist', user.id)
     all_groups = SKUGroups.objects.filter(user=user.id).values_list('group', flat=True)
+    internal_mails = get_misc_value('Internal Emails', user.id)
     all_groups = str(','.join(all_groups))
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
@@ -543,7 +544,8 @@ def configurations(request, user=''):
                                                              'mail_inputs': mail_inputs, 'mail_options': MAIL_REPORTS_DATA,
                                                              'mail_reports': MAIL_REPORTS, 'data_range': data_range,
                                                              'report_freq': report_freq, 'email': email,
-                                                             'reports_data': reports_data, 'display_none': display_none, 
+                                                             'reports_data': reports_data, 'display_none': display_none,
+                                                             'internal_mails' : internal_mails,
                                                              'is_config': 'true', 'order_headers': ORDER_HEADERS_d,
                                                              'all_groups': all_groups, 'display_pos': display_pos,
                                                              'auto_po_switch': auto_po_switch, 'no_stock_switch': no_stock_switch,
@@ -657,7 +659,7 @@ def order_creation_message(items, telephone, order_id):
     data += '\n\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
     send_sms(telephone, data)
 
-def order_dispatch_message(order, user):
+def order_dispatch_message(order, user, order_qt = ""):
 
     data = 'Your order with ID %s has been successfully picked and ready for dispatch by %s %s :' % (order.order_id, user.first_name, user.last_name)
     total_quantity = 0
@@ -667,9 +669,12 @@ def order_dispatch_message(order, user):
     items = OrderDetail.objects.filter(order_id = order.order_id, order_code= order.order_code, user = user.id)
     for item in items:
         #sku_desc = (item.title[:30] + '..') if len(item.title) > 30 else item.title
-        items_data.append('\n %s  Qty: %s' % (item.sku.sku_code, int(item.quantity)))
-        total_quantity += int(item.quantity)
-        total_amount += int(item.invoice_amount)
+        qty = int(order_qt.get(item.sku.sku_code, 0))
+        if not qty:
+            continue
+        items_data.append('\n %s  Qty: %s' % (item.sku.sku_code, qty))
+        total_quantity += qty
+        total_amount += int((item.invoice_amount / item.quantity) * qty)
     data += ', '.join(items_data)
     data += '\n\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
     log.info(data)
@@ -801,6 +806,16 @@ def update_mail_configuration(request, user=''):
 
     
     add_misc_email(user, email)
+
+    return HttpResponse('Success')
+
+@csrf_exempt
+@get_admin_user
+def get_internal_mails(request, user = ""):
+    """ saving internal mails from config page """
+    internal_emails = request.GET.get('internal_mails', '')
+
+    MiscDetail.objects.update_or_create(user = user.id, misc_type='Internal Emails', defaults={'misc_value': internal_emails})
 
     return HttpResponse('Success')
 
@@ -1479,7 +1494,10 @@ def check_and_update_stock(wms_codes, user):
             if sku_count < 0:
                 sku_count = 0
             data.append({'sku': wms_code, 'quantity': sku_count})
-        obj.update_sku_count(data=data, user=user)
+        try:
+            obj.update_sku_count(data=data, user=user)
+        except:
+            continue
 
 def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_ids=[]):
     extra_data = []
@@ -1512,7 +1530,10 @@ def check_and_update_order(user, order_id):
     integrations = Integrations.objects.filter(user=user.id)
     for integrate in integrations:
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        obj.confirm_picklist(order_id, user=user)
+        try:
+            obj.confirm_picklist(order_id, user=user)
+        except:
+            continue
 
 def get_invoice_number(user):
     invoice_number = 1
@@ -1521,7 +1542,7 @@ def get_invoice_number(user):
         invoice_number = int(invoice_detail[0].invoice_number) + 1
     return invoice_number
 
-def get_invoice_data(order_ids, user):
+def get_invoice_data(order_ids, user, merge_data = ""):
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''
@@ -1585,6 +1606,14 @@ def get_invoice_data(order_ids, user):
             picklist = Picklist.objects.exclude(order_type='combo').filter(order_id=dat.id).\
                                         aggregate(Sum('picked_quantity'))['picked_quantity__sum']
             quantity = picklist
+
+            if merge_data:
+                quantity_picked = merge_data.get(dat.sku.sku_code, "")
+                if quantity_picked:
+                    quantity = float(quantity_picked)
+                else:
+                    continue
+
             if not picklist:
                 picklist = Picklist.objects.filter(order_id=dat.id, order_type='combo', picked_quantity__gt=0).\
                                             annotate(total=Sum('picked_quantity'))
@@ -1968,3 +1997,6 @@ def check_and_return_mapping_id(sku_code, title, user):
 @get_admin_user
 def update_sync_issues(request, user=''):
     return HttpResponse("Success")
+
+def xcode(text, encoding='utf8', mode='strict'):
+    return text.encode(encoding, mode) if isinstance(text, unicode) else text

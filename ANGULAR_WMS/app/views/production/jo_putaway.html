@@ -6,6 +6,19 @@
     </div>
     <div class="layout-body">
       <div class="panel">
+        <div class = "panel-header">
+          <div class="col-md-2 col-sm-4 col-xs-6 mb10" style="height: 34px;float:right;padding: 15px;">
+            <label class="switch switch-sm square pull-right mr30 mt5">
+            <div>
+            <input type="checkbox" ng-model="showCase.g_data.sku_view" ng-change="showCase.change_sku_view(showCase.g_data.sku_view)" class="ng-pristine ng-valid">
+                  <span>
+                    <i class="handle"></i>
+                  </span>
+            </div>
+            </label>
+            <label style="padding: 5px;" class="control-label pull-right"><b>SKU View : </b></label>
+          </div>
+        </div>
         <div class="panel-body">
           <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>
 

@@ -41,6 +41,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       }
     }
 
+    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS"];
+
     vm.get_report_data = function(name){
       var send = {};
       var d = $q.defer();
@@ -466,6 +468,47 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
             }
           } else {
             $(event.target).val("");
+            $(event.target).focus();
+            vm.pop_msg("Enter Correct "+msg);
+          }
+        }
+      });
+    };
+
+    vm.checkSearchValue2 = function(record,url, event, extra, msg) {
+      var val = record.sku_code;
+      var type = "";
+      if (!(val)) {
+        return;
+      }
+      if (val.search(":") > -1) {
+
+        val = val.split(":")[0];
+      }
+      if (extra) {
+        type = extra;
+      }
+      var data = val
+      return $http.get(Session.url+url, {
+        params: {
+          q: val,
+          type: type
+        }
+      }).then(function(response){
+        var results = response.data;
+        if ($(event.target).val() == val) {
+          if (results.length > 0) {
+            if (results[0] == data) {
+              $(event.target).val(val);
+            } else if(results[0].search(val) > -1) {
+              $(event.target).val(val);
+            } else {
+              record.sku_code = "";
+              $(event.target).focus();
+              vm.pop_msg("Enter Correct value "+msg);
+            }
+          } else {
+            record.sku_code = "";
             $(event.target).focus();
             vm.pop_msg("Enter Correct "+msg);
           }

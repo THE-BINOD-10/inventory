@@ -192,6 +192,10 @@ urlpatterns = patterns('rest_api.views',
     url(r'^get_customer_orders/$', 'get_customer_orders'),
     url(r'^get_customer_order_detail/$', 'get_customer_order_detail'),
     url(r'^generate_pdf_file/$', 'generate_pdf_file'),
+    url(r'^get_customer_cart_data/$', 'get_customer_cart_data'),
+    url(r'^insert_customer_cart_data/$', 'insert_customer_cart_data'),
+    url(r'^update_customer_cart_data/$', 'update_customer_cart_data'),
+    url(r'^delete_customer_cart_data/$', 'delete_customer_cart_data'),
 
     # Reports
     #url(r'^location_wise_filter/$','location_wise_filter'),
@@ -310,4 +314,9 @@ urlpatterns += patterns('rest_api.views',
 
     #stocklocator
     url(r'warehouse_headers','warehouse_headers'),
+
+    #reports
+    url(r'get_internal_mails','get_internal_mails'),
+    #url(r'^get_openjo_report/$', 'get_openjo_report'),
+    url(r'^get_openjo_report_details/$', 'get_openjo_report_details'),
     )

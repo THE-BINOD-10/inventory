@@ -1273,7 +1273,30 @@ var app = angular.module('urbanApp')
             title: 'Order Summary Report',
           }
         })
-
+        .state('app.reports.JOStatusReport', {
+          url: '/JOStatus',
+          templateUrl: 'views/reports/jo_status.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/jo_status.js');
+              }]
+          },
+          data: {
+            title: 'JO Status Report',
+          }
+        })
+        .state('app.reports.OpenJOReport', {
+          url: '/OpenJO',
+          templateUrl: 'views/reports/open_jo.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/open_jo.js');
+              }]
+          },
+          data: {
+            title: 'Open JO Report',
+          }
+        })
       // configuration route
       .state('app.configurations', {
           url: '/configurations',

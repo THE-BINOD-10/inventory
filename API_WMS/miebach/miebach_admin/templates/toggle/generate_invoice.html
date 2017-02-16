@@ -25,6 +25,16 @@
             <div class="col-md-12">
               <span>{{email}}</span>
             </div>
+            {% if user.username == 'adam_clothing' %}
+            <div class="col-md-12">
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
+                <strong>VAT TIN NO:</strong>27621087850-V<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
+                <strong>CST TIN NO:</strong>27621087850-C<br>
+              </address>
+            </div>
+            {% endif %}
           </div>
         </td>
         <td rowspan="2" style="text-align:left">
@@ -188,7 +198,7 @@
       </tr>
       {% endif %}
       {% if user.username == 'adam_clothing' %}
-      <tr class="rm-padding">
+      <tr class="rm-padding hide">
         <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
           <div class="row">
             <div class="col-xs-6 fs12">

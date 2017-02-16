@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.permissions = Session.roles.permissions;
     vm.service = Service;
+    vm.merge_invoice = false;
     vm.special_key = {status: 'open'};
     vm.tb_data = {};
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -33,7 +34,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('picklist_id').withTitle('Picklist ID'),
-        DTColumnBuilder.newColumn('picklist_note').withTitle('Picklist Note'),
+        DTColumnBuilder.newColumn('customer').withTitle('Customer / Marketplace').notSortable(),
+         DTColumnBuilder.newColumn('picklist_note').withTitle('Picklist Note'),
+        DTColumnBuilder.newColumn('reserved_quantity').withTitle('Reserved Quantity').notSortable(),
         DTColumnBuilder.newColumn('date').withTitle('Date')
     ];
 
@@ -91,6 +94,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.unique_combination = [];
       vm.sug_loc = "";
       vm.sug_sku = "";
+      vm.merge_invoice = false;
       $state.go('app.outbound.PullConfirmation');
     }
 

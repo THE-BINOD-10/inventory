@@ -3,8 +3,11 @@
   <p class="hide">{{showCase.details}}</p>
   <div class="page-layout no-scroll create_red app_scroll" ng-controller="appCreateOrders as showCase">
     <div>
-      <div class="layout-header" ng-if="$state.current.name != 'user.App.Products'" style="min-height: initial;padding: 0px;">
+      <div class="layout-header" ng-if="$state.current.name != 'user.App.Products'" style="min-height: initial;padding: 0px;position:relative">
         <div ng-include="'views/App/create_orders/company_name.html'"></div>
+        <a href="" class="pull-right" ng-click="$state.go('user.App.Cart')" style="position:absolute;right:10px;top:5px;" ng-if="$state.current.name != 'user.App.Cart'">
+          <i class="fa fa-cart-plus fa-2x" style="color:#ed1c24;padding-right: 10px;" title="Go To Cart Page"></i>
+        </a>
       </div>
       <div class="layout-body" style="background-color: white;">
         <div>

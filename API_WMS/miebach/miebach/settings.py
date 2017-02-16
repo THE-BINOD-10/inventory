@@ -46,6 +46,8 @@ INSTALLED_APPS = (
     'rest_api',
 )
 
+INSTALLED_APPS = ("longerusername",) + INSTALLED_APPS
+
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

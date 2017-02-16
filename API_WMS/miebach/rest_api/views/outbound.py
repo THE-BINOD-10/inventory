@@ -116,14 +116,16 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     for data in master_data[start_index:stop_index]:
         sku = SKUMaster.objects.get(sku_code=data.sku.sku_code,user=user.id)
         sku_code = sku.sku_code
-        order_id = data.order_code + str(data.order_id)
+        order_id = data.order_code + str(int(data.order_id))
         if data.original_order_id:
             order_id = data.original_order_id
         cust_status_obj = CustomerOrderSummary.objects.filter(order__order_id = data.order_id)
         if cust_status_obj:
             cust_status = cust_status_obj[0].status
+            time_slot = cust_status_obj[0].shipment_time_slot
         else:
             cust_status = ""
+            time_slot = ""
         if sku_code == 'TEMP':
             sku_code = data.sku_code
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data.id, data.sku.sku_code)
@@ -137,9 +139,17 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
         if single_search == "yes" and order_taken_val == '':
             continue
 
+        shipment_data = get_local_date(request.user, data.shipment_date, True).strftime("%d %b, %Y")
+        if time_slot:
+            shipment_data = shipment_data + ', ' + time_slot
+
+        try:
+            order_id = int(float(order_id))
+        except:
+            order_id = str(order_id)
         temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('Order ID', order_id), ('SKU Code', sku_code),
                                                  ('Title', data.title),('id', count), ('Product Quantity', data.quantity),
-                                                 ('Shipment Date', get_local_date(request.user, data.shipment_date)),
+                                                 ('Shipment Date', shipment_data),
                                                  ('Marketplace', data.marketplace), ('DT_RowClass', 'results'),
                                                  ('DT_RowAttr', {'data-id': str(data.order_id)} ), ('Order Taken By', order_taken_val), ('Status', cust_status)) ) )
         count = count+1
@@ -188,6 +198,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
             filter_params['order__marketplace'] = status_dict['market_place']
         filter_params['status__icontains'] = status
     if 'open' in status:
+        filter_params['status__icontains'] = "open"
         filter_params['reserved_quantity__gt'] = 0
     else:
         del filter_params['status__icontains']
@@ -195,34 +206,66 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     if status == 'batch_picked':
         col_num = col_num - 1
 
+    all_picks = Picklist.objects.filter(Q(order__sku__user = user.id) | Q(stock__sku__user=user.id), **filter_params)
+
     if search_term:
-        master_data = Picklist.objects.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).\
-                                       filter( Q(picklist_number__icontains = search_term) | Q( remarks__icontains = search_term ),
-                                               Q(order__sku__user = user.id) | Q(stock__sku__user=user.id), **filter_params).\
-                                       values('picklist_number', 'remarks').distinct()
+        master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids)|Q(stock__sku_id__in=sku_master_ids)).filter( Q(picklist_number__icontains = search_term) | Q( remarks__icontains = search_term ) | Q(order__marketplace__icontains=search_term) | Q(order__customer_name__icontains=search_term))
 
     elif order_term:
+        col_num = col_num - 1
         order_data = PICK_LIST_HEADERS.values()[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        master_data = Picklist.objects.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).\
-                                       filter(Q(order__sku__user = user.id) | Q(stock__sku__user=user.id), **filter_params).\
-                                       values('picklist_number', 'remarks').distinct().order_by(order_data)
-        master_data = [ key for key,_ in groupby(master_data)]
+        master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).order_by(order_data)
     else:
-        master_data = Picklist.objects.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).\
-                                       filter( Q(order__sku__user = user.id) | Q(stock__sku__user=user.id), **filter_params).\
-                                       values('picklist_number', 'remarks').distinct()
+        master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids))
 
-    temp_data['recordsTotal'] = len( master_data )
-    temp_data['recordsFiltered'] = len( master_data )
+    total_reserved_quantity = master_data.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
+    total_picked_quantity = master_data.aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+    master_data = master_data.values('picklist_number').distinct()
 
-    all_picks = Picklist.objects.filter(Q(order__sku__user = user.id) | Q(stock__sku__user=user.id))
+    if order_term:
+        master_data = [ key for key,_ in groupby(master_data)]
+
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    if not total_picked_quantity:
+        total_picked_quantity = 0
+    else:
+        temp_data['totalPickedQuantity'] = int(total_picked_quantity)
+
+    if not total_reserved_quantity:
+        temp_data['totalReservedQuantity'] = 0
+    else:
+        temp_data['totalReservedQuantity'] = int(total_reserved_quantity)
+
     count = 0
     for data in master_data[start_index:stop_index]:
-        create_date = all_picks.filter(picklist_number=data['picklist_number'])[0].creation_date
-        result_data = OrderedDict(( ('DT_RowAttr', { 'data-id': data['picklist_number'] }), ('picklist_note', data['remarks']),
-                                    ('date', get_local_date(request.user, create_date)), ('id', count), ('DT_RowClass', 'results') ))
+        create_date_value, order_marketplace, order_customer_name, picklist_id, remarks = '', [], [], '', ''
+        picklist_obj = all_picks.filter(picklist_number=data['picklist_number'])
+        reserved_quantity_sum_value = picklist_obj.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
+        if not reserved_quantity_sum_value:
+            reserved_quantity_sum_value = 0
+        picked_quantity_sum_value = picklist_obj.aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+        if not picked_quantity_sum_value:
+            picked_quantity_sum_value = 0
+        if picklist_obj:
+            order_marketplace = list(picklist_obj.exclude(order__marketplace='').values_list('order__marketplace',flat=True))
+            order_customer_name = list(picklist_obj.exclude(order__customer_name='').values_list('order__customer_name',flat=True))
+
+            order_marketplace1 = [str(x).upper() for x in order_marketplace]
+            if 'OFFLINE' in order_marketplace1 and len(set(order_marketplace1)) == 1:
+                prepare_str = ','.join(list(set(order_customer_name)))
+            else:
+                prepare_str = ','.join(list(set(order_marketplace)))
+
+            create_date_value = get_local_date(request.user, picklist_obj[0].creation_date)
+            remarks = picklist_obj[0].remarks
+            picklist_id = picklist_obj[0].picklist_number
+
+        result_data = OrderedDict(( ('DT_RowAttr', { 'data-id': picklist_id }), ('picklist_note', remarks),
+                                    ('reserved_quantity', reserved_quantity_sum_value), ('picked_quantity', picked_quantity_sum_value), ('customer', prepare_str),
+                                    ('date', create_date_value), ('id', count), ('DT_RowClass', 'results') ))
 
         dat = 'picklist_id'
         count += 1
@@ -231,7 +274,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
             checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data['picklist_number'], data['picklist_number'])
             result_data['checkbox'] = checkbox
-        result_data[dat] = data['picklist_number']
+        result_data[dat] = picklist_id
         temp_data['aaData'].append(result_data)
 
 @csrf_exempt
@@ -343,7 +386,7 @@ def generate_picklist(request, user=''):
     picklist_number = get_picklist_number(user)
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
+    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
@@ -599,7 +642,7 @@ def batch_generate_picklist(request, user=''):
     picklist_number = get_picklist_number(user)
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
+    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
@@ -869,7 +912,7 @@ def get_picklist_data(data_id,user_id):
         return data, sku_total_quantities
 
 
-def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, p_quantity=0):
+def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, p_quantity=0):
     if float(picklist.reserved_quantity) - p_quantity >= 0:
         picklist.reserved_quantity = float(picklist.reserved_quantity) - p_quantity
         picklist.picked_quantity = float(picklist.picked_quantity) + p_quantity
@@ -886,7 +929,22 @@ def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, p_
         picklist.status = pi_status
     picklist.save()
     if picklist.picked_quantity > 0 and picklist.order:
-        picklists_send_mail.append({'order_id': picklist.order.order_id})
+        if merge_flag:
+            quantity = picklist.picked_quantity
+        else:
+            quantity = p_quantity
+        if picklist.order.order_id in picklists_send_mail.keys():
+            if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
+                qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] )
+                picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] = qty + float(quantity)
+            else:
+                picklists_send_mail[picklist.order.order_id].update({picklist.order.sku.sku_code : float(quantity)})
+
+        else:
+            picklists_send_mail.update({picklist.order.order_id : {picklist.order.sku.sku_code : float(quantity)}})
+        #picklists_send_mail.append({'order_id': picklist.order.order_id})
+        #picklists_send_mail.append(data_count)
+        #picklists_send_mail = [{'order_id': str(picklist.order.order_id)}, data_count]
 
 def validate_location_stock(val, all_locations, all_skus, user):
     status = []
@@ -957,12 +1015,28 @@ def update_picklist_pallet(stock, picking_count1):
             pallet_mapping[0].save()
     pallet.save()
 
-def send_picklist_mail(picklists, request, user, pdf_file):
+def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt = ""):
+    picklist_order_ids_list = []
+    reciever = []
+    internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
+    misc_internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='internal_mail', misc_value='true')
+    if misc_internal_mail and internal_mail:
+        internal_mail = internal_mail[0].misc_value.split(",")
+        reciever.extend(internal_mail)
     headers = ['Product Details', 'Ordered Quantity', 'Total']
     items = []
     for picklist in picklists:
+        if {picklist.order.order_id: picklist.order.sku.sku_code} in picklist_order_ids_list:
+            continue
+        if data_qt:
+            qty = data_qt.get(picklist.order.sku.sku_code, 0)
+            if not qty:
+                continue
+        else:
+            qty = picklist.picked_quantity
+        picklist_order_ids_list.append({picklist.order.order_id: picklist.order.sku.sku_code})
         unit_price = float(picklist.order.invoice_amount)/float(picklist.order.quantity)
-        items.append([picklist.order.sku.sku_desc, picklist.picked_quantity, float(picklist.picked_quantity) * unit_price])
+        items.append([picklist.order.sku.sku_desc, qty, float(qty) * unit_price])
     picklist = picklists[0]
 
     user_data = UserProfile.objects.get(user_id = user.id);
@@ -974,10 +1048,12 @@ def send_picklist_mail(picklists, request, user, pdf_file):
     c = Context(data_dict)
     rendered = t.render(c)
 
-    email = picklist.order.email_id
-    if email:
+    if misc_detail:
+        email = picklist.order.email_id
+        reciever.append(email)
+    if reciever:
         try:
-            send_mail_attachment([email], '%s : Invoice No.%s' % (user_data.company_name, 'TI/1116/' + str(picklist.order.order_id)), rendered, files=[pdf_file])
+            send_mail_attachment(reciever, '%s : Invoice No.%s' % (user_data.company_name, 'TI/1116/' + str(picklist.order.order_id)), rendered, files=[pdf_file])
         except:
             print 'mail issue'
 
@@ -1000,15 +1076,18 @@ def get_picklist_batch(picklist, value, all_picklists):
 def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail):
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='dispatch', misc_value='true')
 
-    order_ids = list(set(map(lambda d: d['order_id'], picklists_send_mail)))
-    if misc_detail and picklist.order:
+    #order_ids = list(set(map(lambda d: d['order_id'], picklists_send_mail[0])))
+
+    order_ids = picklists_send_mail.keys()
+    if picklist.order:
         for order_id in order_ids:
             all_picked_items = picks_all.filter(order__order_id=order_id, picked_quantity__gt =0)
             order_ids_list = all_picked_items.values_list('order_id', flat=True)
             if order_ids_list:
                 order_ids = [str(int(i)) for i in order_ids_list]
                 order_ids = ','.join(order_ids)
-            nv_data = get_invoice_data(order_ids, request.user)
+
+            nv_data = get_invoice_data(order_ids, request.user, picklists_send_mail[order_id])
             nv_data.update({'user': user})
             t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
             c = Context(nv_data)
@@ -1020,11 +1099,10 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
             file_.close()
             os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
 
-            send_picklist_mail(all_picked_items, request, user, pdf_file)
+            send_picklist_mail(all_picked_items, request, user, pdf_file, misc_detail, picklists_send_mail[order_id])
             if picklist.picked_quantity > 0 and picklist.order and misc_detail:
                 if picklist.order.telephone:
-                    order_dispatch_message(picklist.order, user)
-                    pass
+                    order_dispatch_message(picklist.order, user, picklists_send_mail[order_id])
                 else:
                     log.info("No telephone no for this order")
 
@@ -1036,7 +1114,7 @@ def picklist_confirmation(request, user=''):
     data = {}
     all_data = {}
     auto_skus = []
-    picklists_send_mail = []
+    picklists_send_mail = {}
     for key, value in request.POST.iterlists():
         name, picklist_id = key.rsplit('_', 1)
         data.setdefault(picklist_id, [])
@@ -1051,6 +1129,12 @@ def picklist_confirmation(request, user=''):
     single_order = request.POST.get('single_order', '')
     all_picklists = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id), picklist_number=picklist_number,
                                             status__icontains="open")
+
+    merge_flag = request.POST.get('merge_invoice', '')
+    if merge_flag == 'true':
+        merge_flag = True
+    elif merge_flag == 'false':
+        merge_flag = False
     picks_all = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id), picklist_number=picklist_number)
     all_skus = SKUMaster.objects.filter(user=user.id)
     all_locations = LocationMaster.objects.filter(zone__user=user.id)
@@ -1058,12 +1142,12 @@ def picklist_confirmation(request, user=''):
     all_pick_locations = PicklistLocation.objects.filter(picklist__picklist_number=picklist_number, status=1, picklist_id__in=all_pick_ids)
 
     for key, value in data.iteritems():
-        if key in ('name', 'number', 'order', 'sku'):
+        if key in ('name', 'number', 'order', 'sku', 'invoice'):
             continue
         picklist_batch = ''
         picklist_order_id = value[0]['order_id']
         if picklist_order_id:
-            picklist = all_picklists.get(order_id=picklist_order_id)
+            picklist = all_picklists.get(order__order_id = picklist_order_id, order__sku__sku_code = value[0]['wms_code'])
         elif not key:
             scan_wms_codes = map(lambda d: d['wms_code'], value)
             picklist_batch = picks_all.filter(Q(stock__sku__wms_code__in=scan_wms_codes) | Q(order__sku__wms_code=scan_wms_codes),
@@ -1085,12 +1169,12 @@ def picklist_confirmation(request, user=''):
                 count = float(val['picked_quantity'])
 
             if picklist_order_id:
-                picklist_batch = [picklist]
+                picklist_batch = list(set([picklist]))
             for picklist in picklist_batch:
                 if count == 0:
                     continue
                 if not picklist.stock:
-                    confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, float(val['picked_quantity']))
+                    confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, float(val['picked_quantity']))
                     continue
 
                 if val['wms_code'] == 'TEMP' and val.get('wmscode', ''):
@@ -1168,8 +1252,25 @@ def picklist_confirmation(request, user=''):
                     all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
 
                 picklist.save()
+                picked_status = ""
                 if picklist.picked_quantity > 0 and picklist.order:
-                    picklists_send_mail.append({'order_id': picklist.order.order_id})
+                    if merge_flag:
+                        quantity = picklist.picked_quantity
+                    else:
+                        quantity = value[0]['picked_quantity']
+                    if picklist.order.order_id in picklists_send_mail.keys():
+                        if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
+                            qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] )
+                            picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] = qty + float(quantity)
+                        else:
+                            picklists_send_mail[picklist.order.order_id].update({picklist.order.sku.sku_code : float(quantity)})
+
+                    else:
+                            picklists_send_mail.update({picklist.order.order_id : {picklist.order.sku.sku_code : float(quantity)}})
+
+                    #picklists_send_mail.append({'order_id': picklist.order.order_id})
+                    #picklists_send_mail.append(data_count)
+
                 count = count - picking_count1
                 auto_skus.append(val['wms_code'])
 
@@ -1179,10 +1280,12 @@ def picklist_confirmation(request, user=''):
     check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
     if get_misc_value('automate_invoice', user.id) == 'true' and single_order:
         order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True)
-        if order_ids:
+        order_id = picklists_send_mail.keys()
+        if order_ids and order_id:
+            ord_id = order_id[0]
             order_ids = [str(int(i)) for i in order_ids]
             order_ids = ','.join(order_ids)
-            invoice_data = get_invoice_data(order_ids, user)
+            invoice_data = get_invoice_data(order_ids, user, picklists_send_mail[ord_id])
             #invoice_data['invoice_no'] = 'TI/1116/' + invoice_data['order_no']
             #invoice_data['invoice_date'] = get_local_date(user, datetime.datetime.now())
             return HttpResponse(json.dumps({'data': invoice_data, 'status': 'invoice'}))
@@ -1591,7 +1694,7 @@ def st_generate_picklist(request, user=''):
     picklist_number = get_picklist_number(user)
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
+    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(status=1, user=user.id, quantity__gt=0)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
@@ -1763,9 +1866,10 @@ def insert_order_data(request, user=''):
                 except:
                     invoice = 0
                 if invoice and value:
+                    _tax = myDict[key][i]
                     amount = float(invoice)
-                    tax_value = (amount/100) * float(value)
-                    vat = value
+                    tax_value = (amount/100) * float(_tax)
+                    vat = _tax
                     order_summary_dict['issue_type'] = 'order'
                     order_summary_dict['vat'] = vat
                     order_summary_dict['tax_value'] = "%.2f" % tax_value
@@ -1773,6 +1877,8 @@ def insert_order_data(request, user=''):
                 order_summary_dict['order_taken_by'] = value
             elif key == 'tax_type':
                 order_summary_dict['tax_type'] = value
+            elif key == 'shipment_time_slot':
+                order_summary_dict['shipment_time_slot'] = value
             else:
                 order_data[key] = value
 
@@ -1802,7 +1908,7 @@ def insert_order_data(request, user=''):
 
             created_order_id = order_detail.order_code + str(order_detail.order_id)
             if order_summary_dict.get('vat', '') or order_summary_dict.get('tax_value', ) or order_summary_dict.get('order_taken_by', '') or \
-               order_summary_dict.get('tax_type', ''):
+                order_summary_dict.get('tax_type', ''):
                 order_summary_dict['order_id'] = order_detail.id
                 order_summary = CustomerOrderSummary(**order_summary_dict)
                 order_summary.save()
@@ -2538,9 +2644,9 @@ def get_view_order_details(request, user=''):
     data_dict = []
     main_id = request.GET['order_id']
     row_id = request.GET['id']
-    order_code = main_id[:2]
-    order_id = main_id[2:]
-    order_details = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user=user.id)
+    order_code = ''.join(re.findall('\D+', main_id))
+    order_id = ''.join(re.findall('\d+', main_id))
+    order_details = OrderDetail.objects.filter(Q(order_id = order_id, order_code = order_code) | Q(original_order_id=main_id), user=user.id)
     custom_data = OrderJson.objects.filter(order_id=row_id)
     status_obj = ''
     customer_order_summary = CustomerOrderSummary.objects.filter(order_id = row_id)
@@ -2915,8 +3021,10 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         cust_status_obj = CustomerOrderSummary.objects.filter(order__order_id = dat['order_id'])
         if cust_status_obj:
             cust_status = cust_status_obj[0].status
+            time_slot = cust_status_obj[0].shipment_time_slot
         else:
             cust_status = ""
+            time_slot = ""
 
         order_taken_val = ''
         if order_taken_val_user:
@@ -2932,12 +3040,16 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         check_values = order_id
         name = all_orders.filter(order_id=dat['order_id'], order_code=dat['order_code'], user=user.id)[0].id
         creation_date = all_orders.filter(order_id=dat['order_id'], order_code=dat['order_code'], user=user.id)[0].creation_date
+        shipment_data = get_local_date(request.user, creation_date, True).strftime("%d %b, %Y")
+        if time_slot:
+            shipment_data = shipment_data + ', ' + time_slot
+
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (name, dat['total'])
 
         temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('data_value', check_values), ('Customer Name', dat['customer_name']),
                                                  ('Order ID', order_id), ('Market Place', dat['marketplace']),
                                                  ('Total Quantity', dat['total']), ('Order Taken By', order_taken_val),
-                                                 ('Creation Date', get_local_date(request.user, creation_date)),
+                                                 ('Creation Date', shipment_data),
                                                  ('id', index), ('DT_RowClass', 'results'), ('Status', cust_status) )))
         index += 1
     col_val = ['Customer Name', 'Customer Name', 'Order ID', 'Market Place', 'Total Quantity', 'Creation Date', 'Order Taken By', 'Status']
@@ -3202,6 +3314,7 @@ def get_customer_orders(request, user=""):
                     status = 'open'
             record['status'] = status
             record['date'] = get_only_date(request, data[0].creation_date)
+            record['total_inv_amt'] = round(record['total_inv_amt'], 2)
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
 @login_required
@@ -3270,3 +3383,83 @@ def generate_pdf_file(request, user=""):
     file_.close()
     os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
     return HttpResponse("../static/pdf_files/"+ str(request.user.id) +"_dispatch_invoice.pdf")
+
+@login_required
+@get_admin_user
+def get_customer_cart_data(request, user=""):
+    """  return customer cart data """
+
+    response = {'data': [], 'msg': 0}
+    cart_data = CustomerCartData.objects.filter(user_id = user.id, customer_user_id = request.user.id)
+
+    if cart_data:
+        for record in cart_data:
+           response['data'].append(record.json())
+
+    return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
+
+@login_required
+@get_admin_user
+def insert_customer_cart_data(request, user=""):
+    """ insert customer cart data """
+
+    response = {'data': [], 'msg': 0}
+    cart_data = request.GET.get('data', '')
+
+    if cart_data:
+        cart_data = eval(cart_data)
+        for record in cart_data:
+            sku = SKUMaster.objects.get(sku_code=record['sku_id'] , user=user.id)
+            cart = CustomerCartData.objects.filter(user_id = user.id, customer_user_id = request.user.id,\
+                                                   sku__sku_code = record['sku_id'])
+            if not cart:
+                data = {'user_id': user.id, 'customer_user_id': request.user.id, 'sku_id': sku.id,\
+                        'quantity': record['quantity'], 'tax': record['tax']}
+                customer_cart_data = CustomerCartData(**data)
+                customer_cart_data.save()
+            else :
+                cart = cart[0]
+                cart.quantity = cart.quantity + record['quantity']
+                cart.save()
+                response['data'] = "Inserted Successfully"
+
+    return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
+
+@login_required
+@get_admin_user
+def update_customer_cart_data(request, user=""):
+    """ update customer cart data """
+
+    response = {'data': [], 'msg': 0}
+    sku_code = request.GET.get('sku_code', '')
+    quantity = request.GET.get('quantity', '')
+
+    if sku_code:
+        cart = CustomerCartData.objects.filter(user_id = user.id, customer_user_id = request.user.id,\
+                                               sku__sku_code = sku_code)
+        if cart:
+            cart = cart[0]
+            cart.quantity = quantity
+            if float(quantity) == 0.0:
+                cart.delete()
+                response['data'] = "Deleted Successfully"
+            else:
+                cart.save()
+                response['data'] = "Updated Successfully"
+    return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
+
+@login_required
+@get_admin_user
+def delete_customer_cart_data(request, user=""):
+    """ delete customer cart data """
+
+    response = {'data': [], 'msg': 0}
+    sku_codes = request.GET.get('sku_codes', '')
+
+    if sku_codes:
+        sku_codes = sku_codes.split(",")
+        cart_data = CustomerCartData.objects.filter(user_id = user.id, customer_user_id = request.user.id,\
+                                                       sku__sku_code__in = sku_codes)
+        cart_data.delete()
+        response["msg"] = "Deleted Successfully"
+    return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))

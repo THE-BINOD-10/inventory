@@ -501,7 +501,13 @@ def get_order_returns(start_index, stop_index, temp_data, search_term, order_ter
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
-        temp_data['aaData'].append({'Return ID': data.return_id, 'Order ID': str(data.order.order_code) + str(data.order.order_id),
+        ord_id = ''
+        if data.order and data.order.original_order_id:
+            ord_id = data.order.original_order_id
+        elif data.order:
+            ord_id = str(data.order.order_code) + str(data.order.order_id)
+
+        temp_data['aaData'].append({'Return ID': data.return_id, 'Order ID': ord_id,
                                     'Return Date': get_local_date(user, data.return_date),
                                     'SKU Code': data.order.sku.sku_code, 'Product Description': data.order.sku.sku_desc,
                                     'Market Place': data.order.marketplace, 'Quantity': data.quantity})
@@ -1583,9 +1589,7 @@ def check_returns(request, user=''):
     request_order_id = request.GET.get('order_id', '')
     request_return_id = request.GET.get('return_id', '')
     if request_order_id:
-        filter_params = {'order__user': user.id, 'status__in': ['picked', 'batch_picked', 'dispatched'], 'picked_quantity__gt': 0}
-        filter_params1 = {'order__user': user.id, 'status__in': ['picked', 'batch_picked', 'dispatched'], 'picked_quantity__gt': 0,
-                          'order__original_order_id': request_order_id}
+        filter_params = {}
         order_id = re.findall('\d+', request_order_id)
         order_code = re.findall('\D+', request_order_id)
         if order_id:
@@ -1593,9 +1597,9 @@ def check_returns(request, user=''):
         if order_code:
             filter_params['order__order_code'] = ''.join(order_code[0])
 
-        picklists = Picklist.objects.filter(**filter_params)
-        if not picklists:
-            picklists = Picklist.objects.filter(**filter_params1)
+        picklists = Picklist.objects.filter(Q(order__user=user.id) | Q(stock__sku__user=user.id),
+                                            Q(order__original_order_id=request_order_id) | Q(**filter_params),
+                                            status__in=['picked', 'batch_picked', 'dispatched'], picked_quantity__gt=0)
         if not picklists:
             status = 'Order Id is invalid'
         for picklist in picklists:
@@ -2683,19 +2687,23 @@ def confirm_add_po(request, sales_data = '', user=''):
 def write_and_mail_pdf(f_name, html_data, request, supplier_email, phone_no, po_data, order_date, internal=False, report_type='Purchase Order'):
     file_name = '%s.html' % f_name
     pdf_file = '%s.pdf' % f_name
+    receivers = []
+    internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='Internal Emails')
+    misc_internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='internal_mail', misc_value='true')
+    if misc_internal_mail and internal_mail:
+        internal_mail = internal_mail[0].misc_value.split(",")
+        receivers.extend(internal_mail)
     file = open(file_name, "w+b")
     file.write(html_data)
     file.close()
     os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
 
-    receivers = []
     if supplier_email:
         receivers.append(supplier_email)
 
     if request.user.email:
         receivers.append(request.user.email)
-
-    if supplier_email or internal:
+    if supplier_email or internal or internal_mail:
         send_mail_attachment(receivers, '%s %s' % (request.user.username, report_type), 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name), files=[pdf_file])
 
     if phone_no:

@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.vendor_produce = false;
+    vm.units = vm.service.units;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {

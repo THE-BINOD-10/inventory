@@ -43,6 +43,7 @@
                     <th>Product SKU Quantity</th>
                     <th>Material SKU Code</th>
                     <th>Material SKU Quantity</th>
+                    <th>Units of Measurement</th>
                     <th class="plus"></th>
                   </tr>
                 </thead>
@@ -60,6 +61,9 @@
                     </td>
                     <td>
                       <input type="text" name="material_quantity" class="form-control" value="{{item.material_quantity}}" ng-readonly="showCase.update">
+                    </td>
+                    <td>
+                      <input type="text" name="measurement" class="form-control" value="{{item.measurement_type}}" ng-readonly="showCase.update">        
                     </td>
                     <td>
                       <div style="padding-top: 10px;" ng-if="data.sku_extra_data.length > 0">

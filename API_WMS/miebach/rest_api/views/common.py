@@ -493,6 +493,8 @@ def configurations(request, user=''):
     internal_mails = get_misc_value('Internal Emails', user.id)
     all_groups = str(','.join(all_groups))
 
+    order_manage = get_misc_value('order_manage', user.id)
+
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     all_stages = str(','.join(all_stages))
 
@@ -552,7 +554,8 @@ def configurations(request, user=''):
                                                              'float_switch': float_switch, 'all_stages': all_stages,
                                                              'automate_invoice': automate_invoice, 'show_mrp': show_mrp,
                                                              'decimal_limit': decimal_limit, 'picklist_sort_by': picklist_sort_by,
-                                                             'stock_sync': stock_sync, 'auto_generate_picklist': auto_generate_picklist}))
+                                                             'stock_sync': stock_sync, 'auto_generate_picklist': auto_generate_picklist,
+                                                             'order_management' : order_manage}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -1581,7 +1584,8 @@ def get_invoice_data(order_ids, user, merge_data = ""):
                 marketplace = dat.marketplace
                 if marketplace == 'Myntra':
                     marketplace = 'Myntra Designs Pvt Ltd\nSSN Logistics Pvt Ltd, B-2, Antariksha Lodgidrome Warehousing Complex, Opp\
-                                   Vashere HP petrol pump Aamne-sape, Pagdha, Kalyan rd,Bhiwandi - 421302'
+                                   Vashere HP petrol pump Aamne-sape, Pagdha, Kalyan rd,Bhiwandi - 421302\
+                                   TIN: 27590747736'
             tax = 0
             vat = 5.5
             discount = 0
@@ -1961,10 +1965,10 @@ def get_order_sync_issues(start_index, stop_index, temp_data, search_term, order
         order_data = '-%s' % order_data
     if search_term:
         master_data = OrdersTrack.objects.filter( Q(order_id__icontains = search_term) | Q(sku_code__icontains = search_term) |
-                                                  Q(reason__icontains = search_term) , **filter_params ).order_by(order_data)
+                                                  Q(reason__icontains = search_term), status = 1 , **filter_params ).order_by(order_data)
 
     else:
-        master_data = OrdersTrack.objects.filter(user = user.id, **filter_params).order_by(order_data)
+        master_data = OrdersTrack.objects.filter(user = user.id, status = 1, **filter_params).order_by(order_data)
 
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = master_data.count()
@@ -1973,6 +1977,91 @@ def get_order_sync_issues(start_index, stop_index, temp_data, search_term, order
         temp_data['aaData'].append(OrderedDict(( ('Order ID', result.order_id), ('SKU Code', result.sku_code),
                                                  ('Reason', result.reason), ('Created Date', get_local_date(user, result.creation_date)),
                                                  ('DT_RowClass', 'results'), ('DT_RowId', result.id) )))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_order_sync_data(request, user = ""):
+    """ The code to delete the order_sync_data """
+    order_sync_id = request.POST.get('sync_id', "")
+    if order_sync_id:
+        sync_entry = OrdersTrack.objects.filter(id = order_sync_id, user = user.id)
+        if sync_entry:
+            sync_entry = sync_entry[0]
+            sync_entry.status = 2
+            sync_entry.save()
+
+    return HttpResponse(json.dumps({"resp": True, "resp_message": "Issue is deleted"}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def order_sync_data_detail(request, user = ""):
+    """ The code to show the detail of order_sync_data """
+
+    order_sync_id = request.GET.get('sync_id', "")
+    if order_sync_id:
+        sync_entry = OrdersTrack.objects.filter(id = order_sync_id, user = user.id)
+        if sync_entry:
+            sync_entry = sync_entry[0]
+            shipment_date = ''
+            if sync_entry.shipment_date:
+                shipment_date = get_local_date(user, sync_entry.shipment_date)
+            data = {'sku_code' : sync_entry.sku_code, 'order_id' : sync_entry.order_id, 'reason' : sync_entry.reason,
+                    'channel_sku': sync_entry.channel_sku,
+                    'marketplace' : sync_entry.marketplace, 'quantity': sync_entry.quantity,
+                    'title' : sync_entry.title, 'shipment_date' : shipment_date}
+    return HttpResponse(json.dumps(data))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def confirm_order_sync_data(request, user = ""):
+    """This code confirms the order sync data, once proper sku_id is entered """
+    order_sync_id = request.POST.get('sync_id', "")
+    new_sku_code = request.POST.get('sku_code', "")
+
+    if order_sync_id:
+        sync_entry = OrdersTrack.objects.filter(id = order_sync_id, user = user.id)
+        if sync_entry:
+            sync_entry = sync_entry[0]
+            sku_obj = SKUMaster.objects.filter(sku_code = new_sku_code, user = user.id)
+
+            if not sku_obj:
+                return HttpResponse(json.dumps({"resp": False, "resp_message": "wrong sku code"}))
+            else:
+                sku_obj = sku_obj[0]
+            ord_id = "".join(re.findall("\d+", sync_entry.order_id))
+            ord_code = "".join(re.findall("\D+", sync_entry.order_id))
+
+            ord_obj = OrderDetail.objects.filter(Q(order_id = ord_id, order_code = ord_code)|Q(original_order_id = sync_entry.order_id), sku = sku_obj, user = user.id)
+
+            if ord_obj:
+                return HttpResponse(json.dumps({"resp": False, "resp_message": "Order already exist"}))
+
+            shipment_date = datetime.datetime.now()
+            if sync_entry.shipment_date:
+                shipment_date = sync_entry.shipment_date
+            ord_obj = OrderDetail.objects.create(user = user.id, order_id = ord_id, order_code = ord_code, status = 1,
+                                shipment_date = shipment_date, title = sync_entry.title, quantity = sync_entry.quantity,
+                                original_order_id = sync_entry.order_id,
+                                marketplace = sync_entry.marketplace, sku = sku_obj)
+
+            CustomerOrderSummary.objects.create(order = ord_obj)
+
+            sync_entry.mapped_sku_code = new_sku_code
+            sync_entry.status = 0
+            sync_entry.save()
+
+        else:
+            return HttpResponse(json.dumps({"resp": False, "resp_message": "wrong id"}))
+
+    else:
+        return HttpResponse(json.dumps({"resp": False, "resp_message": "id not present"}))
+    return HttpResponse(json.dumps({"resp": True, "resp_message": "Success"}))
+
 
 def check_and_return_mapping_id(sku_code, title, user):
     sku_id = ''
@@ -1998,3 +2087,10 @@ def update_sync_issues(request, user=''):
 
 def xcode(text, encoding='utf8', mode='strict'):
     return text.encode(encoding, mode) if isinstance(text, unicode) else text
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def order_management_check(request, user=''):
+    order_manage = get_misc_value('order_manage', user.id)
+    return HttpResponse(order_manage)

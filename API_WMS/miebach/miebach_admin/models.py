@@ -943,6 +943,7 @@ class CustomerOrderSummary(models.Model):
     tax_value = models.FloatField(default=0)
     tax_type = models.CharField(max_length=64, default='')
     order_taken_by = models.CharField(max_length=128, default='')
+    shipment_time_slot = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=24, default='')
@@ -1174,12 +1175,19 @@ class OrdersTrack(models.Model):
     order_id = models.CharField(max_length=64, default='')
     reason = models.CharField(max_length=126, default='')
     status = models.IntegerField(default=1)
+    quantity =models.FloatField(default=0)
+    marketplace = models.CharField(max_length=64, default='')
+    title = models.CharField(max_length=255, default='')
+    channel_sku = models.CharField(max_length=64, default='')
+    shipment_date = models.DateTimeField(blank = True, null = True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    mapped_sku_code = models.CharField(max_length=64, default='')
+    company_name = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'ORDERS_TRACK'
-        unique_together = ('user', 'sku_code', 'order_id')
+        unique_together = ('user', 'sku_code', 'order_id','channel_sku')
 
 class POTaxMaster(models.Model):
     user = models.PositiveIntegerField(default=0)
@@ -1342,3 +1350,29 @@ class ContactUs(models.Model):
 
     class Meta:
 	db_table = "CONTACT_US"
+
+class CustomerCartData(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    customer_user = models.ForeignKey(User, related_name='customer_user', blank=True, null=True)
+    sku = models.ForeignKey(SKUMaster)
+    quantity = models.FloatField(default=1)
+    tax = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "CUSTOMER_CART_DATA"
+
+    def json(self):
+        invoice_amount = self.quantity * self.sku.price
+        return {
+            'sku_id': self.sku.sku_code,
+            'quantity': self.quantity,
+            'price': self.sku.price,
+            'unit_price': self.sku.price,
+            'invoice_amount': invoice_amount,
+            'tax': self.tax,
+            'total_amount': ((invoice_amount * self.tax)/100) + invoice_amount,
+            'image_url': self.sku.image_url
+        }

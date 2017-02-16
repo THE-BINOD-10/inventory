@@ -100,6 +100,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.customer = function(url) {
+    if(vm.model_data.login_created) {
+        vm.model_data.create_login = false;
+    }
     var data = $.param(vm.model_data);
     vm.service.apiCall(url, 'POST', vm.model_data).then(function(data){
       if(data.message) {

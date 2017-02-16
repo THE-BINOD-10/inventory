@@ -39,7 +39,7 @@
                     <td><input type="text" name="wastage_percent" class="form-control" percentage-number ng-model="material.wastage_percent" maxlength="3"></td>
                     <td>
                       <select name="unit_of_measurement" class="form-control" ng-model="material.Units">
-                        <option ng-repeat="unit in showCase.units" value="{{unit}}" ng-selected="material.Units == unit">{{unit}}</option>
+                        <option ng-repeat="unit in showCase.units" ng-selected="material.Units == unit">{{unit}}</option>
                       </select>
                     </td>
                     <td><i ng-click="showCase.update_data($index)" ng-class="showCase.service.isLast($last)"></i></td>

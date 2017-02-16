@@ -1094,6 +1094,10 @@ var app = angular.module('urbanApp')
               title: 'Orders Sync Issues'
           }
       })
+      .state('app.OrdersSyncIssues.ModifyIssues', {
+            url: '/ModifyOrdersSync',
+            templateUrl: 'views/orders_sync_issues/toggle/modify_orders_sync.html',
+      })
       // Reports routes
       .state('app.reports', {
           template: '<div ui-view></div>',
@@ -1329,7 +1333,7 @@ var app = angular.module('urbanApp')
       //Channels
       .state('app.channels', {
           url: '/Channels',
-          templateUrl : 'views/masters/one_channels.html',
+          templateUrl : 'views/channels/channels.html',
           resolve:{
                 deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                   return $ocLazyLoad.load(
@@ -1356,20 +1360,28 @@ var app = angular.module('urbanApp')
 
                 ).then(function () {
                 return $ocLazyLoad.load('scripts/controllers/masters/one_channel.js');
-              });   
+              });
                     }]
                 },
              data: {
                         title: 'Channels',
                 }
           })
-	.state('app.channels.update', {
-            url: '/update',
-            templateUrl: 'views/masters/one_channels_modal.html'
+	.state('app.channels.add_flipkart', {
+          url: '/flipkart/add',
+          templateUrl: 'views/channels/add_flipkart.html'
         })
-        .state('app.channels.add_amazon_auth', {
-            url: '/auth_amazon',
-            templateUrl: 'views/masters/amazon_modal.html'
+        .state('app.channels.add_amazon', {
+          url: '/amazon/add',
+          templateUrl: 'views/channels/add_amazon.html'
+        })
+        .state('app.channels.update_flipkart', {
+          url: '/flipkart/update',
+          templateUrl: 'views/channels/add_flipkart.html'
+        })
+        .state('app.channels.update_amazon', {
+          url: '/amazon/update',
+          templateUrl: 'views/channels/add_amazon.html'
         })
 
 

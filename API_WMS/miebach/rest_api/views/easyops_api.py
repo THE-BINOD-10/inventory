@@ -18,7 +18,8 @@ class EasyopsAPI:
         self.company_name = company_name
         self.warehouse = warehouse
         self.auth_url = LOAD_CONFIG.get(self.company_name, 'auth_url', '')
-        self.auth = LOAD_CONFIG.get(self.company_name, 'auth', '')
+        self.auth = eval(LOAD_CONFIG.get(self.company_name, 'auth', 'False'))
+        self.auth_check = eval(LOAD_CONFIG.get(self.company_name, 'auth_check', 'False'))
         self.host = LOAD_CONFIG.get(self.company_name, 'host', '')
         self.auth_data = LOAD_CONFIG.get(self.company_name, 'authentication', '')
         self.token = token
@@ -43,7 +44,7 @@ class EasyopsAPI:
 
     def get_user_token(self, user=''):
         self.token = ''
-        if user:
+        if user and self.auth_check:
             self.user = user
             access_token = UserAccessTokens.objects.filter(user_profile__user_id=user.id, app_host='easyops')
             if access_token:
@@ -74,7 +75,7 @@ class EasyopsAPI:
         """ Collecting access token """
         self.user = user
         data = eval(self.auth_data)
-        integrations = Integrations.objects.filter(user=user.id)
+        integrations = Integrations.objects.filter(user=user.id, name=self.company_name)
         if integrations:
             self.client_id = integrations[0].client_id
             self.secret = integrations[0].secret
@@ -103,11 +104,11 @@ class EasyopsAPI:
         main_json_response = ""
 
         today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
-        data = eval(LOAD_CONFIG.get(self.company_name, 'pending_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        data = eval(LOAD_CONFIG.get(self.company_name, 'pending_order_dict', '') % eval(LOAD_CONFIG.get(self.company_name, 'pending_order_values', '')))
         offset = 0
         while run_iterator:
             url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'pending_orders', ''))
-            if LOAD_CONFIG.get(self.company_name, 'is_pagination', ''):
+            if eval(LOAD_CONFIG.get(self.company_name, 'is_pagination', 'False')):
                 data.update(eval(LOAD_CONFIG.get(self.company_name, 'pagination_dict', '') % str(offset)))
 
             json_response = self.get_response(url, data=data)
@@ -117,7 +118,10 @@ class EasyopsAPI:
                 else:
                     main_json_response[order_mapping['items']].extend(json_response[order_mapping['items']])
 
-                offset += int(LOAD_CONFIG.get(self.company_name, 'page_size', 0))
+                if eval(LOAD_CONFIG.get(self.company_name, 'is_pagination', 'False')):
+                    offset += int(LOAD_CONFIG.get(self.company_name, 'page_size', 0))
+                else:
+                    run_iterator = 0
 
             else:
                 run_iterator = 0
@@ -213,12 +217,12 @@ class EasyopsAPI:
         main_json_response = ""
 
         today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
-        data = eval(LOAD_CONFIG.get(self.company_name, 'returned_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        data = eval(LOAD_CONFIG.get(self.company_name, 'returned_order_dict', '') % eval(LOAD_CONFIG.get(self.company_name, 'returned_order_values', '')))
 
         offset = 0
         while run_iterator:
             url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'returned_orders', ''))
-            if LOAD_CONFIG.get(self.company_name, 'is_pagination', ''):
+            if eval(LOAD_CONFIG.get(self.company_name, 'is_pagination', 'False')):
                 data.update(eval(LOAD_CONFIG.get(self.company_name, 'pagination_dict', '') % str(offset)))
 
             json_response = self.get_response(url, data=data)
@@ -228,7 +232,10 @@ class EasyopsAPI:
                 else:
                     main_json_response[order_mapping['items']].extend(json_response[order_mapping['items']])
 
-                offset += int(LOAD_CONFIG.get(self.company_name, 'page_size', 0))
+                if eval(LOAD_CONFIG.get(self.company_name, 'is_pagination', 'False')):
+                    offset += int(LOAD_CONFIG.get(self.company_name, 'page_size', 0))
+                else:
+                    run_iterator = 0
 
             else:
                 run_iterator = 0

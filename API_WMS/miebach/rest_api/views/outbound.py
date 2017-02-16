@@ -1298,7 +1298,7 @@ def view_picklist(request, user=''):
     use_imei = 'false'
     data_id = request.GET['data_id']
     single_order = ''
-    headers = list(PICKLIST_HEADER1)
+    headers = list(PRINT_OUTBOUND_PICKLIST_HEADERS)
     misc_detail = MiscDetail.objects.filter(user=user.id)
     data = misc_detail.filter(misc_type='show_image')
     if data:
@@ -1536,7 +1536,7 @@ def print_picklist(request, user=''):
         total += float(value[0])
         total_price += float(value[1])
 
-    return render(request, 'templates/toggle/print_picklist.html', {'data': data, 'all_data': all_data, 'headers': PRINT_PICKLIST_HEADERS,
+    return render(request, 'templates/toggle/print_picklist.html', {'data': data, 'all_data': all_data, 'headers': PRINT_OUTBOUND_PICKLIST_HEADERS,
                                                                     'picklist_id': data_id,'total_quantity': total,
                                                                     'total_price': total_price, 'picklist_id': data_id,
                                                                     'customer_name': customer_name, 'order_ids': order_ids,

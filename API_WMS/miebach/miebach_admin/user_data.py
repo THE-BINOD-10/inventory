@@ -4,6 +4,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miebach.settings")
 import django
 django.setup()
 from rest_api.views.easyops_api import *
+from rest_api.views.retailone_api import *
 from miebach_admin.models import *
 from rest_api.views.integrations import update_orders, update_shipped, update_returns, update_cancelled
 from mail_server import send_mail
@@ -29,12 +30,11 @@ class CollectData:
                     access_token = user_access_token[0].access_token
                 self.client_id = ''
                 self.secret = ''
-                integrations = Integrations.objects.filter(user=user.id)
+                integrations = Integrations.objects.filter(user=user.id, name=self.company_name, status=1)
                 if integrations:
                     self.client_id = integrations[0].client_id
                     self.secret = integrations[0].secret
                 data = query_class(token=access_token, user=user)
-                print data
                 func(data, user=user, company_name=self.company_name)
             except:
                 continue
@@ -88,10 +88,10 @@ class CollectData:
 
     def run_main(self):
         threads = []
-        thread_obj = [ self.get_user_orders, self.shipped_orders, self.returned_orders, self.cancelled_orders ]
+        #thread_obj = [ self.get_user_orders, self.shipped_orders, self.returned_orders, self.cancelled_orders ]
         #thread_obj = [ self.get_user_orders]
         #thread_obj = [ self.shipped_orders ]
-        #thread_obj = [ self.returned_orders ]
+        thread_obj = [ self.returned_orders ]
         #thread_obj = [ self.cancelled_orders ]
         for count, obj in enumerate(thread_obj):
             thread = threading.Thread(name='Thread%s' % count, target=obj)

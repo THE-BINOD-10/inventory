@@ -37,12 +37,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session , pri
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
-              var elem = {'data_id': aData.DT_RowAttr['data-id']}
+              var elem = {};
+              if (aData.DT_RowAttr.hasOwnProperty('data-id')) {
+                elem = {'data_id': aData.DT_RowAttr['data-id']}
+              } else {
+                elem =  {'id': aData.DT_RowAttr['id']}
+              }
               vm.service.apiCall('view_confirmed_jo/', 'POST', elem).then(function(data){
                 if(data.message) {
                   vm.vendor_produce = (aData["Order Type"] == "Vendor Produce") ? true : false;
 		  vm.order_ids_list = data.data.order_ids.toString();
                   angular.copy(data.data, vm.model_data);
+                  vm.model_data.jo_reference = aData['Job Code']
                   $state.go('app.production.RMPicklist.ConfirmedJO');
                 }
               });

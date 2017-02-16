@@ -7,7 +7,7 @@
         <h4 class="modal-title">{{showCase.title}}</h4> </div>
       <!-- body-->
       <div class="modal-body">
-          <div class="row" ng-hide="showCase.model_data.login_created">
+          <div class="row" ng-if="!(showCase.model_data.login_created)">
             <div class="col-md-11 col-sm-11 col-xs-10">
               <p align="right">Create Login</p>
             </div>

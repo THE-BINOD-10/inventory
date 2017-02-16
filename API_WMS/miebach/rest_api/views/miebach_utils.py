@@ -268,9 +268,9 @@ SKU_EXCEL = ('wms_code', 'sku_desc', 'sku_group', 'sku_type', 'sku_category', 's
 PICKLIST_FIELDS = { 'order_id': '', 'picklist_number': '', 'reserved_quantity': '', 'picked_quantity': 0, 'remarks': '', 'status': 'open'}
 PICKLIST_HEADER = ('ORDER ID', 'WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
 
-PICKLIST_HEADER1 = ('WMS Code', 'Title','Zone', 'Location', 'Reserved Quantity', 'Picked Quantity','')
+PRINT_OUTBOUND_PICKLIST_HEADERS = ('WMS Code', 'Title','Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
 
-PRINT_PICKLIST_HEADERS = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
+PRINT_PICKLIST_HEADERS = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity', 'Units Of Measurement')
 
 PROCESSING_HEADER = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity', '')
 
@@ -479,7 +479,7 @@ LIMEROAD_EXCEL = {'order_id': 0, 'invoice_amount': 8, 'marketplace': 'Lime Road'
 MYNTRA_EXCEL = {'invoice_amount': 14, 'marketplace': 'Myntra', 'sku_code': 2, 'quantity': 9, 'title': 7, 'original_order_id': 1, 'order_id': 1,
                 'vat': [14, 11], 'mrp': 12, 'discount': 13}
 
-UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code': 1}
+UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code': 1, 'recreate': True}
 
 # ---  Return Marketplace headers --
 GENERIC_RETURN_EXCEL = OrderedDict((('sku_id', 2), ('order_id', 1), ('quantity', 3), ('damaged_quantity', 4),
@@ -556,10 +556,12 @@ PERMISSION_DICT = OrderedDict((
                                ("PAYMENT_LABEL", (("PAYMENTS","paymentsummary")))
                              ))
 
-EASYOPS_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'channel',
+ORDERS_TRACK_STATUS = {0: 'Resolved', 1: "Conflict", 2: "Delete"}
+
+EASYOPS_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'orders["channel"]',
                          'sku': 'order["easyopsSku"]',
                          'title': 'order["productTitle"]', 'quantity': 'order["quantity"]',
-                         'shipment_date': 'orders["orderDate"]',
+                         'shipment_date': 'orders["orderDate"]', 'channel_sku': 'order["channelSku"]',
                          'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]'}
 
 EASYOPS_SHIPPED_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'channel',
@@ -594,6 +596,19 @@ ORDER_HEADERS_d = OrderedDict(( ('Unit Price', 'unit_price'), ('Amount', 'amount
                                        ( 'Remarks', 'remarks') ))
 
 TAX_TYPES = OrderedDict(( ('DEFAULT', 0), ('VAT', 5.5), ('CST', 2) ))
+
+##RETAILONE RELATED
+R1_ORDER_MAPPING = {'id': 'id', 'order_id': 'order_id', 'items': 'items',
+                    'channel': 'orders["channel_sku"]["channel"]["name"]', 'sku': 'order["sku"]', 'channel_sku': 'order["mp_id_value"]',
+                    'title': 'order["title"]', 'quantity': 'order["quantity"]',
+                    'shipment_date': 'order["ship_by"]',
+                    'unit_price': '0', 'order_items': ''}
+
+R1_RETURN_ORDER_MAPPING = {'order_id': 'order_id', 'items': 'items', 'return_id': 'return_id',
+                           'return_date': 'return_date', 'sku': 'order["sku"]', 'return_type': 'order["return_type"]',
+                           'damaged_quantity': '0', 'return_quantity': 'order["quantity"]',
+                           'order_items': '', 'reason': 'order["return_reason"]', 'marketplace': 'order["channel_sku"]["channel"]["name"]'}
+
 
 def fn_timer(function):
     @wraps(function)

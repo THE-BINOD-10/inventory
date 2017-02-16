@@ -1,0 +1,62 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <div class="modal-dialog model-custom modal-md">
+    <form name="form" class="ng-pristine ng-valid" role="form" ui-jq="validate" ui-options="validationOpt">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title"> {{ showCase.title }} </h4>
+        </div>
+        <div class="modal-body">
+          <div class = "row">
+            <div class = "col-md-12">
+              <h5 style="text-align:left;">Follow the below instructions to grant API access to RetailOne:</h5>
+              <ul>
+                <li>Go to <a target="_blank" href="https://api.flipkart.net/oauth-register/login">https://api.flipkart.net/oauth-register/login</a></li>
+                <li>Sign in using your flipkart seller credentials.</li>
+                <li>On log in, click on 'Register New Application'</li>
+                <li>Enter Application name and description as 'RetailOne' (or whatever you prefer to identify later)</li>
+                <li>In the newly generated table row copy Application Id and Application Secret and paste it in the corresponding fields above</li>
+              </ul>
+            </div>
+          </div>
+          <div class="row" >
+            <div class="col-md-12">
+              <div class="form-group" >
+		<div ng-if = "showCase.formType == 'update'" >
+                <label class="control-label bold"> Name *</label>
+                <input type="text" name="name" class="form-control" ng-model="showCase.model_data.name" required>
+		</div>
+              </div>
+            </div>
+            <input type="text" name="market_place" class="form-control" ng-model="showCase.model_data.market_place" ng-init="showCase.model_data.market_place='flipkart'"  value = "{{'flipkart'}}" style="display: none;"/>
+            <input type="text" name="data_id" class="form-control" ng-model="showCase.model_data.id" style="display: none;"/>
+            <div ng-if = "showCase.formType != 'update'" >
+              <input type="text" name="form" class="form-control" ng-model="showCase.model_data.form" ng-init="showCase.model_data.form='add'"  value = "{{'add'}}" style="display: none;"/>
+            </div>
+            <div ng-if = "showCase.formType == 'update'" >
+              <input type="text" name="form" class="form-control" ng-model="showCase.model_data.form" ng-init="showCase.model_data.form='update'"  value = "{{'update'}}" style="display: none;"/>
+            </div>
+            <div class="col-md-12">
+              <div class="form-group">
+                <label class="control-label bold"> Flipkart Username * </label>
+                <input type="text" name="username" class="form-control" ng-model="showCase.model_data.username" required>
+              </div>
+            </div>
+            <div class="col-md-12">
+              <div class="form-group">
+                <label class="control-label bold"> Flipkart Password * </label>
+                <input type="password" name="password" class="form-control" ng-model="showCase.model_data.password" required>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="form-group" style="margin-bottom:0px;">
+            <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
+            <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)">{{ showCase.formType == 'update' ? 'UPDATE' : 'CONNECT'}}</button>
+          </div>
+        </div>
+      </div><!-- /.modal-content -->
+    </form>
+  </div><!-- /.modal-dialog -->
+</div>

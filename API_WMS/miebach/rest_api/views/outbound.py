@@ -3364,6 +3364,28 @@ def get_customer_order_detail(request, user=""):
 
 @login_required
 @get_admin_user
+def generate_pdf_file(request, user=""):
+
+    nv_data = eval(request.GET['data'])
+    if not nv_data:
+      return HttpResponse("no invoice")
+    if not os.path.exists('static/pdf_files/'):
+        os.makedirs('static/pdf_files/')
+    nv_data.update({'user': user})
+    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
+    c = Context(nv_data)
+    rendered = t.render(c)
+    file_name = 'static/pdf_files/%s_dispatch_invoice.html' % str(request.user.id)
+    name = str(request.user.id)+"_dispatch_invoice"
+    pdf_file = 'static/pdf_files/%s.pdf' % name
+    file_ = open(file_name, "w+b")
+    file_.write(rendered)
+    file_.close()
+    os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
+    return HttpResponse("../static/pdf_files/"+ str(request.user.id) +"_dispatch_invoice.pdf")
+
+@login_required
+@get_admin_user
 def get_customer_cart_data(request, user=""):
     """  return customer cart data """
 

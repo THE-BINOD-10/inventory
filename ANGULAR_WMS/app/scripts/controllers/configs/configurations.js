@@ -256,4 +256,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       },
     });
   };
+
+  vm.order_manage = function (data) {
+    vm.service.showLoader();
+    var order_management;
+    $.ajax({
+	url: Session.url+'order_management_toggle?order_manage='+data,
+        method: 'GET',
+        xhrFields: {
+          withCredentials: true
+        },
+        'success': function(response) {
+	  if (data){
+	      $('#channel_component').removeClass('ng-hide').css('display', 'block');
+	      order_management = "Order Management Enabled"
+	      localStorage.setItem("order_management", String(data));
+	  } else {
+	      $('#channel_component').addClass('ng-hide').css('display', 'none');
+	      order_management = "Order Management Disabled"
+	      localStorage.setItem("order_management", String(data));
+	  }
+	  vm.service.showNoty(order_management, 'success', 'topRight');
+	  vm.service.hideLoader();
+        },
+	'error': function(response) {
+	  console.log(response);
+	  vm.service.hideLoader();
+        }
+    });
+  };
+
 }

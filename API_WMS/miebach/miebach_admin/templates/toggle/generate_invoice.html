@@ -25,6 +25,16 @@
             <div class="col-md-12">
               <span>{{email}}</span>
             </div>
+            {% if user.username == 'adam_clothing' %}
+            <div class="col-md-12">
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
+                <strong>VAT TIN NO:</strong>27621087850-V<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
+                <strong>CST TIN NO:</strong>27621087850-C<br>
+              </address>
+            </div>
+            {% endif %}
           </div>
         </td>
         <td rowspan="2" style="text-align:left">
@@ -79,7 +89,7 @@
       </tr>
     </tbody>
   </table>
-  <table class="table table-bordered bl br" style="margin-bottom: 5px;">
+  <table class="table table-bordered bl br" style="margin-bottom: 0px;">
     <thead>
       <tr class="rm-padding">
         <th><center>SKU Code</center></th>
@@ -154,24 +164,20 @@
           <b>Amount in words: &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{price_in_words}} </span></b>
         </td>
       </tr>
+    </tbody>
+    <tfoot>
       <tr class="rm-padding">
-        <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
-          <div class="row">
-            <div class="col-xs-6 fs12">
-              <b>Dispatched Via:</b>
-            </div>
-            <div class="col-xs-6 text-right fs12" style="padding-right: 15px;">
-              <b>{{company_name}}</b>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-xs-12 fs12">
-              <span>DECLARATION:</span><br>
-              <span>We declare that this invoice hows actual price of the goods described inclusive of taxes and that all particulars are true and correct.</span>
-            </div>
-          </div>
+        <td colspan='9' style="text-align:left;">
+          <b class="pull-left">Dispatched Via:</b>
+          <b class="pull-right">{{company_name}}</b><br>
+          <span>DECLARATION:</span><br>
+          <span>We declare that this invoice hows actual price of the goods described inclusive of taxes and that all particulars are true and correct.</span>
         </td>
       </tr>
+    </tfoot>
+  </table>
+  <table class="table table-bordered bl br mb0" style="margin-bottom:0px">
+    <tbody class="rm-padding">
       {% if user.username == 'sagar_fab' %}
       <tr class="rm-padding">
         <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
@@ -192,7 +198,7 @@
       </tr>
       {% endif %}
       {% if user.username == 'adam_clothing' %}
-      <tr class="rm-padding">
+      <tr class="rm-padding hide">
         <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
           <div class="row">
             <div class="col-xs-6 fs12">
@@ -208,6 +214,5 @@
       </tr>
       {% endif %}
     </tbody>
-  </table>
 </div>
     </div>

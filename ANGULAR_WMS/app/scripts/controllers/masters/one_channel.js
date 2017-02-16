@@ -1,82 +1,70 @@
 'use strict';
 
+function updateCA(obj) {
+  event.stopPropagation();
+  var scope = angular.element(document.getElementById("channel_table")).scope();
+  scope.$apply(function () {
+    scope.showCase.showName(obj);
+  });
+}
+
+function pullOrders(obj, channelName) {
+  event.stopPropagation();
+  var scope = angular.element(document.getElementById("channel_table")).scope();
+  scope.$apply(function () {
+    channelName = channelName.toLowerCase();
+    scope.showCase.pull_market(obj, channelName);
+  });
+}
+
 var app = angular.module('urbanApp', ['datatables'])
 
-app.controller('OneChannel',['$scope', '$http', '$state', 'Session', '$log', 'DTOptionsBuilder', 'DTColumnBuilder', '$compile', '$timeout', '$window', '$location', ServerSideProcessingCtrl ]);
+app.controller('OneChannel',['$scope', '$http', '$state', '$timeout',  'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', ServerSideProcessingCtrl ]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, Session, $log, DTOptionsBuilder, DTColumnBuilder, $compile, $timeout, $window, $location) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, Service) {
 
   var vm = this;
   vm.showName = showName;
+  vm.service = Service;
+  vm.logo = false;
 
-  //Notify Message Code
-  function showNoty(msg,type,$layout) {
-
-    if (!type) {
-      type = 'success';
-    }
-    if (!msg) {
-      msg = 'Success';
-    }
-    if (!$layout) {
-      $layout = 'topRight';
-    }
-    noty({
-      theme: 'urban-noty',
-      text: msg,
-      type: type,
-      timeout: 3000,
-      layout: $layout,
-      closeWith: ['button', 'click'],
-      animation: {
-        open: 'in',
-        close: 'out',
-        easing: 'swing'
+  //Marketplace Logo 
+  $.ajax({
+      type: "GET",
+      url: Session.url+"get_marketplace_logo/",
+      crossDomain:true,
+      success: function(data) {
+	data = JSON.parse(data)
+	$scope.marketplace_logos = data.objects;
+        $scope.path_name = vm.service.channels_logo_base_path();
+	$scope.$apply(function () {
+    	  $scope.showCase.logo = true;
+  	});
       },
-    });
-  };
+      error: function(data) {
+        vm.service.showNoty(data.statusText, 'error', 'topRight');
+      }
+  })
 
-  //To Check Parameters Present in Channels page
-  var queryDict = {}
-  function getUrlVars() {
-    var vars = {}
-    var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
-        vars[key] = value;
-    });
-    return vars;
-  }
-
-  queryDict = getUrlVars()
-
-  if (queryDict != undefined && $.isEmptyObject(queryDict) != true)
-  {
-   if (queryDict.auth_status){
-      showNoty(queryDict.market_place + " Added Successfully", "success", "topLeft")
-   }
-   else{
-      showNoty("Error occured", "danger", "topLeft")
-   }
-  }
-   
-
-  //Modal Popup of Flipkart
-  vm.add_flipkart_channels = function() {
-    vm.title = "Add Flipkart Channel";
-    vm.update = false;
-    vm.model_data = {}
-    var empty_data = {}
-    angular.extend(vm.model_data, empty_data);
-    $state.go('app.channels.update');
-  }
-
-  //Modal Popup of Amazon
-  vm.add_amazon_channels = function() {
-    vm.title = "Add Amazon Channel";
-    vm.update = false;
-    vm.model_data = {}
-    var empty_data = {}
-    angular.extend(vm.model_data, empty_data);
-    $state.go('app.channels.add_amazon_auth');
+  //Modal Popup
+  vm.add_channels = function(channel_name) {
+    if (channel_name == "flipkart"){
+      vm.title = "Add Flipkart Channel";
+      vm.update = false;
+      vm.model_data = {};
+      vm.formType = "add";
+      var empty_data = {};
+      angular.extend(vm.model_data, empty_data);
+      $state.go('app.channels.add_flipkart');
+    } else if (channel_name == "amazon"){
+      vm.title = "Add Amazon Channel";
+      vm.update = false;
+      vm.model_data = {};
+      vm.formType = "add";
+      var empty_data = {};
+      angular.extend(vm.model_data, empty_data);
+      $state.go('app.channels.add_amazon');
+    }
   }
 
   //Close Modal Popup
@@ -87,20 +75,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, $log, DTOption
       $state.go('app.channels');
   }
 
-  //Msg of Add successfully
+  //Msg Notify for Add and Update successfully
   function pop_msg(msg) {
-    vm.message = msg;
-    $timeout(function () {
-        vm.message = "";
-    }, 2000);
-    if (msg.message == 'Redirecting to flipkart')  {
-      showNoty(msg.message, "success", "topRight")
+
+    if(msg.marketplace == 'flipkart' && msg.auth_url != ""){
+      vm.service.showNoty(msg.message, "success", "topRight")
       window.location = msg.auth_url
     }
+    else if (msg.marketplace == 'flipkart' && msg.auth_url == ""){
+      vm.service.showNoty(msg.message, "error", "topRight")
+    }
+    else if (msg.auth_url == ""){
+      vm.service.showNoty(msg.message, "success", "topRight")
+    }
+    if ((msg.message).toLowerCase().indexOf("duplicate") >= 0) {
+      vm.service.showNoty(msg.message, "error", "topRight")
+    }
+    reloadData();
+    vm.close();
   }
 
-  //insert marketplace
+  //Add and Update marketplace
   vm.add_marketplace_auth = function() {
+    vm.service.showLoader();
     var json_data = $.param(vm.model_data)
     $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
     $http({ 
@@ -108,12 +105,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, $log, DTOption
             url: Session.url+"add_market_credentials/",
             data: json_data
 	  }).success(function(data, status, headers, config) {
-               pop_msg(data);
-               console.log("success");
+            pop_msg(data);
+	    vm.service.hideLoader();
+          }).error(function(data) {
+            vm.service.showNoty(data.statusText, 'error', 'topRight');
+	    vm.service.hideLoader();
           });
   }
 
-  //func redirect
+  //Add Update Market
   vm.submit = submit;
   function submit(data) {
     if ( data.$valid )
@@ -123,8 +123,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, $log, DTOption
   }
 
   vm.permissions = Session.roles.permissions;
-
-  //vm.dtOptions = DTOptionsBuilder.fromSource(Session.url+'get_marketplace_data/',{withCredentials: true}).withPaginationType('full_numbers');
 
   vm.dtInstance = {};
    vm.reloadData = reloadData;
@@ -145,99 +143,131 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, $log, DTOption
        .withOption('processing', true)
        .withOption('serverSide', false)
        .withPaginationType('full_numbers')
-       .withOption('createdRow', createdRow);
- 
-  /* Excel 
-  vm.excel = excel;
-  function excel() {
-      angular.copy(vm.dtColumns,colFilters.headers);
-      angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
-      colFilters.download_excel()
-    }
-  End Excel */
-
+       .withOption('rowCallback', rowCallback);
 
   // Datatable Code
   vm.dtColumns = [ 
-		  DTColumnBuilder.newColumn('image_url').withTitle('CHANNEL').renderWith(function(data, type, full, meta)
+		  DTColumnBuilder.newColumn('channel__image_name').withTitle('MARKETPLACE').renderWith(function(data, type, full, meta)
                         {
-                        full.image_url = (full.image_url)? full.image_url : 'images/wms/dflt.jpg'
-                        full.image_url = (full.image_url == '/static/img/default-image.jpg') ? 'images/wms/dflt.jpg' : full.image_url;
-                        return '<img style="width: 100px;height: 40px;display: inline-block;margin-right: 10px;" src='+full.image_url+'>';
+			var image_path = vm.service.channels_logo_base_path() + full.channel__image_name;
+		        return '<center><img style="width: 100px;height: 30px;display: inline-block;margin-right: 10px;" src=' + image_path + '></center>';
                         }),
-        	  DTColumnBuilder.newColumn('name').withTitle('CHANNEL NAME'),
-        	  DTColumnBuilder.newColumn('is_active').withTitle('STATUS'),
+        	  DTColumnBuilder.newColumn('name').withTitle('CHANNEL NAME').renderWith(function(data, type, full, meta) {
+      			return "<center><b>"+full.name+"</b></center>";
+    			}),
+        	  DTColumnBuilder.newColumn('is_active').withTitle('STATUS').renderWith(function(data, type, full, meta) {
+			var status_name = full.is_active;
+      			if (status_name == true) {
+		        return '<center><span class="label label-success">ACTIVE</span></center>';
+		        } else {
+       			return '<center><span class="label label-danger">INACTIVE</span></center>';
+      			}
+    			}),
         	  DTColumnBuilder.newColumn('action').withTitle('ACTION').renderWith(function(data, type, full, meta) {
-
-			  var status = 'ACTIVE';
-                          var color = '#70cf32';
-			  var button_class = 'danger';
-			  var button_name = 'Deactivate';
-
-                          if (full.status != status) {
-                            var status = 'INACTIVE';
-                            var color = '#d96557';
-			    var button_class = 'success';
-			    var button_name = 'Activate';
-                          }
-			  var dict = []
-			  var data_ids = ""
-
-			  data_ids = full.id
-
-			  return '<center><a class="btn btn-'+button_class+' btn-outline" ng-click = "showCase.showName(['+data_ids+',\'' + status + '\'])" >'+button_name+'</a></center>'
+		    	var status = 'ACTIVE';
+    			var color = '#70cf32';
+			var button_class = 'danger';
+			var button_name = 'Deactivate';
+			var icon_name = 'remove';
+			if (full.is_active != true) {
+			  status = 'INACTIVE';
+			  color = '#d96557';
+			  button_class = 'success';
+			  button_name = 'Activate';
+			  icon_name = 'check';
+			  }
+			  var dict = [];
+			  var data_ids = full.id;
+			  return '<center><a class="btn btn-sm btn-icon btn-' + button_class + '" onClick="updateCA([' +data_ids + ',\'' + status + '\']);" ><i class="fa fa-'+icon_name+' mr10"></i><span style="font-weight: bolder;">' + button_name + '</span></a></center>';
 		  }),
         	  DTColumnBuilder.newColumn('pull').withTitle('PULL').renderWith(function(data, type, full, meta) {
-
-			var status_name = full.status
-			if (status_name == "Inactive"){
-			   return '<center><a href="javascript:;" class="btn btn-info btn-outline" disabled="true" tooltip-placement="right" tooltip="Channel Activation is Mandatory" >Pull Now</a></center>'
-			}
-			else
-			{
-			return '<center><a href="javascript:;" class="btn btn-info btn-outline" ng-click = "showCase.pull_market(\'' + full.id + '\')">Pull Now</a></center>'
-			}
-
+		    var status_name = full.is_active;
+		    if (status_name == false) {
+		        return '<center><a href="javascript:;" class="btn btn-sm btn-info btn-outline" disabled="true" '+'tooltip-placement="right" tooltip="Channel Activation is Mandatory" ><span>Pull Now</span></a></center>';
+      		    }
+		    return '<center><a href="javascript:;" class="btn btn-sm btn-primary btn-icon" onClick="pullOrders(\'' +full.id + '\'\, \'' + full.channel_name + '\')"><i class="fa fa-refresh mr10"></i><span style="font-weight: bolder;">Pull Now</span></a></center>';
 		  }),
-        	  DTColumnBuilder.newColumn('last_pull').withTitle('LAST SYNCED')
+        	  DTColumnBuilder.newColumn('last_pull').withTitle('LAST SYNCED').renderWith(function(data, type, full, meta) {
+      			var date_string = full.last_pull;
+		        if (date_string == null || date_string == "" ) {
+		        return "<center><b>"+"Not Yet Synced"+"</b></center>";
+			}
+		        return "<center><b>"+ new Date(date_string).toLocaleDateString(); +"</b></center>"
+		    })
                  ];
 
-  /* Update Market */
+  function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+    vm.service.showLoader();
+    $('td', nRow).unbind('click');
+    $('.btn-success').unbind('click');
+    $('td', nRow).bind('click', function() {
+      $scope.$apply(function() {
+        vm.model_data = {};
+        vm.model_data.name = aData.name;
+        vm.model_data.username = aData.username;
+        vm.model_data.password = aData.password;
+        vm.model_data.id = aData.id;
+        var extra_info = JSON.parse(aData.extra_info);
+        if(extra_info) {
+          vm.model_data.auth_token = extra_info.auth_token;
+          vm.model_data.merchant_id = extra_info.merchant_id;
+	  vm.model_data.secret_key = extra_info.secret_key;
+        }
+        vm.title = "Modify Marketplace Details";
+        vm.formType = "update";
+        vm.model_data.channel_name = aData.channel_name.toLowerCase();
+        if (vm.model_data.channel_name == "flipkart") {
+          $state.go('app.channels.update_flipkart');
+        } else if (vm.model_data.channel_name == "amazon") {
+          $state.go('app.channels.update_amazon');
+        }
+      });
+    });
+    vm.service.hideLoader();
+    return nRow;
+  }
+
+  //Activate and Deactivate
   function showName(obj) {
-      var obj_status = obj[1]
+    vm.service.showLoader();
+    var channel_str = "Channel Activated";
+    var resp_color = "success";
+    var put_params = [];
+    var obj_status = obj[1];
+    var obj_bin = true;
 
-      var obj_bin = ""
-      if (obj_status == "ACTIVE" )
-      {
-        obj_bin = 0
-      }
-      else
-      { 
-        obj_bin = 1
-      }
+    if (obj_status == "ACTIVE") {
+      obj_bin = false;
+      channel_str = "Channel Deactivated";
+      resp_color = "error";
+    }
+    var data = {};
+    data['data_id'] = obj[0];
+    data['status'] = obj_bin;
+    var button_status = $.param(data);
 
-      var data = {}
-      data['data_id'] = obj[0]
-      data['status'] = obj_bin
-      var dict = $.param(data)
-      $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-      $http({
-             method: 'POST',
+    $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+    $http({  method: 'POST',
              url : Session.url+"update_market_status/",
-             data: dict
+             data: button_status
            }).success(function(data, status, headers, config) {
       reloadData()
-      
-      console.log("success");
+      vm.service.showNoty(channel_str, resp_color, "topRight");
+      vm.service.hideLoader();
+    }).error(function(data) {
+      vm.service.showNoty(data.statusText, 'error', 'topRight');
+      vm.service.hideLoader();
     });
   }
 
   /* PULL MARKET */
   vm.pull_market = pull_market;
-  function pull_market(name){
-
+  function pull_market(id, market){
+      vm.service.showLoader();
       var data = {}
-      data['marketplace'] = name
+
+      data['account_id'] = id
+      data['marketplace'] = market
       var dict = $.param(data)
       $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
       $http({
@@ -245,13 +275,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, $log, DTOption
              url : Session.url+"pull_market_data/",
              data: dict
            }).success(function(data, status, headers, config) {
-      reloadData()
-      console.log("success");
+      reloadData();
+      if (data['status'] == "Pull Now Failed"){
+      	vm.service.showNoty(data['status'], "error", "topRight");
+      }
+      else {
+	vm.service.showNoty(data['status'], "success", "topRight");
+      }
+      vm.service.hideLoader();
+    }).error(function(data) {
+      vm.service.showNoty("Error Occured", 'error', 'topRight');
+      vm.service.hideLoader();
     });
   }
 
-  function createdRow(row, data, dataIndex) {
-        // Recompiling so we can bind Angular directive to the DT
-        $compile(angular.element(row).contents())($scope);
-    }
 }

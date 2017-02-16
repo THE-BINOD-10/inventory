@@ -191,6 +191,11 @@ urlpatterns = patterns('rest_api.views',
     url(r'^order_category_generate_picklist/$', 'order_category_generate_picklist'),
     url(r'^get_customer_orders/$', 'get_customer_orders'),
     url(r'^get_customer_order_detail/$', 'get_customer_order_detail'),
+    url(r'^generate_pdf_file/$', 'generate_pdf_file'),
+    url(r'^get_customer_cart_data/$', 'get_customer_cart_data'),
+    url(r'^insert_customer_cart_data/$', 'insert_customer_cart_data'),
+    url(r'^update_customer_cart_data/$', 'update_customer_cart_data'),
+    url(r'^delete_customer_cart_data/$', 'delete_customer_cart_data'),
 
     # Reports
     #url(r'^location_wise_filter/$','location_wise_filter'),
@@ -265,6 +270,8 @@ urlpatterns = patterns('rest_api.views',
     url(r'^update_mail_configuration/$', 'update_mail_configuration'),
     url(r'^send_mail_reports/$', 'send_mail_reports'),
     url(r'^save_stages/$', 'save_stages'),
+    url(r'^order_management_toggle/$', 'order_management_toggle'),
+    url(r'^order_management_check/$', 'order_management_check'),
 )
 
 urlpatterns += patterns('rest_api.views',
@@ -284,6 +291,8 @@ urlpatterns += patterns('rest_api.views',
     #Retailone
     url(r'^get_marketplace_data/$', 'get_marketplace_data'),
     url(r'^update_market_status/$', 'update_market_status'),
+    url(r'^add_market_credentials/$', 'add_market_credentials'),
+    url(r'^get_marketplace_logo/$', 'get_marketplace_logo'),
     url(r'^pull_market_data/$', 'pull_market_data'),
     url(r'^add_market_credentials/$', 'add_market_credentials'),
 
@@ -314,4 +323,9 @@ urlpatterns += patterns('rest_api.views',
     url(r'get_internal_mails','get_internal_mails'),
     #url(r'^get_openjo_report/$', 'get_openjo_report'),
     url(r'^get_openjo_report_details/$', 'get_openjo_report_details'),
+
+    #order_sync_issues
+    url(r'delete_order_sync_data','delete_order_sync_data'),
+    url(r'order_sync_data_detail','order_sync_data_detail'),
+    url(r'confirm_order_sync_data','confirm_order_sync_data'),
     )

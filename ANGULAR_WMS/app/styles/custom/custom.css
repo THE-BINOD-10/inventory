@@ -123,7 +123,7 @@ h1 small {
 .item-display {
   background: #616161;
   margin: 10px 0px 0px 0px;
-  padding: 10px 20px;
+  padding: 5px 5px;
   text-align: center;
 }
 .class-item {
@@ -185,6 +185,30 @@ h1 small {
 .create_red .layout-header {
   background: #fff !important;
 }
+/*
+.create_default {
+
+  .style-menu {
+
+    background: #2d3033;
+  }
+
+  .search-items {
+
+    .fa {
+      background-color: #ed1c24;
+    }
+  }
+
+  .brand-image {
+
+    background: #ed1c24 !important;
+  }
+  .layout-header {
+    background: #f0f0f0 !important;
+  }
+}
+*/
 .style-menu .brand-title {
   margin: 0px;
   text-align: center;
@@ -301,6 +325,55 @@ h1 small {
 }
 .kk-timeline .glyphicon {
   color: #ccc;
+}
+.sagar-fab-bg {
+  background: url('/images/sagarfab_bg.jpg') no-repeat center center fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+@media only screen and (max-width: 768px) {
+  .sagar-fab-bg {
+    background: url('/images/sagarfab_mobile_bg.jpg') no-repeat center bottom fixed;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+}
+.order-list {
+  border: 1px solid #cccccc;
+}
+.order-list .order-item {
+  padding: 10px;
+}
+.order-list .order-id .order-date {
+  color: blue;
+}
+.order-list .order-label {
+  color: #999999;
+}
+.order-list .order-bold {
+  font-size: 20px;
+  color: black;
+}
+.order-list .border-grey {
+  border-bottom: 1px solid #cccccc;
+}
+.detail-list {
+  border: 1px solid #cccccc;
+}
+.detail-list .detail-item {
+  padding: 10px;
+}
+.detail-list .border-grey {
+  border-bottom: 1px solid #cccccc;
+}
+.detail-list .detail-bg-grey {
+  background: #f0f0f0;
+}
+.detail-list .detail-black {
+  color: black;
+}
+body {
+  background: #fff;
 }
 .field {
   margin-bottom: 10px;
@@ -982,6 +1055,9 @@ rm-blur:active {
 .tracking .panel-group .panel-body .table {
   background: #f0f0f0;
 }
+.tracking .panel-heading {
+  padding: 10px 15px;
+}
 /*.print-invoice {
 
   border: 1px solid #e4e4e4;
@@ -1043,4 +1119,27 @@ rm-blur:active {
 }
 .over-x {
   overflow-x: auto;
+}
+.rm-brdr td {
+  border-top: 0px !important;
+  border-bottom: 0px !important;
+  padding: 5px 5px !important;
+  font-size: 10px !important;
+}
+.rm-padding th,
+.rm-padding td {
+  font-size: 11px;
+  padding: 5px 5px !important;
+}
+.align-left {
+  text-align: left;
+}
+.fs12 {
+  font-size: 12px;
+}
+.fs10 {
+  font-size: 10px;
+}
+.fs14 {
+  font-size: 14px;
 }

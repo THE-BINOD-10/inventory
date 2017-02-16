@@ -475,6 +475,47 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       });
     };
 
+    vm.checkSearchValue2 = function(record,url, event, extra, msg) {
+      var val = record.sku_code;
+      var type = "";
+      if (!(val)) {
+        return;
+      }
+      if (val.search(":") > -1) {
+
+        val = val.split(":")[0];
+      }
+      if (extra) {
+        type = extra;
+      }
+      var data = val
+      return $http.get(Session.url+url, {
+        params: {
+          q: val,
+          type: type
+        }
+      }).then(function(response){
+        var results = response.data;
+        if ($(event.target).val() == val) {
+          if (results.length > 0) {
+            if (results[0] == data) {
+              $(event.target).val(val);
+            } else if(results[0].search(val) > -1) {
+              $(event.target).val(val);
+            } else {
+              record.sku_code = "";
+              $(event.target).focus();
+              vm.pop_msg("Enter Correct value "+msg);
+            }
+          } else {
+            record.sku_code = "";
+            $(event.target).focus();
+            vm.pop_msg("Enter Correct "+msg);
+          }
+        }
+      });
+    };
+
     vm.change_search_value = function(data) {
       if(data.indexOf(":")> -1) {
         return data.split(":")[0];
@@ -697,6 +738,15 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     return true;
   }
 
+  vm.generate_pdf_file = function(data){
+      var send = JSON.stringify(data);
+      vm.apiCall("generate_pdf_file/?data="+send).then(function(data){
+         if(data.message) {
+           window.open(Session.url + data.data, '_blank');
+         }
+      })
+  }
+
   vm.build_colums = function(data)  {
 
     var columns = [];
@@ -706,6 +756,19 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     })
     return columns;
   }
+
+  vm.channels_logo_base_path = function(data) {
+    return "images/marketplaces/";
+  }
+
+  vm.showLoader = function(){
+    $("#overlay").removeClass("ng-hide").addClass("ng-show");
+  };
+
+  vm.hideLoader = function(){
+    $("#overlay").removeClass("ng-show").addClass("ng-hide");
+  };
+
 }
 
   app.directive('scrolly', function () {

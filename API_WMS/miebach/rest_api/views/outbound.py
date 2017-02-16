@@ -122,8 +122,10 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
         cust_status_obj = CustomerOrderSummary.objects.filter(order__order_id = data.order_id)
         if cust_status_obj:
             cust_status = cust_status_obj[0].status
+            time_slot = cust_status_obj[0].shipment_time_slot
         else:
             cust_status = ""
+            time_slot = ""
         if sku_code == 'TEMP':
             sku_code = data.sku_code
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (data.id, data.sku.sku_code)
@@ -137,13 +139,17 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
         if single_search == "yes" and order_taken_val == '':
             continue
 
+        shipment_data = get_local_date(request.user, data.shipment_date, True).strftime("%d %b, %Y")
+        if time_slot:
+            shipment_data = shipment_data + ', ' + time_slot
+
         try:
             order_id = int(float(order_id))
         except:
             order_id = str(order_id)
         temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('Order ID', order_id), ('SKU Code', sku_code),
                                                  ('Title', data.title),('id', count), ('Product Quantity', data.quantity),
-                                                 ('Shipment Date', get_local_date(request.user, data.shipment_date)),
+                                                 ('Shipment Date', shipment_data),
                                                  ('Marketplace', data.marketplace), ('DT_RowClass', 'results'),
                                                  ('DT_RowAttr', {'data-id': str(data.order_id)} ), ('Order Taken By', order_taken_val), ('Status', cust_status)) ) )
         count = count+1
@@ -1298,7 +1304,7 @@ def view_picklist(request, user=''):
     use_imei = 'false'
     data_id = request.GET['data_id']
     single_order = ''
-    headers = list(PICKLIST_HEADER1)
+    headers = list(PRINT_OUTBOUND_PICKLIST_HEADERS)
     misc_detail = MiscDetail.objects.filter(user=user.id)
     data = misc_detail.filter(misc_type='show_image')
     if data:
@@ -1536,7 +1542,7 @@ def print_picklist(request, user=''):
         total += float(value[0])
         total_price += float(value[1])
 
-    return render(request, 'templates/toggle/print_picklist.html', {'data': data, 'all_data': all_data, 'headers': PRINT_PICKLIST_HEADERS,
+    return render(request, 'templates/toggle/print_picklist.html', {'data': data, 'all_data': all_data, 'headers': PRINT_OUTBOUND_PICKLIST_HEADERS,
                                                                     'picklist_id': data_id,'total_quantity': total,
                                                                     'total_price': total_price, 'picklist_id': data_id,
                                                                     'customer_name': customer_name, 'order_ids': order_ids,
@@ -1871,6 +1877,8 @@ def insert_order_data(request, user=''):
                 order_summary_dict['order_taken_by'] = value
             elif key == 'tax_type':
                 order_summary_dict['tax_type'] = value
+            elif key == 'shipment_time_slot':
+                order_summary_dict['shipment_time_slot'] = value
             else:
                 order_data[key] = value
 
@@ -3013,8 +3021,10 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         cust_status_obj = CustomerOrderSummary.objects.filter(order__order_id = dat['order_id'])
         if cust_status_obj:
             cust_status = cust_status_obj[0].status
+            time_slot = cust_status_obj[0].shipment_time_slot
         else:
             cust_status = ""
+            time_slot = ""
 
         order_taken_val = ''
         if order_taken_val_user:
@@ -3030,12 +3040,16 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         check_values = order_id
         name = all_orders.filter(order_id=dat['order_id'], order_code=dat['order_code'], user=user.id)[0].id
         creation_date = all_orders.filter(order_id=dat['order_id'], order_code=dat['order_code'], user=user.id)[0].creation_date
+        shipment_data = get_local_date(request.user, creation_date, True).strftime("%d %b, %Y")
+        if time_slot:
+            shipment_data = shipment_data + ', ' + time_slot
+
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (name, dat['total'])
 
         temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('data_value', check_values), ('Customer Name', dat['customer_name']),
                                                  ('Order ID', order_id), ('Market Place', dat['marketplace']),
                                                  ('Total Quantity', dat['total']), ('Order Taken By', order_taken_val),
-                                                 ('Creation Date', get_local_date(request.user, creation_date)),
+                                                 ('Creation Date', shipment_data),
                                                  ('id', index), ('DT_RowClass', 'results'), ('Status', cust_status) )))
         index += 1
     col_val = ['Customer Name', 'Customer Name', 'Order ID', 'Market Place', 'Total Quantity', 'Creation Date', 'Order Taken By', 'Status']
@@ -3347,3 +3361,105 @@ def get_customer_order_detail(request, user=""):
 
     response_data['tax'] = round(tax,2)
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
+
+@login_required
+@get_admin_user
+def generate_pdf_file(request, user=""):
+
+    nv_data = eval(request.GET['data'])
+    if not nv_data:
+      return HttpResponse("no invoice")
+    if not os.path.exists('static/pdf_files/'):
+        os.makedirs('static/pdf_files/')
+    nv_data.update({'user': user})
+    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
+    c = Context(nv_data)
+    rendered = t.render(c)
+    file_name = 'static/pdf_files/%s_dispatch_invoice.html' % str(request.user.id)
+    name = str(request.user.id)+"_dispatch_invoice"
+    pdf_file = 'static/pdf_files/%s.pdf' % name
+    file_ = open(file_name, "w+b")
+    file_.write(rendered)
+    file_.close()
+    os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
+    return HttpResponse("../static/pdf_files/"+ str(request.user.id) +"_dispatch_invoice.pdf")
+
+@login_required
+@get_admin_user
+def get_customer_cart_data(request, user=""):
+    """  return customer cart data """
+
+    response = {'data': [], 'msg': 0}
+    cart_data = CustomerCartData.objects.filter(user_id = user.id, customer_user_id = request.user.id)
+
+    if cart_data:
+        for record in cart_data:
+           response['data'].append(record.json())
+
+    return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
+
+@login_required
+@get_admin_user
+def insert_customer_cart_data(request, user=""):
+    """ insert customer cart data """
+
+    response = {'data': [], 'msg': 0}
+    cart_data = request.GET.get('data', '')
+
+    if cart_data:
+        cart_data = eval(cart_data)
+        for record in cart_data:
+            sku = SKUMaster.objects.get(sku_code=record['sku_id'] , user=user.id)
+            cart = CustomerCartData.objects.filter(user_id = user.id, customer_user_id = request.user.id,\
+                                                   sku__sku_code = record['sku_id'])
+            if not cart:
+                data = {'user_id': user.id, 'customer_user_id': request.user.id, 'sku_id': sku.id,\
+                        'quantity': record['quantity'], 'tax': record['tax']}
+                customer_cart_data = CustomerCartData(**data)
+                customer_cart_data.save()
+            else :
+                cart = cart[0]
+                cart.quantity = cart.quantity + record['quantity']
+                cart.save()
+                response['data'] = "Inserted Successfully"
+
+    return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
+
+@login_required
+@get_admin_user
+def update_customer_cart_data(request, user=""):
+    """ update customer cart data """
+
+    response = {'data': [], 'msg': 0}
+    sku_code = request.GET.get('sku_code', '')
+    quantity = request.GET.get('quantity', '')
+
+    if sku_code:
+        cart = CustomerCartData.objects.filter(user_id = user.id, customer_user_id = request.user.id,\
+                                               sku__sku_code = sku_code)
+        if cart:
+            cart = cart[0]
+            cart.quantity = quantity
+            if float(quantity) == 0.0:
+                cart.delete()
+                response['data'] = "Deleted Successfully"
+            else:
+                cart.save()
+                response['data'] = "Updated Successfully"
+    return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
+
+@login_required
+@get_admin_user
+def delete_customer_cart_data(request, user=""):
+    """ delete customer cart data """
+
+    response = {'data': [], 'msg': 0}
+    sku_codes = request.GET.get('sku_codes', '')
+
+    if sku_codes:
+        sku_codes = sku_codes.split(",")
+        cart_data = CustomerCartData.objects.filter(user_id = user.id, customer_user_id = request.user.id,\
+                                                       sku__sku_code__in = sku_codes)
+        cart_data.delete()
+        response["msg"] = "Deleted Successfully"
+    return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))

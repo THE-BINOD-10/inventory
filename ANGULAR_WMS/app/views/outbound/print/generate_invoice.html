@@ -27,6 +27,14 @@
             <div class="col-md-12">
               <span>{{showCase.pdf_data.email}}</span>
             </div>
+            <div class="col-md-12">
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
+                <strong>VAT TIN NO:</strong>27621087850-V<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
+                <strong>CST TIN NO:</strong>27621087850-C<br>
+              </address>
+            </div> 
           </div>
         </td>
         <td rowspan="2" style="text-align:left">
@@ -161,12 +169,6 @@
               <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
                 <strong>Company's PAN:</strong>ABEFS4899J<br>
               </address>
-              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
-                <strong>VAT TIN NO:</strong>27621087850-V<br>
-              </address>
-              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
-                <strong>CST TIN NO:</strong>27621087850-C<br>
-              </address>
             </div>
           </div>
         </td>
@@ -176,7 +178,7 @@
 </div>
     </div>
     <div class="row">
-        <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.print_invoice($('.print'), 'Tax Invoice')">
+        <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.generate_pdf_file(showCase.pdf_data)">
           <i class="ti-printer mr5"></i>Print
         </button>
     </div>

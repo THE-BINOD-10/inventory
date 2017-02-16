@@ -631,6 +631,8 @@ def print_excel(request, temp_data, headers, excel_name='', user=''):
     if excel_name:
         file_name = "%s.%s" % (user.id, excel_name.split('=')[-1])
     path = 'static/excel_files/' + file_name + '.xls'
+    if not os.path.exists('static/excel_files/'):
+        os.makedirs('static/excel_files/')
     wb.save(path)
     path_to_file = '../' + path
     return HttpResponse(path_to_file)

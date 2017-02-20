@@ -648,23 +648,23 @@ def switches(request, user=''):
                     'auto_generate_picklist': request.GET.get('auto_generate_picklist', ''),
                     'order_headers' : request.GET.get('order_headers', '')
                   }
+
     toggle_field, selection = "", ""
     for key, value in toggle_data.iteritems():
         if not value:
-            if key == 'order_headers':
-                value = ""
-            else:
-                continue
+            continue
 
         toggle_field = key
         selection = value
-
-        if key == "sku_sync" and value == 'true':
-            insert_skus(user.id)
-            break
+        break
 
     user_id = user.id
-    if toggle_field != 'invoice_prefix':
+    if toggle_field == 'invoice_prefix':
+        user_profile = UserProfile.objects.filter(user_id=user_id)
+        if user_profile and selection:
+            setattr(user_profile[0], 'prefix', selection)
+            user_profile[0].save()
+    else:
         data = MiscDetail.objects.filter(misc_type=toggle_field, user=user_id)
         if not data:
             misc_detail = MiscDetail(user=user_id, misc_type=toggle_field, misc_value=selection, creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
@@ -672,11 +672,9 @@ def switches(request, user=''):
         else:
             setattr(data[0], 'misc_value', selection)
             data[0].save()
-    else:
-        user_profile = UserProfile.objects.filter(user_id=user_id)
-        if user_profile and selection:
-            setattr(user_profile[0], 'prefix', selection)
-            user_profile[0].save()
+        if toggle_field == 'sku_sync' and value == 'true':
+            insert_skus(user.id)
+
     return HttpResponse('Success')
 
 

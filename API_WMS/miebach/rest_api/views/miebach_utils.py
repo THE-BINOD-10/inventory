@@ -222,18 +222,9 @@ RECEIPT_SUMMARY = {('receipt_summary_form', 'summaryTable', 'Receipt Summary', '
 DISPATCH_SUMMARY = {('dispatch_summary_form', 'dispatchTable', 'Dispatch Summary', 'dispatch-wise', 13, 14, 'dispatch-report'): (['Order ID', 'WMS Code', 'Description', 'Quantity', 'Date'], ( (('From Date', 'from_date'),('To Date', 'to_date')), (('WMS Code', 'wms_code'),('SKU Code','sku_code') )) ),}
 
 ORDER_SUMMARY_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'}, {'label': 'To Date', 'name': 'to_date',
-                                   'type': 'date'}, {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}, {'label': 'Marketplace',
-                                   'name': 'marketplace', 'type': 'select'}],
-                      'dt_headers': ['Order ID', 'Customer Name', 'SKU Code', 'Description', 'Quantity', 'Order Date', 'Order Time',
-                                     'Marketplace'],
+'type': 'date'}, {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}, {'label': 'Marketplace', 'name': 'marketplace', 'type': 'select'}, {'label': 'City', 'name': 'city', 'type': 'input'}, {'label': 'State', 'name': 'state', 'type': 'input'}, {'label': 'SKU Category', 'name': 'sku_category', 'type': 'select'}, {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'}, {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'}, {'label': 'SKU Size', 'name': 'sku_size', 'type': 'input'}],
+                        'dt_headers': ['Order Date', 'Order ID', 'Customer Name' ,'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Size', 'SKU Description', 'SKU Code', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'City', 'State', 'Marketplace', 'Invoice Amount'],
                       'dt_url': 'get_order_summary_filter', 'excel_name': 'order_summary_report', 'print_url': 'print_order_summary_report',
-                     }
-
-JO_STATUS_REP_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'}, {'label': 'To Date', 'name': 'to_date',
-                                   'type': 'date'}, {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}, {'label': 'SKU Class',
-                                   'name': 'sku_class', 'type': 'input'}, {'label': 'SKU Category', 'name': 'sku_category',
-                                   'type': 'select'}, {'label': 'SKU Brand', 'name': 'sku_brand', 'type': 'select'}, {'label': 'JO Code', 
-                                   'name': 'jo_code', 'type': 'input'}],
                      }
 
 OPEN_JO_REP_DICT = {'filters': [{'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}, {'label': 'SKU Class','name': 'class',
@@ -241,10 +232,10 @@ OPEN_JO_REP_DICT = {'filters': [{'label': 'SKU Code', 'name': 'sku_code', 'type'
                                  'name': 'brand', 'type': 'select'}, {'label': 'JO Code','name': 'jo_code', 'type': 'input'},
                                  {'label': 'Stages', 'name': 'stage', 'type': 'select'}],
                     'dt_headers': ['JO Code', 'Jo Creation Date', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Code', 'Stage', 'Quantity'],
-                    'dt_url': 'get_openjo_report_details', 'excel_name': '', 'print_url': '',
+                    'dt_url': 'get_openjo_report_details', 'excel_name': 'open_jo_report', 'print_url': 'print_open_jo_report',
                    }
 
-REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'jo_status_report': JO_STATUS_REP_DICT, 'open_jo_report': OPEN_JO_REP_DICT}
+REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT}
 
 SKU_WISE_STOCK = {('sku_wise_form','skustockTable','SKU Wise Stock Summary','sku-wise', 1, 2, 'sku-wise-report') : (['SKU Code', 'WMS Code', 'Product Description', 'SKU Category', 'Total Quantity'],( (('SKU Code', 'sku_code'), ('SKU Category', 'sku_category')), (('SKU Type', 'sku_type'), ('SKU Class', 'sku_class')),(('WMS Code','wms_code'),))),}
 
@@ -641,9 +632,13 @@ def create_table_data(headers, data):
     return table_data
 
 def create_reports_table(headers, data):
+
     table_data = '<table class="table"><tbody><tr class="active">'
+    if 'Invoice Amount' in headers: #For Order Summary Report
+        table_data = '<table class="table"><tbody style="font-size:8px"><tr class="active">'
+
     for header in headers:
-        table_data += "<th>%s</th>" % header
+        table_data += "<th style='width:20%;word-wrap: break-word;'>"+str(header)+"</th>"
     table_data += "</tr>"
 
     for item in data:
@@ -652,7 +647,7 @@ def create_reports_table(headers, data):
             item = item.values()
 
         for dat in item:
-            table_data += "<td style='text-align:center;'>%s</td>" % dat
+            table_data += "<td style='text-align:center;width:20%;word-wrap: break-word;'>"+str(dat)+"</td>"
         table_data += "</tr>"
     table_data += "</tbody></table>"
 
@@ -1177,41 +1172,24 @@ def get_daily_production_data(search_params, user, sub_user):
     order_term = search_params.get('order_term', '')
     order_index = search_params.get('order_index', '')
 
+    all_data_keys = all_data.keys()
+    for key in all_data_keys:
+        data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
+                                  ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]), ('Total JO Quantity', key[7]),
+                                  ('Reduced Quantity', all_data[key]),('Stage', key[8])
+                   )))
+
     if order_term == 'asc' and order_index:
-        all_data_keys = all_data.keys()
-
-        for key in all_data_keys:
-            data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
-                                      ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]), ('Total JO Quantity', key[7]),
-                                      ('Reduced Quantity', all_data[key]),('Stage', key[8])
-                       )))
         data = sorted(data, key=itemgetter(data[0].keys()[order_index]))
-        temp_data['aaData'] = data[start_index:stop_index]
-        return temp_data
-
     elif order_index or (order_index == 0 and order_term == 'desc'):
-        all_data_keys = all_data.keys()
-
-        for key in all_data_keys:
-            data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
-                                      ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]), ('Total JO Quantity', key[7]),
-                                      ('Reduced Quantity', all_data[key]),('Stage', key[8])
-                       )))
         data = sorted(data, key=itemgetter(data[0].keys()[order_index]), reverse=True)
+
+    temp_data['aaData'] = data
+    if stop_index:
         temp_data['aaData'] = data[start_index:stop_index]
-        return temp_data
 
-    elif stop_index:
-        all_data_keys = all_data.keys()
-        all_data_keys = all_data_keys[start_index:stop_index]
+    return temp_data
 
-        for key in all_data_keys:
-            data.append(OrderedDict(( ('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
-                                      ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]), ('Total JO Quantity', key[7]),
-                                      ('Reduced Quantity', all_data[key]),('Stage', key[8])
-                       )))
-        temp_data['aaData'] = data
-        return temp_data
 
 def get_openjo_details(search_params, user, sub_user):
     from miebach_admin.models import *
@@ -1322,7 +1300,8 @@ def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
+    lis = ['creation_date', 'order_id', 'customer_name' ,'sku__sku_brand', 'sku__sku_category', 'sku__sku_class', 'sku__sku_size', 'sku__sku_desc', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount'];
+    #lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
     temp_data = copy.deepcopy( AJAX_DATA )
     search_parameters = {}
 
@@ -1336,6 +1315,18 @@ def get_order_summary_data(search_params, user, sub_user):
         search_parameters['sku__sku_code'] = search_params['sku_code']
     if 'marketplace' in search_params:
         search_parameters['marketplace'] = search_params['marketplace']
+    if 'sku_category' in search_params:
+        search_parameters['sku__sku_category'] = search_params['sku_category']
+    if 'sku_brand' in search_params:
+        search_parameters['sku__sku_brand'] = search_params['sku_brand']
+    if 'sku_size' in search_params:
+        search_parameters['sku__sku_size'] = search_params['sku_size']
+    if 'sku_class' in search_params:
+        search_parameters['sku__sku_class'] = search_params['sku_class']
+    if 'city' in search_params:
+        search_parameters['city'] = search_params['city']
+    if 'city' in search_params:
+        search_parameters['state'] = search_params['state']
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -1353,7 +1344,18 @@ def get_order_summary_data(search_params, user, sub_user):
 
     temp_data['recordsTotal'] = orders.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-
+    try:
+        temp_data['totalOrderQuantity'] = int(orders.aggregate(Sum('quantity'))['quantity__sum'])
+    except:
+        temp_data['totalOrderQuantity'] = 0
+    try:
+        temp_data['totalSellingPrice'] = int(orders.aggregate(Sum('invoice_amount'))['invoice_amount__sum'])
+    except:
+        temp_data['totalSellingPrice'] = 0
+    try:
+        temp_data['totalMRP'] = int(orders.aggregate(Sum('sku__mrp'))['sku__mrp__sum'])
+    except:
+        temp_data['totalMRP'] = 0
     if stop_index:
         orders = orders[start_index:stop_index]
 
@@ -1362,10 +1364,24 @@ def get_order_summary_data(search_params, user, sub_user):
         order_id = str(data.order_code) + str(data.order_id)
         if data.original_order_id:
             order_id = data.original_order_id
-        temp_data['aaData'].append(OrderedDict(( ('Order ID', order_id), ('Customer Name', data.customer_name), ('SKU Code', data.sku.wms_code),
-                                                 ('Description', data.sku.sku_desc), ('Quantity', data.quantity),
-                                                 ('Order Date', ' '.join(date[0:3])), ('Order Time', ' '.join(date[3:5])),
-                                                 ('Marketplace', data.marketplace))  ))
+
+        tax = 0
+        vat = 5.5
+        discount = 0
+        mrp_price = data.sku.mrp
+        order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data.id)
+        if order_summary:
+            tax = order_summary[0].tax_value
+            vat = order_summary[0].vat
+            mrp_price = order_summary[0].mrp
+            discount = order_summary[0].discount
+        else:
+            tax = float(float(data.invoice_amount)/100) * vat
+
+        unit_price = ((float(data.invoice_amount)/ float(data.quantity))) - discount - (tax/float(data.quantity))
+        unit_price = "%.2f" % unit_price
+
+        temp_data['aaData'].append( OrderedDict(( ('Order Date', ''.join(date[0:3])), ('Order ID', order_id), ('Customer Name', data.customer_name), ('SKU Brand', data.sku.sku_brand),  ('SKU Category', data.sku.sku_category), ('SKU Class', data.sku.sku_class), ('SKU Size', data.sku.sku_size), ('SKU Description', data.sku.sku_desc), ('SKU Code', data.sku.sku_code), ('Order Qty', int(data.quantity)),  ('MRP', int(data.sku.mrp)), ('Unit Price', unit_price), ('Discount', data.sku.discount_percentage), ('City', data.city), ('State', data.state), ('Marketplace', data.marketplace), ('Invoice Amount', data.invoice_amount), ('Price', data.sku.price) )) )
 
     return temp_data
 

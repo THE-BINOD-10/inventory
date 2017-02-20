@@ -70,7 +70,10 @@ input[type='number']{width:100px;}
 
 @media print {
     #page_break {page-break-after: always;}
+    tbody { font-size : 9px !important; }
 }
+
+tbody{font-size:9px !important;}
 
 .label-info {
     background-color: #0072bc;

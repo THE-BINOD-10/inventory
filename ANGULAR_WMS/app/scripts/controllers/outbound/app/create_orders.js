@@ -10,7 +10,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.company_name = Session.user_profile.company_name;
   vm.model_data = {}
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
-                            customer_id: "", payment_received: "", order_taken_by: "", other_charges: [], shipment_time_slot: ""};
+                            customer_id: "", payment_received: "", order_taken_by: "", other_charges: [], shipment_time_slot: "", remarks: ""};
 
   angular.copy(empty_data, vm.model_data);
 
@@ -424,9 +424,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                 vm.model_data.data[0].invoice_amount = data.price*Number(data.quantity);
                 vm.model_data.data[0]['tax'] = vm.tax;
                 vm.model_data.data[0]['image_url'] = data.image_url;
+                vm.model_data.data[0]['remarks'] = vm.model_data.remarks;
                 vm.model_data.data[0]['total_amount'] = ((vm.model_data.data[0].invoice_amount/100)*vm.tax)+vm.model_data.data[0].invoice_amount;
               } else {
-                var temp = {sku_id: data.wms_code, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax, image_url: data.image_url}
+                var temp = {sku_id: data.wms_code, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax, image_url: data.image_url, remarks: vm.model_data.remarks}
                 temp['total_amount'] = ((temp.invoice_amount/100)*vm.tax)+temp.invoice_amount;
                 vm.model_data.data.push(temp)
               }
@@ -716,6 +717,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       if(data.message) {
 
         angular.copy(data.data.data,vm.model_data.data);
+        vm.change_remarks();
       }
     })
   }
@@ -735,6 +737,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     })
     send.sku_codes = send.sku_codes.slice(0,-1);
     vm.service.apiCall("delete_customer_cart_data", "GET", send)
+  }
+
+  vm.change_remarks = function(remark) {
+
+    angular.forEach(vm.model_data.data, function(data){
+      data['remarks'] = vm.model_data.remarks;
+    })
   }
 }
 

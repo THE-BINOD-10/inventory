@@ -71,7 +71,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
       elem = $(elem).serializeArray();
       vm.service.apiCall('insert_order_data/', 'GET', elem).then(function(data){
         if(data.message) {
-          if("Success" == data.data) {
+          if(data.data.indexOf("Success") != -1) {
             angular.copy(empty_data, vm.model_data);
             vm.final_data = {total_quantity:0,total_amount:0}
           }

@@ -23,21 +23,30 @@ def get_report_data(request, user=''):
     filter_keys = map(lambda d: d.get('name', ''), data.get('filters', ''))
     filter_params = {'user': user.id}
     sku_master = SKUMaster.objects.filter(**filter_params)
-    if 'marketplace' in filter_keys:
-        data_index = data['filters'].index(filter(lambda person: 'marketplace' in person['name'], data['filters'])[0])
-        data['filters'][data_index]['values'] = list(OrderDetail.objects.exclude(marketplace='').filter(quantity__gt=0))
-    if 'brand' in filter_keys:
-        data_index = data['filters'].index(filter(lambda person: 'brand' in person['name'], data['filters'])[0])
-        data['filters'][data_index]['values'] = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
-    if 'category' in filter_keys:
-        data_index = data['filters'].index(filter(lambda person: 'category' in person['name'], data['filters'])[0])
-        data['filters'][data_index]['values'] = list(sku_master.exclude(sku_category='').filter(**filter_params)
+    if report_name == 'open_jo_report':
+        if 'marketplace' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'marketplace' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(OrderDetail.objects.exclude(marketplace='').filter(quantity__gt=0))
+        if 'brand' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'brand' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
+        if 'category' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'category' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(sku_master.exclude(sku_category='').filter(**filter_params)
                                                 .values_list('sku_category', flat=True).distinct())
-    if 'stage' in filter_keys:
-        data_index = data['filters'].index(filter(lambda person: 'stage' in person['name'], data['filters'])[0])
-        data['filters'][data_index]['values'] = list(ProductionStages.objects.filter(user=user.id).order_by('order')
+        if 'stage' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'stage' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(ProductionStages.objects.filter(user=user.id).order_by('order')
                                                  .values_list('stage_name', flat=True))
-        data['filters'][data_index]['values'].extend(['Picked', 'Putaway pending', 'Picklist Generated', 'Created', 'Partially Picked'])
+            data['filters'][data_index]['values'].extend(['Picked', 'Putaway pending', 'Picklist Generated', 'Created', 'Partially Picked'])
+    elif report_name == 'order_summary_report':
+        if 'marketplace' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'marketplace' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(OrderDetail.objects.exclude(marketplace='').filter(user = user.id).values_list('marketplace', flat=True).distinct())
+        if 'sku_category' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'category' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(OrderDetail.objects.exclude(sku__sku_category='').filter(user = user.id).values_list('sku__sku_category', flat=True).distinct())
+
     return HttpResponse(json.dumps({'data': data}))
 
 @csrf_exempt
@@ -54,7 +63,7 @@ def get_sku_filter(request, user=''):
 @get_admin_user
 def print_sku(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_sku_filter_data(search_params, user)
+    report_data = get_sku_filter_data(search_params, user, request.user)
 
     report_data = report_data['aaData']
     if report_data:
@@ -77,7 +86,7 @@ def get_location_filter(request, user=''):
 def print_stock_location(request, user=''):
 
     headers, search_params, filter_params = get_search_params(request)
-    report_data, total_quantity = get_location_stock_data(search_params, user)
+    report_data, total_quantity = get_location_stock_data(search_params, user, request.user)
 
     data = '<div>Total Stock: %s<br/><br/></div>' % total_quantity
 
@@ -111,7 +120,7 @@ def get_receipt_filter(request, user=''):
 def print_receipt_summary(request, user=''):
     html_data = ''
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_receipt_filter_data(search_params, user)
+    report_data = get_receipt_filter_data(search_params, user, request.user)
 
     report_data = report_data['aaData']
     if report_data:
@@ -148,6 +157,15 @@ def get_openjo_report_details(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_jostatus_report_details(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_jostatus_details(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_stock_summary_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_stock_summary_data(search_params, user, request.user)
@@ -159,7 +177,7 @@ def print_stock_summary_report(request, user=''):
     search_parameters = {}
 
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_stock_summary_data(search_params, user)
+    report_data = get_stock_summary_data(search_params, user, request.user)
     report_data = report_data['aaData']
 
     if report_data:
@@ -172,6 +190,33 @@ def print_order_summary_report(request, user=''):
     search_parameters = {}
     headers, search_params, filter_params = get_search_params(request)
     report_data = get_order_summary_data(search_params, user)
+    report_data = report_data['aaData']
+
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+@get_admin_user
+def print_jo_status_report(request, user=''):
+    html_data = {}
+    search_parameters = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_order_summary_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_open_jo_report(request, user=''):
+    html_data = {}
+    search_parameters = {}
+    headers, search_params, filter_params = get_search_params(request)
+    search_params.update({'start': 0, 'draw': 1, 'length': 10, 'order_index': 0, 'order_term': u'asc'})
+    report_data = get_openjo_details(search_params, user, request.user)
     report_data = report_data['aaData']
 
     if report_data:
@@ -192,6 +237,7 @@ def print_daily_production_report(request, user=''):
     search_parameters = {}
 
     headers, search_params, filter_params = get_search_params(request)
+    search_params.update({'start': 0, 'draw': 1, 'length': 10, 'order_index': 0, 'order_term': u'asc'})
     report_data = get_daily_production_data(search_params, user, request.user)
     report_data = report_data['aaData']
 
@@ -258,7 +304,7 @@ def get_sku_stock_filter(request, user=''):
 @get_admin_user
 def print_sku_wise_stock(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    report_data = print_sku_wise_data(search_params, user)
+    report_data = print_sku_wise_data(search_params, user, request.user)
     report_data = report_data['aaData']
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
@@ -280,7 +326,7 @@ def get_sku_purchase_filter(request, user=''):
 @get_admin_user
 def print_sku_wise_purchase(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    report_data = sku_wise_purchase_data(search_params, user)
+    report_data = sku_wise_purchase_data(search_params, user, request.user)
     report_data = report_data['aaData']
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
@@ -340,7 +386,7 @@ def get_supplier_details(request, user=''):
 def print_supplier_pos(request, user=''):
     html_data = ''
     headers, search_params, filter_params = get_search_params(request)
-    supplier_pos = get_supplier_details_data(search_params, user)
+    supplier_pos = get_supplier_details_data(search_params, user, request.user)
     supplier_pos = supplier_pos['aaData']
     user_profile = UserProfile.objects.filter(user_id = request.user.id)
 
@@ -349,9 +395,10 @@ def print_supplier_pos(request, user=''):
     return HttpResponse(html_data)
 
 
-def get_sales_return_filter_data(search_params, user):
+def get_sales_return_filter_data(search_params, user, request_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
+    status_dict = {'0': 'Inactive', '1': 'Active'}
     temp_data['draw'] = search_params.get('draw')
     if 'from_date' in search_params:
         from_date = search_params['from_date'].split('/')
@@ -382,7 +429,7 @@ def get_sales_return_filter_data(search_params, user):
             customer_id = data.order.customer_id
         temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.sku.sku_code), ('Order ID', order_id),
                                                  ('Customer ID', customer_id), ('Return Date', str(data.creation_date).split('+')[0]),
-                                                 ('Status', data.status), ('Quantity', data.quantity) )))
+                                                 ('Status', status_dict[str(data.status)]), ('Quantity', data.quantity) )))
     return temp_data
 
 @csrf_exempt
@@ -390,7 +437,7 @@ def get_sales_return_filter_data(search_params, user):
 @get_admin_user
 def get_sales_return_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_sales_return_filter_data(search_params, user)
+    temp_data = get_sales_return_filter_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data, cls=DjangoJSONEncoder), content_type='application/json')
 
 @get_admin_user
@@ -590,7 +637,7 @@ def get_inventory_adjust_filter(request, user=''):
 @get_admin_user
 def print_adjust_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_adjust_filter_data(search_params, user)
+    report_data = get_adjust_filter_data(search_params, user, request.user)
     report_data = report_data['aaData']
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
@@ -601,7 +648,7 @@ def print_adjust_report(request, user=''):
 @get_admin_user
 def print_aging_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_aging_filter_data(search_params, user)
+    report_data = get_aging_filter_data(search_params, user, request.user)
     report_data = report_data['aaData']
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)

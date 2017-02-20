@@ -739,8 +739,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
   }
 
   vm.generate_pdf_file = function(data){
-      var send = JSON.stringify(data);
-      vm.apiCall("generate_pdf_file/?data="+send).then(function(data){
+      var send = {};
+      send['data'] = JSON.stringify(data);
+      vm.apiCall("generate_pdf_file/", "POST", send).then(function(data){
          if(data.message) {
            window.open(Session.url + data.data, '_blank');
          }

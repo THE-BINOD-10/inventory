@@ -1999,7 +1999,8 @@ def check_stocks(order_sku, user, request, order_objs):
 
     picklist_number = get_picklist_number(user)
     #picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, status='', remarks='')
-    picklist_generation(order_objs, request, picklist_number, user, sku_combos, sku_stocks, status='Open', remarks='Auto-generated Picklist')
+    for order_obj in order_objs:
+        picklist_generation(order_objs, request, picklist_number, user, sku_combos, sku_stocks, status='open', remarks='Auto-generated Picklist')
 
     return "Order created, Picklist generated Successfully"
 

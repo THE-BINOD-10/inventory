@@ -323,6 +323,7 @@ urlpatterns += patterns('rest_api.views',
     url(r'get_internal_mails','get_internal_mails'),
     #url(r'^get_openjo_report/$', 'get_openjo_report'),
     url(r'^get_openjo_report_details/$', 'get_openjo_report_details'),
+    url(r'^print_open_jo_report/$', 'print_open_jo_report'),
 
     #order_sync_issues
     url(r'delete_order_sync_data','delete_order_sync_data'),

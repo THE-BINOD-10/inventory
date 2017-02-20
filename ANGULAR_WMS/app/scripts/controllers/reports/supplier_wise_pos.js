@@ -43,7 +43,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
    vm.model_data = {};
 
-   vm.model_data = {};
    angular.copy(vm.empty_data, vm.model_data);
 
    vm.suppliers = {};

@@ -886,6 +886,7 @@ def get_picklist_data(data_id,user_id):
             if order.order:
                 customer_name = order.order.customer_name
 
+            pallet_code = ""
             if order.reserved_quantity == 0:
                 continue
             stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks, reserved_instances)
@@ -1803,6 +1804,8 @@ def insert_order_data(request, user=''):
     order_id = ''
     invalid_skus = []
     items = []
+    order_objs = []
+    order_sku = {}
     valid_status = validate_order_form(myDict, request, user)
     payment_mode = request.GET.get('payment_mode', '')
     payment_received = request.GET.get('payment_received', '')
@@ -1898,7 +1901,7 @@ def insert_order_data(request, user=''):
                     payment_received = float(payment_received) - float(order_data['invoice_amount'])
                     order_payment = float(order_data['invoice_amount'])
                 else:
-                    payment_received = float(order_data['invoice_amount']) - float(payment_received)
+                    payment_received = float(payment_received)
                     order_payment = float(payment_received)
                 order_data['payment_received'] = order_payment
 
@@ -1906,6 +1909,8 @@ def insert_order_data(request, user=''):
             order_detail = OrderDetail(**order_data)
             order_detail.save()
 
+            order_objs.append(order_detail)
+            order_sku.update({order_detail.sku : order_data['quantity']})
             created_order_id = order_detail.order_code + str(order_detail.order_id)
             if order_summary_dict.get('vat', '') or order_summary_dict.get('tax_value', ) or order_summary_dict.get('order_taken_by', '') or \
                 order_summary_dict.get('tax_type', ''):
@@ -1943,9 +1948,63 @@ def insert_order_data(request, user=''):
         if telephone:
             order_creation_message(items, telephone, (order_detail.order_code) + str(order_detail.order_id))
 
-    return HttpResponse('Success')
+    auto_picklist_signal = MiscDetail.objects.filter(user=request.user.id, misc_type='auto_generate_picklist')
 
-@csrf_exempt
+    message = "Success"
+
+    if auto_picklist_signal:
+        message = check_stocks(order_sku, user, request, order_objs)
+
+    return HttpResponse(message)
+
+
+def check_stocks(order_sku, user, request, order_objs):
+    sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
+    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
+
+    fifo_switch = get_misc_value('fifo_switch', user.id)
+    if fifo_switch == 'true':
+        stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by('receipt_date')
+        data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
+        stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
+    else:
+        stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by('location_id__pick_sequence')
+        stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
+    sku_stocks = stock_detail1 | stock_detail2
+
+
+    sku_id_stocks = sku_stocks.values('id', 'sku_id').annotate(total=Sum('quantity'))
+    pick_res_locat = PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).\
+                                      filter(Q(picklist__order__user=user.id)|Q(picklist__stock__sku__user = user.id)).values('stock__sku_id').annotate(total=Sum('reserved'))
+    val_dict = {}
+    members = []
+    val_dict['pic_res_ids'] = map(lambda d: d['stock__sku_id'], pick_res_locat)
+    val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)
+
+    val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
+    val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
+    val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
+
+    for sku in order_sku.keys():
+        if sku.relation_type == 'combo':
+            combo_data = sku_combos.filter(parent_sku_id=sku.id)
+            for combo in combo_data:
+                stock_detail, stock_count, sku.wms_code = get_sku_stock(request, combo.member_sku, sku_stocks, user, val_dict, sku_id_stocks)
+                if stock_count < order_sku[sku]:
+                    return "Order created Successfully"
+        else:
+            stock_detail, stock_count, sku.wms_code = get_sku_stock(request, sku, sku_stocks, user, val_dict, sku_id_stocks)
+            if stock_count < order_sku[sku]:
+                return "Order created Successfully"
+
+    picklist_number = get_picklist_number(user)
+    #picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, status='', remarks='')
+    picklist_generation(order_objs, request, picklist_number, user, sku_combos, sku_stocks, status='Open', remarks='Auto-generated Picklist')
+
+    return "Order created, Picklist generated Successfully"
+
+
+csrf_exempt
 @login_required
 @get_admin_user
 def get_warehouses_list(request, user=''):
@@ -2806,8 +2865,10 @@ def get_customer_payment_tracker(request, user=''):
     invoiced = all_picklists.filter(order__user=user.id, status__in=['picked', 'batch_picked', 'dispatched']).\
                                             values_list('order__order_id', flat=True).distinct()
     partial_invoiced = all_picklists.filter(order__user=user.id, picked_quantity__gt=0, status__icontains='open').values_list('order__order_id', flat=True).distinct()
-    total_data = OrderDetail.objects.filter(user = user.id, customer_id = customer_id, customer_name = customer_name,
-                                            marketplace = channel).annotate(total_invoice=Sum('invoice_amount'),                                                                            total_received=Sum('payment_received')).filter(total_received__lt=F('total_invoice'))
+    total_data1 = OrderDetail.objects.filter(user = user.id, customer_id = customer_id, customer_name = customer_name,
+                                            marketplace = channel).annotate(total_invoice=Sum('invoice_amount'),
+                                            total_received=Sum('payment_received'))
+    total_data = total_data1.filter(total_received__lt=F('total_invoice'))
     if status_filter == 'Partially Invoiced':
         total_data = total_data.filter(order_id__in=partial_invoiced)
     if status_filter == 'Invoiced':
@@ -2839,10 +2900,10 @@ def get_customer_payment_tracker(request, user=''):
             if not expected_date:
                 expected_date = picked_date.strftime("%d %b, %Y")
 
-        sum_data = total_data.filter(order_id = data['order_id']).aggregate(Sum('invoice_amount'), Sum('payment_received'))
+        sum_data = total_data1.filter(order_id = data['order_id']).aggregate(Sum('invoice_amount'), Sum('payment_received'))
         order_data.append({'order_id': str(data['order_id']), 'display_order': order_id, 'account': data['payment_mode'],
                            'inv_amount': "%.2f" % sum_data['invoice_amount__sum'],
-                           'receivable': "%.2f" % (sum_data['invoice_amount__sum']-sum_data['payment_received__sum']),
+                           'receivable': "%.2f" % (sum_data['invoice_amount__sum'] - sum_data['payment_received__sum']),
                            'received': '%.2f' % sum_data['payment_received__sum'], 'order_status': order_status,
                            'expected_date': expected_date})
     response["data"] = order_data
@@ -2867,7 +2928,7 @@ def update_payment_status(request, user=''):
         if not data_dict['amount'][i]:
             continue
         payment = float(data_dict['amount'][i])
-        order_details = OrderDetail.objects.filter(order_id=data_dict['order_id'][i], user=user.id)
+        order_details = OrderDetail.objects.filter(order_id=data_dict['order_id'][i], user=user.id, payment_received__lt=F('invoice_amount'))
         for order in order_details:
             if not payment:
                 break
@@ -2879,7 +2940,7 @@ def update_payment_status(request, user=''):
                     PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(), payment_received=diff)
                 else:
                     PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(), payment_received=payment)
-                    order.payment_received = payment
+                    order.payment_received = float(order.payment_received) + float(payment)
                     payment = 0
                 order.save()
     return HttpResponse("Success")
@@ -3362,11 +3423,12 @@ def get_customer_order_detail(request, user=""):
     response_data['tax'] = round(tax,2)
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
+@csrf_exempt
 @login_required
 @get_admin_user
 def generate_pdf_file(request, user=""):
 
-    nv_data = eval(request.GET['data'])
+    nv_data = eval(request.POST['data'])
     if not nv_data:
       return HttpResponse("no invoice")
     if not os.path.exists('static/pdf_files/'):

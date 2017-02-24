@@ -272,6 +272,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go('app.masters.SKUMaster.update');
   }
 
+
+  vm.barcode = function() {
+
+      vm.barcode_title = 'Barcode Generation';
+
+      vm.model_data['format_types'] = ['format1', 'format2']
+
+      var key_obj = {'format1': 'SKUCode', 'format2': 'Details'}
+
+      vm.model_data['barcodes'] = [{'sku_code':'', 'quantity':''}];
+
+      $state.go('app.masters.SKUMaster.barcode');
+  }
+
   vm.pop_msg =  function(msg) {
     $(".insert-status > h4").text(msg);
     $timeout(function () {
@@ -294,7 +308,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         } else {
           vm.model_data.sku_data.sku_size = vm.model_data.sizes[0];
         }
-      }     
+      }
     })
   }
 

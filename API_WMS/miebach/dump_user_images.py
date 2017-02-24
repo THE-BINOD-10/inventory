@@ -7,10 +7,12 @@ from miebach_admin.models import *
 import datetime
 import shutil
 
-def dump_user_images(source_user, dest_user):
+def dump_user_images(source_user, dest_user, sku_codes=[]):
     path = 'static/images/'
     folder = str(dest_user)
     source_skus = SKUMaster.objects.exclude(image_url='').filter(user=source_user)
+    if sku_codes:
+        SKUMaster.objects.exclude(image_url='').filter(user=source_user, sku_code__in=sku_codes)
     dest_skus = SKUMaster.objects.filter(user=dest_user)
     if not os.path.exists(path + folder):
         os.makedirs(path + folder)

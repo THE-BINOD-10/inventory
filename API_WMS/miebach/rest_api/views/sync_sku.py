@@ -6,6 +6,7 @@ from django.contrib import auth
 from miebach_admin.models import *
 import datetime
 from utils import *
+from dump_user_images import *
 log = init_logger('logs/sync_sku.log')
 
 def insert_skus(user_id):
@@ -69,8 +70,11 @@ def get_all_skus(all_users):
 
 def create_sku(all_skus, all_users):
     """ creating SKU for other linked users """
+    dump_sku_codes = []
     for user in all_users:
         for sku in all_skus:
+            if sku.user == user:
+                continue
             p, created = SKUMaster.objects.get_or_create(user = user, sku_code = sku.sku_code, wms_code = sku.wms_code,
                 defaults={'sku_desc' : sku.sku_desc, 'sku_group' : sku.sku_group, 'sku_type' : sku.sku_type,
                 'sku_category' : sku.sku_category, 'sku_class' : sku.sku_class, 'sku_brand' : sku.sku_brand,
@@ -81,6 +85,10 @@ def create_sku(all_skus, all_users):
                 'sequence' : sku.sequence, 'status' : sku.status, 'relation_type' : sku.relation_type,
                 'measurement_type' : sku.measurement_type, 'sale_through' : sku.sale_through,
                 'creation_date' : datetime.datetime.now().date(), 'updation_date' : datetime.datetime.now().date()})
+            if sku.sku_code not in dump_sku_codes and created:
+                dump_sku_codes.append(sku.sku_code)
+        if dump_sku_codes and all_skus:
+            dump_user_images(all_skus[0].user, user, sku_codes=dump_sku_codes)
 
     return "success"
 

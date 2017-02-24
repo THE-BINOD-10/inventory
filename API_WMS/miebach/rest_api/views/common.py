@@ -489,6 +489,7 @@ def configurations(request, user=''):
     picklist_sort_by = get_misc_value('picklist_sort_by', user.id)
     stock_sync = get_misc_value('stock_sync', user.id)
     auto_generate_picklist = get_misc_value('auto_generate_picklist', user.id)
+    detailed_invoice = get_misc_value('detailed_invoice', user.id) 
     all_groups = SKUGroups.objects.filter(user=user.id).values_list('group', flat=True)
     internal_mails = get_misc_value('Internal Emails', user.id)
     all_groups = str(','.join(all_groups))
@@ -555,7 +556,7 @@ def configurations(request, user=''):
                                                              'automate_invoice': automate_invoice, 'show_mrp': show_mrp,
                                                              'decimal_limit': decimal_limit, 'picklist_sort_by': picklist_sort_by,
                                                              'stock_sync': stock_sync, 'auto_generate_picklist': auto_generate_picklist,
-                                                             'order_management' : order_manage}))
+                                                             'order_management' : order_manage, 'detailed_invoice': detailed_invoice}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -1631,8 +1632,8 @@ def get_invoice_data(order_ids, user, merge_data = ""):
             total_quantity += quantity
 
             data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
-                         'quantity': quantity, 'tax': "%.2f" % (tax/float(dat.quantity) * quantity), 'unit_price': unit_price, 'vat': vat, 'mrp_price': mrp_price,
-                         'discount': discount})
+                         'quantity': quantity, 'tax': "%.2f" % (tax/float(dat.quantity) * quantity), 'unit_price': unit_price, 
+                         'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class})
 
     invoice_date = get_local_date(user, invoice_date, send_date='true')
     invoice_date = invoice_date.strftime("%d %b %Y")
@@ -1664,6 +1665,7 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
     if not is_catalog:
         is_catalog = request_data.get('is_catalog', '')
     sale_through = request_data.get('sale_through', '')
+    size_dict = request_data.get('size_filter', '')
     if sku_brand:
         filter_params['sku_brand'] = sku_brand
     if sku_category:
@@ -1674,9 +1676,77 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
         filter_params['sale_through__iexact'] = sale_through
 
     sku_master = SKUMaster.objects.filter(**filter_params)
+
+    if size_dict:
+        size_dict = eval(size_dict)
+        query_string = 'sku__sku_code'
+        classes = get_sku_available_stock(user, sku_master, query_string, size_dict)
+        if classes:
+            sku_master = sku_master.filter(sku_class__in = classes)
+
     categories = list(sku_master.exclude(sku_category='').filter(**filter_params).values_list('sku_category', flat=True).distinct())
     brands = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
-    return brands, sorted(categories)
+    sizes = list(sku_master.exclude(sku_brand='').values_list('sku_size', flat=True).order_by('sequence').distinct())
+    sizes = list(OrderedDict.fromkeys(sizes))
+    _sizes = {}
+    integer = []
+    character = []
+    for size in sizes:
+        try:
+            integer.append(int(eval(size)))
+        except:
+            character.append(size)
+    _sizes = {'type2': integer, 'type1': character}
+    return brands, sorted(categories), _sizes
+
+
+def get_sku_available_stock(user, sku_masters, query_string, size_dict):
+    selected_sizes = [i for i in size_dict if size_dict[i] not in ["", 0]]
+    classes = list(sku_masters.values_list('sku_class', flat=True).distinct())
+    stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values(query_string).distinct().\
+                                     annotate(in_stock=Sum('quantity'))
+    stock_query = "stock__%s" %(query_string)
+    reserved_quantities = PicklistLocation.objects.filter(stock__sku__user=user.id, status=1).values(stock_query).distinct().\
+                                       annotate(in_reserved=Sum('reserved'))
+    stock_skus = map(lambda d: d[query_string], stock_objs)
+    stock_quans = map(lambda d: d['in_stock'], stock_objs)
+    reserved_skus = map(lambda d: d[stock_query], reserved_quantities)
+    reserved_quans = map(lambda d: d['in_reserved'], reserved_quantities)
+    for product in sku_masters:
+        _class = product.sku_class
+
+        if _class not in classes:
+            continue
+
+        new_sizes = []
+        sizes_exist = sku_masters.filter(sku_class = _class).values_list('sku_size', flat=True)
+        for size in sizes_exist:
+            try:
+                new_sizes.append(str(int(eval(size))))
+            except:
+                new_sizes.append(size)
+
+        if not (set(selected_sizes) < set(new_sizes)):
+            classes.remove(_class)
+            continue
+
+        total_quantity = 0
+        if product.sku_code in stock_skus:
+            total_quantity = stock_quans[stock_skus.index(product.sku_code)]
+        if product.sku_code in reserved_skus:
+            total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product.sku_code)])
+        try:
+            _sizes = str(int(eval(product.sku_size)))
+        except:
+            _sizes = str(product.sku_size)
+
+
+        qty = size_dict.get(_sizes, 0)
+        if not qty:
+            qty = 0
+        if total_quantity < int(qty):
+            classes.remove(_class)
+    return classes
 
 def resize_image(url, user):
 
@@ -1739,7 +1809,15 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if sku_class:
         filter_params['sku_class__icontains'] = sku_class
 
-    sku_master = SKUMaster.objects.exclude(sku_class='').filter(**filter_params).order_by('sequence')
+    sku_master = SKUMaster.objects.exclude(sku_class='').filter(**filter_params)
+    size_dict = request_data.get('size_filter', '')
+    query_string = 'sku__sku_code'
+    if size_dict:
+        size_dict = eval(size_dict)
+        classes = get_sku_available_stock(user, sku_master, query_string, size_dict)
+        sku_master = sku_master.filter(sku_class__in = classes)
+
+    sku_master = sku_master.order_by('sequence')
     product_styles = sku_master.values_list('sku_class', flat=True).distinct()
     product_styles = list(OrderedDict.fromkeys(product_styles))
     data = []
@@ -1779,7 +1857,8 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
 def get_user_sku_data(user):
     request = {}
     #user = User.objects.get(id=sku.user)
-    brands_data = get_sku_categories_data(request, user, request_data={'file': True}, is_catalog='true')
+    _brand, _categories, _size = get_sku_categories_data(request, user, request_data={'file': True}, is_catalog='true')
+    brands_data = [_brand, _categories]
     skus_data = get_sku_catalogs_data(request, user, request_data={'file': True}, is_catalog='true')
     path = 'static/text_files'
     if not os.path.exists(path):

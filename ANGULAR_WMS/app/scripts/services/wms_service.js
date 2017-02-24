@@ -770,6 +770,88 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     $("#overlay").removeClass("ng-show").addClass("ng-hide");
   };
 
+  vm.generate_barcodes = function(data) {
+
+    if (data.$valid) {
+
+      var elem = angular.element($('form'));
+
+      elem = elem[0];
+
+      elem = $(elem).serializeArray();
+
+      elem.push({name: 'format', value: 'sku_master'})
+
+      vm.apiCall('generate_barcodes/', 'GET', elem).then(function(data){
+
+        if(data.message) {
+
+            var data_to_send = data.data.barcodes;
+
+            var key = data.data.key;
+
+            $.ajax({
+
+                type: "POST",
+
+                dataType: 'JSON',
+
+                async: false,
+
+                contentType: "application/json; charset=utf-8",
+
+                crossDomain: true,
+
+                xhrFields: {
+
+                    withCredentials: false
+
+                },
+
+                  url :'http://vinodh1251-001-site1.atempurl.com/Webservices/BarcodeServices.asmx/GetBarCode',
+
+                data: "{argJsonData:'" + JSON.stringify(data_to_send) + "',argCompany : '" + 'Brilhante' + "',argBarcodeFormate : '" + key + "'}",
+
+                success: function (result) {
+
+                    if (result === 'Internal Error') {
+
+                        alert('Internal Error');
+
+                    }
+
+                    else {
+
+                        var downloadpdf = $('<a id="downloadpdf" target="_blank" href="data:application/pdf;base64,' + result.d + '" >');
+
+                        $('body').append(downloadpdf);
+
+
+                        document.getElementById("downloadpdf").click();
+
+                        $("#downloadpdf").remove();
+
+                    }
+
+                },
+
+                error: function (xmlHttpRequest, textStatus, errorThrown) {
+
+                    console.log(xmlHttpRequest.responseText);
+
+                    console.log(textStatus);
+
+                    console.log(errorThrown);
+
+                }
+
+            });
+        }
+      });
+    }
+  }
+
+
 }
 
   app.directive('scrolly', function () {

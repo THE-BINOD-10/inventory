@@ -28,11 +28,6 @@ def update_orders(orders, user='', company_name=''):
             original_order_id = data[order_mapping['order_id']]
             order_code = ''.join(re.findall('\D+', original_order_id))
             order_id = ''.join(re.findall('\d+', original_order_id))
-            #if '/' in original_order_id and len(original_order_id) > 20:
-            #    order_id = original_order_id.split('/')[0]
-            #    order_id = str(''.join(re.findall('\d+', order_id)))
-            #if len(str(order_id)) > 20:
-            #    order_id = str(order_id)[:20]
             filter_params = {'user': user.id, 'order_id': order_id}
             filter_params1 = {'user': user.id, 'original_order_id': original_order_id}
             if order_code:
@@ -41,6 +36,8 @@ def update_orders(orders, user='', company_name=''):
             if order_mapping.get('order_items', ''):
                 order_items = eval(order_mapping['order_items'])
 
+            if not order_items:
+                print "order_items doesn't exists" + original_order_id
             for order in order_items:
                 sku_code = eval(order_mapping['sku'])
                 sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)

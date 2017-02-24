@@ -199,6 +199,10 @@ var app = angular.module('urbanApp')
             url: '/SKU',
             templateUrl: 'views/masters/toggles/sku_update.html'
           })
+          .state('app.masters.SKUMaster.barcode', {
+            url: '/Barcode',
+            templateUrl: 'views/masters/toggles/barcode.html'
+          })
         .state('app.masters.ImageBulkUpload', {
           url: '/ImageBulkUpload',
           templateUrl: 'views/masters/image_bulk_upload.html',
@@ -444,6 +448,12 @@ var app = angular.module('urbanApp')
           permission: 'add_openpo',
           telmplateUrl: 'views/inbound/print/po_print.html'
           })
+          .state('app.inbound.RaisePo.barcode', {
+            url: '/Barcode',
+            templateUrl: 'views/masters/toggles/barcode.html'
+          })
+
+
         .state('app.inbound.RevceivePo', {
           url: '/ReceivePO',
           permission: 'add_purchaseorder',

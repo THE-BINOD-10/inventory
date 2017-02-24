@@ -107,6 +107,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                     var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
                     vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
                                                          location: vm.model_data.data[i].location,
+                                                         orig_location: vm.model_data.data[i].location,
                                                          picked_quantity: value});
                   }
             $state.go('app.outbound.ViewOrders.Picklist');

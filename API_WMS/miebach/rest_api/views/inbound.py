@@ -646,7 +646,8 @@ def switches(request, user=''):
                     'stock_sync': request.GET.get('stock_sync', ''),
                     'sku_sync': request.GET.get('sku_sync', ''),
                     'auto_generate_picklist': request.GET.get('auto_generate_picklist', ''),
-                    'order_headers' : request.GET.get('order_headers', '')
+                    'order_headers' : request.GET.get('order_headers', ''),
+                    'detailed_invoice' : request.GET.get('detailed_invoice', '')
                   }
 
     toggle_field, selection = "", ""
@@ -1431,6 +1432,11 @@ def confirm_grn(request, confirm_returns = '', user=''):
     for i in range(len(myDict['id'])):
         temp_dict = {}
         value = myDict['quantity'][i]
+        try:
+            value = float(value)
+        except:
+            value = 0
+
         if not value:
             continue
 

@@ -1683,3 +1683,56 @@ def update_size(request, user=''):
         response['data'] = 'Updated Successfully'
 
     return HttpResponse(json.dumps(response))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def generate_barcodes(request, user=''):
+    myDict = dict(request.GET.iterlists())
+    pdf_format = myDict['pdf_format'][0]
+    barcodes_list = generate_barcode_dict(pdf_format, myDict, user)
+    return HttpResponse(json.dumps(barcodes_list))
+    #section = myDict['format'][0]
+    """if (user.username in BARCODE_FORMATS.keys()):
+        if (section in BARCODE_FORMATS[user.username].values()[0]):
+            barcodes_list = generate_barcode_dict(pdf_format, myDict, user)
+            return HttpResponse(json.dumps(barcodes_list))
+    """
+
+def generate_barcode_dict(pdf_format, myDict, user):
+    barcode_pdf_dict = {}
+    barcodes_list = []
+    for sku, quant in zip(myDict['wms_code'], myDict['quantity']):
+        if sku and quant:
+            sku_data = SKUMaster.objects.filter(sku_code = sku, user=user.id)[0]
+            single = copy.deepcopy(BARCODE_DICT[pdf_format])
+            single['SKUCode'] = sku
+            single['Size'] = str(sku_data.sku_size).replace("'",'')
+            single['SKUPrintQty'] = quant
+            single['Brand'] = sku_data.sku_brand.replace("'",'')
+            single['SKUDes'] = sku_data.sku_desc.replace("'",'')
+            if pdf_format == 'format1':
+                single['Style'] = str(sku_data.style_name).replace("'",'')
+                single['Color'] = sku_data.color.replace("'",'')
+            if pdf_format == 'format2':
+                single['color'] = sku_data.color.replace("'",'')
+                present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
+                single["Packed on"] = str(present).replace("'",'')
+                single["Gender"] = str(sku_data.style_name).replace("'",'')
+                single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
+                user_prf = UserProfile.objects.filter(user_id=user.id)[0]
+                single['MRP'] = str(sku_data.price).replace("'",'')
+                address = user_prf.address
+                if BARCODE_ADDRESS_DICT.get(user.username, ''):
+                    address = BARCODE_ADDRESS_DICT.get(user.username)
+                single['Manufactured By'] = address.replace("'",'')
+                email = user.email
+                if email:
+                    email = ' (' + user.email + ')'
+                single['Markated By'] = user_prf.company_name.replace("'",'') + email.replace("'",'')
+                if len(sku_data.sku_desc) >= 25:
+                    single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
+            barcodes_list.append(single)
+    barcode_pdf_dict['barcodes'] = barcodes_list
+    barcode_pdf_dict['key'] = BARCODE_KEYS[pdf_format]
+    return barcode_pdf_dict

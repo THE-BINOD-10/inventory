@@ -329,4 +329,7 @@ urlpatterns += patterns('rest_api.views',
     url(r'delete_order_sync_data','delete_order_sync_data'),
     url(r'order_sync_data_detail','order_sync_data_detail'),
     url(r'confirm_order_sync_data','confirm_order_sync_data'),
+
+    #masters
+    url(r'generate_barcodes', 'generate_barcodes'),
     )

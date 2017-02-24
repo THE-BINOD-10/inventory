@@ -69,7 +69,9 @@
       </tr>
     </tbody>
   </table>
-  <table class="table table-bordered bl br" style="margin-bottom: 5px;">
+  <table ng-include="'views/outbound/print/table1.html'" ng-if="(!(showCase.pdf_data.detailed_invoice))" class="table table-bordered bl br"></table>
+  <table ng-include="'views/outbound/print/table2.html'" ng-if="showCase.pdf_data.detailed_invoice" class="table table-bordered bl br"></table>
+  <!--<table class="table table-bordered bl br hide" style="margin-bottom: 5px;">
     <thead>
       <tr class="rm-padding">
         <th><center>SKU Code</center></th>
@@ -84,29 +86,8 @@
       </tr>
     </thead>
     <tbody>
-      <tr ng-repeat="record in showCase.pdf_data.data" class="rm-brdr">
-        <td style="text-align: left;">
-          {{record.sku_code}}
-        </td>
-        <td style="text-align: left;">
-          {{record.title}}
-        </td>
-        <td>
-          {{record.quantity}}
-        </td>
-        <td ng-if="permissions.show_mrp">{{record.mrp_price}}</td>
-        <td>
-          {{record.unit_price}}
-        </td>
-        <td>{{record.discount}}</td>
-        <td>{{record.vat}}</td>
-        <td>
-          {{record.tax}}
-        </td>
-        <td>
-          {{record.invoice_amount}}
-        </td>
-      </tr>
+      <tr ng-include="'views/outbound/print/invoice_tr.html'" ng-repeat="record in showCase.pdf_data.data" ng-if="(!(showCase.pdf_data.detailed_invoice))" class="rm-brdr"></tr>
+      <tr ng-include="'views/outbound/print/detail_invoice_tr.html'" ng-repeat="(key, record) in showCase.pdf_data.data" class="rm-brdr" ng-if="showCase.pdf_data.detailed_invoice"></tr>
       <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14)" class="rm-padding">
        <td colspan="2" style="text-align:left"><b>Total: &#8377;</b></td>
        <td>{{showCase.pdf_data.total_quantity}}</td>
@@ -114,7 +95,7 @@
        <td></td>
        <td></td>
        <td></td>
-       <td></td>
+       <td>{{showCase.pdf_data.total_tax}}</td>
        <td>{{showCase.pdf_data.total_invoice}}</td>
       </tr>
       <tr class="rm-padding" ng-if="showCase.pdf_data.order_charges">
@@ -174,7 +155,7 @@
         </td>
       </tr>
     </tbody>
-  </table>
+  </table>-->
 </div>
     </div>
     <div class="row">

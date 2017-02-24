@@ -59,7 +59,7 @@
                   <input ng-if="showCase.model_data.order_status == 'open'" type="hidden" name="order_id_{{data.id}}" value="">
                   <input type="hidden" name="stock_id_{{data.id}}" value="{{data.stock_id}}">
                   <input type="hidden" name="orig_loc_{{data.id}}" value="{{record.orig_location}}">
-                  <input type="hidden" name="orig_wms_{{data.id}}" value="">
+                  <input type="hidden" name="orig_wms_{{data.id}}" value="{{data.wms_code}}">
                   <input type="hidden" name="picklist_number" value="{{data.picklist_number}}">
                   <td ng-if="showCase.permissions.show_image"><img ng-src="{{service.check_image_url(data.image)}}" style="width: 30px;height: 50px;"></td>
                   <td ng-if="showCase.model_data.order_status == 'open'"><input ng-model="data.order_no"  class="form-control" type="text" readonly></td>

@@ -250,8 +250,8 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         if not picked_quantity_sum_value:
             picked_quantity_sum_value = 0
         if picklist_obj:
-            order_marketplace = list(picklist_obj.exclude(order__marketplace='').values_list('order__marketplace',flat=True))
-            order_customer_name = list(picklist_obj.exclude(order__customer_name='').values_list('order__customer_name',flat=True))
+            order_marketplace = list(picklist_obj.exclude(order__marketplace__in='').filter(order_id__isnull=False).values_list('order__marketplace',flat=True))
+            order_customer_name = list(picklist_obj.exclude(order__customer_name='').filter(order_id__isnull=False).values_list('order__customer_name',flat=True))
 
             order_marketplace1 = [str(x).upper() for x in order_marketplace]
             if 'OFFLINE' in order_marketplace1 and len(set(order_marketplace1)) == 1:
@@ -874,6 +874,7 @@ def get_picklist_data(data_id,user_id):
             st_id = 0
             sequence = 0
             location = 'NO STOCK'
+            pallet_code = ''
             image = ''
             if stock_id:
                 zone = stock_id.location.zone.zone
@@ -1089,8 +1090,12 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
                 order_ids = ','.join(order_ids)
 
             nv_data = get_invoice_data(order_ids, request.user, picklists_send_mail[order_id])
+            nv_data = modify_invoice_data(nv_data, user)
             nv_data.update({'user': user})
-            t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
+            if nv_data['detailed_invoice']:
+                t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
+            else:
+                t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
             c = Context(nv_data)
             rendered = t.render(c)
             file_name = 'dispatch_invoice.html'
@@ -1287,6 +1292,7 @@ def picklist_confirmation(request, user=''):
             order_ids = [str(int(i)) for i in order_ids]
             order_ids = ','.join(order_ids)
             invoice_data = get_invoice_data(order_ids, user, picklists_send_mail[ord_id])
+            invoice_data = modify_invoice_data(invoice_data, user)
             #invoice_data['invoice_no'] = 'TI/1116/' + invoice_data['order_no']
             #invoice_data['invoice_date'] = get_local_date(user, datetime.datetime.now())
             return HttpResponse(json.dumps({'data': invoice_data, 'status': 'invoice'}))
@@ -1948,11 +1954,10 @@ def insert_order_data(request, user=''):
         if telephone:
             order_creation_message(items, telephone, (order_detail.order_code) + str(order_detail.order_id))
 
-    auto_picklist_signal = MiscDetail.objects.filter(user=request.user.id, misc_type='auto_generate_picklist')
-
+    auto_picklist_signal = get_misc_value('auto_generate_picklist', user.id)
     message = "Success"
 
-    if auto_picklist_signal:
+    if auto_picklist_signal == 'true':
         message = check_stocks(order_sku, user, request, order_objs)
 
     return HttpResponse(message)
@@ -2000,7 +2005,7 @@ def check_stocks(order_sku, user, request, order_objs):
     picklist_number = get_picklist_number(user)
     #picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, status='', remarks='')
     for order_obj in order_objs:
-        picklist_generation(order_objs, request, picklist_number, user, sku_combos, sku_stocks, status='open', remarks='Auto-generated Picklist')
+        picklist_generation([order_obj], request, picklist_number, user, sku_combos, sku_stocks, status='open', remarks='Auto-generated Picklist')
 
     return "Order created, Picklist generated Successfully"
 
@@ -2489,9 +2494,9 @@ def print_shipment(request, user=''):
 @login_required
 @get_admin_user
 def get_sku_categories(request, user=''):
-    brands, categories = get_sku_categories_data(request, user)
+    brands, categories, sizes = get_sku_categories_data(request, user)
     stages_list = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
-    return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'stages_list': stages_list}))
+    return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list}))
 
 def get_style_variants(sku_master, user, customer_id='', total_quantity=0):
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku_id').distinct().annotate(in_stock=Sum('quantity'))
@@ -2568,6 +2573,39 @@ def get_sku_variants(request, user=''):
 
     return HttpResponse(json.dumps({'data': sku_master}))
 
+def modify_invoice_data(invoice_data, user):
+
+    new_data = {}
+    detailed_invoice = get_misc_value('detailed_invoice', user.id)
+    detailed_invoice = True if (detailed_invoice == 'true') else False
+    invoice_data['detailed_invoice'] = detailed_invoice
+    if detailed_invoice:
+        for data in invoice_data['data']:
+            class_name = data['sku_class']
+            if class_name in new_data.keys():
+                new_data[class_name]['data'].append(data)
+                new_data[class_name]['discount'] += float(data['discount'])
+                new_data[class_name]['invoice_amount'] += float(data['invoice_amount'])
+                new_data[class_name]['quantity'] += data['quantity']
+                new_data[class_name]['tax'] += float(data['tax'])
+            else:
+                style_data = {'data': [], 'discount': float(data['discount']), 'invoice_amount':  float(data['invoice_amount']),
+                              'mrp_price': float(data['mrp_price']), 'quantity': data['quantity'], 'tax': float(data['tax']),
+                              'unit_price': float(data['unit_price']), 'vat': float(data['vat']), 'class': True}
+                if not class_name:
+                    class_name = data['sku_code']
+                    if class_name in new_data.keys():
+                        new_data[class_name]['discount'] += float(data['discount'])
+                        new_data[class_name]['invoice_amount'] += float(data['invoice_amount'])
+                        new_data[class_name]['quantity'] += data['quantity']
+                        new_data[class_name]['tax'] += float(data['tax'])
+                        continue
+                    style_data['class'] = False
+                new_data[class_name] = style_data;
+                new_data[class_name]['data'].append(data)
+        invoice_data['data'] = new_data
+    return invoice_data
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -2575,7 +2613,7 @@ def generate_order_invoice(request, user=''):
 
     order_ids = request.GET.get('order_ids', '')
     invoice_data = get_invoice_data(order_ids, user)
-
+    invoice_data = modify_invoice_data(invoice_data, user)
     return HttpResponse(json.dumps(invoice_data))
 
 @csrf_exempt
@@ -3429,13 +3467,16 @@ def get_customer_order_detail(request, user=""):
 @get_admin_user
 def generate_pdf_file(request, user=""):
 
-    nv_data = eval(request.POST['data'])
+    nv_data = json.loads(request.POST['data'])
     if not nv_data:
       return HttpResponse("no invoice")
     if not os.path.exists('static/pdf_files/'):
         os.makedirs('static/pdf_files/')
     nv_data.update({'user': user})
-    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
+    if nv_data['detailed_invoice']:
+        t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
+    else:
+        t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
     c = Context(nv_data)
     rendered = t.render(c)
     file_name = 'static/pdf_files/%s_dispatch_invoice.html' % str(request.user.id)

@@ -54,6 +54,7 @@ class SKUMaster(models.Model):
     sale_through = models.CharField(max_length=32, default = '')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    color = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'SKU_MASTER'

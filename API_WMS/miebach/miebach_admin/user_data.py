@@ -89,9 +89,9 @@ class CollectData:
     def run_main(self):
         threads = []
         #thread_obj = [ self.get_user_orders, self.shipped_orders, self.returned_orders, self.cancelled_orders ]
-        #thread_obj = [ self.get_user_orders]
+        thread_obj = [ self.get_user_orders]
         #thread_obj = [ self.shipped_orders ]
-        thread_obj = [ self.returned_orders ]
+        #thread_obj = [ self.returned_orders ]
         #thread_obj = [ self.cancelled_orders ]
         for count, obj in enumerate(thread_obj):
             thread = threading.Thread(name='Thread%s' % count, target=obj)

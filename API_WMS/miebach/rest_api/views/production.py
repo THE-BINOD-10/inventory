@@ -440,7 +440,10 @@ def save_jo(request, user=''):
             data_id = data_dict['id'][i]
         cond = (data_dict['product_code'][i])
         all_data.setdefault(cond, [])
-        all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, '', data_dict['measurement_type'][i]] })
+        measurement_type = ''
+        if 'measurement_type' in request.POST.keys() and data_dict['measurement_type'][i]:
+            measurement_type = data_dict['measurement_type'][i]
+        all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, '', measurement_type] })
     status = validate_jo(all_data, user.id, jo_reference='', vendor_id=vendor_id)
     if not status:
         all_data = insert_jo(all_data, user.id, jo_reference, vendor_id=vendor_id, order_type=order_type)
@@ -607,10 +610,13 @@ def confirm_jo(request, user=''):
         order_id = ''
         if 'order_id' in request.POST.keys() and data_dict['order_id'][i]:
             order_id = data_dict['order_id'][i]
+        measurement_type = ''
+        if 'measurement_type' in request.POST.keys() and data_dict['measurement_type'][i]:
+            measurement_type = data_dict['measurement_type'][i]
         tot_mat_qty += float(data_dict['material_quantity'][i])
         cond = (data_dict['product_code'][i])
         all_data.setdefault(cond, [])
-        all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, order_id, data_dict['measurement_type'][i]]})
+        all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, order_id, measurement_type]})
 
     status = validate_jo(all_data, user.id, jo_reference=jo_reference)
     if not status:

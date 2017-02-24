@@ -3,7 +3,6 @@
 <style>
   {% include 'toggle/bootstrap.min.css' %}
   {% include 'toggle/page.css' %}
-  html { zoom: 0.79; /*workaround for phantomJS2 rendering pages too large*/ }
 </style>
 
         <div class="print-invoice" style="padding-right: 10px;margin-right:10px">
@@ -26,12 +25,12 @@
             <div class="col-md-12">
               <span>{{email}}</span>
             </div>
-            {% if user.username == 'adam_clothing1' %}
+            {% if user.username == 'adam_clothing' %}
             <div class="col-md-12">
-              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing1'">
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
                 <strong>VAT TIN NO:</strong>27621087850-V<br>
               </address>
-              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing1'">
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'adam_clothing'">
                 <strong>CST TIN NO:</strong>27621087850-C<br>
               </address>
             </div>
@@ -93,8 +92,7 @@
   <table class="table table-bordered bl br" style="margin-bottom: 0px;">
     <thead>
       <tr class="rm-padding">
-        <th><center>SKU Code</center></th>
-        <th><center>Description</center></th>
+        <th><center>SKU Description</center></th>
         <th><center>Qty</center></th>
         {% if permissions.show_mrp %}<th>MRP(&#8377;)</center></th>{% endif %}
         <th><center>Rate</center></th>
@@ -105,13 +103,15 @@
       </tr>
     </thead>
     <tbody>
-      {% for record in data %}
+      {% for key,record in data.items %}
       <tr class="rm-brdr">
         <td style="text-align: left;">
-          {{record.sku_code}}
-        </td>
-        <td style="text-align: left;">
-          {{record.title}}
+          <b>{{key}}</b>
+          {% if record.class %}
+            {% for sku in record.data %}
+            <p style="margin-bottom: 0px">&nbsp;&nbsp;&nbsp;{{sku.sku_code}} - {{sku.quantity}}</p>
+            {% endfor %}
+          {% endif %}
         </td>
         <td>
           {{record.quantity}}
@@ -133,7 +133,7 @@
       </tr>
       {% endfor %}
       <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14)" class="rm-padding">
-       <td colspan="2" style="text-align:left"><b>Total: &#8377;</b></td>
+       <td style="text-align:left"><b>Total: &#8377;</b></td>
        <td>{{total_quantity}}</td>
        {% if permissions.show_mrp %}<td></td>{% endif %}
        <td></td>
@@ -144,7 +144,7 @@
       </tr>
       {% if order_charges %}
       <tr class="rm-padding">
-        <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
+        <td {% if permissions.show_mrp %} colspan='8' {% else %} colspan='7' {% endif %} style="text-align:left;">
           <div class="row">
             <div class="col-xs-6">
             </div>
@@ -161,7 +161,7 @@
       </tr>
       {% endif %}
       <tr class="rm-padding">
-        <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
+        <td {% if permissions.show_mrp %} colspan='8' {% else %} colspan='7' {% endif %} style="text-align:left;">
           <b>Amount in words: &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{price_in_words}} </span></b>
         </td>
       </tr>
@@ -181,7 +181,7 @@
     <tbody class="rm-padding">
       {% if user.username == 'sagar_fab' %}
       <tr class="rm-padding">
-        <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
+        <td {% if permissions.show_mrp %} colspan='8' {% else %} colspan='7' {% endif %} style="text-align:left;">
           <div class="row">
             <div class="col-xs-6 fs12">
               <address class="no-margin" style="margin:0px;padding:0px">
@@ -200,7 +200,7 @@
       {% endif %}
       {% if user.username == 'adam_clothing' %}
       <tr class="rm-padding hide">
-        <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
+        <td {% if permissions.show_mrp %} colspan='8' {% else %} colspan='7' {% endif %} style="text-align:left;">
           <div class="row">
             <div class="col-xs-6 fs12">
               <address class="no-margin" style="margin:0px;padding:0px">

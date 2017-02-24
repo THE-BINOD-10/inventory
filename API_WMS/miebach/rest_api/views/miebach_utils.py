@@ -33,7 +33,7 @@ LABEL_KEYS = ["MASTERS_LABEL", "INBOUND_LABEL", "PRODUCTION_LABEL", "STOCK_LABEL
 
 SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sku_desc': '', 'sku_group': '', 'sku_type': '',
-            'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'zone_id': '',
+            'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'zone_id': '', 'color': '',
             'status': 1, 'online_percentage': 0, 'qc_check': 0, 'sku_brand': '', 'sku_size': '', 'style_name': '', 'price': 0}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(), 'st_po_id': '', 'sku_id': '', 'status': 1}
@@ -246,7 +246,8 @@ SALES_RETURN_REPORT = {('sales_return_form','salesreturnTable','Sales Return Rep
 LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequence', 'SKU Group']
 
 SKU_HEADERS = ['WMS Code','SKU Description', 'SKU Group', 'SKU Type', 'SKU Category', 'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size',
-               'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url', 'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Status']
+               'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url', 'Threshold Quantity', 'Measurment Type', 'Sale Through', 
+               'Color', 'Status']
 
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity', 'Return Date(YYYY-MM-DD)']
 
@@ -437,7 +438,7 @@ EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 8, 'invoice_amount': 3, 'chann
 SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('sku_group', 2), ('sku_type', 3), ('sku_category', 4), ('sku_class', 5),
                               ('sku_brand', 6), ('style_name', 7), ('sku_size', 8), ('zone_id', 9), ('price', 10), ('mrp', 11),
                               ('sequence', 12), ('image_url', 13), ('threshold_quantity', 14), ('measurement_type', 15), ('sale_through', 16),
-                              ('status', 17)
+                              ('color', 17), ('status', 18)
                            ))
 
 ITEM_MASTER_EXCEL = OrderedDict(( ('wms_code', 1), ('sku_desc', 2), ('sku_category', 25), ('image_url', 18), ('sku_size', 14) ))
@@ -600,6 +601,15 @@ R1_RETURN_ORDER_MAPPING = {'order_id': 'order_id', 'items': 'items', 'return_id'
                            'damaged_quantity': '0', 'return_quantity': 'order["quantity"]',
                            'order_items': '', 'reason': 'order["return_reason"]', 'marketplace': 'order["channel_sku"]["channel"]["name"]'}
 
+#BARCODE_FORMATS = {'adam_clothing': {'format1': ['sku_master'], 'format2': ['sku_master'], 'format3': ['sku_master']}}
+
+BARCODE_DICT = {'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Style': ''},
+                'format2': {'SKUCode': '', 'SKUDes': '', 'color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '',
+                            'DesignNo': '', 'Qty': '1', 'Gender': '', 'MRP': '', 'Packed on': '', 'Manufactured By': '', 'Markated By': ''}}
+
+BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details'}
+
+BARCODE_ADDRESS_DICT = {'adam_clothing1': 'Adam Exports 401, 4th Floor, Pratiek Plazza, S.V.Road, Goregaon West, Mumbai - 400062. MADE IN INDIA'}
 
 def fn_timer(function):
     @wraps(function)

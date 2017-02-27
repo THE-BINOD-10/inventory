@@ -38,7 +38,7 @@ class MailReports:
             wb = xlwt.Workbook()
             ws = wb.add_sheet(report_name)
 
-            report_data = report({}, user)
+            report_data = report({}, user, user)
             if isinstance(report_data, tuple):
                 report_data = report_data[0]
             report_data = report_data.get('aaData')

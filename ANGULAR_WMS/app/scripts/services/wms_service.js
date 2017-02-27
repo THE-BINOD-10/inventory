@@ -786,7 +786,17 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
         if(data.message) {
 
-            var data_to_send = data.data.barcodes;
+            var href_url = data.data;
+
+            var downloadpdf = $('<a id="downloadpdf" target="_blank" href='+href_url+' >');
+
+            $('body').append(downloadpdf);
+
+            document.getElementById("downloadpdf").click();
+
+            $("#downloadpdf").remove();
+
+            /*var data_to_send = data.data.barcodes;
 
             var key = data.data.key;
 
@@ -845,7 +855,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
                 }
 
-            });
+            });*/
         }
       });
     }

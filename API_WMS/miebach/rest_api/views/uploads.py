@@ -1141,9 +1141,10 @@ def validate_supplier_sku_form(open_sheet, user_id):
     if supplier_list:
         for i in supplier_list:
             supplier_ids.append(i)
-    wms_code1 = ''
-    preference1 = ''
     for row_idx in range(0, open_sheet.nrows):
+        wms_code1 = ''
+        preference1 = ''
+        supplier_id = ''
         for col_idx in range(0, len(SUPPLIER_SKU_HEADERS)):
             cell_data = open_sheet.cell(row_idx, col_idx).value
             if row_idx == 0:
@@ -1153,6 +1154,7 @@ def validate_supplier_sku_form(open_sheet, user_id):
             if col_idx == 0:
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
+                supplier_id = cell_data
                 if cell_data and cell_data not in supplier_ids:
                     index_status.setdefault(row_idx, set()).add('Supplier ID Not Found')
                     for index, data in enumerate(supplier_ids):
@@ -1170,17 +1172,21 @@ def validate_supplier_sku_form(open_sheet, user_id):
                     if not wms_check:
                         index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
                     wms_code1=cell_data
-            if col_idx == 2:
+            if col_idx == 3:
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Missing Preference')
                 else:
                     preference1 = int(cell_data)
-    if wms_code1 and preference1:
-        supp_val=SKUMaster.objects.filter(wms_code=wms_code1,user=user_id)
-        if supp_val:
-            temp1=SKUSupplier.objects.filter(Q(sku_id=supp_val[0].id) & Q(preference=preference1),sku__user=user_id)
-    if temp1:
-        index_status.setdefault(row_idx, set()).add('Preference matched with existing WMS Code')
+
+        if wms_code1 and preference1 and row_idx > 0:
+            supp_val=SKUMaster.objects.filter(wms_code=wms_code1,user=user_id)
+            if supp_val:
+                temp1 = SKUSupplier.objects.filter(Q(sku_id=supp_val[0].id) & Q(preference=preference1), sku__user=user_id)
+                sku_supplier = SKUSupplier.objects.filter(sku_id=supp_val[0].id, supplier_id=supplier_id, sku__user=user_id)
+                if sku_supplier:
+                    temp1 = []
+            if temp1:
+                index_status.setdefault(row_idx, set()).add('Preference matched with existing WMS Code')
 
     if not index_status:
         return 'Success'
@@ -1205,6 +1211,7 @@ def supplier_sku_upload(request, user=''):
         if status != 'Success':
             return HttpResponse(status)
 
+        supplier_sku_instance = None
         for row_idx in range(1, open_sheet.nrows):
             sku_code = ''
             wms_code = ''
@@ -1222,23 +1229,40 @@ def supplier_sku_upload(request, user=''):
                     sku_master = SKUMaster.objects.filter(wms_code=cell_data, user=user.id)
                     if sku_master:
                         supplier_data['sku'] = sku_master[0]
+                    supplier_sku_obj = SKUSupplier.objects.filter(supplier_id=supplier_data['supplier_id'], sku_id=sku_master[0].id)
+                    if supplier_sku_obj:
+                        supplier_sku_instance = supplier_sku_obj[0]
                 elif col_idx == 2:
-                    supplier_data['preference'] = str(int(cell_data))
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    supplier_data['supplier_code'] = cell_data
+                    if cell_data and supplier_sku_instance:
+                        supplier_sku_instance.supplier_code = cell_data
                 elif col_idx == 3:
+                    supplier_data['preference'] = str(int(cell_data))
+                    if supplier_data['preference'] and supplier_sku_instance:
+                        supplier_sku_instance.preference = supplier_data['preference']
+                elif col_idx == 4:
                     if not cell_data:
                         cell_data = 0
                     cell_data = int(cell_data)
                     supplier_data['moq'] = cell_data
-                elif col_idx == 4:
+                    if cell_data and supplier_sku_instance:
+                        supplier_sku_instance.moq = cell_data
+                elif col_idx == 5:
                     if not cell_data:
                         cell_data = 0
                     cell_data = float(cell_data)
                     supplier_data['price'] = cell_data
+                    if cell_data and supplier_sku_instance:
+                        supplier_sku_instance.price = cell_data
 
             supplier_sku = SupplierMaster.objects.filter(id=supplier_data['supplier_id'], user=user.id)
-            if supplier_sku:
+            if supplier_sku and not supplier_sku_obj:
                 supplier_sku = SKUSupplier(**supplier_data)
                 supplier_sku.save()
+            elif supplier_sku_instance:
+                supplier_sku_instance.save()
         return HttpResponse('Success')
     else:
         return HttpResponse('Invalid File Format')

@@ -15,6 +15,7 @@ from django.core import serializers
 import os
 from django.core.files.base import ContentFile
 from sync_sku import *
+from requests import post
 
 # Create your views here.
 
@@ -183,7 +184,7 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
-        mapping_results = SKUSupplier.objects.filter(sku_id__in=sku_master_ids).filter( Q(sku__id__icontains = search_term) | Q(preference__icontains = search_term) | Q(moq__icontains = search_term) | Q(sku__wms_code__icontains = search_term) | Q(supplier_code__icontains = search_term),sku__user=user.id, supplier__user=user.id, **filter_params ).order_by(order_data)
+        mapping_results = SKUSupplier.objects.filter(sku_id__in=sku_master_ids).filter( Q(supplier__id__icontains = search_term) | Q(preference__icontains = search_term) | Q(moq__icontains = search_term) | Q(sku__wms_code__icontains = search_term) | Q(supplier_code__icontains = search_term),sku__user=user.id, supplier__user=user.id, **filter_params ).order_by(order_data)
 
     else:
         mapping_results = SKUSupplier.objects.filter(sku_id__in=sku_master_ids).filter(sku__user = user.id, supplier__user=user.id, **filter_params).order_by(order_data)
@@ -663,6 +664,7 @@ def insert_supplier(request, user=''):
     return HttpResponse(status_msg)
 
 @csrf_exempt
+@get_admin_user
 def update_sku_supplier_values(request, user=''):
     data_id = request.POST['data-id']
     data = get_or_none(SKUSupplier, {'id': data_id})
@@ -670,6 +672,10 @@ def update_sku_supplier_values(request, user=''):
         if key in ('moq', 'price'):
             if not value:
                 value = 0
+        elif key == 'preference':
+            sku_supplier = SKUSupplier.objects.exclude(id=data.id).filter(Q(sku_id=data.sku_id) & Q(preference=value), sku__user=user.id)
+            if sku_supplier:
+                return HttpResponse('Preference matched with existing WMS Code')
 
         setattr(data, key, value)
     data.save()
@@ -1702,6 +1708,7 @@ def generate_barcodes(request, user=''):
 def generate_barcode_dict(pdf_format, myDict, user):
     barcode_pdf_dict = {}
     barcodes_list = []
+    user_prf = UserProfile.objects.filter(user_id=user.id)[0]
     for sku, quant in zip(myDict['wms_code'], myDict['quantity']):
         if sku and quant:
             sku_data = SKUMaster.objects.filter(sku_code = sku, user=user.id)[0]
@@ -1714,25 +1721,46 @@ def generate_barcode_dict(pdf_format, myDict, user):
             if pdf_format == 'format1':
                 single['Style'] = str(sku_data.style_name).replace("'",'')
                 single['Color'] = sku_data.color.replace("'",'')
-            if pdf_format == 'format2':
+            #if pdf_format == 'format2':
+            if pdf_format in ['format3', 'format2']:
                 single['color'] = sku_data.color.replace("'",'')
                 present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
-                single["Packed on"] = str(present).replace("'",'')
+                if pdf_format == 'format2':
+                    single["Packed on"] = str(present).replace("'",'')
+                    single['Marketed By'] = user_prf.company_name.replace("'",'')
+                if pdf_format == 'format3':
+                    email = user.email
+                    if email:
+                        email = '\n\nEmail: ' + user.email 
+                    single['MFD'] = str(present).replace("'",'')
+                    single['Marketed By'] = user_prf.company_name.replace("'",'') + email.replace("'",'')
                 single["Gender"] = str(sku_data.style_name).replace("'",'')
                 single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
-                user_prf = UserProfile.objects.filter(user_id=user.id)[0]
                 single['MRP'] = str(sku_data.price).replace("'",'')
                 address = user_prf.address
                 if BARCODE_ADDRESS_DICT.get(user.username, ''):
                     address = BARCODE_ADDRESS_DICT.get(user.username)
                 single['Manufactured By'] = address.replace("'",'')
-                email = user.email
-                if email:
-                    email = ' (' + user.email + ')'
-                single['Markated By'] = user_prf.company_name.replace("'",'') + email.replace("'",'')
                 if len(sku_data.sku_desc) >= 25:
                     single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
             barcodes_list.append(single)
-    barcode_pdf_dict['barcodes'] = barcodes_list
-    barcode_pdf_dict['key'] = BARCODE_KEYS[pdf_format]
-    return barcode_pdf_dict
+    #barcode_pdf_dict['barcodes'] = barcodes_list
+    #barcode_pdf_dict['key'] = BARCODE_KEYS[pdf_format]
+    constructed_url = barcode_service(BARCODE_KEYS[pdf_format], barcodes_list, pdf_format)
+    return constructed_url
+
+def barcode_service(key, data_to_send, format_name=''):
+    url = 'http://vinodh1251-001-site1.atempurl.com/Webservices/BarcodeServices.asmx/GetBarCode'
+    if data_to_send:
+        if format_name == 'format3':
+            payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Adam', 'argBarcodeFormate' : key }
+        else:
+            payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Brilhante', 'argBarcodeFormate' : key }
+    r = post(url, data=payload)
+    if ('<string xmlns="http://tempuri.org/">' in r.text) and ('</string>' in r.text):
+        token_value = r.text.split('<string xmlns="http://tempuri.org/">')[1].split('</string>')[0]
+        pdf_url = 'data:application/pdf;base64,' + token_value
+        return pdf_url
+    else:
+        pdf_url = ''
+

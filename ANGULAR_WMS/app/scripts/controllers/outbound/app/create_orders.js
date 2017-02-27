@@ -139,17 +139,33 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.catlog_data = {data: [], index: ""}
 
   vm.loading = true;
+
+  vm.size_form_data = function() {
+    var formdata = $('#size_form').serializeArray();
+    var size_stock = {};
+    $(formdata).each(function(index, obj) {
+        if(obj.value) {
+          size_stock[obj.name] = obj.value;
+        }
+    });
+    size_stock = JSON.stringify(size_stock);
+    return size_stock;
+  }
+
   vm.tag_details = function(cat_name, brand) {
-    var size_stock = "";
     angular.copy([], vm.catlog_data.data);
     vm.loading = true;
     vm.category = cat_name;
     if(cat_name == "All") {
       cat_name = "";
     }
-    if($.type(vm.size_filter) != "string"){
-      size_stock = JSON.stringify(vm.size_filter);
+    var size_stock = "";
+    if($.type(vm.size_filter_data) != "string"){
+      size_stock = JSON.stringify(vm.size_filter_data);
+    } else {
+      size_stock = vm.size_filter_data;
     }
+
     vm.catlog_data.index = "";
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter:size_stock}
@@ -179,8 +195,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     if(vm.category == "All") {
       cat_name = "";
     }
-    if($.type(vm.size_filter) != "string"){
-      size_stock = JSON.stringify(vm.size_filter);
+    if($.type(vm.size_filter_data) != "string"){
+      size_stock = JSON.stringify(vm.size_filter_data);
+    } else {
+      size_stock = vm.size_filter_data;
     }
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock }
@@ -203,6 +221,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.loading = false;
       if($.isEmptyObject(data.data.data)){
           vm.show_no_data = true;
+      }
+
+      if( (data.data.data).length == 0 && vm.catlog_data.index ) {
+        vm.scroll_data = false;
       }
 
     })
@@ -250,7 +272,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.all_cate = data.data.categories; 
         if(vm.all_cate.length> 0) {
           vm.all_cate.push("All")
-          vm.category = vm.all_cate[0];
+          vm.category = "All"
           vm.get_category(true);
         }
         vm.brand_size_collect = data.data.size;
@@ -785,34 +807,32 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.size_filter = "";
         vm.size_filter_show = false;
         vm.size_filter_data = {};
-        vm.catlog_data.index = ""; 
-    vm.catlog_data.data = []; 
-    var size_stock = {}; 
-    var stock_qty = {}; 
-    var formdata = $('#size_form').serializeArray();
-    $(formdata).each(function(index, obj) {
+        vm.catlog_data.index = "";
+        vm.catlog_data.data = [];
+        var size_stock = {};
+        var stock_qty = {};
+        var formdata = $('#size_form').serializeArray();
+        $(formdata).each(function(index, obj) {
         if(obj.value) {
           size_stock[obj.name] = obj.value;
         }
-    }); 
+    });
     vm.size_filter = size_stock;
     stock_qty['size_filter'] = JSON.stringify(size_stock);
     stock_qty['brand'] = vm.brand;
     stock_qty['sale_through'] = vm.order_type_value;
     angular.copy(size_stock, vm.size_filter_data);
-        vm.service.apiCall("get_sku_categories/", "GET", stock_qty).then(function(data) {
+    vm.service.apiCall("get_sku_categories/", "GET", stock_qty).then(function(data) {
             if(data.message) {
             vm.all_cate = data.data.categories;
             if(vm.all_cate.length> 0) {
                 vm.all_cate.push("All")
-                vm.get_category(false);
+                vm.get_category(true);
                 }
             }
-        });
+    });
+
     } else {
-    vm.size_filter_show = true;
-    vm.catlog_data.index = "";
-    vm.catlog_data.data = [];
     var size_stock = {};
     var stock_qty = {};
     var formdata = $('#size_form').serializeArray();
@@ -825,13 +845,20 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     stock_qty['size_filter'] = JSON.stringify(size_stock);
     stock_qty['brand'] = vm.brand;
     stock_qty['sale_through'] = vm.order_type_value;
+    vm.size_filter_show = true;
+    if(angular.equals(size_stock, {})){
+    vm.size_filter_show = false;
+    }
+    vm.catlog_data.index = "";
+    vm.catlog_data.data = [];
+
     angular.copy(size_stock, vm.size_filter_data);
     vm.service.apiCall("get_sku_categories/", "GET", stock_qty).then(function(data) {
       if(data.message) {
         vm.all_cate = data.data.categories;
         if(vm.all_cate.length> 0) {
           vm.all_cate.push("All")
-          vm.get_category(false);
+          vm.get_category(true);
         }
       }
     });

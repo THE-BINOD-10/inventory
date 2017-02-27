@@ -31,17 +31,22 @@
   <div class="row search-items mt15 search-box">
     <div class="row">
       <div class="col-md-1 col-sm-1 col-xs-1"></div>
-      <div class="col-md-10 col-sm-10 col-xs-10">
+      <div class="col-md-9 col-sm-9 col-xs-8">
         <div class="input-group mb15">
-          <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;" class="fa fa-search"></i></span>
+          <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;font-size: 15px;" class="fa fa-search"></i></span>
           <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-change="showCase.catlog_data.index='';showCase.get_category(true, true);">
         </div>
+      </div>
+      <div class="col-md-1 col-sm-1 col-xs-1" style="text-align: center;">
+        <button class="btn btn-icon-icon" style="background: white;">
+          <i class="fa fa-refresh" style="font-size: 15px;border-radius: 18px;color:white" title="Clear Filters" ng-click="showCase.sizeform('clear')"></i>
+        </button>
       </div>
       <div class="col-md-1 col-sm-1 col-xs-1"></div>
     </div>
     <div class="row">
       <div class="col-md-1 col-sm-1 col-xs-1"></div>
-      <div class="col-md-9 col-sm-9 col-xs-7">
+      <div class="col-md-9 col-sm-9 col-xs-8">
         <div>
            <select name="Category" class="form-control" ng-model="showCase.brand" ng-change="showCase.change_brand(showCase.brand);">
              <option value="" ng-selected="showCase.brand == ''">All Brands</option>
@@ -50,7 +55,9 @@
         </div>
       </div>
       <div class="col-md-1 col-sm-1 col-xs-1" style="text-align: center;">
-        <a href="javascript:;" class="btn btn-icon-icon" ng-click="isCollapsed = !isCollapsed" title="Size Wise - Stock Filter"><i style="background-color: #ed1c24;color: white;font-size: 20px;" class="fa fa-arrow-down"></i></a>
+        <a href="javascript:;" class="btn btn-icon-icon" ng-click="isCollapsed = !isCollapsed" title="Size Wise - Stock Filter">
+            <i style="background-color: #ed1c24;color: white;font-size: 15px;border-radius: 18px;" class="fa fa-arrow-down"></i>
+        </a>
       </div>
       <div class="col-md-1 col-sm-1 col-xs-1"></div>
     </div>
@@ -81,10 +88,10 @@
         </div>
         <div class="col-md-2 col-sm-12 col-xs-12">
           <div class="col-md-12 col-sm-6 col-xs-6 p10" style="padding-right:0px">
-            <button type="submit" style="background-color: #ed1c24;" class="btn btn-danger btn-sm btn-block" ng-click="showCase.sizeform(form)">Filter</button>
+            <button type="submit" style="background-color: #ed1c24;" class="btn btn-danger btn-sm btn-block" ng-click="showCase.sizeform(form)">Search</button>
           </div>
           <div class="col-md-12 col-sm-6 col-xs-6 p10" style="padding-right:0px">
-            <button type="button" class="btn btn-default btn-sm btn-block" ng-click="showCase.sizeform('clear')">Clear</button>
+            <button type="button" class="btn btn-default btn-sm btn-block" ng-click="showCase.sizeform('clear')">Reset</button>
           </div>
         </div>
         </form>
@@ -97,8 +104,7 @@
       <div class="col-md-1 col-sm-1 col-xs-12"></div>
       <div class="col-md-10 col-sm-10 col-xs-12">
         <span class="bold">Size Filters Applied</span>
-        <span ng-repeat="(key,value) in showCase.size_filter_data"><span ng-if="value">|<span class="bold"> {{key}} </span>: {{value}} |</span></span>
-        
+        <span ng-repeat="(key,value) in showCase.size_filter_data">|<span class="bold"> {{key}} </span>: {{value}} |</span>
       </div>
     </div>
 

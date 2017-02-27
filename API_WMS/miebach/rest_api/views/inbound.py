@@ -1078,7 +1078,10 @@ def get_purchaseorder_locations(put_zone, temp_dict):
         location = location_masters.filter(zone__zone=put_zone)
         if location:
             return location
-    order_data = get_purchase_order_data(data)
+    if data:
+        order_data = get_purchase_order_data(data)
+    else:
+        order_data = {'sku_group': temp_dict['sku_group'], 'wms_code':temp_dict['wms_code']}
     sku_group = order_data['sku_group']
 
     locations = ''
@@ -1702,7 +1705,10 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
         all_data.append({'received_quantity': float(damaged_quantity), 'put_zone': 'DAMAGED_ZONE'})
         all_data[0]['received_quantity'] = all_data[0]['received_quantity'] - float(damaged_quantity)
     for data in all_data:
-        locations = get_returns_location(data['put_zone'], request, user)
+        temp_dict ={'received_quantity': float(order_returns.quantity), 'data': "", 'user': user.id, 'pallet_data': '', 'pallet_number': '',
+                    'wms_code': order_returns.sku.wms_code, 'sku_group': order_returns.sku.sku_group}
+        locations = get_purchaseorder_locations(data['put_zone'], temp_dict)
+        #locations = get_returns_location(data['put_zone'], request, user)
         received_quantity = data['received_quantity']
         if not received_quantity:
             continue

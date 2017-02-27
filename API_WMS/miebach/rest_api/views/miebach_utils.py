@@ -158,7 +158,7 @@ SALES_RETURN_BULK = ['Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantit
 
 RETURN_DATA_FIELDS = ['sales-check', 'order_id', 'sku_code', 'customer_id', 'shipping_quantity', 'return_quantity', 'damaged_quantity', 'delete-sales']
 
-SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Preference', 'MOQ','Price']
+SUPPLIER_SKU_HEADERS = ['Supplier Id', 'WMS Code', 'Supplier Code', 'Preference', 'MOQ','Price']
 
 MARKETPLACE_SKU_HEADERS = ['WMS Code', 'Flipkart SKU', 'Snapdeal SKU', 'Paytm SKU', 'Amazon SKU', 'HomeShop18 SKU', 'Jabong SKU', 'Indiatimes SKU', 'Flipkart Description', 'Snapdeal Description', 'Paytm Description', 'HomeShop18 Description', 'Jabong Description', 'Indiatimes Description', 'Amazon Description']
 
@@ -605,9 +605,11 @@ R1_RETURN_ORDER_MAPPING = {'order_id': 'order_id', 'items': 'items', 'return_id'
 
 BARCODE_DICT = {'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Style': ''},
                 'format2': {'SKUCode': '', 'SKUDes': '', 'color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '',
-                            'DesignNo': '', 'Qty': '1', 'Gender': '', 'MRP': '', 'Packed on': '', 'Manufactured By': '', 'Markated By': ''}}
+                            'DesignNo': '', 'Qty': '1', 'Gender': '', 'MRP': '', 'Packed on': '', 'Manufactured By': '', 'Marketed By': ''},
+                'format3': {'SKUCode': '', 'SKUDes': '', 'color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '', 'DesignNo': '',
+                            'Qty': '1', 'Gender': '', 'MRP': '', 'MFD': '', 'Manufactured By': '', 'Marketed By': ''}}
 
-BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details'}
+BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
 
 BARCODE_ADDRESS_DICT = {'adam_clothing1': 'Adam Exports 401, 4th Floor, Pratiek Plazza, S.V.Road, Goregaon West, Mumbai - 400062. MADE IN INDIA'}
 

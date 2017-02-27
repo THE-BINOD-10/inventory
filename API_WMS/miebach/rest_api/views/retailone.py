@@ -304,7 +304,7 @@ def order_management_toggle(request, user=''):
         config_obj.misc_value = toggle
         config_obj.save()
 
-        integrations_obj, is_created = Integrations.objects.get_or_create(user=user.id, name='retailone', api_instance='RetailoneAPI')
+        integrations_obj, is_created = Integrations.objects.get_or_create(user=user.id, name='retailone', api_instance='EasyopsAPI')
         integrations_obj.status = 1 if toggle == 'true' else 0
         integrations_obj.save()
     return HttpResponse(toggle)

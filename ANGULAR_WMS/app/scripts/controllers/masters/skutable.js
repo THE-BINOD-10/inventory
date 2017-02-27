@@ -277,9 +277,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.barcode_title = 'Barcode Generation';
 
-      vm.model_data['format_types'] = ['format1', 'format2']
+      vm.model_data['format_types'] = ['format1', 'format2', 'format3']
 
-      var key_obj = {'format1': 'SKUCode', 'format2': 'Details'}
+      var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
 
       vm.model_data['barcodes'] = [{'sku_code':'', 'quantity':''}];
 

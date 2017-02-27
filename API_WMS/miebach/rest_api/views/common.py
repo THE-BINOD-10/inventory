@@ -1677,13 +1677,6 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
 
     sku_master = SKUMaster.objects.filter(**filter_params)
 
-    if size_dict:
-        size_dict = eval(size_dict)
-        query_string = 'sku__sku_code'
-        classes = get_sku_available_stock(user, sku_master, query_string, size_dict)
-        if classes:
-            sku_master = sku_master.filter(sku_class__in = classes)
-
     categories = list(sku_master.exclude(sku_category='').filter(**filter_params).values_list('sku_category', flat=True).distinct())
     brands = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
     sizes = list(sku_master.exclude(sku_brand='').values_list('sku_size', flat=True).order_by('sequence').distinct())

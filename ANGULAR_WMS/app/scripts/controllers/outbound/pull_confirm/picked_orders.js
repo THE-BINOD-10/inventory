@@ -51,7 +51,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
             });
         });
         return nRow;
-    } 
+    }
 
     vm.dtInstance = {};
 
@@ -68,6 +68,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     function close() {
       $state.go('app.outbound.PullConfirmation');
     }
+
+    vm.barcode = function() {
+
+      vm.barcode_title = 'Barcode Generation';
+
+      vm.model_data['barcodes'] = [];
+
+      angular.forEach(vm.model_data.data, function(barcode_data){
+
+        var quant = barcode_data.picked_quantity;
+
+        var sku_det = barcode_data.wms_code;
+
+        vm.model_data['barcodes'].push({'sku_code': sku_det, 'quantity': quant})
+
+      })
+
+      vm.model_data['format_types'] = ['format1', 'format2', 'format3']
+
+      var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
+
+      $state.go('app.outbound.PullConfirmation.barcode');
+    }
+
 
     vm.market_places = [];
     vm.service.apiCall("get_marketplaces_list/?status=picked").then(function(data){
@@ -95,9 +119,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.service.apiCall("generate_order_invoice/?order_ids="+send).then(function(data){
       if(data.message) {
         angular.copy(data.data, vm.pdf_data)
-        $state.go('app.outbound.PullConfirmation.GenerateInvoice');
+        if (vm.pdf_data.detailed_invoice) {
+          $state.go('app.outbound.PullConfirmation.DetailGenerateInvoice');
+        } else {
+          $state.go('app.outbound.PullConfirmation.GenerateInvoice');
+        }
       }
     })
+    }
+
+    // Edit invoice
+    vm.invoice_edit = false;
+    vm.save_invoice_data = function() {
+
+      vm.invoice_edit = false;
+      console.log("edit");
     }
   }
 

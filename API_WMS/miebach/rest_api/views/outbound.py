@@ -780,7 +780,8 @@ def get_picklist_data(data_id,user_id):
                 stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks, reserved_instances)
                 last_picked_locs = ''
                 if location == 'NO STOCK':
-                    last_picked = pick_stocks.filter(sku__wms_code=wms_code).order_by('-updation_date').values_list('location__location',
+                    last_picked = pick_stocks.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__wms_code=wms_code).\
+                                              order_by('-updation_date').values_list('location__location',
                                                      flat=True).distinct()[:2]
                     last_picked_locs = ','.join(last_picked)
 
@@ -846,7 +847,8 @@ def get_picklist_data(data_id,user_id):
             stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks, reserved_instances)
             last_picked_locs = ''
             if location == 'NO STOCK':
-                last_picked = pick_stocks.filter(sku__wms_code=wms_code).order_by('-updation_date').values_list('location__location',
+                last_picked = pick_stocks.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__wms_code=wms_code).\
+                                          order_by('-updation_date').values_list('location__location',
                                                  flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
 
@@ -893,7 +895,8 @@ def get_picklist_data(data_id,user_id):
             stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks, reserved_instances)
             last_picked_locs = ''
             if location == 'NO STOCK':
-                last_picked = pick_stocks.filter(sku__wms_code=wms_code).order_by('-updation_date').values_list('location__location',
+                last_picked = pick_stocks.exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__wms_code=wms_code).\
+                                          order_by('-updation_date').values_list('location__location',
                                                  flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
 
@@ -1060,14 +1063,17 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt 
             print 'mail issue'
 
 def get_picklist_batch(picklist, value, all_picklists):
+    title = value[0]['title']
+    if '\r' in title:
+        title = str(title).replace('\r', '')
     if picklist.order and picklist.stock:
         picklist_batch = all_picklists.filter(stock__location__location=value[0]['orig_loc'], stock__sku__wms_code=value[0]['wms_code'],
-                                              status__icontains='open', order__title=value[0]['title'])
+                                              status__icontains='open', order__title=title)
     elif not picklist.stock:
-        picklist_batch = all_picklists.filter(order__sku__sku_code=value[0]['wms_code'], order__title=value[0]['title'], stock__isnull=True,
+        picklist_batch = all_picklists.filter(order__sku__sku_code=value[0]['wms_code'], order__title=title, stock__isnull=True,
                                               picklist_number=picklist.picklist_number)
         if not picklist_batch:
-            picklist_batch = all_picklists.filter(sku_code=value[0]['wms_code'], order__title=value[0]['title'], stock__isnull=True,
+            picklist_batch = all_picklists.filter(sku_code=value[0]['wms_code'], order__title=title, stock__isnull=True,
                                                   picklist_number=picklist.picklist_number)
     else:
         picklist_batch = all_picklists.filter(Q(stock__sku__wms_code=value[0]['wms_code']) | Q(order_type="combo",
@@ -2588,10 +2594,12 @@ def modify_invoice_data(invoice_data, user):
                 new_data[class_name]['invoice_amount'] += float(data['invoice_amount'])
                 new_data[class_name]['quantity'] += data['quantity']
                 new_data[class_name]['tax'] += float(data['tax'])
+                new_data[class_name]['amt'] = new_data[class_name]['invoice_amount'] - float(data['tax'])
             else:
                 style_data = {'data': [], 'discount': float(data['discount']), 'invoice_amount':  float(data['invoice_amount']),
                               'mrp_price': float(data['mrp_price']), 'quantity': data['quantity'], 'tax': float(data['tax']),
-                              'unit_price': float(data['unit_price']), 'vat': float(data['vat']), 'class': True}
+                              'unit_price': float(data['unit_price']), 'vat': float(data['vat']), 'class': True,
+                              'amt': float(data['invoice_amount'])-float(data['tax'])}
                 if not class_name:
                     class_name = data['sku_code']
                     if class_name in new_data.keys():
@@ -2599,6 +2607,7 @@ def modify_invoice_data(invoice_data, user):
                         new_data[class_name]['invoice_amount'] += float(data['invoice_amount'])
                         new_data[class_name]['quantity'] += data['quantity']
                         new_data[class_name]['tax'] += float(data['tax'])
+                        new_data[class_name]['amt'] = float(data['invoice_amount']) - float(data['tax'])
                         continue
                     style_data['class'] = False
                 new_data[class_name] = style_data;
@@ -2614,6 +2623,13 @@ def generate_order_invoice(request, user=''):
     order_ids = request.GET.get('order_ids', '')
     invoice_data = get_invoice_data(order_ids, user)
     invoice_data = modify_invoice_data(invoice_data, user)
+    #invoice_data.update({'user': user})
+    #if invoice_data['detailed_invoice']:
+    #    t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
+    #else:
+    #    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
+    #c = Context(invoice_data)
+    #rendered = t.render(c)
     return HttpResponse(json.dumps(invoice_data))
 
 @csrf_exempt
@@ -3467,23 +3483,28 @@ def get_customer_order_detail(request, user=""):
 @get_admin_user
 def generate_pdf_file(request, user=""):
 
-    nv_data = json.loads(request.POST['data'])
-    if not nv_data:
-      return HttpResponse("no invoice")
-    if not os.path.exists('static/pdf_files/'):
-        os.makedirs('static/pdf_files/')
-    nv_data.update({'user': user})
-    if nv_data['detailed_invoice']:
-        t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
-    else:
-        t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
-    c = Context(nv_data)
-    rendered = t.render(c)
+    nv_data = request.POST['data']
+    #if not nv_data:
+    #  return HttpResponse("no invoice")
+    #if not os.path.exists('static/pdf_files/'):
+    #    os.makedirs('static/pdf_files/')
+    #nv_data.update({'user': user})
+    #if nv_data['detailed_invoice']:
+    #    t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
+    #else:
+    #    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
+    #c = Context(nv_data)
+    #rendered = t.render(c)
+    c= Context({'name': 'kanna'})
+    top = loader.get_template('../miebach_admin/templates/toggle/invoice/top.html')
+    top = top.render(c)
+    nv_data = nv_data.encode('utf-8')
+    html_content = str(top)+nv_data+"</div>"
     file_name = 'static/pdf_files/%s_dispatch_invoice.html' % str(request.user.id)
     name = str(request.user.id)+"_dispatch_invoice"
     pdf_file = 'static/pdf_files/%s.pdf' % name
     file_ = open(file_name, "w+b")
-    file_.write(rendered)
+    file_.write(html_content)
     file_.close()
     os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
     return HttpResponse("../static/pdf_files/"+ str(request.user.id) +"_dispatch_invoice.pdf")

@@ -407,6 +407,22 @@ var app = angular.module('urbanApp')
              url: '/Size',
              templateUrl: 'views/masters/toggles/size_update.html'
            })
+        .state('app.masters.PricingMaster', {
+          url: '/PricingMaster',
+          templateUrl: 'views/masters/pricing_master.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/pricing_master.js');
+                    }]
+          },
+          data: {
+            title: 'Pricing Master',
+          }
+        })
+          .state('app.masters.PricingMaster.Add', {
+             url: '/Price',
+             templateUrl: 'views/masters/toggles/price_update.html'
+           })
 
       // Inbound routes
       .state('app.inbound', {
@@ -477,6 +493,10 @@ var app = angular.module('urbanApp')
           permission: 'add_purchaseorder',
           templateUrl: 'views/inbound/toggle/recieve_vendor.html'
           })
+          .state('app.inbound.RevceivePo.barcode', {
+            url: '/Barcode',
+            templateUrl: 'views/masters/toggles/barcode.html'
+            })
         .state('app.inbound.QualityCheck', {
           url: '/QualityCheck',
           permission: 'add_qualitycheck',
@@ -545,6 +565,10 @@ var app = angular.module('urbanApp')
             url: '/ScanReturns',
             permission: 'add_orderreturns',
             templateUrl: 'views/inbound/toggle/scan_returns.html'
+          })
+          .state('app.inbound.SalesReturns.barcode', {
+            url: '/Barcode',
+            templateUrl: 'views/masters/toggles/barcode.html'
           })
 
       // Production routes
@@ -923,6 +947,11 @@ var app = angular.module('urbanApp')
             permission: 'add_picklist',
             templateUrl: 'views/outbound/print/generate_invoice.html'
           })
+          .state('app.outbound.ViewOrders.DetailGenerateInvoice', {
+            url: '/DetailInvoice',
+            permission: 'add_picklist',
+            templateUrl: 'views/outbound/print/detail_generate_inv.html'
+          })
           .state('app.outbound.ViewOrders.ST', {
             url: '/ST',
             permission: 'add_picklist',
@@ -970,6 +999,15 @@ var app = angular.module('urbanApp')
             url: '/Invoice',
             permission: 'add_picklistlocation',
             templateUrl: 'views/outbound/print/generate_invoice.html'
+          })
+          .state('app.outbound.PullConfirmation.barcode', {
+            url: '/Barcode',
+            templateUrl: 'views/masters/toggles/barcode.html'
+          })
+          .state('app.outbound.PullConfirmation.DetailGenerateInvoice', {
+            url: '/DetailInvoice',
+            permission: 'add_picklist',
+            templateUrl: 'views/outbound/print/detail_generate_inv.html'
           })
         .state('app.outbound.ShipmentInfo', {
           url: '/ShipmentInfo',

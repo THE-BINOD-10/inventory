@@ -529,7 +529,7 @@ def generated_po_data(request, user=''):
 
     total_data = []
     status_dict = {'SR': 'Self Receipt', 'VR': 'Vendor Receipt'}
-    ser_data = json.loads(serializers.serialize("json", record, indent=3, use_natural_foreign_keys=True, fields = ('supplier_code', 'sku', 'order_quantity', 'price', 'remarks')))
+    ser_data = json.loads(serializers.serialize("json", record, indent=3, use_natural_foreign_keys=True, fields = ('supplier_code', 'sku', 'order_quantity', 'price', 'remarks', 'measurement_unit')))
     vendor_id = ''
     if record[0].vendor:
         vendor_id = record[0].vendor.vendor_id
@@ -552,7 +552,10 @@ def validate_wms(request, user=''):
     for i in range(0, len(myDict['wms_code'])):
         if not myDict['wms_code'][i]:
             continue
-        sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
+        if myDict['wms_code'][i].isdigit():
+            sku_master = SKUMaster.objects.filter(Q(ean_number=myDict['wms_code'][i]) | Q(wms_code=myDict['wms_code'][i]), user=user.id)
+        else:
+            sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
         if not sku_master:
             if not wms_list:
                 wms_list = 'Invalid WMS Codes are ' + myDict['wms_code'][i].upper()
@@ -623,41 +626,38 @@ def modify_po_update(request, user=''):
 @get_admin_user
 def switches(request, user=''):
 
-    toggle_data = { 'fifo_switch': request.GET.get('fifo_switch', ''),
-                    'batch_switch': request.GET.get('batch_switch', ''),
-                    'send_message': request.GET.get('send_message', ''),
-                    'show_image': request.GET.get('show_image', ''),
-                    'stock_sync': request.GET.get('sync_switch', ''),
-                    'back_order': request.GET.get('back_order', ''),
-                    'online_percentage': request.GET.get('online_percentage', ''),
-                    'use_imei': request.GET.get('use_imei', ''),
-                    'pallet_switch': request.GET.get('pallet_switch', ''),
-                    'production_switch': request.GET.get('production_switch', ''),
-                    'mail_alerts': request.GET.get('mail_alerts', ''),
-                    'invoice_prefix': request.GET.get('invoice_prefix', ''),
-                    'pos_switch': request.GET.get('pos_switch', ''),
-                    'auto_po_switch': request.GET.get('auto_po_switch', ''),
-                    'no_stock_switch': request.GET.get('no_stock_switch', ''),
-                    'float_switch': request.GET.get('float_switch', ''),
-                    'automate_invoice': request.GET.get('automate_invoice', ''),
-                    'show_mrp': request.GET.get('show_mrp', ''),
-                    'decimal_limit': request.GET.get('decimal_limit', ''),
-                    'picklist_sort_by': request.GET.get('picklist_sort_by', ''),
-                    'stock_sync': request.GET.get('stock_sync', ''),
-                    'sku_sync': request.GET.get('sku_sync', ''),
-                    'auto_generate_picklist': request.GET.get('auto_generate_picklist', ''),
-                    'order_headers' : request.GET.get('order_headers', ''),
-                    'detailed_invoice' : request.GET.get('detailed_invoice', '')
+    toggle_data = { 'fifo_switch': 'fifo_switch',
+                    'batch_switch': 'batch_switch',
+                    'send_message': 'send_message',
+                    'show_image': 'show_image',
+                    'stock_sync': 'sync_switch',
+                    'back_order': 'back_order',
+                    'online_percentage': 'online_percentage',
+                    'use_imei': 'use_imei',
+                    'pallet_switch': 'pallet_switch',
+                    'production_switch': 'production_switch',
+                    'mail_alerts': 'mail_alerts',
+                    'invoice_prefix': 'invoice_prefix',
+                    'pos_switch': 'pos_switch',
+                    'auto_po_switch': 'auto_po_switch',
+                    'no_stock_switch': 'no_stock_switch',
+                    'float_switch': 'float_switch',
+                    'automate_invoice': 'automate_invoice',
+                    'show_mrp': 'show_mrp',
+                    'decimal_limit': 'decimal_limit',
+                    'picklist_sort_by': 'picklist_sort_by',
+                    'stock_sync': 'stock_sync',
+                    'sku_sync': 'sku_sync',
+                    'auto_generate_picklist': 'auto_generate_picklist',
+                    'order_headers' : 'order_headers',
+                    'detailed_invoice' : 'detailed_invoice'
                   }
 
     toggle_field, selection = "", ""
-    for key, value in toggle_data.iteritems():
-        if not value:
-            continue
 
-        toggle_field = key
+    for key, value in request.GET.iteritems():
+        toggle_field = toggle_data.get(key, '')
         selection = value
-        break
 
     user_id = user.id
     if toggle_field == 'invoice_prefix':
@@ -684,6 +684,7 @@ def switches(request, user=''):
 @get_admin_user
 def confirm_po(request, user=''):
     sku_id = ''
+    ean_flag = False
     data = copy.deepcopy(PO_DATA)
     po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
     if not po_data:
@@ -695,6 +696,9 @@ def confirm_po(request, user=''):
     total = 0
     total_qty = 0
     myDict = dict(request.GET.iterlists())
+    ean_data = SKUMaster.objects.filter(wms_code__in=myDict['wms_code'],user=user.id).values_list('ean_number').exclude(ean_number=0)
+    if ean_data:
+        ean_flag = True
     for i in range(0, len(myDict['wms_code'])):
         price = 0
         if myDict['price'][i]:
@@ -738,6 +742,11 @@ def confirm_po(request, user=''):
             po_suggestions['price'] = float(price)
             po_suggestions['status'] = 'Manual'
             po_suggestions['remarks'] = myDict['remarks'][i]
+            po_suggestions['measurement_unit'] = "UNITS"
+            if 'measurement_unit' in myDict.keys():
+                if myDict['measurement_unit'][i] != "":
+                    po_suggestions['measurement_unit'] = myDict['measurement_unit'][i]
+
             if myDict.get('vendor_id', ''):
                 vendor_master = VendorMaster.objects.get(vendor_id=myDict['vendor_id'][0], user=user.id)
                 po_suggestions['vendor_id'] = vendor_master.id
@@ -769,8 +778,12 @@ def confirm_po(request, user=''):
             wms_code = purchase_order.wms_code
         else:
             wms_code = purchase_order.sku.wms_code
-        po_data.append((wms_code, myDict['supplier_code'][i], purchase_order.sku.sku_desc, purchase_order.order_quantity,
-                        purchase_order.price, amount, purchase_order.remarks))
+
+        if ean_flag:
+            po_data.append(( wms_code, purchase_order.sku.ean_number, myDict['supplier_code'][i], purchase_order.sku.sku_desc, purchase_order.order_quantity, po_suggestions['measurement_unit'], purchase_order.price, amount, purchase_order.remarks))
+        else:
+            po_data.append(( wms_code, myDict['supplier_code'][i], purchase_order.sku.sku_desc, purchase_order.order_quantity, po_suggestions['measurement_unit'], purchase_order.price, amount, purchase_order.remarks))
+
         suggestion = OpenPO.objects.get(id=sup_id, sku__user=user.id)
         setattr(suggestion, 'status', 0)
         suggestion.save()
@@ -794,7 +807,10 @@ def confirm_po(request, user=''):
     po_reference = '%s%s_%s' % (order.prefix, str(order_date).split(' ')[0].replace('-', ''), order_id)
 
     profile = UserProfile.objects.get(user=request.user.id)
-    table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Unit Price', 'Amount', 'Remarks')
+    if ean_flag:
+        table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount', 'Remarks')
+    else:
+        table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount', 'Remarks')
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'company_name': profile.company_name,
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
@@ -807,7 +823,7 @@ def confirm_po(request, user=''):
     if data:
         send_message = data[0].misc_value
     if send_message == 'true':
-        write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0])
+        write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0],ean_flag=ean_flag)
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
@@ -856,11 +872,19 @@ def search_vendor(request, user=''):
 def get_mapping_values(request, user=''):
     wms_code = request.GET['wms_code']
     supplier_id = request.GET['supplier_id']
-    sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
+    if wms_code.isdigit():
+        ean_number = wms_code
+        sku_supplier = SKUSupplier.objects.filter(Q(sku__ean_number=wms_code) | Q(sku__wms_code=wms_code), supplier_id=supplier_id, sku__user=user.id)
+    else:
+        ean_number = 0
+        sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
     data = {}
     if sku_supplier:
         data['supplier_code'] = sku_supplier[0].supplier_code
         data['price'] = sku_supplier[0].price
+        data['sku'] = sku_supplier[0].sku.sku_code
+        data['ean_number'] = ean_number
+        data['measurement_unit'] = sku_supplier[0].sku.measurement_type
 
     return HttpResponse(json.dumps(data), content_type='application/json')
 
@@ -877,8 +901,12 @@ def add_po(request, user=''):
         pri = myDict['price'][i]
         if not pri:
             myDict['price'][i] = 0
+        if wms_code.isdigit():
+            sku_id = SKUMaster.objects.filter(Q(ean_number=wms_code) | Q(wms_code=wms_code), user=user.id)
+        else:
+            sku_id = SKUMaster.objects.filter(wms_code=wms_code.upper(), user=user.id)
 
-        sku_id = SKUMaster.objects.filter(wms_code=wms_code.upper(),user=user.id)
+        #sku_id = SKUMaster.objects.filter(wms_code=wms_code.upper(),user=user.id)
         if not sku_id:
             status = 'Invalid WMS CODE'
             return HttpResponse(status)
@@ -989,7 +1017,8 @@ def get_supplier_data(request, user=''):
                             'name': str(order.order_id) + '-' + str(order_data['wms_code']),
                             'value': get_decimal_limit(user.id, order.saved_quantity),
                             'receive_quantity': get_decimal_limit(user.id, order.received_quantity), 'price': order_data['price'],
-                            'temp_wms': order_data['temp_wms'],'order_type': order_data['order_type'], 'dis': True,
+                            'temp_wms': order_data['temp_wms'],'order_type': order_data['order_type'], 'unit': order_data['unit'],
+                            'dis': True,
                             'sku_extra_data': sku_extra_data, 'product_images': product_images}])
 
     return HttpResponse(json.dumps({'data': orders, 'po_id': order_id,
@@ -1310,6 +1339,7 @@ def get_purchase_order_data(order):
     rw_purchase = RWPurchase.objects.filter(purchase_order_id=order.id)
     st_order = STPurchaseOrder.objects.filter(po_id=order.id)
     temp_wms = ''
+    unit = ""
     if 'job_code' in dir(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group }
         return order_data
@@ -1333,6 +1363,7 @@ def get_purchase_order_data(order):
         order_quantity = open_data.order_quantity
         sku = open_data.sku
         price = open_data.price
+        unit = open_data.measurement_unit
         order_type = status_dict[order.open_po.order_type]
         if sku.wms_code == 'TEMP':
             temp_wms = open_data.wms_code
@@ -1351,7 +1382,7 @@ def get_purchase_order_data(order):
     order_data = {'order_quantity': order_quantity, 'price': price, 'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username,
-                  'sku_desc': sku.sku_desc, 'address': address,
+                  'sku_desc': sku.sku_desc, 'address': address, 'unit': unit,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
                   'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms, 'order_type': order_type}
 
@@ -1415,7 +1446,7 @@ def confirm_grn(request, confirm_returns = '', user=''):
     data_dict = ''
     pallet_data = ''
     all_data = {}
-    headers = ('WMS CODE', 'Order Quantity', 'Received Quantity', 'Price')
+    headers = ('WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Price')
     putaway_data = {headers: []}
     order_quantity_dict = {}
     total_received_qty = 0
@@ -1457,7 +1488,7 @@ def confirm_grn(request, confirm_returns = '', user=''):
         data = PurchaseOrder.objects.get(id=myDict['id'][i])
         purchase_data = get_purchase_order_data(data)
         temp_quantity = data.received_quantity
-        cond = (data.id, purchase_data['wms_code'], purchase_data['price'])
+        cond = (data.id, purchase_data['wms_code'], purchase_data['price'], myDict['unit'][i])
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
 
@@ -1519,7 +1550,7 @@ def confirm_grn(request, confirm_returns = '', user=''):
                         purchase_data['price'], price))
 
     for key, value in all_data.iteritems():
-        putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2]))
+        putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[-1], key[2]))
         total_order_qty += order_quantity_dict[key[0]]
         total_received_qty += value
         total_price += float(key[2]) * float(value)
@@ -1812,7 +1843,7 @@ def get_received_orders(request, user=''):
                         all_data[cond][4].append({'orig_id': location.id, 'orig_quantity': location.quantity})
             if temp == 'false' or (temp == 'true' and not pallet_mapping):
                 data[location.id] = (order_data['wms_code'], location.location.location, location.quantity, location.quantity,
-                                     location.location.fill_sequence, location.id, pallet_number)
+                                     location.location.fill_sequence, location.id, pallet_number, order_data['unit'])
 
     if temp == 'true' and all_data:
         for key, value in all_data.iteritems():
@@ -2063,7 +2094,7 @@ def quality_check_data(request, user=''):
             po_reference = '%s%s_%s' % (qc_data.purchase_order.prefix, str(qc_data.purchase_order.creation_date).split(' ')[0].\
                                         replace('-', ''), qc_data.purchase_order.order_id)
             data.append({'id': qc_data.id, 'wms_code': purchase_data['wms_code'], 'location': qc_data.po_location.location.location,
-                         'quantity': get_decimal_limit(user.id, qc_data.putaway_quantity),
+                         'quantity': get_decimal_limit(user.id, qc_data.putaway_quantity), 'unit': purchase_data['unit'],
                          'accepted_quantity': get_decimal_limit(user.id, qc_data.accepted_quantity),
                          'rejected_quantity': get_decimal_limit(user.id, qc_data.rejected_quantity)})
 
@@ -2542,6 +2573,7 @@ def order_status(request):
 @login_required
 @get_admin_user
 def confirm_add_po(request, sales_data = '', user=''):
+    ean_flag = False
     po_order_id = ''
     status = ''
     suggestion = ''
@@ -2575,9 +2607,16 @@ def confirm_add_po(request, sales_data = '', user=''):
         myDict = dict(request.GET.iterlists())
     else:
         myDict = sales_data
+    ean_data = SKUMaster.objects.filter(wms_code__in=myDict['wms_code'],user=user.id).values_list('ean_number').exclude(ean_number=0)
+    if ean_data:
+        ean_flag = True
     for i in range(0,len(myDict['wms_code'])):
         po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
         sku_id = SKUMaster.objects.filter(wms_code = myDict['wms_code'][i].upper(),user=user.id)
+
+        ean_number = 0
+        if sku_id:
+            ean_number = int(sku_id[0].ean_number)
 
         if not sku_id:
             sku_id = SKUMaster.objects.filter(wms_code='TEMP',user=user.id)
@@ -2611,9 +2650,15 @@ def confirm_add_po(request, sales_data = '', user=''):
         po_suggestions['sku_id'] = sku_id[0].id
         po_suggestions['supplier_id'] = myDict['supplier_id'][0]
         po_suggestions['order_quantity'] = myDict['order_quantity'][i]
+        po_suggestions['po_name'] = myDict['po_name'][0]
+        po_suggestions['supplier_code'] = myDict['supplier_code'][i]
         po_suggestions['price'] = float(price)
         po_suggestions['status'] = 'Manual'
         po_suggestions['remarks'] = myDict['remarks'][i]
+        po_suggestions['measurement_unit'] = "UNITS"
+        if 'measurement_unit' in myDict.keys():
+            if myDict['measurement_unit'][i] != "":
+                po_suggestions['measurement_unit'] = myDict['measurement_unit'][i]
         if myDict.get('vendor_id', ''):
             vendor_master = VendorMaster.objects.get(vendor_id=myDict['vendor_id'][0], user=user.id)
             po_suggestions['vendor_id'] = vendor_master.id
@@ -2632,6 +2677,7 @@ def confirm_add_po(request, sales_data = '', user=''):
             ids_dict[supplier] = po_id
         data['open_po_id'] = sup_id
         data['order_id'] = ids_dict[supplier]
+        data['ship_to'] = myDict['ship_to'][0]
         user_profile = UserProfile.objects.filter(user_id=user.id)
         if user_profile:
             data['prefix'] = user_profile[0].prefix
@@ -2646,8 +2692,12 @@ def confirm_add_po(request, sales_data = '', user=''):
         else:
             wms_code = purchase_order.sku.wms_code
 
-        po_data.append(( wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, purchase_order.price, amount,
-                         purchase_order.remarks))
+        if ean_flag:
+            po_data.append(( wms_code, ean_number, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, po_suggestions['measurement_unit'],
+                             purchase_order.price, amount, purchase_order.remarks))
+        else:
+            po_data.append(( wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, po_suggestions['measurement_unit'], purchase_order.price, amount,
+                             purchase_order.remarks))
         suggestion = OpenPO.objects.get(id = sup_id,sku__user=user.id)
         setattr(suggestion, 'status', 0)
         suggestion.save()
@@ -2672,7 +2722,10 @@ def confirm_add_po(request, sales_data = '', user=''):
     phone_no = purchase_order.supplier.phone_number
     order_date = get_local_date(request.user, order.creation_date)
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
-    table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Unit Price', 'Amount', 'Remarks')
+    if ean_flag:
+        table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount', 'Remarks')
+    else:
+        table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount', 'Remarks')
 
     profile = UserProfile.objects.get(user=request.user.id)
 
@@ -2690,11 +2743,11 @@ def confirm_add_po(request, sales_data = '', user=''):
     if data:
         send_message = data[0].misc_value
     if send_message == 'true':
-        write_and_mail_pdf(po_reference, rendered, request, supplier_email, phone_no, po_data, str(order_date).split(' ')[0])
+        write_and_mail_pdf(po_reference, rendered, request, supplier_email, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag)
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
-def write_and_mail_pdf(f_name, html_data, request, supplier_email, phone_no, po_data, order_date, internal=False, report_type='Purchase Order'):
+def write_and_mail_pdf(f_name, html_data, request, supplier_email, phone_no, po_data, order_date, ean_flag=False, internal=False, report_type='Purchase Order'):
     file_name = '%s.html' % f_name
     pdf_file = '%s.pdf' % f_name
     receivers = []
@@ -2717,7 +2770,7 @@ def write_and_mail_pdf(f_name, html_data, request, supplier_email, phone_no, po_
         send_mail_attachment(receivers, '%s %s' % (request.user.username, report_type), 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name), files=[pdf_file])
 
     if phone_no:
-        po_message(po_data, phone_no, request.user.username, f_name, order_date)
+        po_message(po_data, phone_no, request.user.username, f_name, order_date, ean_flag)
 
 @csrf_exempt
 @login_required
@@ -2735,10 +2788,13 @@ def confirm_po1(request, user=''):
     total_qty = 0
     status_dict = {'Self Receipt': 'SR', 'Vendor Receipt': 'VR'}
     myDict = dict(request.GET.iterlists())
+    ean_flag = False
     for key, value in myDict.iteritems():
         for val in value:
             purchase_orders = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated'], order_type=status_dict[key],
                                                     sku__user=user.id)
+            if list(purchase_orders.exclude(sku__ean_number=0).values_list('sku__ean_number', flat=True)):
+                ean_flag = True
             for purchase_order in purchase_orders:
                 data_id = purchase_order.id
                 supplier = val
@@ -2761,7 +2817,17 @@ def confirm_po1(request, user=''):
                     wms_code = purchase_order.wms_code
                 else:
                     wms_code = purchase_order.sku.wms_code
-                po_data.append((wms_code, purchase_order.supplier.name, purchase_order.sku.sku_desc, purchase_order.order_quantity, purchase_order.price, amount))
+
+                supplier_code = ''
+                sku_supplier = SKUSupplier.objects.filter(sku__user=user.id, supplier_id=purchase_order.supplier_id, sku_id=purchase_order.sku_id)
+                if sku_supplier:
+                    supplier_code = sku_supplier[0].supplier_code
+
+                if ean_flag:
+                    po_data.append(( wms_code, purchase_order.sku.ean_number, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, purchase_order.sku.measurement_type, purchase_order.price, amount, purchase_order.remarks))
+                else:
+                    po_data.append(( wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, purchase_order.sku.measurement_type, purchase_order.price, amount, purchase_order.remarks))
+
                 suggestion = OpenPO.objects.get(id=data_id, sku__user=user.id)
                 setattr(suggestion, 'status', 0)
                 suggestion.save()
@@ -2783,7 +2849,12 @@ def confirm_po1(request, user=''):
                 vendor_telephone = purchase_orders[0].vendor.phone_number
             profile = UserProfile.objects.get(user=request.user.id)
             po_reference = 'PAV%s_%s' %(str(order_date).split(' ')[0].replace('-', ''), order_id)
-            table_headers = ('WMS CODE', 'Supplier Name', 'Description', 'Quantity', 'Unit Price', 'Amount')
+            #table_headers = ('WMS CODE', 'Supplier Name', 'Description', 'Quantity', 'Unit Price', 'Amount')
+
+            if ean_flag:
+                table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount', 'Remarks')
+            else:
+                table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount', 'Remarks')
             data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total, 'company_name': profile.company_name, 'location': profile.location, 'po_reference': po_reference, 'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone}
 
             t = loader.get_template('templates/toggle/po_download.html')

@@ -93,7 +93,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
     function add_wms_code() {
-      vm.model_data.data.push([{"wms_code":"", "po_quantity":"", "receive_quantity":"", "price":"", "dis": false, "order_id": vm.model_data.data[0][0].order_id, is_new: true}]);
+      vm.model_data.data.push([{"wms_code":"", "po_quantity":"", "receive_quantity":"", "price":"", "dis": false, "order_id": vm.model_data.data[0][0].order_id, is_new: true, "unit": ""}]);
       //vm.new_sku = true
     }
 
@@ -217,6 +217,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.print_grn = function() {
       vm.service.print_data(vm.html, "Generate GRN");
+    }
+
+
+    vm.barcode = function() {
+
+      vm.barcode_title = 'Barcode Generation';
+
+      vm.model_data['barcodes'] = [];
+
+      angular.forEach(vm.model_data.data, function(barcode_data){
+
+        var quant = barcode_data[0].value;
+
+        var sku_det = barcode_data[0].wms_code;
+
+        vm.model_data['barcodes'].push({'sku_code': sku_det, 'quantity': quant})
+
+      })
+
+      vm.model_data['format_types'] = ['format1', 'format2', 'format3']
+
+      var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
+
+      $state.go('app.inbound.RevceivePo.barcode');
     }
 
     vm.vendor_receive = function(data) {

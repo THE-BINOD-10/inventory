@@ -421,8 +421,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             $state.go('app.outbound.ViewOrders');
           } else if (data.data.status == 'invoice') {
 
-              angular.copy(data.data.data, vm.pdf_data);
+            angular.copy(data.data.data, vm.pdf_data);
+            if (vm.pdf_data.detailed_invoice) {
+              $state.go('app.outbound.ViewOrders.DetailGenerateInvoice');
+            } else {
               $state.go('app.outbound.ViewOrders.GenerateInvoice');
+            }
           } else {
             pop_msg(data.data);
           }

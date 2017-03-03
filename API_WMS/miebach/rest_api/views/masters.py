@@ -237,14 +237,21 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
             data.phone_number = int(float(data.phone_number))
         login_created = False
         customer_login = CustomerUserMapping.objects.filter(customer_id=data.id)
+        user_name = ""
+        price_type = ""
         if customer_login:
             login_created = True
+            user = customer_login[0].user
+            user_name = user.username
 
+        price_types = list(PriceMaster.objects.exclude(price_type ="").filter(sku__user = data.user).values_list('price_type', flat = True).distinct())
+
+        price_type = data.price_type
         temp_data['aaData'].append(OrderedDict(( ('customer_id', data.customer_id), ('name', data.name), ('address', data.address),
                                                  ('phone_number', data.phone_number), ('email_id', data.email_id), ('status', status),
                                                  ('tin_number', data.tin_number), ('credit_period', data.credit_period),
-                                                 ('login_created', login_created),
-                                                 ('DT_RowId', data.customer_id), ('DT_RowClass', 'results') )))
+                                                 ('login_created', login_created), ('username', user_name), ('price_type_list', price_types),
+                                                 ('price_type', price_type), ('DT_RowId', data.customer_id), ('DT_RowClass', 'results') )))
 
 @csrf_exempt
 def get_bom_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -730,6 +737,7 @@ def update_customer_password(data, password):
     if customer_user_map:
         customer_user = customer_user_map[0].user
         customer_user.set_password(password)
+        customer_user.email = data.email_id
         customer_user.save()
 
 @csrf_exempt
@@ -737,6 +745,7 @@ def update_customer_password(data, password):
 @get_admin_user
 def update_customer_values(request,user=''):
     data_id = request.POST['customer_id']
+    username = request.POST['username']
     data = get_or_none(CustomerMaster, {'customer_id': data_id, 'user': user.id})
     create_login = request.POST.get('create_login', '')
     login_created = request.POST.get('login_created', '')
@@ -761,7 +770,7 @@ def update_customer_values(request,user=''):
 
     data.save()
     if create_login == 'true':
-        status_msg = create_update_user(data, password)
+        status_msg = create_update_user(data, password, username)
         if 'already' in status_msg:
             return HttpResponse(status_msg)
     if login_created == 'true' and password:
@@ -775,22 +784,23 @@ def insert_customer(request, user=''):
     customer_id = request.POST['customer_id']
     create_login = request.POST.get('create_login', '')
     password = request.POST.get('password', '')
+    username = request.POST.get('username', '')
     if not customer_id:
         return HttpResponse('Missing Required Fields')
     data = filter_or_none(CustomerMaster, {'customer_id': customer_id, 'user': user.id})
     status_msg = 'Customer Exists'
     sku_status = 0
     rep_email = filter_or_none(CustomerMaster, {'email_id': request.POST['email_id'], 'user': user.id})
-    rep_phone = filter_or_none(CustomerMaster, {'phone_number': request.POST['phone_number'], 'user': user.id})
+    #rep_phone = filter_or_none(CustomerMaster, {'phone_number': request.POST['phone_number'], 'user': user.id})
     if rep_email:
         return HttpResponse('Email already exists')
-    if rep_phone:
-        return HttpResponse('Phone Number already exists')
+    #if rep_phone:
+    #    return HttpResponse('Phone Number already exists')
 
     if not data:
         data_dict = copy.deepcopy(CUSTOMER_DATA)
         for key, value in request.POST.iteritems():
-            if key in ['create_login', 'password', 'login_created']:
+            if key in ['create_login', 'password', 'login_created', 'username']:
                 continue
             if key == 'status':
                 if value == 'Active':
@@ -806,7 +816,12 @@ def insert_customer(request, user=''):
         customer_master.save()
         status_msg = 'New Customer Added'
         if create_login == 'true':
-            status_msg = create_update_user(customer_master, password)
+            if not username:
+                return HttpResponse('Username is Mandatory')
+            rep_username = filter_or_none(User, {'username': username})
+            if rep_username:
+                return HttpResponse('Username already exists')
+            status_msg = create_update_user(customer_master, password, username)
 
 
     return HttpResponse(status_msg)
@@ -1694,16 +1709,10 @@ def update_size(request, user=''):
 @login_required
 @get_admin_user
 def generate_barcodes(request, user=''):
-    myDict = dict(request.GET.iterlists())
+    myDict = dict(request.POST.iterlists())
     pdf_format = myDict['pdf_format'][0]
     barcodes_list = generate_barcode_dict(pdf_format, myDict, user)
     return HttpResponse(json.dumps(barcodes_list))
-    #section = myDict['format'][0]
-    """if (user.username in BARCODE_FORMATS.keys()):
-        if (section in BARCODE_FORMATS[user.username].values()[0]):
-            barcodes_list = generate_barcode_dict(pdf_format, myDict, user)
-            return HttpResponse(json.dumps(barcodes_list))
-    """
 
 def generate_barcode_dict(pdf_format, myDict, user):
     barcode_pdf_dict = {}
@@ -1711,7 +1720,10 @@ def generate_barcode_dict(pdf_format, myDict, user):
     user_prf = UserProfile.objects.filter(user_id=user.id)[0]
     for sku, quant in zip(myDict['wms_code'], myDict['quantity']):
         if sku and quant:
-            sku_data = SKUMaster.objects.filter(sku_code = sku, user=user.id)[0]
+            if sku.isdigit():
+                sku_data = SKUMaster.objects.filter(Q(ean_number = sku) | Q(wms_code = sku), user=user.id)[0]
+            else:
+                sku_data = SKUMaster.objects.filter(sku_code = sku, user=user.id)[0]
             single = copy.deepcopy(BARCODE_DICT[pdf_format])
             single['SKUCode'] = sku
             single['Size'] = str(sku_data.sku_size).replace("'",'')
@@ -1764,3 +1776,75 @@ def barcode_service(key, data_to_send, format_name=''):
     else:
         pdf_url = ''
 
+
+
+@csrf_exempt
+def get_price_master_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters = {}):
+    objs = PriceMaster.objects.filter(sku__user = user.id)
+    lis = ['sku_code', 'sku_desc', 'price_type', 'price', 'discount']
+    order_data = PRICING_MASTER_HEADER.values()[col_num]
+    search_params = get_filtered_params(filters, lis)
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        master_data = objs.filter(Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) | Q(price_type__icontains=search_term) | Q(price__icontains=search_term) | Q(discount__icontains=search_term), sku__user=user.id, **search_params).order_by(order_data)
+    else:
+        master_data = objs.filter( **search_params).order_by(order_data)
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for data in master_data[start_index:stop_index]:
+        temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
+                                    ('Selling Price Type', data.price_type), ('Price', data.price), ('Discount', data.discount),
+                                     ('data-id', data.id) )))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def add_pricing(request,user=''):
+    ''' add pricing '''
+    sku_code = request.POST['sku_code']
+    price_type = request.POST['price_type']
+    if not sku_code and price_type:
+        return HttpResponse('Missing Required Fields')
+    sku = SKUMaster.objects.filter(sku_code = sku_code, user = user.id)
+    if not sku:
+        return HttpResponse('Invalid SKU Code')
+    price_data = PriceMaster.objects.filter(sku__user = user.id, sku__sku_code = sku_code, price_type = price_type)
+    if price_data:
+        return HttpResponse('Price type already exist in Pricing Master')
+    else:
+        data_dict = copy.deepcopy(PRICING_DATA)
+        for key, value in request.POST.iteritems():
+            if key == 'sku_code':
+              sku_id = SKUMaster.objects.filter(sku_code=value.upper())
+              if not sku_id:
+                  return HttpResponse('Wrong SKU Code')
+              key = 'sku'
+              value = sku_id[0]
+            if value == '':
+                continue
+            data_dict[key] = value
+
+        pricing_master = PriceMaster(**data_dict)
+        pricing_master.save()
+        return HttpResponse('New Pricing Added')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_pricing(request,user=''):
+    ''' update pricing '''
+    sku_code = request.POST['sku_code']
+    price_type = request.POST['price_type']
+    price_data = PriceMaster.objects.filter(sku__user = user.id, sku__sku_code = sku_code, price_type = price_type)
+    if not price_data:
+        return HttpResponse('Invalid data')
+    price_data = price_data[0]
+    price = request.POST['price']
+    discount = request.POST['discount']
+    if price:
+        price_data.price = price
+    if discount:
+        price_data.discount = discount
+    price_data.save()
+    return HttpResponse('Updated Successfully')

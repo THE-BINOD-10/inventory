@@ -81,6 +81,7 @@
                       <input type="text" name="material_quantity" d-perm="true" class="form-control" value="{{(data.product_description > -1)? showCase.service.decimal(data.product_description, item.material_quantity): item.material_quantity;}}" ng-class="service.get_decimal_perm()">                      </td>
                     <td>
                       <select name="measurement_type" class="form-control" ng-model="item.measurement_type">
+                        <option value="" ng-selected= "item.measurement_type == ''">Default</option>
                         <option ng-repeat="unit in showCase.units" value="{{unit}}" ng-selected= "item.measurement_type == unit">{{unit}}</option>
                       </select>
                     </td>

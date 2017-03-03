@@ -163,8 +163,54 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.close();
           }
         }
-      }); 
+      });
     }
+
+    vm.barcode = function() {
+
+      vm.barcode_title = 'Barcode Generation';
+
+      vm.model_data['barcodes'] = [];
+
+      var elem = angular.element($('form'));
+
+      elem = elem[0];
+
+      elem = $(elem).serializeArray();
+
+      var sku_list = [];
+
+      var quant_list = [];
+
+      angular.forEach(elem, function(barcode_data){
+
+        if (barcode_data.name == "sku_code") {
+
+          sku_list.push(barcode_data.value);
+
+        }
+
+        if (barcode_data.name == "return") {
+
+          quant_list.push(barcode_data.value);
+
+        }
+
+      })
+
+      for (var i=0; i<sku_list.length; i++){
+
+        vm.model_data['barcodes'].push({'sku_code': sku_list[i], 'quantity': quant_list[i]});
+
+      }
+
+      vm.model_data['format_types'] = ['format1', 'format2', 'format3']
+
+      var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
+
+      $state.go('app.inbound.SalesReturns.barcode');
+    }
+
 
     vm.message = '';
     function pop_msg(msg) {

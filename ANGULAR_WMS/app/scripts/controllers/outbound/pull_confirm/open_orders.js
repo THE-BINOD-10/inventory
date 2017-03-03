@@ -113,7 +113,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
               reloadData();
               angular.copy(data.data.data, vm.pdf_data);
-              $state.go('app.outbound.PullConfirmation.GenerateInvoice');
+              if (vm.pdf_data.detailed_invoice) {
+                $state.go('app.outbound.PullConfirmation.DetailGenerateInvoice');
+              } else {
+                $state.go('app.outbound.PullConfirmation.GenerateInvoice');
+              }
             } else {
               pop_msg(data.data);
             }

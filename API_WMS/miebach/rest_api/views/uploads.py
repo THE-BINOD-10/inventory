@@ -556,6 +556,16 @@ def vendor_form(request, user=''):
     return xls_to_response(wb, '%s.vendor_form.xls' % str(user.id))
 
 @csrf_exempt
+@get_admin_user
+def pricing_master_form(request, user=''):
+    returns_file = request.GET['download-pricing-master']
+    if returns_file:
+        return error_file_download(returns_file)
+
+    wb, ws = get_work_sheet('Prices', PRICING_MASTER_HEADERS)
+    return xls_to_response(wb, '%s.pricing_master_form.xls' % str(user.id))
+
+@csrf_exempt
 def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls'):
     sku_data = []
     wms_data = []
@@ -587,6 +597,10 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
                         index_status.setdefault(row_idx, set()).add('Invalid Zone')
                 #else:
                 #    index_status.setdefault(row_idx, set()).add('Zone should not be empty')
+            elif key == 'ean_number':
+                if not isinstance(cell_data, (int, float)) and cell_data:
+                    index_status.setdefault(row_idx, set()).add('EAN must be integer')
+
             elif key == 'threshold_quantity':
                 if not isinstance(cell_data, (int, float)) and cell_data:
                     index_status.setdefault(row_idx, set()).add('Invalid Quantity')
@@ -2041,7 +2055,7 @@ def customer_form(request, user=''):
     if customer_file:
         return error_file_download(customer_file)
 
-    wb, ws = get_work_sheet('vendor', CUSTOMER_HEADERS)
+    wb, ws = get_work_sheet('customer', CUSTOMER_HEADERS)
     return xls_to_response(wb, '%s.customer_form.xls' % str(user.id))
 
 @csrf_exempt
@@ -2049,7 +2063,8 @@ def validate_customer_form(open_sheet, user_id):
     index_status = {}
     customer_ids = []
     for row_idx in range(0, open_sheet.nrows):
-        for col_idx in range(0, len(SUPPLIER_HEADERS)):
+        customer_master = None
+        for col_idx in range(0, len(CUSTOMER_HEADERS)):
             cell_data = open_sheet.cell(row_idx, col_idx).value
             if row_idx == 0:
                 if col_idx == 0 and cell_data != 'Customer Id':
@@ -2060,11 +2075,16 @@ def validate_customer_form(open_sheet, user_id):
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Customer ID Should be in number')
+                    else:
+                        cell_data = int(cell_data)
+                        customer_master_obj = CustomerMaster.objects.filter(customer_id=cell_data, user=user_id)
+                        if customer_master_obj:
+                            customer_master = customer_master_obj[0]
                 else:
                     index_status.setdefault(row_idx, set()).add('Customer ID is Missing')
 
             elif col_idx == 1:
-                if not cell_data:
+                if not cell_data and not customer_master:
                     index_status.setdefault(row_idx, set()).add('Missing Customer Name')
 
             elif col_idx == 2:
@@ -2082,6 +2102,12 @@ def validate_customer_form(open_sheet, user_id):
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Pin Code Should be in number')
 
+            elif col_idx == 10:
+                if cell_data:
+                    price_types = list(PriceMaster.objects.filter(sku__user=user_id).values_list('price_type', flat=True).distinct())
+                    if not cell_data in price_types:
+                        index_status.setdefault(row_idx, set()).add('Invalid Selling Price Type')
+
     if not index_status:
         return 'Success'
 
@@ -2093,7 +2119,7 @@ def customer_excel_upload(request, open_sheet, user):
     for row_idx in range(1, open_sheet.nrows):
         customer_data = copy.deepcopy(CUSTOMER_DATA)
         customer_master = None
-        
+
         for col_idx in range(0, len(CUSTOMER_HEADERS)):
             cell_data = open_sheet.cell(row_idx, col_idx).value
             if col_idx == 0:
@@ -2109,7 +2135,7 @@ def customer_excel_upload(request, open_sheet, user):
                 customer_data['name']  = cell_data
                 if customer_master:
                     customer_master.name = customer_data['name']
-            elif col_idx == 2: 
+            elif col_idx == 2:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                     customer_data['credit_period'] = cell_data
@@ -2144,11 +2170,14 @@ def customer_excel_upload(request, open_sheet, user):
                     customer_data['pin_code'] = cell_data
                     if customer_master:
                         customer_master.pin_code = customer_data['pin_code']
-
             elif col_idx == 9:
                 customer_data['address'] = cell_data
                 if customer_master:
                     customer_master.address = customer_data['address']
+            elif col_idx == 10:
+                customer_data['price_type'] = cell_data
+                if customer_master:
+                    customer_master.price_type = customer_data['price_type']
 
         if customer_master:
             customer_master.save()
@@ -2256,7 +2285,9 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                         index_status.setdefault(row_idx, set()).add("Order Processed already")
 
             elif key == 'quantity':
-                if not isinstance(cell_data, (int, float)) and cell_data:
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Return quantity cannot be blank')
+                if cell_data and not isinstance(cell_data, (int, float)):
                     if not cell_data.isdigit():
                         index_status.setdefault(row_idx, set()).add('Invalid Return Quantity')
 
@@ -2403,3 +2434,131 @@ def sales_return_order(data,user):
         returns.return_id = 'MN%s' % returns.id
     returns.save()
     return returns.id
+
+def pricing_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
+
+    price_file_mapping = copy.deepcopy(PRICE_DEF_EXCEL)
+    for row_idx in range(1, no_of_rows):
+        if not price_file_mapping:
+            continue
+
+        data_dict = copy.deepcopy(PRICE_MASTER_DATA)
+        price_master_obj = None
+        for key, value in price_file_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, price_file_mapping[key], reader, file_type)
+
+            if key == 'sku_id':
+                if isinstance(cell_data, (int, float)):
+                    cell_data = int(cell_data)
+                cell_data = str(xcode(cell_data))
+
+                wms_code = cell_data
+                if wms_code:
+                    sku_data = SKUMaster.objects.filter(wms_code = wms_code,user=user.id)
+                    data_dict[key] = sku_data[0].id
+                    if price_master_obj:
+                        price_master_obj = price_master_obj[0]
+            elif key == 'price_type':
+                data_dict[key] = cell_data
+                if data_dict['sku_id'] and cell_data:
+                    price_instance = PriceMaster.objects.filter(sku_id=data_dict['sku_id'], sku__user=user.id, price_type=cell_data)
+                    if price_instance:
+                        price_master_obj = price_instance[0]
+                data_dict[key] = cell_data
+
+            elif key in ['price', 'discount']:
+                if not cell_data:
+                    cell_data = 0
+                if price_master_obj and cell_data:
+                    setattr(price_master_obj, key, cell_data)
+                data_dict[key] = cell_data
+
+            elif cell_data:
+                data_dict[key] = cell_data
+                if price_master_obj:
+                    setattr(price_master_obj, key, cell_data)
+                data_dict[key] = cell_data
+        if price_master_obj:
+            price_master_obj.save()
+
+        if not price_master_obj:
+            price_master = PriceMaster(**data_dict)
+            price_master.save()
+
+    return 'success'
+
+
+@csrf_exempt
+def validate_pricing_form(request, reader, user, no_of_rows, fname, file_type='xls'):
+    sku_data = []
+    wms_data = []
+    index_status = {}
+
+    price_file_mapping = copy.deepcopy(PRICE_DEF_EXCEL)
+    if not price_file_mapping:
+        return 'Invalid File'
+    for row_idx in range(1, no_of_rows):
+        for key, value in price_file_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, price_file_mapping[key], reader, file_type)
+
+            if key == 'sku_id':
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    data = SKUMaster.objects.filter(user=user.id, wms_code=cell_data)
+                    if not data:
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                else:
+                    index_status.setdefault(row_idx, set()).add('SKU Code missing')
+            elif key == 'price_type':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add("Selling Price Type Missing")
+
+            elif key == 'price':
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Invalid Price')
+            elif key == 'discount':
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Invalid Discount')
+
+    if not index_status:
+        return 'Success'
+
+    if index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        rewrite_excel_file(f_name, index_status, reader)
+        return f_name
+    elif index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        rewrite_csv_file(f_name, index_status, reader)
+        return f_name
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def pricing_master_upload(request, user=''):
+    fname = request.FILES['files']
+    if fname.name.split('.')[-1] != 'xls' and fname.name.split('.')[-1] != 'xlsx':
+        return HttpResponse('Invalid File Format')
+
+    try:
+        open_book = open_workbook(filename=None, file_contents=fname.read())
+        open_sheet = open_book.sheet_by_index(0)
+    except:
+        return HttpResponse('Invalid File')
+
+    file_type = 'xls'
+    reader = open_sheet
+    no_of_rows = reader.nrows
+
+    status = validate_pricing_form(request, reader, user, no_of_rows, fname, file_type=file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+
+    pricing_excel_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
+
+    return HttpResponse('Success')
+

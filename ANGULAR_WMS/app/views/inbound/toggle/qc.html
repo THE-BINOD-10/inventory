@@ -29,6 +29,7 @@
                     <th>WMS CODE</th>
                     <th> Location </th>
                     <th> Quantity </th>
+                    <th> Measurement </th>
                     <th> Accepted Quantity </th>
                     <th> Rejected Quantity </th>
                     <th> Reason </th>
@@ -40,6 +41,7 @@
                     <td><input type="text" class="form-control" value="{{data.wms_code}}" name="location" disabled></td>
                     <td><input type="text" class="form-control" value="{{data.location}}" name="location" disabled></td>
                     <td><input type="number" class="form-control" value="{{data.quantity}}" name="quantity" disabled></td>
+                    <td><input type="text" ng-model="data.unit" name="unit" class="form-control" readonly></td>
                     <td><input type="text" class="form-control" ng-model="data.accepted_quantity" name="accepted_quantity" ng-class="service.get_decimal_perm()"></td>
                     <td><input type="text" class="form-control" ng-model="data.rejected_quantity" name="rejected_quantity" ng-class="service.get_decimal_perm()"></td>
                     <td><input type="text" class="form-control" ng-model="data.reason" name="reason"></td>

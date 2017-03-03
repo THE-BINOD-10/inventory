@@ -231,6 +231,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
             if(data.message) {
               if(data.data != "No Data Found") {
                 sku_data.data = data.data;
+              } else {
+                sku_data.data = [{"material_code": "", "material_quantity": '', "id": ''}];
               }
             }
           });
@@ -291,7 +293,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
               }, 1000);
             }
         }
-      })              
+      }) 
     }
   }
 

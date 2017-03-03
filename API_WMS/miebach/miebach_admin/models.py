@@ -4,7 +4,7 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
+from longerusername import MAX_USERNAME_LENGTH
 # Create your models here.
 
 class ZoneMaster(models.Model):
@@ -55,6 +55,7 @@ class SKUMaster(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     color = models.CharField(max_length=64, default='')
+    ean_number = models.IntegerField(db_index=True, default = 0)
 
     class Meta:
         db_table = 'SKU_MASTER'
@@ -235,6 +236,7 @@ class OpenPO(models.Model):
     order_type = models.CharField(max_length=32, default='SR')
     remarks = models.CharField(max_length=256, default='')
     status = models.CharField(max_length=32)
+    measurement_unit = models.CharField(max_length=32, default = '')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -515,23 +517,26 @@ class CustomerMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
     customer_id = models.PositiveIntegerField(default=0)
-    name = models.CharField(max_length=256)
+    name = models.CharField(max_length=256, default='')
     last_name = models.CharField(max_length=256, default='')
-    address = models.CharField(max_length=256)
-    city = models.CharField(max_length=64)
-    state = models.CharField(max_length=64)
-    country = models.CharField(max_length=64)
-    pincode = models.CharField(max_length=64)
+    address = models.CharField(max_length=256, default='')
+    city = models.CharField(max_length=64, default='')
+    state = models.CharField(max_length=64, default='')
+    country = models.CharField(max_length=64, default='')
+    pincode = models.CharField(max_length=64, default='')
     phone_number = models.CharField(max_length=32)
-    email_id = models.EmailField(max_length=64)
+    email_id = models.EmailField(max_length=64, default='')
     tin_number = models.CharField(max_length=64, default='')
     credit_period = models.PositiveIntegerField(default=0)
+    price_type = models.CharField(max_length=32, default='')
     status = models.IntegerField(max_length=1, default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'CUSTOMER_MASTER'
+        unique_together = ('user', 'customer_id')
+        index_together = ('user', 'customer_id')
 
 class CustomerUserMapping(models.Model):
     id = BigAutoField(primary_key=True)
@@ -837,6 +842,20 @@ class BOMMaster(models.Model):
     class Meta:
         db_table = 'BOM_MASTER'
         unique_together = ('material_sku', 'product_sku')
+
+class PriceMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster, default = None)
+    price_type = models.CharField(max_length=32, default='')
+    price = models.FloatField(default = 0)
+    discount = models.FloatField(default = 0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PRICE_MASTER'
+        unique_together = ('sku', 'price_type')
+        index_together = ('sku', 'price_type')
 
 class CustomerSKU(models.Model):
     id = BigAutoField(primary_key=True)
@@ -1377,3 +1396,39 @@ class CustomerCartData(models.Model):
             'total_amount': ((invoice_amount * self.tax)/100) + invoice_amount,
             'image_url': self.sku.image_url
         }
+
+import django
+from django.core.validators import MaxLengthValidator
+from django.utils.translation import ugettext as _
+from django.db.models.signals import class_prepared
+from django.conf import settings
+def longer_username_signal(sender, *args, **kwargs):
+    if (sender.__name__ == "User" and
+        sender.__module__ == "django.contrib.auth.models"):
+        patch_user_model(sender)
+class_prepared.connect(longer_username_signal)
+
+def patch_user_model(model):
+    field = model._meta.get_field("first_name")
+
+    field.max_length = MAX_USERNAME_LENGTH()
+    field.help_text = _("Required, %s characters or fewer. Only letters, "
+                        "numbers, and @, ., +, -, or _ "
+                        "characters." % MAX_USERNAME_LENGTH())
+
+    # patch model field validator because validator doesn't change if we change
+    # max_length
+    for v in field.validators:
+        if isinstance(v, MaxLengthValidator):
+            v.limit_value = MAX_USERNAME_LENGTH()
+
+from django.contrib.auth.models import User
+
+if User._meta.get_field("first_name").max_length != MAX_USERNAME_LENGTH():
+    patch_user_model(User)
+
+
+
+
+
+

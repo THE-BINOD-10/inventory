@@ -125,6 +125,14 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "sales_returns_upload/",
                    dparam: "download-sales-returns",
                    value: ""
+                 }, {
+                   title: "Pricing Master Download/ Upload",
+                   download: "Download Pricing Master Form",
+                   upload: "Upload Pricing Master Form",
+                   durl: "pricing_master_form/",
+                   uurl: "pricing_master_upload/",
+                   dparam: "download-pricing-master",
+                   value: ""
                  }
                  ]
 

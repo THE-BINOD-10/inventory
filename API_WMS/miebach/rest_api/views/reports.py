@@ -350,10 +350,15 @@ def get_supplier_details_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
+    all_amount = [(supplier.open_po.order_quantity * supplier.open_po.price) for supplier in suppliers]
+    total_charge = sum(all_amount)
     if stop_index:
         suppliers = suppliers[start_index:stop_index]
 
     for supplier in suppliers:
+        price, quantity = supplier.open_po.price, supplier.open_po.order_quantity
+
+        amount = price * quantity
         design_codes = SKUSupplier.objects.filter(supplier=supplier.open_po.supplier, sku=supplier.open_po.sku, sku__user=user.id)
         supplier_code = ''
         if design_codes:
@@ -368,8 +373,9 @@ def get_supplier_details_data(search_params, user, sub_user):
         supplier_data['aaData'].append(OrderedDict(( ('Order Date', str(supplier.po_date).split(' ')[0]),
                                         ('PO Number', '%s%s_%s' %(supplier.prefix, str(supplier.po_date).split(' ')[0].replace('-', ''), supplier.order_id)),
                                         ('Supplier Name', supplier.open_po.supplier.name), ('WMS Code', supplier.open_po.sku.wms_code), ('Design', supplier_code),
-                                        ('Ordered Quantity', supplier.open_po.order_quantity),
+                                        ('Ordered Quantity', supplier.open_po.order_quantity), ('Amount', amount),
                                         ('Received Quantity', supplier.received_quantity), ('Status', status) )))
+    supplier_data['total_charge'] = total_charge
     return supplier_data
 
 @csrf_exempt

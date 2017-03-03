@@ -41,6 +41,7 @@
                     <th>PO Quantity</th>
                     <th ng-if="showCase.permissions.pallet_switch">Pallet Number</th>
                     <th>Received Quantity</th>
+                    <th>Measurement</th>
                     <th ng-if="showCase.permissions.use_imei">Serial Number</th>
                     <th>Unit Price</th>
                     <th ng-if="showCase.permissions.pallet_switch" class="plus"></th>
@@ -56,6 +57,7 @@
                     <td><input type="text" ng-model="data.po_quantity" name="po_quantity" class="form-control" ng-readonly="records[0].dis" ng-class="service.get_decimal_perm()"></td>
                     <td ng-if="showCase.permissions.pallet_switch"><input type="text" ng-model="data.pallet_number" name="pallet_number" class="form-control"></td>
                     <td><input type="text" ng-model="data.value" name="quantity" class="form-control" ng-class="service.get_decimal_perm()" required> </div></td>
+                    <td><input type="text" ng-model="data.unit" name="unit" class="form-control" readonly></td>
                     <td ng-if="showCase.permissions.use_imei"><input type="text" ng-model="data.imei_number" name="imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, data)"></td>
                     <td><input type="text" ng-model="data.price" name="price" class="form-control" value="" ng-readonly="records[0].dis"></td>
                     <td ng-if="showCase.permissions.pallet_switch"><i ng-click="showCase.update_data($index, records)" ng-class="showCase.service.isLast($last)"></i></td>
@@ -97,6 +99,7 @@
         <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.submit(form)">Save</button>
         <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-4 col-md-3" data-dismiss="modal" ng-click="showCase.confirm_grn(form)">Generate GRN</button>
         <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green pull-right" ng-click="showCase.print_grn()">Print</button>
+        <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
       </div>
     </div>
     <!-- /.modal-content -->

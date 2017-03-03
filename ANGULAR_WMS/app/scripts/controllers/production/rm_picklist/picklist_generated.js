@@ -165,5 +165,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
     }
   }
 
+  vm.process = false;
+  vm.update_stock = function() {
+
+    vm.process = true;
+    var elem = angular.element($('form'));
+    elem = elem[1];
+    elem = $(elem).serializeArray();
+    vm.service.apiCall('update_rm_picklist/', 'POST', elem).then(function(data){
+      if(data.message) {
+        angular.copy(data.data, vm.model_data);
+        change_model_data();
+      }
+      vm.process = false;
+    })
+  }
+
   }
 

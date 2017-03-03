@@ -36,7 +36,7 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Email * </label>
-                <input type="email" name="email_id" class="form-control" ng-model="showCase.model_data.email_id" maxlength="64" ng-readonly="showCase.model_data.login_created" required> </div>
+                <input type="email" name="email_id" class="form-control" ng-model="showCase.model_data.email_id" maxlength="64" required> </div>
             </div>
           </div>
           <div class="row">
@@ -81,6 +81,15 @@
                 </div>
               </div>
             </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Price Type </label>
+                <select class="form-control" ng-model="showCase.model_data.price_type" name="status">
+                  <option ng-selected="showCase.model_data.price_type == ''" value="">None</option>
+                  <option ng-repeat="status in showCase.model_data.price_type_list" ng-selected="showCase.model_data.price_type == status" value="{{status}}">{{status}}</option>
+                </select>
+              </div>
+            </div>
             <div class="col-md-4" ng-if="showCase.model_data.login_created && !(showCase.model_data.create_login)">
               <div class="row">
                 <div class="col-md-12">
@@ -90,14 +99,29 @@
                 </div>
               </div>
             </div>
-            <div class="col-md-4" ng-if="showCase.model_data.create_login">
-              <div class="row">
+            <div class="col-md-4 hide" ng-if="showCase.model_data.create_login">
+              <!--<div class="row">
                 <div class="col-md-12">
                   <div class="form-group">
                     <label class="control-label"> Password </label>
                     <input type="password" name="name" class="form-control" ng-model="showCase.model_data.password" maxlength="256" required>
                   </div>
                 </div>
+              </div>-->
+            </div>
+          </div>
+          <div class="row" ng-if="showCase.model_data.create_login">
+            <hr>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> username </label>
+                <input type="text" name="name" class="form-control" ng-model="showCase.model_data.username" maxlength="256" ng-readonly="showCase.model_data.login_created" ng-required="!(showCase.model_data.login_created)">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Password </label>
+                <input type="password" name="name" class="form-control" ng-model="showCase.model_data.password" maxlength="256" ng-required="!(showCase.model_data.login_created)">
               </div>
             </div>
           </div>

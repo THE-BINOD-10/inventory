@@ -65,6 +65,7 @@
        <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
       </div>
       <div class="modal-footer">
+        <button type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
         <button name="confirm-sales" id="confirm-sales" class="btn pop pop-green" type="button" ng-click="showCase.confirm_return()" ng-disabled="showCase.confirm_disable">Confirm Returns </button>
       </div>
     </div>

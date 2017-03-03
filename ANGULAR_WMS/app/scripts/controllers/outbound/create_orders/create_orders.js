@@ -39,6 +39,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     vm.model_data["address"] = item.address;
     vm.add_customer = false;
     angular.copy(item, vm.selected)
+    vm.change_sku_prices();
   }
 
   vm.check_id = function(id) {
@@ -704,6 +705,84 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     vm.fields = [];
   } else {
     vm.fields = vm.fields.split(",")
+  }
+
+  vm.get_sku_data = function(record, item) {
+
+    record.sku_id = item.wms_code;
+    record["description"] = item.sku_desc;
+
+    vm.get_customer_sku_prices(item.wms_code).then(function(data){
+      if(data.length > 0) {
+        data = data[0]
+        record["price"] = data.price;
+        record["description"] = data.sku_desc;
+        if(!(record.quantity)) {
+          record.quantity = 1
+        }
+        record.invoice_amount = Number(record.price)*Number(record.quantity)
+        vm.cal_percentage(record);
+      }
+    })
+  }
+
+  vm.get_customer_sku_prices = function(sku) {
+
+    var d = $q.defer();
+    vm.service.apiCall("get_customer_sku_prices/", "POST", {sku_codes: sku, cust_id: vm.model_data.customer_id}).then(function(data) {
+
+      if(data.message) {
+        d.resolve(data.data);
+      }
+    });
+    return d.promise;
+  }
+
+  vm.change_sku_prices = function() {
+
+    if(vm.model_data.data.length > 0) {
+
+      var sku_codes = [];
+      angular.forEach(vm.model_data.data, function(record){
+
+        if ((sku_codes.indexOf(record.sku_id) == -1) && record.sku_id) {
+          sku_codes.push(record.sku_id)
+        }
+      })
+
+      sku_codes = sku_codes.join()
+      if(sku_codes) {
+
+        vm.get_customer_sku_prices(sku_codes).then(function(data){
+          if(data.length > 0) {
+            angular.forEach(data, function(record){
+              vm.change_sku_values(record);
+            })
+          }
+        })
+      }
+    }
+  }
+
+  vm.change_sku_values = function(data) {
+
+    if(vm.model_data.data.length > 0) {
+      for(var i = 0; i < vm.model_data.data.length ; i++) {
+
+        if (vm.model_data.data[i]["sku_id"] == data.wms_code) {
+
+          vm.model_data.data[i]["price"] = data.price;
+          vm.model_data.data[i]["unit_price"] = data.price;
+          if(!(vm.model_data.data[i].quantity)) {
+            vm.model_data.data[i].quantity = 1
+          }
+          vm.model_data.data[i].invoice_amount = Number(data.price)*Number(vm.model_data.data[i].quantity)
+
+          vm.cal_percentage(vm.model_data.data[i]);
+          break;
+        }
+      }
+    }
   }
 }
 

@@ -91,7 +91,7 @@ def dashboard(request, user=''):
     today_end = datetime.datetime.combine(datetime.datetime.now() + relativedelta(days=1), datetime.time())
     today_range = [today_start,  today_end]
     top_skus = OrderDetail.objects.filter(user=user_id, creation_date__range=[today_start - relativedelta(months=1), today_start]).\
-                                   values('sku__sku_code').annotate(Count('sku_id')).order_by('-sku_id__count')[:5]
+                                   values('sku__sku_code').distinct().annotate(Sum('quantity')).order_by('-quantity__sum')[:5]
     top_skus_data = {'data':[], 'labels':[], 'stock_count': []}
     for top in top_skus:
         members = [top['sku__sku_code']]
@@ -106,7 +106,7 @@ def dashboard(request, user=''):
             sku_stock = StockDetail.objects.filter(sku__sku_code=member, sku__user=user_id).values('sku__sku_code').annotate(Sum('quantity'))
             if sku_stock:
                 stock_count = sku_stock[0]['quantity__sum']
-            top_skus_data['data'].append(top['sku_id__count'])
+            top_skus_data['data'].append(top['quantity__sum'])
             top_skus_data['labels'].append(member)
             top_skus_data['stock_count'].append(get_decimal_limit(user_id, stock_count))
             if len(top_skus_data['data']) == 5:

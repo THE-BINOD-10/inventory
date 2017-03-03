@@ -63,6 +63,8 @@ urlpatterns = patterns('rest_api.views',
     url(r'^delete_product_attribute/$', 'delete_product_attribute'),
     url(r'^add_size/$', 'add_size'),
     url(r'^update_size/$', 'update_size'),
+    url(r'^add_pricing/$', 'add_pricing'),
+    url(r'^update_pricing/$', 'update_pricing'),
 
     # Inbound
     url(r'^generated_po_data/$', 'generated_po_data'),
@@ -138,6 +140,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^saved_rwo_data/$', 'saved_rwo_data'),
     url(r'^generate_vendor_picklist/$', 'generate_vendor_picklist'),
     url(r'^get_vendor_types/$', 'get_vendor_types'),
+    url(r'^update_rm_picklist/$', 'update_rm_picklist'),
 
     # Stock Locator
     url(r'^insert_move_inventory/$', 'insert_move_inventory'),
@@ -261,7 +264,12 @@ urlpatterns = patterns('rest_api.views',
     url(r'vendor_upload/$', 'vendor_upload'),
     url(r'customer_form/$', 'customer_form'),
     url(r'customer_upload/$', 'customer_upload'),
+    url(r'^pricing_master_form/$', 'pricing_master_form'),
+    url(r'^pricing_master_upload/$', 'pricing_master_upload'),
 
+)
+
+urlpatterns += patterns('rest_api.views',
     #configurations
     url(r'^configurations/$', 'configurations'),
     url(r'^switches/$', 'switches'),
@@ -272,9 +280,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^save_stages/$', 'save_stages'),
     url(r'^order_management_toggle/$', 'order_management_toggle'),
     url(r'^order_management_check/$', 'order_management_check'),
-)
 
-urlpatterns += patterns('rest_api.views',
     #manage users
     url(r'^add_user/$', 'add_user'),
     url(r'^add_group_data/$', 'add_group_data'),
@@ -332,4 +338,8 @@ urlpatterns += patterns('rest_api.views',
 
     #masters
     url(r'generate_barcodes', 'generate_barcodes'),
+
+    #price_master data
+    url(r'get_customer_sku_prices', 'get_customer_sku_prices'),
+
     )

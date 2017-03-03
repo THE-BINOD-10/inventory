@@ -750,13 +750,18 @@ def view_rm_picklist(request, user=''):
     data_id = request.POST['data_id']
     headers = list(PRINT_PICKLIST_HEADERS)
     data = get_raw_picklist_data(data_id, user)
+    all_stock_locs = map(lambda d: d['location'], data)
+    display_update = False
+    if 'NO STOCK' in all_stock_locs:
+        display_update = True
     show_image = get_misc_value('show_image', user.id)
     if show_image == 'true':
         headers.insert(0, 'Image')
     if get_misc_value('pallet_switch', user.id) == 'true' and 'Pallet Code' not in headers:
         headers.insert(headers.index('Location') + 1, 'Pallet Code')
 
-    return HttpResponse(json.dumps({'data': data, 'job_code': data_id, 'show_image': show_image, 'user': request.user.id}))
+    return HttpResponse(json.dumps({'data': data, 'job_code': data_id, 'show_image': show_image, 'user': request.user.id,
+                                    'display_update': display_update}))
 
 def get_raw_picklist_data(data_id, user):
     data = []
@@ -940,6 +945,8 @@ def rm_picklist_confirmation(request, user=''):
         return HttpResponse(status)
 
     for key, value in data.iteritems():
+        if key == 'code':
+            continue
         raw_locs = RMLocation.objects.get(id=key)
         picklist = raw_locs.material_picklist
         filter_params = {'material_picklist__jo_material__material_code__wms_code': picklist.jo_material.material_code.wms_code,
@@ -1119,7 +1126,6 @@ def save_jo_locations(all_data, user, job_code):
                     RMLocation.objects.create(material_picklist_id=material_picklist.id, stock=None, quantity=no_stock_quantity,
                                               reserved=no_stock_quantity, creation_date=datetime.datetime.now(), status=1)
 
-                
                 for stock_dict in stock_detail_dict:
                     stock = stock_dict['stock']
                     stock_quantity = stock_dict['stock_quantity']
@@ -1183,6 +1189,8 @@ def validate_picklist(data, user):
     loc_status = ''
     stock_status = ''
     for key, value in data.iteritems():
+        if key == 'code':
+            continue
         raw_loc = RMLocation.objects.get(id=key)
         sku = raw_loc.material_picklist.jo_material.material_code
         for val in value:
@@ -1228,7 +1236,7 @@ def confirmed_jo_data(request, user=''):
     headers = copy.deepcopy(RECEIVE_JO_TABLE_HEADERS)
     stages = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     temp = get_misc_value('pallet_switch', user.id)
-    
+
     filter_params = {'product_code__user': user.id, 'product_code_id__in': sku_master_ids, 'status__in': ['grn-generated', 'pick_confirm',
                      'partial_pick']}
     if job_code:
@@ -2262,4 +2270,117 @@ def get_vendor_types(request, user=''):
     vendor_names = list(JobOrder.objects.filter(product_code__user=user.id, status='order-confirmed', vendor_id__isnull=False).\
                         values('vendor__vendor_id', 'vendor__name').distinct())
     return HttpResponse(json.dumps({'data': vendor_names}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_rm_picklist(request, user=''):
+    stages = get_user_stages(user, user)
+    status_ids = StatusTracking.objects.filter(status_value__in=stages,status_type='JO').values_list('status_id',flat=True)
+    data = {}
+    all_data = {}
+    auto_skus = []
+    update_job_code = ''
+    for key, value in request.POST.iterlists():
+        name, picklist_id = key.rsplit('_', 1)
+        data.setdefault(picklist_id, [])
+        for index, val in enumerate(value):
+            if len(data[picklist_id]) < index + 1:
+                data[picklist_id].append({})
+            data[picklist_id][index][name] = val
+
+    for key, value in data.iteritems():
+        if key == 'code':
+            continue
+        raw_locs = RMLocation.objects.get(id=key)
+        picklist = raw_locs.material_picklist
+        filter_params = {'material_picklist__jo_material__material_code__wms_code': picklist.jo_material.material_code.wms_code,
+                         'material_picklist__jo_material__job_order__product_code__user': user.id,
+                         'material_picklist__jo_material__job_order__job_code': picklist.jo_material.job_order.job_code, 'status': 1}
+        if raw_locs.stock:
+            filter_params['stock__location__location'] = value[0]['orig_location']
+        else:
+            filter_params['stock__isnull'] = True
+        batch_raw_locs = RMLocation.objects.filter(**filter_params)
+        count = 0
+        for val in value:
+            for raw_loc in batch_raw_locs:
+                picklist = raw_loc.material_picklist
+                if not update_job_code:
+                    update_job_code = picklist.jo_material.job_order.job_code
+                if raw_loc.stock:
+                    continue
+                jo_material = raw_loc.material_picklist.jo_material
+                data_dict = {'sku_id': jo_material.material_code_id, 'quantity__gt': 0, 'sku__user': user.id}
+                stock_detail = get_picklist_locations(data_dict, user)
+                stock_diff = 0
+                rem_stock_quantity = float(raw_loc.reserved)
+                stock_total = 0
+                stock_detail_dict = []
+                for stock in stock_detail:
+                    reserved_quantity = RMLocation.objects.filter(stock_id=stock.id, status=1,
+                                                                  material_picklist__jo_material__material_code__user=user.id).\
+                                                           aggregate(Sum('reserved'))['reserved__sum']
+                    picklist_reserved = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id).\
+                                                                 aggregate(Sum('reserved'))['reserved__sum']
+                    if not reserved_quantity:
+                        reserved_quantity = 0
+                    if picklist_reserved:
+                        reserved_quantity += picklist_reserved
+
+                    stock_quantity = float(stock.quantity) - reserved_quantity
+                    if stock_quantity <= 0:
+                        continue
+                    stock_total += stock_quantity
+                    stock_detail_dict.append({'stock': stock, 'stock_quantity': stock_quantity})
+                    if stock_total >= rem_stock_quantity:
+                        break
+
+                for stock_dict in stock_detail_dict:
+                    stock = stock_dict['stock']
+                    stock_quantity = stock_dict['stock_quantity']
+                    if stock_diff:
+                        if stock_quantity >= stock_diff:
+                            stock_count = stock_diff
+                            stock_diff = 0
+                        else:
+                            stock_count = stock_quantity
+                            stock_diff -= stock_quantity
+                    elif stock_quantity >= rem_stock_quantity:
+                        stock_count = rem_stock_quantity
+                    else:
+                        stock_count = stock_quantity
+                        stock_diff = rem_stock_quantity - stock_quantity
+
+                    rm_locations_dict = copy.deepcopy(MATERIAL_PICK_LOCATIONS)
+                    rm_locations_dict['material_picklist_id'] = picklist.id
+                    rm_locations_dict['stock_id'] = stock.id
+                    rm_locations_dict['quantity'] = stock_count
+                    rm_locations_dict['reserved'] = stock_count
+                    raw_loc.quantity -= stock_count
+                    raw_loc.reserved -= stock_count
+                    if raw_loc.reserved <= 0:
+                        raw_loc.status = 0
+                    rm_locations = RMLocation(**rm_locations_dict)
+                    rm_locations.save()
+                    raw_loc.save()
+                    if not stock_diff:
+                        break
+
+    data_id = update_job_code
+    headers = list(PRINT_PICKLIST_HEADERS)
+    data = get_raw_picklist_data(data_id, user)
+    all_stock_locs = map(lambda d: d['location'], data)
+    display_update = False
+    if 'NO STOCK' in all_stock_locs:
+        display_update = True
+
+    show_image = get_misc_value('show_image', user.id)
+    if show_image == 'true':
+        headers.insert(0, 'Image')
+    if get_misc_value('pallet_switch', user.id) == 'true' and 'Pallet Code' not in headers:
+        headers.insert(headers.index('Location') + 1, 'Pallet Code')
+
+    return HttpResponse(json.dumps({'data': data, 'job_code': data_id, 'show_image': show_image, 'user': request.user.id,
+                                    'display_update': display_update}))
 

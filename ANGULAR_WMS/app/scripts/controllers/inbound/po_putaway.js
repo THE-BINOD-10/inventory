@@ -63,7 +63,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         var qt = (vm.permissions.use_imei)?0:temp[3];
         dat.data.push({'wms_code': temp[0], 'pallet_number': temp[6], 'original_quantity': temp[2],
                   'id': temp[5], 'orig_loc_id': temp[4], 'sub_data': [{'loc': temp[1], 'quantity': qt}],
-                  'orig_data': temp[7]}) 
+                  'unit': temp[7], 'orig_data': ''})
       
       }
       angular.copy(dat, vm.model_data);

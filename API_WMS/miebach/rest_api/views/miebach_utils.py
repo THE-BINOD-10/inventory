@@ -50,6 +50,8 @@ SUPPLIER_DATA = {'name': '', 'address': '',
 
 SIZE_DATA = {'size_name':'', 'size_value': '', 'creation_date': datetime.datetime.now()}
 
+PRICING_DATA = {'sku': '', 'price_type': '', 'price': 0, 'discount': 0, 'creation_date': datetime.datetime.now()}
+
 ISSUE_DATA = {'issue_title': '', 'name': '', 'email_id': '',
             'priority': '', 'status': 'Active',
             'issue_description': '', 'creation_date': datetime.datetime.now()}
@@ -148,7 +150,8 @@ SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone N
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
-CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Credit Period', 'Tin Number', 'Email', 'Phone No.', 'City', 'State', 'Pin Code', 'Address']
+CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Credit Period', 'Tin Number', 'Email', 'Phone No.', 'City', 'State', 'Pin Code',
+                    'Address', 'Selling Price Type']
 
 SALES_RETURN_HEADERS = ['Return ID', 'Return Date', 'SKU Code', 'Product Description', 'Market Place', 'Quantity']
 
@@ -247,7 +250,7 @@ LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequenc
 
 SKU_HEADERS = ['WMS Code','SKU Description', 'SKU Group', 'SKU Type', 'SKU Category', 'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size',
                'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url', 'Threshold Quantity', 'Measurment Type', 'Sale Through', 
-               'Color', 'Status']
+               'Color', 'EAN Number', 'Status']
 
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity', 'Return Date(YYYY-MM-DD)']
 
@@ -290,6 +293,8 @@ BATCH_DATA_HEADERS = OrderedDict([('SKU Code','sku__sku_code'),('Title','title')
 PUT_AWAY = OrderedDict([('PO Number','open_po_id'),('Order Date','creation_date'),('Supplier ID','open_po_id__supplier_id__id'),('Supplier Name','open_po_id__supplier_id__name')])
 
 SKU_MASTER_HEADERS = OrderedDict([('WMS SKU Code', 'wms_code'), ('Product Description', 'sku_desc'), ('SKU Type', 'sku_type'), ('SKU Category', 'sku_category'), ('SKU Class', 'sku_class'), ('Zone', 'zone_id'), ('Status', 'status')])
+
+PRICING_MASTER_HEADER = OrderedDict([('SKU Code', 'sku__sku_code'), ('SKU Description', 'sku__sku_desc'), ('Selling Price Type', 'price_type'), ('Price', 'price'), ('Discount', 'discount')])
 
 SKU_MASTER_EXCEL_HEADERS = ['WMS SKU Code', 'Product Description', 'SKU Type', 'SKU Category', 'SKU Brand', 'SKU Class', 'Style Name',
                             'SKU Size', 'SKU Group', 'Zone', 'Price', 'MRP Price', 'Measurement Type', 'Sequence', 'Sale Through', 'Status']
@@ -351,7 +356,7 @@ CUSTOMER_FIELDS = ( (('Customer ID *', 'id',60), ('Customer Name *', 'name',256)
                     (('Email *', 'email_id',64), ('Phone No. *', 'phone_number',10)),
                     (('Address *', 'address'), ('Status', 'status',11)), )
 
-CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1}
+CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': ''}
 
 PRODUCTION_STAGES = {'Apparel': ['Raw Material Inspection', 'Fabric Washing', 'Finishing'], 'Default': ['Raw Material Inspection',
                      'Fabric Washing', 'Finishing']}
@@ -438,7 +443,7 @@ EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 8, 'invoice_amount': 3, 'chann
 SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('sku_group', 2), ('sku_type', 3), ('sku_category', 4), ('sku_class', 5),
                               ('sku_brand', 6), ('style_name', 7), ('sku_size', 8), ('zone_id', 9), ('price', 10), ('mrp', 11),
                               ('sequence', 12), ('image_url', 13), ('threshold_quantity', 14), ('measurement_type', 15), ('sale_through', 16),
-                              ('color', 17), ('status', 18)
+                              ('color', 17), ('ean_number', 18), ('status', 19)
                            ))
 
 ITEM_MASTER_EXCEL = OrderedDict(( ('wms_code', 1), ('sku_desc', 2), ('sku_category', 25), ('image_url', 18), ('sku_size', 14) ))
@@ -612,6 +617,12 @@ BARCODE_DICT = {'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': ''
 BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
 
 BARCODE_ADDRESS_DICT = {'adam_clothing1': 'Adam Exports 401, 4th Floor, Pratiek Plazza, S.V.Road, Goregaon West, Mumbai - 400062. MADE IN INDIA'}
+
+PRICING_MASTER_HEADERS = ['SKU Code', 'Selling Price type', 'Price', 'Discount']
+
+PRICE_DEF_EXCEL = OrderedDict(( ('sku_id', 0), ('price_type', 1), ('price', 2), ('discount', 3) ))
+
+PRICE_MASTER_DATA = {'sku_id': '', 'price_type': '', 'price': 0, 'discount': 0}
 
 def fn_timer(function):
     @wraps(function)

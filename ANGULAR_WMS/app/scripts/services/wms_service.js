@@ -20,6 +20,23 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
     vm.reports = {};
 
+    vm.add_totals = function(length, total_data) {
+
+      var html = "<tr class='totals_row'>"
+      for(var i=0; i < length; i++) {
+        if(i == 0) {
+          html += "<th>Total's</th>";
+        } else if (total_data.positions.indexOf(i) != -1) {
+          html += "<th>{{showCase.tb_data['"+total_data.keys[i]+"']}}</th>";
+        } else {
+          html += "<th></th>";
+        }
+
+      }
+      html += "</tr>";
+      return html;
+    }
+
     vm.pull_order_now = function() {
 
       vm.apiCall("pull_orders_now/").then(function(data){
@@ -740,7 +757,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
   vm.generate_pdf_file = function(data){
       var send = {};
-      send['data'] = JSON.stringify(data);
+      //send['data'] = JSON.stringify(data);
+      send['data'] = $(".print-invoice:visible").html()
       vm.apiCall("generate_pdf_file/", "POST", send).then(function(data){
          if(data.message) {
            window.open(Session.url + data.data, '_blank');
@@ -774,7 +792,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
     if (data.$valid) {
 
-      var elem = angular.element($('form'));
+      var elem = angular.element($('form:visible'));
 
       elem = elem[0];
 
@@ -782,7 +800,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
       elem.push({name: 'format', value: 'sku_master'})
 
-      vm.apiCall('generate_barcodes/', 'GET', elem).then(function(data){
+      vm.apiCall('generate_barcodes/', 'POST', elem).then(function(data){
 
         if(data.message) {
 

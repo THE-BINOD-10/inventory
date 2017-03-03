@@ -272,7 +272,7 @@ data_datatable = {#masters
                   'BOMMaster':'get_bom_results', 'CustomerSKUMapping': 'get_customer_sku_mapping',\
                   'WarehouseMaster': 'get_warehouse_user_results', 'VendorMaster': 'get_vendor_master_results',\
                   'DiscountMaster':'get_discount_results', 'CustomSKUMaster': 'get_custom_sku_properties',\
-                  'SizeMaster': 'get_size_master_data',\
+                  'SizeMaster': 'get_size_master_data', 'PricingMaster': 'get_price_master_results', \
                   #inbound
                   'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po',\
                   'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data',\
@@ -638,14 +638,20 @@ def print_excel(request, temp_data, headers, excel_name='', user=''):
     path_to_file = '../' + path
     return HttpResponse(path_to_file)
 
-def po_message(po_data, phone_no, user_name, f_name, order_date):
+def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag):
     data = '%s Orders for %s dated %s' %(user_name, f_name, order_date)
     total_quantity = 0
     total_amount = 0
-    for po in po_data:
-        data += '\nD.NO: %s, Qty: %s' % (po[1], po[3])
-        total_quantity += int(po[3])
-        total_amount += int(po[5])
+    if ean_flag:
+        for po in po_data:
+            data += '\nD.NO: %s, Qty: %s' % (po[2], po[4])
+            total_quantity += int(po[4])
+            total_amount += int(po[6])
+    else:
+        for po in po_data:
+            data += '\nD.NO: %s, Qty: %s' % (po[1], po[3])
+            total_quantity += int(po[3])
+            total_amount += int(po[5])
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity,total_amount)
     send_sms(phone_no, data)
 
@@ -1553,10 +1559,12 @@ def get_invoice_data(order_ids, user, merge_data = ""):
     order_id = ''
     marketplace = ''
     total_quantity = 0
+    total_amt = 0
     total_invoice = 0
     total_tax = 0
     total_mrp = 0
     customer_details = []
+    consignee = ''
     order_no = ''
     invoice_date = datetime.datetime.now()
     if order_ids:
@@ -1582,7 +1590,11 @@ def get_invoice_data(order_ids, user, merge_data = ""):
             if dat.customer_id and dat.customer_name and not customer_details:
                 customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id,
                                                                       name=dat.customer_name).\
-                                                          values('customer_id', 'name', 'email_id', 'tin_number', 'address'))
+                                                          values('customer_id', 'name', 'email_id', 'tin_number', 'address',
+                                                                 'credit_period', 'phone_number'))
+                if customer_details:
+                    consignee = customer_details[0]['name'] + '\n' + customer_details[0]['address'] + "\nCall: " \
+                                + customer_details[0]['phone_number'] + "\nEmail: " + customer_details[0]['email_id']
             if not marketplace:
                 marketplace = dat.marketplace
                 if marketplace == 'Myntra':
@@ -1632,7 +1644,7 @@ def get_invoice_data(order_ids, user, merge_data = ""):
             total_quantity += quantity
 
             data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
-                         'quantity': quantity, 'tax': "%.2f" % (tax/float(dat.quantity) * quantity), 'unit_price': unit_price, 
+                         'quantity': quantity, 'tax': "%.2f" % (tax/float(dat.quantity) * quantity), 'unit_price': unit_price,
                          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class})
 
     invoice_date = get_local_date(user, invoice_date, send_date='true')
@@ -1647,12 +1659,13 @@ def get_invoice_data(order_ids, user, merge_data = ""):
         if total_charge_amount:
             total_invoice_amount = float(total_charge_amount) + total_invoice
 
+    total_amt = "%.2f" % (float(total_invoice) - float(total_tax))
     invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
-                    'order_date': order_date, 'email': user.email, 'marketplace': marketplace,
+                    'order_date': order_date, 'email': user.email, 'marketplace': marketplace, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
                     'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % total_tax, 'total_mrp': total_mrp,
                     'invoice_no': 'TI/1116/' + order_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(total_invoice),
-                    'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount}
+                    'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount, 'consignee': consignee}
 
     return invoice_data
 
@@ -1917,8 +1930,43 @@ def search_wms_data(request, user=''):
         total_data = build_search_data(total_data, query_objects, limit)
     return HttpResponse(json.dumps(total_data))
 
-def build_search_data(to_data, from_data, limit):
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_customer_sku_prices(request, user = ""):
+    cust_id = request.POST.get('cust_id', '')
+    sku_codes = request.POST.get('sku_codes', '')
+
+    sku_codes = sku_codes.split(",")
+    result_data = []
+    price_type = ""
+    if cust_id:
+        price_type = CustomerMaster.objects.filter(customer_id = cust_id, user = user.id)
+
+    for sku_code in sku_codes:
+        if not sku_code:
+            continue
+        data = SKUMaster.objects.filter(sku_code = sku_code, user = user.id)
+        if data:
+            data = data[0]
+        else:
+            return "sku_doesn't exist"
+        price = data.price
+        discount = 0
+
+        if price_type:
+            price_type = price_type[0].price_type
+            price_master_objs = PriceMaster.objects.filter(price_type = price_type, sku__sku_code = sku_code, sku__user = user.id)
+            if price_master_objs:
+                price = price_master_objs[0].price
+                discount = price_master_objs[0].discount
+        result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount})
+
+    return HttpResponse(json.dumps(result_data))
+
+
+def build_search_data(to_data, from_data, limit):
     if(len(to_data) >= limit):
         return to_data
     else:
@@ -1990,21 +2038,18 @@ def get_sku_master(user,sub_user):
 
     return sku_master, sku_master_ids
 
-def create_update_user(data, password):
+def create_update_user(data, password, username):
     """
     Creating a new Customer User
     """
     full_name = data.name
-    username = data.email_id
     password = password
     email = data.email_id
-    if not username:
-        username = email
-    status = 'Missing required fields'
     if username and password:
-        user = User.objects.filter(username=username, email=email)
-        status = "User already exists"
-        if not user:
+        user = User.objects.filter(username=username)
+        if user:
+            status = "User already exists"
+        else:
             user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name)
             user.save()
             hash_code = hashlib.md5(b'%s:%s' % (user.id, email)).hexdigest()

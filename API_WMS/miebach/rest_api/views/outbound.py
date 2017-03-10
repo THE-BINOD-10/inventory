@@ -4,6 +4,7 @@ from django.http import HttpResponse
 import copy
 import json
 from itertools import chain
+from decimal import Decimal
 from django.db.models import Q, F
 from collections import OrderedDict
 from django.contrib.auth import authenticate
@@ -1933,7 +1934,7 @@ def insert_order_data(request, user=''):
             if sku_master[0].sku_type == 'CS':
                 create_order_json(order_detail)
 
-        items.append([sku_master[0].sku_desc, request.user.username, order_data['quantity'], order_data.get('invoice_amount', 0)])
+        items.append([sku_master[0].sku_desc, order_data['quantity'], order_data.get('invoice_amount', 0)])
 
     if invalid_skus:
         return HttpResponse("Invalid SKU: %s" % ', '.join(invalid_skus))
@@ -1943,12 +1944,13 @@ def insert_order_data(request, user=''):
                 OrderCharges.objects.create(user_id=user.id, order_id=created_order_id, charge_name=myDict['charge_name'][i],
                                             charge_amount=myDict['charge_amount'][i], creation_date=datetime.datetime.now())
 
-    misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type='order', misc_value='true')
+    misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='order', misc_value='true')
     if misc_detail and order_detail:
-        headers = ['Product Details', 'Seller Details', 'Ordered Quantity', 'Total']
+        company_name = UserProfile.objects.filter(user = user.id)[0].company_name
+        headers = ['Product Details', 'Ordered Quantity', 'Total']
         data_dict = {'customer_name': order_data['customer_name'], 'order_id': order_detail.order_id,
                                     'address': order_data['address'], 'phone_number': order_data['telephone'], 'items': items,
-                                     'headers': headers}
+                                     'headers': headers, 'company_name':company_name, 'user': user}
 
         t = loader.get_template('templates/order_confirmation.html')
         c = Context(data_dict)
@@ -3519,8 +3521,25 @@ def get_customer_cart_data(request, user=""):
 
     if cart_data:
         for record in cart_data:
-           response['data'].append(record.json())
+            json_record = record.json()
+            #PriceMaster.objects.filter(price_type = CustomerMaster.objects.filter(id = CustomerUserMapping.objects.filter(user = request.user.id)[0].customer_id)[0].price_type, sku__id = record.sku_id)
+            sku_id = record.sku_id
+            cust_user_obj = CustomerUserMapping.objects.filter(user = request.user.id)
+            if cust_user_obj:
+                cust_user_obj = cust_user_obj[0]
+                cust_id = cust_user_obj.customer_id
+                cust_obj = CustomerMaster.objects.filter(id = cust_id)
+                if cust_obj:
+                    cust_obj = cust_obj[0]
+                    price_type = cust_obj.price_type
+                    price_master_obj = PriceMaster.objects.filter(price_type = price_type, sku__id = record.sku_id)
+                    if price_master_obj:
+                        price_master_obj = price_master_obj[0]
+                        json_record['price'] = price_master_obj.price
+                        json_record['invoice_amount'] = json_record['quantity'] * json_record['price']
+                        json_record['total_amount']= ((json_record['invoice_amount'] * json_record['tax'])/100) + json_record['invoice_amount']
 
+            response['data'].append(json_record)
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
 
 @login_required

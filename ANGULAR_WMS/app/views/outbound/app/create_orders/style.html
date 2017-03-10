@@ -30,7 +30,8 @@
       <div class="row">
         <div class="col-md-4" ng-if="Style.style_data.length > 0">
           <img ng-src="{{ showCase.service.check_image_url(Style.style_data[0]['image_url']) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail">
-          <h5 align="center"><b>{{Style.style_data[0].style_name}}</b></h5>
+          <h5 align="center"><b>{{Style.style_data[0].sku_class}}</b></h5>
+          <h5 align="center" ng-if="Style.style_data[0].pricing_price"><b>Price: {{'D8'+Style.style_data[0].pricing_price}}</b></h5>
         </div>
         <div class="col-md-8">
           <div class="row">
@@ -66,14 +67,14 @@
           <div class="row">
             <div class="cart visible-xs-block visible-sm-block">
               <div class="row" style="border-top:1px solid rgba(0,0,0,.1)">
-                <button ng-disabled="Style.style_total_quantity == 0" type="button" id ="place_order" class="btn btn-warning btn-lg col-xs-12" ng-click="showCase.add_to_cart(Style.style_data);Style.make_empty()">ADD TO CART</button>
+                <button type="button" id ="place_order" class="btn btn-warning btn-lg col-xs-12" ng-click="Style.add_to_cart(Style.style_data);Style.make_empty()">ADD TO CART</button>
               </div>
             </div>
             <div class="col-md-6 col-sm-6 col-xs-6 hide">
               <button type="button" class="hide btn btn-warning btn-round btn-outline btn-lg pull-right" ng-click="showCase.enable_stock()" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">CHECK STOCK</button>
             </div>
             <div class="col-md-12 col-sm-12 col-xs-12 hidden-xs hidden-sm">
-              <button ng-disabled="Style.style_total_quantity == 0" style="display:block;margin:auto" type="button" class="btn btn-warning btn-round btn-lg" ng-click="showCase.add_to_cart(Style.style_data);Style.make_empty();">ADD TO CART</button>
+              <button style="display:block;margin:auto" type="button" class="btn btn-warning btn-round btn-lg" ng-click="Style.add_to_cart(Style.style_data);Style.make_empty();">ADD TO CART</button>
             </div>
           </div>
         </div>

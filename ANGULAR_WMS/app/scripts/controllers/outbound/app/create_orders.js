@@ -672,7 +672,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
-  vm.create_order_data = {}
+  /*vm.create_order_data = {}
   vm.get_create_order_data = function(){
     vm.service.apiCall("create_orders_data/").then(function(data){
 
@@ -683,7 +683,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       }
     })
   }
-  vm.get_create_order_data();
+  vm.get_create_order_data();*/
 
   vm.change_tax_type = function() {
 
@@ -756,7 +756,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.add_scroll();
   });
 
-  vm.insert_customer_cart_data = function(){
+  /*vm.insert_customer_cart_data = function(){
 
     var send = JSON.stringify(vm.model_data.data);
     vm.service.apiCall('insert_customer_cart_data/?data='+send).then(function(data){
@@ -798,6 +798,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       data['remarks'] = vm.model_data.remarks;
     })
   }
+  */
 
   vm.sizeform = function(form) {
     var config = {};

@@ -65,8 +65,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 check_data(field);
               } else if (field+' is already confirmed' == data.data){
                 pop_msg(data.data);
-              } else {  
-              vm.model_data.data.push(data.data)
+              } else {
+              vm.model_data.data.push(data.data[0])
               vm.scan_orders.push(field);
               }
             }
@@ -90,7 +90,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               } else if (field+' is already confirmed' == data.data){
                 pop_msg(data.data);
               } else {
-                vm.model_data.data.push(data.data);
+                vm.model_data.data.push(data.data[0]);
                 vm.scan_returns.push(field);
               }
             }
@@ -132,21 +132,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             }
           });
         } else {
-          var i = 0
-          for(; i < vm.model_data.data.length; i++) {   
-            if(field == vm.model_data.data[i][0].sku_code && vm.model_data.data[i][0].is_new) {
-              vm.model_data.data[i][0].return_quantity += 1;
+          var status = true;
+          for(var i = 0; i < vm.model_data.data.length; i++) {
+            var temp = vm.model_data.data[i]
+            if(field == temp.sku_code && temp.is_new && vm.model_data.marketplace == temp.marketplace) {
+              vm.model_data.data[i].return_quantity += 1;
+              status = false;
               break;
             }
-          } 
+          }
+          if (status) {
+            vm.add_new_sku(field);
+          }
         }
         vm.model_data.return_sku_code = '';
       }
     }
 
     vm.add_new_sku = function(field) {
-      vm.model_data.data.push([{'sku_code': field, 'product_description':'', 'shipping_quantity': '', 'order_id':'',
-                                           'return_quantity': 1, 'damaged_quantity': '', 'track_id_enable': false, 'is_new': true}])
+      vm.model_data.data.push({'sku_code': field, 'product_description':'', 'shipping_quantity': '', 'order_id':'',
+                                'return_quantity': 1, 'damaged_quantity': '', 'track_id_enable': false,
+                                'is_new': true, 'marketplace':vm.model_data.marketplace})
     }
 
     vm.confirm_disable = false;
@@ -211,6 +217,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $state.go('app.inbound.SalesReturns.barcode');
     }
 
+  vm.market_list = [];
+  vm.service.apiCall('get_marketplaces_list/').then(function(data){
+    if(data.message) {
+      vm.market_list = data.data.marketplaces;
+    }
+  })
 
     vm.message = '';
     function pop_msg(msg) {
@@ -241,5 +253,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }*/
       });
     };
+
+    vm.update_data = function(index , record, data) {
+
+      data.splice(index, 1);
+      if(data.length > 0 && !(record.order_id)) {
+
+        var status = true;
+        for(var i = 0; i < data.length; i++) {
+          if(data[i].sku_code == record.sku_code && !(data[i].order_id)) {
+
+            status = false;
+            break;
+          }
+        }
+        if(status) {
+          var ind = vm.scan_skus.indexOf(record.sku_code);
+          if(ind != -1) {
+            vm.scan_skus.splice(ind,1);
+          }
+        }
+      }
+    }
   }
 

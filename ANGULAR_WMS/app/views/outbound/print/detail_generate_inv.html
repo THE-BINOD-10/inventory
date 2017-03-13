@@ -15,7 +15,8 @@
             <h4 style="margin-bottom:2px" align="center">Tax Invoice</h4>
           </div>
           <div class="row col-md-12" style="margin-top: 0px;">
-            <table class="top-table table table-bordered bl br mb0" style="margin-bottom:0px">
+            <table class="top-table table table-bordered bl br mb0" ng-if="user.userName == 'sagar_fab'" 
+                   style="margin-bottom:0px;height:{{showCase.x}}px;">
               <tbody class="rm-padding">
                 <tr>
                   <td style="width: 60%;text-align:left" class="align-left">
@@ -57,12 +58,12 @@
                     <input type="hidden" name="picklists_send_mail" value="{{showCase.pdf_data.picklists_send_mail}}">
                     <address class="no-margin">
                       <strong>Consignee</strong><br>
-                      <pre ng-if="!(showCase.invoice_edit)" class="fs12">{{showCase.pdf_data.consignee}}</pre>
+                      <pre ng-if="!(showCase.invoice_edit)" class="fs12" style="font-size: 10px !important;">{{showCase.pdf_data.consignee}}</pre>
                       <textarea name="consignee" rows="3" ng-if="showCase.invoice_edit" cols="27" ng-model="showCase.pdf_data.consignee"></textarea>
                     </address>
                   </td>
                   <td rowspan="2" style="text-align:left">
-                    <span><b>Terms of Permit:</b>
+                    <span><b>Terms of Payment:</b>
                       <span ng-if="showCase.pdf_data.customer_details[0].credit_period && !(showCase.invoice_edit)">
                         {{showCase.pdf_data.customer_details[0].credit_period}}days
                       </span>
@@ -80,7 +81,7 @@
                   <td style="width: 60%;text-align:left">
                     <address class="no-margin">
                       <strong>Buyer</strong><br>
-                      <div ng-if = "showCase.pdf_data.marketplace == 'Offline'">
+                      <div ng-if = "showCase.pdf_data.marketplace == 'Offline'" style="font-size: 10px !important;">
                         <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].name">
                         &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].name}}</p>
                         <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].address">
@@ -133,7 +134,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr class="rm-padding rm-brdr" ng-repeat="(key, record) in showCase.pdf_data.data">
+                <tr class="rm-padding rm-brdr" ng-repeat="(key, record) in showCase.pdf_data.data" style="padding-bottom:0px;">
                   <td style="text-align: left;">
                     <b>{{key}}</b>
                     <p style="margin-bottom: 0px" ng-repeat="(style, record1) in record.styles">&nbsp;&nbsp;
@@ -151,6 +152,17 @@
                   <td>{{record.invoice_amount - record.tax | number:2}}</td>
                   <td>{{record.tax | number:2}}</td>
                   <td><b>{{record.invoice_amount | number:2}}</b></td>
+                </tr>
+                <tr ng-if="user.userName == 'sagar_fab'" style="height:{{showCase.p}}px;">
+                  <td></td>
+                  <td></td>
+                  <td ng-if="permissions.show_mrp"></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
                 </tr>
                 <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14)" class="rm-padding">
                   <td style="text-align:left"><b>Total: </b>

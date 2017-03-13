@@ -45,6 +45,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
               vm.service.apiCall('view_picked_orders/', 'GET', {data_id: aData.DT_RowAttr["data-id"], market_place: vm.market}).then(function(data){
                 if(data.message) {
                   angular.copy(data.data, vm.model_data);
+                  var L = 842;
+                  var x = 160;
+                  var z = 221;
+                  var v1 = L - (x + z);
+                  var v2 = (L - z);
+                  /*vm.height = data.data.data.length*20;
+                  vm.final_height = 420 - vm.height;*/
                   $state.go('app.outbound.PullConfirmation.Picked');
                 }
               });
@@ -120,6 +127,32 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       if(data.message) {
         angular.copy(data.data, vm.pdf_data)
         if (vm.pdf_data.detailed_invoice) {
+                  var L = 600;
+                  vm.x = 320;
+                  var z = 221;
+                  var v1 = L - (vm.x + z);
+                  var v2 = (L - z);
+                  var styles = vm.pdf_data.data;
+                  var cate = vm.pdf_data.data;
+                  var n = Object.keys(styles).length / 10;
+                  var c = 0;
+                  for (var i=0; i<Object.keys(styles).length; i++) {
+                    var cat_len = styles[Object.keys(styles)[i]].data.length;
+                    c = c + cat_len;
+                  }
+                  c = c / 20;
+                  var y = 20*c + 10*n;
+
+                  if (y<=v1) {
+                    vm.p = v1-y;
+                  }
+                  else if (v1<y<(v1+v2)) {
+                    vm.p = v1+v2-y;
+                  }
+                  else {
+                    var r = Math.round((y-v1)/v2) - 1;
+                    vm.p = v1 + (1+r)*v2 - y;
+                  } 
           $state.go('app.outbound.PullConfirmation.DetailGenerateInvoice');
         } else {
           $state.go('app.outbound.PullConfirmation.GenerateInvoice');

@@ -1710,7 +1710,7 @@ def create_return_order(data, i, user):
         if not quantity:
             quantity = data['damaged'][i]
         return_details = {'return_id': '', 'return_date': datetime.datetime.now(), 'quantity': quantity,
-                          'sku_id': sku_id[0].id, 'status': 1}
+                          'sku_id': sku_id[0].id, 'status': 1, 'marketplace': data['marketplace'][i]}
         returns = OrderReturns(**return_details)
         returns.save()
 
@@ -1954,7 +1954,7 @@ def putaway_data(request, user=''):
     purchase_order_id= ''
     diff_quan = 0
     all_data = {}
-    myDict = dict(request.GET.iterlists())
+    myDict = dict(request.POST.iterlists())
     sku_codes = []
     for i in range(0, len(myDict['id'])):
         po_data = ''

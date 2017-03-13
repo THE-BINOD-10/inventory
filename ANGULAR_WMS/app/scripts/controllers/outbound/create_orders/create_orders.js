@@ -10,7 +10,8 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.company_name = Session.user_profile.company_name;
   vm.model_data = {}
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
-                            customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: ""};
+                            customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: "",
+                            tax_type: "VAT"};
 
   angular.copy(empty_data, vm.model_data);
   vm.isLast = isLast;
@@ -64,7 +65,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   vm.bt_disable = false;
   vm.insert_order_data = function(form) {
-    if (vm.model_data.shipment_date) {
+    if (form.$valid && vm.model_data.shipment_date) {
       vm.bt_disable = true;
       console.log(form);
       var elem = angular.element($('form'));

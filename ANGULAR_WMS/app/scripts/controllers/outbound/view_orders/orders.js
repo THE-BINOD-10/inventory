@@ -27,6 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         var data_to_delete = {};
         data_to_delete['order_id'] = vm.order_id;
         data_to_delete['item_code'] = data.item_code;
+        data_to_delete['order_id_code'] = vm.order_id_code;
         vm.service.apiCall('delete_order_data/', 'GET', data_to_delete).then(function(data){
 
           if (data.message){
@@ -126,7 +127,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   vm.delete_order_data = function(ord_id) {
 
       var delete_data = {};
-      delete_data['order_id'] = ord_id
+      delete_data['order_id'] = ord_id;
+      delete_data['order_id_code'] = vm.order_id_code;
 
       vm.service.apiCall('order_delete/', 'GET', delete_data).then(function(data){
           if (data.message) {
@@ -204,6 +206,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 	   vm.address = value.address;
 	   vm.city = value.city;
 	   vm.state = value.state;
+	   vm.order_id_code = value.order_id_code;
 	   vm.pin = value.pin;
 	   vm.product_title = value.product_title;
 	   vm.quantity = value.quantity;
@@ -824,6 +827,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     Data.other_view.view =  vm.g_data.view;
     $state.go($state.current, {}, {reload: true}); 
   }
+
+  // Edit invoice
+    vm.invoice_edit = false;
+    vm.save_invoice_data = function(data) {
+
+      var send = $(data.$name+":visible").serializeArray();
+      vm.service.apiCall("edit_invoice/","POST",send).then(function(data){
+        if(data.message) {
+          vm.invoice_edit = false;
+        }
+      })
+      console.log("edit");
+    }
 
   }
 

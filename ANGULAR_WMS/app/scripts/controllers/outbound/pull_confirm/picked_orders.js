@@ -128,12 +128,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     })
     }
 
-    // Edit invoice
+  // Edit invoice
     vm.invoice_edit = false;
-    vm.save_invoice_data = function() {
+    vm.save_invoice_data = function(data) {
 
-      vm.invoice_edit = false;
+      var send = $(data.$name+":visible").serializeArray();
+      vm.service.apiCall("edit_invoice/","POST",send).then(function(data){
+        if(data.message) {
+          vm.invoice_edit = false;
+        }
+      })
       console.log("edit");
     }
   }
-

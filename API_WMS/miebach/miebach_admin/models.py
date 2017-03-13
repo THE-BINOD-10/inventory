@@ -967,6 +967,10 @@ class CustomerOrderSummary(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=24, default='')
+    consignee = models.CharField(max_length=256, default='')
+    permit = models.CharField(max_length=24, default='')
+    dispatch_through = models.CharField(max_length=24, default='')
+
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
 

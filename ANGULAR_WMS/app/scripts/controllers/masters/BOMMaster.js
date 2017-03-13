@@ -92,7 +92,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
     }
 
-    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS"];
+    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS", "GROSS"];
     vm.base = function() {
 
       vm.title = "Add BOM";

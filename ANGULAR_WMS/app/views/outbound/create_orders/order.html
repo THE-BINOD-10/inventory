@@ -24,27 +24,27 @@
       <div class="row col-md-12">
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
-            <label class="control-label">Customer ID</label>
-            <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Customer ID/Name/Number" typeahead="address.customer_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_customer_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.customer_id" typeahead-on-select="showCase.get_customer_data($item, $model, $label, $event)">
+            <label class="control-label">Customer ID *</label>
+            <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Customer ID/Name/Number" typeahead="address.customer_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_customer_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.customer_id" typeahead-on-select="showCase.get_customer_data($item, $model, $label, $event)" required>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
-            <label class="control-label">Customer Name</label>
-            <input name="customer_name" ng-model="showCase.model_data.customer_name" class="form-control" type="text" >
+            <label class="control-label">Customer Name *</label>
+            <input name="customer_name" ng-model="showCase.model_data.customer_name" class="form-control" type="text" readonly required>
             <!--ng-focus="showCase.check_id(showCase.model_data.customer_id)">-->
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Telephone</label>
-            <input name="telephone" ng-model="showCase.model_data.telephone" class="form-control" type="text" whole-number maxlength="10">
+            <input name="telephone" ng-model="showCase.model_data.telephone" class="form-control" type="text" whole-number maxlength="10" readonly>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Shipment Date *</label>
-            <input name="shipment_date" ui-jq="datepicker" ng-model="showCase.model_data.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" readonly>
+            <input name="shipment_date" ui-jq="datepicker" ng-model="showCase.model_data.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" data-date-today-highlight="true" data-date-autoclose="true" readonly>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
@@ -61,7 +61,7 @@
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Email</label>
-            <input name="email_id" class="form-control" type="email" ng-model="showCase.model_data.email_id">
+            <input name="email_id" class="form-control" type="email" ng-model="showCase.model_data.email_id" readonly>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
@@ -75,7 +75,7 @@
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Address</label>
-            <textarea rows="4" class="form-control" cols="27" name="address" ng-model="showCase.model_data.address"></textarea>
+            <textarea rows="4" class="form-control" cols="27" name="address" ng-model="showCase.model_data.address" readonly></textarea>
           </div>
         </div>
       </div>

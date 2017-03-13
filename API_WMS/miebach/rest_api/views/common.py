@@ -1427,7 +1427,10 @@ def save_stages(request, user=''):
             stage_dict['order'] = index
             new_stage = ProductionStages(**stage_dict)
             new_stage.save()
-            index += 1
+        elif stage_obj:
+            stage_obj[0].order = index
+            stage_obj[0].save()
+        index += 1
     deleted_stages = set(all_stages) - set(stages)
     for stage in deleted_stages:
         ProductionStages.objects.get(stage_name=stage, user=user.id).delete()

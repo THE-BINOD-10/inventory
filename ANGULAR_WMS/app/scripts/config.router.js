@@ -1535,7 +1535,7 @@ var app = angular.module('urbanApp')
         })
         .state('user.signin', {
           url: '/login',
-          templateUrl: 'views/extras-signin.html',
+          templateUrl: 'own/views/signin.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
               return $ocLazyLoad.load('scripts/controllers/session.js');

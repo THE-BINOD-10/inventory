@@ -736,6 +736,7 @@ def get_picklist_data(data_id,user_id):
             stock_id = ''
             wms_code = order.sku_code
             customer_name = ''
+            remarks = ''
             if order.stock:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.order:
@@ -744,6 +745,7 @@ def get_picklist_data(data_id,user_id):
                 invoice = order.order.invoice_amount
                 customer_name = order.order.customer_name
                 marketplace = order.order.marketplace
+                remarks = order.order.remarks
                 order_id = str(order.order.order_id)
             else:
                 st_order = STOrder.objects.filter(picklist_id=order.id)
@@ -786,7 +788,7 @@ def get_picklist_data(data_id,user_id):
                                                      flat=True).distinct()[:2]
                     last_picked_locs = ','.join(last_picked)
 
-                batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'picked_quantity': order.reserved_quantity, 'id': order.id, 'invoice_amount': invoice, 'price': invoice * order.reserved_quantity, 'image': image, 'order_id': str(order.order_id), 'status': order.status, 'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs, 'customer_name': customer_name, 'marketplace': marketplace, 'order_no': order_id}
+                batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'picked_quantity': order.reserved_quantity, 'id': order.id, 'invoice_amount': invoice, 'price': invoice * order.reserved_quantity, 'image': image, 'order_id': str(order.order_id), 'status': order.status, 'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs, 'customer_name': customer_name, 'marketplace': marketplace, 'order_no': order_id, 'remarks': remarks}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
@@ -807,6 +809,7 @@ def get_picklist_data(data_id,user_id):
         for order in picklist_orders:
             stock_id = ''
             customer_name = ''
+            remarks = ''
             if order.order:
                 wms_code = order.order.sku.wms_code
                 if order.order_type == 'combo' and order.sku_code:
@@ -817,6 +820,7 @@ def get_picklist_data(data_id,user_id):
                 title = order.order.title
                 customer_name = order.order.customer_name
                 marketplace = order.order.marketplace
+                remarks = order.order.remarks
             else:
                 wms_code = order.stock.sku.wms_code
                 invoice_amount = 0
@@ -853,7 +857,7 @@ def get_picklist_data(data_id,user_id):
                                                  flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
 
-            data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'order_id': str(order.order_id), 'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': invoice_amount, 'price': invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'order_no': order_id,'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs, 'customer_name': customer_name, 'marketplace' : marketplace})
+            data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'order_id': str(order.order_id), 'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': invoice_amount, 'price': invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'order_no': order_id,'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs, 'customer_name': customer_name, 'marketplace' : marketplace, 'remarks': remarks})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -870,6 +874,7 @@ def get_picklist_data(data_id,user_id):
             stock_id = ''
             wms_code = order.order.sku.wms_code
             marketplace = order.order.marketplace
+            remarks = order.order.remarks
             if order.stock_id:
                 stock_id = pick_stocks.get(id=order.stock_id)
 
@@ -907,7 +912,7 @@ def get_picklist_data(data_id,user_id):
                          'invoice_amount': order.order.invoice_amount, 'price': order.order.invoice_amount * order.reserved_quantity,
                          'image': image, 'status': order.status, 'pallet_code': pallet_code, 'sku_code': order.order.sku_code,
                          'title': order.order.title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
-                         'customer_name': customer_name,
+                         'customer_name': customer_name, 'remarks': remarks,
                          'marketplace' :marketplace })
 
             if wms_code in sku_total_quantities.keys():
@@ -1048,7 +1053,7 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt 
     user_data = UserProfile.objects.get(user_id = user.id);
     data_dict = {'customer_name': picklist.order.customer_name, 'order_id': picklist.order.order_id,
                  'address': picklist.order.address, 'phone_number': picklist.order.telephone, 'all_items': items,
-                 'headers': headers, 'query_contact': user_data.phone_number}
+                 'headers': headers, 'query_contact': user_data.phone_number, 'company_name': user_data.company_name}
 
     t = loader.get_template('templates/dispatch_mail.html')
     c = Context(data_dict)
@@ -1086,7 +1091,6 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='dispatch', misc_value='true')
 
     #order_ids = list(set(map(lambda d: d['order_id'], picklists_send_mail[0])))
-
     order_ids = picklists_send_mail.keys()
     if picklist.order:
         for order_id in order_ids:
@@ -1098,6 +1102,8 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
 
             nv_data = get_invoice_data(order_ids, request.user, picklists_send_mail[order_id])
             nv_data = modify_invoice_data(nv_data, user)
+            ord_ids = order_ids.split(",")
+            nv_data = add_consignee_data(nv_data, ord_ids, user)
             nv_data.update({'user': user})
             if nv_data['detailed_invoice']:
                 t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
@@ -1290,7 +1296,8 @@ def picklist_confirmation(request, user=''):
     if get_misc_value('auto_po_switch', user.id) == 'true' and auto_skus:
         auto_po(list(set(auto_skus)), user.id)
 
-    check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
+    if not (single_order and picklist.order.marketplace == "Offline"):
+        check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
     if get_misc_value('automate_invoice', user.id) == 'true' and single_order:
         order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True)
         order_id = picklists_send_mail.keys()
@@ -1302,6 +1309,14 @@ def picklist_confirmation(request, user=''):
             invoice_data = modify_invoice_data(invoice_data, user)
             #invoice_data['invoice_no'] = 'TI/1116/' + invoice_data['order_no']
             #invoice_data['invoice_date'] = get_local_date(user, datetime.datetime.now())
+            offline_flag = False
+            if picklist.order.marketplace == "Offline":
+                offline_flag = True
+            invoice_data['offline_flag'] = offline_flag
+            invoice_data['picklist_id'] = picklist.id
+            invoice_data['picklists_send_mail'] = str(picklists_send_mail)
+
+            invoice_data['order_id'] = invoice_data['order_id']
             return HttpResponse(json.dumps({'data': invoice_data, 'status': 'invoice'}))
 
     end_time = datetime.datetime.now()
@@ -1309,6 +1324,51 @@ def picklist_confirmation(request, user=''):
     log.info("process completed")
     log.info("total time -- %s" %(duration))
     return HttpResponse('Picklist Confirmed')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def edit_invoice(request, user=''):
+    """ The view to edit the invoice """
+    order_ids = request.POST.get("order_id", "")
+    picklist_id = request.POST.get("picklist_id", "")
+    consignee = request.POST.get("consignee", "")
+    permit = request.POST.get("credit_period", "")
+    dispatch_through = request.POST.get("dispatch_through", "")
+    picklists_send_mail = request.POST.get("picklists_send_mail", "")
+    picklists_send_mail = eval(picklists_send_mail)
+    order_id_val = ''.join(re.findall('\d+', order_ids))
+    order_code = ''.join(re.findall('\D+', order_ids))
+    ord_ids = OrderDetail.objects.filter(Q(order_id = order_id_val, order_code = order_code) | Q(original_order_id=order_ids),
+                                         user = user.id).values_list('id', flat = True)
+    for order_id in ord_ids:
+        cust_objs = CustomerOrderSummary.objects.filter(order__user = user.id, order__id = order_id)
+        if cust_objs:
+            cust_obj = cust_objs[0]
+            cust_obj.consignee = consignee
+            cust_obj.permit = permit
+            cust_obj.dispatch_through = dispatch_through
+            cust_obj.save()
+
+    picklist_obj = Picklist.objects.filter(order_id__in = ord_ids, order__user = user.id)
+    check_and_send_mail(request, user, picklist_obj[0], picklist_obj, picklists_send_mail)
+
+    return HttpResponse('Success')
+
+
+def add_consignee_data(invoice_data, order_ids, user):
+    cust_ord_objs = CustomerOrderSummary.objects.filter(order__id__in = order_ids)
+    for obj in cust_ord_objs:
+        if obj.consignee:
+            invoice_data['consignee'] = obj.consignee
+        if obj.permit or obj.dispatch_through:
+            invoice_data['customer_details'][0]['credit_period'] = obj.permit
+            invoice_data['dispatch_through'] = obj.dispatch_through
+            break
+
+    return invoice_data
+
 
 @csrf_exempt
 @login_required
@@ -1514,6 +1574,12 @@ def print_picklist(request, user=''):
     title = 'Picklist ID'
     data_id = request.GET['data_id']
     data, sku_total_quantities = get_picklist_data(data_id, user.id)
+    date_data = {}
+    picklist_orders = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id), picklist_number=data_id)
+    if picklist_orders:
+        date = get_local_date(request.user, picklist_orders[0].creation_date, True)
+        date_data['date'] = date.strftime("%d/%m/%Y")
+        date_data['time'] = date.strftime("%I:%M%p")
     all_data = {}
     customer_name = ''
     customer_data = list(set(map(lambda d: d.get('customer_name', ''), data)))
@@ -1524,6 +1590,11 @@ def print_picklist(request, user=''):
     order_data = list(set(map(lambda d: d.get('order_no', ''), data)))
     order_data = filter(lambda x: len(x)>0, order_data)
 
+    remarks_data = ''
+    remarks_data = list(set(map(lambda d: d.get('remarks', ''), data)))
+    remarks_data = filter(lambda x: len(x)>0, remarks_data)
+    if remarks_data:
+        remarks_data = ','.join(remarks_data)
     market_place = list(set(map(lambda d: d.get('marketplace', ''), data)))
     filtered_market = filter(lambda a: a != "Offline", market_place)
     if not filtered_market:
@@ -1555,12 +1626,11 @@ def print_picklist(request, user=''):
     for key,value in all_data.iteritems():
         total += float(value[0])
         total_price += float(value[1])
-
     return render(request, 'templates/toggle/print_picklist.html', {'data': data, 'all_data': all_data, 'headers': PRINT_OUTBOUND_PICKLIST_HEADERS,
                                                                     'picklist_id': data_id,'total_quantity': total,
                                                                     'total_price': total_price, 'picklist_id': data_id,
                                                                     'customer_name': customer_name, 'order_ids': order_ids,
-                                                                    'marketplace': marketplace})
+                                                                    'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data})
 @csrf_exempt
 def get_batch_picked(data_ids, user_id):
     data = {}
@@ -2184,7 +2254,7 @@ def get_marketplaces_list(request, user=''):
         marketplace = list(Picklist.objects.exclude(order__marketplace='').filter(picked_quantity__gt=0, order__user = user.id).\
                                             values_list('order__marketplace', flat=True).distinct())
     else:
-        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user = user.id).values_list('marketplace', flat=True).\
+        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user = user.id, quantity__gt=0).values_list('marketplace', flat=True).\
                                                distinct())
     return HttpResponse(json.dumps({'marketplaces': marketplace}))
 
@@ -2545,6 +2615,18 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0):
             customer_sku = CustomerSKU.objects.filter(sku__user=user.id, customer_name__customer_id=customer_id, sku__wms_code=sku['wms_code'])
             if customer_sku:
                 sku_master[ind]['price'] = customer_sku[0].price
+            customer_user = CustomerUserMapping.objects.filter(user = customer_id)[0].customer.customer_id
+            customer_data = CustomerMaster.objects.filter(customer_id=customer_user, user = user.id)
+            if customer_data:
+                if customer_data[0].price_type:
+                    price_data = PriceMaster.objects.filter(sku__user=user.id ,sku__sku_code = sku['wms_code'],\
+                                                            price_type = customer_data[0].price_type)
+                    if price_data:
+                        sku_master[ind]['pricing_price'] = price_data[0].price
+                        if price_data[0].price > 0:
+                            sku_master[ind]['price'] = price_data[0].price
+                    else:
+                        sku_master[ind]['pricing_price'] = 0
     return sku_master
 
 @csrf_exempt
@@ -2590,30 +2672,34 @@ def modify_invoice_data(invoice_data, user):
     if detailed_invoice:
         for data in invoice_data['data']:
             class_name = data['sku_class']
-            if class_name in new_data.keys():
-                new_data[class_name]['data'].append(data)
-                new_data[class_name]['discount'] += float(data['discount'])
-                new_data[class_name]['invoice_amount'] += float(data['invoice_amount'])
-                new_data[class_name]['quantity'] += data['quantity']
-                new_data[class_name]['tax'] += float(data['tax'])
-                new_data[class_name]['amt'] = new_data[class_name]['invoice_amount'] - float(data['tax'])
+            category = data['sku_category']
+            if category in new_data.keys():
+                #new_data[category]['data'].append(data)
+                new_data[category]['discount'] += float(data['discount'])
+                new_data[category]['invoice_amount'] += float(data['invoice_amount'])
+                new_data[category]['quantity'] += data['quantity']
+                new_data[category]['tax'] += float(data['tax'])
+                new_data[category]['amt'] = new_data[category]['invoice_amount'] - float(data['tax'])
+                new_data[category]['styles'][class_name].append(data)
             else:
                 style_data = {'data': [], 'discount': float(data['discount']), 'invoice_amount':  float(data['invoice_amount']),
                               'mrp_price': float(data['mrp_price']), 'quantity': data['quantity'], 'tax': float(data['tax']),
                               'unit_price': float(data['unit_price']), 'vat': float(data['vat']), 'class': True,
-                              'amt': float(data['invoice_amount'])-float(data['tax'])}
+                              'amt': float(data['invoice_amount'])-float(data['tax']), 'styles': {data['sku_class']: [data]}}
                 if not class_name:
                     class_name = data['sku_code']
-                    if class_name in new_data.keys():
-                        new_data[class_name]['discount'] += float(data['discount'])
-                        new_data[class_name]['invoice_amount'] += float(data['invoice_amount'])
-                        new_data[class_name]['quantity'] += data['quantity']
-                        new_data[class_name]['tax'] += float(data['tax'])
-                        new_data[class_name]['amt'] = float(data['invoice_amount']) - float(data['tax'])
+                    category = data['sku_category']
+                    if category in new_data.keys():
+                        new_data[category]['discount'] += float(data['discount'])
+                        new_data[category]['invoice_amount'] += float(data['invoice_amount'])
+                        new_data[category]['quantity'] += data['quantity']
+                        new_data[category]['tax'] += float(data['tax'])
+                        new_data[category]['amt'] = float(data['invoice_amount']) - float(data['tax'])
+                        new_data[category]['styles'][class_name] = [data]
                         continue
                     style_data['class'] = False
-                new_data[class_name] = style_data;
-                new_data[class_name]['data'].append(data)
+                new_data[category] = style_data
+                #new_data[category]['data'].append(data)
         invoice_data['data'] = new_data
     return invoice_data
 
@@ -2625,6 +2711,10 @@ def generate_order_invoice(request, user=''):
     order_ids = request.GET.get('order_ids', '')
     invoice_data = get_invoice_data(order_ids, user)
     invoice_data = modify_invoice_data(invoice_data, user)
+    #ord_ids = OrderDetail.objects.filter(user = user.id, order_id__in = order_ids).values_list('id', flat = True)
+    ord_ids = order_ids.split(",")
+    invoice_data = add_consignee_data(invoice_data, ord_ids, user)
+
     #invoice_data.update({'user': user})
     #if invoice_data['detailed_invoice']:
     #    t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
@@ -2803,7 +2893,8 @@ def get_view_order_details(request, user=''):
         order_details_data.append({'product_title':product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
                       'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone,'email': email, 'address': address, 'city': city, 
                       'state': state, 'pin': pin, 'shipment_date': str(shipment_date),'item_code': sku_code, 'order_id': order_id,
-                      'image_url': one_order.sku.image_url, 'market_place': one_order.marketplace})
+                      'image_url': one_order.sku.image_url, 'market_place': one_order.marketplace,
+                      'order_id_code': one_order.order_code + str(one_order.order_id)})
     customization_data = []
     if str(sku_type) == 'CS':
         fields_list = SKUFields.objects.filter(sku_id=sku_id,field_type=field_type)
@@ -3390,7 +3481,13 @@ def order_delete(request, user=""):
     order_id = ''.join(re.findall('\d+', complete_id))
     order_code = ''.join(re.findall('\D+', complete_id))
     try:
-        OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id).delete()
+        order_detail = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id)
+        if not order_detail:
+            complete_id = request.GET.get("order_id_code", "")
+            order_id = ''.join(re.findall('\d+', complete_id))
+            order_code = ''.join(re.findall('\D+', complete_id))
+            order_detail = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id)
+        order_detail.delete()
     except Exception as e:
         log.info(e)
 
@@ -3606,4 +3703,11 @@ def delete_customer_cart_data(request, user=""):
                                                        sku__sku_code__in = sku_codes)
         cart_data.delete()
         response["msg"] = "Deleted Successfully"
+    return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
+
+@login_required
+@get_admin_user
+def save_invoice_changes(request, user=""):
+    """ update invoice data """
+    response = {'data': [], 'msg': 0}
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))

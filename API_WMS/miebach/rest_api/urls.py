@@ -342,4 +342,7 @@ urlpatterns += patterns('rest_api.views',
     #price_master data
     url(r'get_customer_sku_prices', 'get_customer_sku_prices'),
 
+    #save_invoice_changes -> outbound
+    url(r'edit_invoice', 'edit_invoice'),
+
     )

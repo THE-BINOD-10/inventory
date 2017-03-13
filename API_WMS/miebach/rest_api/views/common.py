@@ -1924,7 +1924,7 @@ def search_wms_data(request, user=''):
     master_data = query_objects.filter(Q(wms_code__exact = search_key) | Q(sku_desc__exact = search_key),user=user.id)
     if master_data:
         master_data = master_data[0]
-        total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc})
+        total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, 'measurement_unit': master_data.measurement_type})
 
     master_data = query_objects.filter(Q(wms_code__istartswith = search_key) | Q(sku_desc__istartswith = search_key),user=user.id)
     total_data = build_search_data(total_data, master_data, limit)
@@ -1983,7 +1983,7 @@ def build_search_data(to_data, from_data, limit):
                         status = False
                         break;
                 if status:
-                    to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc})
+                    to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'measurement_unit': data.measurement_type})
         return to_data
 
 def insert_update_brands(user):
@@ -2074,7 +2074,8 @@ def pull_orders_now(request, user=''):
     integrations = Integrations.objects.filter(user=user.id)
     for integrate in integrations:
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        obj.get_pending_orders(user=user)
+        orders = obj.get_pending_orders(user=user)
+        update_orders(orders, user=user, company_name=integrate.name)
     return HttpResponse("Success")
 
 @csrf_exempt

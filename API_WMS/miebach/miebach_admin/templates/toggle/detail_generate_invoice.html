@@ -59,7 +59,7 @@
                 {{customer_details.0.credit_period}}days
               {% endif %}
             </span></br>
-            <span><b>Dispatch Through:</b> By Road</span>
+            <span><b>Dispatch Through:</b> {{dispatch_through}}</span>
           </td>
         </tr> 
         <tr>
@@ -113,11 +113,16 @@
         <tr class="rm-brdr">
           <td style="text-align: left;">
             <b>{{key}}</b>
-            {% if record.class %}
-              {% for sku in record.data %}
-              <p style="margin-bottom: 0px">&nbsp;&nbsp;&nbsp;{{sku.sku_code}} - {{sku.quantity}}</p>
+              {% for style,record1 in record.styles.items %}
+              <p style="margin-bottom: 0px">&nbsp;&nbsp;
+                <span>{{style}}:</span>&nbsp;
+                 {% for sku in record1 %}
+                  <span>{{sku.sku_size}} - {{sku.quantity}}
+                    {% if not forloop.last %},{% endif %}
+                  </span>
+                {% endfor %}
+              </p>
               {% endfor %}
-            {% endif %}
           </td>
           <td>
             <b>{{record.quantity}}</b>

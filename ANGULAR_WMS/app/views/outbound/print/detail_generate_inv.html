@@ -52,6 +52,9 @@
                 </tr>
                 <tr>
                   <td style="width: 60%;text-align:left">
+                    <input type="hidden" name="order_id" value="{{showCase.pdf_data.order_id}}">
+                    <input type="hidden" name="picklist_id" value="{{showCase.pdf_data.picklist_id}}">
+                    <input type="hidden" name="picklists_send_mail" value="{{showCase.pdf_data.picklists_send_mail}}">
                     <address class="no-margin">
                       <strong>Consignee</strong><br>
                       <pre ng-if="!(showCase.invoice_edit)" class="fs12">{{showCase.pdf_data.consignee}}</pre>
@@ -63,13 +66,13 @@
                       <span ng-if="showCase.pdf_data.customer_details[0].credit_period && !(showCase.invoice_edit)">
                         {{showCase.pdf_data.customer_details[0].credit_period}}days
                       </span>
-                      <input type="text" name="credit_period" ng-if="showCase.invoice_edit" class="form-control" value="{{showCase.pdf_data.customer_details[0].credit_period}}">
+                      <input type="text" name="credit_period" ng-if="showCase.invoice_edit" class="form-control" ng-model="showCase.pdf_data.customer_details[0].credit_period">
                     </span></br>
                     <span><b>Dispatch Through:</b>
                       <span ng-if="!(showCase.invoice_edit)">
-                        By Road
+                        {{showCase.pdf_data.dispatch_through}}
                       </span>
-                      <input type="text" name="dispatch_through" ng-if="showCase.invoice_edit" class="form-control" value="By Road">
+                      <input type="text" name="dispatch_through" ng-if="showCase.invoice_edit" class="form-control" value="By Road" ng-model="showCase.pdf_data.dispatch_through">
                     </span>
                   </td>
                 </tr>
@@ -133,7 +136,12 @@
                 <tr class="rm-padding rm-brdr" ng-repeat="(key, record) in showCase.pdf_data.data">
                   <td style="text-align: left;">
                     <b>{{key}}</b>
-                    <p ng-if="record.class" ng-repeat="sku in record.data" style="margin-bottom: 0px">&nbsp;&nbsp;&nbsp;{{sku.sku_code +"-"+ sku.quantity}}</p>
+                    <p style="margin-bottom: 0px" ng-repeat="(style, record1) in record.styles">&nbsp;&nbsp;
+                      <span>{{style}}:</span>&nbsp;
+                      <span ng-repeat="sku in record1">{{sku.sku_size +"-"+ sku.quantity}}
+                        <span ng-if="!($last)">,</span>
+                      </span>
+                    </p>
                   </td>
                   <td><b>{{record.quantity}}</b></td>
                   <td ng-if="permissions.show_mrp">{{record.mrp_price | number:2}}</td>
@@ -224,17 +232,17 @@
          </div>
         </div>
         <div class="row">
-          <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.generate_pdf_file(showCase.pdf_data)">
+          <button type="button" class="btn btn-danger btn-block hide" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.generate_pdf_file(showCase.pdf_data)">
             <i class="ti-printer mr5"></i>Print
-          </button> 
-          <div class="col-md-12 mb10 hide" style="padding-right: 40px;">
+          </button>
+          <div class="col-md-12 mb10" style="padding-right: 40px;">
             <button type="button" class="btn btn-danger pull-right ml10" style="width:100px;" ng-click="showCase.service.generate_pdf_file(showCase.pdf_data)" ng-disabled="showCase.invoice_edit">
               <i class="ti-printer mr5"></i>Print
             </button>
-            <button type="button" class="btn btn-success pull-right ml10" style="width:100px;" ng-click="showCase.save_invoice_data()">
-              <i class="ti-printer mr5"></i>Save
+            <button type="button" class="btn btn-success pull-right ml10" style="width:100px;" ng-click="showCase.save_invoice_data(form)" ng-if="showCase.pdf_data.offline_flag">
+              <i class="ti-printer mr5"></i>Confirm
             </button>
-            <button type="button" class="btn btn-default pull-right ml10" style="width:100px;" ng-click="showCase.invoice_edit=true;">
+            <button type="button" class="btn btn-default pull-right ml10" style="width:100px;" ng-click="showCase.invoice_edit=true;" ng-if="showCase.pdf_data.offline_flag">
               <i class="ti-printer mr5"></i>Edit
             </button>
           </div>

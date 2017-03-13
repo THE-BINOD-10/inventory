@@ -130,4 +130,3 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 angular
   .module('urbanApp')
   .controller('AppCart', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', '$stateParams', AppCart]);
-

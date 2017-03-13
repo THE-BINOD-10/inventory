@@ -330,6 +330,8 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
     user_groups = UserGroups.objects.filter(Q(admin_user_id=user.id)|Q(user_id=user.id))
     if user_groups:
         admin_user_id = user_groups[0].admin_user_id
+    else:
+        admin_user_id = user.id
     user_groups = list(UserGroups.objects.filter(admin_user_id=admin_user_id).values_list('user_id',flat=True))
     user_groups.append(admin_user_id)
     sku_master = SKUMaster.objects.filter(user__in=user_groups, **search_params)
@@ -842,6 +844,9 @@ def warehouse_headers(request, user=''):
     if user_groups:
         admin_user_id = user_groups[0].admin_user_id
         admin_user_name = user_groups[0].admin_user.username
+    else:
+        admin_user_id = user.id
+        admin_user_name = user.username
     user_groups = list(UserGroups.objects.filter(admin_user_id=admin_user_id).values_list('user__username',flat=True))
     headers = header + [admin_user_name] + user_groups
 

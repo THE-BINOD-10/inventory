@@ -663,8 +663,8 @@ def order_creation_message(items, telephone, order_id):
     for item in items:
         sku_desc = (item[0][:30] + '..') if len(item[0]) > 30 else item[0]
         items_data.append('%s with Qty: %s' % (sku_desc, int(item[2])))
-        total_quantity += int(item[2])
-        total_amount += int(item[3])
+        total_quantity += int(item[1])
+        total_amount += int(item[2])
     data += ', '.join(items_data)
     data += '\n\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
     send_sms(telephone, data)
@@ -1661,12 +1661,14 @@ def get_invoice_data(order_ids, user, merge_data = ""):
             total_invoice_amount = float(total_charge_amount) + total_invoice
 
     total_amt = "%.2f" % (float(total_invoice) - float(total_tax))
+    dispatch_through = "By Road"
     invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'marketplace': marketplace, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
                     'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % total_tax, 'total_mrp': total_mrp,
                     'invoice_no': 'TI/1116/' + order_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(total_invoice),
-                    'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount, 'consignee': consignee}
+                    'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount, 'consignee': consignee,
+                    'dispatch_through': dispatch_through}
 
     return invoice_data
 
@@ -2072,7 +2074,8 @@ def pull_orders_now(request, user=''):
     integrations = Integrations.objects.filter(user=user.id)
     for integrate in integrations:
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        obj.get_pending_orders(user=user)
+        orders = obj.get_pending_orders(user=user)
+        update_orders(orders, user=user, company_name=integrate.name)
     return HttpResponse("Success")
 
 @csrf_exempt

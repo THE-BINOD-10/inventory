@@ -1,6 +1,6 @@
 <div id="page-pop" aria-hidden="false" aria-labelledby="myLargeModalLabel" role="dialog" tabindex="-1" id="myModal" class="modal fade in" style="display: block;">
   <form>
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-lg model-custom">
     <div class="modal-content">
       <div class="modal-header">
         <button aria-label="Close" data-dismiss="modal" class="close" type="button" ng-click="showCase.close()"><span aria-hidden="true">×</span>
@@ -9,24 +9,32 @@
       </div>
       <div class="modal-body" style="overflow: hidden">
          <div class="row">
-           <div class="col-md-4 col-sm-4 col-xs-6">
+           <div class="col-md-3 col-sm-3 col-xs-6">
              <div class="form-group">
                <label class="control-label"> Return ID </label>
               <textarea id="scan_return_id" rows="1" name="scan_return_id" class="form-control" ng-model="showCase.model_data.scan_return_id" ng-keydown="showCase.scan_return($event, showCase.model_data.scan_return_id)"></textarea>
              </div>
            </div>
-           <div class="col-md-4 col-sm-4 col-xs-6">
+           <div class="col-md-3 col-sm-3 col-xs-6">
              <div class="form-group">
                <label class="control-label"> Order ID </label>
               <textarea id="scan_order_id" rows="1" name="scan_order_id" class="form-control" ng-model="showCase.model_data.scan_order_id" ng-keydown="showCase.scan_track($event, showCase.model_data.scan_order_id)"></textarea>
              </div>
            </div>
-           <div class="col-md-4 col-sm-4 col-xs-6">
+           <div class="col-md-3 col-sm-3 col-xs-6">
              <div class="form-group">
                <label class="control-label"> SKU Code </label>
               <textarea id="return_sku_code" rows="1" name="return_sku_code" class="form-control" ng-model="showCase.model_data.return_sku_code" ng-keydown="showCase.scan_sku($event, showCase.model_data.return_sku_code)"></textarea>
              </div>
            </div>
+           <div class="col-md-3 col-sm-3 col-xs-6">
+             <div class="form-group">
+               <label class="control-label"> Market Place </label>
+               <select class="form-control" ng-model="showCase.model_data.marketplace" ng-init="showCase.model_data.marketplace='Offline'" name="status">
+                  <option ng-repeat="status in showCase.market_list" ng-selected="showCase.model_data.marketplace == status" value="{{status}}">{{status}}</option>
+                </select>
+             </div>
+           </div> 
          </div>
          <div class="row">
            <div class="col-md-12">
@@ -44,11 +52,13 @@
                  <th> Shipping Quantity </th>
                  <th> Return Quantity </th>
                  <th> Damaged Quantity </th>
+                 <th> Marketplace </th>
+                 <th class="plus"></th>
                </tr>
              </thead>
-             <tbody ng-repeat="data in showCase.model_data.data">
-               <tr ng-repeat="data_split in data">
-	         <td><input type="text" name="order_id" class="form-control" ng-model="data_split.order_id"></td>
+             <tbody>
+               <tr ng-repeat="data_split in showCase.model_data.data">
+   	             <td><input type="text" name="order_id" class="form-control" ng-model="data_split.order_id"></td>
                  <td><input type="text" name="sku_code" class="form-control" ng-model="data_split.sku_code"></td>
                  <td><input type="text" name="sku_desc" class="form-control" ng-model="data_split.sku_desc"></td>
                  <td><input type="text" name="shipping" class="form-control" ng-class="service.get_decimal_perm()" ng-model="data_split.ship_quantity"></td>
@@ -57,6 +67,10 @@
                    <input type="hidden" value="{{data_split.id}}" name="id">
                    <input type="hidden" value="" name="track_id">
                  </td>
+                 <td>
+                   <input type="text" name="marketplace" class="form-control" ng-model="data_split.marketplace">
+                 </td>
+                 <td><i ng-click="showCase.update_data($index, data_split, showCase.model_data.data)" ng-class="showCase.service.isLast(false)"></i></td>
                </tr>
              </tbody>
            </table>

@@ -2680,6 +2680,8 @@ def modify_invoice_data(invoice_data, user):
                 new_data[category]['quantity'] += data['quantity']
                 new_data[category]['tax'] += float(data['tax'])
                 new_data[category]['amt'] = new_data[category]['invoice_amount'] - float(data['tax'])
+                if not class_name in new_data[category]['styles'].keys():
+                    new_data[category]['styles'][class_name] = []
                 new_data[category]['styles'][class_name].append(data)
             else:
                 style_data = {'data': [], 'discount': float(data['discount']), 'invoice_amount':  float(data['invoice_amount']),

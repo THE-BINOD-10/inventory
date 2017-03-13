@@ -968,7 +968,7 @@ class CustomerOrderSummary(models.Model):
     updation_date = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=24, default='')
     consignee = models.CharField(max_length=256, default='')
-    permit = models.CharField(max_length=24, default='')
+    payment_terms = models.CharField(max_length=24, default='')
     dispatch_through = models.CharField(max_length=24, default='')
 
     class Meta:

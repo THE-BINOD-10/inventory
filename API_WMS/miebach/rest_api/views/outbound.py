@@ -379,7 +379,8 @@ def generate_picklist(request, user=''):
         if filters['market_places']:
             order_filter['marketplace__in'] = (filters['market_places']).split(',')
         if filters.get('customer_id', ''):
-            order_filter['customer_id'] = filters['customer_id']
+            customer_id = ''.join(re.findall('\d+', filters['customer_id']))
+            order_filter['customer_id'] = customer_id
     data = []
     stock_status = ''
     out_of_stock = []
@@ -634,7 +635,8 @@ def batch_generate_picklist(request, user=''):
         if filters['market_places']:
             order_filter['marketplace__in'] = (filters['market_places']).split(',')
         if filters.get('customer_id', ''):
-            order_filter['customer_id'] = filters['customer_id']
+            customer_id = ''.join(re.findall('\d+', filters['customer_id']))
+            order_filter['customer_id'] = customer_id
 
     data = []
     order_data = []
@@ -1334,7 +1336,7 @@ def edit_invoice(request, user=''):
     order_ids = request.POST.get("order_id", "")
     picklist_id = request.POST.get("picklist_id", "")
     consignee = request.POST.get("consignee", "")
-    permit = request.POST.get("credit_period", "")
+    payment_terms = request.POST.get("credit_period", "")
     dispatch_through = request.POST.get("dispatch_through", "")
     picklists_send_mail = request.POST.get("picklists_send_mail", "")
     picklists_send_mail = eval(picklists_send_mail)
@@ -1347,7 +1349,7 @@ def edit_invoice(request, user=''):
         if cust_objs:
             cust_obj = cust_objs[0]
             cust_obj.consignee = consignee
-            cust_obj.permit = permit
+            cust_obj.payment_terms = payment_terms
             cust_obj.dispatch_through = dispatch_through
             cust_obj.save()
 
@@ -1362,8 +1364,8 @@ def add_consignee_data(invoice_data, order_ids, user):
     for obj in cust_ord_objs:
         if obj.consignee:
             invoice_data['consignee'] = obj.consignee
-        if obj.permit or obj.dispatch_through:
-            invoice_data['customer_details'][0]['credit_period'] = obj.permit
+        if obj.payment_terms or obj.dispatch_through:
+            invoice_data['customer_details'][0]['credit_period'] = obj.payment_terms
             invoice_data['dispatch_through'] = obj.dispatch_through
             break
 
@@ -2680,6 +2682,8 @@ def modify_invoice_data(invoice_data, user):
                 new_data[category]['quantity'] += data['quantity']
                 new_data[category]['tax'] += float(data['tax'])
                 new_data[category]['amt'] = new_data[category]['invoice_amount'] - float(data['tax'])
+                if not class_name in new_data[category]['styles'].keys():
+                    new_data[category]['styles'][class_name] = []
                 new_data[category]['styles'][class_name].append(data)
             else:
                 style_data = {'data': [], 'discount': float(data['discount']), 'invoice_amount':  float(data['invoice_amount']),
@@ -3280,7 +3284,8 @@ def order_category_generate_picklist(request, user=''):
         if filters['market_places']:
             order_filter['marketplace__in'] = (filters['market_places']).split(',')
         if filters.get('customer_id', ''):
-            order_filter['customer_id'] = filters['customer_id']
+            customer_id = ''.join(re.findall('\d+', filters['customer_id']))
+            order_filter['customer_id'] = customer_id
     data = []
     order_data = []
     stock_status = ''

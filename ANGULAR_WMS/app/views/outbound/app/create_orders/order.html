@@ -1,3 +1,23 @@
+<style>
+input[type="date"]::before {
+    color: #999999;
+    content: attr(placeholder);
+}
+input[type="date"] {
+    color: #ffffff;
+}
+input[type="date"]:focus,
+input[type="date"]:valid {
+    color: #666666;
+}
+input[type="date"]:focus::before,
+input[type="date"]:valid::before {
+    content: "" !important;
+}
+
+</style>
+
+
 <div ng-controller="AppCart as Cart">
   <div class="row style-menu" style="line-height: 40px;">
     <div class="col-md-6 col-sm-6 col-xs-6">
@@ -20,8 +40,12 @@
     </div>
     <div class="col-md-12" style="background: #fff;overflow: hidden;padding-top: 10px;margin-bottom: -3px;padding-bottom:5px;margin-right: -2px;z-index: 100;box-shadow: 0px 4px 8px -2px #888;">
       <div class="col-md-2 col-sm-3 col-xs-6">
-        <input type="text" class="form-control stk-readonly pull-left" ng-model="Cart.model_data.shipment_date" ui-jq="datepicker"  id="shipment_date" ng-change="Cart.date_changed()" required readonly data-date-today-highlight="true" data-date-autoclose="true" placeholder="Shipment Date">
+<!--        <input type="text" class="form-control stk-readonly pull-left" ng-model="Cart.model_data.shipment_date" ui-jq="datepicker"  id="shipment_date" ng-change="Cart.date_changed()" required readonly data-date-today-highlight="true" data-date-autoclose="true" placeholder="Shipment Date">-->
+        <div class='input-group date pull-left col-md-2' id='datetimepicker1'>
+                    <input type='date' class="form-control" ng-model="Cart.model_data.shipment_date" id="shipment_date" ng-change="Cart.date_changed()" required placeholder="Shipment Date" />
+                </div>
       </div>
+
       <div class="col-md-2 col-sm-3 col-xs-6">
         <select ng-model="Cart.model_data.shipment_time_slot" ng-init = "Cart.model_data.shipment_time_slot = ''" class="form-control" name="shipment_time_slot">
           <option value="" ng-selected="Cart.model_data.shipment_time_slot == ''">Time Slot</option>
@@ -32,6 +56,7 @@
       </div>
     </div>
   </div>
+
 
   <form id="order-create" name="form" role="form" ui-jq="validate">
     <div class="clearfix hide">
@@ -134,13 +159,13 @@
         </div>
       </div>
       <div class="row">
-        <div class="cart">
-          <div class="row" style="border-top:1px solid rgba(0,0,0,.1)">
-            <button type="button" class="btn btn-white btn-lg col-xs-6" ng-click="$state.go('user.App.Products')">CONTINUE</button>
-            <button type="button" id ="place_order" class="btn btn-warning btn-lg col-xs-6" ng-click="Cart.insert_order_data()">PLACE ORDER</button>
+        <!--<div class="cart">-->
+          <!--<div class="row" style="border-top:1px solid rgba(0,0,0,.1)">-->
+            <button type="button" class="btn btn-white btn-lg col-xs-6" ng-click="$state.go('user.App.Products')" style="position: fixed; left: 0; bottom: 0; background: #f0f0f0">CONTINUE</button>
+            <button type="button" id ="place_order" class="btn btn-warning btn-lg col-xs-6" ng-click="Cart.insert_order_data()" style="position: fixed; right: 0; bottom: 0;">PLACE ORDER</button>
             <button type="button" class="btn btn-warning btn-lg col-xs-12 hide" ng-if="Cart.model_data.data.length == 0" ng-click="Cart.catlog=false;Cart.details=true;Cart.detailed_list=false;Cart.orderspage=false">SHOP NOW</button>
-          </div>
-        </div>
+<!--          </div>-->
+        <!--</div>-->
       </div>
     </div>
 

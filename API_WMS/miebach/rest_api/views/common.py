@@ -2074,6 +2074,7 @@ def create_update_user(data, password, username):
 @get_admin_user
 def pull_orders_now(request, user=''):
     from rest_api.views.easyops_api import *
+    from rest_api.views.integrations import *
     integrations = Integrations.objects.filter(user=user.id)
     for integrate in integrations:
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)

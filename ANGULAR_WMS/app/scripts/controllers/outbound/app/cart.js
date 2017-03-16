@@ -29,6 +29,13 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
     })
   }
 
+  vm.date_changed = function(){
+    //$('.datepicker').hide();
+    console.log(vm.model_data.shipment_date_new);
+    var date = new Date(vm.model_data.shipment_date_new);
+    vm.model_data.shipment_date = (date.getMonth() + 1) + '/' + date.getDate() + '/' +  date.getFullYear();
+  }
+
   vm.update_customer_cart_data = function(data) {
 
     var send = {'sku_code': data.sku_id, 'quantity': data.quantity}

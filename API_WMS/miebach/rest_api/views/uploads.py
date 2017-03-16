@@ -795,8 +795,11 @@ def validate_inventory_form(open_sheet, user_id):
                     cell_data = int(cell_data)
                 cell_data = str(cell_data)
                 mapping_dict[row_idx] = cell_data
-                sku_master = SKUMaster.objects.filter(wms_code = cell_data,user=user_id)
-                if not sku_master:
+                #sku_master = SKUMaster.objects.filter(wms_code = cell_data,user=user_id)
+                #if not sku_master:
+                user = User.objects.get(id = user_id)
+                sku_id = check_and_return_mapping_id(cell_data, '', user)
+                if not sku_id:
                     index_status.setdefault(row_idx, set()).add('Invalid SKU-WMS Mapping')
             elif col_idx == 3:
                 location[row_idx] = cell_data
@@ -852,12 +855,11 @@ def inventory_excel_upload(request, open_sheet, user):
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 cell_data = str(cell_data)
-                data = SKUMaster.objects.filter(wms_code=cell_data, user=user.id)
-                inventory_data['sku_id'] = data[0].id
+                inventory_data['sku_id'] = check_and_return_mapping_id(cell_data, '', user)
 
                 if cell_data not in sku_codes:
                     sku_codes.append(cell_data)
-                if not data:
+                if not inventory_data['sku_id']:
                     break
                 continue
             elif col_idx == 2 and not cell_data:

@@ -728,7 +728,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   vm.date_changed = function(){
-    $('.datepicker').hide();
+    //$('.datepicker').hide();
+    $(this);
   }
 
   $( window ).resize(function() {

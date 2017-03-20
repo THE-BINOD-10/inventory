@@ -118,14 +118,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.scan_skus = [];
+    vm.sku_mapping = {};
     vm.scan_sku = function(event, field) {
       if ( event.keyCode == 13 && field) {
+         vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
+             field = data.data.sku_code;
         if(vm.scan_skus.indexOf(field) == -1) {
           vm.service.apiCall('check_sku/', 'GET', {sku_code: field}).then(function(data){
             if(data.message) {
-              if ('confirmed'==data.data) {
-                vm.add_new_sku(field);
-                vm.scan_skus.push(field);
+              if ('confirmed'==data.data.status) {
+                  vm.add_new_sku(data.data.sku_code);
+                  vm.scan_skus.push(field);
               } else {
                 pop_msg(data.data);
               }
@@ -134,23 +137,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         } else {
           var status = true;
           for(var i = 0; i < vm.model_data.data.length; i++) {
-            var temp = vm.model_data.data[i]
-            if(field == temp.sku_code && temp.is_new && vm.model_data.marketplace == temp.marketplace) {
+            if(field == vm.model_data.data[i].sku_code && vm.model_data.data[i].is_new && vm.model_data.marketplace == vm.model_data.data[i].marketplace) {
+              vm.model_data.data[i].return_quantity += 1;
+              status = false;
+              break;
+            }
+            if(vm.sku_mapping[field] == vm.model_data.data[i].sku_code && vm.model_data.data[i].is_new && vm.model_data.marketplace == vm.model_data.data[i].marketplace) {
               vm.model_data.data[i].return_quantity += 1;
               status = false;
               break;
             }
           }
           if (status) {
-            vm.add_new_sku(field);
+            vm.add_new_sku(data.data.sku_code);
           }
         }
+         });
         vm.model_data.return_sku_code = '';
       }
     }
 
-    vm.add_new_sku = function(field) {
-      vm.model_data.data.push({'sku_code': field, 'product_description':'', 'shipping_quantity': '', 'order_id':'',
+    vm.add_new_sku = function(new_sku_code) {
+      vm.model_data.data.push({'sku_code': new_sku_code, 'product_description':'', 'shipping_quantity': '', 'order_id':'',
                                 'return_quantity': 1, 'damaged_quantity': '', 'track_id_enable': false,
                                 'is_new': true, 'marketplace':vm.model_data.marketplace})
     }

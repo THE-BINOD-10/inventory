@@ -282,7 +282,7 @@ data_datatable = {#masters
                   'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed',\
                   'PickelistGenerated':'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo',\
                   'PutawayConfirmation': 'get_received_jo', 'PutawayConfirmationSKU':'get_received_jo',
-                  'ProductionBackOrders': 'get_rm_back_order_data',
+                  'ProductionBackOrders': 'get_rm_back_order_data', 'ProductionBackOrdersAlt': 'get_rm_back_order_data_alt',
                   'RaiseRWO': 'get_saved_rworder', 'ReceiveJOSKU': "get_confirmed_jo_all", \
                   'RawMaterialPicklistSKU': 'get_rm_picklist_confirmed_sku',\
                   #stock locator
@@ -2221,3 +2221,18 @@ def xcode(text, encoding='utf8', mode='strict'):
 def order_management_check(request, user=''):
     order_manage = get_misc_value('order_manage', user.id)
     return HttpResponse(order_manage)
+
+def all_size_list(user):
+    all_sizes = []
+    size_objs = SizeMaster.objects.filter(user = user.id)
+    if size_objs:
+        sizes_items = size_objs.values_list('size_value', flat = True)
+        for sizes in sizes_items:
+            all_sizes.extend(sizes.split('<<>>'))
+
+    all_sizes = list(set(all_sizes))
+
+    return all_sizes
+
+
+

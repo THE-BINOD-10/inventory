@@ -180,8 +180,10 @@ function uploads($scope, Session, $http, $rootScope, Service) {
       headers: {'Content-Type': undefined}
     })
     .success(function(data){
-      if (data == "Success" || (data.search("Invalid") > -1)) {
-        vm.service.showNoty(data);
+      if (data == "Success" || (data.search("Invalid") > -1) || (data.search("not") > -1)) {
+        var type = "";
+        type = (data == "Success")? "": "error";
+        vm.service.showNoty(data, type);
         $scope.disable = false;
         $(".preloader").removeClass("ng-show").addClass("ng-hide");
         $scope.files = [];

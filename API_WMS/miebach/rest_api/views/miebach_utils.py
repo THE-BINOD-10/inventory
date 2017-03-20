@@ -404,6 +404,11 @@ PICKLIST_EXCEL = OrderedDict(( ('WMS Code', 'wms_code'), ('Title', 'title'), ('Z
 SHOPCLUES_EXCEL = {'order_id': 1, 'quantity': 5, 'title': 3, 'invoice_amount': 20, 'address': 11, 'customer_name': 10,
                    'marketplace': 'Shopclues', 'sku_code': 15}
 
+SHOPCLUES_EXCEL1 = {'order_id': 0, 'quantity': 13, 'title': 6, 'invoice_amount': 45, 'address': 9, 'customer_name': 8,
+                    'marketplace': 'Shopclues', 'sku_code': 48}
+
+VOONIK_EXCEL = {'order_id': 0, 'sku_code': 1, 'invoice_amount': 4, 'marketplace': 'Voonik'}
+
 FLIPKART_EXCEL = {'order_id': 6, 'quantity': 14, 'title': 2, 'invoice_amount': 17, 'address': 22, 'customer_name': 21,
                   'marketplace': 'Flipkart', 'sku_code': 8}
 
@@ -449,6 +454,8 @@ SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('sku_group', 2)
 ITEM_MASTER_EXCEL = OrderedDict(( ('wms_code', 1), ('sku_desc', 2), ('sku_category', 25), ('image_url', 18), ('sku_size', 14) ))
 
 JABONG_EXCEL = {'order_id': 1, 'title': 7, 'invoice_amount': 14, 'marketplace': 'Jabong', 'sku_code': 5, 'quantity': 9}
+
+JABONG_EXCEL1 = {'order_id': 6, 'title': 37, 'invoice_amount': 33, 'marketplace': 'Jabong', 'sku_code': 2}
 
 INDIA_TIMES_EXCEL = {'order_id': 2, 'invoice_amount': 16, 'address': 8, 'customer_name': 7,
                      'marketplace': 'Indiatimes', 'sku_code': 15, 'telephone': 12}

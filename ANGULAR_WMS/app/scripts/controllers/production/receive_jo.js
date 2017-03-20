@@ -47,6 +47,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.service.apiCall('confirmed_jo_data/', 'GET', data).then(function(data){
                 if(data.message) {
                   angular.copy(data.data, vm.model_data);
+                  var skus_list = [];
+                  angular.forEach(vm.model_data.data, function(record){
+                    if (skus_list.indexOf(record.wms_code) == -1){
+                        skus_list.push(record.wms_code);
+                        }
+                  });
+                  vm.final_data = {};
+                  for (var i=0; i<skus_list.length; i++){
+                    var sku_one = skus_list[i];
+                    vm.final_data[sku_one] = 0;
+                    angular.forEach(vm.model_data.data, function(record){
+                      if (record.wms_code == sku_one){
+                        vm.final_data[sku_one] = vm.final_data[sku_one] + record.product_quantity;
+                      }
+                    });
+                  }
+
+
 		  vm.order_ids_list = data.data.order_ids.toString();
                   $state.go('app.production.ReveiveJO.ReceiveJobOrder');
                 }
@@ -54,7 +72,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             });
         });
         return nRow;
-    } 
+    }
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;

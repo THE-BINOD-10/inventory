@@ -1803,6 +1803,117 @@ def print_rm_picklist(request, user=''):
     return render(request, 'templates/toggle/print_raw_material_picklist.html', {'data': data, 'all_data': all_data, 'headers': PRINT_PICKLIST_HEADERS,'job_id': data_id,'total_quantity': total, 'total_price': total_price,'title': title})
 
 @csrf_exempt
+def get_rm_back_order_data_alt(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters='', special_key=''):
+
+    search_params = {'material_code__user': user.id, 'status': 1}
+    purchase_dict = {'open_po__sku__user': user.id }
+    if special_key == 'Self Produce':
+        search_params['job_order__order_type'] = 'SP'
+    else:
+        search_params['job_order__order_type'] = 'VP'
+        search_params['job_order__vendor__vendor_id'] = special_key
+    order_detail = JOMaterial.objects.filter(**search_params).values('material_code__wms_code', 'material_code__sku_code',
+                                        'job_order__job_code', 'material_quantity', 'job_order_id',
+                                      'material_code__sku_desc', 'job_order__order_type', 'material_code_id').distinct()
+    if search_params['job_order__order_type'] == 'SP':
+        purchase_dict['open_po__vendor_id__isnull'] = True
+        purchase_dict['open_po__order_type'] = 'SR'
+        stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku_id').distinct().\
+                                         annotate(in_stock=Sum('quantity'))
+        reserved_objs = PicklistLocation.objects.filter(stock__sku__user=user.id, status=1, reserved__gt=0).values('stock__sku_id').distinct().\
+                                                        annotate(reserved=Sum('reserved'))
+        reserveds = map(lambda d: d['stock__sku_id'], reserved_objs)
+    else:
+        purchase_dict['open_po__vendor_id__isnull'] = False
+        purchase_dict['open_po__order_type'] = 'VR'
+        purchase_dict['open_po__vendor__vendor_id'] = special_key
+        stock_objs = VendorStock.objects.filter(sku__user=user.id, quantity__gt=0, vendor__vendor_id=special_key).\
+                                         values('sku_id').distinct().annotate(in_stock=Sum('quantity'))
+        reserved_objs = VendorPicklist.objects.filter(jo_material__job_order__vendor__vendor_id=special_key,
+                                                      jo_material__material_code__user=user.id,
+                                                      reserved_quantity__gt=0, status='open').values('jo_material__material_code_id').\
+                                               distinct().annotate(reserved=Sum('reserved_quantity'))
+        reserveds = map(lambda d: d['jo_material__material_code_id'], reserved_objs)
+
+    purchase_objs = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
+                                          filter(**purchase_dict).values('open_po__sku_id').\
+                                          annotate(total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
+    purchases = map(lambda d: d['open_po__sku_id'], purchase_objs)
+
+    stocks = map(lambda d: d['sku_id'], stock_objs)
+
+    master_data = []
+    allocated_qty = {}
+    for order in order_detail:
+        remained_quantity = 0
+        stock_quantity = 0
+        reserved_quantity = 0
+        transit_quantity = 0
+        sku_code = order['material_code__sku_code']
+        title = order['material_code__sku_desc']
+        wms_code = order['material_code__wms_code']
+        filter_params = {'material_code__wms_code': wms_code, 'material_code__user': user.id, 'status': 1, 'job_order__order_type': 'SP'}
+        if order['job_order__order_type'] == 'VP':
+            filter_params['job_order__order_type'] = 'VP'
+            filter_params['job_order__vendor__vendor_id'] = special_key
+
+        rw_orders = RWOrder.objects.filter(job_order__product_code__sku_code=sku_code, vendor__user=user.id).\
+                                    values_list('job_order__job_code', flat=True)
+        if rw_orders:
+            filter_params['job_order__job_code__in'] = rw_orders
+        order_quantity = order['material_quantity']
+        if not order_quantity:
+            order_quantity = 0
+        if order['material_code_id'] in stocks:
+            stock_quantity = map(lambda d: d['in_stock'], stock_objs)[stocks.index(order['material_code_id'])]
+            if order['material_code_id'] in allocated_qty.keys():
+                if stock_quantity < allocated_qty[order['material_code_id']]:
+                    #remained_quantity = order_quantity - stock_quantity + allocated_qty[order['material_code_id']]
+                    remained_quantity = allocated_qty[order['material_code_id']] - stock_quantity
+                    stock_quantity = 0
+                else:
+                    stock_quantity -= allocated_qty[order['material_code_id']]
+
+        if order['material_code_id'] in allocated_qty.keys():
+            allocated_qty[order['material_code_id']] += order_quantity
+        else:
+            allocated_qty[order['material_code_id']] = order_quantity
+        if order['material_code_id'] in reserveds:
+            reserved_quantity = map(lambda d: d['reserved'], reserved_objs)[reserveds.index(order['material_code_id'])]
+        if order['material_code_id'] in purchases:
+            total_order = map(lambda d: d['total_order'], purchase_objs)[purchases.index(order['material_code_id'])]
+            total_received = map(lambda d: d['total_received'], purchase_objs)[purchases.index(order['material_code_id'])]
+            diff_quantity = float(total_order) - float(total_received)
+            if diff_quantity > 0:
+                transit_quantity = diff_quantity
+                if remained_quantity > 0:
+                    if transit_quantity > remained_quantity:
+                        transit_quantity -= remained_quantity
+                    else:
+                        transit_quantity = 0
+
+        procured_quantity = order_quantity - stock_quantity - transit_quantity
+        if procured_quantity > 0:
+            checkbox = "<input type='checkbox' id='back-checked' name='%s'>" % title
+            master_data.append({'': checkbox, 'WMS Code': wms_code, 'Ordered Quantity': order_quantity,
+                                'Job Code': order['job_order__job_code'], 'order_id': order['job_order_id'],
+                                'Stock Quantity': get_decimal_limit(user.id, stock_quantity),
+                                'Transit Quantity': get_decimal_limit(user.id, transit_quantity),
+                                'Procurement Quantity': get_decimal_limit(user.id, procured_quantity), 'DT_RowClass': 'results'})
+    if search_term:
+        master_data = filter(lambda person: search_term in person['WMS Code'] or search_term in str(person['Ordered Quantity']) or\
+               search_term in str(person['Stock Quantity']) or search_term in str(person['Transit Quantity']) or \
+               search_term in str(person[' Procurement Quantity']), master_data)
+    elif order_term:
+        if order_term == 'asc':
+            master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_RM_TABLE[col_num-1]])
+        else:
+            master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_RM_TABLE[col_num-1]], reverse=True)
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['aaData'] = master_data[start_index:stop_index]
+
+@csrf_exempt
 def get_rm_back_order_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters='', special_key=''):
     search_params = {'material_code__user': user.id, 'status': 1}
     purchase_dict = {'open_po__sku__user': user.id }
@@ -1903,12 +2014,18 @@ def generate_rm_po_data(request, user=''):
     for key,value in request.POST.iteritems():
         price = 0
         key = key.split(":")
+        wms_code = key[0]
+        job_order_id = ''
+        title = key[1]
+        if len(key)>2:
+            job_order_id = key[2]
         selected_item = ''
-        sku_supplier = SKUSupplier.objects.filter(sku__wms_code=key[0], sku__user=user.id)
+        sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, sku__user=user.id)
         if sku_supplier:
             selected_item = {'id': sku_supplier[0].supplier_id, 'name': sku_supplier[0].supplier.name}
             price = sku_supplier[0].price
-        data_dict.append({'wms_code': key[0], 'title': key[1] , 'quantity': value, 'selected_item': selected_item, 'price': price})
+        data_dict.append({'wms_code': wms_code, 'title': title, 'quantity': value, 'selected_item': selected_item, 'price': price,
+                    'job_order_id': job_order_id})
     return HttpResponse(json.dumps({'data_dict': data_dict, 'supplier_list': supplier_list}))
 
 @csrf_exempt
@@ -1928,8 +2045,11 @@ def confirm_back_order(request, user=''):
         order_id = ''
         if 'order_id' in request.POST.keys() and data_dict['order_id'][i]:
             order_id = data_dict['order_id'][i]
+        job_order_id = ''
+        if 'job_order_id' in request.POST.keys() and data_dict['job_order_id'][i]:
+            job_order_id = data_dict['job_order_id'][i]
         all_data[cond].append(( data_dict['wms_code'][i], data_dict['quantity'][i], data_dict['title'][i], data_dict['price'][i],
-                                data_dict['remarks'][i], order_id))
+                                data_dict['remarks'][i], order_id, job_order_id))
 
     for key,value in all_data.iteritems():
         order_id = 1
@@ -1970,6 +2090,9 @@ def confirm_back_order(request, user=''):
             purchase_order_dict['prefix'] = prefix
             purchase_order = PurchaseOrder(**purchase_order_dict)
             purchase_order.save()
+
+            if val[6]:
+                create_order_mapping(user, purchase_order.id, val[6], mapping_type='JO-PO')
 
             sku_extra_data = ''
             if val[5]:

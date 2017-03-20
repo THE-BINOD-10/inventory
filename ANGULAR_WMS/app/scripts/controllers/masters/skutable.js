@@ -181,8 +181,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         elem[i].value = (elem[i].value == "?") ? "": vm.model_data.zones[parseInt(elem[i].value)];
       } else if(elem[i].name == "sku_type") {
         elem[i].value = (elem[i].value == "?") ? "": vm.sku_types[parseInt(elem[i].value)];
-      } else if(elem[i].name == "sku_group") {
-        elem[i].value = (elem[i].value == "?") ? "": vm.model_data.groups[parseInt(elem[i].value)];
       }
     }
 

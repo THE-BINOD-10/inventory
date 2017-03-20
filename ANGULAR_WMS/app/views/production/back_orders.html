@@ -4,12 +4,26 @@
   </div>
   <div class="layout-body" ng-controller="ProductionBackOrdersCtrl as showCase">
     <div class="panel">
-      <div class="panel-header" style="padding-top:10px">
+      <div class="panel-header row" style="padding-top:10px">
+       <div class="col-md-3">
         <select ng-model="showCase.filter" ng-init="showCase.filter = 'Self Produce'" ng-change="showCase.change_special_key(showCase.filter)" style="width: 150px" class="form-control pull-right">
           <option value="Self Produce" selected>Self Produce</option>
           <option ng-repeat="data in showCase.order_types" value="{{data.vendor__vendor_id}}">{{data.vendor__vendor_id+" : "+data.vendor__name}}</option>
         </select>
-        <h5 class="pull-right">Order Type: </h5>
+        <h5>Order Type: </h5>
+       </div>
+      <div class="col-md-9" style="height: 34px;padding:20px;padding-top: 0px !important;">
+        <label class="switch switch-sm square pull-right mt5">
+          <div>
+            <input type="checkbox" ng-model="showCase.g_data.toggle_switch" ng-change="showCase.change_datatable()" class="ng-pristine ng-valid">
+            <span>
+              <i class="handle"></i>
+            </span>
+          </div>
+        </label>
+        <label style="padding: 5px;" class="control-label pull-right"><b>Alternate View : </b></label>
+      </div>
+
       </div>
       <div class="panel-body">
         <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" class="table custom-table table-condensed datatable" dt-instance="showCase.dtInstance"></table>

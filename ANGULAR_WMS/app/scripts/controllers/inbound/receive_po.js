@@ -183,13 +183,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.scan_sku = function(event, field) {
       if (event.keyCode == 13 && field.length > 0) {
         console.log(field);
-        for(var i=0; i<vm.model_data.data.length; i++) {
+        vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
+          if(data.message) {
+            vm.field = data.data.sku_code;
+
+              for(var i=0; i<vm.model_data.data.length; i++) {
+                if(vm.field == vm.model_data.data[i][0]["wms_code"]){
+                  $('input[value="'+vm.field+'"]').parents('tr').find("input[name='imei_number']").trigger('focus');
+                  break;
+                }
+                else {
+                  pop_msg(field+" Does Not Exist");
+                }
+              }
+           }
+         });
+        /*for(var i=0; i<vm.model_data.data.length; i++) {
           if(field == vm.model_data.data[i][0]["wms_code"]){
-            $('input[value="'+field+'"]').parents('tr').find("input[name='quantity']").trigger('focus');
+              //$('input[value="'+field+'"]').parents('tr').find("input[name='quantity']").trigger('focus');
+              $('input[value="'+field+'"]').parents('tr').find("input[name='imei_number']").trigger('focus');
             console.log("success");
             break;
           }
-        }
+        }*/
       }
     }
 
@@ -210,6 +226,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               }
               data1.imei_number = "";
             }
+            $('textarea[name="scan_sku"]').trigger('focus').val('');
           });
         }
       }
@@ -240,6 +257,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
 
+      $state.go('app.inbound.RevceivePo.barcode');
+    }
+
+    vm.gen_barcode = function() {
+      vm.barcode_title = 'Barcode Generation';
+      vm.model_data['barcodes'] = [];
+
+      angular.forEach(vm.model_data.data, function(barcode_data){
+        var quant = barcode_data[0].value;
+        vm.sku_det = barcode_data[0].wms_code;
+        var list_of_sku = barcode_data[0].serial_number.split(',');
+
+        angular.forEach(list_of_sku, function(serial) {
+          console.log(vm.sku_det);
+          var serial_number = vm.sku_det+'/00'+serial;
+          vm.model_data['barcodes'].push({'sku_code': serial_number, 'quantity': 1})
+        })
+
+      })
+
+      vm.model_data['format_types'] = ['format1', 'format2', 'format3']
+      var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
       $state.go('app.inbound.RevceivePo.barcode');
     }
 

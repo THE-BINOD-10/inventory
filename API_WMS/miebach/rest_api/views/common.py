@@ -1477,7 +1477,7 @@ def check_and_update_stock(wms_codes, user):
     if not stock_sync == 'true':
         return
     from rest_api.views.easyops_api import *
-    integrations = Integrations.objects.filter(user=user.id)
+    integrations = Integrations.objects.filter(user=user.id, status=1)
     stock_instances = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE']).filter(sku__wms_code__in=wms_codes,
                                           sku__user=user.id).values('sku__wms_code').distinct().annotate(total_sum=Sum('quantity'))
 
@@ -1540,7 +1540,7 @@ def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_i
 def check_and_update_order(user, order_id):
     from rest_api.views.easyops_api import *
     user = User.objects.get(id=user)
-    integrations = Integrations.objects.filter(user=user.id)
+    integrations = Integrations.objects.filter(user=user.id, status=1)
     for integrate in integrations:
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
         try:
@@ -1826,8 +1826,9 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     query_string = 'sku__sku_code'
     if size_dict:
         size_dict = eval(size_dict)
-        classes = get_sku_available_stock(user, sku_master, query_string, size_dict)
-        sku_master = sku_master.filter(sku_class__in = classes)
+        if size_dict:
+            classes = get_sku_available_stock(user, sku_master, query_string, size_dict)
+            sku_master = sku_master.filter(sku_class__in = classes)
 
     sku_master = sku_master.order_by('sequence')
     product_styles = sku_master.values_list('sku_class', flat=True).distinct()
@@ -2075,7 +2076,7 @@ def create_update_user(data, password, username):
 def pull_orders_now(request, user=''):
     from rest_api.views.easyops_api import *
     from rest_api.views.integrations import *
-    integrations = Integrations.objects.filter(user=user.id)
+    integrations = Integrations.objects.filter(user=user.id, status=1)
     for integrate in integrations:
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
         orders = obj.get_pending_orders(user=user)

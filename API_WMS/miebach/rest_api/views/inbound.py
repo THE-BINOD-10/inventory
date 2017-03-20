@@ -1455,6 +1455,7 @@ def confirm_grn(request, confirm_returns = '', user=''):
     pallet_number = ''
     po_data = []
     is_putaway = ''
+    purchase_data = ''
     seller_name = user.username
 
     if not confirm_returns:
@@ -1488,7 +1489,10 @@ def confirm_grn(request, confirm_returns = '', user=''):
         data = PurchaseOrder.objects.get(id=myDict['id'][i])
         purchase_data = get_purchase_order_data(data)
         temp_quantity = data.received_quantity
-        cond = (data.id, purchase_data['wms_code'], purchase_data['price'], myDict['unit'][i])
+        unit = ''
+        if 'unit' in myDict.keys():
+            unit = myDict['unit'][i]
+        cond = (data.id, purchase_data['wms_code'], purchase_data['price'], unit)
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
 
@@ -1561,6 +1565,8 @@ def confirm_grn(request, confirm_returns = '', user=''):
         btn_class = 'inb-qc'
 
     if not status_msg:
+        if not purchase_data:
+            return HttpResponse('Success')
         address = purchase_data['address']
         address = '\n'.join(address.split(','))
         telephone = purchase_data['phone_number']
@@ -1678,9 +1684,19 @@ def check_returns(request, user=''):
 @get_admin_user
 def check_sku(request, user=''):
     sku_code = request.GET.get('sku_code')
+    sku_id = check_and_return_mapping_id(sku_code, '', user)
+    if sku_id:
+        sku_code = SKUMaster.objects.get(id = sku_id).sku_code
+        data = {"status": 'confirmed', 'sku_code': sku_code}
+        return HttpResponse(json.dumps(data))
+
+
+    """
     sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
     if sku_master:
         return HttpResponse("confirmed")
+
+    """
     return HttpResponse("%s not found" % sku_code)
 
 @csrf_exempt

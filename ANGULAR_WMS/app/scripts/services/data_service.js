@@ -54,6 +54,16 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                           }
 
+    //Back Orders
+    self.back_orders_list = {
+
+                              toggle_switch: false,
+                              view: 'ProductionBackOrders',
+                              tb_headers: {'ProductionBackOrders': ['WMS Code', 'Ordered Quantity', 'Stock Quantity', 'Transit Quantity',
+                                                                    'Procurement Quantity'],
+                                           'ProductionBackOrdersAlt': ['Job Code', 'WMS Code', 'Ordered Quantity', 'Stock Quantity',
+                                                                       'Transit Quantity', 'Procurement Quantity']}
+                            }
   //View Orders
 
     //Other View

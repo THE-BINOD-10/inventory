@@ -41,6 +41,8 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(UNI_COMMERCE_EXCEL)
     elif get_cell_data(0, 1, reader, file_type) == 'Order No':
         order_mapping = copy.deepcopy(SHOPCLUES_EXCEL)
+    elif get_cell_data(0, 4, reader, file_type) == 'Priority Level':
+        order_mapping = copy.deepcopy(SHOPCLUES_EXCEL1)
     elif get_cell_data(0, 1, reader, file_type) == 'FSN' and get_cell_data(0, 16, reader, file_type) == 'Invoice No.':
         order_mapping = copy.deepcopy(FLIPKART_EXCEL)
     elif get_cell_data(0, 1, reader, file_type) == 'FSN' and get_cell_data(0, 16, reader, file_type) != 'Invoice No.':
@@ -59,6 +61,8 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(MYNTRA_EXCEL)
     elif get_cell_data(0, 1, reader, file_type) == 'PO No' and get_cell_data(0, 3, reader, file_type) == 'Supp. Color':
         order_mapping = copy.deepcopy(JABONG_EXCEL)
+    elif get_cell_data(0, 3, reader, file_type) == 'Jabong SKU':
+        order_mapping = copy.deepcopy(JABONG_EXCEL1)
     elif get_cell_data(0, 0, reader, file_type) == 'Product Name' and get_cell_data(0, 1, reader, file_type) == 'FSN':
         order_mapping = copy.deepcopy(FLIPKART_FA_EXCEL1)
     elif get_cell_data(0, 0, reader, file_type) == 'Shipping' and get_cell_data(0, 1, reader, file_type) == 'Date':
@@ -78,6 +82,8 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(INDIA_TIMES_EXCEL)
     elif get_cell_data(0, 3, reader, file_type) == 'Billing Name':
         order_mapping = copy.deepcopy(HOMESHOP18_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'Voonik Order Number':
+        order_mapping = copy.deepcopy(VOONIK_EXCEL)
     elif get_cell_data(0, 2, reader, file_type) == 'purchase-date' and get_cell_data(0, 4, reader, file_type) == 'payments-date':
         order_mapping = copy.deepcopy(AMAZON_EXCEL)
     elif get_cell_data(0, 2, reader, file_type) == 'purchase-date' and get_cell_data(0, 4, reader, file_type) == 'buyer-email':
@@ -98,9 +104,10 @@ def get_order_mapping(reader, file_type):
     return order_mapping
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
-
     index_status = {}
     order_mapping = get_order_mapping(reader, file_type)
+    if not order_mapping:
+        return "Headers not matching"
     count = 1
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
@@ -182,6 +189,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 else:
                     order_data[key] = 0
                 sku_length = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
+                if isinstance(sku_length, float):
+                    sku_length = str(sku_length)
                 if ',' in sku_length:
                     sku_length = len(sku_length.split(','))
                     order_data[key] = float(get_cell_data(row_idx, value, reader, file_type))/sku_length
@@ -600,6 +609,12 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
             elif key == 'ean_number':
                 if not isinstance(cell_data, (int, float)) and cell_data:
                     index_status.setdefault(row_idx, set()).add('EAN must be integer')
+
+            elif key == 'sku_size':
+                if cell_data:
+                    all_sizes = all_size_list(user)
+                    if cell_data not in all_sizes:
+                        index_status.setdefault(row_idx, set()).add('Size is not Correct')
 
             elif key == 'threshold_quantity':
                 if not isinstance(cell_data, (int, float)) and cell_data:

@@ -1,13 +1,14 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ProductionBackOrdersCtrl',['$scope', '$http', '$state', '$q', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'limitToFilter', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('ProductionBackOrdersCtrl',['$scope', '$http', '$state', '$q', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'limitToFilter', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, limitToFilter, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, limitToFilter, colFilters, Service, Data) {
     var vm = this;
+    vm.g_data = Data.back_orders_list;
     vm.apply_filters = colFilters;
     vm.service = Service;
-    vm.filters = {'datatable': 'ProductionBackOrders', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'special_key':'Self Produce'}
+    //vm.filters = {'datatable': 'ProductionBackOrders', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'special_key':'Self Produce'}
     vm.selected = {};
     vm.selectAll = false;
     vm.toggleAll = toggleAll;
@@ -18,7 +19,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
        .withOption('ajax', {
               url: Session.url+'results_data/',
               type: 'POST',
-              data: vm.filters,
+              data: {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'special_key':'Self Produce'},
               xhrFields: {
                 withCredentials: true
               }
@@ -41,7 +42,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
        .withPaginationType('full_numbers')
        .withOption('rowCallback', rowCallback);
 
-    vm.dtColumns = [
+     vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers[vm.g_data.view]);
+     vm.dtColumns.splice(0,0,
+        DTColumnBuilder.newColumn(null).withTitle(titleHtml).notSortable().withOption('width', '20px')
+            .renderWith(function(data, type, full, meta) {
+                if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+                  vm.selected = {};
+                 }
+                vm.selected[meta.row] = vm.selectAll;
+                vm.selectedRows[meta.row] = full;
+                return '<input class="data-select" type="checkbox" ng-model="showCase.selected[' + meta.row + ']" ng-change="showCase.toggleOne(showCase.selected)">';
+            }).notSortable()
+       )
+
+    /*vm.dtColumns = [
         DTColumnBuilder.newColumn(null).withTitle(titleHtml).notSortable().withOption('width', '20px')
             .renderWith(function(data, type, full, meta) {
                 if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
@@ -56,7 +70,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
         DTColumnBuilder.newColumn('Stock Quantity').withTitle('Stock Quantity'),
         DTColumnBuilder.newColumn('Transit Quantity').withTitle('Transit Quantity'),
         DTColumnBuilder.newColumn('Procurement Quantity').withTitle('Procurement Quantity')
-    ];
+    ];*/
+
+    
 
     vm.selectedRows = {};
     vm.dtInstance = {};
@@ -176,7 +192,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
           var temp = vm.selectedRows[parseInt(key)];
-          data[temp['WMS Code']+":"+$(temp[""]).attr("name")] = temp['Procurement Quantity'];
+          data[temp['WMS Code']+":"+$(temp[""]).attr("name")+":"+temp['order_id']]  = temp['Procurement Quantity'];
+          //data[temp['WMS Code']+":"+"Order_det"] = temp['order_id'];
         }
       });
       Service.apiCall("generate_rm_po_data/", "POST", data).then(function(data){
@@ -320,8 +337,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
 
     vm.change_special_key = function(data) {
 
-      vm.dtInstance.DataTable.context[0].ajax.data.special_key = data;
+      vm.filter = data;
       vm.reloadData();
     }
+
+    vm.change_datatable = function() {
+      Data.back_orders_list.view = (vm.g_data.toggle_switch)? 'ProductionBackOrdersAlt': 'ProductionBackOrders';
+      $state.go($state.current, {}, {reload: true});
+    }
+
+
   }
 

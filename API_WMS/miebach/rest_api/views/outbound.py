@@ -400,13 +400,17 @@ def generate_picklist(request, user=''):
         stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by('location_id__pick_sequence')
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     sku_stocks = stock_detail1 | stock_detail2
+    log.info("Generate Picklist params " + str(request.POST.dict()))
     for key, value in request.POST.iteritems():
         if key in ('sortingTable_length', 'fifo-switch', 'ship_reference', 'remarks', 'filters'):
             continue
 
         order_data = OrderDetail.objects.get(id=key,user=user.id)
-        stock_status, picklist_number = picklist_generation([order_data], request, picklist_number, user, sku_combos, sku_stocks, status = 'open', remarks=remarks)
-
+        try:
+            stock_status, picklist_number = picklist_generation([order_data], request, picklist_number, user, sku_combos, sku_stocks, status = 'open', remarks=remarks)
+        except Exception as e:
+            log.info(e)
+            stock_status = ['Internal Server Error']
         if stock_status:
             out_of_stock = out_of_stock + stock_status
 

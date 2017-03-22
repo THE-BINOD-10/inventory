@@ -421,6 +421,9 @@ FLIPKART_EXCEL2 = {'order_id': 2, 'quantity': 15, 'title': 8, 'invoice_amount': 
 FLIPKART_EXCEL3 = {'order_id': 2, 'quantity': 17, 'title': 15, 'invoice_amount': 7, 'address': 21, 'customer_name': 20,
                    'marketplace': 'Flipkart', 'sku_code': 14}
 
+FLIPKART_EXCEL4 = {'order_id': 2, 'quantity': 19, 'title': 17, 'invoice_amount': 7, 'address': 23, 'customer_name': 22,
+                   'marketplace': 'Flipkart', 'sku_code': 16}
+
 PAYTM_EXCEL1 = {'order_id': 0, 'quantity': 21, 'title': 12, 'invoice_amount': 20, 'address': 7, 'customer_name': 3, 'marketplace': 'Paytm',
                'sku_code': 14}
 

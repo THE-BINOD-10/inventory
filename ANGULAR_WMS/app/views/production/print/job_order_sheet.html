@@ -54,10 +54,10 @@
       </tr>
     </thead>
     <tbody>
-      <tr ng-repeat="record in showCase.model_data.data">
+      <tr ng-repeat="(key, value) in showCase.final_data">
         <td><center>{{$index+1}}</center></td>
-        <td><center>{{record.wms_code}}</center></td>
-        <td><center>{{record.product_quantity}}</center></td>
+        <td><center>{{key}}</center></td>
+        <td><center>{{value}}</center></td>
         <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
       </tr>
     </tbody>

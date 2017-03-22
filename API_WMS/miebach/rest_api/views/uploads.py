@@ -49,8 +49,12 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(FLIPKART_EXCEL1)
     elif get_cell_data(0, 1, reader, file_type) == 'Shipment ID' and get_cell_data(0, 2, reader, file_type) == 'ORDER ITEM ID':
         order_mapping = copy.deepcopy(FLIPKART_EXCEL2)
-    elif get_cell_data(0, 1, reader, file_type) == 'Shipment Id' and get_cell_data(0, 2, reader, file_type) == 'Order Item Id':
+    elif get_cell_data(0, 1, reader, file_type) == 'Shipment Id' and get_cell_data(0, 2, reader, file_type) == 'Order Item Id'\
+         and get_cell_data(0, 16, reader, file_type) != 'SKU Code':
         order_mapping = copy.deepcopy(FLIPKART_EXCEL3)
+    elif get_cell_data(0, 1, reader, file_type) == 'Shipment Id' and get_cell_data(0, 2, reader, file_type) == 'Order Item Id'\
+         and get_cell_data(0, 16, reader, file_type) == 'SKU Code':
+        order_mapping = copy.deepcopy(FLIPKART_EXCEL4)
     elif get_cell_data(0, 3, reader, file_type) == 'customer_firstname':
         order_mapping = copy.deepcopy(PAYTM_EXCEL1)
     elif get_cell_data(0, 1, reader, file_type) == 'item_name':
@@ -106,6 +110,7 @@ def get_order_mapping(reader, file_type):
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
     index_status = {}
     order_mapping = get_order_mapping(reader, file_type)
+    print order_mapping
     if not order_mapping:
         return "Headers not matching"
     count = 1

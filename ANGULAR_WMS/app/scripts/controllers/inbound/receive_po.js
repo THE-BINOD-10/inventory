@@ -187,12 +187,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           if(data.message) {
             vm.field = data.data.sku_code;
 
+              if (vm.permissions.use_imei) {
+              vm.sku_list_1 = [];
               for(var i=0; i<vm.model_data.data.length; i++) {
+                vm.sku_list_1.push(vm.model_data.data[i][0]["wms_code"]);
                 if(vm.field == vm.model_data.data[i][0]["wms_code"]){
                   $('input[value="'+vm.field+'"]').parents('tr').find("input[name='imei_number']").trigger('focus');
-                  break;
                 }
-                else {
+              }
+              if (vm.sku_list_1.indexOf(field) == -1){
+                pop_msg(field+" Does Not Exist");
+              }
+              }
+              else {
+                vm.sku_list_1 = [];
+                for(var i=0; i<vm.model_data.data.length; i++) {
+                  vm.sku_list_1.push(vm.model_data.data[i][0]["wms_code"]);
+                  if(vm.field == vm.model_data.data[i][0]["wms_code"]){
+                    vm.model_data.data[i][0]["value"] = vm.model_data.data[i][0]["value"] + 1;
+                    $('textarea[name="scan_sku"]').trigger('focus').val('');
+                  }
+                }
+                if (vm.sku_list_1.indexOf(field) == -1){
                   pop_msg(field+" Does Not Exist");
                 }
               }
@@ -221,6 +237,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               if (data.data == "") {
                 data1.value = parseInt(data1.value)+1;
                 vm.serial_numbers.push(data1.imei_number);
+                data1["imei_list"].push(data1.imei_number);
               } else {
                 pop_msg(data.data);
               }

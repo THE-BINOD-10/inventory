@@ -58,7 +58,10 @@
                     <td ng-if="showCase.permissions.pallet_switch"><input type="text" ng-model="data.pallet_number" name="pallet_number" class="form-control"></td>
                     <td><input type="text" ng-model="data.value" name="quantity" class="form-control" ng-class="service.get_decimal_perm()" required> </div></td>
                     <td><input type="text" ng-model="data.unit" name="unit" class="form-control" readonly></td>
-                    <td ng-if="showCase.permissions.use_imei"><input type="text" ng-model="data.imei_number" name="imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, data)"></td>
+                    <td ng-if="showCase.permissions.use_imei">
+                      <input type="text" ng-model="data.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, data)">
+                      <input type="hidden" name="imei_number" class="form-control" ng-init="data.imei_list=[]" value="{{data.imei_list.join(',')}}">
+                    </td>
                     <td><input type="text" ng-model="data.price" name="price" class="form-control" value="" ng-readonly="records[0].dis"></td>
                     <td ng-if="showCase.permissions.pallet_switch"><i ng-click="showCase.update_data($index, records)" ng-class="showCase.service.isLast($last)"></i></td>
                     <td ng-if="data.sku_extra_data.length > 0" class="detail">

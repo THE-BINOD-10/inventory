@@ -181,7 +181,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
     vm.confirm_po = confirm_po;
     function confirm_po() {
       var elem = $(form).serializeArray();
-
       Service.apiCall("confirm_back_order/", "POST", elem).then(function(data){
         if(data.message) {vm.confirm_disable = true; vm.message = data.data; reloadData();};
       });

@@ -1987,7 +1987,7 @@ def get_rm_back_order_data(start_index, stop_index, temp_data, search_term, orde
         if procured_quantity > 0:
             checkbox = "<input type='checkbox' id='back-checked' name='%s'>" % title
             master_data.append({'': checkbox, 'WMS Code': wms_code, 'Ordered Quantity': order_quantity,
-                                'Stock Quantity': get_decimal_limit(user.id, stock_quantity),
+                                'Stock Quantity': get_decimal_limit(user.id, stock_quantity), 'order_id':"" ,
                                 'Transit Quantity': get_decimal_limit(user.id, transit_quantity),
                                 'Procurement Quantity': get_decimal_limit(user.id, procured_quantity), 'DT_RowClass': 'results'})
     if search_term:

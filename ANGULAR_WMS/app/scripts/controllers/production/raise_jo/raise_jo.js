@@ -11,6 +11,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
     vm.bt_disable = true;
     vm.vendor_produce = false;
     vm.units = vm.service.units;
+    vm.button_status = false;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -87,6 +88,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
 
     vm.close = close;
     function close() {
+      vm.button_status = false;
       vm.print_enable = false;
       vm.vendor_produce = false;
       $state.go('app.production.RaiseJO');
@@ -176,6 +178,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
     vm.html = "";
     vm.print_enable = false;
     vm.confirm_jo = function(data) {
+     vm.button_status = true;
      if(data.$valid) {
       var elem = angular.element($('form'));
       elem = elem[0];

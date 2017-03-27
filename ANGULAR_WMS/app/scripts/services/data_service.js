@@ -21,8 +21,12 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
   // Stock Summary
 
   self.stock_summary = {
-
-                         tb_headers: ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Available Quantity', 'Reserved Quantity', 'Total Quantity', 'Unit of Measurement']
+                         stock_2d: false,
+                         view: 'StockSummary',
+                         tb_headers: {'StockSummary': ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Available Quantity',
+                                                       'Reserved Quantity', 'Total Quantity', 'Unit of Measurement'],
+                                      'StockSummaryAlt':['SKU Class', 'Style Name', 'Brand', 'SKU Category']},
+                         size_type: 'DEFAULT'
                        }
   //WareHouse stock
   self.stock_view = {

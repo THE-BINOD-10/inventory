@@ -290,7 +290,8 @@ data_datatable = {#masters
                   'StockDetail': 'get_stock_detail_results', 'CycleCount': 'get_cycle_count',\
                   'MoveInventory': 'get_move_inventory', 'InventoryAdjustment': 'get_move_inventory',\
                   'ConfirmCycleCount': 'get_cycle_confirmed','VendorStockTable': 'get_vendor_stock',\
-                  'Available':'get_available_stock','Available+Intransit':'get_availintra_stock','Total': 'get_avinre_stock',
+                  'Available':'get_available_stock','Available+Intransit':'get_availintra_stock','Total': 'get_avinre_stock',\
+                  'StockSummaryAlt' : 'get_stock_summary_size',\
                   #outbound
                   'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders',\
                   'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders',\
@@ -1005,9 +1006,10 @@ def save_location_group(data_id, value, user):
             loc_map.delete()
 
 def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user):
-    sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
+    #sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
+    sku = check_and_return_mapping_id(wms_code, "", user, False)
     if sku:
-        sku_id = sku[0].id
+        sku_id = sku
     else:
         return 'Invalid WMS Code'
     source = LocationMaster.objects.filter(location=source_loc, zone__user=user.id)
@@ -1450,6 +1452,8 @@ def search_wms_codes(request, user=''):
     exact_ids = list(data_exact.values_list('id', flat=True))
     data = sku_master.exclude(id__in=exact_ids).filter(Q(wms_code__icontains = data_id) | Q(sku_desc__icontains = data_id),
                               user=user.id).order_by('wms_code')
+    market_place_code = MarketplaceMapping.objects.filter(marketplace_code__icontains = data_id, sku__user=user.id).values_list('sku__sku_code', flat = True).distinct()
+    market_place_code = list(market_place_code)
     data = list(chain(data_exact, data))
     wms_codes = []
     count = 0
@@ -1461,6 +1465,15 @@ def search_wms_codes(request, user=''):
                 wms_codes.append(str(wms.wms_code))
             if len(wms_codes) >= 10:
                 break
+            else:
+                if market_place_code:
+                    wms_codes.extend(market_place_code)
+    else:
+        if market_place_code:
+            wms_codes.extend(market_place_code)
+
+    #wms_codes = list(set(wms_codes))
+
     return HttpResponse(json.dumps(wms_codes))
 
 def get_order_id(user_id):
@@ -2191,17 +2204,24 @@ def confirm_order_sync_data(request, user = ""):
     return HttpResponse(json.dumps({"resp": True, "resp_message": "Success"}))
 
 
-def check_and_return_mapping_id(sku_code, title, user):
+def check_and_return_mapping_id(sku_code, title, user, check = True):
     sku_id = ''
     sku_master=SKUMaster.objects.filter(sku_code=sku_code,user=user.id)
     if sku_master:
         sku_id = sku_master[0].id
     else:
         market_mapping = ''
-        if sku_code:
-            market_mapping = MarketplaceMapping.objects.filter(marketplace_code=sku_code, sku__user=user.id, sku__status=1)
-        if not market_mapping and title:
-            market_mapping = MarketplaceMapping.objects.filter(description=title, sku__user=user.id, sku__status=1)
+        if not check:
+            if sku_code:
+                market_mapping = MarketplaceMapping.objects.filter(marketplace_code=sku_code, sku__user=user.id)
+            if not market_mapping and title:
+                market_mapping = MarketplaceMapping.objects.filter(description=title, sku__user=user.id)
+        else:
+            if sku_code:
+                market_mapping = MarketplaceMapping.objects.filter(marketplace_code=sku_code, sku__user=user.id, sku__status=1)
+            if not market_mapping and title:
+                market_mapping = MarketplaceMapping.objects.filter(description=title, sku__user=user.id, sku__status=1)
+
         if market_mapping:
             sku_id = market_mapping[0].sku_id
     return sku_id
@@ -2236,4 +2256,20 @@ def all_size_list(user):
     return all_sizes
 
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_size_names(requst, user = ""): 
+    size_names = SizeMaster.objects.filter(user=user.id)
+    sizes_list = {'DEFAULT': ['S', 'M', 'L', 'XL', 'XXL']}
+    for sizes in size_names:
+        size_value_list = (sizes.size_value).split('<<>>')
+        size_value_list = filter(None, size_value_list)
+        sizes_list.update({sizes.size_name : size_value_list})
+
+    size_name = list(size_names.values_list('size_name', flat = True))
+    size_name.append('DEFAULT')
+    sizes_list.update({'size_names': size_name})
+
+    return HttpResponse(json.dumps(sizes_list))
 

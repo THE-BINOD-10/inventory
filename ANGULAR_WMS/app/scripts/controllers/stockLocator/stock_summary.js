@@ -8,13 +8,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     vm.service = Service;
     vm.g_data = Data.stock_summary;
     vm.apply_filters = colFilters;
+    vm.data_display = false;
     vm.tb_data = {};
-    vm.filters = {'datatable': 'StockSummary', 'search0':'', 'search1':'', 'search2':'', 'search3':''}
+    vm.selected_size = vm.g_data.size_type;
+
+  vm.dt_display = false;
+  vm.build_dt = function() {
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
               type: 'POST',
-              data: vm.filters,
+              data: {'datatable': vm.g_data.view, 'size_name': vm.g_data.size_type, 'search0':'', 'search1':'', 'search2':'', 'search3':''},
               xhrFields: {
                 withCredentials: true
               },
@@ -30,23 +34,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
        .withPaginationType('full_numbers')
        .withOption('rowCallback', rowCallback);
 
+      //vm.dtColumns = vm.service.build_colums(vm.g_data.selected_value);
+      var columns = vm.g_data.tb_headers[vm.g_data.view].concat(vm.extra_c);
+      vm.dtColumns = vm.service.build_colums(columns);
+      vm.dt_display = true;
+  }
+
+  vm.extra_c = [];
+  if(vm.g_data.view == 'StockSummary') {
+    vm.build_dt();
+  } else {
+    vm.service.apiCall('get_size_names', 'GET').then(function(data){
+      if (data.message){
+        vm.drop_data = data.data['size_names'];
+        vm.selected_default = vm.drop_data[vm.drop_data.length - 1];
+        if(vm.g_data.size_type) {
+          vm.extra_c = data.data[vm.g_data.size_type];
+          vm.build_dt();
+        }
+      }
+    });
+  }
+
     vm.dtInstance = {};
 
     vm.reloadData = reloadData;
     function reloadData() {
         this.dtInstance.reloadData();
     }
-
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
-        DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
-        DTColumnBuilder.newColumn('SKU Brand').withTitle('SKU Brand'),
-        DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
-        DTColumnBuilder.newColumn('Available Quantity').withTitle('Available Quantity').notSortable(),
-        DTColumnBuilder.newColumn('Reserved Quantity').withTitle('Reserved Quantity').notSortable(),
-        DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'),
-        DTColumnBuilder.newColumn('Unit of Measurement').withTitle('Unit of Measurement'),
-    ];
 
     $scope.$on('change_filters_data', function(){
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
@@ -56,6 +71,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
+            if (vm.g_data.view == 'StockSummary'){
             $scope.$apply(function() {
                 vm.service.apiCall('stock_summary_data', 'GET', {wms_code: aData['WMS Code']}).then(function(data){
                   if(data.message) {
@@ -65,6 +81,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
                   }
                 });
             });
+            }
         });
         if(vm.filter_enable){
           vm.filter_enable = false;
@@ -95,5 +112,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       colFilters.search.datatable = "StockSummaryEasyops";
       colFilters.download_excel();
     }
+    vm.change_datatable = function() {
+      Data.stock_summary.view = (vm.g_data.stock_2d)? 'StockSummaryAlt': 'StockSummary';
+      $state.go($state.current, {}, {reload: true});
+    }
+    vm.change_view = function(view_name) {
+      //vm.selected = view_name;
+      //vm.service.apiCall('get_size_names', 'GET').then(function(data){
+      //  vm.headers = data.data[vm.selected];
+      //  for (var i=0; i<vm.headers.length; i++){
+      //    vm.g_data.selected_value.push(vm.headers[i]);
+      //  }
+        Data.stock_summary.size_type = view_name;
+        $state.go($state.current, {}, {reload: true});
+      //});
+    }
+    vm.data_display = true;
   }
 

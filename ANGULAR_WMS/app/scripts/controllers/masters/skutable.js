@@ -80,7 +80,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         "disable": false,
                         }
                       ],
-                      "market_list":["Flipkart","Snapdeal","Paytm","Amazon","Shopclues","HomeShop18","Jabong","Indiatimes","Myntra"],
+                      "market_list":["Flipkart","Snapdeal","Paytm","Amazon","Shopclues","HomeShop18","Jabong","Indiatimes","Myntra",
+                                     "Voonik","Mr Voonik","Vilara"],
                       "sizes_list":[]
                     }
     vm.model_data = {};

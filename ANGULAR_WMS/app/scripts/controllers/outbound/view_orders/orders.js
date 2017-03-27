@@ -268,6 +268,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.generate = generate;
     function generate() {
+      vm.bt_disable = true;
       for(var key in vm.selected){
         console.log(vm.selected[key]);
         if(vm.selected[key]) {
@@ -305,12 +306,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                                                          orig_location: vm.model_data.data[i].location,
                                                          picked_quantity: value, scan: ""});
                   }
+            vm.bt_disable = false;
             $state.go('app.outbound.ViewOrders.Picklist');
             reloadData();
             pop_msg(data.data.stock_status);
           }
         });
         vm.generate_data = [];
+      } else {
+
+        vm.bt_disable = false;
       }
     }
 

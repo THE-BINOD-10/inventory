@@ -147,6 +147,9 @@ def results_data(request, user=''):
         if request.POST.get('datatable', '') == 'SKUMaster':
             excel_data = sku_excel_download(filter_params, temp_data, headers, user, request)
             return HttpResponse(str(excel_data))
+        if request.POST.get('datatable', '') == 'StockSummaryAlt':
+            excel_data = get_stock_summary_size_excel(filter_params, temp_data, headers, user, request)
+            return HttpResponse(str(excel_data))
         if request.POST.get('datatable', '') == 'StockSummaryEasyops':
             excel_data = easyops_stock_excel_download(filter_params, temp_data, headers, user, request)
             return HttpResponse(str(excel_data))

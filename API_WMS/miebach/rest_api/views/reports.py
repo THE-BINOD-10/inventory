@@ -430,12 +430,18 @@ def get_sales_return_filter_data(search_params, user, request_user):
     for data in sales_return:
         order_id = ''
         customer_id = ''
+        marketplace = ""
         if data.order:
             order_id = str(data.order.order_code) + str(data.order.order_id)
             customer_id = data.order.customer_id
+
+            marketplace = data.order.marketplace
+        else:
+            marketplace = data.marketplace
         temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.sku.sku_code), ('Order ID', order_id),
                                                  ('Customer ID', customer_id), ('Return Date', str(data.creation_date).split('+')[0]),
-                                                 ('Status', status_dict[str(data.status)]), ('Quantity', data.quantity) )))
+                                                 ('Status', status_dict[str(data.status)]), ('Market Place', marketplace),
+                                                 ('Quantity', data.quantity) )))
     return temp_data
 
 @csrf_exempt

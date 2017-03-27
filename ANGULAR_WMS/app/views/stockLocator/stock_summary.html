@@ -22,46 +22,60 @@
         <div class="panel-header panel-heading border">
           <div class="row">
             <div class = "col-md-12">
-                <div class="col-md-4">
-  <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
-    <div class="overflow-hidden">
-    <span class="widget-subtitle">TOTAL AVAILABLE QUANTITY</span>
-    <span class="widget-title bold">{{showCase.tb_data.totalAvailableQuantity}}</span>
-    </div>
-  </div>
-</div>
-                <div class="col-md-4">
-  <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
-    <div class="overflow-hidden">
-    <span class="widget-subtitle">TOTAL RESERVED QUANTITY</span>
-    <span class="widget-title bold">{{showCase.tb_data.totalReservedQuantity}}</span>
-    </div>
-  </div>
-</div>
-                <div class="col-md-4">
-  <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
-    <div class="overflow-hidden">
-    <span class="widget-subtitle">TOTAL QUANTITY</span>
-    <span class="widget-title bold" >{{showCase.tb_data.totalQuantity}}</span>
-    </div>
-  </div>
-</div>
+                <div class="col-md-3" ng-show="!(showCase.g_data.stock_2d)">
+                  <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
+                    <div class="overflow-hidden">
+                    <span class="widget-subtitle">TOTAL AVAILABLE QUANTITY</span>
+                    <span class="widget-title bold">{{showCase.tb_data.totalAvailableQuantity}}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3" ng-show="!(showCase.g_data.stock_2d)">
+                  <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
+                    <div class="overflow-hidden">
+                    <span class="widget-subtitle">TOTAL RESERVED QUANTITY</span>
+                    <span class="widget-title bold">{{showCase.tb_data.totalReservedQuantity}}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3" ng-show="!(showCase.g_data.stock_2d)">
+                  <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
+                    <div class="overflow-hidden">
+                    <span class="widget-subtitle">TOTAL QUANTITY</span>
+                    <span class="widget-title bold" >{{showCase.tb_data.totalQuantity}}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3" style="float: right;">
+                  <label class="switch switch-sm square pull-right mt5">
+                    <div>
+                      <input type="checkbox" class="ng-pristine ng-valid" ng-change="showCase.change_datatable()" 
+                             ng-model="showCase.g_data.stock_2d">
+                      <span>
+                        <i class="handle"></i>
+                      </span>
+                    </div>
+                  </label>
+                  <label style="padding: 5px;" class="control-label pull-right"><b>Alternate View : </b></label>
+                </div>
             </div>
-            <!--
-            <div class="col-md-4 col-sm-4 col-xs-12">
-              <p align="center" class="mt10">Total Quantity: <span style="font-size: 16px"><b>{{showCase.tb_data.totalQuantity}}</b></span></p>
+          </div>
+          <div class="row" ng-show="showCase.g_data.stock_2d">
+            <div class="col-md-4 col-sm-6 col-xs-6" style="float: left;">
+              <div class="form-group">
+                <label class="control-label"> Size Type </label>
+                <select class="form-control zone" name="size_type" ng-model="showCase.selected_size" 
+                        ng-change="showCase.change_view(showCase.selected_size)">
+                  <!--<option value="">{{showCase.selected_default}}</option>-->
+                  <option ng-repeat="size in showCase.drop_data" value="{{size}}" ng-selected="showCase.selected_size == size">{{size}}</option>
+                </select>
+              </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-12">
-              <p align="center" class="mt10">Total Reserved Quantity: <span style="font-size: 16px"><b>{{showCase.tb_data.totalReservedQuantity}}</b></span></p>
-            </div>
-            <div class="col-md-4 col-sm-4 col-xs-12">
-              <p align="center" class="mt10">Total Available Quantity: <span style="font-size: 16px"><b>{{showCase.tb_data.totalAvailableQuantity}}</b></span></p>
-            </div>
-            -->
           </div>
         </div>
-        <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
-        <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>
+        <div class="panel-body" style="padding-left: 0px; padding-right: 0px" ng-if="showCase.dt_display">
+        <table ng-if="showCase.data_display" datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" 
+               dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>
         <div ui-view></div>
       </div>
     </div>

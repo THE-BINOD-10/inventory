@@ -32,8 +32,8 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.date_changed = function(){
     //$('.datepicker').hide();
     console.log(vm.model_data.shipment_date_new);
-    var date = new Date(vm.model_data.shipment_date_new);
-    vm.model_data.shipment_date = (date.getMonth() + 1) + '/' + date.getDate() + '/' +  date.getFullYear();
+    //var date = new Date(vm.model_data.shipment_date_new);
+    //vm.model_data.shipment_date = (date.getMonth() + 1) + '/' + date.getDate() + '/' +  date.getFullYear();
   }
 
   vm.update_customer_cart_data = function(data) {
@@ -70,7 +70,8 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
       elem = $(elem).serializeArray();
       vm.service.apiCall('insert_order_data/', 'GET', elem).then(function(data){
         if(data.message) {
-          if("Success" == data.data || "Order created Successfully" == data.data) {
+          //if("Success" == data.data || "Order created Successfully" == data.data) {
+            if(data.data.indexOf('Success') != '-1'){
             vm.delete_customer_cart_data(vm.model_data.data);
             angular.copy(empty_data, vm.model_data);
             angular.copy(empty_final_data, vm.final_data);
@@ -132,6 +133,12 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
     vm.final_data.tax_amount = vm.final_data.total_amount - vm.final_data.amount;
     console.log(vm.final_data);
   }
+
+  $('#shipment_date').datepicker();
+
+  $('#shipment_date').on('focus',function(){
+    $(this).trigger('blur');
+  });
 }
 
 angular

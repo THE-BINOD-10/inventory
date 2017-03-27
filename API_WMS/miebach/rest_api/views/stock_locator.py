@@ -12,6 +12,8 @@ from django.contrib import auth
 from miebach_admin.models import *
 from common import *
 from miebach_utils import *
+from utils import *
+log = init_logger('logs/stock_locator.log')
 
 @csrf_exempt
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -158,6 +160,175 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     #else:
     #    temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
     #temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+
+
+@csrf_exempt
+def get_stock_summary_size(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_dict={}):
+    """ This function delivers the alternate view of stock summary page """
+    log.info(" ------------stock summary alternate view started ------------------")
+    st_time = datetime.datetime.now()
+    default_size = ['S', 'M', 'L', 'XL', 'XXL']
+    size_master_objs = SizeMaster.objects.filter(user=user.id)
+
+    size_names = size_master_objs.values_list('size_name', flat = True)
+    size_name = request.POST.get("size_name", 'Default')
+    lis = ['sku_class', 'style_name', 'sku_brand', 'sku_category']
+    all_dat = ['SKU Class', 'Style Name', 'Brand', 'SKU Category']
+    search_params = get_filtered_params(filters, lis)
+    all_sizes = size_master_objs.filter(size_name = size_name)
+    sizes = []
+
+    if all_sizes:
+        sizes = all_sizes[0].size_value.split("<<>>")
+    else:
+        sizes = default_size
+
+    all_dat.extend(sizes)
+    sort_col = all_dat[col_num]
+    log.info(sort_col)
+    log.info(sizes)
+    try:
+        if search_term:
+            sku_classes = SKUMaster.objects.values('sku_class', 'style_name', 'sku_brand', 'sku_category').distinct().filter(Q(sku_class__icontains=search_term)| Q(style_name__icontains=search_term)|Q(sku_brand__icontains=search_term)|Q(sku_category__icontains=search_term), user = user.id, sku_size__in = sizes, **search_params)
+
+        else:
+            sku_classes = SKUMaster.objects.filter(user = user.id, sku_size__in = sizes, **search_params).values('sku_class', 'style_name', 'sku_brand', 'sku_category').distinct()
+        stock_detail_objs = StockDetail.objects.exclude(receipt_number=0).filter(sku__user = user.id, sku__sku_size__in = sizes).values('sku__sku_class', 'sku__sku_size').\
+                                            distinct().annotate(total_sum=Sum('quantity'))
+        stock_detail_dict = {}
+        for obj in stock_detail_objs:
+            if obj['sku__sku_class'] in stock_detail_dict.keys():
+                if obj['sku__sku_size'] in stock_detail_dict[obj['sku__sku_class']].keys():
+                    stock_detail_dict[obj['sku__sku_class']][obj['sku__sku_size']].append(obj['total_sum'])
+                else:
+                    stock_detail_dict[obj['sku__sku_class']].update({obj['sku__sku_size'] : [obj['total_sum']]})
+            else:
+                stock_detail_dict.update({obj['sku__sku_class'] : {obj['sku__sku_size'] : [obj['total_sum']]}})
+
+        temp_data['recordsTotal'] = sku_classes.count()
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+        all_data = []
+        for sku_class in sku_classes:
+            size_dict = {}
+            st_stock_objs = stock_detail_dict.get(sku_class['sku_class'], {})
+            for size in sizes:
+                log.info(st_stock_objs)
+                log.info(size)
+                qty = st_stock_objs.get(size, [])
+                if qty:
+                    quant = sum(qty)
+                else:
+                    quant = 0
+                size_dict.update({size : quant})
+
+            data = OrderedDict(( ('SKU Class', sku_class['sku_class']), ('Style Name', sku_class['style_name']),
+                        ('SKU Category', sku_class['sku_category']), ('Brand', sku_class['sku_brand']) ))
+
+            data.update(size_dict)
+            all_data.append(data)
+
+        if order_term == 'asc':
+            data_list = sorted(all_data, key=itemgetter(sort_col))
+        else:
+            data_list = sorted(all_data, key=itemgetter(sort_col), reverse=True)
+
+        data_list = data_list[start_index : stop_index]
+
+        log.info(data_list)
+        temp_data['aaData'].extend(data_list)
+
+    except Exception as e:
+        log.info(e)
+
+    end_time = datetime.datetime.now()
+    duration= end_time - st_time
+    log.info("total time -- %s" %(duration))
+    log.info("process completed")
+
+@csrf_exempt
+def get_stock_summary_size_excel(filter_params, temp_data, headers, user, request):
+    """ This function delivers the excel of alternate view of stock summary page """
+    log.info(" ------------Stock Summary Alternate view excel started ------------------")
+    st_time = datetime.datetime.now()
+    import xlsxwriter
+    default_size = ['S', 'M', 'L', 'XL', 'XXL']
+    #all_dat = ['SKU Class', 'Style Name', 'Brand', 'SKU Category']
+    stock_detail_objs = StockDetail.objects.exclude(receipt_number=0).filter(sku__user = user.id)
+    stock_detail_dict = {}
+
+    stock_detail_objs = StockDetail.objects.exclude(receipt_number=0).filter(sku__user = user.id).values('sku__sku_class', 'sku__sku_size').\
+                                            distinct().annotate(total_sum=Sum('quantity'))
+
+    for obj in stock_detail_objs:
+        if obj['sku__sku_class'] in stock_detail_dict.keys():
+            if obj['sku__sku_size'] in stock_detail_dict[obj['sku__sku_class']].keys():
+                stock_detail_dict[obj['sku__sku_class']][obj['sku__sku_size']].append(obj['total_sum'])
+            else:
+                stock_detail_dict[obj['sku__sku_class']].update({obj['sku__sku_size'] : [obj['total_sum']]})
+        else:
+            stock_detail_dict.update({obj['sku__sku_class'] : {obj['sku__sku_size'] : [obj['total_sum']]}})
+
+    all_sizes_obj = SizeMaster.objects.filter(user=user.id)
+    all_size_names = list(all_sizes_obj.values_list('size_name', flat = True))
+    all_size_names.append('DEFAULT')
+    try:
+        path = 'static/excel_files/' + str(user.id)  +'Stock_Summary_Alternative.xlsx'
+        if not os.path.exists('static/excel_files/'):
+            os.makedirs('static/excel_files/')
+        workbook = xlsxwriter.Workbook(path)
+        print all_size_names
+        for i, siz_nam in enumerate(all_size_names):
+
+            worksheet = workbook.add_worksheet(siz_nam)
+            bold = workbook.add_format({'bold': True})
+
+            all_dat = ['SKU Class', 'Style Name', 'Brand', 'SKU Category']
+            sizes = []
+            all_sizes = all_sizes_obj.filter(size_name = siz_nam)
+            if all_sizes:
+                sizes = all_sizes[0].size_value.split("<<>>")
+            else:
+                sizes = default_size
+
+            all_dat.extend(sizes)
+            #sort_col = all_dat[col_num]
+            log.info(sizes)
+            for n, header in enumerate(all_dat):
+                print all_dat
+                worksheet.write(0, n, header, bold)
+            sku_classes = SKUMaster.objects.filter(user = user.id, sku_size__in = sizes).values('sku_class', 'style_name', 'sku_brand', 'sku_category').distinct()
+
+
+            for row, sku_class in enumerate(sku_classes, 1):
+                size_dict = {}
+                st_stock_objs = stock_detail_dict.get(sku_class['sku_class'], {})
+                data = [sku_class['sku_class'], sku_class['style_name'], sku_class['sku_category'], sku_class['sku_brand']]
+                for size in sizes:
+                    log.info(st_stock_objs)
+                    log.info(size)
+                    qty = st_stock_objs.get(size, [])
+                    if qty:
+                        quant = sum(qty)
+                    else:
+                        quant = 0
+                    #size_dict.update({size : quant})
+
+                    data.append(quant)
+
+                for col, data in enumerate(data):
+                    worksheet.write(row, col, data)
+
+        workbook.close()
+    except Exception as e:
+        log.info(e)
+
+    end_time = datetime.datetime.now()
+    duration= end_time - st_time
+    log.info("total time -- %s" %(duration))
+    log.info("process completed")
+    return '../' + path
+
 
 def get_stock_counts(quantity, single_sku):
 
@@ -567,6 +738,13 @@ def insert_move_inventory(request, user=''):
 
     now = str(datetime.datetime.now())
     wms_code = request.GET['wms_code']
+    check = False
+    sku_id = check_and_return_mapping_id(wms_code, "", user, check)
+
+    if sku_id:
+        wms_code = SKUMaster.objects.get(id = sku_id).wms_code
+
+
     source_loc = request.GET['source_loc']
     dest_loc = request.GET['dest_loc']
     quantity = request.GET['quantity']

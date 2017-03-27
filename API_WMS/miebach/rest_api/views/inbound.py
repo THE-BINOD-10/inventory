@@ -1684,7 +1684,8 @@ def check_returns(request, user=''):
 @get_admin_user
 def check_sku(request, user=''):
     sku_code = request.GET.get('sku_code')
-    sku_id = check_and_return_mapping_id(sku_code, '', user)
+    check = False
+    sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if sku_id:
         sku_code = SKUMaster.objects.get(id = sku_id).sku_code
         data = {"status": 'confirmed', 'sku_code': sku_code}

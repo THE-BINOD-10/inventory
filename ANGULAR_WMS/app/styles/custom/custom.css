@@ -472,6 +472,9 @@ body {
   padding: 0px 15px;
   background-color: #fff;
 }
+.page-layout .layout-body label.error {
+  display: none !important;
+}
 .custom-table {
   border-bottom: 1px solid rgba(0, 0, 0, 0.14) !important;
 }
@@ -560,7 +563,7 @@ body {
   width: 170px;
 }
 .sidebar-panel > nav .open > ul.sub-menu {
-  max-height: 700px;
+  max-height: 800px;
 }
 .reports .dataTables_filter {
   display: none;
@@ -607,6 +610,11 @@ body {
   background: transparent;
   border: transparent;
   color: #666666;
+}
+#page-pop .modal-footer .pop-red {
+  background: #d96557;
+  border: #d96557;
+  color: #fff;
 }
 #page-pop .modal-body {
   background: #fff;
@@ -1142,4 +1150,10 @@ rm-blur:active {
 }
 .fs14 {
   font-size: 14px;
+}
+pre {
+  border: 0px;
+  background: #fff;
+  padding: 0px 5px;
+  white-space: pre-line;
 }

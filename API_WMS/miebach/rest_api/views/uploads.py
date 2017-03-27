@@ -1597,7 +1597,7 @@ def purchase_upload_mail(request, data_to_send):
             amount = (one_stat['quantity']) * (one_stat['price'])
             total += amount
             total_qty += one_stat['quantity']
-            po_data.append((one_stat['sku_code'], '', '', one_stat['quantity'], '', one_stat['price'] ))
+            po_data.append((one_stat['sku_code'], '', '', one_stat['quantity'], one_stat['price'], one_stat['quantity']*one_stat['price'] ))
 
         profile = UserProfile.objects.get(user=request.user.id)
         t = loader.get_template('templates/toggle/po_download.html')
@@ -1647,7 +1647,10 @@ def validate_move_inventory_form(open_sheet, user):
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 cell_data = str(cell_data)
-                sku_master = SKUMaster.objects.filter(wms_code=cell_data, user=user)
+                #sku_master = SKUMaster.objects.filter(wms_code=cell_data, user=user)
+                _user = User.objects.get(id = user)
+                _sku_master = check_and_return_mapping_id(cell_data, "", _user, False)
+                sku_master = SKUMaster.objects.filter(id = _sku_master)
                 if not sku_master:
                     index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
             elif col_idx == 1:

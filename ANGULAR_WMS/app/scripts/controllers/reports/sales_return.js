@@ -29,6 +29,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('Customer ID').withTitle('Customer ID'),
         DTColumnBuilder.newColumn('Return Date').withTitle('Return Date'),
         DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
+        DTColumnBuilder.newColumn('Market Place').withTitle('Market Place'),
         DTColumnBuilder.newColumn('Status').withTitle('Status').renderWith(function(data, type, full, meta) {
                           var status = 'Active';
                           var color = '#70cf32';

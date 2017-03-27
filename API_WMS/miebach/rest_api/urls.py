@@ -345,4 +345,7 @@ urlpatterns += patterns('rest_api.views',
     #save_invoice_changes -> outbound
     url(r'edit_invoice', 'edit_invoice'),
 
+
+    #get size_list
+    url(r'get_size_names', 'get_size_names'),
     )

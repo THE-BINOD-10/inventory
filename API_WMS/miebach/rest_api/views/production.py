@@ -1017,7 +1017,6 @@ def rm_picklist_confirmation(request, user=''):
                             exist_pics = RMLocation.objects.exclude(id=data.id).filter(material_picklist_id=picklist.id, status=1, reserved__gt=0)
                             update_picklist_locations(exist_pics, picklist, update_picked, 'true')
 
-
                         picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
 
                     raw_loc = RMLocation.objects.get(id=raw_loc.id)

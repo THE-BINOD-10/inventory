@@ -358,7 +358,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.DiscountMaster', {
           url: '/DiscountMaster',
-          permission: 'add_categorydiscount&pos_switch',
+          permission: 'pos_switch',
           templateUrl: 'views/masters/discount_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -422,6 +422,23 @@ var app = angular.module('urbanApp')
           .state('app.masters.PricingMaster.Add', {
              url: '/Price',
              templateUrl: 'views/masters/toggles/price_update.html'
+           })
+        .state('app.masters.SellerMaster', {
+          url: '/SellerMaster',
+          permission: 'add_sellermaster',
+          templateUrl: 'views/masters/seller_datatable.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/sellerMaster.js');
+                    }]
+          },
+          data: {
+            title: 'Seller Master',
+          }
+        })
+          .state('app.masters.SellerMaster.seller', {
+             url: '/seller',
+             templateUrl: 'views/masters/toggles/seller_update.html'
            })
 
       // Inbound routes
@@ -569,6 +586,22 @@ var app = angular.module('urbanApp')
           .state('app.inbound.SalesReturns.barcode', {
             url: '/Barcode',
             templateUrl: 'views/masters/toggles/barcode.html'
+          })
+        .state('app.inbound.SellerInvoice', {
+          url: '/SellerInvoices',
+          templateUrl: 'views/inbound/seller_invoice.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/inbound/seller_invoice.js');
+              }]
+          },
+          data: {
+            title: 'Seller Invoices',
+          }
+        })
+          .state('app.inbound.SellerInvoice.Invoice', {
+            url: '/Invoice',
+            templateUrl: 'views/inbound/print/seller_invoice.html'
           })
 
       // Production routes
@@ -1225,7 +1258,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'SKUWise Stock',
+            title: 'SKU Wise Stock',
           }   
         })
         .state('app.reports.SKUWisePurchaseOrders', {

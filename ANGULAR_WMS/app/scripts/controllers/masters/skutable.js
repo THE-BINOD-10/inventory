@@ -1,9 +1,9 @@
 'use strict';
 
 var app = angular.module('urbanApp', ['datatables'])
-app.controller('SKUMasterTable',['$scope', '$http', '$state', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', '$log', 'colFilters' , 'Service', ServerSideProcessingCtrl]);
+app.controller('SKUMasterTable',['$scope', '$http', '$state', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', '$log', 'colFilters' , 'Service', '$rootScope', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, $log, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, $log, colFilters, Service, $rootScope) {
 
     var vm = this;
     vm.apply_filters = colFilters;
@@ -68,6 +68,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         sku_brand: "",
                         sku_size: "",
                         style_name: "",
+                        mix_sku: "",
                         image_url:"images/wms/dflt.jpg",
                       },
                       "zones":[],
@@ -98,8 +99,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.market;
     vm.market_data = [];
     vm.files = [];
+    vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_within_group"};
     $scope.$on("fileSelected", function (event, args) {
-        $scope.$apply(function () {            
+        $scope.$apply(function () {
             vm.files.push(args.file);
         });
     });
@@ -172,9 +174,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     elem = elem[0];
     elem = $(elem).serializeArray();
     for (var i=0;i<elem.length;i++) {
-      if(elem[i].name == "market_sku_type") {
-        elem[i].value = vm.model_data.market_list[parseInt(elem[i].value)];
-      } else if(elem[i].name == "status") {
+      //if(elem[i].name == "market_sku_type") {
+      //  elem[i].value = vm.model_data.market_list[parseInt(elem[i].value)];
+      //} else
+      if(elem[i].name == "status") {
         elem[i].value = vm.status_data[parseInt(elem[i].value)];
       } else if(elem[i].name == "qc_check") {
         elem[i].value = (elem[i].value == "?") ? "": vm.qc_data[parseInt(elem[i].value)];
@@ -195,6 +198,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         formData.append(val.name, val.value);
     });
 
+    $rootScope.process = true;
+
     $.ajax({url: Session.url+vm.url,
             data: formData,
             method: 'POST',
@@ -210,6 +215,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               } else {
                 vm.pop_msg(response); 
               }
+              $rootScope.process = false;
             }});
   }
 
@@ -267,7 +273,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     });
     vm.model_data.sku_data.status = vm.status_data[1];
-    vm.model_data.sku_data.qc_check = vm.qc_data[1];
+    vm.model_data.sku_data.qc_check = vm.qc_data[0];
     $state.go('app.masters.SKUMaster.update');
   }
 
@@ -305,7 +311,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(vm.model_data.sku_data.sku_size && (vm.model_data.sizes.indexOf(vm.model_data.sku_data.sku_size) != -1)) {
           console.log("it is there")
         } else {
-          vm.model_data.sku_data.sku_size = vm.model_data.sizes[0];
+          //vm.model_data.sku_data.sku_size = vm.model_data.sizes[0];
+          vm.model_data.sku_data.sku_size = '';
         }
       }
     })

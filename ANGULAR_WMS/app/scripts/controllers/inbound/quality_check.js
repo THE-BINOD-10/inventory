@@ -71,6 +71,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function close() {
 
       angular.copy(empty_data, vm.model_data);
+      vm.imei_list = [];
       $state.go('app.inbound.QualityCheck');
     }
 
@@ -103,7 +104,48 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.scan = '';
       }
     }
- 
+
+    vm.imei_sku = "";
+    vm.imei_list = [];
+    vm.wait_imei = "";
+    vm.scan_imei = function(event, field) {
+      if ( event.keyCode == 13 && field.length > 0) {
+        if(vm.imei_list.indexOf(field) == -1) {
+          var data = {imei: field, order_id: vm.model_data.order_id};
+          vm.service.apiCall('check_imei_qc/', 'GET', data).then(function(data){
+            if(data.message) {
+              console.log(data.data)
+              if ($state.$current.name == 'app.inbound.QualityCheck.qc_detail' && data.data.status == "") {
+                if (vm.model_data1.sku_data['WMS Code'] == data.data.sku_data['SKU Code']) {
+                  vm.imei_list.push(field);
+                  vm.accept_qc(field);
+                } else {
+                  vm.update_details(vm.current_details, false);
+                  generate_details_data(data.data.sku_data['SKU Code']);
+                  vm.model_data1 = data.data;
+                  vm.imei_list.push(field);
+                  vm.accept_qc(field);
+                }
+              } else if(data.data.status) {
+                vm.service.showNoty(data.data.status);
+              } else {
+
+                generate_details_data(data.data.sku_data['SKU Code']);
+                vm.model_data1 = data.data;
+                qc_details();
+                vm.imei_list.push(field);
+                vm.accept_qc(field);
+              }
+            }
+          })
+        } else {
+          vm.service.showNoty("IMEI already scanned");
+        }
+        vm.serial_scan = "";
+        vm.imei_number = "";
+      }
+    }
+
     function generate_details_data(field) {
       for(var i=0;vm.model_data.data.length; i++) {
         if(vm.model_data.data[i].wms_code == field) {
@@ -114,11 +156,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
-   vm.update_details = function(data) {
+   vm.update_details = function(data, state) {
      for(var i=0;vm.model_data.data.length; i++) {
         if(vm.model_data.data[i].wms_code == data.wms_code) {
           vm.model_data.data[i] = data;
-          $state.go('app.inbound.QualityCheck.qc');
+          if(state) {
+            vm.enable_button = true;
+            $state.go('app.inbound.QualityCheck.qc');
+          }
           break;
         }
       }
@@ -138,8 +183,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      var qc_scan = JSON.stringify(vm.qc_scan);
-      elem.push({name:'qc_scan', value: qc_scan})
+      //var qc_scan = JSON.stringify(vm.qc_scan);
+      //elem.push({name:'qc_scan', value: qc_scan})
       vm.service.apiCall('confirm_quality_check/', 'POST', elem).then(function(data){
         if(data.message) {
           if (data.data == "Updated Successfully") {
@@ -149,7 +194,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             pop_msg(data.data);
           }
         }
-      });  
+      });
     }
 
     vm.confirm_btn = false;
@@ -179,20 +224,33 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       console.log(vm.qc_scan);
     }
 
-    vm.accept_qc = function() {
+    vm.accept_qc = function(field) {
 
       vm.add_qc_scan('accept',vm.serial_scan, vm.model_data1.data_dict[0].id, '');
       vm.current_details.accepted_quantity = parseInt(vm.current_details.accepted_quantity)+1;
-      vm.enable_button = true;
+      vm.enable_button = false;
       vm.show_serial = (vm.current_details.quantity == vm.current_details.accepted_quantity + vm.current_details.rejected_quantity)? false : true;
+      if(!(vm.current_details["accept_imei"])) {
+        vm.current_details["accept_imei"] = [];
+      }
+      vm.current_details["accept_imei"].push(field+"<<>>"+vm.current_details.id+"<<>>");
     }
 
     vm.reject_qc = function() {
 
-      vm.add_qc_scan('accept',vm.serial_scan, vm.model_data1.data_dict[0].id, vm.selected);
+      //vm.add_qc_scan('accept',vm.serial_scan, vm.model_data1.data_dict[0].id, vm.selected);
       vm.reason_show = false;
+      vm.current_details.accepted_quantity = parseInt(vm.current_details.accepted_quantity)-1;
       vm.current_details.rejected_quantity = parseInt(vm.current_details.rejected_quantity)+1;
       vm.show_serial = (vm.current_details.quantity == vm.current_details.accepted_quantity + vm.current_details.rejected_quantity)? false : true;
+      var index = vm.current_details["accept_imei"].length-1;
+      var field = vm.current_details["accept_imei"][index].split("<<>>")[0];
+      vm.current_details["accept_imei"].splice(index,1);
+      if(!(vm.current_details["reject_imei"])) {
+        vm.current_details["reject_imei"] = [];
+      }
+      vm.current_details["reject_imei"].push(field+"<<>>"+vm.current_details.id+"<<>>"+vm.selected);
+      vm.selected="";
     }
   }
 

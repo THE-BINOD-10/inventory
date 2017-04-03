@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ReceivePOCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('ReceivePOCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert) {
     var vm = this;
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
@@ -48,6 +48,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.serial_numbers = [];
                     angular.copy(data.data, vm.model_data);
                     vm.title = "Generate GRN";
+                    if(vm.permissions.use_imei) {
+                      fb.push_po(vm.model_data);
+                    }
                     if(aData['Order Type'] == "Vendor Receipt") {
                       $state.go('app.inbound.RevceivePo.Vendor');
                     } else {
@@ -72,6 +75,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.model_data = {};
       vm.html = "";
       vm.print_enable = false;
+      fb.generate = false;
       $state.go('app.inbound.RevceivePo');
     }
 
@@ -131,6 +135,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             angular.element(".modal-body").html($(html).find(".modal-body"));
             vm.print_enable = true;
             vm.service.refresh(vm.dtInstance);
+            if(vm.permissions.use_imei) {
+              fb.generate = true;
+              fb.remove_po(fb.poData["id"]);
+            }
           } else {
             pop_msg(data)
           }
@@ -192,7 +200,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               for(var i=0; i<vm.model_data.data.length; i++) {
                 vm.sku_list_1.push(vm.model_data.data[i][0]["wms_code"]);
                 if(vm.field == vm.model_data.data[i][0]["wms_code"]){
-                  $('input[value="'+vm.field+'"]').parents('tr').find("input[name='imei_number']").trigger('focus');
+                  $('input[value="'+vm.field+'"]').parents('tr').find("input[name='imei']").trigger('focus');
                 }
               }
               if (vm.sku_list_1.indexOf(field) == -1){
@@ -216,12 +224,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          });
         /*for(var i=0; i<vm.model_data.data.length; i++) {
           if(field == vm.model_data.data[i][0]["wms_code"]){
-              //$('input[value="'+field+'"]').parents('tr').find("input[name='quantity']").trigger('focus');
-              $('input[value="'+field+'"]').parents('tr').find("input[name='imei_number']").trigger('focus');
+            //vm.model_data.data[i][0].value = vm.model_data.data[i][0].value + 1;
+            //$('input[value="'+field+'"]').parents('tr').find("input[name='quantity']").trigger('focus');
+            $('input[value="'+field+'"]').parents('tr').find("input[name='imei_number']").trigger('focus');
             console.log("success");
             break;
           }
-        }*/
+        }
       }
     }
 
@@ -230,7 +239,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       event.stopPropagation();
       if (event.keyCode == 13 && data1.imei_number.length > 0) {
         if (vm.serial_numbers.indexOf(data1.imei_number) != -1){
-            pop_msg("Serial Number already Exist");
+          vm.service.pop_msg("Serial Number already Exist");
+          data1.imei_number = "";
+          $('textarea[name="scan_sku"]').trigger('focus').val('');
+        } else if (vm.fb.poData.serials.indexOf(data1.imei_number) != -1){
+          vm.service.pop_msg("Serial Number already Exist");
+          data1.imei_number = "";
+          $('textarea[name="scan_sku"]').trigger('focus').val('');
         } else {
           vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number}).then(function(data){
             if(data.message) {
@@ -238,6 +253,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 data1.value = parseInt(data1.value)+1;
                 vm.serial_numbers.push(data1.imei_number);
                 data1["imei_list"].push(data1.imei_number);
+                fb.change_serial(data1, data1.imei_number);
               } else {
                 pop_msg(data.data);
               }
@@ -283,14 +299,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       angular.forEach(vm.model_data.data, function(barcode_data){
         var quant = barcode_data[0].value;
-        vm.sku_det = barcode_data[0].wms_code;
-        var list_of_sku = barcode_data[0].serial_number.split(',');
+        var sku_det = barcode_data[0].wms_code;
+        /*var list_of_sku = barcode_data[0].serial_number.split(',');
 
         angular.forEach(list_of_sku, function(serial) {
           console.log(vm.sku_det);
           var serial_number = vm.sku_det+'/00'+serial;
           vm.model_data['barcodes'].push({'sku_code': serial_number, 'quantity': 1})
-        })
+        })*/
+       vm.model_data['barcodes'].push({'sku_code': sku_det, 'quantity': quant})
 
       })
 
@@ -319,6 +336,154 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             }
           }
         });
+      }
+    }
+
+    //firebase integrations
+    var fb = {};
+    vm.fb = fb;
+    fb["poData"] = {serials: []};
+    fb["generate"] = false;
+
+    fb["exists"] = function(data) {
+      var d = $q.defer();
+      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/").orderByChild("po").equalTo(data.po_reference).once("value", function(snapshot) {
+        if(snapshot.val()) {
+          var po = {}
+          angular.forEach(snapshot.val(), function(data,v){
+            po = data;
+            po['id'] = v;
+          })
+          d.resolve({status: true, data: po});
+        } else {
+          d.resolve({status: false});
+        }
+      });
+      return d.promise;
+    }
+
+    fb["push"] = function(data){
+      var po = {};
+      po["po"] = data.po_reference;
+      po["serials"] = "";
+      angular.forEach(data.data, function(sku){
+        po[sku[0].wms_code] = {};
+        po[sku[0].wms_code]["quantity"] = sku[0].value;
+        po[sku[0].wms_code]["wms_code"] = sku[0].wms_code;
+        po[sku[0].wms_code]["serials"] = "";
+      })
+      console.log(po);
+      firebase.database().ref("/GenerateGRN/"+Session.parent.userId).push(po).then(function(data){
+        console.log(data);
+        fb.poData = po;
+        fb.poData['id'] = data.path.o[2];
+        console.log(fb.poData);
+        fb.po_change_event();
+      })
+    }
+
+    fb["push_po"] = function(data) {
+
+      fb.exists(data).then(function(po){
+
+        console.log(po);
+        if(!po.status) {
+          fb.push(data);
+        } else {
+          fb.poData = po.data;
+          fb.change_po_data(fb.poData);
+          fb.po_change_event();
+          fb.po_generate_event();
+        }
+      })
+    }
+
+    fb["change_serial"] = function(data, serial) {
+
+      console.log(data.wms_code, serial);
+      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ data.wms_code +"/serials/").push(serial);
+      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/serials/").push(serial);
+    }
+
+    fb["change_po_data"] = function(data) {
+
+      vm.fb.poData['serials'] = Object.values(vm.fb.poData['serials']);
+      angular.forEach(vm.model_data.data, function(data){
+        if(vm.fb.poData[data[0].wms_code]) {
+          data[0].value = Object.keys(vm.fb.poData[data[0].wms_code]['serials']).length;
+          data[0]['imei_list'] =  Object.values(vm.fb.poData[data[0].wms_code]['serials']);
+        }
+      })
+    }
+
+    fb["po_change_event"] = function() {
+
+        firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/").on("child_changed", function(sku) {
+          console.log(sku.val());
+          var response = sku.val();
+          if(response["wms_code"]){
+
+            for(var i=0; i < vm.model_data.data.length; i++) {
+
+              if(response.wms_code == vm.model_data.data[i][0]['wms_code']) {
+                vm.model_data.data[i][0]['value'] = Object.keys(response.serials).length;
+                vm.model_data.data[i][0]['imei_list'] = Object.values(response.serials);
+                vm.fb.poData[response.wms_code]['serials'] = Object.values(response.serials);
+                $timeout(function() {
+                  $scope.$apply();
+                }, 500);
+                break;
+              }
+            }
+          } else {
+
+            vm.fb.poData.serials = Object.values(response);
+          }
+        });
+    }
+
+    fb["po_generate_event"] = function() {
+
+      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/").on("child_removed", function(po) {
+
+        var delete_po = po.val();
+        if(fb.poData.po == delete_po["po"]) {
+          fb.poData = {};
+          if (!(fb.generate)) {
+
+             SweetAlert.swal({
+               title: '',
+               text: 'Generated GRN Successfully',
+               type: 'success',
+               showCancelButton: false,
+               confirmButtonColor: '#33cc66',
+               confirmButtonText: 'Ok',
+               closeOnConfirm: true,
+             },
+             function (status) {
+               vm.close();
+               }
+             );
+            //vm.close();
+          }
+        }
+        console.log(po);
+      })
+    }
+
+    fb["remove_po"] = function(po) {
+
+      if(po) {
+        firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+po).once("value", function(data){
+          data.ref.remove()
+            .then(function() {
+              console.log("Remove succeeded.")
+            })
+            .catch(function(error) {
+              console.log("Remove failed: " + error.message)
+            });
+          console.log(data.ref.remove())
+        })
       }
     }
   }

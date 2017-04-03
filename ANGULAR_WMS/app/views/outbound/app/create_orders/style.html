@@ -69,7 +69,6 @@
              <div class="row" style="border-top:1px solid rgba(0,0,0,.1);">
                 <button type="button" id ="place_order" class="btn btn-warning btn-lg col-xs-12" ng-click="Style.add_to_cart(Style.style_data);Style.make_empty()" style="transform: translate3d(0,0,0);">ADD TO CART</button>
               </div>-->
-              <button type="button" id="place_order" class="btn btn-lg btn-warning visible-xs-block visible-sm-block" ng-click="Style.add_to_cart(Style.style_data);Style.make_empty()" style="position: fixed; width: 100%; bottom: 0; left: 0; right: 0;display: block;">ADD TO CART</button>
             <!--</div>-->
             <div class="col-md-6 col-sm-6 col-xs-6 hide">
               <button type="button" class="hide btn btn-warning btn-round btn-outline btn-lg pull-right" ng-click="showCase.enable_stock()" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">CHECK STOCK</button>
@@ -82,4 +81,5 @@
       </div>
     </div>
   </div>
+  <button type="button" id="place_order" class="btn btn-lg btn-warning visible-xs-block visible-sm-block cart_button" ng-click="Style.add_to_cart(Style.style_data);Style.make_empty()" style="width: 100%">ADD TO CART</button>
 </div>

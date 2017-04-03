@@ -102,14 +102,19 @@ def add_user_permissions(request, response_data, user=''):
     #    multi_warehouse = 'true'
     if user_profile.multi_warehouse:
         multi_warehouse = 'true'
+    parent_data = {}
+    parent_data['userId'] = user.id
+    parent_data['userName'] = user.username
     response_data['data']['userName'] = request.user.username
     response_data['data']['userId'] = request.user.id
+    response_data['data']['parent'] = parent_data
     response_data['data']['roles'] = get_user_permissions(request, user)
     response_data['data']['roles']['labels'] = get_label_permissions(request, user, response_data['data']['roles']['label_perms'])
     response_data['data']['roles']['permissions']['is_superuser'] = status_dict[int(request.user.is_superuser)]
     response_data['data']['roles']['permissions']['is_staff'] = status_dict[int(request.user.is_staff)]
     response_data['data']['roles']['permissions']['multi_warehouse'] = multi_warehouse
     response_data['data']['roles']['permissions']['show_pull_now'] = show_pull_now
+    response_data['data']['roles']['permissions']['order_manage'] = get_misc_value('order_manage', user.id)
     response_data['data']['user_profile'] = {'first_name': request.user.first_name, 'last_name': request.user.last_name,
                                              'registered_date': get_local_date(request.user, user_profile.creation_date),
                                              'email': request.user.email,
@@ -273,11 +278,12 @@ data_datatable = {#masters
                   'WarehouseMaster': 'get_warehouse_user_results', 'VendorMaster': 'get_vendor_master_results',\
                   'DiscountMaster':'get_discount_results', 'CustomSKUMaster': 'get_custom_sku_properties',\
                   'SizeMaster': 'get_size_master_data', 'PricingMaster': 'get_price_master_results', \
+                  'SellerMaster': 'get_seller_master', \
                   #inbound
                   'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po',\
                   'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data',\
                   'ReturnsPutaway': 'get_order_returns_data', 'SalesReturns': 'get_order_returns',\
-                  'RaiseST': 'get_raised_stock_transfer',\
+                  'RaiseST': 'get_raised_stock_transfer', 'SellerInvoice': 'get_seller_invoice_data',\
                   #production
                   'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed',\
                   'PickelistGenerated':'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo',\
@@ -354,6 +360,18 @@ def get_filtered_params(filters, data_list):
         if value:
             filter_params[data_list[col_num] + '__icontains'] = value
     return filter_params
+
+def get_filtered_params_search(filters, data_list):
+    filter_params1 = {}
+    filter_params2 = {}
+    for key, value in filters.iteritems():
+        col_num = int(key.split('_')[-1])
+        if value:
+            filter_params2[data_list[col_num] + '__icontains'] = value
+            filter_params1[data_list[col_num] + '__istartswith'] = value
+    return filter_params1, filter_params2
+
+
 
 @csrf_exempt
 def get_local_date(user, input_date, send_date=''):
@@ -1101,7 +1119,8 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
     return 'Added Successfully'
 
 def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
-    now = str(datetime.datetime.now())
+    now_date = datetime.datetime.now()
+    now = str(now_date)
     if wmscode:
         sku = SKUMaster.objects.filter(wms_code=wmscode, user=user.id)
         if not sku:
@@ -1118,9 +1137,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
     if quantity:
         quantity = float(quantity)
         stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=location[0].id, sku__user=user.id)
-        for stock in stocks:
-            total_stock_quantity += float(stock.quantity)
-
+        total_stock_quantity =  stocks.aggregate(Sum('quantity'))['quantity__sum']
         remaining_quantity = total_stock_quantity - quantity
         for stock in stocks:
             if total_stock_quantity < quantity:
@@ -1140,8 +1157,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
                     stock.save()
                     remaining_quantity = remaining_quantity - stock_quantity
         if not stocks:
-            dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=float(quantity), status=1,
-                                      creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now(), location_id=location[0].id,
+            dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=quantity, status=1,
+                                      creation_date=now_date, updation_date= now_date, location_id=location[0].id,
                                       sku_id=sku_id)
             dest_stocks.save()
     if quantity == 0:
@@ -1158,7 +1175,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
     data_dict['status'] = 0
     data_dict['creation_date'] = now
     data_dict['updation_date'] = now
-    cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
+    #cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
     dat = CycleCount(**data_dict)
     dat.save()
 
@@ -1465,12 +1482,14 @@ def search_wms_codes(request, user=''):
                 wms_codes.append(str(wms.wms_code))
             if len(wms_codes) >= 10:
                 break
-            else:
-                if market_place_code:
-                    wms_codes.extend(market_place_code)
-    else:
+    if len(wms_codes) <= 10:
         if market_place_code:
-            wms_codes.extend(market_place_code)
+            for marketplace in market_place_code:
+                if len(wms_codes) <= 10:
+                    if marketplace not in wms_codes:
+                        wms_codes.append(marketplace)
+                else:
+                    break
 
     #wms_codes = list(set(wms_codes))
 
@@ -2273,3 +2292,35 @@ def get_size_names(requst, user = ""):
 
     return HttpResponse(json.dumps(sizes_list))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sellers_list(request, user=''):
+    sellers = SellerMaster.objects.filter(user=user.id)
+    seller_list = [] 
+    for seller in sellers:
+        seller_list.append({'id': seller.id, 'name': seller.name})
+    return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5}))
+
+def update_filled_capacity(locations, user_id):
+    location_masters = LocationMaster.objects.filter(location__in=locations, zone__user=user_id)
+    location_ids = list(location_masters.values_list('id', flat=True))
+    location_stocks = StockDetail.objects.filter(location_id__in=location_ids, sku__user=user_id, quantity__gt=0).values('location_id').distinct().annotate(total_filled=Sum('quantity'))
+    loc_mast_ids = map(lambda d: d['location_id'], location_stocks)
+    loc_quantities = map(lambda d: d['total_filled'], location_stocks)
+    for location in location_masters:
+        filled_capacity = 0
+        if location.id in loc_mast_ids:
+            filled_capacity = loc_quantities[loc_mast_ids.index(location.id)]
+        location.filled_capacity = filled_capacity
+        location.save()
+
+def get_dictionary_query(data_dict={}):
+    queries = [Q(**{key: value}) for key, value in data_dict.iteritems()]
+    if queries:
+        query = queries.pop()
+        for item in queries:
+            query |= item 
+    else:
+        query = Q()
+    return query

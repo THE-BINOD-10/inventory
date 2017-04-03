@@ -32,7 +32,7 @@
               <div class="form-group">
                 <label class="control-label"> Put Zone * </label>
                 <select class="form-control zone" name="zone_id" ng-model="showCase.model_data.sku_data.zone" ng-init="showCase.model_data.sku_data.zone" ng-options="zone for zone in showCase.model_data.zones">
-                </select>              
+                </select>
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -53,7 +53,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> SKU Category </label>
-                <input type="text" name="sku_category" class="form-control" ng-model="showCase.model_data.sku_data.sku_category" maxlength="60">     
+                <input type="text" name="sku_category" class="form-control" ng-model="showCase.model_data.sku_data.sku_category" maxlength="60">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -74,6 +74,7 @@
               <div class="form-group">
                 <label class="control-label"> Size </label>
                 <select class="form-control" name="sku_size" ng-model="showCase.model_data.sku_data.sku_size">
+                  <option value ="" ng-selected="showCase.model_data.sku_data.sku_size == ''"> None </option>
                   <option ng-repeat = "size in showCase.model_data.sizes" value="{{size}}" ng-selected="showCase.model_data.sku_data.sku_size == size">{{size}}</option>
                 </select>
               </div>
@@ -86,8 +87,11 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Threshold Quantity * </label>
-                <input type="text" name="threshold_quantity" class="form-control" ng-model="showCase.model_data.sku_data.threshold_quantity" ng-class="service.get_decimal_perm()" required>
+                <label class="control-label"> Mix SKU </label>
+                <select class="form-control" name="mix_sku" ng-model="showCase.model_data.sku_data.mix_sku">
+                  <option ng-selected="showCase.model_data.sku_data.mix_sku == ''" value="">Default</option>
+                  <option ng-repeat="(k,v) in showCase.mix_sku_list" ng-selected="showCase.model_data.sku_data.mix_sku == v" value="{{v}}">{{k}}</option>
+                </select>
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -104,12 +108,26 @@
                 </select> 
               </div>
             </div>
-            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.permissions.add_qualitycheck">
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Threshold Quantity * </label>
+                <input type="text" name="threshold_quantity" class="form-control" ng-model="showCase.model_data.sku_data.threshold_quantity" ng-class="service.get_decimal_perm()" required>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Price </label>
                 <input type="text" name="price" class="form-control" ng-model="showCase.model_data.sku_data.price" decimal-number>
               </div>
             </div>
+
+             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.permissions.add_qualitycheck">
+              <div class="form-group">
+                <label class="control-label"> MRP </label>
+                <input type="text" name="mrp" class="form-control" ng-model="showCase.model_data.sku_data.mrp" decimal-number>
+              </div>
+            </div>
+
           </div>
           <div class="row">
             <div class="col-md-12"><hr></div>
@@ -128,7 +146,8 @@
                 <tr ng-repeat= "market in showCase.model_data.market_data">
                   <td>
                     <input type="hidden" name="market_id" value="{{market.market_id}}">
-                    <select class="form-control" name="market_sku_type" ng-model="market.market_sku_type" ng-options="qc for qc in showCase.model_data.market_list" ng-readonly="market.disable">
+                    <input type="hidden" name="market_sku_type" value="{{market.market_sku_type}}">
+                    <select class="form-control" ng-model="market.market_sku_type" ng-options="qc for qc in showCase.model_data.market_list" ng-disabled="market.disable">
                     </select>
                   </td>
                   <td><input type="text" name="marketplace_code" class="form-control" ng-model="market.marketplace_code" ng-readonly="market.disable"></td>
@@ -182,7 +201,10 @@
       <div class="modal-footer">
         <div class="form-group" style="margin-bottom:0px;">
           <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
-          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)">Save</button>
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+            <span>Save</span>
+            <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+          </button>
         </div>
       </div>
     </div><!-- /.modal-content -->

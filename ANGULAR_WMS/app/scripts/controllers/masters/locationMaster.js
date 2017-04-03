@@ -26,7 +26,7 @@ function LocationMasterCtrl($scope, $state, $http, $timeout, Session, Service) {
   vm.zone_adding = function(zone) {
 
    if (zone.length> 0) {
-     vm.service.apiCall('add_zone/', 'GET', {zone: zone}).then(function(data){
+     vm.service.apiCall('add_zone/', 'GET', {zone: zone}, true).then(function(data){
        if(data.message){
          vm.service.pop_msg(data.data);
          vm.zone = "";
@@ -42,11 +42,10 @@ function LocationMasterCtrl($scope, $state, $http, $timeout, Session, Service) {
   vm.location_adding = function(data) {
 
     if(data.$valid) {
-      var url = (vm.update)? 'update_location/?' : 'add_location/?'
+      var url = (vm.update)? 'update_location/' : 'add_location/'
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      elem = $.param(elem);
       var data = $('.selectpicker').val();
       var send = "";
       if (data != null) {
@@ -55,10 +54,9 @@ function LocationMasterCtrl($scope, $state, $http, $timeout, Session, Service) {
         }
       }
       send = send.slice(0,-1);
-      elem = elem+"&location_group="+send;
-      $http.get(Session.url+url+elem, {withCredential: true})
-      .success(function(data, status) {
-        if(data == 'Updated Successfully' || data == 'Added Successfully') {
+      elem.push({name: 'location_group', value: send})
+      vm.service.apiCall(url, "GET", elem, true).then(function(data) {
+        if(data.data == 'Updated Successfully' || data.data == 'Added Successfully') {
           location_data();
           vm.close();
         } else {

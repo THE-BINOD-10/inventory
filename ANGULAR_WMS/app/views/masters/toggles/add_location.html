@@ -83,7 +83,10 @@
           <div class="row"><h4 align="center">{{showCase.service.message}}</h4></div>
           <div class="modal-footer">
             <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
-            <button type="submit" class="btn pop pop-green" ng-click="showCase.location_adding(form)">Save</button>
+            <button type="submit" class="btn pop pop-green" ng-click="showCase.location_adding(form)" ng-disabled="process">
+              <span>Save</span>
+              <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+            </button>
           </div>
         </div>
       </div>

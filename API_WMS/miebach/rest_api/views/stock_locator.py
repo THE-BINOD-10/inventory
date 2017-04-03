@@ -621,19 +621,21 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
         pallet_switch = get_misc_value('pallet_switch', user.id)
+        _date = get_local_date(user, data.receipt_date, True)
+        _date = _date.strftime("%d %b, %Y")
         if pallet_switch == 'true':
             pallet_code = ''
             if data.pallet_detail:
                 pallet_code = data.pallet_detail.pallet_code
             temp_data['aaData'].append(OrderedDict(( ('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
-                                        ('Receipt Date', get_local_date(user, data.receipt_date)), ('SKU Code', data.sku.sku_code),
+                                        ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
                                         ('WMS Code', data.sku.wms_code), ('Product Description', data.sku.sku_desc),
                                         ('Zone', data.location.zone.zone), ('Location', data.location.location),
                                         ('Quantity', get_decimal_limit(user.id, data.quantity)),
                                         ('Pallet Code', pallet_code), ('Receipt Type', data.receipt_type) )) )
         else:
             temp_data['aaData'].append(OrderedDict(( ('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
-                                        ('Receipt Date', get_local_date(user, data.receipt_date)), ('SKU Code', data.sku.sku_code),
+                                        ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
                                         ('WMS Code', data.sku.wms_code), ('Product Description', data.sku.sku_desc),
                                         ('Zone', data.location.zone.zone), ('Location', data.location.location),
                                         ('Quantity', get_decimal_limit(user.id, data.quantity)), ('Receipt Type', data.receipt_type))))
@@ -749,6 +751,8 @@ def insert_move_inventory(request, user=''):
     dest_loc = request.GET['dest_loc']
     quantity = request.GET['quantity']
     status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user)
+    if 'success' in status.lower():
+        update_filled_capacity([source_loc, dest_loc], user.id)
 
     return HttpResponse(status)
 
@@ -945,6 +949,7 @@ def confirm_move_inventory(request, user=''):
 @login_required
 @get_admin_user
 def confirm_inventory_adjustment(request, user=''):
+    mod_locations = []
     for key, value in request.GET.iteritems():
         data = CycleCount.objects.get(id = key, sku__user = user.id)
         data.status = 'completed'
@@ -956,6 +961,7 @@ def confirm_inventory_adjustment(request, user=''):
                                                     sku__user = user.id)
         difference = data.seen_quantity - data.quantity
         for count in location_count:
+            mod_locations.append(count.location.location)
             if difference > 0:
                 count.quantity += difference
                 count.save()
@@ -973,6 +979,8 @@ def confirm_inventory_adjustment(request, user=''):
                 if difference == 0:
                     break
 
+    if mod_locations:
+        update_filled_capacity(mod_locations, user.id)
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt

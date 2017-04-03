@@ -137,7 +137,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                   var n = Object.keys(styles).length / 10;
                   var c = 0;
                   for (var i=0; i<Object.keys(styles).length; i++) {
-                    var cat_len = styles[Object.keys(styles)[i]].data.length;
+                    var cat_len = Object.keys(styles[Object.keys(styles)[i]]).length;
                     c = c + cat_len;
                   }
                   c = c / 20;

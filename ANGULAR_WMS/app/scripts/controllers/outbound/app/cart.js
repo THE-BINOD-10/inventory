@@ -16,8 +16,11 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
       if(data.message) {
 
         angular.copy(data.data.data,vm.model_data.data);
-        vm.change_remarks();
-        vm.cal_total();
+        if(vm.model_data.data.length > 0) {
+          vm.data_status = true;
+          vm.change_remarks();
+          vm.cal_total();
+        }
       }
     })
   }
@@ -61,38 +64,41 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
   vm.get_customer_cart_data();
 
-  vm.bt_disable = false;
+  vm.data_status = false;
+  vm.insert_cool = true;
   vm.insert_order_data = function(form) {
-    if (vm.model_data.shipment_date) {
-      vm.bt_disable = true;
-      var elem = angular.element($('form'));
-      elem = elem[0];
-      elem = $(elem).serializeArray();
-      vm.service.apiCall('insert_order_data/', 'GET', elem).then(function(data){
-        if(data.message) {
-          //if("Success" == data.data || "Order created Successfully" == data.data) {
-            if(data.data.indexOf('Success') != '-1'){
-            vm.delete_customer_cart_data(vm.model_data.data);
-            angular.copy(empty_data, vm.model_data);
-            angular.copy(empty_final_data, vm.final_data);
-          }
-            swal({
-              title: "Success!",
-              text: "Your Order Has Been Placed Successfully",
-              type: "success",
-              showCancelButton: false,
-              confirmButtonText: "OK",
-              closeOnConfirm: true
-              },
-              function(isConfirm){
-                $state.go("user.App.Brands");
-              }
-            )
-        }
-        vm.bt_disable = false;
-      })
-    } else {
+    if (!(vm.model_data.shipment_date)) {
       vm.service.showNoty("Please Select Shipment Date", "success", "bottomRight");
+    } else {
+      if(vm.insert_cool && vm.data_status) {
+        vm.insert_cool =false
+        vm.data_status = false;
+        var elem = angular.element($('form'));
+        elem = elem[0];
+        elem = $(elem).serializeArray();
+        vm.service.apiCall('insert_order_data/', 'GET', elem).then(function(data){
+          if(data.message) {
+            if(data.data.indexOf("Success") != -1) {
+              vm.delete_customer_cart_data(vm.model_data.data);
+              angular.copy(empty_data, vm.model_data);
+              angular.copy(empty_final_data, vm.final_data);
+              swal({
+                title: "Success!",
+                text: "Your Order Has Been Placed Successfully",
+                type: "success",
+                showCancelButton: false,
+                confirmButtonText: "OK",
+                closeOnConfirm: true
+                },
+                function(isConfirm){
+                  $state.go("user.App.Brands");
+                }
+              )
+            }
+          }
+          vm.insert_cool = true
+        })
+      }
     }
   }
 

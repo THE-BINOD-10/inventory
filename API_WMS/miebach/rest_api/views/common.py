@@ -92,6 +92,11 @@ def add_user_permissions(request, response_data, user=''):
     status_dict = {1: 'true', 0: 'false'}
     multi_warehouse = 'false'
     user_profile = UserProfile.objects.get(user_id=user.id)
+    tax_type = CustomerUserMapping.objects.filter(user_id=request.user.id).values_list('customer__tax_type', flat = True)
+    if tax_type:
+        tax_type = tax_type[0]
+    else:
+        tax_type = ''
     request_user_profile = UserProfile.objects.get(user_id=request.user.id)
     show_pull_now = False
     integrations = Integrations.objects.filter(user=user.id, status=1)
@@ -105,6 +110,7 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['userName'] = request.user.username
     response_data['data']['userId'] = request.user.id
     response_data['data']['roles'] = get_user_permissions(request, user)
+    response_data['data']['roles']['tax_type'] = tax_type
     response_data['data']['roles']['labels'] = get_label_permissions(request, user, response_data['data']['roles']['label_perms'])
     response_data['data']['roles']['permissions']['is_superuser'] = status_dict[int(request.user.is_superuser)]
     response_data['data']['roles']['permissions']['is_staff'] = status_dict[int(request.user.is_staff)]

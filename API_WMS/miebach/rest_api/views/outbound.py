@@ -2671,11 +2671,43 @@ def get_sku_variants(request, user=''):
 
 def modify_invoice_data(invoice_data, user):
 
-    new_data = {}
+    data = {}
+    new_data = []
     detailed_invoice = get_misc_value('detailed_invoice', user.id)
     detailed_invoice = True if (detailed_invoice == 'true') else False
     invoice_data['detailed_invoice'] = detailed_invoice
     if detailed_invoice:
+        mydata = sorted(invoice_data['data'], key=lambda item: item["sku_category"])
+        for key, group in groupby(mydata, lambda item: item["sku_category"]):
+            data[key] = list(group)
+        for one in data.keys():
+            category = one
+            data_to = sorted(data[one], key=lambda item: item["unit_price"])
+            for key2, group2 in groupby(data_to, lambda item: item["unit_price"]):
+                price = key2
+                discount, invoice_amount, quantity, tax, amount = 0,0,0,0,0
+                sku_list = []
+                for single_entry in group2:
+                    sku_list.append(single_entry['sku_size']+'-' + str(int(single_entry['quantity'])))
+                    discount += float(single_entry['discount'])
+                    invoice_amount += float(single_entry['invoice_amount'])
+                    quantity += single_entry['quantity']
+                    tax += float(single_entry['tax'])
+                    amount += invoice_amount
+                    main_class = single_entry['sku_class']
+                    vat = single_entry['vat']
+                total = amount - tax
+                new_data.append({'price': price, 'sku_class': sku_list, 'main_class': main_class, 'discount': discount, 'invoice_amount': invoice_amount,'quantity': quantity, 'tax': tax, 'amount': amount, 'category': category, 'vat': vat})
+                """
+                new_data[category][price]['sku_class'] = sku_list
+                new_data[category][price]['discount'] = discount
+                new_data[category][price]['invoice_amount'] = invoice_amount
+                new_data[category][price]['quantity'] = quantity
+                new_data[category][price]['tax'] = tax
+                new_data[category][price]['amount'] = amount
+                """
+
+        """
         for data in invoice_data['data']:
             class_name = data['sku_class']
             category = data['sku_category']
@@ -2708,6 +2740,7 @@ def modify_invoice_data(invoice_data, user):
                     style_data['class'] = False
                 new_data[category] = style_data
                 #new_data[category]['data'].append(data)
+        """
         invoice_data['data'] = new_data
     return invoice_data
 
@@ -2814,7 +2847,7 @@ def search_customer_data(request, user=''):
     if not search_key:
       return HttpResponse(json.dumps(total_data))
 
-    lis = ['name', 'email_id', 'phone_number', 'address', 'status']
+    lis = ['name', 'email_id', 'phone_number', 'address', 'status', 'tax_type']
     master_data = CustomerMaster.objects.filter(Q(phone_number__icontains = search_key) | Q(name__icontains = search_key) |
                                                 Q(customer_id__icontains = search_key), user=user.id)
 
@@ -2826,7 +2859,7 @@ def search_customer_data(request, user=''):
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
         total_data.append({'customer_id': data.customer_id, 'name': data.name, 'phone_number': str(data.phone_number),
-                           'email': data.email_id, 'address': data.address})
+                           'email': data.email_id, 'address': data.address, 'tax_type': data.tax_type})
     return HttpResponse(json.dumps(total_data))
 
 @csrf_exempt
@@ -3608,6 +3641,8 @@ def generate_pdf_file(request, user=""):
     top = top.render(c)
     nv_data = nv_data.encode('utf-8')
     html_content = str(top)+nv_data+"</div>"
+    if not os.path.exists('static/pdf_files/'):
+        os.makedirs('static/pdf_files/')
     file_name = 'static/pdf_files/%s_dispatch_invoice.html' % str(request.user.id)
     name = str(request.user.id)+"_dispatch_invoice"
     pdf_file = 'static/pdf_files/%s.pdf' % name

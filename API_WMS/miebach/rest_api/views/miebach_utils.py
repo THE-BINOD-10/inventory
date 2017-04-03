@@ -356,7 +356,7 @@ CUSTOMER_FIELDS = ( (('Customer ID *', 'id',60), ('Customer Name *', 'name',256)
                     (('Email *', 'email_id',64), ('Phone No. *', 'phone_number',10)),
                     (('Address *', 'address'), ('Status', 'status',11)), )
 
-CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': ''}
+CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': '', 'tax_type': ''}
 
 PRODUCTION_STAGES = {'Apparel': ['Raw Material Inspection', 'Fabric Washing', 'Finishing'], 'Default': ['Raw Material Inspection',
                      'Fabric Washing', 'Finishing']}

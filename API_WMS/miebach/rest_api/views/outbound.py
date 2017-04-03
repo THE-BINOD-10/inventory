@@ -462,7 +462,12 @@ def get_picklist_number(user):
 @fn_timer
 def get_sku_stock(request, sku, sku_stocks, user, val_dict, sku_id_stocks=''):
     data_dict = {'sku_id': sku.id, 'quantity__gt': 0}
-    stock_detail = sku_stocks.filter(**data_dict)
+    fifo_switch = get_misc_value('fifo_switch', user.id)
+    if fifo_switch == "true":
+        order_by = 'receipt_date'
+    else:
+        order_by ='location_id__pick_sequence'
+    stock_detail = sku_stocks.filter(**data_dict).order_by(order_by)
 
     stock_count = 0
     if sku.id in val_dict['sku_ids']:
@@ -535,7 +540,14 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
         else:
             picklist_data['remarks'] = 'Picklist_' + str(picklist_number + 1)
 
-        sku_id_stocks = sku_stocks.values('id', 'sku_id').annotate(total=Sum('quantity'))
+        fifo_switch = get_misc_value('fifo_switch', user.id)
+        if fifo_switch == "true":
+            order_by = 'receipt_date'
+        else:
+            order_by = 'location_id__pick_sequence'
+
+
+        sku_id_stocks = sku_stocks.values('id', 'sku_id').annotate(total=Sum('quantity')).order_by(order_by)
         pick_res_locat = PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).\
                                           filter(picklist__order__user=user.id).values('stock__sku_id').annotate(total=Sum('reserved'))
         val_dict = {}

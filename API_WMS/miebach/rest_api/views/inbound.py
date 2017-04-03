@@ -716,6 +716,7 @@ def confirm_po(request, user=''):
                 setattr(purchase_order, 'vendor_id', vendor_master.id)
                 setattr(purchase_order, 'order_type', 'VR')
             purchase_order.save()
+            po_suggestions = {'measurement_unit': purchase_order.measurement_unit}
         else:
             sku_id = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
             po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)

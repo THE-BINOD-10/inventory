@@ -129,9 +129,10 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     supplier_data = {}
     col_num1 = 0
     if search_term:
+        creation_search = search_term.replace('(', '\(')
         results = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(Q(open_po__supplier_id__id = search_term) |
                                                 Q(open_po__supplier__name__icontains = search_term)
-                                               |Q( order_id__icontains = search_term ) | Q(creation_date__regex=search_term),
+                                               |Q( order_id__icontains = search_term ) | Q(creation_date__regex=creation_search),
                                               open_po__sku__user=user.id, received_quantity__lt=F('open_po__order_quantity')).\
                                         exclude(status__in=['location-assigned','confirmed-putaway']).\
                                         values_list('order_id', flat=True).distinct()
@@ -139,7 +140,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                                         'confirmed-putaway', 'stock-transfer']).filter(open_st__sku_id__in=sku_master_ids).\
                                                 filter(Q(open_st__warehouse__id__icontains = search_term) |
                                                        Q(open_st__warehouse__username__icontains = search_term) |
-                                                       Q(po__order_id__icontains = search_term ) | Q(po__creation_date__regex=search_term),
+                                                       Q(po__order_id__icontains = search_term ) | Q(po__creation_date__regex=creation_search),
                                                        open_st__sku__user=user.id,
                                                        po__received_quantity__lt=F('open_st__order_quantity')).\
                                                 values_list('po__order_id', flat=True).distinct()
@@ -147,7 +148,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
                                                 'confirmed-putaway', 'stock-transfer']).filter(rwo__job_order__product_code_id__in=sku_master_ids).\
                                                 filter(Q(rwo__vendor__id__icontains = search_term) |
                                                        Q(rwo__vendor__name__icontains = search_term) |
-                                                       Q(purchase_order__creation_date__regex=search_term) |
+                                                       Q(purchase_order__creation_date__regex=creation_search) |
                                                        Q(purchase_order__order_id__icontains = search_term ), rwo__vendor__user=user.id,
                                                        purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')).\
                                                 values_list('purchase_order__order_id', flat=True).\

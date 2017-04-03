@@ -282,6 +282,7 @@ class JobOrder(models.Model):
     class Meta:
         db_table = 'JOB_ORDER'
         unique_together = ('product_code', 'job_code', 'jo_reference')
+        index_together = ('product_code', 'job_code')
 
 class POLocation(models.Model):
     id = BigAutoField(primary_key=True)

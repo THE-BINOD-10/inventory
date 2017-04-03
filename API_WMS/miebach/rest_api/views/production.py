@@ -782,7 +782,7 @@ def get_raw_picklist_data(data_id, user):
                 zone = location.stock.location.zone.zone
                 sequence = location.stock.location.pick_sequence
                 stock_id = location.stock_id
-                
+
             match_condition = (location_name, pallet_detail, picklist.jo_material.material_code.sku_code)
             if match_condition not in batch_data:
                 if pallet_detail:
@@ -1011,7 +1011,7 @@ def rm_picklist_confirmation(request, user=''):
                             exist_pics = RMLocation.objects.exclude(id=data.id).filter(material_picklist_id=picklist.id, status=1, reserved__gt=0)
                             update_picklist_locations(exist_pics, picklist, update_picked, 'true')
 
-                    
+
 
                         picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
 
@@ -1059,7 +1059,7 @@ def rm_picklist_confirmation(request, user=''):
     return HttpResponse('Picklist Confirmed')
 
 def validate_jo_stock(all_data, user, job_code):
-    status = ''
+    status = []
     for key,value in all_data.iteritems():
         for val in value:
             for data in val.values():
@@ -1078,11 +1078,11 @@ def validate_jo_stock(all_data, user, job_code):
                     reserved_quantity += float(raw_reserved)
                 diff = stock_quantity - reserved_quantity
                 if diff < float(data[1]):
-                    if not status:
-                        status = "Insufficient stock for " + data[0]
-                    else:
-                        status += ', ' + data[0]
+                    if data[0] not in status:
+                        status.append(data[0])
 
+    if status:
+        status = "Insufficient stock for " + ','.join(status)
     return status
 
 def save_jo_locations(all_data, user, job_code):
@@ -1841,9 +1841,15 @@ def get_rm_back_order_data_alt(start_index, stop_index, temp_data, search_term, 
     purchases = map(lambda d: d['open_po__sku_id'], purchase_objs)
 
     stocks = map(lambda d: d['sku_id'], stock_objs)
+    in_stocks = map(lambda d: d['in_stock'], stock_objs)
+    reserved_quans = map(lambda d: d['reserved'], reserved_objs)
+    purchase_total_order = map(lambda d: d['total_order'], purchase_objs)
+    purchase_total_received = map(lambda d: d['total_received'], purchase_objs)
 
     master_data = []
     allocated_qty = {}
+    all_rw_orders = RWOrder.objects.filter(vendor__user=user.id).values('job_order__product_code__sku_code', 'job_order__job_code').distinct()
+    rw_sku_codes = map(lambda d: d['job_order__product_code__sku_code'], all_rw_orders)
     for order in order_detail:
         remained_quantity = 0
         stock_quantity = 0
@@ -1857,15 +1863,15 @@ def get_rm_back_order_data_alt(start_index, stop_index, temp_data, search_term, 
             filter_params['job_order__order_type'] = 'VP'
             filter_params['job_order__vendor__vendor_id'] = special_key
 
-        rw_orders = RWOrder.objects.filter(job_order__product_code__sku_code=sku_code, vendor__user=user.id).\
-                                    values_list('job_order__job_code', flat=True)
-        if rw_orders:
-            filter_params['job_order__job_code__in'] = rw_orders
+        sku_rw_orders = filter(lambda person: sku_code == person['job_order__product_code__sku_code'], all_rw_orders)
+        if sku_rw_orders:
+            filter_params['job_order__job_code__in'] = map(lambda d: d['job_order__job_code'], sku_rw_orders)
+
         order_quantity = order['material_quantity']
         if not order_quantity:
             order_quantity = 0
         if order['material_code_id'] in stocks:
-            stock_quantity = map(lambda d: d['in_stock'], stock_objs)[stocks.index(order['material_code_id'])]
+            stock_quantity = in_stocks[stocks.index(order['material_code_id'])]
             if order['material_code_id'] in allocated_qty.keys():
                 if stock_quantity < allocated_qty[order['material_code_id']]:
                     #remained_quantity = order_quantity - stock_quantity + allocated_qty[order['material_code_id']]
@@ -1879,10 +1885,10 @@ def get_rm_back_order_data_alt(start_index, stop_index, temp_data, search_term, 
         else:
             allocated_qty[order['material_code_id']] = order_quantity
         if order['material_code_id'] in reserveds:
-            reserved_quantity = map(lambda d: d['reserved'], reserved_objs)[reserveds.index(order['material_code_id'])]
+            reserved_quantity = reserved_quans[reserveds.index(order['material_code_id'])]
         if order['material_code_id'] in purchases:
-            total_order = map(lambda d: d['total_order'], purchase_objs)[purchases.index(order['material_code_id'])]
-            total_received = map(lambda d: d['total_received'], purchase_objs)[purchases.index(order['material_code_id'])]
+            total_order = purchase_total_order[purchases.index(order['material_code_id'])]
+            total_received = purchase_total_received[purchases.index(order['material_code_id'])]
             diff_quantity = float(total_order) - float(total_received)
             if diff_quantity > 0:
                 transit_quantity = diff_quantity
@@ -1896,21 +1902,26 @@ def get_rm_back_order_data_alt(start_index, stop_index, temp_data, search_term, 
         if procured_quantity > 0:
             checkbox = "<input type='checkbox' id='back-checked' name='%s'>" % title
             master_data.append({'': checkbox, 'WMS Code': wms_code, 'Ordered Quantity': order_quantity,
-                                'Job Code': order['job_order__job_code'], 'order_id': order['job_order_id'],
+                                'Job Code': str(order['job_order__job_code']), 'order_id': order['job_order_id'],
                                 'Stock Quantity': get_decimal_limit(user.id, stock_quantity),
                                 'Transit Quantity': get_decimal_limit(user.id, transit_quantity),
                                 'Procurement Quantity': get_decimal_limit(user.id, procured_quantity), 'DT_RowClass': 'results'})
     if search_term:
-        master_data = filter(lambda person: search_term in person['WMS Code'] or search_term in str(person['Ordered Quantity']) or\
+        search_term = str(search_term).upper()
+        master_data = filter(lambda person: search_term in person['Job Code'] or search_term in person['WMS Code'].upper() or \
+               search_term in str(person['Ordered Quantity']) or\
                search_term in str(person['Stock Quantity']) or search_term in str(person['Transit Quantity']) or \
-               search_term in str(person[' Procurement Quantity']), master_data)
-    elif order_term:
+               search_term in str(person['Procurement Quantity']), master_data)
+    if order_term:
+        print col_num-1
+        print BACK_ORDER_RM_TABLE
+        print BACK_ORDER_RM_TABLE[col_num-1]
         if order_term == 'asc':
             master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_RM_TABLE[col_num-1]])
         else:
             master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_RM_TABLE[col_num-1]], reverse=True)
     temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     temp_data['aaData'] = master_data[start_index:stop_index]
 
 @csrf_exempt

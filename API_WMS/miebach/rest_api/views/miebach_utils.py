@@ -315,7 +315,7 @@ INVENTORY_FIELDS =  {'cycle_id': '', 'adjusted_location': '',
 
 BACK_ORDER_TABLE = [ 'WMS Code', 'Ordered Quantity', 'Stock Quantity', 'Transit Quantity', 'Procurement Quantity']
 
-BACK_ORDER_RM_TABLE = [ 'WMS Code', 'Ordered Quantity', 'Stock Quantity', 'Transit Quantity', 'Procurement Quantity']
+BACK_ORDER_RM_TABLE = [ 'Job Code', 'WMS Code', 'Ordered Quantity', 'Stock Quantity', 'Transit Quantity', 'Procurement Quantity']
 
 BACK_ORDER_HEADER = ['Supplier Name', 'WMS Code', 'Title', 'Quantity', 'Price']
 

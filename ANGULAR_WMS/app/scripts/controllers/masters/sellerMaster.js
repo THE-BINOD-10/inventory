@@ -1,14 +1,14 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('CustomerMasterTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('SellerMasterTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
 
-    vm.filters = {'datatable': 'CustomerMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
+    vm.filters = {'datatable': 'SellerMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -28,8 +28,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('customer_id').withTitle('Customer ID'),
-        DTColumnBuilder.newColumn('name').withTitle('Customer Name'),
+        DTColumnBuilder.newColumn('seller_id').withTitle('Seller ID'),
+        DTColumnBuilder.newColumn('name').withTitle('Seller Name'),
         DTColumnBuilder.newColumn('email_id').withTitle('Email'),
         DTColumnBuilder.newColumn('phone_number').withTitle('Phone Number'),
         DTColumnBuilder.newColumn('address').withTitle('Address'),
@@ -51,11 +51,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $scope.$apply(function() {
                 vm.model_data['create_login'] = false;
                 angular.copy(aData, vm.model_data);
-                vm.all_taxes = ['', 'VAT', 'CST']
                 vm.update = true;
                 vm.title = "Update Customer";
                 vm.message ="";
-                $state.go('app.masters.CustomerMaster.customer');
+                $state.go('app.masters.SellerMaster.seller');
                 $timeout(function () {
                   $(".customer_status").val(vm.model_data.status);
                 }, 500);
@@ -64,12 +63,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
   vm.status_data = ["Inactive", "Active"];
-  var empty_data = {customer_id: "", name: "", email_id: "", address: "", phone_number: "", status: "", create_login: false, login_created: false};
+  var empty_data = {seller_id: "", name: "", email_id: "", address: "", phone_number: "", status: ""};
   vm.model_data = {};
 
   vm.base = function() {
 
-    vm.title = "Add Customer";
+    vm.title = "Add Seller";
     vm.update = false;
     angular.copy(empty_data, vm.model_data);
     vm.model_data.status = vm.status_data[1];
@@ -79,15 +78,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.close = function() {
 
     angular.copy(empty_data, vm.model_data);
-    $state.go('app.masters.CustomerMaster');
+    $state.go('app.masters.SellerMaster');
   }
 
-  vm.get_customer_id = function() {
+  vm.get_seller_id = function() {
 
-    vm.service.apiCall("get_customer_master_id/").then(function(data){
+    vm.service.apiCall("get_seller_master_id/").then(function(data){
       if(data.message) {
 
-        vm.model_data["customer_id"] = data.data.customer_id;
+        vm.model_data["seller_id"] = data.data.seller_id;
       }
     });
   }
@@ -96,20 +95,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   function add() {
 
     vm.base();
-    vm.get_customer_id();
-    $state.go('app.masters.CustomerMaster.customer');
+    vm.get_seller_id();
+    $state.go('app.masters.SellerMaster.seller');
   }
 
-  vm.customer = function(url) {
+  vm.seller = function(url) {
     var send = {}
     angular.copy(vm.model_data, send)
     if(send.login_created) {
         send.create_login = false;
     }
     var data = $.param(send);
-    vm.service.apiCall(url, 'POST', send, true).then(function(data){
+    vm.service.apiCall(url, 'POST', send).then(function(data){
       if(data.message) {
-        if(data.data == 'New Customer Added' || data.data == 'Updated Successfully') {
+        if(data.data == 'New Seller Added' || data.data == 'Updated Successfully') {
           vm.service.refresh(vm.dtInstance);
           vm.close();
         } else {
@@ -122,11 +121,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.submit = submit;
   function submit(data) {
     if (data.$valid) {
-      if ("Add Customer" == vm.title) {
-        vm.customer('insert_customer/');
+      if ("Add Seller" == vm.title) {
+        vm.seller('insert_seller/');
       } else {
         vm.model_data['data-id'] = vm.model_data.DT_RowId;
-        vm.customer('update_customer_values/');
+        vm.seller('update_seller_values/');
       }
     } else if (!(data.phone_number.$valid)) {
       vm.service.pop_msg('Invalid phone number');

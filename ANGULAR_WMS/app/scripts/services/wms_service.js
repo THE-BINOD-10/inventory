@@ -20,6 +20,24 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
     vm.reports = {};
 
+    vm.check_quantity = function(data, a, b) {
+
+      var status = false;
+      for(var j=0; j<data.length; j++) {
+        var temp = false;
+        for(var i=0; i<data[j][a].length; i++) {
+          if(data[j][a][i][b]) {
+            temp = true;
+            break;
+          }
+        }
+        if (temp) {
+          status = true;
+        }
+      }
+      return status;
+    }
+
     vm.add_totals = function(length, total_data) {
 
       var html = "<tr class='totals_row'>"
@@ -622,7 +640,15 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
     //Api Calls 
 
-    vm.apiCall = function(url, method, data) {
+    //Api Calls
+
+    vm.change_process = function(status, make) {
+
+      if (status) {
+        $rootScope.process = make;
+      }
+    }
+    vm.apiCall = function(url, method, data, disable) {
 
       var d = $q.defer();
       var response = {message: 0, data:{}}
@@ -633,7 +659,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         send = $.param(data);
         $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
         $(".preloader").removeClass("ng-hide").addClass("ng-show");
-        if (method == "POST") {  
+        vm.change_process(disable, true);
+        if (method == "POST") {
           $http({
             method: method,
             url:Session.url+url,
@@ -642,10 +669,12 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
               response.data = data;
               response.message = 1;
               $(".preloader").removeClass("ng-show").addClass("ng-hide");
+              vm.change_process(disable, false);
               d.resolve(response);
             }).error(function(){
               response.message = 0;
               $(".preloader").removeClass("ng-show").addClass("ng-hide");
+              vm.change_process(disable, false);
               d.resolve(response);
             });
         } else {
@@ -658,10 +687,12 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
               response.data = data;
               response.message = 1;
               $(".preloader").removeClass("ng-show").addClass("ng-hide");
+              vm.change_process(disable, false);
               d.resolve(response);
             }).error(function(){
               response.message = 0;
               $(".preloader").removeClass("ng-show").addClass("ng-hide");
+              vm.change_process(disable, false);
               d.resolve(response);
             });
         }
@@ -1131,3 +1162,61 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         }
     };
     });
+
+app.directive('percentageField', [ '$filter', function( $filter ) {
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+        scope: {
+            // currencyIncludeDecimals: '&',
+        },
+        link: function(scope, element, attr, ngModel) {
+            attr[ 'percentageMaxValue' ] = attr[ 'percentageMaxValue' ] || 100;
+            attr[ 'percentageMaxDecimals' ] = attr[ 'percentageMaxDecimals' ] || 2;
+            $( element ).css( {'text-align': 'left'} );
+            // function called when parsing the inputted url
+            // this validation may not be rfc compliant, but is more
+            // designed to catch common url input issues.
+            function into(input) {
+                var valid;
+                if( input == '' )
+                {
+                    ngModel.$setValidity( 'valid', true );
+                    return '';
+                }
+                // if the user enters something that's not even remotely a number, reject it
+                if( ! input.match( /^\d+(\.\d+){0,1}%{0,1}$/gi ) )
+                {
+                    ngModel.$setValidity( 'valid', false );
+                    return '';
+                }
+                // strip everything but numbers from the input
+                input = input.replace( /[^0-9\.]/gi, '' );
+                input = parseFloat( input );
+                var power = Math.pow( 10, attr[ 'percentageMaxDecimals' ] );
+                input = Math.round( input * power ) / power;
+                if( input > attr[ 'percentageMaxValue' ] ) input = attr[ 'percentageMaxValue' ];
+                // valid!
+                ngModel.$setValidity( 'valid', true );
+                return input;
+            }
+            ngModel.$parsers.push(into);
+            function out( input )
+            {
+                if( ngModel.$valid && input !== undefined && input > '' )
+                {
+                    return input;
+                }
+                return '';
+            }
+            ngModel.$formatters.push( out );
+            $( element ).bind( 'click', function(){
+                //$( element ).val( ngModel.$modelValue );
+                $( element ).select();
+            });
+            $( element ).bind( 'blur', function(){
+                $( element ).val( out( ngModel.$modelValue ) );
+            });
+        }
+    };
+}]);

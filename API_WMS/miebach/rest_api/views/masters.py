@@ -82,25 +82,62 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
     sku_master, sku_master_ids = get_sku_master(user,request.user)
     lis = ['wms_code', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'zone__zone', 'status']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
-    search_params = get_filtered_params(filters, lis)
-    if 'status__icontains' in search_params.keys():
+    search_params1, search_params2 = get_filtered_params_search(filters, lis)
+    if 'status__icontains' in search_params1.keys():
         if (str(search_params['status__icontains']).lower() in "active"):
-            search_params["status__icontains"] = 1
-        elif (str(search_params['status__icontains']).lower() in "inactive"):
-            search_params["status__icontains"] = 0
+            search_params1["status__icontains"] = 1
+            search_params2["status__icontains"] = 1
+        elif (str(search_params1['status__icontains']).lower() in "inactive"):
+            search_params1["status__icontains"] = 0
+            search_params2["status__icontains"] = 0
         else:
             search_params["status__icontains"] = "none"
     if order_term == 'desc':
         order_data = '-%s' % order_data
+    master_data = []
+    ids = []
     if search_term:
         status_dict = {'active': 1, 'inactive': 0}
         if search_term.lower() in status_dict:
             search_terms = status_dict[search_term.lower()]
-            master_data = sku_master.filter(status=search_terms, user=user.id, **search_params).order_by(order_data)
+            if search_params1:
+                for item in [search_params1, search_params2]:
+                    master_data1 = sku_master.exclude(id__in = ids).filter(status=search_terms, user=user.id, **item).order_by(order_data)
+                    ids.extend(master_data1.values_list('id', flat = True))
+                    master_data.extend(list(master_data1))
+            else:
+                master_data1 = sku_master.filter(status=search_terms, user=user.id).order_by(order_data)
         else:
-            master_data = sku_master.filter(Q(sku_code__icontains=search_term) | Q(wms_code__icontains=search_term) | Q(sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(zone__zone__icontains=search_term), user=user.id, **search_params).order_by(order_data)
+            list1 = []
+            if search_params1:
+                list1 = [search_params1, search_params2]
+            else:
+                list1 = [{}]
+
+            for item in list1:
+                master_data1 = sku_master.exclude(id__in = ids).filter(Q(sku_code__iexact=search_term) | Q(wms_code__iexact=search_term) | Q(sku_desc__iexact=search_term) | Q(sku_type__iexact=search_term) | Q(sku_category__iexact=search_term) | Q(sku_class__iexact=search_term) | Q(zone__zone__iexact=search_term), user=user.id, **item).order_by(order_data)
+                ids.extend(master_data1.values_list('id', flat = True))
+
+                master_data2 = sku_master.exclude(id__in =ids).filter(Q(sku_code__istartswith=search_term) | Q(wms_code__istartswith=search_term) | Q(sku_desc__istartswith=search_term) | Q(sku_type__istartswith=search_term) | Q(sku_category__istartswith=search_term) | Q(sku_class__istartswith=search_term) | Q(zone__zone__istartswith=search_term), user=user.id, **item).order_by(order_data)
+
+                ids.extend(master_data2.values_list('id', flat = True))
+
+                master_data3 = sku_master.filter(Q(sku_code__icontains=search_term) | Q(wms_code__icontains=search_term) | Q(sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(zone__zone__icontains=search_term), user=user.id, **item).exclude(id__in = ids).order_by(order_data)
+                ids.extend(master_data3.values_list('id', flat = True))
+                master_data.extend(list(master_data1))
+                master_data.extend(list(master_data2))
+                master_data.extend(list(master_data3))
+
     else:
-        master_data = sku_master.filter( **search_params).order_by(order_data)
+        if search_params1: 
+            master_data = []
+            ids = []
+            for item in [search_params1, search_params2]:
+                master_data1 = sku_master.exclude(id__in = ids).filter( **item).order_by(order_data)
+                ids.extend(master_data1.values_list('id', flat = True))
+                master_data.extend(list(master_data1))
+        else:
+            master_data = sku_master.order_by(order_data)
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
@@ -251,7 +288,8 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                                                  ('phone_number', data.phone_number), ('email_id', data.email_id), ('status', status),
                                                  ('tin_number', data.tin_number), ('credit_period', data.credit_period),
                                                  ('login_created', login_created), ('username', user_name), ('price_type_list', price_types),
-                                                 ('price_type', price_type), ('DT_RowId', data.customer_id), ('DT_RowClass', 'results') )))
+                                                 ('price_type', price_type), ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
+                                                 ('tax_type', data.tax_type))))
 
 @csrf_exempt
 def get_bom_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -412,7 +450,9 @@ def get_sku_data(request,user=''):
     sku_data['qc_check'] = data.qc_check
     sku_data['status'] = data.status
     sku_data['price'] = data.price
+    sku_data['mrp'] = data.mrp
     sku_data['size_type'] = 'Default'
+    sku_data['mix_sku'] = data.mix_sku
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -1848,3 +1888,117 @@ def update_pricing(request,user=''):
         price_data.discount = discount
     price_data.save()
     return HttpResponse('Updated Successfully')
+
+@csrf_exempt
+def get_seller_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    ''' Seller Master Datatable '''
+    lis = ['seller_id', 'name', 'email_id', 'phone_number', 'address', 'status']
+
+    search_params = get_filtered_params(filters, lis)
+    if 'status__icontains' in search_params.keys():
+        if (str(search_params['status__icontains']).lower() in "active"):
+            search_params["status__icontains"] = 1
+        elif (str(search_params['status__icontains']).lower() in "inactive"):
+            search_params["status__icontains"] = 0
+        else:
+            search_params["status__icontains"] = "none"
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        search_dict = {'active': 1, 'inactive': 0}
+        if search_term.lower() in search_dict:
+            search_terms = search_dict[search_term.lower()]
+            master_data = SellerMaster.objects.filter(status = search_terms,user=user.id, **search_params).order_by(order_data)
+
+        else:
+            master_data = SellerMaster.objects.filter( Q(seller_id__icontains=search_term) | Q(name__icontains = search_term) |
+                                                       Q(address__icontains = search_term) | Q(phone_number__icontains = search_term) |
+                                                       Q(email_id__icontains = search_term),
+                                                       user=user.id, **search_params ).order_by(order_data)
+
+    else:
+        master_data = SellerMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
+
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for data in master_data[start_index : stop_index]:
+        status = 'Inactive'
+        if data.status:
+            status = 'Active'
+
+        if data.phone_number:
+            data.phone_number = int(float(data.phone_number))
+        user_name = ""
+        price_type = ""
+        price_types = list(PriceMaster.objects.exclude(price_type ="").filter(sku__user = data.user).values_list('price_type', flat = True).distinct())
+
+        price_type = data.price_type
+        temp_data['aaData'].append(OrderedDict(( ('seller_id', data.seller_id), ('name', data.name), ('address', data.address),
+                                                 ('phone_number', data.phone_number), ('email_id', data.email_id), ('status', status),
+                                                 ('tin_number', data.tin_number), ('vat_number', data.vat_number),
+                                                 ('price_type_list', price_types),
+                                                 ('price_type', price_type), ('DT_RowId', data.seller_id), ('DT_RowClass', 'results') )))
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_seller_master_id(request, user=''):
+    seller_id = 1
+    seller_master = SellerMaster.objects.filter(user=user.id).values_list('seller_id', flat=True).order_by('-seller_id')
+    if seller_master:
+        seller_id = seller_master[0] + 1
+    return HttpResponse(json.dumps({'seller_id': seller_id}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_seller(request, user=''):
+    ''' Insert New Seller '''
+    seller_id = request.POST['seller_id']
+    if not seller_id:
+        return HttpResponse('Missing Required Fields')
+    data = filter_or_none(SellerMaster, {'seller_id': seller_id, 'user': user.id})
+    status_msg = 'Seller Exists'
+    if not data:
+        data_dict = copy.deepcopy(SELLER_DATA)
+        for key, value in request.POST.iteritems():
+            if key == 'status':
+                if value == 'Active':
+                    value = 1
+                else:
+                    value = 0
+            if value == '':
+                continue
+            data_dict[key] = value
+
+        data_dict['user'] = user.id
+        seller_master = SellerMaster(**data_dict)
+        seller_master.save()
+        status_msg = 'New Seller Added'
+
+    return HttpResponse(status_msg)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_seller_values(request,user=''):
+    data_id = request.POST['seller_id']
+    data = get_or_none(SellerMaster, {'seller_id': data_id, 'user': user.id})
+    for key, value in request.POST.iteritems():
+        if key not in data.__dict__.keys():
+            continue
+        if key == 'status':
+            if value == 'Active':
+                value = 1
+            else:
+                value = 0
+            setattr(data, key, value)
+        else:
+            setattr(data, key, value)
+
+    data.save()
+    return HttpResponse('Updated Successfully')
+
+
+

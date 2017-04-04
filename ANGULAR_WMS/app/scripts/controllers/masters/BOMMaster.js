@@ -77,7 +77,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (index == vm.model_data.data.length-1) {
         vm.model_data.data.push({"Material_sku":"", "Material_Quantity":"", "Units":"KGS", "BOM_ID":"", "wastage_percent":""});
       } else {
-        if (vm.update) { 
+        if (vm.update) {
           delete_bom_data(vm.model_data.data[index].BOM_ID);
         }
         vm.model_data.data.splice(index,1);
@@ -111,12 +111,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.base();
       $state.go('app.masters.BOMMaster.BOM');
-    } 
+    }
 
   vm.create_bom = function(form) {
 
     var send = $("form:visible").serializeArray();
-    vm.service.apiCall('insert_bom_data/', 'POST', send).then(function(data){
+    vm.service.apiCall('insert_bom_data/', 'POST', send, true).then(function(data){
       if(data.message) {
         if(data.data == 'Added Successfully') {
           vm.close();

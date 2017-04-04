@@ -38,9 +38,11 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     vm.model_data["telephone"] = parseInt(item.phone_number);
     vm.model_data["email_id"] = item.email;
     vm.model_data["address"] = item.address;
+    vm.model_data["tax_type"] = item.tax_type;
     vm.add_customer = false;
     angular.copy(item, vm.selected)
     vm.change_sku_prices();
+    vm.change_tax_type();
   }
 
   vm.check_id = function(id) {

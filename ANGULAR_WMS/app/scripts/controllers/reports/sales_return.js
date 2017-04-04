@@ -48,10 +48,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'wms_code': '',
                     'order_id': '',
                     'customer_id': '',
-                    'creation_date': ''
+                    'creation_date': '',
+                    'marketplace': ''
                     };
   vm.model_data = {};
   angular.copy(vm.empty_data, vm.model_data);
+  vm.marketplace_list = [];
+
+  vm.service.apiCall("get_marketplaces_list/").then(function(data){
+    if(data.message) {
+      vm.marketplace_list = data.data.marketplaces;
+    }
+  })
 
   }
 

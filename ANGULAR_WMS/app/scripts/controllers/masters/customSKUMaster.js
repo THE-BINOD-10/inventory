@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('CustomSKUMasterTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('CustomSKUMasterTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$rootScope', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $rootScope) {
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
@@ -112,6 +112,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         formData.append(val.name, val.value);
     });
 
+    $rootScope.process = true;
     $.ajax({url: Session.url+url,
             data: formData,
             method: 'POST',
@@ -127,6 +128,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               } else {
                 vm.pop_msg(response);
               }
+              $rootScope.process = false;
             }});
   }
 

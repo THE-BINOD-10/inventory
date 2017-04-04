@@ -1,0 +1,135 @@
+<div id="page-pop" style="display: block;" class="modal fade process-toggle in" id="location-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
+  <form name="form" role="form">
+    <div class="modal-dialog modal-lg">
+      <link rel="stylesheet" media="all" href="styles/custom/page.css">
+      <!-- Modal content-->
+      <div class="modal-content model-custom">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span>
+          </button>
+          <h4 class="modal-title">Invoice</h4>
+        </div>
+        <div class="modal-body print print-invoice" style="over-flow: hidden">
+         <div class="detail_invoice">
+          <div class="row col-md-12">
+            <h4 style="margin-bottom:2px" align="center"><b>INVOICE</b></h4>
+          </div>
+          <div class="row col-md-12" style="margin-top: 0px;">
+            <table class="top-table table table-bordered bl br mb0" style="margin-bottom: -1px;">
+              <tbody class="rm-padding">
+                <tr>
+                  <td style="width: 30%;text-align:left" class="align-left">
+                    <div class="row company_details">
+                      <div class="col-md-12">
+                        <span><b>SELLER:</b></span>
+                      </div>
+                      <div class="col-md-12">
+                        <pre class="fs12">{{showCase.pdf_data.seller_address}}</pre>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="width: 30%;text-align:left">
+                    <div class="row company_details">
+                      <div class="col-md-12">
+                        <span><b>BUYER:</b></span>
+                      </div>
+                      <div class="col-md-12">
+                        <pre class="fs12">{{showCase.pdf_data.buyer_address}}</pre>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="width: 40%;text-align:left">
+                    <strong>Invoice No:</strong>{{showCase.pdf_data.invoice_no}}
+                    <br>
+                    <strong>Order Id:</strong>{{showCase.pdf_data.order_id}}
+                    <br>
+                    <strong>Payment Mode:</strong>{{showCase.pdf_data.payment_mode}}
+                    <br>
+                    <strong>Order Date:</strong>{{showCase.pdf_data.order_date}}
+                    <br>
+                    <strong>Invoice Date:</strong>{{showCase.pdf_data.invoice_date}}
+                    <br>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <table class="table table-bordered bl br md-table">
+              <thead>
+                <tr class="rm-padding">
+                  <th class="w50">
+                    <center>S.No</center>
+                  </th>
+                  <th>
+                    <center> Item Description </center>
+                  </th>
+                  <th>
+                    <center>Rate</center>
+                  </th>
+                  <th class="w50">
+                    <center>VAT(%)</center>
+                  </th>
+                  <th>
+                    <center>VAT(Rs.)</center>
+                  </th>
+                  <th>
+                    <center>Total</center>
+                  </th>
+                  <th class="w50">
+                    <center>Quantity</center>
+                  </th>
+                  <th class="w50">
+                    <center>Disc</center>
+                  </th>
+                  <th>
+                    <center>Amount</center>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="rm-padding rm-brdr" ng-repeat="record in showCase.pdf_data.data" style="padding-bottom:0px;">
+                  <td style="text-align: left;"><b>{{$index + 1}}</b></td>
+                  <td><b>{{record.title}}</b></td>
+                  <td>{{record.unit_price | number:2}}</td>
+                  <td>{{record.vat}}</td>
+                  <td>{{record.tax | number:2}}</td>
+                  <td>{{record.invoice_amount | number:2}}</td>
+                  <td>{{record.quantity}}</td>
+                  <td>{{record.discount}}</td>
+                  <td><b>{{record.amount | number:2}}</b></td>
+                </tr>
+                <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14)" class="rm-padding">
+                  <td style="text-align:left"><b>Total: </b>
+                  </td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td>{{showCase.pdf_data.total_invoice | number:2}}</td>
+                </tr>
+              <tbody>
+              <tfoot>
+                <tr class="rm-padding">
+                  <td colspan='9' style="text-align:left;">
+                    <span><b>DECLARATION:</b></span><br>
+                    <span>We declare that this invoice shows actual price of the goods described inclusive of taxes and that all particulars are true and correct.</span><br><br>
+                    <span style="font-size:10px">This is a computer generate invoice</span><br>
+                    <span class="fs12">Ordered & Delivered Via : Shotang.com</span>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+         </div>
+        </div>
+        <div class="row">
+          <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.print_invoice($('.print'), 'invoice')">
+            <i class="ti-printer mr5"></i>Print
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

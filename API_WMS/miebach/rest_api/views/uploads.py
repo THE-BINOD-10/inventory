@@ -135,6 +135,23 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             sku_id = check_and_return_mapping_id(sku_code, title, user)
             if not sku_id:
                 index_status.setdefault(count, set()).add('SKU Mapping Not Available')
+        #count += 1
+
+        if "shipment_check" in order_mapping:
+            _shipping_date = get_cell_data(row_idx, order_mapping['shipment_date'], reader, file_type)
+            if _shipping_date:
+                try:
+                    _ship_dt = _shipping_date.split("-")
+                    if not _ship_dt:
+                        index_status.setdefault(count, set()).add('Shipping Date is not proper')
+                    else:
+                        if len(_ship_dt[0]) != 4:
+                            index_status.setdefault(count, set()).add('Shipping Date is not proper')
+                        elif int(_ship_dt[0]) > 12:
+                            index_status.setdefault(count, set()).add('Shipping Date is not proper')
+                except:
+                    index_status.setdefault(count, set()).add('Shipping Date is not proper')
+
         count += 1
 
     if index_status and file_type == 'csv':
@@ -160,7 +177,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             continue
 
         for key, value in order_mapping.iteritems():
-            if key in ['marketplace', 'status', 'split_order_id', 'recreate'] or key not in order_mapping.keys():
+            if key in ['marketplace', 'status', 'split_order_id', 'recreate', 'shipment_check'] or key not in order_mapping.keys():
                 continue
             if key == 'order_id' and 'order_id' in order_mapping.keys():
                 order_id = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
@@ -418,8 +435,9 @@ def sku_form(request, user=''):
     sku_file = request.GET['download-sku-file']
     if sku_file:
         return error_file_download(sku_file)
+    user_profile = UserProfile.objects.get(user_id=user.id)
 
-    wb, ws = get_work_sheet('skus', SKU_HEADERS)
+    wb, ws = get_work_sheet('skus', USER_SKU_EXCEL[user_profile.user_type])
     data = SKUMaster.objects.filter(wms_code='', user = user.id)
     for data_count, record in enumerate(data):
         if record.wms_code:
@@ -585,7 +603,7 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
     wms_data = []
     index_status = {}
 
-    sku_file_mapping = get_sku_file_mapping(reader, file_type)
+    sku_file_mapping = get_sku_file_mapping(reader, file_type, user=user.id)
     if not sku_file_mapping:
         return 'Invalid File'
     for row_idx in range(1, no_of_rows):
@@ -632,6 +650,9 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
             elif key == 'price':
                 if not isinstance(cell_data, (int, float)) and cell_data:
                     index_status.setdefault(row_idx, set()).add('Invalid Price')
+            elif key == 'mix_sku':
+                if cell_data and cell_data.lower() not in MIX_SKU_MAPPING.keys():
+                    index_status.setdefault(row_idx, set()).add('Invalid option for Mix SKU')
 
     master_sku = SKUMaster.objects.filter(user=user.id)
     master_sku = [data.sku_code for data in master_sku]
@@ -650,10 +671,15 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
         return f_name
 
 
-def get_sku_file_mapping(reader, file_type):
+def get_sku_file_mapping(reader, file_type, user=''):
     sku_file_mapping = {}
     if get_cell_data(0, 0, reader, file_type) == 'WMS Code' and get_cell_data(0, 1, reader, file_type) == 'SKU Description':
-        sku_file_mapping = copy.deepcopy(SKU_DEF_EXCEL)
+        if user:
+            user_profile = UserProfile.objects.get(user_id=user)
+            USER_SKU_EXCEL_MAPPING
+            sku_file_mapping = copy.deepcopy(USER_SKU_EXCEL_MAPPING[user_profile.user_type])
+        else:
+            sku_file_mapping = copy.deepcopy(SKU_DEF_EXCEL)
     elif get_cell_data(0, 1, reader, file_type) == 'Product Code' and get_cell_data(0, 2, reader, file_type) == 'Name':
         sku_file_mapping = copy.deepcopy(ITEM_MASTER_EXCEL)
 
@@ -665,7 +691,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
     zone_master = ZoneMaster.objects.filter(user=user.id).values('id', 'zone')
     zones = map(lambda d: d['zone'], zone_master)
     zone_ids = map(lambda d: d['id'], zone_master)
-    sku_file_mapping = get_sku_file_mapping(reader, file_type)
+    sku_file_mapping = get_sku_file_mapping(reader, file_type, user)
     for row_idx in range(1, no_of_rows):
         if not sku_file_mapping:
             continue
@@ -736,6 +762,12 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                     sku_data.price = cell_data
                 data_dict[key] = cell_data
 
+            elif key == 'mix_sku':
+                if cell_data:
+                    cell_data = MIX_SKU_MAPPING[cell_data.lower()]
+                if sku_data and cell_data:
+                    sku_data.mix_sku = cell_data
+                data_dict[key] = cell_data
 
             elif cell_data:
                 data_dict[key] = cell_data
@@ -855,6 +887,7 @@ def check_location(location, user, quantity=0):
 def inventory_excel_upload(request, open_sheet, user):
     RECORDS = list(EXCEL_RECORDS)
     sku_codes = []
+    mod_locations = []
     pallet_switch = get_misc_value('pallet_switch', user.id)
     if pallet_switch == 'true' and 'Pallet Number' not in EXCEL_HEADERS:
         EXCEL_HEADERS.append('Pallet Number')
@@ -935,18 +968,22 @@ def inventory_excel_upload(request, open_sheet, user):
                     sku_master.save()
                 inventory = StockDetail(**inventory_data)
                 inventory.save()
+                mod_locations.append(inventory.location.location)
 
             elif inventory_status and inventory_data.get('quantity', ''):
                 inventory_status = inventory_status[0]
                 inventory_status.quantity = int(inventory_status.quantity) + int(inventory_data.get('quantity', 0))
                 inventory_status.receipt_date = receipt_date
                 inventory_status.save()
+                mod_locations.append(inventory_status.location.location)
 
             location_master = LocationMaster.objects.get(id=inventory_data.get('location_id', ''), zone__user=user.id)
             location_master.filled_capacity += inventory_data.get('quantity', 0)
             location_master.save()
 
     check_and_update_stock(sku_codes, user)
+    if mod_locations:
+        update_filled_capacity(list(set(mod_locations)), user.id)
 
     return 'success'
 
@@ -1473,6 +1510,7 @@ def validate_purchase_order(open_sheet, user):
 def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
     order_ids = {}
     data_req = {}
+    mail_result_data = ""
     for row_idx in range(1, open_sheet.nrows):
         order_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
         data = copy.deepcopy(PO_DATA)
@@ -1541,8 +1579,11 @@ def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
             data['prefix'] = user_profile[0].prefix
         order = PurchaseOrder(**data)
         order.save()
+        order.po_date = data['po_date']
+        order.save()
         mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
-    mail_status = purchase_upload_mail(request, mail_result_data)
+    if mail_result_data:
+        mail_status = purchase_upload_mail(request, mail_result_data)
     return 'success'
 
 def purchase_order_dict(data, data_req, purch, user, order):
@@ -1700,6 +1741,7 @@ def move_inventory_upload(request, user=''):
         cycle_id = 1
     else:
         cycle_id = cycle_count[0].cycle + 1
+    mod_locations = []
     for row_idx in range(1, open_sheet.nrows):
         location_data = ''
         for col_idx in range(0, len(MOVE_INVENTORY_UPLOAD_FIELDS)):
@@ -1716,6 +1758,9 @@ def move_inventory_upload(request, user=''):
             elif col_idx == 3:
                quantity = int(cell_data)
         move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user)
+        mod_locations.append(source_loc)
+        mod_locations.append(dest_loc)
+    update_filled_capacity(list(set(mod_locations)), user.id)
     return HttpResponse('Success')
 
 def get_marketplace_headers(row_idx, open_sheet):
@@ -2044,16 +2089,18 @@ def inventory_adjust_upload(request, user=''):
     status = validate_inventory_adjust_form(open_sheet, str(user.id))
     if status != 'Success':
         return HttpResponse(status)
-
     sku_codes = []
+    len1 = len(ADJUST_INVENTORY_EXCEL_HEADERS)
+    cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+    if not cycle_count:
+        cycle_id = 0
+    else:
+        cycle_id = cycle_count[0].cycle
+
     for row_idx in range(1, open_sheet.nrows):
-        cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
-        if not cycle_count:
-            cycle_id = 1
-        else:
-            cycle_id = cycle_count[0].cycle + 1
-        location_data = ''
-        for col_idx in range(0, len(ADJUST_INVENTORY_EXCEL_HEADERS)):
+        cycle_id += 1
+        #location_data = ''
+        for col_idx in range(len1):
             cell_data = open_sheet.cell(row_idx, col_idx).value
             if col_idx == 0 and cell_data:
                 if isinstance(cell_data, (int, float)):
@@ -2069,7 +2116,6 @@ def inventory_adjust_upload(request, user=''):
             elif col_idx == 3:
                reason = cell_data
         adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user)
-
     check_and_update_stock(sku_codes, user)
     return HttpResponse('Success')
 

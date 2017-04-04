@@ -27,6 +27,7 @@ from num2words import num2words
 import datetime
 from utils import *
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Sum, Count
 
 log = init_logger('logs/common.log')
 # Create your views here.
@@ -310,7 +311,8 @@ data_datatable = {#masters
                   'ShipmentInfo':'get_customer_results', 'ShipmentPickedOrders': 'get_shipment_picked',\
                   'PullToLocate': 'get_cancelled_putaway',\
                   'StockTransferOrders': 'get_stock_transfer_orders', 'OutboundBackOrders': 'get_back_order_data',\
-                  'CustomerOrderView': 'get_order_view_data', 'CustomerCategoryView': 'get_order_category_view_data',
+                  'CustomerOrderView': 'get_order_view_data', 'CustomerCategoryView': 'get_order_category_view_data',\
+                  'ShipmentPickedAlternative': 'get_order_shipment_picked',
                   #manage users
                   'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
                   #retail one
@@ -1144,6 +1146,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
         quantity = float(quantity)
         stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=location[0].id, sku__user=user.id)
         total_stock_quantity =  stocks.aggregate(Sum('quantity'))['quantity__sum']
+        if not total_stock_quantity:
+            total_stock_quantity = 0
         remaining_quantity = total_stock_quantity - quantity
         for stock in stocks:
             if total_stock_quantity < quantity:

@@ -96,7 +96,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               vm.model_data.sub_total = ((vm.model_data.total_price / 100) * vm.model_data.tax) + vm.model_data.total_price;
 
               vm.get_total = function(price, index) {
-                vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * parseInt(vm.model_data.data[index].fields.price));
+                vm.model_data.data[index].fields.row_price = Number(vm.model_data.data[index].fields.order_quantity) * Number(vm.model_data.data[index].fields.price);
                 vm.model_data.total_price = 0;
 
                 angular.forEach(vm.model_data.data, function(one_row){
@@ -205,7 +205,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     }
     vm.get_total = function(price, index) {
-      vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
+      vm.model_data.data[index].fields.row_price = (Number(vm.model_data.data[index].fields.order_quantity) * Number(vm.model_data.data[index].fields.price));
       vm.model_data.total_price = 0;
 
       angular.forEach(vm.model_data.data, function(one_row){
@@ -250,7 +250,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         del_data[key] = id;
         vm.service.apiCall('delete_po/', 'GET', del_data).then(function(data){
           if(data.message) {
-      vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * parseInt(vm.model_data.data[index].fields.price))
+      vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price))
 ;
       vm.model_data.total_price = 0;
 
@@ -398,7 +398,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var data = [];
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
-          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)];
+          var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
           data.push({name: temp['_aData']["Order Type"], value :temp['_aData']['Supplier ID']});
         }
       });
@@ -432,7 +432,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var data = [];
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
-          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)];
+          var temp = vm.dtInstance.DataTable.context[0].aoData[Number(key)];
           data.push({name: temp['_aData']["Order Type"], value:temp['_aData']['Supplier ID']});
         }
       });
@@ -459,7 +459,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           product.fields.supplier_code = data.supplier_code;
           product.fields.ean_number = data.ean_number;
 
-          vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * parseInt(vm.model_data.data[index].fields.price));
+          vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
       vm.model_data.total_price = 0;
 
       angular.forEach(vm.model_data.data, function(one_row){

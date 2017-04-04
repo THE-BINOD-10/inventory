@@ -1284,18 +1284,35 @@ def get_purchaseorder_locations(put_zone, temp_dict):
     exc_group_dict = {}
     filter_params = {'zone__zone': put_zone, 'zone__user': user}
     exclude_dict = {'location__exact': '', 'lock_status__in': ['Inbound', 'Inbound and Outbound']}
+    stock_detail = StockDetail.objects.filter(sku__user=user)
+    po_locations = POLocation.objects.filter(location__zone__user=user, status=1)
     if order_data['sku'].mix_sku == 'no_mix':
-        #To get all non empty locations
-        not_empty_locs = list(StockDetail.objects.filter(sku__user=user, quantity__gt=0).values_list('location_id', flat=True))
-        #To get suggested empty locations
-        suggested_locs = list(POLocation.objects.filter(location__zone__user=user, status=1, quantity__gt=0).\
-                                                 values_list('location_id', flat=True))
-        exc_group_dict['location_id__in'] = list(chain(not_empty_locs, suggested_locs))
-        exclude_dict['id__in'] = list(chain(not_empty_locs, suggested_locs))
-    elif order_data['sku'].mix_sku == 'mix_group':
+        #Get locations with same sku only
+        sku_locs = stock_detail.filter(quantity__gt=0, sku__wms_code=order_data['wms_code']).\
+                                       values_list('location_id', flat=True).distinct()
+        not_empty_locs = stock_detail.filter(quantity__gt=0, location_id__in=list(sku_locs)).\
+                                             values_list('location_id', flat=True).distinct().\
+                                             annotate(sku_count=Count('sku_id', distinct=True)).filter(sku_count=1)
+        #Get locations with same only in suggested data
+        sku_po_locs = po_locations.filter(quantity__gt=0, purchase_order__open_po__sku__wms_code=order_data['wms_code']).\
+                                         values_list('location_id', flat=True).distinct()
+        suggested_locs = po_locations.filter(quantity__gt=0, location_id__in=list(sku_po_locs)).\
+                                            values_list('location_id', flat=True).distinct().\
+                                            annotate(sku_count=Count('purchase_order__open_po__sku_id', distinct=True)).\
+                                            filter(sku_count=1)
+        stock_non_empty = stock_detail.filter(quantity__gt=0).exclude(location_id__in=list(not_empty_locs)).\
+                                                              values_list('location_id', flat=True).distinct()
+        suggestion_non_empty = po_locations.filter(quantity__gt=0).exclude(location_id__in=list(suggested_locs)).values_list('location_id',
+                                                   flat=True).distinct()
+
+        exc_group_dict['location_id__in'] = list(chain(stock_non_empty, suggestion_non_empty))
+        exclude_dict['id__in'] = list(chain(stock_non_empty, suggestion_non_empty))
+    #elif order_data['sku'].mix_sku == 'mix_group':
+    else:
         no_mix_locs = list(StockDetail.objects.filter(sku__user=user, quantity__gt=0, sku__mix_sku='no_mix').\
                                               values_list('location_id', flat=True))
-        no_mix_sugg = list(POLocation.objects.filter(location__zone__user=user, status=1, quantity__gt=0).\
+        no_mix_sugg = list(POLocation.objects.filter(location__zone__user=user, status=1, quantity__gt=0,
+                                              purchase_order__open_po__sku__mix_sku='no_mix').\
                                               values_list('location_id', flat=True))
         exc_group_dict['location_id__in'] = list(chain(no_mix_locs, no_mix_sugg))
 
@@ -1988,7 +2005,7 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
         all_data[0]['received_quantity'] = all_data[0]['received_quantity'] - float(damaged_quantity)
     for data in all_data:
         temp_dict ={'received_quantity': float(order_returns.quantity), 'data': "", 'user': user.id, 'pallet_data': '', 'pallet_number': '',
-                    'wms_code': order_returns.sku.wms_code, 'sku_group': order_returns.sku.sku_group}
+                    'wms_code': order_returns.sku.wms_code, 'sku_group': order_returns.sku.sku_group, 'sku': order_returns.sku}
         locations = get_purchaseorder_locations(data['put_zone'], temp_dict)
         #locations = get_returns_location(data['put_zone'], request, user)
         received_quantity = data['received_quantity']
@@ -3724,6 +3741,7 @@ def check_imei_qc(request, user=''):
                 if quality_check_data:
                     for data in quality_check_data:
                         filter_params['purchase_order__open_po__sku__sku_code'] = data.purchase_order.open_po.sku.sku_code
+                        filter_params['purchase_order__order_id'] = order_id
                         po_mapping = POIMEIMapping.objects.filter(**filter_params)
                         if po_mapping:
                             quality_check = data

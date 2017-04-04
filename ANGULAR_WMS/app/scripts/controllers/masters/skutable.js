@@ -99,7 +99,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.market;
     vm.market_data = [];
     vm.files = [];
-    vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_within_group"};
+    vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_group"};
     $scope.$on("fileSelected", function (event, args) {
         $scope.$apply(function () {
             vm.files.push(args.file);

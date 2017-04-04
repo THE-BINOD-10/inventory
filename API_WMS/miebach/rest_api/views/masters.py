@@ -1856,7 +1856,7 @@ def add_pricing(request,user=''):
         data_dict = copy.deepcopy(PRICING_DATA)
         for key, value in request.POST.iteritems():
             if key == 'sku_code':
-              sku_id = SKUMaster.objects.filter(sku_code=value.upper())
+              sku_id = SKUMaster.objects.filter(sku_code=value.upper(), user=user.id)
               if not sku_id:
                   return HttpResponse('Wrong SKU Code')
               key = 'sku'

@@ -288,7 +288,8 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                                                  ('phone_number', data.phone_number), ('email_id', data.email_id), ('status', status),
                                                  ('tin_number', data.tin_number), ('credit_period', data.credit_period),
                                                  ('login_created', login_created), ('username', user_name), ('price_type_list', price_types),
-                                                 ('price_type', price_type), ('DT_RowId', data.customer_id), ('DT_RowClass', 'results') )))
+                                                 ('price_type', price_type), ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
+                                                 ('tax_type', data.tax_type))))
 
 @csrf_exempt
 def get_bom_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):

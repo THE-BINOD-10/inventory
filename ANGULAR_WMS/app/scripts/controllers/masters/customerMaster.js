@@ -51,6 +51,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $scope.$apply(function() {
                 vm.model_data['create_login'] = false;
                 angular.copy(aData, vm.model_data);
+                vm.all_taxes = ['', 'VAT', 'CST']
                 vm.update = true;
                 vm.title = "Update Customer";
                 vm.message ="";

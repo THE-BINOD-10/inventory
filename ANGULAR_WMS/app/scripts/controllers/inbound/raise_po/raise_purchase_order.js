@@ -114,7 +114,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                     vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
                   });
 
-                  vm.default_status = true;
+                  vm.default_status = (Session.user_profile.user_type == 'marketplace_user')? true : false;
 
                   vm.seller_change = function(type) {
 
@@ -189,7 +189,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
           });
 
-          vm.default_status = true;
+          vm.default_status = (Session.user_profile.user_type == 'marketplace_user') ? true: false;
 
           vm.seller_change = function(type) {
 
@@ -205,7 +205,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     }
     vm.get_total = function(price, index) {
-      vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * parseInt(vm.model_data.data[index].fields.price));
+      vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
       vm.model_data.total_price = 0;
 
       angular.forEach(vm.model_data.data, function(one_row){

@@ -135,6 +135,23 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             sku_id = check_and_return_mapping_id(sku_code, title, user)
             if not sku_id:
                 index_status.setdefault(count, set()).add('SKU Mapping Not Available')
+        #count += 1
+
+        if "shipment_check" in order_mapping:
+            _shipping_date = get_cell_data(row_idx, order_mapping['shipment_date'], reader, file_type)
+            if _shipping_date:
+                try:
+                    _ship_dt = _shipping_date.split("-")
+                    if not _ship_dt:
+                        index_status.setdefault(count, set()).add('Shipping Date is not proper')
+                    else:
+                        if len(_ship_dt[0]) != 4:
+                            index_status.setdefault(count, set()).add('Shipping Date is not proper')
+                        elif int(_ship_dt[0]) > 12:
+                            index_status.setdefault(count, set()).add('Shipping Date is not proper')
+                except:
+                    index_status.setdefault(count, set()).add('Shipping Date is not proper')
+
         count += 1
 
     if index_status and file_type == 'csv':
@@ -160,7 +177,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             continue
 
         for key, value in order_mapping.iteritems():
-            if key in ['marketplace', 'status', 'split_order_id', 'recreate'] or key not in order_mapping.keys():
+            if key in ['marketplace', 'status', 'split_order_id', 'recreate', 'shipment_check'] or key not in order_mapping.keys():
                 continue
             if key == 'order_id' and 'order_id' in order_mapping.keys():
                 order_id = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)

@@ -7,7 +7,7 @@
     //that.host = 'https://api.stockone.in/';
     //that.host = 'http://dev.stockone.in/';
     //that.host = 'https://wms.mieone.com/';
-    that.host = 'http://176.9.181.43:7655/';
+    that.host = 'http://176.9.181.43:7654/';
     that.url = that.host+'rest_api/';
 
     function resetSession () {
@@ -16,6 +16,7 @@
 
         "userId"  : null,
         "userName": null,
+        "parent": {},
         "roles"   : [],
         "user_profile" : {}
       });
@@ -29,6 +30,7 @@
 
         "userId"  : this.userId,
         "userName": this.userName,
+        "parent"  : this.parent,
         "roles"   : this.roles,
         "user_profile" : this.user_profile
       };
@@ -38,6 +40,7 @@
 
       this.userId   = data.userId;
       this.userName = data.userName;
+      this.parent = data.parent;
       this.roles    = data.roles;
       this.user_profile = data.user_profile;
 

@@ -212,7 +212,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 for(var i=0; i<vm.model_data.data.length; i++) {
                   vm.sku_list_1.push(vm.model_data.data[i][0]["wms_code"]);
                   if(vm.field == vm.model_data.data[i][0]["wms_code"]){
-                    vm.model_data.data[i][0]["value"] = vm.model_data.data[i][0]["value"] + 1;
+                    vm.model_data.data[i][0]["value"] = Number(vm.model_data.data[i][0]["value"]) + 1;
                     $('textarea[name="scan_sku"]').trigger('focus').val('');
                   }
                 }
@@ -230,7 +230,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             console.log("success");
             break;
           }
-        }
+        }*/
       }
     }
 

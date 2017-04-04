@@ -134,19 +134,18 @@
                 </tr>
               </thead>
               <tbody>
-                <tr class="rm-padding rm-brdr" ng-repeat="(key, record) in showCase.pdf_data.data" style="padding-bottom:0px;">
+                <tr class="rm-padding rm-brdr" ng-repeat="record in showCase.pdf_data.data" style="padding-bottom:0px;">
                   <td style="text-align: left;">
-                    <b>{{key}}</b>
-                    <p style="margin-bottom: 0px" ng-repeat="(style, record1) in record.styles">&nbsp;&nbsp;
-                      <span>{{style}}:</span>&nbsp;
-                      <span ng-repeat="sku in record1">{{sku.sku_size +"-"+ sku.quantity}}
+                    <b>{{record.category}}</b><br>
+                    <b>{{record.main_class}}</b><br>
+                      <span ng-repeat="sku in record.sku_class">{{sku}}
                         <span ng-if="!($last)">,</span>
                       </span>
                     </p>
                   </td>
                   <td><b>{{record.quantity}}</b></td>
                   <td ng-if="permissions.show_mrp">{{record.mrp_price | number:2}}</td>
-                  <td>{{record.unit_price | number:2}}</td>
+                  <td>{{record.price | number:2}}</td>
                   <td>{{record.discount}}</td>
                   <td>{{record.vat}}</td>
                   <td>{{record.invoice_amount - record.tax | number:2}}</td>

@@ -2202,11 +2202,16 @@ def putaway_location(data, value, exc_loc, user, order_id, po_id):
 def create_update_seller_stock(data, value, user):
     if not data.purchase_order.open_po:
         return
-    seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.purchase_order.open_po_id, status=1)
+    seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.purchase_order.open_po_id)
     for sell_po in seller_pos:
-        if not value:
-            break
-        received_quantity = sell_po.received_quantity
+        #putaway_stock = SellerPOSummary.objects.filter(seller_po_id=sell_po.id, seller_po__seller__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
+        #if not putaway_stock:
+        #    putaway_stock = 0
+        #if not value:
+        #    break
+        received_quantity = float(sell_po.received_quantity)
+        if received_quantity <= 0:
+            continue
         sell_quan = value
         if received_quantity < value:
             sell_quan = received_quantity
@@ -3267,7 +3272,7 @@ def returns_putaway_data(request, user=''):
 
     return_wms_codes = list(set(return_wms_codes))
     check_and_update_stock(return_wms_codes, user)
-    update_filled_capacity(mod_locations, user_id)
+    update_filled_capacity(mod_locations, user.id)
     return HttpResponse(status)
 
 @login_required

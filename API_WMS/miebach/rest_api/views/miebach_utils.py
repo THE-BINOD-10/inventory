@@ -448,7 +448,7 @@ AMAZON_FA_EXCEL = {'title': 4, 'invoice_amount': 14, 'marketplace': 'Amazon FA',
 
 SNAPDEAL_FA_EXCEL = {'title': 4, 'invoice_amount': 6, 'marketplace': 'Snapdeal FA', 'sku_code': 3, 'quantity': 5}
 
-ORDER_DEF_EXCEL = {'order_id': 0, 'quantity': 3, 'title': 1, 'shipment_date': 4,'sku_code': 2, 'channel_name': 5}
+ORDER_DEF_EXCEL = {'order_id': 0, 'quantity': 3, 'title': 1, 'shipment_date': 4,'sku_code': 2, 'channel_name': 5, 'shipment_check' : "true"}
 
 EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 8, 'invoice_amount': 3, 'channel_name': 5, 'sku_code': 7, 'title': 6, 'status': 4,
                        'split_order_id': 1}

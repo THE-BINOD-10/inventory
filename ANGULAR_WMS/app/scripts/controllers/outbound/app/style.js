@@ -6,6 +6,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   console.log($stateParams);
   var vm = this;
   vm.styleId = "";
+  vm.tax_type = Session.roles.tax_type;
   vm.service = Service;
   if($stateParams.styleId){
     vm.styleId = $stateParams.styleId;
@@ -88,7 +89,12 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.service.apiCall("create_orders_data/").then(function(data){
 
       if(data.message) {
-        vm.tax =  data.data.taxes['VAT'];
+          if (vm.tax_type == '') {
+            vm.tax =  data.data.taxes['DEFAULT'];
+          }
+          else {
+            vm.tax =  data.data.taxes[vm.tax_type];
+          }
       }
     })
   }

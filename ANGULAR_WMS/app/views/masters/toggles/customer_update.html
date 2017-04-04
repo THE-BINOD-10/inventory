@@ -110,6 +110,16 @@
               </div>-->
             </div>
           </div>
+            <div class="row">
+              <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Tax Type </label>
+                <select class="form-control"  ng-model="showCase.model_data.tax_type" name="tax_type">
+                  <option ng-repeat="one in showCase.all_taxes">{{one}}</option>
+                </select>
+              </div>
+              </div>
+            </div>
           <div class="row" ng-if="showCase.model_data.create_login">
             <hr>
             <div class="col-md-4">

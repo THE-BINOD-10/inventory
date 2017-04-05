@@ -1977,8 +1977,14 @@ def create_return_order(data, i, user):
         quantity = data['return'][i]
         if not quantity:
             quantity = data['damaged'][i]
+        return_type = ''
+        if 'return_type' in data.keys() and data['return_type'][0]:
+            return_type = data['return_type'][0]
+        marketplace = ''
+        if 'marketplace' in data.keys() and data['marketplace'][i]:
+            marketplace = data['marketplace'][i]
         return_details = {'return_id': '', 'return_date': datetime.datetime.now(), 'quantity': quantity,
-                          'sku_id': sku_id[0].id, 'status': 1, 'marketplace': data['marketplace'][i]}
+                          'sku_id': sku_id[0].id, 'status': 1, 'marketplace': marketplace, 'return_type': return_type}
         returns = OrderReturns(**return_details)
         returns.save()
 
@@ -1992,7 +1998,19 @@ def create_return_order(data, i, user):
     else:
         return "", status
 
-def save_return_locations(order_returns, all_data, damaged_quantity, request, user):
+def create_rto_zone(user):
+    try:
+        new_zone,created = ZoneMaster.objects.get_or_create(user=user.id, zone='RTO_ZONE', creation_date=datetime.datetime.now())
+        locations, loc_created = LocationMaster.objects.get_or_create(location='RTO-R1', max_capacity=100000, fill_sequence=10000,
+                                                        pick_sequence=10000, status=1, zone_id=new_zone.id,
+                                                        creation_date=datetime.datetime.now())
+        log.info('RTO_ZONE created for user %s' % user.username)
+    except Exception as e:
+        log.info(e)
+        return []
+    return [locations]
+
+def save_return_locations(order_returns, all_data, damaged_quantity, request, user, is_rto=False):
     order_returns = order_returns[0]
     zone = order_returns.sku.zone
     if zone:
@@ -2006,8 +2024,15 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
     for data in all_data:
         temp_dict ={'received_quantity': float(order_returns.quantity), 'data': "", 'user': user.id, 'pallet_data': '', 'pallet_number': '',
                     'wms_code': order_returns.sku.wms_code, 'sku_group': order_returns.sku.sku_group, 'sku': order_returns.sku}
-        locations = get_purchaseorder_locations(data['put_zone'], temp_dict)
-        #locations = get_returns_location(data['put_zone'], request, user)
+        if is_rto and not data['put_zone'] == 'DAMAGED_ZONE':
+            locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone='RTO_ZONE')
+            if not locations:
+                locations = create_rto_zone(user)
+        else:
+            locations = get_purchaseorder_locations(data['put_zone'], temp_dict)
+
+        if not locations:
+            return 'Locations not Found'
         received_quantity = data['received_quantity']
         if not received_quantity:
             continue
@@ -2043,12 +2068,32 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
                 order_returns.status = 0
                 order_returns.save()
                 break
+    return 'Success'
+
+def save_return_imeis(user, returns, status, imei_numbers):
+    imei_numbers = imei_numbers.split(',')
+    for imei in imei_numbers:
+        if not imei:
+            continue
+        reason = ''
+        if status == 'damaged' and '<<>>' in imei:
+            dam_imei = imei.split('<<>>')
+            imei = dam_imei[0]
+            reason = dam_imei[1]
+        order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=imei, order__sku__user=user.id)
+        if not order_imei:
+            continue
+        returns_imei = ReturnsIMEIMapping.objects.filter(order_return__sku__user=user.id, order_imei_id=order_imei[0].id)
+        if not returns_imei:
+            ReturnsIMEIMapping.objects.create(order_imei_id=order_imei[0].id, status=status, reason=reason,
+                                              creation_date=datetime.datetime.now(), order_return_id=returns.id)
 
 @csrf_exempt
 @login_required
 @get_admin_user
 def confirm_sales_return(request, user=''):
     data_dict = dict(request.GET.iterlists())
+    return_type = request.GET.get('return_type', '')
     for i in range(0, len(data_dict['id'])):
         all_data = []
         if not data_dict['id'][i]:
@@ -2058,7 +2103,21 @@ def confirm_sales_return(request, user=''):
         order_returns = OrderReturns.objects.filter(id = data_dict['id'][i], status = 1)
         if not order_returns:
             continue
-        save_return_locations(order_returns, all_data, data_dict['damaged'][i], request, user)
+        if 'returns_imeis' in data_dict.keys() and data_dict['returns_imeis'][i]:
+            save_return_imeis(user, order_returns[0], 'return', data_dict['returns_imeis'][i])
+        if 'damaged_imeis_reason' in data_dict.keys() and data_dict['damaged_imeis_reason'][i]:
+            save_return_imeis(user, order_returns[0], 'damaged', data_dict['damaged_imeis_reason'][i])
+        #return_loc_params = [order_returns, all_data, data_dict['damaged'][i], request, user]
+        return_loc_params = {'order_returns': order_returns, 'all_data': all_data, 'damaged_quantity': data_dict['damaged'][i],
+                             'request': request, 'user': user}
+        if return_type:
+            return_type = RETURNS_TYPE_MAPPING.get(return_type.lower(), '')
+        if return_type == 'rto':
+            return_loc_params.update({'is_rto':True})
+        locations_status = save_return_locations(**return_loc_params)
+        if not locations_status == 'Success':
+            return HttpResponse(locations_status)
+        #save_return_locations(order_returns, all_data, data_dict['damaged'][i], request, user)
 
     return HttpResponse('Updated Successfully')
 
@@ -3785,6 +3844,10 @@ def check_return_imei(request, user=''):
             if not order_imei:
                 return_data['status'] = 'Imei Number is invalid'
             else:
+                return_mapping = ReturnsIMEIMapping.objects.filter(order_imei_id=order_imei[0].id, order_return__sku__user=user.id)
+                if return_mapping:
+                    return_data['status'] = 'Imei number is mapped with the return id %s' % str(return_mapping[0].order_return.return_id)
+                    break
                 return_data['status'] = 'Success'
                 invoice_number = ''
                 order_id = order_imei[0].order.original_order_id

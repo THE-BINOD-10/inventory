@@ -11,6 +11,12 @@ angular
   .controller('AppCtrl', ['$rootScope', '$scope', '$state','$http', '$localStorage', 'Session', 'myservice', "Auth", "AUTH_EVENTS", "Service", "$timeout",
         function AppCtrl($rootScope, $scope, $state, $http, $localStorage, Session, myservice, Auth, AUTH_EVENTS, Service, $timeout) {
 
+      $rootScope.process = false;
+
+      $rootScope.$on('$stateChangeSuccess', function () {
+        $rootScope.process = false;
+      })
+
       $scope.mobileView = 767;
 
       $scope.app = {
@@ -180,39 +186,6 @@ angular
         } else {
           return true;
         }
-      }
-
-      $scope.show_order = function() {
-
-	if (localStorage.order_management == undefined ){
-	$.ajax({
-        url: Session.url+'order_management_check/',
-        method: 'GET',
-        xhrFields: {
-          withCredentials: true
-        },
-        'success': function(data) {
-          if (data == "true"){
-              $('#channel_component').removeClass('ng-hide').css('display', 'block');
-              localStorage.setItem("order_management", String(data));
-          } else {
-              $('#channel_component').addClass('ng-hide').css('display', 'none');
-              localStorage.setItem("order_management", String(data));
-          }
-        },
-        'error': function(response) {
-          console.log(response);
-        }
-        });
-	}
-	else {
-	  if(localStorage.order_management == "true"){
-	    $('#channel_component').removeClass('ng-hide').css('display', 'block');
-	  }
-	  else{
-            $('#channel_component').addClass('ng-hide').css('display', 'none');
-	  }
-	}
       }
     }
 ]);

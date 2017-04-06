@@ -46,6 +46,17 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                         }
                       }
 
+  //create shipment
+  self.create_shipment = {
+
+                            alternate_view: false,
+                            view: 'ShipmentPickedOrders',
+                            tb_headers: {'ShipmentPickedOrders': ['Order ID', 'SKU Code', 'Title', 'Customer ID', 'Customer Name', 'Marketplace',
+                                                                  'Picked Quantity'],
+                                         'ShipmentPickedAlternative': ['Order ID', 'Customer ID', 'Customer Name', 'Marketplace',
+                                                                  'Picked Quantity', 'Total Quantity', 'Order Date']}
+                         }
+
   /*** Production ***/
 
     //RM Picklist

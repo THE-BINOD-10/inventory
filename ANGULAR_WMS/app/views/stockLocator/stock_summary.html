@@ -10,7 +10,7 @@
           <li>
             <a href="javascript:;" ng-click="showCase.excel()">General Format</a>
           </li>
-          <li>
+          <li ng-if="!(showCase.g_data.stock_2d)">
             <a href="javascript:;" ng-click="showCase.easyops_excel()">Custom Format-1</a>
           </li>
         </ul>

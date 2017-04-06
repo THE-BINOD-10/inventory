@@ -69,6 +69,8 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.insert_order_data = function(form) {
     if (!(vm.model_data.shipment_date)) {
       vm.service.showNoty("Please Select Shipment Date", "success", "bottomRight");
+    } else if (!(vm.model_data.shipment_time_slot)) {
+        vm.service.showNoty("Please Select Shipment Slot", "success", "bottomRight");
     } else {
       if(vm.insert_cool && vm.data_status) {
         vm.insert_cool =false

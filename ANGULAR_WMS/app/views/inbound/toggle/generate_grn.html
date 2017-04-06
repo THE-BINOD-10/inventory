@@ -8,6 +8,12 @@
       <!-- body-->
       <div class="modal-body">
           <div class="row">
+            <div class="col-md-12 col-sm-12 col-xs-12 ng-scope">
+              <button ng-if="(!(showCase.print_enable))" type="button" class="btn btn-success pull-right"
+                ng-click="showCase.gen_barcode()">Generate Barcodes</button>
+            </div>
+          </div>
+          <div class="row">
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label for="lr_number" class="control-label"> LR Number </label>
@@ -28,7 +34,7 @@
             </div>
           </div>
           <div class="row">
-            <div class="col-md-12">
+            <div class="col-md-12"><!--{{showCase.fb.poData}}-->
               <hr>
             </div>
           </div>
@@ -56,9 +62,12 @@
                     <td><input type="text" name="wms_code" class="form-control pricevalid" value="{{(data.wms_code == 'TEMP')? data.temp_wms: data.wms_code;}}" ng-readonly="records[0].dis && data.wms_code != 'TEMP'"></td>
                     <td><input type="text" ng-model="data.po_quantity" name="po_quantity" class="form-control" ng-readonly="records[0].dis" ng-class="service.get_decimal_perm()"></td>
                     <td ng-if="showCase.permissions.pallet_switch"><input type="text" ng-model="data.pallet_number" name="pallet_number" class="form-control"></td>
-                    <td><input type="text" ng-model="data.value" name="quantity" class="form-control" ng-class="service.get_decimal_perm()" required> </div></td>
+                    <td><input type="text" ng-model="data.value" name="quantity" class="form-control" ng-class="service.get_decimal_perm()" required ng-readonly="showCase.permissions.use_imei"> </div></td>
                     <td><input type="text" ng-model="data.unit" name="unit" class="form-control" readonly></td>
-                    <td ng-if="showCase.permissions.use_imei"><input type="text" ng-model="data.imei_number" name="imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, data)"></td>
+                    <td ng-if="showCase.permissions.use_imei">
+                      <input type="text" name="imei" ng-model="data.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, data)">
+                      <input type="hidden" name="imei_number" class="form-control" ng-init="data.imei_list=[]" value="{{data.imei_list.join(',')}}">
+                    </td>
                     <td><input type="text" ng-model="data.price" name="price" class="form-control" value="" ng-readonly="records[0].dis"></td>
                     <td ng-if="showCase.permissions.pallet_switch"><i ng-click="showCase.update_data($index, records)" ng-class="showCase.service.isLast($last)"></i></td>
                     <td ng-if="data.sku_extra_data.length > 0" class="detail">
@@ -86,7 +95,7 @@
               </table>
             </div>
           </div>
-          <div class="row">
+          <div class="row" ng-hide="showCase.permissions.use_imei">
             <center>
               <button type="button" class="btn btn-default" style="margin-top:10px" ng-click="showCase.add_wms_code()">Add New WMS Code</button>
             </center>

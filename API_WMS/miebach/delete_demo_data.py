@@ -18,5 +18,5 @@ def delete_user_demo_data(delete_user):
 
     print 'success'
 
-#delete_user_demo_data(delete_user)
+delete_user_demo_data(delete_user)
 

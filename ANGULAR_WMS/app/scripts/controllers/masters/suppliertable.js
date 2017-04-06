@@ -101,7 +101,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.supplier = function(url) {
 
     var data = $.param(vm.model_data);
-    vm.service.apiCall(url, 'POST', vm.model_data).then(function(data){
+    vm.service.apiCall(url, 'POST', vm.model_data, true).then(function(data){
       if(data.message) {
         if (data.data == 'New Supplier Added' || data.data == 'Updated Successfully')  {
           vm.service.refresh(vm.dtInstance);

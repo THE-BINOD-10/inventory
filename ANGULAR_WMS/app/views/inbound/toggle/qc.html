@@ -15,6 +15,10 @@
               <label class="control-label">Scan WMS Code</label>
               <input type="text" id="scan_qc" class="form-control" ng-model="showCase.scan" ng-keydown="showCase.scan_sku($event,showCase.scan)" ng-disabled="showCase.confirm_btn">
             </div>
+            <div class="col-md-4 col-sm-4 col-xs-6"ng-show="showCase.permissions.use_imei">
+              <label class="control-label">Scan IMEI Number</label>
+              <input type="text" class="form-control" ng-model="showCase.imei_number" ng-keydown="showCase.scan_imei($event,showCase.imei_number)">
+            </div>
           </div>
           <div class="row">
             <div class="col-md-12">
@@ -42,9 +46,13 @@
                     <td><input type="text" class="form-control" value="{{data.location}}" name="location" disabled></td>
                     <td><input type="number" class="form-control" value="{{data.quantity}}" name="quantity" disabled></td>
                     <td><input type="text" ng-model="data.unit" name="unit" class="form-control" readonly></td>
-                    <td><input type="text" class="form-control" ng-model="data.accepted_quantity" name="accepted_quantity" ng-class="service.get_decimal_perm()"></td>
-                    <td><input type="text" class="form-control" ng-model="data.rejected_quantity" name="rejected_quantity" ng-class="service.get_decimal_perm()"></td>
-                    <td><input type="text" class="form-control" ng-model="data.reason" name="reason"></td>
+                    <td><input type="text" class="form-control" ng-model="data.accepted_quantity" name="accepted_quantity" ng-class="service.get_decimal_perm()" ng-readonly="showCase.permissions.use_imei"></td>
+                    <td><input type="text" class="form-control" ng-model="data.rejected_quantity" name="rejected_quantity" ng-class="service.get_decimal_perm()" ng-readonly="showCase.permissions.use_imei"></td>
+                    <td>
+                      <input type="text" class="form-control" ng-model="data.reason" name="reason">
+                      <input type="hidden" class="form-control" value="{{data.accept_imei.join(',')}}" name="accepted">
+                      <input type="hidden" class="form-control" value="{{data.reject_imei.join(',')}}" name="rejected">
+                    </td>
                   </tr>
                 </tbody>
               </table>

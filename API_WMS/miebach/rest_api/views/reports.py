@@ -406,6 +406,7 @@ def get_sales_return_filter_data(search_params, user, request_user):
     search_parameters = {}
     status_dict = {'0': 'Inactive', '1': 'Active'}
     temp_data['draw'] = search_params.get('draw')
+    marketplace = ''
     if 'from_date' in search_params:
         from_date = search_params['from_date'].split('/')
         search_parameters['creation_date__startswith'] = datetime.date(int(from_date[2]), int(from_date[0]), int(from_date[1]))
@@ -418,11 +419,13 @@ def get_sales_return_filter_data(search_params, user, request_user):
         search_parameters['order_id'] = value
     if 'customer_id' in search_params:
         search_parameters['order__customer_id'] = value
+    if 'marketplace' in search_params:
+        marketplace = search_params['marketplace']
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     search_parameters['sku__user'] = user.id
     if search_parameters:
-        sales_return = OrderReturns.objects.filter(**search_parameters)
+        sales_return = OrderReturns.objects.filter(Q(order__marketplace=marketplace) | Q(marketplace=marketplace), **search_parameters)
     temp_data['recordsTotal'] = len(sales_return)
     temp_data['recordsFiltered'] = len(sales_return)
     if stop_index:
@@ -436,6 +439,8 @@ def get_sales_return_filter_data(search_params, user, request_user):
             customer_id = data.order.customer_id
 
             marketplace = data.order.marketplace
+            if not marketplace:
+                marketplace = data.marketplace
         else:
             marketplace = data.marketplace
         temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.sku.sku_code), ('Order ID', order_id),
@@ -666,4 +671,16 @@ def print_aging_report(request, user=''):
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_marketplaces_list_reports(request, user=''):
 
+    sales_marketplace = list(OrderReturns.objects.exclude(marketplace='').filter(status=1, sku__user=user.id).\
+                             values_list('marketplace', flat=True).distinct())
+    order_marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user = user.id, quantity__gt=0).\
+                             values_list('marketplace', flat=True).distinct())
+
+    marketplace = list(set(sales_marketplace) | set(order_marketplace))
+
+    return HttpResponse(json.dumps({'marketplaces': marketplace}))

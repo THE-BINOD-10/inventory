@@ -21,53 +21,85 @@
               <textarea id="scan_order_id" rows="1" name="scan_order_id" class="form-control" ng-model="showCase.model_data.scan_order_id" ng-keydown="showCase.scan_track($event, showCase.model_data.scan_order_id)"></textarea>
              </div>
            </div>
-           <div class="col-md-3 col-sm-3 col-xs-6">
+           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+             <div class="form-group">
+               <label class="control-label"> Scan IMEI Number </label>
+              <textarea id="return_imei" rows="1" name="return_imei" class="form-control" ng-model="showCase.model_data.return_imei" ng-keydown="showCase.scan_imei($event, showCase.model_data.return_imei)"></textarea>
+             </div>
+           </div>
+
+           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="user.user_profile['user_type'] != 'marketplace_user'">
              <div class="form-group">
                <label class="control-label"> SKU Code </label>
               <textarea id="return_sku_code" rows="1" name="return_sku_code" class="form-control" ng-model="showCase.model_data.return_sku_code" ng-keydown="showCase.scan_sku($event, showCase.model_data.return_sku_code)"></textarea>
              </div>
            </div>
-           <div class="col-md-3 col-sm-3 col-xs-6">
+           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="user.user_profile['user_type'] != 'marketplace_user'">
              <div class="form-group">
                <label class="control-label"> Market Place </label>
                <select class="form-control" ng-model="showCase.model_data.marketplace" ng-init="showCase.model_data.marketplace='Offline'" name="status">
                   <option ng-repeat="status in showCase.market_list" ng-selected="showCase.model_data.marketplace == status" value="{{status}}">{{status}}</option>
                 </select>
              </div>
-           </div> 
+           </div>
+
+           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+             <div class="form-group">
+               <label class="control-label"> Return Type </label>
+                <select class="form-control" name="return_type" ng-model="showCase.model_data.return_type" ng-init="showCase.model_data.return_type = ''">
+                  <option ng-selected="showCase.model_data.return_type == ''" value=""> None </option>
+                  <option ng-repeat="type in showCase.return_types" ng-selected="showCase.model_data.return_type == type" value="{{type}}">{{ type }}</option>
+                </select>
+             </div>
+           </div>
+         </div>
+         <div class="row" ng-if="showCase.imei_data.scanning">
+           <div class="col-md-3 col-sm-3 col-xs-12">
+           </div>
+           <div class="col-md-9 col-sm-9 col-xs-12 mt10">
+             <button class="pull-right btn btn-default ml10" type="button" name="reject" ng-disabled="showCase.imei_data.enable_button" ng-click="showCase.add_to_damage();">Damaged</button>
+             <input type="text" ng-model="showCase.imei_data.reason" class="form-control pull-right" style="width: 200px" placeholder="Enter Reason">
+           </div>
          </div>
          <div class="row">
            <div class="col-md-12">
              <hr>
            </div>
-         </div>   
+         </div>
        <div class="row">
          <div style="overflow-x:auto" class="col-md-12">
            <table class="table mw60">
              <thead>
                <tr>
+                 <th ng-if="user.user_profile['user_type'] == 'marketplace_user'"> Invoice Number </th>
                  <th> Order ID </th>
                  <th> SKU Code </th>
                  <th> Product Description </th>
                  <th> Shipping Quantity </th>
                  <th> Return Quantity </th>
                  <th> Damaged Quantity </th>
-                 <th> Marketplace </th>
+                 <th ng-if="user.user_profile['user_type'] != 'marketplace_user'"> Marketplace </th>
                  <th class="plus"></th>
                </tr>
              </thead>
              <tbody>
                <tr ng-repeat="data_split in showCase.model_data.data">
+                 <td ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+                   <input type="text" name="invoice_number" class="form-control" ng-model="data_split.invoice_number">
+                 </td>
    	             <td><input type="text" name="order_id" class="form-control" ng-model="data_split.order_id"></td>
                  <td><input type="text" name="sku_code" class="form-control" ng-model="data_split.sku_code"></td>
                  <td><input type="text" name="sku_desc" class="form-control" ng-model="data_split.sku_desc"></td>
                  <td><input type="text" name="shipping" class="form-control" ng-class="service.get_decimal_perm()" ng-model="data_split.ship_quantity"></td>
                  <td><input type="text" name="return" class="form-control" ng-class="service.get_decimal_perm()"  ng-model="data_split.return_quantity"></td>
                  <td><input type="text" name="damaged" class="form-control" ng-class="service.get_decimal_perm()" ng-model="data_split.damaged_quantity">
+                   <input type="hidden" class="form-control" name="returns_imeis" ng-model="data_split.returns_imeis" value="{{data_split.returns_imeis.join(',')}}">
+                   <input type="hidden" class="form-control" value="{{data_split.damaged_imeis.join(',')}}" name="damaged_imeis" ng-model="data_split.damaged_imeis">
+                   <input type="hidden" class="form-control" name="damaged_imeis_reason" value="{{data_split.damaged_imeis_reason.join(',')}}">
                    <input type="hidden" value="{{data_split.id}}" name="id">
                    <input type="hidden" value="" name="track_id">
                  </td>
-                 <td>
+                 <td ng-if="user.user_profile['user_type'] != 'marketplace_user'">
                    <input type="text" name="marketplace" class="form-control" ng-model="data_split.marketplace">
                  </td>
                  <td><i ng-click="showCase.update_data($index, data_split, showCase.model_data.data)" ng-class="showCase.service.isLast(false)"></i></td>

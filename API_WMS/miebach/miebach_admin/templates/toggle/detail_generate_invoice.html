@@ -109,15 +109,15 @@
         </tr>
       </thead>
       <tbody>
-        {% for key,record in data.items %}
+        {% for record in data %}
         <tr class="rm-brdr">
           <td style="text-align: left;">
-            <b>{{key}}</b>
+            <b>{{record.category}}</b>
               {% for style,record1 in record.styles.items %}
               <p style="margin-bottom: 0px">&nbsp;&nbsp;
                 <span>{{style}}:</span>&nbsp;
-                 {% for sku in record1 %}
-                  <span>{{sku.sku_size}} - {{sku.quantity}}
+                 {% for sku_size,quantity in record1.sku_size.items %}
+                  <span>{{sku_size}} - {{quantity}}
                     {% if not forloop.last %},{% endif %}
                   </span>
                 {% endfor %}

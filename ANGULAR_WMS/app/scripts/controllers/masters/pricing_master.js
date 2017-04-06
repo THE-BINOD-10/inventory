@@ -78,7 +78,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.send_pricing = function(url, data) {
 
-    vm.service.apiCall(url, 'POST', data).then(function(data){
+    vm.service.apiCall(url, 'POST', data, true).then(function(data){
       if(data.message) {
         if (data.data == 'New Pricing Added' || data.data == 'Updated Successfully')  {
           vm.service.refresh(vm.dtInstance);

@@ -45,10 +45,19 @@
                   <input name="date" class="form-control" type="text" ng-model="showCase.model_data.creation_date" ui-jq="datepicker">
                 </div>
               </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label"> Market Place </label>
+                  <select class="form-control" ng-model="showCase.model_data.marketplace">
+                    <option value="" ng-selected="showCase.model_data.marketplace == ''">Default</option>
+                    <option ng-repeat="status in showCase.marketplace_list" ng-selected="showCase.model_data.marketplace == status" value="{{status}}">{{status}}</option>
+                  </select>
+                </div>
+              </div>
             </div>
             <div class="col-md-12">
               <div class="filter-controls">
-                <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);"> Reset </button>
+                <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Reset </button>
                 <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Generate </button>
               </div>
             </div>

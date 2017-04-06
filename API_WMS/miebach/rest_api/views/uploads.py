@@ -110,14 +110,14 @@ def get_order_mapping(reader, file_type):
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
     index_status = {}
     order_mapping = get_order_mapping(reader, file_type)
-    print order_mapping
     if not order_mapping:
         return "Headers not matching"
-    count = 1
+    count = 0
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
 
+        count += 1
         cell_data = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
         title = ''
         if 'title' in order_mapping.keys():
@@ -139,20 +139,15 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
         if "shipment_check" in order_mapping:
             _shipping_date = get_cell_data(row_idx, order_mapping['shipment_date'], reader, file_type)
+            xldate_as_tuple(cell_data, 0)
+            print _shipping_date
             if _shipping_date:
                 try:
-                    _ship_dt = _shipping_date.split("-")
-                    if not _ship_dt:
-                        index_status.setdefault(count, set()).add('Shipping Date is not proper')
-                    else:
-                        if len(_ship_dt[0]) != 4:
-                            index_status.setdefault(count, set()).add('Shipping Date is not proper')
-                        elif int(_ship_dt[0]) > 12:
-                            index_status.setdefault(count, set()).add('Shipping Date is not proper')
+                    ship_date = xldate_as_tuple(_shipping_date, 0)
+
                 except:
                     index_status.setdefault(count, set()).add('Shipping Date is not proper')
 
-        count += 1
 
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
@@ -249,13 +244,14 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             elif key == 'sku_code':
                 sku_code =  get_cell_data(row_idx, value, reader, file_type)
             elif key == 'shipment_date':
+                _shippment_date  = get_cell_data(row_idx, value, reader, file_type)
                 try:
-                    if cell_data and ' ' in cell_data:
-                        order_data['shipment_date'] = datetime.datetime.strptime(cell_data, '%d/%m/%Y %H:%M')
-                    elif cell_data:
-                        order_data['shipment_date'] = datetime.datetime(1899,12,30) + datetime.timedelta(days=cell_data)
+                    year, month, day, hour, minute, second  = xldate_as_tuple(_shippment_date, 0)
+                    order_data['shipment_date'] = datetime.datetime(year, month, day, hour, minute, second)
+
                 except:
                     order_data['shipment_date'] = datetime.datetime.now()
+
             elif key == 'channel_name':
                 order_data['marketplace'] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'title':
@@ -279,6 +275,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                         order_data['quantity'] = 1
             else:
                 order_data[key] = get_cell_data(row_idx, value, reader, file_type)
+        print order_data['shipment_date']
         order_data['user'] = user.id
         if not 'quantity' in order_data.keys():
             order_data['quantity'] = 1
@@ -322,11 +319,14 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_detail.save()
                 if order_data['sku_id'] not in sku_ids:
                     sku_ids.append(order_data['sku_id'])
-                if order_summary_dict.get('vat', '') or order_summary_dict.get('tax_value', '') or order_summary_dict.get('mrp', '') or\
-                                                                                                   order_summary_dict.get('discount', ''):
-                    order_summary_dict['order_id'] = order_detail.id
-                    order_summary = CustomerOrderSummary(**order_summary_dict)
-                    order_summary.save()
+                #if order_summary_dict.get('vat', '') or order_summary_dict.get('tax_value', '') or order_summary_dict.get('mrp', '') or\
+                #                         order_summary_dict.get('discount', ''):
+
+                order_summary_dict['order_id'] = order_detail.id
+                time_slot = get_local_date(user, datetime.datetime.now())
+                order_summary_dict['shipment_time_slot'] = " ".join(time_slot.split(" ")[-2:])
+                order_summary = CustomerOrderSummary(**order_summary_dict)
+                order_summary.save()
 
             elif order_data['sku_id'] in sku_ids:
                 order_obj = order_obj[0]

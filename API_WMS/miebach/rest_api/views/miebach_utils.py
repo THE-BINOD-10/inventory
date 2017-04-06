@@ -283,7 +283,7 @@ STOCK_DET = ([('0','receipt_number'),('1','receipt_date'),('2','sku_id__sku_code
 
 ORDER_DETAIL_HEADERS = OrderedDict([('Order ID','order_id'),('SKU Code','sku_id__sku_code'),('Title','title'),('Product Quantity','quantity'),('Shipment Date','shipment_date')])
 
-PICK_LIST_HEADERS = OrderedDict([('Picklist ID','picklist_number'), ('Customer / Marketplace','picklist_number'), ('Picklist Note','remarks'), ('Reserved Quantity', 'reserved_quantity'), ('Date','creation_date')])
+PICK_LIST_HEADERS = OrderedDict([('Picklist ID','picklist_number'), ('Customer / Marketplace','picklist_number'), ('Picklist Note','remarks'), ('Reserved Quantity', 'reserved_quantity'), ('Shipment Date', 'shipment_date'), ('Date','creation_date')])
 
 PO_SUGGESTIONS = OrderedDict([('0','creation_date'),('1','supplier_id'),('2','sku_id'),('3','order_quantity'),('4','price'),('5','status')])
 
@@ -361,7 +361,7 @@ CUSTOMER_FIELDS = ( (('Customer ID *', 'id',60), ('Customer Name *', 'name',256)
                     (('Email *', 'email_id',64), ('Phone No. *', 'phone_number',10)),
                     (('Address *', 'address'), ('Status', 'status',11)), )
 
-CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': ''}
+CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': '', 'tax_type': ''}
 
 PRODUCTION_STAGES = {'Apparel': ['Raw Material Inspection', 'Fabric Washing', 'Finishing'], 'Default': ['Raw Material Inspection',
                      'Fabric Washing', 'Finishing']}

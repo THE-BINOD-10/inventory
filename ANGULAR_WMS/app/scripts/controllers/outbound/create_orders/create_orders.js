@@ -67,7 +67,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   vm.bt_disable = false;
   vm.insert_order_data = function(form) {
-    if (form.$valid && vm.model_data.shipment_date) {
+    if (form.$valid && vm.model_data.shipment_date && vm.model_data.shipment_time_slot) {
       vm.bt_disable = true;
       console.log(form);
       var elem = angular.element($('form'));

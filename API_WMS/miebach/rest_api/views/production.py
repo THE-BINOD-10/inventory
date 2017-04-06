@@ -1062,7 +1062,7 @@ def rm_picklist_confirmation(request, user=''):
                 auto_po(list(set(auto_skus)) ,user.id)
 
     if mod_locations:
-        update_filled_capacity(list(set(mod_locations)), user_id)
+        update_filled_capacity(list(set(mod_locations)), user.id)
 
     return HttpResponse('Picklist Confirmed')
 
@@ -1506,7 +1506,7 @@ def confirm_jo_grn(request, user=''):
                 put_zone = zone.zone
             else:
                 put_zone = 'DEFAULT'
-            temp_dict = {'user': user.id}
+            temp_dict = {'user': user.id, 'sku': job_order.product_code}
             if val[1].get('pallet_number', ''):
                 temp_dict['pallet_number'] = val[1]['pallet_number']
             temp_dict['data'] = job_order

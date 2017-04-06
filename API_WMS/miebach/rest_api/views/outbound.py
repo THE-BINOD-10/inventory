@@ -120,7 +120,7 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
         order_id = data.order_code + str(int(data.order_id))
         if data.original_order_id:
             order_id = data.original_order_id
-        cust_status_obj = CustomerOrderSummary.objects.filter(order__order_id = data.order_id)
+        cust_status_obj = CustomerOrderSummary.objects.filter(order__order_id = data.order_id, order__user = user.id)
         if cust_status_obj:
             cust_status = cust_status_obj[0].status
             time_slot = cust_status_obj[0].shipment_time_slot
@@ -273,7 +273,9 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
             shipment_dates = picklist_obj.exclude(order__shipment_date__isnull=True).values_list('order__shipment_date', flat = True).order_by('order__shipment_date')
             shipment_date = ""
             if shipment_dates:
-                shipment_date = get_local_date(request.user, shipment_dates[0])
+                shipment_date = get_local_date(user, shipment_dates[0], True)
+                shipment_date = shipment_date.strftime("%d %b, %Y")
+
         result_data = OrderedDict(( ('DT_RowAttr', { 'data-id': picklist_id }), ('picklist_note', remarks),
                                     ('reserved_quantity', reserved_quantity_sum_value), ('picked_quantity', picked_quantity_sum_value),
                                     ('customer', prepare_str), ('shipment_date', shipment_date),

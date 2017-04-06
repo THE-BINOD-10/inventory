@@ -85,6 +85,7 @@ input[type="date"]:valid::before {
           <div class="form-group">
             <label class="control-label">Shipment Date *</label>
             <input ui-jq="datepicker" ng-model="Cart.model_data.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" readonly name="shipment_date">
+            <input value="{{Cart.model_data.shipment_time_slot}}" class="form-control" type="text" name="shipment_time_slot">
           </div>
         </div>
         <div class="col-md-4">

@@ -49,12 +49,12 @@
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
-            <label class="control-label">Shipment Time Slot</label>
+            <label class="control-label">Shipment Time Slot *</label>
             <select ng-model="showCase.model_data.shipment_time_slot" ng-init = "showCase.model_data.shipment_time_slot = ''" class="form-control" name="shipment_time_slot">
               <option value="" ng-selected="showCase.model_data.shipment_time_slot == ''"></option>
-              <option value="9-12" ng-selected="showCase.model_data.shipment_time_slot == '9-12'">9-12</option>
-              <option value="12-3" ng-selected="showCase.model_data.shipment_time_slot == '12-3'">12-3</option>
-              <option value="3-6" ng-selected="showCase.model_data.shipment_time_slot == '3-6'">3-6</option>
+              <option value="9 AM - 12 PM" ng-selected="showCase.model_data.shipment_time_slot == '9 AM - 12 PM'">9 AM - 12 PM</option>
+              <option value="12 PM - 3 PM" ng-selected="showCase.model_data.shipment_time_slot == '12 PM - 3 PM'">12 PM - 3 PM</option>
+              <option value="3 PM - 6 PM" ng-selected="showCase.model_data.shipment_time_slot == '3 PM - 6 PM'">3 PM - 6 PM</option>
             </select>
           </div>
         </div>

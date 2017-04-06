@@ -137,11 +137,13 @@
                 <tr class="rm-padding rm-brdr" ng-repeat="record in showCase.pdf_data.data" style="padding-bottom:0px;">
                   <td style="text-align: left;">
                     <b>{{record.category}}</b><br>
-                    <b>{{record.main_class}}</b><br>
-                      <span ng-repeat="sku in record.sku_class">{{sku}}
-                        <span ng-if="!($last)">,</span>
-                      </span>
-                    </p>
+                    <span ng-repeat="(main_class, record1) in record.styles">
+                      <span>{{main_class}}: </span>
+                        <span ng-repeat="sku_size in record1.display_sizes">{{sku_size}}-{{record1.sku_size[sku_size]}}
+                          <span ng-if="!($last)">,</span>
+                          <span ng-if="($last)"><br></span>
+                        </span>
+                    </span>
                   </td>
                   <td><b>{{record.quantity}}</b></td>
                   <td ng-if="permissions.show_mrp">{{record.mrp_price | number:2}}</td>

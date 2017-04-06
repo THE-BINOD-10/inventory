@@ -90,7 +90,7 @@ def get_raised_stock_transfer(start_index, stop_index, temp_data, search_term, o
                                     'DT_RowAttr': {'id': data['warehouse__username']}})
 
 
-def get_purchase_order_data(order):
+'''def get_purchase_order_data(order):
     order_data = {}
     if 'job_code' in dir(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group, 'sku': order.product_code }
@@ -120,7 +120,7 @@ def get_purchase_order_data(order):
                   'phone_number': user_data.phone_number, 'email_id': email_id,
                   'sku_group': open_data.sku.sku_group, 'sku_id': open_data.sku.id, 'sku': open_data.sku }
 
-    return order_data
+    return order_data'''
 
 @csrf_exempt
 def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -1553,7 +1553,7 @@ def get_purchase_order_data(order):
     temp_wms = ''
     unit = ""
     if 'job_code' in dir(order):
-        order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group }
+        order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group, 'sku': order.product_code }
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]

@@ -142,6 +142,9 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
 
         shipment_data = get_local_date(request.user, data.shipment_date, True).strftime("%d %b, %Y")
         if time_slot:
+            if "-" in time_slot:
+                time_slot = time_slot.split("-")[0]
+
             shipment_data = shipment_data + ', ' + time_slot
 
         try:
@@ -189,7 +192,6 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
 
 @csrf_exempt
 def open_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, status=''):
-
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     status_dict = eval(status)
     filter_params = {}
@@ -242,6 +244,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
     count = 0
     for data in master_data[start_index:stop_index]:
+
         create_date_value, order_marketplace, order_customer_name, picklist_id, remarks = '', [], [], '', ''
         picklist_obj = all_picks.filter(picklist_number=data['picklist_number'])
         reserved_quantity_sum_value = picklist_obj.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
@@ -260,14 +263,21 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
             else:
                 prepare_str = ','.join(list(set(order_marketplace)))
 
-            create_date_value = get_local_date(request.user, picklist_obj[0].creation_date)
+            create_date_value = ""
+            if picklist_obj[0].creation_date:
+                create_date_value = get_local_date(request.user, picklist_obj[0].creation_date)
+
             remarks = picklist_obj[0].remarks
             picklist_id = picklist_obj[0].picklist_number
 
+            shipment_dates = picklist_obj.exclude(order__shipment_date__isnull=True).values_list('order__shipment_date', flat = True).order_by('order__shipment_date')
+            shipment_date = ""
+            if shipment_dates:
+                shipment_date = get_local_date(request.user, shipment_dates[0])
         result_data = OrderedDict(( ('DT_RowAttr', { 'data-id': picklist_id }), ('picklist_note', remarks),
-                                    ('reserved_quantity', reserved_quantity_sum_value), ('picked_quantity', picked_quantity_sum_value), ('customer', prepare_str),
+                                    ('reserved_quantity', reserved_quantity_sum_value), ('picked_quantity', picked_quantity_sum_value),
+                                    ('customer', prepare_str), ('shipment_date', shipment_date),
                                     ('date', create_date_value), ('id', count), ('DT_RowClass', 'results') ))
-
         dat = 'picklist_id'
         count += 1
         if status == 'batch_picked':
@@ -2748,11 +2758,53 @@ def get_sku_variants(request, user=''):
 
 def modify_invoice_data(invoice_data, user):
 
-    new_data = {}
+    data = {}
+    new_data = []
     detailed_invoice = get_misc_value('detailed_invoice', user.id)
     detailed_invoice = True if (detailed_invoice == 'true') else False
     invoice_data['detailed_invoice'] = detailed_invoice
+    sku_class = []
     if detailed_invoice:
+        mydata = sorted(invoice_data['data'], key=lambda item: item["sku_category"])
+        for key, group in groupby(mydata, lambda item: item["sku_category"]):
+            data[key] = list(group)
+
+        for one in data.keys():
+            category = one
+
+            data_to = sorted(data[one], key=lambda item: item["unit_price"])
+            for key2, group2 in groupby(data_to, lambda item: item["unit_price"]):
+                price = key2
+                discount, invoice_amount, quantity, tax, amount = 0,0,0,0,0
+                sku_list = OrderedDict()
+                styles_att = {'discount': 0, 'invoice_amount': 0, 'quantity': 0, 'tax': 0, 'amount': 0, 'sku_size': {}, 'display_sizes': []}
+                styles =  {}
+                sub_total = 0
+                for single_entry in group2:
+                    if not single_entry['sku_class'] in styles:
+                        styles[single_entry['sku_class']] = copy.deepcopy(styles_att)
+                    styles[single_entry['sku_class']]['sku_size'][single_entry['sku_size']] = int(single_entry['quantity'])
+                    if not single_entry['sku_size'] in styles[single_entry['sku_class']]['display_sizes']:
+                        styles[single_entry['sku_class']]['display_sizes'].append(single_entry['sku_size'])
+                    discount += float(single_entry['discount'])
+                    invoice_amount += float(single_entry['invoice_amount'])
+                    quantity += single_entry['quantity']
+                    tax += float(single_entry['tax'])
+                    amount += invoice_amount
+                    main_class = single_entry['sku_class']
+                    vat = single_entry['vat']
+                total = amount - tax
+                new_data.append({'price': price, 'sku_class': sku_list, 'discount': discount, 'invoice_amount': invoice_amount,'quantity': quantity, 'tax': tax, 'amount': amount, 'category': category, 'vat': vat, 'styles': styles})
+                """
+                new_data[category][price]['sku_class'] = sku_list
+                new_data[category][price]['discount'] = discount
+                new_data[category][price]['invoice_amount'] = invoice_amount
+                new_data[category][price]['quantity'] = quantity
+                new_data[category][price]['tax'] = tax
+                new_data[category][price]['amount'] = amount
+                """
+
+        """
         for data in invoice_data['data']:
             class_name = data['sku_class']
             category = data['sku_category']
@@ -2785,6 +2837,7 @@ def modify_invoice_data(invoice_data, user):
                     style_data['class'] = False
                 new_data[category] = style_data
                 #new_data[category]['data'].append(data)
+        """
         invoice_data['data'] = new_data
     return invoice_data
 
@@ -2899,7 +2952,7 @@ def search_customer_data(request, user=''):
     if not search_key:
       return HttpResponse(json.dumps(total_data))
 
-    lis = ['name', 'email_id', 'phone_number', 'address', 'status']
+    lis = ['name', 'email_id', 'phone_number', 'address', 'status', 'tax_type']
     master_data = CustomerMaster.objects.filter(Q(phone_number__icontains = search_key) | Q(name__icontains = search_key) |
                                                 Q(customer_id__icontains = search_key), user=user.id)
 
@@ -2911,7 +2964,7 @@ def search_customer_data(request, user=''):
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
         total_data.append({'customer_id': data.customer_id, 'name': data.name, 'phone_number': str(data.phone_number),
-                           'email': data.email_id, 'address': data.address})
+                           'email': data.email_id, 'address': data.address, 'tax_type': data.tax_type})
     return HttpResponse(json.dumps(total_data))
 
 @csrf_exempt
@@ -3342,16 +3395,16 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         check_values = order_id
         name = all_orders.filter(order_id=dat['order_id'], order_code=dat['order_code'], user=user.id)[0].id
         creation_date = all_orders.filter(order_id=dat['order_id'], order_code=dat['order_code'], user=user.id)[0].creation_date
-        shipment_data = get_local_date(request.user, creation_date, True).strftime("%d %b, %Y")
-        if time_slot:
-            shipment_data = shipment_data + ', ' + time_slot
+        creation_data = get_local_date(request.user, creation_date, True).strftime("%d %b, %Y")
+        #if time_slot:
+        #    shipment_data = shipment_data + ', ' + time_slot
 
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (name, dat['total'])
 
         temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('data_value', check_values), ('Customer Name', dat['customer_name']),
                                                  ('Order ID', order_id), ('Market Place', dat['marketplace']),
                                                  ('Total Quantity', dat['total']), ('Order Taken By', order_taken_val),
-                                                 ('Creation Date', shipment_data),
+                                                 ('Creation Date', creation_data),
                                                  ('id', index), ('DT_RowClass', 'results'), ('Status', cust_status) )))
         index += 1
     col_val = ['Customer Name', 'Customer Name', 'Order ID', 'Market Place', 'Total Quantity', 'Creation Date', 'Order Taken By', 'Status']
@@ -3693,6 +3746,8 @@ def generate_pdf_file(request, user=""):
     top = top.render(c)
     nv_data = nv_data.encode('utf-8')
     html_content = str(top)+nv_data+"</div>"
+    if not os.path.exists('static/pdf_files/'):
+        os.makedirs('static/pdf_files/')
     file_name = 'static/pdf_files/%s_dispatch_invoice.html' % str(request.user.id)
     name = str(request.user.id)+"_dispatch_invoice"
     pdf_file = 'static/pdf_files/%s.pdf' % name

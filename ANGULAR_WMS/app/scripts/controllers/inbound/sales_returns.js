@@ -43,7 +43,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.scan_returns = [];
       vm.scan_orders = [];
       vm.scan_skus = [];
+      vm.scan_imeis = [];
       vm.confirm_disable = false;
+      vm.imei_data.reason = "";
+      vm.imei_data.scanning = false;
       $state.go('app.inbound.SalesReturns');
     }
 
@@ -264,6 +267,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.update_data = function(index , record, data) {
 
+      vm.remove_serials(data.splice(index, 1));
       data.splice(index, 1);
       if(data.length > 0 && !(record.order_id)) {
 
@@ -278,9 +282,103 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(status) {
           var ind = vm.scan_skus.indexOf(record.sku_code);
           if(ind != -1) {
+            vm.remove_serials(vm.scan_skus[ind]);
             vm.scan_skus.splice(ind,1);
           }
         }
+      }
+    }
+
+    vm.add_new_imei = function(data, field) {
+      vm.model_data.data.push({'sku_code': data.data.sku_code, 'product_description': data.data.sku_desc,
+                               'shipping_quantity': data.data.shipping_quantity, 'order_id': data.data.order_id,
+                               'return_quantity': 1, 'damaged_quantity': '', 'track_id_enable': false,
+                               'is_new': true, 'marketplace': '', 'return_type': '', 'sku_desc': data.data.sku_desc,
+                               'invoice_number': data.data.invoice_number, 'returns_imeis': [field], 'damaged_imeis': [],
+                               'damaged_imeis_reason': []});
+      vm.imei_data["index"] = vm.model_data.data.length-1;
+    }
+
+
+    vm.return_types = ['Return to Origin(RTO)', 'Customer Initiated Return']
+    vm.scan_imeis = []
+
+    vm.imei_data = {};
+
+    vm.scan_imei = function(event, field) {
+      if ( event.keyCode == 13 && field) {
+        if(vm.scan_imeis.indexOf(field) == -1) {
+          vm.service.apiCall('check_return_imei/', 'GET', {imei: field}).then(function(data){
+            if(data.message) {
+              if ('Success'==data.data.status) {
+                vm.scan_imeis.push(field);
+                //vm.return_serials(field);
+                if(vm.scan_skus.indexOf(data.data.data.sku_code) == -1){
+                    vm.scan_skus.push(data.data.data.sku_code);
+                }
+                status = "true";
+                for(var i = 0; i < vm.model_data.data.length; i++) {
+                  var temp = vm.model_data.data[i]
+                  if(data.data.data.sku_code == temp.sku_code && temp.is_new && data.data.data.invoice_number == temp.invoice_number && data.data.data.order_id == temp.order_id) {
+                    vm.model_data.data[i].return_quantity += 1;
+                    vm.model_data.data[i].returns_imeis.push(field);
+                    vm.imei_data["index"] = vm.model_data.data.length-1;
+                    status = "false";
+                    break;
+                  }
+                }
+                if(status == "true"){
+                  vm.add_new_imei(data.data, field);
+                }
+                vm.imei_data.scanning = true;
+
+              } else {
+                pop_msg(data.data.status);
+              }
+            }
+          });
+        } else {
+          pop_msg("Scanned Imei exists");
+        }
+        vm.model_data.return_imei = '';
+      }
+    }
+
+    vm.add_to_damage = function() {
+
+      vm.imei_data.scanning = false;
+      if(vm.imei_data.index > -1) {
+
+        var data = vm.model_data.data[vm.imei_data.index];
+        var index = data.returns_imeis.length -1;
+        var imei = vm.model_data.data[vm.imei_data.index].returns_imeis[index];
+        var reason = (vm.imei_data.reason)? vm.imei_data.reason: "";
+        vm.model_data.data[vm.imei_data.index].returns_imeis.splice(index, 1);
+        vm.model_data.data[vm.imei_data.index].damaged_imeis.push(imei);
+        vm.model_data.data[vm.imei_data.index].damaged_imeis_reason.push(imei+"<<>>"+reason);
+        vm.model_data.data[vm.imei_data.index].damaged_quantity = Number(data.damaged_quantity)+1;
+        //vm.model_data.data[vm.imei_data.index].return_quantity = Number(data.return_quantity)-1;
+        vm.imei_data.reason = "";
+      }
+    }
+
+    vm.remove_serials = function(data) {
+
+      console.log(data);
+      data = data[0];
+      if(data.returns_imeis.length > 0) {
+        angular.forEach(data.returns_imeis, function(imei){
+          if (vm.scan_imeis.indexOf(imei) != -1) {
+            vm.scan_imeis.splice(vm.scan_imeis.indexOf(imei), 1);
+          }
+        })
+      }
+      if(data.damaged_imeis.length > 0) {
+        angular.forEach(data.damaged_imeis, function(imei){
+          if (vm.scan_imeis.indexOf(imei) != -1) {
+            vm.scan_imeis.splice(vm.scan_imeis.indexOf(imei), 1);
+          }
+        })
       }
     }
   }

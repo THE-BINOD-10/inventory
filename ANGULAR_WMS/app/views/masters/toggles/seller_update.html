@@ -7,7 +7,7 @@
         <h4 class="modal-title">{{showCase.title}}</h4> </div>
       <!-- body-->
       <div class="modal-body">
-          <div class="row" ng-if="!(showCase.model_data.login_created)">
+          <!--<div class="row" ng-if="!(showCase.model_data.login_created)">
             <div class="col-md-11 col-sm-11 col-xs-10">
               <p align="right">Create Login</p>
             </div>
@@ -21,16 +21,16 @@
                 </div>
               </label>
             </div>
-          </div>
+          </div>-->
           <div class="row">
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label"> Customer ID * </label>
-                <input type="text" name="customer_id" class="form-control numvalid" ng-model="showCase.model_data.customer_id" maxlength="60" ng-readonly="showCase.update" required> </div>
+                <label class="control-label"> Seller ID * </label>
+                <input type="text" name="seller_id" class="form-control numvalid number" ng-model="showCase.model_data.seller_id" maxlength="60" ng-readonly="showCase.update" required> </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label"> Customer Name * </label>
+                <label class="control-label"> Seller Name * </label>
                 <input type="text" name="name" class="form-control namevalid" ng-model="showCase.model_data.name" maxlength="256" required> </div>
             </div>
             <div class="col-md-4">
@@ -48,14 +48,14 @@
             </div>
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label"> Credit Period </label>
-                <input type="text" name="credit_period" class="form-control number" ng-model="showCase.model_data.credit_period" maxlength="256">
+                <label class="control-label"> VAT Number </label>
+                <input type="text" name="vat_number" class="form-control" ng-model="showCase.model_data.vat_number" maxlength="256">
               </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Phone No. * </label>
-                <input name="phone_number" type="text" class="form-control numvalid" ng-model="showCase.model_data.phone_number" maxlength="10" ng-pattern="/^\+?\d{2}[- ]?\d{3}[- ]?\d{5}$/" required> </div>
+                <input name="phone_number" type="text" class="form-control numvalid number" ng-model="showCase.model_data.phone_number" maxlength="10" ng-pattern="/^\+?\d{2}[- ]?\d{3}[- ]?\d{5}$/" required> </div>
             </div>
           </div>
           <div class="row">
@@ -90,7 +90,7 @@
                 </select>
               </div>
             </div>
-            <div class="col-md-4" ng-if="showCase.model_data.login_created && !(showCase.model_data.create_login)">
+            <!--<div class="col-md-4" ng-if="showCase.model_data.login_created && !(showCase.model_data.create_login)">
               <div class="row">
                 <div class="col-md-12">
                   <div class="form-group">
@@ -99,7 +99,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-md-4 hide" ng-if="showCase.model_data.create_login">
+            <div class="col-md-4 hide" ng-if="showCase.model_data.create_login">-->
               <!--<div class="row">
                 <div class="col-md-12">
                   <div class="form-group">
@@ -108,19 +108,8 @@
                   </div>
                 </div>
               </div>-->
-            </div>
           </div>
-            <div class="row">
-              <div class="col-md-4">
-              <div class="form-group">
-                <label class="control-label"> Tax Type </label>
-                <select class="form-control"  ng-model="showCase.model_data.tax_type" name="tax_type">
-                  <option ng-repeat="one in showCase.all_taxes">{{one}}</option>
-                </select>
-              </div>
-              </div>
-            </div>
-          <div class="row" ng-if="showCase.model_data.create_login">
+          <!--<div class="row" ng-if="showCase.model_data.create_login">
             <hr>
             <div class="col-md-4">
               <div class="form-group">
@@ -134,7 +123,7 @@
                 <input type="password" name="name" class="form-control" ng-model="showCase.model_data.password" maxlength="256" ng-required="!(showCase.model_data.login_created)">
               </div>
             </div>
-          </div>
+          </div>-->
           <div class="row insert-status">
             <h4 align="center">{{showCase.service.message}}</h4> </div>
         </form>
@@ -142,10 +131,7 @@
       <!-- body end-->
       <div class="modal-footer">
         <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
-        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
-          <span>Save</span>
-          <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
-        </button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)">Save</button>
       </div>
     </div>
     <!-- /.modal-content -->

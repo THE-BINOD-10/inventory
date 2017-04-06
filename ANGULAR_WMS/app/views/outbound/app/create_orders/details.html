@@ -1,6 +1,6 @@
 <div>
   <div class="row style-menu" style="line-height: 35px;">
-    <div class="col-md-4 col-sm-5 col-xs-8">
+    <div class="col-md-4 col-sm-5 col-xs-9">
       <div class="online-toggle ml10">
         <span>Offline</span>
         <label class="switch switch-info switch-sm square">
@@ -15,7 +15,7 @@
     <div class="col-md-4 col-sm-4 col-xs-5 hidden-xs">
       <h4 align="center">CREATE ORDERS</h4>
     </div>
-    <div class="col-md-4 col-sm-3 col-xs-4">
+    <div class="col-md-4 col-sm-3 col-xs-3">
       <div class="btn-group pull-right" role="group">
         <a class="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
           <i class="fa fa-user fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;"></i>
@@ -31,7 +31,7 @@
       </a>
     </div>
   </div>
-  <div class="row app_body" style="padding: 15px 5px;;">
+  <div class="row app_body" style="padding: 15px 5px;">
     <div class="pull-left col-md-2 col-sm-3 col-xs-6" ng-repeat="brand in showCase.brands">
       <div style="box-shadow: 1px 1px 15px #333;position: relative;padding:0px;margin-bottom: 15px">
         <img ng-src="/images/brand-logos/{{(showCase.brands_images[brand])? showCase.brands_images[brand]: 'sagar_fab_default_log.jpg'}}" ng-click="showCase.change_brand(brand); $state.go('user.App.Products')"style="width:100%;cursor:pointer;">

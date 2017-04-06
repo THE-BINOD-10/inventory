@@ -37,7 +37,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         DTColumnBuilder.newColumn('customer').withTitle('Customer / Marketplace').notSortable(),
          DTColumnBuilder.newColumn('picklist_note').withTitle('Picklist Note'),
         DTColumnBuilder.newColumn('reserved_quantity').withTitle('Reserved Quantity').notSortable(),
-        DTColumnBuilder.newColumn('date').withTitle('Date')
+        DTColumnBuilder.newColumn('shipment_date').withTitle('Shipment Date'),
+        DTColumnBuilder.newColumn('date').withTitle('Date'),
+
     ];
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {

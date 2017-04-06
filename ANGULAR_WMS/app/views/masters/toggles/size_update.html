@@ -13,7 +13,7 @@
             <div class="col-md-4 col-sm-6 col-sm-12">
               <div class="form-group">
                 <label class="control-label"> Size Name * </label>
-                <input type="text" name="size_name" class="form-control" ng-model="showCase.model_data.size_name" maxlength="256" requiredi ng-disabled="showCase.update">
+                <input type="text" name="size_name" class="form-control" ng-model="showCase.model_data.size_name" maxlength="256" required ng-disabled="showCase.update">
               </div>
               <input type="hidden" name="id" value="{{showCase.model_data.DT_RowAttr['data-id']}}" ng-if="showCase.model_data.DT_RowAttr['data-id']">
             </div>
@@ -49,7 +49,10 @@
       <!-- body end-->
       <div class="modal-footer">
         <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
-        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)">Save</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+          <span>Save</span>
+          <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+        </button>
       </div>
     </div><!-- /.modal-content -->
   </div><!-- /.modal-dialog -->

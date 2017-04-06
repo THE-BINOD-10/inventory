@@ -36,7 +36,7 @@
                     </td>
                     <td>
                       <input type="text" name="material_quantity" class="form-control" ng-class="service.get_decimal_perm()" ng-model="material.Material_Quantity"></td>
-                    <td><input type="text" name="wastage_percent" class="form-control" percentage-number ng-model="material.wastage_percent" maxlength="3"></td>
+                    <td><input type="text" name="wastage_percent" class="form-control" ng-model="material.wastage_percent" ng-class="service.get_decimal_perm()" percentage-field percentage-max-value="99.99" percentage-max-decimals="2"></td>
                     <td>
                       <select name="unit_of_measurement" class="form-control" ng-model="material.Units">
                         <option ng-repeat="unit in showCase.units" ng-selected="material.Units == unit">{{unit}}</option>
@@ -53,7 +53,10 @@
       <!-- body end-->
       <div class="modal-footer">
         <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
-        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)">Save</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+          <span>Save</span>
+          <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+        </button>
       </div>
     </div>
     <!-- /.modal-content -->

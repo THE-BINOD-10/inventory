@@ -15,6 +15,7 @@
 
         "userId"  : null,
         "userName": null,
+        "parent": {},
         "roles"   : [],
         "user_profile" : {}
       });
@@ -28,6 +29,7 @@
 
         "userId"  : this.userId,
         "userName": this.userName,
+        "parent"  : this.parent,
         "roles"   : this.roles,
         "user_profile" : this.user_profile
       };
@@ -37,6 +39,7 @@
 
       this.userId   = data.userId;
       this.userName = data.userName;
+      this.parent = data.parent;
       this.roles    = data.roles;
       this.user_profile = data.user_profile;
 

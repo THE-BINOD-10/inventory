@@ -14,7 +14,7 @@
           <strong style="line-height: 34px;" class="pull-left ml20"> Inbound/ Outbound mail Notifications</strong>
         </div>
         <div class="col-md-2 col-sm-4 col-xs-4 mail_notifications">
-          <select id="maxOption2" class="selectpicker show-menu-arrow form-control" multiple ng-change="showCase.mail_alerts_change('enable_mail_reports', '#maxOption2', 'data')">
+          <select id="maxOption2" class="selectpicker show-menu-arrow form-control" ng-model="showCase.mail_alerts" multiple ng-change="showCase.mail_alerts_change('enable_mail_reports', '#maxOption2', 'data')">
             <option ng-selected="showCase.check_selected(value, 'mail_inputs')" ng-repeat="(key, value) in showCase.model_data.mail_options"> {{key}}</option>
           </select>
         </div>
@@ -30,7 +30,7 @@
           <strong style="line-height: 34px;" class="pull-left ml20"> CreateOrder page headers</strong>
         </div>
         <div class="col-md-2 col-sm-4 col-xs-4 create_orders">
-          <select id="create_orders" class="selectpicker show-menu-arrow form-control" multiple ng-change="showCase.mail_alerts_change('switches', '#create_orders', 'order_headers')">
+          <select id="create_orders" class="selectpicker show-menu-arrow form-control" ng-model="showCase.headers" multiple ng-change="showCase.mail_alerts_change('switches', '#create_orders', 'order_headers')">
             <option ng-selected="showCase.check_selected(key, 'order_header_inputs')" ng-repeat="(key, value) in showCase.model_data.order_headers"> {{key}}</option>
           </select>
         </div>
@@ -415,11 +415,11 @@
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-5 col-sm-8 col-xs-12">
-          <i class="fa fa-tags fa-15px"></i>
+          <i class="fa fa-tags fa-15px pull-left" style="line-height: 34px;"></i>
           <strong style="line-height: 34px;" class="pull-left ml20"> SKU Groups </strong>
         </div>
         <div class="bootstrap-tagsinput col-md-6 col-sm-6 col-xs-8">
-          <input id="tags" type="text" value="{{showCase.model_data.all_groups}}" ui-jq="tagsInput"/>
+          <input id="tags" class="sku_groups" type="text" value="{{showCase.model_data.all_groups}}" ui-jq="tagsInput"/>
         </div>
         <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_sku_groups()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
         </div>

@@ -84,7 +84,7 @@
             <span>Vendor Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('add_categorydiscount')">
+        <li ui-sref-active="active" ng-show="show_tab('pos_switch')">
           <a ui-sref="app.masters.DiscountMaster">
             <span>Discount Master</span>
           </a>
@@ -102,6 +102,11 @@
         <li ui-sref-active="active">
           <a ui-sref="app.masters.PricingMaster">
             <span>Pricing Master</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+          <a ui-sref="app.masters.SellerMaster">
+            <span>Seller Master</span>
           </a>
         </li>
       </ul>
@@ -138,6 +143,11 @@
         <li ng-show="show_tab('add_orderreturns')" ui-sref-active="active">
           <a ui-sref="app.inbound.SalesReturns">
             <span>Sales Returns</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+          <a ui-sref="app.inbound.SellerInvoice">
+            <span>Seller Invoices</span>
           </a>
         </li>
       </ul>
@@ -374,7 +384,7 @@
 
 
     <!-- Channels -->
-    <li id="channel_component" ng-show = "show_order()"  ui-sref-active="active" >
+    <li id="channel_component" ng-show="show_tab('order_manage')" ui-sref-active="active">
       <a ui-sref="app.channels">
         <i class="fa fa-tasks"></i>
         <span>Channels</span>

@@ -8,6 +8,7 @@
           <h4 class="modal-title">Add Shippment </h4>
         </div>
         <div class="modal-body">
+          <input name="view_name" class="form-control" type="hidden" value="{{vm.g_data.view}}">
           <div class="row">
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="(!(showCase.customer_details))">
               <div class="form-group">
@@ -36,19 +37,25 @@
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Shipment Date *</label>
-                <input type="text" class="form-control stk-readonly" ui-jq="datepicker" name="shipment_date" ng-model="showCase.model_data.shipment_date" readonly required>
+                <input type="text" class="form-control stk-readonly" ui-jq="datepicker" name="shipment_date" readonly required data-date-start-date="showCase.today_date" id="shipment_date" data-date-today-highlight="true">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
-                <label class="control-label">Truck Number *</label>
-                <input name="truck_number" class="form-control" type="text" ng-model="showCase.model_data.truck_number" required>
+                <label class="control-label">Truck Number</label>
+                <input name="truck_number" class="form-control" type="text" ng-model="showCase.model_data.truck_number">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
-                <label class="control-label">Shipment Reference *</label>
-                <input name="shipment_reference" class="form-control" type="text" ng-model="showCase.model_data.shipment_reference" required>
+                <label class="control-label">Shipment Reference</label>
+                <input name="shipment_reference" class="form-control" type="text" ng-model="showCase.model_data.shipment_reference">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.g_data.alternate_view">
+              <div class="form-group">
+                <label class="control-label"> Invoice Number *</label>
+                <input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.invoice_number" required>
               </div>
             </div>
           </div>
@@ -64,8 +71,10 @@
                   <th ng-if="(!(showCase.sku_group))"> Order ID </th>
                   <th> SKU Code </th>
                   <th> Order Quantity </th>
+                  <th> Picked Quantity </th>
                   <th> Shipping Quantity </th>
-                  <th> Pack Reference </th>
+                  <th ng-hide="user.user_profile['user_type'] == 'marketplace_user'"> Pack Reference </th>
+                  <th ng-if="showCase.mk_user"> Serial Number </th>
                   <th class="plus"></th>
                 </tr>
               </thead>
@@ -77,19 +86,24 @@
                   <input type="hidden" name="order_quantity" value="{{data.picked}}">
                   <td ng-if="(!(showCase.sku_group))">{{data.order_id}}</td>
                   <td>{{data.sku__sku_code}}</td>
+                  <td> {{data.ordered_quantity}} </td>
                   <td> {{data.picked}} </td>
-                  <td><input class="form-control" name="shipping_quantity" ng-model="record.shipping_quantity" type="text" ng-class="service.get_decimal_perm()" ng-change="showCase.cal_quantity(record, data)"></td>
-                  <td><input class="form-control" name="package_reference" ng-model="record.pack_reference" type="text"></td>
+                  <td><input class="form-control" name="shipping_quantity" ng-model="record.shipping_quantity" type="text" ng-class="service.get_decimal_perm()" ng-change="showCase.cal_quantity(record, data)" ng-readonly="showCase.mk_user"></td>
+                  <td ng-hide="user.user_profile['user_type'] == 'marketplace_user'"><input class="form-control" name="package_reference" ng-model="record.pack_reference" type="text"></td>
+                  <td ng-if="showCase.mk_user">
+                    <input type="text" ng-model="record.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, record, data)" ng-disabled="data.equal">
+                    <input type="hidden" name="imei_number" class="form-control" ng-init="record.imei_list=[]" value="{{record.imei_list.join(',')}}">
+                  </td>
                   <td><i ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <div class="row hide insert-status"></div>
+          <div class="row insert-status"><h4 align="center"></h4></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
-          <button class="btn pop pop-green" value="Add Shippment" type="submit" ng-click="showCase.add_shipment(form)">Add Shippment</button>
+          <button class="btn pop pop-green" value="Add Shippment" type="button" ng-disabled="showCase.bt_disable" ng-click="showCase.add_shipment(form)">Add Shippment</button>
         </div>
       </div>
     </div>

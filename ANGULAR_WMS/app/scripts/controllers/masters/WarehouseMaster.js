@@ -1,11 +1,12 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('WarehouseMasterTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', ServerSideProcessingCtrl]);
+  .controller('WarehouseMasterTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
     var vm = this;
     vm.apply_filters = colFilters;
+    vm.service = Service;
     vm.filters = {'datatable': 'WarehouseMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -93,47 +94,45 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       angular.extend(vm.model_data, empty_data);
       vm.update = false;
       $state.go('app.masters.WarehouseMaster.Warehouse');
-    } 
+    }
 
   vm.update_warehouse = update_warehouse;
   function update_warehouse() {
-    var data = $.param(vm.model_data); 
-    $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-    $http({
-               method: 'POST',
-               url:Session.url+"update_warehouse_user/",
-               withCredential: true,
-               data: data}).success(function(data, status, headers, config) {
-                 pop_msg(data);
-                 reloadData();
+    vm.service.apiCall("update_warehouse_user/", "POST", vm.model_data, true).then(function(data) {
+      if(data.message) {
+        if(data.data == "Updated Successfully") {
+          vm.close();
+          reloadData();
+        }
+        vm.service.pop_msg(data.data);
+      }
     });
   }
 
   vm.create_warehouse = create_warehouse;
   function create_warehouse(form) {
     if (form.password.$valid && form.re_password.$valid && (form.password.$viewValue == form.re_password.$viewValue)) {
-    if (!(vm.model_data)) {
-      vm.model_data.phone_number = "";
-    }
-    var data = $.param(vm.model_data);
-    $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-    $http({
-               method: 'POST',
-               url:Session.url+"add_warehouse_user/",
-               withCredential: true,
-               data: data}).success(function(data, status, headers, config) {
-                 pop_msg(data);
-                 reloadData();
-    });
+      if (!(vm.model_data)) {
+        vm.model_data.phone_number = "";
+      }
+      vm.service.apiCall("add_warehouse_user/", "POST", vm.model_data, true).then(function(data) {
+        if(data.message) {
+          if(data.data == "Added Successfully") {
+            vm.close();
+            reloadData();
+          }
+          vm.service.pop_msg(data.data);
+        }
+      });
     } else {
-      pop_msg("Please check password") 
+      vm.service.pop_msg("Please check password");
     }
   }
 
   vm.submit = submit;
   function submit(form) {
     if(form.username.$valid && form.first_name.$valid) {
-      
+
       if ("Add Warehouse" == vm.title) {
         create_warehouse(form);
       } else {
@@ -141,12 +140,5 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
   }
-
-  function pop_msg(msg) {
-    vm.message = msg;
-    $timeout(function () {
-        vm.message = "";
-    }, 2000);
-  }  
 }
 

@@ -65,6 +65,10 @@ urlpatterns = patterns('rest_api.views',
     url(r'^update_size/$', 'update_size'),
     url(r'^add_pricing/$', 'add_pricing'),
     url(r'^update_pricing/$', 'update_pricing'),
+    url(r'^get_seller_master_id/$', 'get_seller_master_id'),
+    url(r'^insert_seller/$', 'insert_seller'),
+    url(r'^get_sellers_list/$', 'get_sellers_list'),
+    url(r'^update_seller_values/$', 'update_seller_values'),
 
     # Inbound
     url(r'^generated_po_data/$', 'generated_po_data'),
@@ -110,6 +114,9 @@ urlpatterns = patterns('rest_api.views',
     url(r'^track_orders/$', 'track_orders'),
     url(r'^cancelled_putaway_data/$', 'cancelled_putaway_data'),
     url(r'^get_location_capacity/$', 'get_location_capacity'),
+    url(r'^generate_seller_invoice/$', 'generate_seller_invoice'),
+    url('^check_imei_qc/$', 'check_imei_qc'),
+    url('^check_return_imei/$', 'check_return_imei'),
 
     # Production
     url(r'^generated_jo_data/$', 'generated_jo_data'),
@@ -234,6 +241,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^get_daily_production_report/$', 'get_daily_production_report'),
     url(r'^print_daily_production_report/$', 'print_daily_production_report'),
     url(r'^print_order_summary_report/$', 'print_order_summary_report'),
+    url(r'^get_marketplaces_list_reports/$', 'get_marketplaces_list_reports'),
 
     #uploads
     url(r'^order_form/$', 'order_form'),

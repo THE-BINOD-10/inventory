@@ -109,7 +109,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
           });
         })
       }, 500);
-      $("#tags").importTags(vm.model_data.all_groups);
+      $(".sku_groups").importTags(vm.model_data.all_groups);
       $(".stages").importTags(vm.model_data.all_stages);
       $('#my-select').multiSelect();
     }

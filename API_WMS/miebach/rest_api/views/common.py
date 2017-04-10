@@ -1644,10 +1644,8 @@ def get_invoice_data(order_ids, user, merge_data = ""):
                                 + customer_details[0]['phone_number'] + "\nEmail: " + customer_details[0]['email_id']
             if not marketplace:
                 marketplace = dat.marketplace
-                if marketplace == 'Myntra':
-                    marketplace = 'Myntra Designs Pvt Ltd\nSSN Logistics Pvt Ltd, B-2, Antariksha Lodgidrome Warehousing Complex, Opp\
-                                   Vashere HP petrol pump Aamne-sape, Pagdha, Kalyan rd,Bhiwandi - 421302\
-                                   TIN: 27590747736'
+                if marketplace.lower() == 'myntra':
+                    marketplace = USER_MYNTRA_ADDRESS.get(user.username, 'Myntra')
             tax = 0
             vat = 5.5
             discount = 0
@@ -2347,3 +2345,27 @@ def get_dictionary_query(data_dict={}):
     else:
         query = Q()
     return query
+
+
+def get_shipment_time(ord_id, user):
+    "function to return shipment slot for an order"
+    cust_status_obj = CustomerOrderSummary.objects.filter(order__id = ord_id, order__user = user.id)
+    time_slot = ""
+    try:
+        if cust_status_obj:
+            time_slot = cust_status_obj[0].shipment_time_slot
+            if time_slot:
+                if "-" in time_slot:
+                    time_slot = time_slot.split("-")[0]
+
+
+    except:
+        log.info("no shipment time for order %s" %(ord_id))
+
+    return time_slot
+
+
+
+
+
+

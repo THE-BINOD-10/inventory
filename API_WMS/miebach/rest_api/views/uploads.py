@@ -139,7 +139,6 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
         if "shipment_check" in order_mapping:
             _shipping_date = get_cell_data(row_idx, order_mapping['shipment_date'], reader, file_type)
-            xldate_as_tuple(cell_data, 0)
             print _shipping_date
             if _shipping_date:
                 try:

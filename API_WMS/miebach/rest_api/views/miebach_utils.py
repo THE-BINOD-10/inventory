@@ -283,7 +283,12 @@ STOCK_DET = ([('0','receipt_number'),('1','receipt_date'),('2','sku_id__sku_code
 
 ORDER_DETAIL_HEADERS = OrderedDict([('Order ID','order_id'),('SKU Code','sku_id__sku_code'),('Title','title'),('Product Quantity','quantity'),('Shipment Date','shipment_date')])
 
-PICK_LIST_HEADERS = OrderedDict([('Picklist ID','picklist_number'), ('Customer / Marketplace','picklist_number'), ('Picklist Note','remarks'), ('Reserved Quantity', 'reserved_quantity'), ('Shipment Date', 'shipment_date'), ('Date','creation_date')])
+OPEN_PICK_LIST_HEADERS = OrderedDict([('Picklist ID','picklist_number'), ('Customer / Marketplace','order__marketplace'), ('Picklist Note','remarks'), ('Reserved Quantity', 'reserved_quantity'), ('Shipment Date', 'order__shipment_date'), ('Date','creation_date')])
+
+PICKED_PICK_LIST_HEADERS = OrderedDict([('Picklist ID','picklist_number'), ('Customer / Marketplace','order__marketplace'), ('Picklist Note','remarks'), ('Reserved Quantity', 'reserved_quantity'), ('Date','creation_date')])
+
+BATCH_PICK_LIST_HEADERS = OrderedDict([('Picklist ID','picklist_number'), ('Picklist Note','remarks'), ('Date','creation_date')])
+
 
 PO_SUGGESTIONS = OrderedDict([('0','creation_date'),('1','supplier_id'),('2','sku_id'),('3','order_quantity'),('4','price'),('5','status')])
 
@@ -653,6 +658,15 @@ USER_SKU_EXCEL_MAPPING = {'warehouse_user': SKU_DEF_EXCEL, 'marketplace_user': M
 MIX_SKU_MAPPING = {'no mix': 'no_mix', 'mix within group': 'mix_group'}
 
 RETURNS_TYPE_MAPPING = {'return to origin(rto)': 'rto', 'customer initiated return': 'customer_return'}
+
+MYNTRA_BANGALORE_ADDRESS = 'Myntra Designs Pvt Ltd\nNumber 88/17-18 and 19, Khata number 44 and 45, Ward Number 7 ,\n\
+                            Singasandra Village, Hongasandra panchayat,\nBegur Hobli, Bangalore - 560068\nKarnataka       TIN:29910754899'
+
+MYNTRA_MUMBAI_ADDRESS = 'Myntra Designs Pvt Ltd\nSSN Logistics Pvt Ltd, B-2, Antariksha Lodgidrome Warehousing Complex, Opp\n\
+                         Vashere HP petrol pump Aamne-sape, Pagdha, Kalyan rd,Bhiwandi - 421302\n\
+                         TIN: 27590747736'
+
+USER_MYNTRA_ADDRESS = {'campus_sutra': MYNTRA_BANGALORE_ADDRESS, 'adam_clothing': MYNTRA_MUMBAI_ADDRESS, 'adam_clothing1': MYNTRA_MUMBAI_ADDRESS}
 
 def fn_timer(function):
     @wraps(function)

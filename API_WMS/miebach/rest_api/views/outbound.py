@@ -206,8 +206,14 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     else:
         del filter_params['status__icontains']
         filter_params['picked_quantity__gt'] = 0
+    log.info(status)
     if status == 'batch_picked':
         col_num = col_num - 1
+        header = BATCH_PICK_LIST_HEADERS
+    elif status == 'picked':
+        header = PICKED_PICK_LIST_HEADERS
+    else:
+        header = OPEN_PICK_LIST_HEADERS
 
     all_picks = Picklist.objects.filter(Q(order__sku__user = user.id) | Q(stock__sku__user=user.id), **filter_params)
 
@@ -215,8 +221,8 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids)|Q(stock__sku_id__in=sku_master_ids)).filter( Q(picklist_number__icontains = search_term) | Q( remarks__icontains = search_term ) | Q(order__marketplace__icontains=search_term) | Q(order__customer_name__icontains=search_term))
 
     elif order_term:
-        col_num = col_num - 1
-        order_data = PICK_LIST_HEADERS.values()[col_num]
+        #col_num = col_num - 1
+        order_data = header.values()[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
         master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).order_by(order_data)
@@ -226,7 +232,6 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     total_reserved_quantity = master_data.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
     total_picked_quantity = master_data.aggregate(Sum('picked_quantity'))['picked_quantity__sum']
     master_data = master_data.values('picklist_number').distinct()
-
     if order_term:
         master_data = [ key for key,_ in groupby(master_data)]
 
@@ -270,11 +275,16 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
             remarks = picklist_obj[0].remarks
             picklist_id = picklist_obj[0].picklist_number
 
-            shipment_dates = picklist_obj.exclude(order__shipment_date__isnull=True).values_list('order__shipment_date', flat = True).order_by('order__shipment_date')
+            first_ord_obj = picklist_obj.exclude(order__shipment_date__isnull=True).values_list('order__id', flat = True).order_by('order__shipment_date')
             shipment_date = ""
-            if shipment_dates:
-                shipment_date = get_local_date(user, shipment_dates[0], True)
+            if first_ord_obj:
+                ship_date = OrderDetail.objects.get(id = first_ord_obj[0]).shipment_date
+                shipment_date = get_local_date(user, ship_date, True)
                 shipment_date = shipment_date.strftime("%d %b, %Y")
+
+                time_slot = get_shipment_time(first_ord_obj[0], user)
+                if time_slot:
+                    shipment_date = shipment_date + ', ' + time_slot
 
         result_data = OrderedDict(( ('DT_RowAttr', { 'data-id': picklist_id }), ('picklist_note', remarks),
                                     ('reserved_quantity', reserved_quantity_sum_value), ('picked_quantity', picked_quantity_sum_value),
@@ -1106,7 +1116,7 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt 
         try:
             send_mail_attachment(reciever, '%s : Invoice No.%s' % (user_data.company_name, 'TI/1116/' + str(picklist.order.order_id)), rendered, files=[pdf_file])
         except:
-            print 'mail issue'
+            log.info('mail issue')
 
 def get_picklist_batch(picklist, value, all_picklists):
     title = value[0]['title']

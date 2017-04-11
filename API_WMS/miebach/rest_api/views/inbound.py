@@ -783,6 +783,8 @@ def confirm_po(request, user=''):
             purchase_order = OpenPO.objects.get(id=value['data_id'], sku__user=user.id)
             sup_id = value['data_id']
             setattr(purchase_order, 'order_quantity', value['order_quantity'])
+            if not value['price']:
+                value['price'] = 0
             setattr(purchase_order, 'price', value['price'])
             setattr(purchase_order, 'po_name', value['po_name'])
             setattr(purchase_order, 'supplier_code', value['supplier_code'])
@@ -2989,6 +2991,8 @@ def confirm_add_po(request, sales_data = '', user=''):
             continue
 
         price = value['price']
+        if not price:
+            price = 0
         if not 'supplier_code' in myDict.keys() and value['supplier_id']:
             supplier = SKUSupplier.objects.filter(supplier_id=value['supplier_id'], sku__user=user.id)
             if supplier:

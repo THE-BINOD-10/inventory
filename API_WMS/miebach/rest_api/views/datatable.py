@@ -22,7 +22,8 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
     sku_master, sku_master_ids = get_sku_master(user,request.user)
     headers = SKU_MASTER_EXCEL_HEADERS
     status_dict = {'1': 'Active', '0': 'Inactive'}
-    marketplace_list = Marketplaces.objects.filter(user=user.id).values_list('name').distinct()
+    #marketplace_list = Marketplaces.objects.filter(user=user.id).values_list('name').distinct()
+    marketplace_list = MarketplaceMapping.objects.filter(sku__user=user.id).values_list('sku_type', flat=True).distinct()
     search_terms = {}
     if search_params.get('search_0',''):
         search_terms["wms_code__icontains"] = search_params.get('search_0','')

@@ -1644,10 +1644,8 @@ def get_invoice_data(order_ids, user, merge_data = ""):
                                 + customer_details[0]['phone_number'] + "\nEmail: " + customer_details[0]['email_id']
             if not marketplace:
                 marketplace = dat.marketplace
-                if marketplace == 'Myntra':
-                    marketplace = 'Myntra Designs Pvt Ltd\nSSN Logistics Pvt Ltd, B-2, Antariksha Lodgidrome Warehousing Complex, Opp\
-                                   Vashere HP petrol pump Aamne-sape, Pagdha, Kalyan rd,Bhiwandi - 421302\
-                                   TIN: 27590747736'
+                if marketplace.lower() == 'myntra':
+                    marketplace = USER_MYNTRA_ADDRESS.get(user.username, 'Myntra')
             tax = 0
             vat = 5.5
             discount = 0

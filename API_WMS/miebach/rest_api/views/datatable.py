@@ -78,13 +78,19 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         ws.write(data_count, 15, status_dict[str(int(data.status))])
         market_map = master_data.filter(sku_id=data.id).values('sku_id', 'sku_type').distinct()
         for dat in market_map:
-            map_dat = market_map.values('marketplace_code', 'description')
+            #map_dat = market_map.values('marketplace_code', 'description')
+            map_dat = market_map.filter(sku_type = dat['sku_type']).values('marketplace_code', 'description')
             market_codes = map(operator.itemgetter('marketplace_code'), map_dat)
             market_desc = map(operator.itemgetter('description'), map_dat)
             indices = [i for i, s in enumerate(headers) if dat['sku_type'] in s]
-            ws.write(data_count, indices[0], ', '.join(market_codes))
-            ws.write(data_count, indices[1], ', '.join(market_desc))
+            try:
+                ws.write(data_count, indices[0], ', '.join(market_codes))
+                ws.write(data_count, indices[1], ', '.join(market_desc))
+            except:
+                pass
 
+
+    #return "daya pata karo"
     file_name = "%s.%s" % (user.id, 'SKU Master')
     path = 'static/excel_files/' + file_name + '.xls'
     wb.save(path)

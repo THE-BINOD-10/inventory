@@ -229,7 +229,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
   vm.market_list = [];
-  vm.service.apiCall('get_marketplaces_list/').then(function(data){
+  vm.service.apiCall('get_marketplaces_list/?status=picked').then(function(data){
     if(data.message) {
       vm.market_list = data.data.marketplaces;
     }

@@ -132,6 +132,14 @@ def add_user_permissions(request, response_data, user=''):
     if 'completed' not in user_profile.setup_status:
         setup_status = 'true'
     response_data['data']['roles']['permissions']['setup_status'] = setup_status
+
+    scan_picklist_option = MiscDetail.objects.filter(misc_type='scan_picklist_option', user=user.id)
+    _pick_option = "scan_sku_location"
+    if scan_picklist_option:
+        _pick_option = scan_picklist_option[0].misc_value
+
+    response_data['data']['roles']['permissions']['scan_picklist_option'] = _pick_option
+
     if user_profile.is_trail:
         time_now = datetime.datetime.now().replace(tzinfo=pytz.timezone('UTC'))
         exp_time = get_local_date(request.user, time_now, send_date=1) - get_local_date(request.user, user_profile.creation_date, send_date=1)
@@ -521,7 +529,6 @@ def configurations(request, user=''):
     internal_mails = get_misc_value('Internal Emails', user.id)
     all_groups = str(','.join(all_groups))
     sku_sync = get_misc_value('sku_sync', user.id)
-
     order_manage = get_misc_value('order_manage', user.id)
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
@@ -560,6 +567,11 @@ def configurations(request, user=''):
     if report_frequency:
          report_freq = report_frequency[0].misc_value
 
+    scan_picklist_option = MiscDetail.objects.filter(misc_type='scan_picklist_option', user=user.id)
+    _pick_option = "scan_sku_location"
+    if scan_picklist_option:
+        _pick_option = scan_picklist_option[0].misc_value
+
     report_data_range = MiscDetail.objects.filter(misc_type='report_data_range', user=request.user.id)
     data_range = ''
     if report_data_range:
@@ -577,6 +589,7 @@ def configurations(request, user=''):
                                                              'report_freq': report_freq, 'email': email,
                                                              'reports_data': reports_data, 'display_none': display_none,
                                                              'internal_mails' : internal_mails,
+                                                             'scan_picklist_option': _pick_option, "picklist_options": PICKLIST_OPTIONS,
                                                              'is_config': 'true', 'order_headers': ORDER_HEADERS_d,
                                                              'all_groups': all_groups, 'display_pos': display_pos,
                                                              'auto_po_switch': auto_po_switch, 'no_stock_switch': no_stock_switch,

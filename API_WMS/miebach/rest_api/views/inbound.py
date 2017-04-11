@@ -726,7 +726,8 @@ def switches(request, user=''):
                     'sku_sync': 'sku_sync',
                     'auto_generate_picklist': 'auto_generate_picklist',
                     'order_headers' : 'order_headers',
-                    'detailed_invoice' : 'detailed_invoice'
+                    'detailed_invoice' : 'detailed_invoice',
+                    'scan_picklist_option' : 'scan_picklist_option'
                   }
 
     toggle_field, selection = "", ""

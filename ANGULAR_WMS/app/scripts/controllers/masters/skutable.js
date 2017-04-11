@@ -82,7 +82,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         }
                       ],
                       "market_list":["Flipkart","Snapdeal","Paytm","Amazon","Shopclues","HomeShop18","Jabong","Indiatimes","Myntra",
-                                     "Voonik","Mr Voonik","Vilara"],
+                                     "Voonik","Mr Voonik","Vilara", "Limeroad"],
                       "sizes_list":[]
                     }
     vm.model_data = {};

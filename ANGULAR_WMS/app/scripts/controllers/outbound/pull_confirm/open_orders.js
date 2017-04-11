@@ -402,6 +402,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
     if(status) {
       alert("Reserved quantity equal to picked quantity");
+      vm.model_data.scan_sku = "";
     }
   }
 
@@ -415,14 +416,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     })
     var status = false
     if(data.reserved_quantity > total) {
-      angular.forEach(data.sub_data, function(record){
-        if(record.location == location) {
-          record.picked_quantity = Number(record.picked_quantity) + 1;
-          vm.count_sku_quantity();
+      for(var i = 0; i < data.sub_data.length; i++) {
+
+        if(data.sub_data[i].location == location || vm.permissions.scan_picklist_option == 'scan_sku') {
+
+          data.sub_data[i].picked_quantity = Number(data.sub_data[i].picked_quantity) + 1;
+          vm.model_data.scan_sku = "";
           status = true;
-          return status;
+          vm.count_sku_quantity();
+          break;
         }
-      })
+      }
+      //angular.forEach(data.sub_data, function(record){
+      //  if(record.location == location || true) {
+      //    record.picked_quantity = Number(record.picked_quantity) + 1;
+      //    vm.count_sku_quantity();
+      //    status = true;
+      //    return status;
+      //  }
+      //})
     }
     return status;
   }
@@ -537,4 +549,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       })
       console.log("edit");
     }
+
+  vm.sku_scan = function(event, field) {
+
+    var field = field;
+    vm.service.scan(event, field).then(function(data){
+      if(data) {
+        vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
+          if(data.message) {
+            field = data.data.sku_code;
+
+            if(vm.check_sku_match(field)) {
+              if(vm.model_data.sku_total_quantities[field] <= vm.remain_quantity[field]) {
+                alert("Reservered quantity equal to picked quantity");
+                vm.model_data.scan_sku = "";
+              } else {
+                vm.incr_qty();
+              }
+            } else {
+              alert("Invalid SKU");
+              vm.model_data.scan_sku = "";
+            }
+          }
+        })
+      }
+    });
+  }
 }

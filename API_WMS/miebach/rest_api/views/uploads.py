@@ -635,7 +635,12 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
             elif key == 'sku_size':
                 if cell_data:
                     all_sizes = all_size_list(user)
-                    if cell_data not in all_sizes:
+                    try:
+                        _size = str(int(cell_data))
+                    except:
+                        _size = cell_data
+
+                    if _size not in all_sizes:
                         index_status.setdefault(row_idx, set()).add('Size is not Correct')
 
             elif key == 'threshold_quantity':
@@ -767,6 +772,15 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                 if sku_data and cell_data:
                     sku_data.mix_sku = cell_data
                 data_dict[key] = cell_data
+
+
+            elif key == 'sku_size': 
+                try: 
+                    data_dict['sku_size'] = str(int(cell_data))
+                except:
+                    data_dict['sku_size'] = cell_data
+
+
 
             elif cell_data:
                 data_dict[key] = cell_data

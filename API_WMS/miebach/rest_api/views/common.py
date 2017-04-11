@@ -1843,6 +1843,17 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     sku_category = request_data.get('category', '')
     if not is_catalog:
         is_catalog = request_data.get('is_catalog', '')
+
+    customer_id = ''
+    request_user = ''
+    if request:
+        request_user = request.user.id
+    else:
+        request_user = user.id
+    user_type = CustomerUserMapping.objects.filter(user = request_user)
+    if user_type:
+        customer_id = request_user
+
     indexes = request_data.get('index', '0:20')
     is_file = request_data.get('file', '')
     sale_through = request_data.get('sale_through', '')
@@ -1898,7 +1909,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
-            sku_variants = get_style_variants(sku_variants, user, total_quantity=total_quantity)
+            sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity)
             sku_styles[0]['variants'] = sku_variants
             sku_styles[0]['style_quantity'] = total_quantity
 

@@ -54,8 +54,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                                 location: vm.model_data.data[i].location,
                                 orig_location: vm.model_data.data[i].location,
                                 picked_quantity: value, new: false}
-                    if(vm.permissions.use_imei) {
-                      temp["picked_quantity"] = 0;
+                    if(Session.user_profile.user_type == "marketplace_user") {
+                      temp["picked_quantity"] = vm.model_data.data[i].picked_quantity;
                     }
                     vm.model_data.data[i]['sub_data'].push(temp);
                   }

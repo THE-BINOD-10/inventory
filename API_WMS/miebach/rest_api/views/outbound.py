@@ -386,6 +386,7 @@ def generate_picklist(request, user=''):
     out_of_stock = []
     single_order = ''
     picklist_number = get_picklist_number(user)
+    user_profile = UserProfile.objects.get(user_id=user.id)
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
@@ -407,7 +408,7 @@ def generate_picklist(request, user=''):
 
         order_data = OrderDetail.objects.get(id=key,user=user.id)
         try:
-            stock_status, picklist_number = picklist_generation([order_data], request, picklist_number, user, sku_combos, sku_stocks, status = 'open', remarks=remarks)
+            stock_status, picklist_number = picklist_generation([order_data], request, picklist_number, user, sku_combos, sku_stocks, user_profile, status = 'open', remarks=remarks)
         except Exception as e:
             log.info(e)
             stock_status = ['Internal Server Error']
@@ -528,7 +529,7 @@ def picklist_headers(request, user):
     return headers, show_image, use_imei
 
 @fn_timer
-def picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, status='', remarks=''):
+def picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, user_profile, status='', remarks=''):
     stock_status = []
     if not status:
         status = 'batch_open'
@@ -619,6 +620,8 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
 
                 new_picklist = Picklist(**picklist_data)
                 new_picklist.save()
+                if user_profile.user_type == 'marketplace_user':
+                    create_seller_order_summary(new_picklist, user)
 
                 picklist_loc_data = {'picklist_id': new_picklist.id , 'status': 1, 'quantity': stock_count, 'creation_date':   datetime.datetime.now(),
                                      'stock_id': new_picklist.stock_id, 'reserved': stock_count}
@@ -689,7 +692,7 @@ def batch_generate_picklist(request, user=''):
 
         order_detail = all_orders.filter(**order_filter).order_by('shipment_date')
 
-        stock_status, picklist_number = picklist_generation(order_detail, request, picklist_number, user, sku_combos, sku_stocks, remarks=remarks)
+        stock_status, picklist_number = picklist_generation(order_detail, request, picklist_number, user, sku_combos, sku_stocks, user_profile, remarks=remarks)
 
         if stock_status:
             out_of_stock = out_of_stock + stock_status
@@ -1587,27 +1590,35 @@ def check_imei(request, user=''):
             continue
         sku_code = ''
         order = None
-        if is_shipment:
+        '''if is_shipment:
             order_detail = OrderDetail.objects.filter(id=key, user=user.id)
             if not order_detail:
                 continue
             sku_code = order_detail[0].sku.sku_code
-            order = order_detail[0]
-        else:
+            order = order_detail[0]'''
+        imei_filter = {'imei_number': value, 'purchase_order__open_po__sku__user': user.id}
+        if not is_shipment:
             picklist = Picklist.objects.get(id=key)
             if not picklist.order:
                 continue
             sku_code = picklist.order.sku.sku_code
             order = picklist.order
-        po_mapping = POIMEIMapping.objects.filter(imei_number=value, purchase_order__open_po__sku__user=user.id, purchase_order__open_po__sku__sku_code=sku_code)
+            imei_filter['purchase_order__open_po__sku__sku_code'] = sku_code
+        po_mapping = POIMEIMapping.objects.filter(**imei_filter)
+        if not sku_code and po_mapping and po_mapping[0].purchase_order.open_po:
+            sku_code = po_mapping[0].purchase_order.open_po.sku.sku_code
         if not po_mapping:
-            status = str(value) + ' is invalid for this sku'
+            status = str(value) + ' is invalid Imei number'
         order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, order__user=user.id)
         if order_mapping:
-            if order_mapping[0].order_id == order.id:
+            if order and order_mapping[0].order_id == order.id:
                 status = str(value) + ' is already mapped with this order'
             else:
                 status = str(value) + ' is already mapped with another order'
+        if is_shipment:
+            if not status:
+                status = 'Success'
+            return HttpResponse(json.dumps({'status': status, 'data': {'sku_code': sku_code}}))
 
     return HttpResponse(status)
 
@@ -1832,6 +1843,7 @@ def confirm_transfer(request, user=''):
 def st_generate_picklist(request, user=''):
     out_of_stock = []
     picklist_number = get_picklist_number(user)
+    user_profile = UserProfile.objects.get(user_id=user.id)
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
@@ -1848,7 +1860,7 @@ def st_generate_picklist(request, user=''):
     sku_stocks = stock_detail1 | stock_detail2
     for key, value in request.POST.iteritems():
         order_data = StockTransfer.objects.filter(id=value)
-        stock_status, picklist_number = picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks)
+        stock_status, picklist_number = picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, user_profile)
 
         if stock_status:
             out_of_stock = out_of_stock + stock_status
@@ -2139,7 +2151,7 @@ def check_stocks(order_sku, user, request, order_objs):
     picklist_number = get_picklist_number(user)
     #picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, status='', remarks='')
     for order_obj in order_objs:
-        picklist_generation([order_obj], request, picklist_number, user, sku_combos, sku_stocks, status='open', remarks='Auto-generated Picklist')
+        picklist_generation([order_obj], request, picklist_number, user, sku_combos, sku_stocks, user_profile, status='open', remarks='Auto-generated Picklist')
 
     return "Order created, Picklist generated Successfully"
 
@@ -2695,9 +2707,9 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0):
         sku_master[ind]['intransit_quantity'] = intransit_quantity
         sku_master[ind]['style_quantity'] = total_quantity
         if customer_id:
-            customer_sku = CustomerSKU.objects.filter(sku__user=user.id, customer_name__customer_id=customer_id, sku__wms_code=sku['wms_code'])
+            """customer_sku = CustomerSKU.objects.filter(sku__user=user.id, customer_name__customer_id=customer_id, sku__wms_code=sku['wms_code'])
             if customer_sku:
-                sku_master[ind]['price'] = customer_sku[0].price
+                sku_master[ind]['price'] = customer_sku[0].price"""
             customer_user = CustomerUserMapping.objects.filter(user = customer_id)[0].customer.customer_id
             customer_data = CustomerMaster.objects.filter(customer_id=customer_user, user = user.id)
             if customer_data:
@@ -3380,6 +3392,7 @@ def order_category_generate_picklist(request, user=''):
     stock_status = ''
     out_of_stock = []
     picklist_number = get_picklist_number(user)
+    user_profile = UserProfile.objects.get(user_id=user.id)
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
@@ -3412,7 +3425,7 @@ def order_category_generate_picklist(request, user=''):
 
         order_detail = all_orders.filter(**order_filter).order_by('shipment_date')
 
-        stock_status, picklist_number = picklist_generation(order_detail, request, picklist_number, user, sku_combos, sku_stocks,\
+        stock_status, picklist_number = picklist_generation(order_detail, request, picklist_number, user, sku_combos, sku_stocks, user_profile,\
                                                             status = 'open', remarks='')
 
         if stock_status:

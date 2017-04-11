@@ -72,7 +72,7 @@ def get_order_mapping(reader, file_type):
     elif get_cell_data(0, 0, reader, file_type) == 'Shipping' and get_cell_data(0, 1, reader, file_type) == 'Date':
         order_mapping = copy.deepcopy(CAMPUS_SUTRA_EXCEL)
     #Xls and Xlsx Reading
-    elif get_cell_data(0, 0, reader, file_type) == 'Order ID':
+    elif get_cell_data(0, 0, reader, file_type) == 'Order ID' and not get_cell_data(0, 1, reader, file_type) == 'UOR ID':
         order_mapping = copy.deepcopy(ORDER_DEF_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Courier':
         order_mapping = copy.deepcopy(SNAPDEAL_EXCEL)
@@ -104,13 +104,22 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(UNI_WARE_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Sale Order Item Code' and get_cell_data(0, 2, reader, file_type) == 'Reverse Pickup Code':
         order_mapping = copy.deepcopy(UNI_WARE_EXCEL1)
+    elif get_cell_data(0, 0, reader, file_type) == 'Order ID' and get_cell_data(0, 1, reader, file_type) == 'UOR ID':
+        order_mapping = copy.deepcopy(SHOTANG_ORDER_FILE_EXCEL)
 
     return order_mapping
+
+def check_create_seller_order(seller_order_dict, order, user):
+    if seller_order_dict.get('seller_id', ''):
+        sell_order_ins = SellerOrder.objects.filter(seller_id=seller_order_dict['seller_id'], order_id=order.id, seller__user=user.id)
+        seller_order_dict['order_id'] = order.id
+        if not sell_order_ins:
+            seller_order = SellerOrder(**seller_order_dict)
+            seller_order.save()
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
     index_status = {}
     order_mapping = get_order_mapping(reader, file_type)
-    print order_mapping
     if not order_mapping:
         return "Headers not matching"
     count = 1
@@ -166,11 +175,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
     sku_ids = []
 
+    user_profile = UserProfile.objects.get(user_id=user.id)
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
         order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
         order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
+        seller_order_dict = copy.deepcopy(SELLER_ORDER_FIELDS)
         if order_mapping.get('marketplace', ''):
             order_data['marketplace'] = order_mapping['marketplace']
         if order_mapping.get('status', '') and get_cell_data(row_idx, order_mapping['status'], reader, file_type) != 'New':
@@ -250,6 +261,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 sku_code =  get_cell_data(row_idx, value, reader, file_type)
             elif key == 'shipment_date':
                 try:
+                    cell_data = get_cell_data(row_idx, value, reader, file_type)
                     if cell_data and ' ' in cell_data:
                         order_data['shipment_date'] = datetime.datetime.strptime(cell_data, '%d/%m/%Y %H:%M')
                     elif cell_data:
@@ -277,11 +289,32 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                         order_data['quantity'] = len(cell_data.split(value[1]))
                     except:
                         order_data['quantity'] = 1
+            elif key == 'sor_id':
+                cell_data = get_cell_data(row_idx, value, reader, file_type)
+                if isinstance(cell_data, float):
+                    cell_data = str(int(cell_data))
+                seller_order_dict['sor_id'] = cell_data
+            elif key == 'order_date':
+                cell_data = get_cell_data(row_idx, value, reader, file_type)
+                year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                order_date = datetime.datetime(year, month, day, hour, minute, second)
+                order_data['creation_date'] = order_date
+            elif key == 'order_status':
+                seller_order_dict[key] = get_cell_data(row_idx, value, reader, file_type)
+            elif key == 'seller':
+                seller_id = get_cell_data(row_idx, value, reader, file_type)
+                seller_master = SellerMaster.objects.filter(seller_id=seller_id, user=user.id)
+                if seller_master:
+                    seller_order_dict['seller_id'] = seller_master[0].id
+            elif key == 'invoice_no':
+                seller_order_dict['invoice_no'] = get_cell_data(row_idx, value, reader, file_type)
             else:
                 order_data[key] = get_cell_data(row_idx, value, reader, file_type)
         order_data['user'] = user.id
         if not 'quantity' in order_data.keys():
             order_data['quantity'] = 1
+
+        seller_order_dict['quantity'] = order_data['quantity']
 
         if type(sku_code) == float:
             cell_data = int(sku_code)
@@ -315,11 +348,16 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_data['sku_code'] = sku_code
 
             order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], sku=order_data['sku_id'], user=user.id)
-            if not order_obj:
+            order_create = True
+            if user_profile.user_type == 'marketplace_user':
+                if not seller_order_dict['seller_id']:
+                    order_create = False
+            if not order_obj and order_create:
                 if not 'shipment_date' in order_mapping.keys():
                     order_data['shipment_date'] = datetime.datetime.now()
                 order_detail = OrderDetail(**order_data)
                 order_detail.save()
+                check_create_seller_order(seller_order_dict, order_detail, user)
                 if order_data['sku_id'] not in sku_ids:
                     sku_ids.append(order_data['sku_id'])
                 if order_summary_dict.get('vat', '') or order_summary_dict.get('tax_value', '') or order_summary_dict.get('mrp', '') or\
@@ -328,10 +366,11 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_summary = CustomerOrderSummary(**order_summary_dict)
                     order_summary.save()
 
-            elif order_data['sku_id'] in sku_ids:
+            elif order_data['sku_id'] in sku_ids and order_create:
                 order_obj = order_obj[0]
                 order_obj.quantity = order_obj.quantity + order_data['quantity']
                 order_obj.save()
+                check_create_seller_order(seller_order_dict, order_obj, user)
 
 
     return 'success'

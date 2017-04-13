@@ -206,6 +206,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^insert_customer_cart_data/$', 'insert_customer_cart_data'),
     url(r'^update_customer_cart_data/$', 'update_customer_cart_data'),
     url(r'^delete_customer_cart_data/$', 'delete_customer_cart_data'),
+    url(r'^generate_customer_invoice/$', 'generate_customer_invoice'),
 
     # Reports
     #url(r'^location_wise_filter/$','location_wise_filter'),

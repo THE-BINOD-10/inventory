@@ -656,7 +656,7 @@ RETURNS_TYPE_MAPPING = {'return to origin(rto)': 'rto', 'customer initiated retu
 
 SHOTANG_ORDER_FILE_EXCEL = {'order_id': 1, 'customer_name': 8, 'customer_id': 7, 'telephone': 9, 'address': 10, 'title': 13, 'sku_code': 2,
                             'invoice_amount': 6, 'sor_id': 0, 'order_date': 3, 'quantity': 4, 'order_status': 19, 'seller': 11,
-                            'invoice_no': 16}
+                            'invoice_no': 16, 'marketplace': 'Shotang'}
 
 SELLER_ORDER_FIELDS = {'sor_id': '', 'quantity': 0, 'order_status': '', 'order_id': '', 'seller_id': '', 'status': 1, 'invoice_no': ''}
 

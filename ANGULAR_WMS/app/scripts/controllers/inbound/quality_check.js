@@ -549,12 +549,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     fb["stop_listening"] = function(po) {
 
-      firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+po).off();
+      var data = po;
+      firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+data.id).off();
+      firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/").off();
+
+      angular.forEach(data, function(value, key) {
+        firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+data.id+"/"+key + "/").off();
+        firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+data.id+"/"+ key + "/rejected/" ).off();
+        firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+data.id+"/"+ key + "/accepted/" ).off();
+      })
     }
 
     fb["stop_fb"] = function() {
 
-      fb.stop_listening(fb.poData.id);
+      fb.stop_listening(fb.poData);
       fb["poData"] = {serials: []};
       fb["generate"] = false;
       fb["add_new"] = false;

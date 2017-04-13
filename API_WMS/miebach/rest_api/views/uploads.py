@@ -315,6 +315,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             order_data['quantity'] = 1
 
         seller_order_dict['quantity'] = order_data['quantity']
+        seller_order_dict['reserved'] = order_data['quantity']
 
         if type(sku_code) == float:
             cell_data = int(sku_code)

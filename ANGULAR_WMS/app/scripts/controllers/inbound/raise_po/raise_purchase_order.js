@@ -100,7 +100,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 vm.model_data.total_price = 0;
 
                 angular.forEach(vm.model_data.data, function(one_row){
-                  vm.model_data.total_price = vm.model_data.total_price + (one_row.fields.order_quantity * one_row.fields.price);
+                  vm.model_data.total_price = Number(vm.model_data.total_price) + (Number(one_row.fields.order_quantity) * Number(one_row.fields.price));
                 });
                 vm.model_data.sub_total = ((vm.model_data.total_price / 100) * vm.model_data.tax) + vm.model_data.total_price;
               }
@@ -209,7 +209,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.model_data.total_price = 0;
 
       angular.forEach(vm.model_data.data, function(one_row){
-        vm.model_data.total_price = vm.model_data.total_price + one_row.fields.row_price;
+        vm.model_data.total_price = vm.model_data.total_price + Number(one_row.fields.row_price);
       });
 
       vm.model_data.sub_total = ((vm.model_data.total_price / 100) * vm.model_data.tax) + vm.model_data.total_price;
@@ -449,24 +449,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.order_quantity = 1;
+      product.fields.price = "";
       product.fields.description = item.sku_desc;
       if (typeof(vm.model_data.supplier_id) == "undefined" || vm.model_data.supplier_id.length == 0){
         return false;
       } else {
         var supplier = vm.model_data.supplier_id;
         $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
-          product.fields.price = data.price;
-          product.fields.supplier_code = data.supplier_code;
-          product.fields.ean_number = data.ean_number;
+          if(Object.values(data).length) {
+            product.fields.price = data.price;
+            product.fields.supplier_code = data.supplier_code;
+            product.fields.ean_number = data.ean_number;
 
-          vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
-      vm.model_data.total_price = 0;
+            vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
+            vm.model_data.total_price = 0;
 
-      angular.forEach(vm.model_data.data, function(one_row){
-        vm.model_data.total_price = vm.model_data.total_price + (one_row.fields.order_quantity * one_row.fields.price);
-      });
-
-      vm.model_data.sub_total = ((vm.model_data.total_price / 100) * vm.model_data.tax) + vm.model_data.total_price;
+            angular.forEach(vm.model_data.data, function(one_row){
+              vm.model_data.total_price = vm.model_data.total_price + (one_row.fields.order_quantity * one_row.fields.price);
+            });
+          }
+          vm.model_data.sub_total = ((vm.model_data.total_price / 100) * vm.model_data.tax) + vm.model_data.total_price;
         });
       }
     }
@@ -477,13 +479,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        } else {
          var supplier = vm.model_data.supplier_id;
          $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
-           product.fields.price = data.price;
-           product.fields.supplier_code = data.supplier_code;
-           product.fields.sku.wms_code = data.sku;
-           product.fields.ean_number = data.ean_number;
+           if(Object.values(data).length){
+             product.fields.price = data.price;
+             product.fields.supplier_code = data.supplier_code;
+             product.fields.sku.wms_code = data.sku;
+             product.fields.ean_number = data.ean_number;
+           }
          });
-         }
        }
+    }
 
     vm.add_raise_po = function() {
       var elem = angular.element($('form'));

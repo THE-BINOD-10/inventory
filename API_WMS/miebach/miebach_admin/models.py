@@ -1470,6 +1470,7 @@ class SellerOrder(models.Model):
     sor_id = models.CharField(max_length=128,default='')
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
+    reserved = models.FloatField(default=0)
     order_status = models.CharField(max_length=64, default='')
     invoice_no = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
@@ -1486,7 +1487,7 @@ class SellerOrder(models.Model):
 
 class SellerOrderSummary(models.Model):
     id = BigAutoField(primary_key=True)
-    receipt_number = models.PositiveIntegerField(default=0)
+    pick_number = models.PositiveIntegerField(default=0)
     seller_order = models.ForeignKey(SellerOrder, blank=True, null=True, db_index=True)
     picklist = models.ForeignKey(Picklist, blank=True, null=True, db_index=True)
     quantity = models.FloatField(default=0)

@@ -386,7 +386,6 @@ def generate_picklist(request, user=''):
     out_of_stock = []
     single_order = ''
     picklist_number = get_picklist_number(user)
-    user_profile = UserProfile.objects.get(user_id=user.id)
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
@@ -408,7 +407,7 @@ def generate_picklist(request, user=''):
 
         order_data = OrderDetail.objects.get(id=key,user=user.id)
         try:
-            stock_status, picklist_number = picklist_generation([order_data], request, picklist_number, user, sku_combos, sku_stocks, user_profile, status = 'open', remarks=remarks)
+            stock_status, picklist_number = picklist_generation([order_data], request, picklist_number, user, sku_combos, sku_stocks, status = 'open', remarks=remarks)
         except Exception as e:
             log.info(e)
             stock_status = ['Internal Server Error']
@@ -529,7 +528,7 @@ def picklist_headers(request, user):
     return headers, show_image, use_imei
 
 @fn_timer
-def picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, user_profile, status='', remarks=''):
+def picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, status='', remarks=''):
     stock_status = []
     if not status:
         status = 'batch_open'
@@ -620,8 +619,6 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
 
                 new_picklist = Picklist(**picklist_data)
                 new_picklist.save()
-                if user_profile.user_type == 'marketplace_user':
-                    create_seller_order_summary(new_picklist, user)
 
                 picklist_loc_data = {'picklist_id': new_picklist.id , 'status': 1, 'quantity': stock_count, 'creation_date':   datetime.datetime.now(),
                                      'stock_id': new_picklist.stock_id, 'reserved': stock_count}
@@ -692,7 +689,7 @@ def batch_generate_picklist(request, user=''):
 
         order_detail = all_orders.filter(**order_filter).order_by('shipment_date')
 
-        stock_status, picklist_number = picklist_generation(order_detail, request, picklist_number, user, sku_combos, sku_stocks, user_profile, remarks=remarks)
+        stock_status, picklist_number = picklist_generation(order_detail, request, picklist_number, user, sku_combos, sku_stocks, remarks=remarks)
 
         if stock_status:
             out_of_stock = out_of_stock + stock_status
@@ -944,7 +941,7 @@ def get_picklist_data(data_id,user_id):
         return data, sku_total_quantities
 
 
-def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, p_quantity=0):
+def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, user_profile, seller_pick_number, p_quantity=0):
     if float(picklist.reserved_quantity) - p_quantity >= 0:
         picklist.reserved_quantity = float(picklist.reserved_quantity) - p_quantity
         picklist.picked_quantity = float(picklist.picked_quantity) + p_quantity
@@ -960,6 +957,10 @@ def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, me
     if float(picklist.reserved_quantity) <= 0:
         picklist.status = pi_status
     picklist.save()
+    if user_profile.user_type == 'marketplace_user':
+        if not seller_pick_number:
+            seller_pick_number = get_seller_pick_id(picklist, user)
+        create_seller_order_summary(picklist, p_quantity, seller_pick_number)
     if picklist.picked_quantity > 0 and picklist.order:
         if merge_flag:
             quantity = picklist.picked_quantity
@@ -977,6 +978,7 @@ def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, me
         #picklists_send_mail.append({'order_id': picklist.order.order_id})
         #picklists_send_mail.append(data_count)
         #picklists_send_mail = [{'order_id': str(picklist.order.order_id)}, data_count]
+    return seller_pick_number
 
 def validate_location_stock(val, all_locations, all_skus, user):
     status = []
@@ -1156,6 +1158,42 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
                 else:
                     log.info("No telephone no for this order")
 
+def create_seller_order_summary(picklist, picked_count, pick_number, stock=None):
+    seller_orders = SellerOrder.objects.filter(order_id=picklist.order_id, order__user=picklist.order.user, status=1)
+    for seller_order in seller_orders:
+        insert_quan = 0
+        if not picked_count:
+            break
+        if seller_order.reserved > picked_count:
+            insert_quan = picked_count
+            picked_count = 0
+        elif seller_order.reserved <= picked_count:
+            insert_quan = seller_order.reserved
+            picked_count = picked_count - int(seller_order.reserved)
+        seller_order.reserved = seller_order.reserved - insert_quan
+        if seller_order.reserved <= 0:
+            seller_order.status = 0
+        seller_order.save()
+        SellerOrderSummary.objects.create(picklist_id=picklist.id, pick_number=pick_number, quantity=insert_quan,
+                                              seller_order_id=seller_order.id, creation_date=datetime.datetime.now())
+        if stock:
+            seller_stock = SellerStock.objects.filter(seller_id=seller_order.seller_id, stock_id=stock.id, seller__user=picklist.order.user)
+            if seller_stock:
+                seller_stock = seller_stock[0]
+                update_quan = int(seller_stock.quantity) - insert_quan
+                if update_quan < 0:
+                    update_quan = 0
+                seller_stock.quantity = update_quan
+                seller_stock.save()
+
+def get_seller_pick_id(picklist, user):
+    pick_number = 1
+    summary = SellerOrderSummary.objects.filter(seller_order__order_id=picklist.order_id, seller_order__seller__user=user.id).\
+                                         order_by('-creation_date')
+    if summary:
+        pick_number = int(summary[0].pick_number) + 1
+    return pick_number
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1166,6 +1204,7 @@ def picklist_confirmation(request, user=''):
     auto_skus = []
     picklists_send_mail = {}
     mod_locations = []
+    seller_pick_number = ''
     for key, value in request.POST.iterlists():
         name, picklist_id = key.rsplit('_', 1)
         data.setdefault(picklist_id, [])
@@ -1178,6 +1217,8 @@ def picklist_confirmation(request, user=''):
     error_string = ''
     picklist_number = request.POST['picklist_number']
     single_order = request.POST.get('single_order', '')
+    user_profile = UserProfile.objects.get(user_id=user.id)
+
     all_picklists = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id), picklist_number=picklist_number,
                                             status__icontains="open")
 
@@ -1225,7 +1266,7 @@ def picklist_confirmation(request, user=''):
                 if count == 0:
                     continue
                 if not picklist.stock:
-                    confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, float(val['picked_quantity']))
+                    seller_pick_number = confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, user_profile, seller_pick_number, float(val['picked_quantity']))
                     continue
 
                 if val['wms_code'] == 'TEMP' and val.get('wmscode', ''):
@@ -1293,6 +1334,10 @@ def picklist_confirmation(request, user=''):
                     stock.save()
                     mod_locations.append(stock.location.location)
                 picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
+                if user_profile.user_type == 'marketplace_user':
+                    if not seller_pick_number:
+                        seller_pick_number = get_seller_pick_id(picklist, user)
+                    create_seller_order_summary(picklist, picking_count1, seller_pick_number, stock)
                 if picklist.reserved_quantity == 0:
                     if picklist.status == 'batch_open':
                         picklist.status = 'batch_picked'
@@ -1843,7 +1888,6 @@ def confirm_transfer(request, user=''):
 def st_generate_picklist(request, user=''):
     out_of_stock = []
     picklist_number = get_picklist_number(user)
-    user_profile = UserProfile.objects.get(user_id=user.id)
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
@@ -1860,7 +1904,7 @@ def st_generate_picklist(request, user=''):
     sku_stocks = stock_detail1 | stock_detail2
     for key, value in request.POST.iteritems():
         order_data = StockTransfer.objects.filter(id=value)
-        stock_status, picklist_number = picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, user_profile)
+        stock_status, picklist_number = picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks)
 
         if stock_status:
             out_of_stock = out_of_stock + stock_status
@@ -2151,7 +2195,7 @@ def check_stocks(order_sku, user, request, order_objs):
     picklist_number = get_picklist_number(user)
     #picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, status='', remarks='')
     for order_obj in order_objs:
-        picklist_generation([order_obj], request, picklist_number, user, sku_combos, sku_stocks, user_profile, status='open', remarks='Auto-generated Picklist')
+        picklist_generation([order_obj], request, picklist_number, user, sku_combos, sku_stocks, status='open', remarks='Auto-generated Picklist')
 
     return "Order created, Picklist generated Successfully"
 
@@ -3392,7 +3436,6 @@ def order_category_generate_picklist(request, user=''):
     stock_status = ''
     out_of_stock = []
     picklist_number = get_picklist_number(user)
-    user_profile = UserProfile.objects.get(user_id=user.id)
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
@@ -3425,7 +3468,7 @@ def order_category_generate_picklist(request, user=''):
 
         order_detail = all_orders.filter(**order_filter).order_by('shipment_date')
 
-        stock_status, picklist_number = picklist_generation(order_detail, request, picklist_number, user, sku_combos, sku_stocks, user_profile,\
+        stock_status, picklist_number = picklist_generation(order_detail, request, picklist_number, user, sku_combos, sku_stocks,\
                                                             status = 'open', remarks='')
 
         if stock_status:
@@ -3910,4 +3953,117 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
                                                  ('DT_RowClass', 'results'), ('order_id', order_id) )) )
         count = count+1
     log.info('Shipment info alternative view filtered found ' + str(temp_data['recordsTotal']))
+
+@csrf_exempt
+def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['id', 'seller_order__order__order_id', 'seller_order__sor_id', 'seller_order__seller_id', 'seller_order__order__customer_name', 'quantity', 'quantity', 'seller_order__creation_date', 'id']
+    if search_term:
+        order_id_search = ''.join(re.findall('\d+', search_term))
+        master_data = SellerOrderSummary.objects.filter(Q(quantity__icontains=search_term) |
+                                                     Q(seller_order__seller__name__icontains=search_term) |
+                                                     Q(seller_order__order__order_id__icontains=order_id_search) |
+                                                     Q(seller_order__sor_id__icontains=search_term) |
+                                                     Q(seller_order__order__customer_name=search_term) |
+                                                     Q(seller_order__order__creation_date__regex=search_term),
+                                                     seller_order__seller__user=user.id).values('seller_order__order__order_id',
+                                                     'seller_order__seller__name', 'pick_number', 'seller_order__sor_id').distinct().\
+                                                 annotate(total_quantity=Sum('quantity'), total_order=Sum('seller_order__quantity'))
+    elif order_term:
+        if order_term == 'asc' and (col_num or col_num == 0):
+            master_data = SellerOrderSummary.objects.filter(seller_order__seller__user=user.id).order_by(lis[col_num]).values('seller_order__order__order_id', 'seller_order__seller__name', 'pick_number', 'seller_order__sor_id').distinct().annotate(total_quantity=Sum('quantity'), total_order=Sum('seller_order__quantity'))
+        else:
+            master_data = SellerOrderSummary.objects.filter(seller_order__seller__user=user.id).order_by('-%s' % lis[col_num]).values('seller_order__order__order_id', 'seller_order__seller__name', 'pick_number', 'seller_order__sor_id').distinct().annotate(total_quantity=Sum('quantity'), total_order=Sum('seller_order__quantity'))
+    else:
+        master_data = SellerOrderSummary.objects.filter(seller_order__seller__user=user.id).order_by('-%s' % lis[col_num]).values('seller_order__order__order_id', 'seller_order__seller__name', 'pick_number', 'seller_order__sor_id').distinct().annotate(total_quantity=Sum('quantity'), total_order=Sum('seller_order__quantity'))
+
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    order_summaries = SellerOrderSummary.objects.filter(seller_order__seller__user=user.id)
+    seller_orders = SellerOrder.objects.filter(seller__user=user.id)
+
+    for data in master_data[start_index:stop_index]:
+        summary = order_summaries.filter(seller_order__order__order_id=data['seller_order__order__order_id'], seller_order__seller__name=data['seller_order__seller__name'])[0]
+        order = summary.seller_order.order
+        order_id = order.order_code + str(order.order_id)
+        if order.original_order_id:
+            order_id = order.original_order_id
+        ordered_quantity = seller_orders.filter(order__order_id=data['seller_order__order__order_id'], sor_id=data['seller_order__sor_id']).\
+                                         aggregate(Sum('quantity'))['quantity__sum']
+        if not ordered_quantity:
+            ordered_quantity = 0
+
+        order_date = get_local_date(user, order.creation_date)
+        temp_data['aaData'].append(OrderedDict(( ('UOR ID', order_id), ('SOR ID', summary.seller_order.sor_id),
+                                    ('Seller ID', summary.seller_order.seller_id), ('Customer Name', order.customer_name),
+                                    ('Order Quantity', ordered_quantity), ('Picked Quantity', data['total_quantity']),
+                                    ('Order Date&Time', order_date),
+                                    ('Invoice Number', ''), ('id', str(data['seller_order__order__order_id']) +\
+                                     ":" + str(data['pick_number']) + ":" + data['seller_order__seller__name'])
+                                 )))
+
+@csrf_exempt
+@get_admin_user
+def generate_customer_invoice(request, user=''):
+    data = []
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    order_date = ''
+    order_id = ''
+    total_quantity = 0
+    total_amt = 0
+    total_invoice = 0
+    total_tax = 0
+    total_mrp = 0
+    order_no = ''
+    seller_address = ''
+    buyer_address = ''
+    merge_data = {}
+    data_dict = dict(request.GET.iterlists())
+    seller_summary_dat = data_dict.get('seller_summary_id', '')
+    if data_dict.get('sor_id', ''):
+        seller_summary_dat = seller_summary_dat[0]
+    sor_id = ''
+    if data_dict.get('sor_id', ''):
+        sor_id = data_dict.get('sor_id', '')[0]
+    seller_summary_dat = seller_summary_dat.split(',')
+    all_data = OrderedDict()
+    seller_order_ids = []
+    sell_ids = {}
+    for data_id in seller_summary_dat:
+        splitted_data = data_id.split(':')
+        sell_ids.setdefault('seller_order__order__order_id__in', [])
+        sell_ids.setdefault('pick_number__in', [])
+        sell_ids['seller_order__order__order_id__in'].append(splitted_data[0])
+        sell_ids['pick_number__in'].append(splitted_data[1])
+    seller_summary = SellerOrderSummary.objects.filter(seller_order__seller__user=user.id, seller_order__sor_id=sor_id, **sell_ids)
+    order_ids = list(seller_summary.values_list('seller_order__order_id', flat=True))
+    order_ids = map(lambda x:str(x), order_ids)
+    order_ids = ','.join(order_ids)
+    summary_details = seller_summary.values('seller_order__order__sku__sku_code').distinct().annotate(total_quantity=Sum('quantity'))
+    for detail in summary_details:
+        if not detail['seller_order__order__sku__sku_code'] in merge_data.keys():
+            merge_data[detail['seller_order__order__sku__sku_code']] = detail['total_quantity']
+        else:
+            merge_data[detail['seller_order__order__sku__sku_code']] += detail['total_quantity']
+
+    invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data)
+    invoice_date = datetime.datetime.now()
+    if seller_summary:
+        seller = seller_summary[0].seller_order.seller
+        order = seller_summary[0].seller_order.order
+        seller_address = seller.name + '\n' + seller.address + "\nCall: " \
+                            + seller.phone_number + "\nEmail: " + seller.email_id
+        buyer_address = order.customer_name + '\n' + order.address + "\nCall: " \
+                            + order.telephone + "\nEmail: " + order.email_id
+        invoice_date = seller_summary.order_by('-creation_date')[0].creation_date
+    invoice_date = get_local_date(user, invoice_date, send_date='true')
+    inv_month_year = invoice_date.strftime("%m-%y")
+    invoice_date = invoice_date.strftime("%d %b %Y")
+    invoice_data['seller_address'] = seller_address
+    invoice_data['buyer_address'] = buyer_address
+    invoice_no = user_profile.prefix + '/' + str(inv_month_year) + '/' + 'A-' + str(order.order_id)
+    if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
+        invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
+    invoice_data['invoice_no'] = invoice_no
+    return HttpResponse(json.dumps(invoice_data, cls=DjangoJSONEncoder))
 

@@ -75,8 +75,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.model_data = {};
       vm.html = "";
       vm.print_enable = false;
-      fb.generate = false;
-      fb["poData"] = {serials: []};
+      if(vm.permissions.use_imei) {
+        fb.stop_fb();
+      }
       $state.go('app.inbound.RevceivePo');
     }
 
@@ -491,6 +492,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           console.log(data.ref.remove())
         })
       }
+    }
+
+    fb["stop_listening"] = function(po) {
+
+      var data = po;
+
+      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+data.id+"/").off();
+      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/").off();
+    }
+
+    fb["stop_fb"] = function() {
+
+      fb.stop_listening(fb.poData);
+      fb["poData"] = {serials: []};
+      fb["generate"] = false;
     }
   }
 

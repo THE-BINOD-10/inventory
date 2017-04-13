@@ -1106,6 +1106,24 @@ var app = angular.module('urbanApp')
             title: 'Create Orders',
           }
         })
+        .state('app.outbound.CustomerInvoices', {
+          url: '/CustomerInvoices',
+          templateUrl: 'views/outbound/customer_invoices.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/customer_invoices.js'
+                  ])
+              }]
+          },
+          data: {
+            title: 'Customer Invoices',
+          }
+        })
+         .state('app.outbound.CustomerInvoices.Invoice', {
+            url: '/Invoice',
+            templateUrl: 'views/outbound/print/customer_invoice.html'
+          })
       // Upload route
       .state('app.uploads', {
           url: '/uploads',

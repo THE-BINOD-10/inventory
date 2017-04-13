@@ -75,7 +75,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.model_data = {};
       vm.html = "";
       vm.print_enable = false;
-      fb.generate = false;
+      if(vm.permissions.use_imei) {
+        fb.stop_fb();
+      }
       $state.go('app.inbound.RevceivePo');
     }
 
@@ -188,6 +190,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.refresh(vm.dtInstance);
     }
 
+    vm.receive_quantity_change = function(data) {
+
+      if(Session.user_profile.user_type == "marketplace_user") {
+        if(Number(data.po_quantity) < Number(data.value)) {
+          data.value = data.po_quantity;
+        }
+      }
+    }
+
     vm.scan_sku = function(event, field) {
       if (event.keyCode == 13 && field.length > 0) {
         console.log(field);
@@ -195,7 +206,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           if(data.message) {
             vm.field = data.data.sku_code;
 
-              if (vm.permissions.use_imei) {
+            if (vm.permissions.use_imei) {
               vm.sku_list_1 = [];
               for(var i=0; i<vm.model_data.data.length; i++) {
                 vm.sku_list_1.push(vm.model_data.data[i][0]["wms_code"]);
@@ -203,34 +214,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   $('input[value="'+vm.field+'"]').parents('tr').find("input[name='imei']").trigger('focus');
                 }
               }
-              if (vm.sku_list_1.indexOf(field) == -1){
-                pop_msg(field+" Does Not Exist");
+              if (vm.sku_list_1.indexOf(vm.field) == -1){
+                Service.showNoty(field+" Does Not Exist");
               }
-              }
-              else {
-                vm.sku_list_1 = [];
-                for(var i=0; i<vm.model_data.data.length; i++) {
-                  vm.sku_list_1.push(vm.model_data.data[i][0]["wms_code"]);
-                  if(vm.field == vm.model_data.data[i][0]["wms_code"]){
+              vm.model_data.scan_sku = "";
+            } else {
+              vm.sku_list_1 = [];
+              for(var i=0; i<vm.model_data.data.length; i++) {
+                vm.sku_list_1.push(vm.model_data.data[i][0]["wms_code"]);
+                if(vm.field == vm.model_data.data[i][0]["wms_code"]){
+                  if(vm.model_data.data[i][0].value < vm.model_data.data[i][0].po_quantity) {
                     vm.model_data.data[i][0]["value"] = Number(vm.model_data.data[i][0]["value"]) + 1;
-                    $('textarea[name="scan_sku"]').trigger('focus').val('');
+                  } else {
+                     Service.showNoty("Received Quantity Equal To PO Quantity");
                   }
-                }
-                if (vm.sku_list_1.indexOf(field) == -1){
-                  pop_msg(field+" Does Not Exist");
+                  $('textarea[name="scan_sku"]').trigger('focus').val('');
                 }
               }
-           }
-         });
-        /*for(var i=0; i<vm.model_data.data.length; i++) {
-          if(field == vm.model_data.data[i][0]["wms_code"]){
-            //vm.model_data.data[i][0].value = vm.model_data.data[i][0].value + 1;
-            //$('input[value="'+field+'"]').parents('tr').find("input[name='quantity']").trigger('focus');
-            $('input[value="'+field+'"]').parents('tr').find("input[name='imei_number']").trigger('focus');
-            console.log("success");
-            break;
+              if (vm.sku_list_1.indexOf(field) == -1){
+                Service.showNoty(field+" Does Not Exist");
+              }
+            }
           }
-        }*/
+        });
       }
     }
 
@@ -239,11 +245,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       event.stopPropagation();
       if (event.keyCode == 13 && data1.imei_number.length > 0) {
         if (vm.serial_numbers.indexOf(data1.imei_number) != -1){
-          vm.service.pop_msg("Serial Number already Exist");
+          Service.showNoty("Serial Number already Exist");
           data1.imei_number = "";
           $('textarea[name="scan_sku"]').trigger('focus').val('');
         } else if (vm.fb.poData.serials.indexOf(data1.imei_number) != -1){
-          vm.service.pop_msg("Serial Number already Exist");
+          Service.showNoty("Serial Number already Exist");
           data1.imei_number = "";
           $('textarea[name="scan_sku"]').trigger('focus').val('');
         } else {
@@ -254,12 +260,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.serial_numbers.push(data1.imei_number);
                 data1["imei_list"].push(data1.imei_number);
                 fb.change_serial(data1, data1.imei_number);
+                $('textarea[name="scan_sku"]').trigger('focus').val('');
               } else {
-                pop_msg(data.data);
+                Service.showNoty(data.data);
               }
               data1.imei_number = "";
             }
-            $('textarea[name="scan_sku"]').trigger('focus').val('');
           });
         }
       }
@@ -379,6 +385,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         fb.poData['id'] = data.path.o[2];
         console.log(fb.poData);
         fb.po_change_event();
+        fb.po_generate_event();
       })
     }
 
@@ -447,7 +454,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/").on("child_removed", function(po) {
 
         var delete_po = po.val();
-        if(fb.poData.po == delete_po["po"]) {
+        if(fb.poData.po == delete_po["po"] && vm.model_data.po_reference == delete_po["po"]) {
           fb.poData = {};
           if (!(fb.generate)) {
 
@@ -485,6 +492,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           console.log(data.ref.remove())
         })
       }
+    }
+
+    fb["stop_listening"] = function(po) {
+
+      var data = po;
+
+      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+data.id+"/").off();
+      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/").off();
+    }
+
+    fb["stop_fb"] = function() {
+
+      fb.stop_listening(fb.poData);
+      fb["poData"] = {serials: []};
+      fb["generate"] = false;
     }
   }
 

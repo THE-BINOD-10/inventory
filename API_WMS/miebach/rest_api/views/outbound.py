@@ -2036,6 +2036,7 @@ def insert_order_data(request, user=''):
     order_id = ''
     invalid_skus = []
     items = []
+    other_charge_amounts = 0
     order_objs = []
     order_sku = {}
     tracking_dict = {}
@@ -2172,6 +2173,7 @@ def insert_order_data(request, user=''):
                 if myDict['charge_name'][i] and myDict['charge_amount'][i]:
                     OrderCharges.objects.create(user_id=user.id, order_id=created_order_id, charge_name=myDict['charge_name'][i],
                                                 charge_amount=myDict['charge_amount'][i], creation_date=datetime.datetime.now())
+                    other_charge_amounts += float(myDict['charge_amount'][i])
     except Exception as e:
         log.info('Create order failed for %s and params are %s and error statement is %s' % (str(user.username), str(myDict), str(e)))
         return HttpResponse("Order Creation Failed")
@@ -2192,8 +2194,10 @@ def insert_order_data(request, user=''):
             email = order_data['email_id']
             if email:
                 send_mail([email], 'Order Confirmation: %s' % order_detail.order_id, rendered)
+            if not telephone:
+                telephone = order_data.get('telephone', "")
             if telephone:
-                order_creation_message(items, telephone, (order_detail.order_code) + str(order_detail.order_id))
+                order_creation_message(items, telephone, (order_detail.order_code) + str(order_detail.order_id), other_charges=other_charge_amounts)
     except Exception as e:
         log.info('Create order mail sending failed for %s and params are %s and error statement is %s' % (str(user.username), str(myDict), str(e)))
 

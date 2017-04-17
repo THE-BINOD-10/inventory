@@ -1157,3 +1157,31 @@ pre {
   padding: 0px 5px;
   white-space: pre-line;
 }
+.process-overlay {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  padding-top: 20%;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.1);
+}
+.process-overlay .process-text {
+  vertical-align: middle;
+  text-align: center;
+  color: black;
+  margin: auto;
+  font-size: 20px;
+  display: block;
+  width: 150px;
+  background: #fff;
+}
+.process-overlay .process-text {
+  vertical-align: middle;
+  text-align: center;
+  color: black;
+  margin: auto;
+  font-size: 20px;
+  display: block;
+  width: 150px;
+  background: #fff;
+}

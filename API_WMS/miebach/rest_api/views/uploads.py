@@ -679,6 +679,19 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
                     except:
                         _size = cell_data
 
+                    _size_type = get_cell_data(row_idx, sku_file_mapping['size_type'], reader, file_type)
+                    if not _size_type:
+                        index_status.setdefault(row_idx, set()).add('Size Type should not be blank, if size is there')
+
+                    else:
+                        size_master = SizeMaster.objects.filter(user=user.id, size_name=_size_type)
+                        if not size_master:
+                            index_status.setdefault(row_idx, set()).add('Please Enter Correct Size type')
+                        else:
+                            _sizes_all = size_master[0].size_value.split("<<>>")
+                            if _size not in _sizes_all:
+                                index_status.setdefault(row_idx, set()).add('Size type and size are not matching')
+
                     if _size not in all_sizes:
                         index_status.setdefault(row_idx, set()).add('Size is not Correct')
 
@@ -719,7 +732,6 @@ def get_sku_file_mapping(reader, file_type, user=''):
     if get_cell_data(0, 0, reader, file_type) == 'WMS Code' and get_cell_data(0, 1, reader, file_type) == 'SKU Description':
         if user:
             user_profile = UserProfile.objects.get(user_id=user)
-            USER_SKU_EXCEL_MAPPING
             sku_file_mapping = copy.deepcopy(USER_SKU_EXCEL_MAPPING[user_profile.user_type])
         else:
             sku_file_mapping = copy.deepcopy(SKU_DEF_EXCEL)
@@ -730,6 +742,7 @@ def get_sku_file_mapping(reader, file_type, user=''):
 
 def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 
+    from masters import check_update_size_type
     all_sku_masters = []
     zone_master = ZoneMaster.objects.filter(user=user.id).values('id', 'zone')
     zones = map(lambda d: d['zone'], zone_master)
@@ -818,8 +831,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                     data_dict['sku_size'] = str(int(cell_data))
                 except:
                     data_dict['sku_size'] = cell_data
+                _size_type = get_cell_data(row_idx, sku_file_mapping['size_type'], reader, file_type)
 
-
+            elif key == 'size_type':
+                continue
 
             elif cell_data:
                 data_dict[key] = cell_data
@@ -834,6 +849,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
             all_sku_masters.append(sku_master)
+            sku_data = sku_master
+
+        print sku_data.threshold_quantity
+        check_update_size_type(sku_data, _size_type)
 
     get_user_sku_data(user)
     insert_update_brands(user)
@@ -2290,9 +2309,9 @@ def customer_excel_upload(request, open_sheet, user):
             elif col_idx == 8 and cell_data:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
-                    customer_data['pin_code'] = cell_data
+                    customer_data['pincode'] = cell_data
                     if customer_master:
-                        customer_master.pin_code = customer_data['pin_code']
+                        customer_master.pincode = customer_data['pin_code']
             elif col_idx == 9:
                 customer_data['address'] = cell_data
                 if customer_master:

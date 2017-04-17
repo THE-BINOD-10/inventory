@@ -244,6 +244,10 @@ urlpatterns = patterns('rest_api.views',
     url(r'^print_order_summary_report/$', 'print_order_summary_report'),
     url(r'^get_marketplaces_list_reports/$', 'get_marketplaces_list_reports'),
 
+)
+
+urlpatterns += patterns('rest_api.views',
+
     #uploads
     url(r'^order_form/$', 'order_form'),
     url(r'^order_upload/$', 'order_upload'),
@@ -276,9 +280,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^pricing_master_form/$', 'pricing_master_form'),
     url(r'^pricing_master_upload/$', 'pricing_master_upload'),
 
-)
 
-urlpatterns += patterns('rest_api.views',
     #configurations
     url(r'^configurations/$', 'configurations'),
     url(r'^switches/$', 'switches'),
@@ -357,4 +359,8 @@ urlpatterns += patterns('rest_api.views',
 
     #get size_list
     url(r'get_size_names', 'get_size_names'),
+
+
+    #get list of vendors . @common.py
+    url(r'get_vendors_list/', 'get_vendors_list'),
     )

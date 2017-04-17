@@ -404,7 +404,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       });
       vm.service.alert_msg("Do want to Raise PO").then(function(msg) {
         if (msg == "true") {
-          vm.service.apiCall('confirm_po1/', 'GET', data).then(function(data){
+          vm.service.apiCall('confirm_po1/', 'GET', data, true).then(function(data){
             if(data.message) {
               vm.confirm_print = true;
               vm.print_enable = true;
@@ -436,7 +436,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.push({name: temp['_aData']["Order Type"], value:temp['_aData']['Supplier ID']});
         }
       });
-      vm.service.apiCall('delete_po_group/', 'GET', data).then(function(data){
+      vm.service.apiCall('delete_po_group/', 'GET', data, true).then(function(data){
         if(data.message) {
            vm.bt_disable = true;
            vm.selectAll = false;

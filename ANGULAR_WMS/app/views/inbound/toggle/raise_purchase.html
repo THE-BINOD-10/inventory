@@ -2,7 +2,7 @@
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
     <div class="modal-dialog model-custom modal-lg">
       <div class="modal-content mw60">
-        <div class="process-overlay" ng-if="process"><div class="process-text">Loading...</div></div>
+        <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
           <div class="row">
             <div class="col-md-4 col-sm-4 col-xs-12">

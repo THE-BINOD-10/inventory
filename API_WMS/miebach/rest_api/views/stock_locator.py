@@ -303,7 +303,7 @@ def get_stock_summary_size_excel(filter_params, temp_data, headers, user, reques
             for row, sku_class in enumerate(sku_classes, 1):
                 size_dict = {}
                 st_stock_objs = stock_detail_dict.get(sku_class['sku_class'], {})
-                data = [sku_class['sku_class'], sku_class['style_name'], sku_class['sku_category'], sku_class['sku_brand']]
+                data = [sku_class['sku_class'], sku_class['style_name'], sku_class['sku_brand'], sku_class['sku_category']]
                 for size in sizes:
                     log.info(st_stock_objs)
                     log.info(size)

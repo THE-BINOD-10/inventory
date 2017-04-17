@@ -84,7 +84,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('putaway_data/', 'POST', elem).then(function(data){
+      vm.service.apiCall('putaway_data/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data == "Updated Successfully") {
             vm.close();

@@ -1683,6 +1683,7 @@ def update_seller_po(data, value, user, receipt_id=''):
         sell_po.received_quantity += sell_quan
         if sell_po.seller_quantity <= sell_po.received_quantity:
             sell_po.status = 0
+        sell_po.putaway_quantity += sell_quan
         sell_po.save()
         SellerPOSummary.objects.create(seller_po_id=sell_po.id, receipt_number=receipt_id, quantity=sell_quan, purchase_order_id=data.id,
                                        creation_date=datetime.datetime.now())
@@ -1940,6 +1941,8 @@ def check_sku(request, user=''):
     sku_code = request.GET.get('sku_code')
     check = False
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
+    if not sku_id:
+        sku_id = SKUMaster.objects.filter(ean_number=sku_code, user=user.id)
     if sku_id:
         sku_code = SKUMaster.objects.get(id = sku_id).sku_code
         data = {"status": 'confirmed', 'sku_code': sku_code}
@@ -2278,17 +2281,14 @@ def putaway_location(data, value, exc_loc, user, order_id, po_id):
             loc.save()
     data.save()
 
-def create_update_seller_stock(data, value, user):
+def create_update_seller_stock(data, value, user, stock_obj):
     if not data.purchase_order.open_po:
         return
-    seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.purchase_order.open_po_id)
+    seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.purchase_order.open_po_id, putaway_quantity__gt=0)
     for sell_po in seller_pos:
-        #putaway_stock = SellerPOSummary.objects.filter(seller_po_id=sell_po.id, seller_po__seller__user=user.id).aggregate(Sum('quantity'))['quantity__sum']
-        #if not putaway_stock:
-        #    putaway_stock = 0
-        #if not value:
-        #    break
-        received_quantity = float(sell_po.received_quantity)
+        if not value:
+            break
+        received_quantity = float(stock_obj.quantity)
         if received_quantity <= 0:
             continue
         sell_quan = value
@@ -2298,10 +2298,12 @@ def create_update_seller_stock(data, value, user):
         elif received_quantity >= value:
             sell_quan = value
             value = 0
-        seller_stock = SellerStock.objects.filter(seller_id=sell_po.id, sku_id=data.purchase_order.open_po.sku_id, sku__user=user.id)
+        sell_po.putaway_quantity -= sell_quan
+        sell_po.save()
+        seller_stock = SellerStock.objects.filter(seller_id=sell_po.seller_id, stock_id=stock_obj.id, stock__sku__user=user.id)
         if not seller_stock:
-            SellerStock.objects.create(seller_id=sell_po.id, sku_id=data.purchase_order.open_po.sku_id, quantity=sell_quan,
-                                       creation_date=datetime.datetime.now(), status=1)
+            SellerStock.objects.create(seller_id=sell_po.seller_id, quantity=sell_quan,
+                                       creation_date=datetime.datetime.now(), status=1, stock_id=stock_obj.id)
         else:
             seller_stock[0].quantity = float(seller_stock[0].quantity) + float(sell_quan)
             seller_stock[0].save()
@@ -2372,7 +2374,7 @@ def putaway_data(request, user=''):
                 value = count
                 count = 0
             order_data = get_purchase_order_data(data.purchase_order)
-            create_update_seller_stock(data, value, user)
+            #create_update_seller_stock(data, value, user)
             putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
             stock_data = StockDetail.objects.filter(location_id=exc_loc, receipt_number=data.purchase_order.order_id,
                                                     sku_id=order_data['sku_id'], sku__user=user.id)
@@ -2396,6 +2398,7 @@ def putaway_data(request, user=''):
                     pallet_detail = pallet_mapping[0].pallet_detail
                     setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
                 stock_data.save()
+                create_update_seller_stock(data, value, user, stock_data)
             else:
                 record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
                                'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
@@ -2407,6 +2410,7 @@ def putaway_data(request, user=''):
                     pallet_mapping[0].save()
                 stock_detail = StockDetail(**record_data)
                 stock_detail.save()
+                create_update_seller_stock(data, value, user, stock_detail)
             consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 
             if order_data['sku_code'] not in sku_codes:
@@ -2499,9 +2503,9 @@ def check_wms_qc(request, user=''):
             qc_data.append({'id': quality_check.id,'order_id': po_reference,
                              'quantity': quality_check.po_location.quantity, 'accepted_quantity': quality_check.accepted_quantity,
                             'rejected_quantity': quality_check.rejected_quantity})
-            sku_data = OrderedDict( ( ('SKU Code', sku.sku_code), ('WMS Code', sku.wms_code), ('Product Description', sku.sku_desc),
-                                      ('SKU Group', sku.sku_group), ('SKU Type', sku.sku_type), ('SKU Class', sku.sku_class),
-                                      ('SKU Category', sku.sku_category) ))
+            sku_data = OrderedDict( ( ('SKU Code', sku.sku_code), ('Product Description', sku.sku_desc),
+                                      ('SKU Brand', sku.sku_brand), ('SKU Category', sku.sku_category), ('SKU Class', sku.sku_class),
+                                      ('Color', sku.color) ))
     return HttpResponse(json.dumps({'data_dict': qc_data, 'sku_data': sku_data, 'image': image,
                               'options': REJECT_REASONS, 'use_imei': use_imei}))
 
@@ -3828,9 +3832,9 @@ def check_imei_qc(request, user=''):
                 qc_data.append({'id': quality_check.id,'order_id': po_reference,
                                 'quantity': quality_check.po_location.quantity, 'accepted_quantity': quality_check.accepted_quantity,
                                 'rejected_quantity': quality_check.rejected_quantity})
-                sku_data = OrderedDict( ( ('SKU Code', sku.sku_code), ('WMS Code', sku.wms_code), ('Product Description', sku.sku_desc),
-                                          ('SKU Group', sku.sku_group), ('SKU Type', sku.sku_type), ('SKU Class', sku.sku_class),
-                                          ('SKU Category', sku.sku_category) ))
+                sku_data = OrderedDict( ( ('SKU Code', sku.sku_code), ('Product Description', sku.sku_desc),
+                                          ('SKU Brand', sku.sku_brand), ('SKU Category', sku.sku_category), ('SKU Class', sku.sku_class),
+                                          ('Color', sku.color) ))
     except Exception as e:
         log.info(e)
         return HttpResponse("Internal Server Error")

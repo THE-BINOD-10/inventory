@@ -35,6 +35,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('customer').withTitle('Customer / Marketplace').notSortable(),
         DTColumnBuilder.newColumn('picklist_note').withTitle('Picklist Note'),
         DTColumnBuilder.newColumn('picked_quantity').withTitle('Picked Quantity').notSortable(),
+        DTColumnBuilder.newColumn('shipment_date').withTitle('Shipment Date'),
         DTColumnBuilder.newColumn('date').withTitle('Date')
     ];
 
@@ -123,7 +124,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         send = send + record.order_detail_id + ","
       })
       send = send.slice(0,-1);
-      vm.service.apiCall("generate_order_invoice/?order_ids="+send).then(function(data){
+      vm.service.apiCall("generate_order_invoice/", 'GET', {order_ids: send}, true).then(function(data){
       if(data.message) {
         angular.copy(data.data, vm.pdf_data)
         if (vm.pdf_data.detailed_invoice) {

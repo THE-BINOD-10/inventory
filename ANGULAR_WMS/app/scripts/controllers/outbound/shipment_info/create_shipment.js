@@ -65,7 +65,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.reloadData = reloadData;
 
     function reloadData () {
-      vm.dtInstance.reloadData();
+        $('.custom-table').DataTable().draw();
     };
     $scope.$on('change_filters_data', function(){
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
@@ -196,7 +196,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     } else {
       vm.remove_serials(data.sub_data[index]['imei_list']);
       data.sub_data.splice(index,1);
-      vm.check_equal(data);
+      //vm.check_equal(data);
     }
   }
 
@@ -233,7 +233,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       if(vm.service.check_quantity(vm.model_data.data, 'sub_data', 'shipping_quantity'))  {
         vm.bt_disable = true;
         var data = $("#add-customer:visible").serializeArray();
-        service.apiCall("insert_shipment_info/", "POST", data).then(function(data){
+        service.apiCall("insert_shipment_info/", "POST", data, true).then(function(data){
 
           if(data.message) {
             service.showNoty(data.data);
@@ -254,33 +254,56 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   }
 
     vm.serial_numbers = [];
-    vm.check_imei_exists = function(event, data1, data2) {
+    vm.check_imei_exists = function(event, imei) {
       event.stopPropagation();
-      if (event.keyCode == 13 && data1.imei_number.length > 0) {
-        if (vm.serial_numbers.indexOf(data1.imei_number) != -1){
-            vm.service.pop_msg("Serial Number already Exist");
-            data1.imei_number = "";
+      if (event.keyCode == 13 && imei.length > 0) {
+        if (vm.serial_numbers.indexOf(imei) != -1){
+            service.showNoty("IMEI Number Already Exist");
+            vm.imei_number = "";
         } else {
-          var send = {is_shipment: true};
-          send[data2.id] = data1.imei_number
-          vm.service.apiCall('check_imei/', 'GET',send).then(function(data){
+          vm.service.apiCall('check_imei/', 'GET',{is_shipment: true, imei: imei}).then(function(data){
             if(data.message) {
-              if (data.data == "") {
-                data1.shipping_quantity = parseInt(data1.shipping_quantity)+1;
-                vm.serial_numbers.push(data1.imei_number);
-                data1["imei_list"].push(data1.imei_number);
-                vm.check_equal(data2);
+              if (data.data.status == "Success") {
+                vm.update_imei_data(data.data, imei);
+                //vm.check_equal(data2);
               } else {
-                vm.service.pop_msg(data.data);
+                service.showNoty(data.data.status);
               }
-              data1.imei_number = "";
+              vm.imei_number = "";
             }
           });
         }
       }
     }
 
-    vm.check_equal = function(data) {
+    vm.update_imei_data = function(data, imei) {
+
+      var status = false;
+      var sku_status = false;
+      for(var i = 0; i < vm.model_data.data.length; i++) {
+
+        if(vm.model_data.data[i].sku__sku_code == data.data.sku_code) {
+
+          sku_status = true;
+          if(vm.model_data.data[i].picked > vm.model_data.data[i]['sub_data'][0].shipping_quantity) {
+            vm.model_data.data[i]['sub_data'][0].shipping_quantity += 1;
+            vm.model_data.data[i]['sub_data'][0].imei_list.push(imei);
+            vm.serial_numbers.push(imei);
+            status = true;
+            break;
+          }
+        }
+      }
+      if(sku_status && (!status)) {
+
+        service.showNoty(data.data.sku_code+" SKU picked quantity equal shipped quantity");
+      } else if(!status) {
+
+        service.showNoty("Entered Imei Number Not Matched With Any SKU's");
+      }
+    }
+
+    /*vm.check_equal = function(data) {
 
       data["equal"] = false;
       var total = 0;
@@ -290,7 +313,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       if(data.picked == total){
         data["equal"] = true;
       }
-    }
+    }*/
 
     vm.remove_serials = function(serials) {
 

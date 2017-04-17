@@ -320,7 +320,7 @@ data_datatable = {#masters
                   'PullToLocate': 'get_cancelled_putaway',\
                   'StockTransferOrders': 'get_stock_transfer_orders', 'OutboundBackOrders': 'get_back_order_data',\
                   'CustomerOrderView': 'get_order_view_data', 'CustomerCategoryView': 'get_order_category_view_data',\
-                  'ShipmentPickedAlternative': 'get_order_shipment_picked',
+                  'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data',\
                   #manage users
                   'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
                   #retail one
@@ -697,16 +697,18 @@ def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag):
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity,total_amount)
     send_sms(phone_no, data)
 
-def order_creation_message(items, telephone, order_id):
+def order_creation_message(items, telephone, order_id, other_charges = 0):
     data = 'Your order with ID %s has been successfully placed for ' % order_id
     total_quantity = 0
     total_amount = 0
     items_data = []
     for item in items:
         sku_desc = (item[0][:30] + '..') if len(item[0]) > 30 else item[0]
-        items_data.append('%s with Qty: %s' % (sku_desc, int(item[2])))
+        items_data.append('%s with Qty: %s' % (sku_desc, int(item[1])))
         total_quantity += int(item[1])
-        total_amount += int(item[2])
+        total_amount += float(("%.2f") % (item[2]))
+    if other_charges:
+        total_amount += other_charges
     data += ', '.join(items_data)
     data += '\n\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
     send_sms(telephone, data)
@@ -2376,6 +2378,26 @@ def get_shipment_time(ord_id, user):
         log.info("no shipment time for order %s" %(ord_id))
 
     return time_slot
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_vendors_list(request, user=''):
+    vendor_objs = VendorMaster.objects.filter(user = user.id)
+    resp = {}
+    for vendor in vendor_objs:
+        resp.update({vendor.vendor_id : vendor.name})
+
+    return HttpResponse(json.dumps({'data': resp}))
+
+
+
+
+
+
+
+
 
 
 

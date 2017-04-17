@@ -558,11 +558,12 @@ def check_update_size_type(data, value):
     if not size_master:
         return
     size_master = size_master[0]
+    _value = size_master.size_name
     if not sku_fields:
-        SKUFields.objects.create(sku_id=data.id, field_id=size_master.id, field_type='size_type', field_value=value,
+        SKUFields.objects.create(sku_id=data.id, field_id=size_master.id, field_type='size_type', field_value= _value,
                                  creation_date=datetime.datetime.now())
     else:
-        sku_fields[0].field_value = value
+        sku_fields[0].field_value = _value
         sku_fields[0].field_id = size_master.id
         sku_fields[0].save()
 
@@ -1632,6 +1633,20 @@ def create_custom_sku(request, user=''):
     display_name, name, property_type = property_type.split(':')
     property_name = request.POST.get('property_name', '')
     unit_price = request.POST.get('unit_price', 0)
+    printing_vendor = request.POST.get('printing_vendor', [])
+    embroidery_vendor = request.POST.get('embroidery_name', [])
+    print_vendor_obj = None
+    embroidery_vendor_obj = None
+    ven_list = {}
+    if printing_vendor:
+        print_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = printing_vendor)
+        if print_vendor_obj:
+            ven_list.update({'printing_vendor': print_vendor_obj[0]})
+    if embroidery_vendor:
+        embroidery_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = embroidery_vendor)
+        if embroidery_vendor_obj:
+            ven_list.update({'embroidery_vendor': embroidery_vendor_obj[0]})
+
     product_property = ProductProperties.objects.filter(name=name, property_name=property_name, property_type=property_type)
     if not product_property:
         return HttpResponse("Wrong Data")
@@ -1651,7 +1666,7 @@ def create_custom_sku(request, user=''):
         sku_code, sku_serial = get_custom_sku_code(user, sku_size=size_name, group_sku=group_sku)
         if '-' in sku_code:
             group_sku = sku_code.split('-')[0]
-    
+
         sku_master = SKUMaster.objects.create(user=user.id, sku_code=sku_code, wms_code=sku_code, sku_desc='Custom SKU ' + sku_serial, status=1,
                                               creation_date=datetime.datetime.now(), online_percentage=100, sku_type='CS', price=unit_price)
 
@@ -1673,8 +1688,17 @@ def create_custom_sku(request, user=''):
                     sku_master.save()
                 SKUFields.objects.create(sku_id=sku_master.id, field_id=product_attribute.id, field_type='product_attribute',
                                          creation_date=datetime.datetime.now(), field_value=attribute_value)
+        for key, value in ven_list.iteritems():
+            ex_obj = SKUFields.objects.filter(sku_id = sku_master.id, field_type = key)
+            if ex_obj:
+                ex_obj = ex_obj[0]
+                ex_obj.field_id = value.id
+                ex_obj.field_value = value.name
+                ex_obj.save()
+            else:
+                SKUFields.objects.create(sku_id=sku_master.id, field_id= value.id, field_type= key, field_value=value.name)
     return HttpResponse(json.dumps({'message': 'SKU Created Successfully', 'data': sku_codes_list}))
-    
+
 @csrf_exempt
 def get_size_master_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     order_data = SIZE_MASTER_HEADERS.values()[col_num]

@@ -49,8 +49,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
   //create shipment
   self.create_shipment = {
 
-                            alternate_view: false,
-                            view: 'ShipmentPickedOrders',
+                            alternate_view: true,
+                            view: 'ShipmentPickedAlternative',
                             tb_headers: {'ShipmentPickedOrders': ['Order ID', 'SKU Code', 'Title', 'Customer ID', 'Customer Name', 'Marketplace',
                                                                   'Picked Quantity'],
                                          'ShipmentPickedAlternative': ['Order ID', 'Customer ID', 'Customer Name', 'Marketplace',
@@ -91,7 +91,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                                                    'OrderView': 'generate_picklist/',
                                                    'SKUView': 'batch_generate_picklist/'
                                                  },
-                        tb_headers: { 'CustomerOrderView': ['Customer Name', 'Order ID', 'Market Place', 'Total Quantity', 'Creation Date', 'Order Taken By', 'Status'],
+                        tb_headers: { 'CustomerOrderView': ['Customer Name', 'Order ID', 'Market Place', 'Total Quantity', 'Shipment Date', 'Creation Date', 'Order Taken By', 'Status'],
                                       'CustomerCategoryView': ['Customer Name', 'Order ID', 'Category', 'Total Quantity', 'Order Taken By', 'Status'],
                                       'SKUView': ['SKU Code','Title', 'Total Quantity'],
                                       'OrderView': ['Order ID', 'SKU Code', 'Title', 'Product Quantity', 'Shipment Date', 'Order Taken By', 'Status']

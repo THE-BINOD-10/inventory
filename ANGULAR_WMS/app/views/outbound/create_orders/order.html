@@ -144,7 +144,7 @@
                 <!--ng-blur="showCase.service.checkSearchValue(data.sku_id,'search_wms_codes?', $event);showCase.get_invoice(data)">-->
               </td>
               <td>
-                <input type="text" class="form-control" ng-model="data.description">
+                <input type="text" class="form-control" ng-model="data.description" name="description">
               </td>
               <td>
                 <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="data.invoice_amount = showCase.service.multi(data.quantity, data.price);showCase.cal_percentage(data)"> </div>

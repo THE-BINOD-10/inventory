@@ -3,6 +3,7 @@
     <div class="modal-dialog modal-lg">
       <!-- Modal content-->
       <div class="modal-content model-custom" id = "add-customer">
+        <div ng-include="'views/common/loader.html'"></div> 
         <div class="modal-header">
           <button ng-click="showCase.close()" type="button" class="close" data-dismiss="modal"> ×</button>
           <h4 class="modal-title">Add Shippment </h4>
@@ -58,6 +59,12 @@
                 <input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.invoice_number" required>
               </div>
             </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+              <div class="form-group">
+                <label class="control-label"> IMEI Scan </label>
+                <input type="text" ng-model="showCase.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, showCase.imei_number)">
+              </div>
+            </div>
           </div>
           <div class="row">
             <div class="col-md-12">
@@ -74,8 +81,8 @@
                   <th> Picked Quantity </th>
                   <th> Shipping Quantity </th>
                   <th ng-hide="user.user_profile['user_type'] == 'marketplace_user'"> Pack Reference </th>
-                  <th ng-if="showCase.mk_user"> Serial Number </th>
-                  <th class="plus"></th>
+                  <!--<th ng-if="showCase.mk_user"> Serial Number </th>-->
+                  <th class="plus" ng-hide="user.user_profile['user_type'] == 'marketplace_user'"></th>
                 </tr>
               </thead>
               <tbody ng-repeat="data in showCase.model_data.data">
@@ -84,17 +91,18 @@
                   <input type="hidden" name="id" value="{{data.id}}">
                   <input type="hidden" name="sku_code" value="{{data.sku__sku_code}}">
                   <input type="hidden" name="order_quantity" value="{{data.picked}}">
+                  <input type="hidden" name="imei_number" class="form-control" ng-init="record.imei_list=[]" value="{{record.imei_list.join(',')}}">
                   <td ng-if="(!(showCase.sku_group))">{{data.order_id}}</td>
                   <td>{{data.sku__sku_code}}</td>
-                  <td> {{data.ordered_quantity}} </td>
+                  <td> {{data.ordered}} </td>
                   <td> {{data.picked}} </td>
                   <td><input class="form-control" name="shipping_quantity" ng-model="record.shipping_quantity" type="text" ng-class="service.get_decimal_perm()" ng-change="showCase.cal_quantity(record, data)" ng-readonly="showCase.mk_user"></td>
                   <td ng-hide="user.user_profile['user_type'] == 'marketplace_user'"><input class="form-control" name="package_reference" ng-model="record.pack_reference" type="text"></td>
-                  <td ng-if="showCase.mk_user">
+                  <!--<td ng-if="showCase.mk_user">
                     <input type="text" ng-model="record.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, record, data)" ng-disabled="data.equal">
                     <input type="hidden" name="imei_number" class="form-control" ng-init="record.imei_list=[]" value="{{record.imei_list.join(',')}}">
-                  </td>
-                  <td><i ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
+                  </td>-->
+                  <td><i ng-click="showCase.update_data($index, data, $last)" ng-hide="user.user_profile['user_type'] == 'marketplace_user'" ng-class="showCase.isLast($last)"></i></td>
                 </tr>
               </tbody>
             </table>

@@ -102,7 +102,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         var elem = angular.element($('form'));
         elem = elem[0];
         elem = $(elem).serializeArray();
-        vm.service.apiCall('insert_inventory_adjust/', 'GET', elem).then(function(data){
+        vm.service.apiCall('insert_inventory_adjust/', 'GET', elem, true).then(function(data){
           if(data.message) {
             if (data.data == "Added Successfully") {
               angular.extend(vm.model_data, vm.empty_data);

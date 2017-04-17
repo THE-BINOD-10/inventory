@@ -68,8 +68,10 @@ function ServerSideProcessingCtrl($scope, $http, $state , $compile, Session, DTO
 
   function reloadData () {
     vm.dtInstance.reloadData();
+    vm.bt_disable = true;
   };
 
+  vm.process = false;
   vm.confirm_putaway = confirm_putaway;
   function confirm_putaway() {
     console.log(vm.selected);
@@ -88,11 +90,13 @@ function ServerSideProcessingCtrl($scope, $http, $state , $compile, Session, DTO
     for(var i=0; i < data.length; i++) {
       elem = elem+$.param(data[i])+"&";
     }
+    vm.process = true;
     $http.get(Session.url+'returns_putaway_data/?'+elem.slice(0,-1),{withCredential: true}).success(function(data){
       console.log(data);
       colFilters.showNoty(data);
       reloadData();
+      vm.process = false;
     })
-  }   
+  }
 }
 

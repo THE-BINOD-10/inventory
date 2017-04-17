@@ -122,23 +122,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (data.$valid) {
         var elem = angular.element($('form'));
         elem = elem[1];
-        elem = $(elem).serialize();
-        $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-        $http({
-               method: 'POST',
-               url:Session.url+'save_st/',
-               withCredential: true,
-               data: elem
-               }).success(function(data, status, headers, config) {
-                  if(data == 'Added Successfully') {
-                    vm.close();
-                    vm.reloadData();
-                  } else { 
-                    pop_msg(data);
-                  }
-              });
+        elem = $(elem).serializeArray();
+        vm.service.apiCall('save_st/', 'POST', elem, true).then(function(data){
+          if(data.message){
+            if(data.data == 'Added Successfully') {
+              vm.close();
+              vm.reloadData();
+            } else {
+              pop_msg(data.data);
+            }
+          }
+        });
       }
-    } 
+    }
 
     vm.confirm_stock = confirm_stock;
     function confirm_stock(data) {
@@ -146,21 +142,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
      if (data.$valid) {
       var elem = angular.element($('form'));
       elem = elem[1];
-      elem = $(elem).serialize();
-      $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-        $http({
-               method: 'POST',
-               url:Session.url+'confirm_st/',
-               withCredential: true,
-               data: elem
-               }).success(function(data, status, headers, config) {
-                  if(data == 'Confirmed Successfully') {
-                    vm.close();
-                    vm.reloadData();
-                  } else {
-                    pop_msg(data);
-                  }
-              });
+      elem = $(elem).serializeArray();
+      vm.service.apiCall('confirm_st/', 'POST', elem, true).then(function(data){
+        if(data.message){
+          if(data.data == 'Confirmed Successfully') {
+            vm.close();
+            vm.reloadData();
+          } else {
+            pop_msg(data.data);
+          }
+        }
+      });
      }
     }
 

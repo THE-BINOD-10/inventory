@@ -285,6 +285,15 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   })
 }
 
+  vm.vendors = {}
+    vm.service.apiCall("get_vendors_list/").then(function(data) {
+
+       if(data.message)  {
+
+          vm.vendors = data.data.data;
+       }
+    })
+
   vm.pop_btn = true;
   vm.check_quantity = function(data){
 
@@ -321,7 +330,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
             'success': function(response) {
               var response = JSON.parse(response);
               if(response.message == "SKU Created Successfully") {
-              
+
                 colFilters.showNoty("Custom SKU Created And Also Added In Order");
                 vm.add_to_order(response.data, vm.pop_data);
                 vm.attributes = [];
@@ -624,7 +633,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   }
   vm.submit = function(data){
     if (data.$valid) {
-      vm.service.apiCall('insert_customer/', 'POST', vm.customer_data).then(function(data){
+      vm.service.apiCall('insert_customer/', 'POST', vm.customer_data, true).then(function(data){
         if(data.message) {
           if(data.data == 'New Customer Added') {
             vm.close();

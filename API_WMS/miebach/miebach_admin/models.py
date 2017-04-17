@@ -25,6 +25,29 @@ class ZoneMaster(models.Model):
     def natural_key(self):
         return {'id': self.id, 'user': self.user, 'zone': self.zone}
 
+
+class VendorMaster(models.Model):
+    user = models.PositiveIntegerField()
+    vendor_id = models.PositiveIntegerField()
+    name = models.CharField(max_length=256)
+    address = models.CharField(max_length=256)
+    city = models.CharField(max_length=64)
+    state = models.CharField(max_length=64)
+    country = models.CharField(max_length=64)
+    pincode = models.CharField(max_length=64)
+    phone_number = models.CharField(max_length=32)
+    email_id = models.EmailField(max_length=64)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'VENDOR_MASTER'
+
+    def __unicode__(self):
+        return str(self.name)
+
+
 class SKUMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
@@ -57,7 +80,6 @@ class SKUMaster(models.Model):
     updation_date = models.DateTimeField(auto_now=True)
     color = models.CharField(max_length=64, default='')
     ean_number = models.IntegerField(db_index=True, default = 0)
-
     class Meta:
         db_table = 'SKU_MASTER'
         unique_together = ('user', 'sku_code', 'wms_code')
@@ -205,27 +227,6 @@ class SKUQuantity(models.Model):
 
     def __unicode__(self):
         return str(self.sku)
-
-class VendorMaster(models.Model):
-    user = models.PositiveIntegerField()
-    vendor_id = models.PositiveIntegerField()
-    name = models.CharField(max_length=256)
-    address = models.CharField(max_length=256)
-    city = models.CharField(max_length=64)
-    state = models.CharField(max_length=64)
-    country = models.CharField(max_length=64)
-    pincode = models.CharField(max_length=64)
-    phone_number = models.CharField(max_length=32)
-    email_id = models.EmailField(max_length=64)
-    status = models.IntegerField(default=1)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'VENDOR_MASTER'
-
-    def __unicode__(self):
-        return str(self.name)
 
 class OpenPO(models.Model):
     id = BigAutoField(primary_key=True)
@@ -1011,6 +1012,7 @@ class CustomerOrderSummary(models.Model):
     consignee = models.CharField(max_length=256, default='')
     payment_terms = models.CharField(max_length=24, default='')
     dispatch_through = models.CharField(max_length=24, default='')
+    central_remarks = models.CharField(max_length=256, default='')
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'

@@ -2378,6 +2378,26 @@ def get_shipment_time(ord_id, user):
     return time_slot
 
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_vendors_list(request, user=''):
+    vendor_objs = VendorMaster.objects.filter(user = user.id)
+    resp = {}
+    for vendor in vendor_objs:
+        resp.update({vendor.vendor_id : vendor.name})
+
+    return HttpResponse(json.dumps({'data': resp}))
+
+
+
+
+
+
+
+
+
+
 
 
 

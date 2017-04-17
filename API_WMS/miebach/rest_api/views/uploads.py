@@ -851,7 +851,6 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             all_sku_masters.append(sku_master)
             sku_data = sku_master
 
-        print sku_data.threshold_quantity
         check_update_size_type(sku_data, _size_type)
 
     get_user_sku_data(user)

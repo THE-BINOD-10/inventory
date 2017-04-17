@@ -99,7 +99,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         for(var i=0;i<vm.generate_data.length;i++) {
           data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
         }
-        vm.service.apiCall('st_generate_picklist/', 'POST', data).then(function(data){
+        vm.service.apiCall('st_generate_picklist/', 'POST', data, true).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
             for(var i=0; i<vm.model_data.data.length; i++){
@@ -221,7 +221,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var elem = angular.element($('form'));
       elem = elem[1];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('picklist_confirmation/', 'POST', elem).then(function(data){
+      vm.service.apiCall('picklist_confirmation/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data == "Picklist Confirmed") {
             $state.go('app.outbound.ViewOrders');

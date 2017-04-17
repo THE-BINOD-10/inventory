@@ -2,6 +2,7 @@
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
   <div class="modal-dialog model-custom modal-lg">
     <div class="modal-content">
+      <div ng-include="'views/common/loader.html'"></div>
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
         <h4 class="modal-title">{{showCase.title}}</h4> </div>

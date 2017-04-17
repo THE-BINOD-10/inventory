@@ -124,6 +124,7 @@
         <div>
           <span class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.sku_class }}</span></br>
           <span class="style_name" style="font-size: 14px" ng-if="item.variants[0].pricing_price">D83{{ item.variants[0].pricing_price }}</span>
+          <span class="style_name" style="font-size: 14px" ng-if="!(item.variants[0].pricing_price) && item.variants[0].price">{{'D83'+item.variants[0].price}}</span>
           <p class="style_name" style="font-size: 14px" style="font-size: 12px;" title="{{ item.variants[0].style_name }}">{{ item.variants[0].style_name }}</p>
           <span style="font-size: 14px; padding:2px 15px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</span>
           <br>

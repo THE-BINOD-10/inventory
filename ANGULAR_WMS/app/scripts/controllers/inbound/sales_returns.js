@@ -171,7 +171,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('confirm_sales_return/', 'GET', elem).then(function(data){
+      vm.service.apiCall('confirm_sales_return/', 'GET', elem, true).then(function(data){
         if(data.message) {
           pop_msg(data.data);
           vm.confirm_disable = true;

@@ -233,7 +233,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       if(vm.service.check_quantity(vm.model_data.data, 'sub_data', 'shipping_quantity'))  {
         vm.bt_disable = true;
         var data = $("#add-customer:visible").serializeArray();
-        service.apiCall("insert_shipment_info/", "POST", data).then(function(data){
+        service.apiCall("insert_shipment_info/", "POST", data, true).then(function(data){
 
           if(data.message) {
             service.showNoty(data.data);

@@ -244,7 +244,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       elem = $(elem).serializeArray();
       //var qc_scan = JSON.stringify(vm.qc_scan);
       //elem.push({name:'qc_scan', value: qc_scan})
-      vm.service.apiCall('confirm_quality_check/', 'POST', elem).then(function(data){
+      vm.service.apiCall('confirm_quality_check/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "Updated Successfully") {
             reloadData();

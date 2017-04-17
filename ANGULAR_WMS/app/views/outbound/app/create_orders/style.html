@@ -32,6 +32,7 @@
           <img ng-src="{{ showCase.service.check_image_url(Style.style_data[0]['image_url']) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail">
           <h5 align="center"><b>{{Style.style_data[0].sku_class}}</b></h5>
           <h5 align="center" ng-if="Style.style_data[0].pricing_price"><b>{{'D83'+Style.style_data[0].pricing_price}}</b></h5>
+          <h5 align="center" ng-if="!(Style.style_data[0].pricing_price) && Style.style_data[0].price"><b>{{'D83'+Style.style_data[0].price}}</b></h5>
         </div>
         <div class="col-md-8" style="margin-bottom: 60px;">
           <div class="row">

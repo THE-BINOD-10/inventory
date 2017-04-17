@@ -697,16 +697,18 @@ def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag):
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity,total_amount)
     send_sms(phone_no, data)
 
-def order_creation_message(items, telephone, order_id):
+def order_creation_message(items, telephone, order_id, other_charges = 0):
     data = 'Your order with ID %s has been successfully placed for ' % order_id
     total_quantity = 0
     total_amount = 0
     items_data = []
     for item in items:
         sku_desc = (item[0][:30] + '..') if len(item[0]) > 30 else item[0]
-        items_data.append('%s with Qty: %s' % (sku_desc, int(item[2])))
+        items_data.append('%s with Qty: %s' % (sku_desc, int(item[1])))
         total_quantity += int(item[1])
-        total_amount += int(item[2])
+        total_amount += float(("%.2f") % (item[2]))
+    if other_charges:
+        total_amount += other_charges
     data += ', '.join(items_data)
     data += '\n\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
     send_sms(telephone, data)

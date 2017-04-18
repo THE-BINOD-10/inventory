@@ -98,16 +98,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if (data.$valid) {
       var data = {};
       data['size_name'] = vm.model_data.size_name;
-      data['size_value'] = '';
+      data['size_value'] = [];
       angular.forEach(vm.model_data.sizes, function(temp, index){
         if (temp.size && (data['size_value'].indexOf(temp.size) == -1)) {
-          if(vm.model_data.sizes.length-1 == index) {
-            data['size_value'] += temp.size;
-          } else {
-            data['size_value'] += temp.size+'<<>>'
-          }
+          data['size_value'].push(temp.size);
         }
       })
+      data['size_value'] = data['size_value'].join("<<>>");
       if ("ADD SIZE" == vm.title) {
         vm.send_size('add_size/', data);
       } else {

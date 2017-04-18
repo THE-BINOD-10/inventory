@@ -2772,7 +2772,7 @@ def get_sku_categories(request, user=''):
     stages_list = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list}))
 
-def get_style_variants(sku_master, user, customer_id='', total_quantity=0):
+def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id=''):
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku_id').distinct().annotate(in_stock=Sum('quantity'))
     purchase_orders = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id).\
                                            values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
@@ -2807,22 +2807,25 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0):
         sku_master[ind]['physical_stock'] = stock_quantity
         sku_master[ind]['intransit_quantity'] = intransit_quantity
         sku_master[ind]['style_quantity'] = total_quantity
+        customer_data = []
         if customer_id:
             """customer_sku = CustomerSKU.objects.filter(sku__user=user.id, customer_name__customer_id=customer_id, sku__wms_code=sku['wms_code'])
             if customer_sku:
                 sku_master[ind]['price'] = customer_sku[0].price"""
             customer_user = CustomerUserMapping.objects.filter(user = customer_id)[0].customer.customer_id
             customer_data = CustomerMaster.objects.filter(customer_id=customer_user, user = user.id)
-            if customer_data:
-                if customer_data[0].price_type:
-                    price_data = PriceMaster.objects.filter(sku__user=user.id ,sku__sku_code = sku['wms_code'],\
-                                                            price_type = customer_data[0].price_type)
-                    if price_data:
-                        sku_master[ind]['pricing_price'] = price_data[0].price
-                        if price_data[0].price > 0:
-                            sku_master[ind]['price'] = price_data[0].price
-                    else:
-                        sku_master[ind]['pricing_price'] = 0
+        elif customer_data_id:
+            customer_data = CustomerMaster.objects.filter(customer_id=customer_data_id, user = user.id)
+        if customer_data:
+            if customer_data[0].price_type:
+                price_data = PriceMaster.objects.filter(sku__user=user.id ,sku__sku_code = sku['wms_code'],\
+                                                        price_type = customer_data[0].price_type)
+                if price_data:
+                    sku_master[ind]['pricing_price'] = price_data[0].price
+                    if price_data[0].price > 0:
+                        sku_master[ind]['price'] = price_data[0].price
+                else:
+                    sku_master[ind]['pricing_price'] = 0
     return sku_master
 
 @csrf_exempt
@@ -2840,6 +2843,7 @@ def get_sku_variants(request, user=''):
     get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size', 'style_name']
     sku_class = request.GET.get('sku_class', '')
     customer_id = request.GET.get('customer_id', '')
+    customer_data_id = request.GET.get('customer_data_id', '')
     sku_code = request.GET.get('sku_code', '')
     is_catalog = request.GET.get('is_catalog', '')
     sale_through = request.GET.get('sale_through', '')
@@ -2855,7 +2859,7 @@ def get_sku_variants(request, user=''):
     sku_master = list(SKUMaster.objects.filter(**filter_params).values(*get_values).order_by('sequence'))
     sku_master = [ key for key,_ in groupby(sku_master)]
 
-    sku_master = get_style_variants(sku_master, user, customer_id=customer_id)
+    sku_master = get_style_variants(sku_master, user, customer_id=customer_id, customer_data_id=customer_data_id)
 
     return HttpResponse(json.dumps({'data': sku_master}))
 

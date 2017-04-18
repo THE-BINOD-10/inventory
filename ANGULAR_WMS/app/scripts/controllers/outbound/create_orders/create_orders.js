@@ -430,7 +430,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.open_style = function(data) {
 
     vm.stock_quantity = data.style_quantity;
-    vm.service.apiCall("get_sku_variants/", "GET", {sku_class: data.sku_class, is_catalog: true}).then(function(data) {
+    vm.service.apiCall("get_sku_variants/", "GET", {sku_class: data.sku_class, is_catalog: true, customer_data_id: vm.model_data.customer_id}).then(function(data) {
 
       if(data.message) {
         vm.style_open = true;

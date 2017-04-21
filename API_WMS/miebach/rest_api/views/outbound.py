@@ -2886,6 +2886,7 @@ def modify_invoice_data(invoice_data, user):
                 styles_att = {'discount': 0, 'invoice_amount': 0, 'quantity': 0, 'tax': 0, 'amount': 0, 'sku_size': {}, 'display_sizes': [], 'amt': 0}
                 styles =  {}
                 sub_total = 0
+                _amt = 0
                 for single_entry in group2:
                     if not single_entry['sku_class'] in styles:
                         styles[single_entry['sku_class']] = copy.deepcopy(styles_att)
@@ -2899,7 +2900,7 @@ def modify_invoice_data(invoice_data, user):
                     amount += invoice_amount
                     main_class = single_entry['sku_class']
                     vat = single_entry['vat']
-                    amt = single_entry['amt']
+                    amt += single_entry['amt']
                 total = amount - tax
                 new_data.append({'price': price, 'sku_class': sku_list, 'discount': discount, 'invoice_amount': invoice_amount,'quantity': quantity, 'tax': tax, 'amount': amount, 'category': category, 'vat': vat, 'styles': styles, 'amt': amt})
                 """

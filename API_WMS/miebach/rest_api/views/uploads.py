@@ -149,7 +149,6 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
         if "shipment_check" in order_mapping:
             _shipping_date = get_cell_data(row_idx, order_mapping['shipment_date'], reader, file_type)
-            print _shipping_date
             if _shipping_date:
                 try:
                     ship_date = xldate_as_tuple(_shipping_date, 0)
@@ -157,6 +156,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 except:
                     index_status.setdefault(count, set()).add('Shipping Date is not proper')
 
+        if 'tax_percentage' in order_mapping:
+            _tax_percentage = get_cell_data(row_idx, order_mapping['tax_percentage'][0], reader, file_type)
+            if _tax_percentage and not isinstance(_tax_percentage, float):
+                index_status.setdefault(count, set()).add('Tax Percentage should be Number')
+            _invoice_amount_value = get_cell_data(row_idx, order_mapping['tax_percentage'][1], reader, file_type)
+            if _invoice_amount_value and not isinstance(_invoice_amount_value, float):
+                index_status.setdefault(count, set()).add('Invoice Amount should be Number')
 
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
@@ -209,6 +215,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 else:
                     order_data['order_id'] = get_order_id(user.id)
                     order_data['order_code'] = 'MN'
+
             elif key == 'quantity':
                 order_data[key] = int(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'invoice_amount':
@@ -261,7 +268,6 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_data['shipment_date'] = datetime.datetime(year, month, day, hour, minute, second)
                 except:
                     order_data['shipment_date'] = datetime.datetime.now()
-
             elif key == 'channel_name':
                 order_data['marketplace'] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'title':
@@ -302,9 +308,22 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     seller_order_dict['seller_id'] = seller_master[0].id
             elif key == 'invoice_no':
                 seller_order_dict['invoice_no'] = get_cell_data(row_idx, value, reader, file_type)
+            elif key == 'tax_percentage':
+                tax_percentage = get_cell_data(row_idx, value[0], reader, file_type)
+                if not tax_percentage:
+                    tax_percentage = 0
+                invoice_amount_value = get_cell_data(row_idx, value[1], reader, file_type)
+                if not invoice_amount_value:
+                    invoice_amount_value = 0
+                order_data['vat_percentage'] = tax_percentage
+                order_summary_dict['vat'] = tax_percentage
+                order_summary_dict['tax_value'] = "%.2f" % ((tax_percentage*invoice_amount_value)/100)
+                invoice_amount_value = invoice_amount_value + ((tax_percentage*invoice_amount_value)/100)
+                order_data['invoice_amount'] = invoice_amount_value
+                if not order_data['marketplace']:
+                    order_data['marketplace'] = "Offline"
             else:
                 order_data[key] = get_cell_data(row_idx, value, reader, file_type)
-        print order_data['shipment_date']
         order_data['user'] = user.id
         if not 'quantity' in order_data.keys():
             order_data['quantity'] = 1
@@ -2540,7 +2559,6 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
             order_data['return_date'] = datetime.datetime.now()
 
         if (order_data['quantity'] or order_data['damaged_quantity']) and sku_id:
-            print order_data
             returns = OrderReturns(**order_data)
             returns.save()
 

@@ -1640,8 +1640,10 @@ def create_custom_sku(request, user=''):
     unit_price = request.POST.get('unit_price', 0)
     printing_vendor = request.POST.get('printing_vendor', [])
     embroidery_vendor = request.POST.get('embroidery_name', [])
+
     print_vendor_obj = None
     embroidery_vendor_obj = None
+
     ven_list = {}
     if printing_vendor:
         print_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = printing_vendor)

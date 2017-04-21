@@ -1005,6 +1005,8 @@ def get_raisepo_group_data(user, myDict):
             vendor_id = myDict['vendor_id'][0]
         if 'price' in myDict.keys():
             price = myDict['price'][i]
+            if not price:
+                price = 0
         if 'receipt_type' in myDict.keys():
             receipt_type = myDict['receipt_type'][0]
         if 'data-id' in myDict.keys():

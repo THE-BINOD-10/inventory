@@ -54,7 +54,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
          vm.service.make_selected(settings, vm.selected);
        })
        .withOption('order', [0, 'asc'])
-       .withOption('lengthMenu', [100, 200, 300, 400, 500])
+       .withOption('lengthMenu', [100, 200, 300, 400, 500, 1000, 2000])
        .withOption('pageLength', 100)
        .withOption('processing', true)
        .withOption('serverSide', true)

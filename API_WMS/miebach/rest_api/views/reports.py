@@ -47,6 +47,11 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(filter(lambda person: 'category' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = list(OrderDetail.objects.exclude(sku__sku_category='').filter(user = user.id).values_list('sku__sku_category', flat=True).distinct())
 
+        if 'order_report_status' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = ORDER_SUMMARY_REPORT_STATUS
+
+
     return HttpResponse(json.dumps({'data': data}))
 
 @csrf_exempt

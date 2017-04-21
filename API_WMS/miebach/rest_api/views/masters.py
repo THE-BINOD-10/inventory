@@ -73,16 +73,19 @@ def sku_master(request):
                                   'SKU Code': data.sku_code, 'WMS SKU Code': data.wms_code,
                                   'Product Description': data.sku_desc,'SKU Type': data.sku_type,
                                   'SKU Category': data.sku_category, 'DT_RowClass': 'results',
-                                  'Zone': zone, 'Status': status
+                                  'Zone': zone, 'Status': status, 'Color': data.color
                                  })
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
 def get_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user,request.user)
-    lis = ['wms_code', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'zone__zone', 'status']
+    lis = ['wms_code', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone', 'status']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
+    print filters
     search_params1, search_params2 = get_filtered_params_search(filters, lis)
+    print search_params1
+    print search_params2
     if 'status__icontains' in search_params1.keys():
         if (str(search_params['status__icontains']).lower() in "active"):
             search_params1["status__icontains"] = 1
@@ -97,6 +100,7 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
     master_data = []
     ids = []
     if search_term:
+
         status_dict = {'active': 1, 'inactive': 0}
         if search_term.lower() in status_dict:
             search_terms = status_dict[search_term.lower()]
@@ -115,14 +119,14 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                 list1 = [{}]
 
             for item in list1:
-                master_data1 = sku_master.exclude(id__in = ids).filter(Q(sku_code__iexact=search_term) | Q(wms_code__iexact=search_term) | Q(sku_desc__iexact=search_term) | Q(sku_type__iexact=search_term) | Q(sku_category__iexact=search_term) | Q(sku_class__iexact=search_term) | Q(zone__zone__iexact=search_term), user=user.id, **item).order_by(order_data)
+                master_data1 = sku_master.exclude(id__in = ids).filter(Q(sku_code__iexact=search_term) | Q(wms_code__iexact=search_term) | Q(sku_desc__iexact=search_term) | Q(sku_type__iexact=search_term) | Q(sku_category__iexact=search_term) | Q(sku_class__iexact=search_term) | Q(zone__zone__iexact=search_term) | Q(color__iexact=search_term), user=user.id, **item).order_by(order_data)
                 ids.extend(master_data1.values_list('id', flat = True))
 
-                master_data2 = sku_master.exclude(id__in =ids).filter(Q(sku_code__istartswith=search_term) | Q(wms_code__istartswith=search_term) | Q(sku_desc__istartswith=search_term) | Q(sku_type__istartswith=search_term) | Q(sku_category__istartswith=search_term) | Q(sku_class__istartswith=search_term) | Q(zone__zone__istartswith=search_term), user=user.id, **item).order_by(order_data)
+                master_data2 = sku_master.exclude(id__in =ids).filter(Q(sku_code__istartswith=search_term) | Q(wms_code__istartswith=search_term) | Q(sku_desc__istartswith=search_term) | Q(sku_type__istartswith=search_term) | Q(sku_category__istartswith=search_term) | Q(sku_class__istartswith=search_term) | Q(zone__zone__istartswith=search_term) | Q(color__istartswith=search_term), user=user.id, **item).order_by(order_data)
 
                 ids.extend(master_data2.values_list('id', flat = True))
 
-                master_data3 = sku_master.filter(Q(sku_code__icontains=search_term) | Q(wms_code__icontains=search_term) | Q(sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(zone__zone__icontains=search_term), user=user.id, **item).exclude(id__in = ids).order_by(order_data)
+                master_data3 = sku_master.filter(Q(sku_code__icontains=search_term) | Q(wms_code__icontains=search_term) | Q(sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(zone__zone__icontains=search_term) | Q(color__icontains=search_term), user=user.id, **item).exclude(id__in = ids).order_by(order_data)
                 ids.extend(master_data3.values_list('id', flat = True))
                 master_data.extend(list(master_data1))
                 master_data.extend(list(master_data2))
@@ -150,7 +154,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             zone = data.zone.zone
         temp_data['aaData'].append(OrderedDict(( ('WMS SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
                                     ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
-                                    ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}) )))
+                                    ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
+                                    ('Color', data.color) )))
 
 @csrf_exempt
 @login_required
@@ -1635,8 +1640,10 @@ def create_custom_sku(request, user=''):
     unit_price = request.POST.get('unit_price', 0)
     printing_vendor = request.POST.get('printing_vendor', [])
     embroidery_vendor = request.POST.get('embroidery_name', [])
+
     print_vendor_obj = None
     embroidery_vendor_obj = None
+
     ven_list = {}
     if printing_vendor:
         print_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = printing_vendor)

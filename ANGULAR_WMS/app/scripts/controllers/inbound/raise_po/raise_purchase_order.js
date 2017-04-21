@@ -167,6 +167,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       $state.go('app.inbound.RaisePo');
     }
 
+    vm.b_close = vm.close;
+    /*vm.b_close = function () {
+      $state.go('app.inbound.RaisePo.PurchaseOrder');
+    }*/
+
     vm.base = function() {
       
       vm.title = "Raise PO";

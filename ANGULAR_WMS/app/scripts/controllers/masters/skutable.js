@@ -162,6 +162,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $state.go('app.masters.SKUMaster');
     }
 
+    vm.b_close = vm.close;
+
   //*****************
   vm.url = 'update_sku/';
   vm.market_send = {market_sku_type:[],marketplace_code:[],description:[],market_id:[]}

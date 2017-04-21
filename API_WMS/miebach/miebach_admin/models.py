@@ -192,6 +192,7 @@ class OrderDetail(models.Model):
     payment_received = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    unit_price = models.FloatField(default=0)
 
     class Meta:
         db_table = 'ORDER_DETAIL'

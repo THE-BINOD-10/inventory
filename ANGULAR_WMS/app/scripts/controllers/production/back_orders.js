@@ -336,7 +336,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
 
     vm.change_special_key = function(data) {
 
-      vm.filter = data;
+      //vm.filter = data;
+      vm.dtInstance.DataTable.context[0].ajax.data['special_key'] = data;
       vm.reloadData();
     }
 

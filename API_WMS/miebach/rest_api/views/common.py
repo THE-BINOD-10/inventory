@@ -1637,6 +1637,7 @@ def get_invoice_data(order_ids, user, merge_data = ""):
         picklist_obj = picklist
         if picklist:
             invoice_date = picklist[0].updation_date
+
         for dat in order_data:
             order_id = dat.original_order_id
             order_no = str(dat.order_id)
@@ -1712,14 +1713,14 @@ def get_invoice_data(order_ids, user, merge_data = ""):
             _tax = (amt * (vat / 100))
             _total_tax += _tax
             invoice_amount = _tax + amt
-            total_invoice = _tax + amt
+            total_invoice += _tax + amt
 
             data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
                          'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price,
                          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
                          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt})
-            print data
-            print total_invoice
+            #print data
+            #print total_invoice
 
     invoice_date = get_local_date(user, invoice_date, send_date='true')
     invoice_date = invoice_date.strftime("%d %b %Y")
@@ -1734,7 +1735,7 @@ def get_invoice_data(order_ids, user, merge_data = ""):
             total_invoice_amount = float(total_charge_amount) + total_invoice
 
     total_amt = "%.2f" % (float(total_invoice) - float(_total_tax))
-    print total_invoice
+    #print total_invoice
     dispatch_through = "By Road"
     invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'marketplace': marketplace, 'total_amt': total_amt,
@@ -1743,7 +1744,7 @@ def get_invoice_data(order_ids, user, merge_data = ""):
                     'invoice_no': 'TI/1116/' + order_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(total_invoice),
                     'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount, 'consignee': consignee,
                     'dispatch_through': dispatch_through}
-    print invoice_data
+    #print invoice_data
     return invoice_data
 
 def get_sku_categories_data(request, user, request_data={}, is_catalog=''):

@@ -2909,7 +2909,6 @@ def get_suppliers_data(request):
 def order_status(request):
     error_status = {'status': 'Fail', 'reason': 'User Authentication Failed'}
 
-    print request
     order_data = request.POST.get('order_data', '')
     user = request.user
     if not request.user.is_authenticated():
@@ -3543,9 +3542,9 @@ def track_orders(request, user=''):
     if (search and not o_index) or not search:
         orders_data['purchase-orders'] = open_po
     if (order_id or o_index or p_index) and not is_db:
-        return HttpResponse(json.dumps(orders_data))
+        return HttpResponse(json.dumps(orders_data, cls=DjangoJSONEncoder))
 
-    return HttpResponse(json.dumps(orders_data))
+    return HttpResponse(json.dumps(orders_data, cls=DjangoJSONEncoder))
 
 def get_stage_index(stages, ind):
     stage = OrderedDict()

@@ -1940,7 +1940,10 @@ def check_sku(request, user=''):
     check = False
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id:
-        sku_id = SKUMaster.objects.filter(ean_number=sku_code, user=user.id)
+        try:
+            sku_id = SKUMaster.objects.filter(ean_number=sku_code, user=user.id)
+        except:
+            sku_id = ''
     if sku_id:
         sku_code = SKUMaster.objects.get(id = sku_id).sku_code
         data = {"status": 'confirmed', 'sku_code': sku_code}

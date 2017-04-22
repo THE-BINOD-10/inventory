@@ -1006,6 +1006,8 @@ def get_raisepo_group_data(user, myDict):
             vendor_id = myDict['vendor_id'][0]
         if 'price' in myDict.keys():
             price = myDict['price'][i]
+            if not price:
+                price = 0
         if 'receipt_type' in myDict.keys():
             receipt_type = myDict['receipt_type'][0]
         if 'data-id' in myDict.keys():
@@ -2001,7 +2003,10 @@ def check_sku(request, user=''):
     check = False
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id:
-        sku_id = SKUMaster.objects.filter(ean_number=sku_code, user=user.id)
+        try:
+            sku_id = SKUMaster.objects.filter(ean_number=sku_code, user=user.id)
+        except:
+            sku_id = ''
     if sku_id:
         sku_code = SKUMaster.objects.get(id = sku_id).sku_code
         data = {"status": 'confirmed', 'sku_code': sku_code}
@@ -2992,7 +2997,6 @@ def get_suppliers_data(request):
 def order_status(request):
     error_status = {'status': 'Fail', 'reason': 'User Authentication Failed'}
 
-    print request
     order_data = request.POST.get('order_data', '')
     user = request.user
     if not request.user.is_authenticated():
@@ -3626,9 +3630,9 @@ def track_orders(request, user=''):
     if (search and not o_index) or not search:
         orders_data['purchase-orders'] = open_po
     if (order_id or o_index or p_index) and not is_db:
-        return HttpResponse(json.dumps(orders_data))
+        return HttpResponse(json.dumps(orders_data, cls=DjangoJSONEncoder))
 
-    return HttpResponse(json.dumps(orders_data))
+    return HttpResponse(json.dumps(orders_data, cls=DjangoJSONEncoder))
 
 def get_stage_index(stages, ind):
     stage = OrderedDict()

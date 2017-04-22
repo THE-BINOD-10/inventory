@@ -135,7 +135,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
       var elem = angular.element($('form'));
       elem = elem[1];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('save_rwo/', 'POST', elem).then(function(data){
+      vm.service.apiCall('save_rwo/', 'POST', elem, true).then(function(data){
         if(data.message) {
           pop_msg(data.data);
           if(data.data == "Added Successfully") {
@@ -154,7 +154,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
       var elem = angular.element($('form'));
       elem = elem[1];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('confirm_rwo/', 'POST', elem).then(function(data){
+      vm.service.apiCall('confirm_rwo/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data.search("<div") != -1) {
             vm.html = $(data.data)[0];

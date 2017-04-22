@@ -361,4 +361,8 @@ urlpatterns += patterns('rest_api.views',
 
     #get size_list
     url(r'get_size_names', 'get_size_names'),
+
+
+    #get list of vendors . @common.py
+    url(r'get_vendors_list/', 'get_vendors_list'),
     )

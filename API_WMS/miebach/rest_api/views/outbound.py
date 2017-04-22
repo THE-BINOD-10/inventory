@@ -225,6 +225,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         order_data = header.values()[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
+
         master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids)).order_by(order_data)
     else:
         master_data = all_picks.filter(Q(order__sku_id__in=sku_master_ids) | Q(stock__sku_id__in=sku_master_ids))
@@ -249,7 +250,6 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
     count = 0
     for data in master_data[start_index:stop_index]:
-
         create_date_value, order_marketplace, order_customer_name, picklist_id, remarks = '', [], [], '', ''
         picklist_obj = all_picks.filter(picklist_number=data['picklist_number'])
         reserved_quantity_sum_value = picklist_obj.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
@@ -1493,7 +1493,8 @@ def edit_invoice(request, user=''):
     payment_terms = request.POST.get("credit_period", "")
     dispatch_through = request.POST.get("dispatch_through", "")
     picklists_send_mail = request.POST.get("picklists_send_mail", "")
-    picklists_send_mail = eval(picklists_send_mail)
+    if picklists_send_mail:
+        picklists_send_mail = eval(picklists_send_mail)
     order_id_val = ''.join(re.findall('\d+', order_ids))
     order_code = ''.join(re.findall('\D+', order_ids))
     ord_ids = OrderDetail.objects.filter(Q(order_id = order_id_val, order_code = order_code) | Q(original_order_id=order_ids),
@@ -2073,8 +2074,10 @@ def insert_order_data(request, user=''):
     order_id = ''
     invalid_skus = []
     items = []
+    other_charge_amounts = 0
     order_objs = []
     order_sku = {}
+    tracking_dict = {}
     valid_status = validate_order_form(myDict, request, user)
     payment_mode = request.GET.get('payment_mode', '')
     payment_received = request.GET.get('payment_received', '')
@@ -2098,9 +2101,12 @@ def insert_order_data(request, user=''):
                 order_data['order_code'] = 'CO'
             order_data['user'] = user.id
 
+            order_data['unit_price'] = 0
+
             for key, value in request.GET.iteritems():
-                if key in ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount']:
+                if key in ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount', 'description']:
                     continue
+
                 if key == 'sku_id':
                     if not myDict[key][i]:
                         continue
@@ -2111,6 +2117,12 @@ def insert_order_data(request, user=''):
                     if not sku_master:
                         invalid_skus.append(myDict[key][i])
                         continue
+
+                    elif custom_order == 'true':
+                        _sku_mas = sku_master[0]
+                        if "Custom" in _sku_mas.sku_desc:
+                             _sku_mas.sku_desc = myDict['description'][i]
+                             _sku_mas.save()
 
                     order_data['sku_id'] = sku_master[0].id
                     order_data['title'] = sku_master[0].sku_desc
@@ -2141,6 +2153,7 @@ def insert_order_data(request, user=''):
                         invoice = 0
                     if invoice and value:
                         _tax = myDict[key][i]
+                        order_data['unit_price'] = invoice/ order_data['quantity']
                         amount = float(invoice)
                         tax_value = (amount/100) * float(_tax)
                         vat = _tax
@@ -2201,6 +2214,7 @@ def insert_order_data(request, user=''):
                 if myDict['charge_name'][i] and myDict['charge_amount'][i]:
                     OrderCharges.objects.create(user_id=user.id, order_id=created_order_id, charge_name=myDict['charge_name'][i],
                                                 charge_amount=myDict['charge_amount'][i], creation_date=datetime.datetime.now())
+                    other_charge_amounts += float(myDict['charge_amount'][i])
     except Exception as e:
         log.info('Create order failed for %s and params are %s and error statement is %s' % (str(user.username), str(myDict), str(e)))
         return HttpResponse("Order Creation Failed")
@@ -2221,8 +2235,10 @@ def insert_order_data(request, user=''):
             email = order_data['email_id']
             if email:
                 send_mail([email], 'Order Confirmation: %s' % order_detail.order_id, rendered)
+            if not telephone:
+                telephone = order_data.get('telephone', "")
             if telephone:
-                order_creation_message(items, telephone, (order_detail.order_code) + str(order_detail.order_id))
+                order_creation_message(items, telephone, (order_detail.order_code) + str(order_detail.order_id), other_charges=other_charge_amounts)
     except Exception as e:
         log.info('Create order mail sending failed for %s and params are %s and error statement is %s' % (str(user.username), str(myDict), str(e)))
 
@@ -2797,7 +2813,7 @@ def get_sku_categories(request, user=''):
     stages_list = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list}))
 
-def get_style_variants(sku_master, user, customer_id='', total_quantity=0):
+def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id=''):
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku_id').distinct().annotate(in_stock=Sum('quantity'))
     purchase_orders = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id).\
                                            values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
@@ -2832,22 +2848,25 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0):
         sku_master[ind]['physical_stock'] = stock_quantity
         sku_master[ind]['intransit_quantity'] = intransit_quantity
         sku_master[ind]['style_quantity'] = total_quantity
+        customer_data = []
         if customer_id:
             """customer_sku = CustomerSKU.objects.filter(sku__user=user.id, customer_name__customer_id=customer_id, sku__wms_code=sku['wms_code'])
             if customer_sku:
                 sku_master[ind]['price'] = customer_sku[0].price"""
             customer_user = CustomerUserMapping.objects.filter(user = customer_id)[0].customer.customer_id
             customer_data = CustomerMaster.objects.filter(customer_id=customer_user, user = user.id)
-            if customer_data:
-                if customer_data[0].price_type:
-                    price_data = PriceMaster.objects.filter(sku__user=user.id ,sku__sku_code = sku['wms_code'],\
-                                                            price_type = customer_data[0].price_type)
-                    if price_data:
-                        sku_master[ind]['pricing_price'] = price_data[0].price
-                        if price_data[0].price > 0:
-                            sku_master[ind]['price'] = price_data[0].price
-                    else:
-                        sku_master[ind]['pricing_price'] = 0
+        elif customer_data_id:
+            customer_data = CustomerMaster.objects.filter(customer_id=customer_data_id, user = user.id)
+        if customer_data:
+            if customer_data[0].price_type:
+                price_data = PriceMaster.objects.filter(sku__user=user.id ,sku__sku_code = sku['wms_code'],\
+                                                        price_type = customer_data[0].price_type)
+                if price_data:
+                    sku_master[ind]['pricing_price'] = price_data[0].price
+                    if price_data[0].price > 0:
+                        sku_master[ind]['price'] = price_data[0].price
+                else:
+                    sku_master[ind]['pricing_price'] = 0
     return sku_master
 
 @csrf_exempt
@@ -2865,6 +2884,7 @@ def get_sku_variants(request, user=''):
     get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size', 'style_name']
     sku_class = request.GET.get('sku_class', '')
     customer_id = request.GET.get('customer_id', '')
+    customer_data_id = request.GET.get('customer_data_id', '')
     sku_code = request.GET.get('sku_code', '')
     is_catalog = request.GET.get('is_catalog', '')
     sale_through = request.GET.get('sale_through', '')
@@ -2880,7 +2900,7 @@ def get_sku_variants(request, user=''):
     sku_master = list(SKUMaster.objects.filter(**filter_params).values(*get_values).order_by('sequence'))
     sku_master = [ key for key,_ in groupby(sku_master)]
 
-    sku_master = get_style_variants(sku_master, user, customer_id=customer_id)
+    sku_master = get_style_variants(sku_master, user, customer_id=customer_id, customer_data_id=customer_data_id)
 
     return HttpResponse(json.dumps({'data': sku_master}))
 
@@ -2905,9 +2925,10 @@ def modify_invoice_data(invoice_data, user):
                 price = key2
                 discount, invoice_amount, quantity, tax, amount = 0,0,0,0,0
                 sku_list = OrderedDict()
-                styles_att = {'discount': 0, 'invoice_amount': 0, 'quantity': 0, 'tax': 0, 'amount': 0, 'sku_size': {}, 'display_sizes': []}
+                styles_att = {'discount': 0, 'invoice_amount': 0, 'quantity': 0, 'tax': 0, 'amount': 0, 'sku_size': {}, 'display_sizes': [], 'amt': 0}
                 styles =  {}
                 sub_total = 0
+                _amt = 0
                 for single_entry in group2:
                     if not single_entry['sku_class'] in styles:
                         styles[single_entry['sku_class']] = copy.deepcopy(styles_att)
@@ -2921,8 +2942,9 @@ def modify_invoice_data(invoice_data, user):
                     amount += invoice_amount
                     main_class = single_entry['sku_class']
                     vat = single_entry['vat']
+                    amt += single_entry['amt']
                 total = amount - tax
-                new_data.append({'price': price, 'sku_class': sku_list, 'discount': discount, 'invoice_amount': invoice_amount,'quantity': quantity, 'tax': tax, 'amount': amount, 'category': category, 'vat': vat, 'styles': styles})
+                new_data.append({'price': price, 'sku_class': sku_list, 'discount': discount, 'invoice_amount': invoice_amount,'quantity': quantity, 'tax': tax, 'amount': amount, 'category': category, 'vat': vat, 'styles': styles, 'amt': amt})
                 """
                 new_data[category][price]['sku_class'] = sku_list
                 new_data[category][price]['discount'] = discount
@@ -3129,11 +3151,15 @@ def get_view_order_details(request, user=''):
     order_details = OrderDetail.objects.filter(Q(order_id = order_id, order_code = order_code) | Q(original_order_id=main_id), user=user.id)
     custom_data = OrderJson.objects.filter(order_id=row_id)
     status_obj = ''
+    central_remarks = ''
     customer_order_summary = CustomerOrderSummary.objects.filter(order_id = row_id)
     if customer_order_summary:
         status_obj = customer_order_summary[0].status
+        central_remarks =  customer_order_summary[0].central_remarks
+
     cus_data = []
     order_details_data = []
+    sku_id_list = []
     if custom_data:
         attr_list = json.loads(custom_data[0].json_data)
 	for attr in attr_list:
@@ -3157,6 +3183,7 @@ def get_view_order_details(request, user=''):
         state = one_order.state
         pin = one_order.pin_code
         sku_id = one_order.sku_id
+        sku_id_list.append(sku_id)
         product_title = one_order.title
         quantity = one_order.quantity
         invoice_amount = one_order.invoice_amount
@@ -3170,8 +3197,17 @@ def get_view_order_details(request, user=''):
                       'image_url': one_order.sku.image_url, 'market_place': one_order.marketplace,
                       'order_id_code': one_order.order_code + str(one_order.order_id)})
     customization_data = []
+    _print_vendor, _embroidery_vendor = [], []
     if str(sku_type) == 'CS':
         fields_list = SKUFields.objects.filter(sku_id=sku_id,field_type=field_type)
+
+        VENDOR_FIELD = ['printing_vendor', 'embroidery_vendor']
+
+        vendor_list_obj = SKUFields.objects.filter(sku_id__in = sku_id_list, field_type__in = VENDOR_FIELD)
+        _print_vendor = vendor_list_obj.filter(field_type = 'printing_vendor').values_list('field_value', flat = True).distinct()
+
+        _embroidery_vendor = vendor_list_obj.filter(field_type = 'embroidery_vendor').values_list('field_value', flat = True).distinct()
+
         if fields_list:
             for field in fields_list:
                 field_id = field.field_id
@@ -3185,7 +3221,8 @@ def get_view_order_details(request, user=''):
                     img_url = ProductImages.objects.get(image_id=pro_pro_id).image_url
                     custom_data = (attr_name,attr_desc,img_data,img_url)
                     customization_data.append(custom_data)
-    data_dict.append({'customization_data': customization_data,'cus_data': cus_data,'status': status_obj, 'ord_data': order_details_data})
+    data_dict.append({'customization_data': customization_data,'cus_data': cus_data,'status': status_obj, 'ord_data': order_details_data,
+                        'print_vendor' : list(_print_vendor), 'embroidery_vendor': list(_embroidery_vendor), 'central_remarks': central_remarks})
 
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 
@@ -3456,7 +3493,7 @@ def get_order_category_view_data(start_index, stop_index, temp_data, search_term
 def get_order_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_dict={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
-    lis = ['id', 'customer_name', 'order_id', 'marketplace', 'total', 'creation_date', 'city', 'status']
+    lis = ['id', 'customer_name', 'order_id', 'marketplace', 'total', 'shipment_date', 'creation_date', 'city', 'status']
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
 
     order_data = lis[col_num]
@@ -3487,12 +3524,12 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
 
     all_orders = OrderDetail.objects.filter(**data_dict)
     if search_term:
-        mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id', 'marketplace').\
+        mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id', 'shipment_date', 'marketplace').\
                                               distinct().annotate(total=Sum('quantity')).filter(Q(customer_name__icontains=search_term) |
                                               Q(order_id__icontains=search_term) | Q(sku__sku_category__icontains=search_term),
                                               **search_params).order_by(order_data)
     else:
-        mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id', 'marketplace').\
+        mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id', 'shipment_date', 'marketplace').\
                                               distinct().annotate(total=Sum('quantity')).filter(**search_params).order_by(order_data)
 
 
@@ -3524,6 +3561,13 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         name = all_orders.filter(order_id=dat['order_id'], order_code=dat['order_code'], user=user.id)[0].id
         creation_date = all_orders.filter(order_id=dat['order_id'], order_code=dat['order_code'], user=user.id)[0].creation_date
         creation_data = get_local_date(request.user, creation_date, True).strftime("%d %b, %Y")
+
+        shipment_data = get_local_date(request.user, dat['shipment_date'], True).strftime("%d %b, %Y")
+        if time_slot:
+            if "-" in time_slot:
+                time_slot = time_slot.split("-")[0]
+
+            shipment_data = shipment_data + ', ' + time_slot
         #if time_slot:
         #    shipment_data = shipment_data + ', ' + time_slot
 
@@ -3532,10 +3576,12 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('data_value', check_values), ('Customer Name', dat['customer_name']),
                                                  ('Order ID', order_id), ('Market Place', dat['marketplace']),
                                                  ('Total Quantity', dat['total']), ('Order Taken By', order_taken_val),
-                                                 ('Creation Date', creation_data),
+                                                 ('Creation Date', creation_data), ('Shipment Date', shipment_data),
                                                  ('id', index), ('DT_RowClass', 'results'), ('Status', cust_status) )))
         index += 1
-    col_val = ['Customer Name', 'Customer Name', 'Order ID', 'Market Place', 'Total Quantity', 'Creation Date', 'Order Taken By', 'Status']
+
+    """
+    col_val = ['Customer Name', 'Customer Name', 'Order ID', 'Market Place', 'Total Quantity', 'Shipment Date', 'Creation Date', 'Order Taken By', 'Status']
     if order_term:
         order_data = col_val[col_num]
         if order_term == "asc":
@@ -3543,6 +3589,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         else:
             temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data], reverse= True)
 
+    """
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -3686,9 +3733,9 @@ def update_order_data(request, user = ""):
 
         if created:
             if old_cust_obj:
-                CustomerOrderSummary.objects.create(order = order_obj, discount = old_cust_obj[0].discount, vat = old_cust_obj[0].vat, tax_value = old_cust_obj[0].tax_value, order_taken_by = old_cust_obj[0].order_taken_by, mrp  = old_cust_obj[0].mrp, tax_type = old_cust_obj[0].tax_type, status = old_cust_obj[0].status)
+                CustomerOrderSummary.objects.create(order = order_obj, discount = old_cust_obj[0].discount, vat = old_cust_obj[0].vat, tax_value = old_cust_obj[0].tax_value, order_taken_by = old_cust_obj[0].order_taken_by, mrp  = old_cust_obj[0].mrp, tax_type = old_cust_obj[0].tax_type, status = old_cust_obj[0].status, central_remarks = old_cust_obj[0].central_remarks)
             else:
-                CustomerOrderSummary.objects.create(order = order_obj, status = myDict['status_type'][0])
+                CustomerOrderSummary.objects.create(order = order_obj, status = myDict['status_type'][0], central_remarks = myDict['central_remarks'][0])
         else:
             status_obj = CustomerOrderSummary.objects.filter(order = order_obj.id)
             if not status_obj:
@@ -3696,6 +3743,8 @@ def update_order_data(request, user = ""):
             else:
                 status_obj = status_obj[0]
             status_obj.status = myDict['status_type'][0]
+            status_obj.central_remarks = myDict['central_remarks'][0]
+
             status_obj.save()
 
     end_time = datetime.datetime.now()

@@ -60,7 +60,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
          vm.service.make_selected(settings, vm.selected);
        })
        .withOption('order', [0, 'asc'])
-       .withOption('lengthMenu', [100, 200, 300, 400, 500])
+       .withOption('lengthMenu', [100, 200, 300, 400, 500, 1000, 2000])
        .withOption('pageLength', 100)
        .withOption('processing', true)
        .withOption('serverSide', true)
@@ -172,76 +172,78 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   }
 
 
-    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+  function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
 
     vm.ord_status = '';
 
-     $('td:not(td:first)', nRow).unbind('click');
-     $('td:not(td:first)', nRow).bind('click', function() {
-         if ((vm.g_data.view == 'CustomerOrderView') || (vm.g_data.view == 'OrderView')) {
+    $('td:not(td:first)', nRow).unbind('click');
+    $('td:not(td:first)', nRow).bind('click', function() {
+      if ((vm.g_data.view == 'CustomerOrderView') || (vm.g_data.view == 'OrderView')) {
 
-       $scope.$apply(function() {
+        $scope.$apply(function() {
 
-	 console.log(aData);
-         $state.go('app.outbound.ViewOrders.OrderDetails');
+	      console.log(aData);
+          $state.go('app.outbound.ViewOrders.OrderDetails');
 
          //vm.market_place = aData['Market Place'];
-	 vm.service.apiCall("get_view_order_details/", "GET", {id: $(aData[""]).attr('name'),order_id: aData["Order ID"]}).then(function(data){
+          vm.service.apiCall("get_view_order_details/", "GET", {id: $(aData[""]).attr('name'),order_id: aData["Order ID"]}).then(function(data){
 
-	  var all_order_details = data.data.data_dict[0].ord_data;
-      vm.ord_status = data.data.data_dict[0].status;
+            var all_order_details = data.data.data_dict[0].ord_data;
+            vm.ord_status = data.data.data_dict[0].status;
 
-      vm.model_data = {}
-      var empty_data = {data: []}
-      angular.copy(empty_data, vm.model_data);
+            vm.model_data = {}
+            var empty_data = {data: []}
+            angular.copy(empty_data, vm.model_data);
 
-      if (vm.g_data.view == 'CustomerOrderView'){
-        vm.input_status = false;
-      }
-      else {
-        vm.input_status = true;
-      }
-      vm.order_input_status = false;
+            if (vm.g_data.view == 'CustomerOrderView'){
+              vm.input_status = false;
+            } else {
+              vm.input_status = true;
+            }
+            vm.order_input_status = false;
 
-      angular.forEach(all_order_details, function(value, key){
+            vm.model_data["embroidery_vendor"] = data.data.data_dict[0].embroidery_vendor;
+            vm.model_data["print_vendor"] = data.data.data_dict[0].print_vendor;
+            vm.model_data["central_remarks"]= data.data.data_dict[0].central_remarks;
+            angular.forEach(all_order_details, function(value, key){
 
-	   vm.customer_id = value.cust_id;
-	   vm.customer_name = value.cust_name;
-	   vm.phone = value.phone;
-	   vm.email = value.email;
-	   vm.address = value.address;
-	   vm.city = value.city;
-	   vm.state = value.state;
-	   vm.order_id_code = value.order_id_code;
-	   vm.pin = value.pin;
-	   vm.product_title = value.product_title;
-	   vm.quantity = value.quantity;
-	   vm.invoice_amount = value.invoice_amount;
-	   vm.shipment_date = value.shipment_date;
-	   vm.remarks = value.remarks;
-	   vm.cust_data = value.cus_data;
-	   vm.item_code = value.item_code;
-	   vm.order_id = value.order_id;
-	   vm.market_place = value.market_place;
+	          vm.customer_id = value.cust_id;
+              vm.customer_name = value.cust_name;
+              vm.phone = value.phone;
+              vm.email = value.email;
+	          vm.address = value.address;
+	          vm.city = value.city;
+	          vm.state = value.state;
+	          vm.order_id_code = value.order_id_code;
+	          vm.pin = value.pin;
+	          vm.product_title = value.product_title;
+	          vm.quantity = value.quantity;
+	          vm.invoice_amount = value.invoice_amount;
+	          vm.shipment_date = value.shipment_date;
+	          vm.remarks = value.remarks;
+	          vm.cust_data = value.cus_data;
+	          vm.item_code = value.item_code;
+	          vm.order_id = value.order_id;
+	          vm.market_place = value.market_place;
 
-	   var image_url = value.image_url;
-	   vm.img_url = vm.service.check_image_url(image_url);
-	   /*var custom_data = value.customization_data;
-	   vm.market_place = value.market_place;
-	   if (custom_data.length === 0){
+	          var image_url = value.image_url;
+	          vm.img_url = vm.service.check_image_url(image_url);
+	          /*var custom_data = value.customization_data;
+	          vm.market_place = value.market_place;
+	          if (custom_data.length === 0){
 
-	     vm.customization_data = '';
-	   }
-	   else {
+	            vm.customization_data = '';
+	          }
+	          else {
 
-	     var img_url = custom_data[0][3];
-	     vm.img_url = vm.service.check_image_url(img_url)
-	   }*/
-       console.log(vm.model_data);
-       vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity, 
-       invoice_amount: vm.invoice_amount, image_url: vm.img_url, remarks: vm.remarks, default_status: true})
-	 });
-	 });
+	            var img_url = custom_data[0][3];
+	            vm.img_url = vm.service.check_image_url(img_url)
+	          }*/
+              console.log(vm.model_data);
+              vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity, 
+              invoice_amount: vm.invoice_amount, image_url: vm.img_url, remarks: vm.remarks, default_status: true})
+	        });
+	      });
        })
      }
      })
@@ -432,7 +434,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('picklist_confirmation/', 'POST', elem).then(function(data){
+      vm.service.apiCall('picklist_confirmation/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data == "Picklist Confirmed") {
             $state.go('app.outbound.ViewOrders');
@@ -448,7 +450,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             pop_msg(data.data);
           }
         }
-      });  
+      });
     }
 
     function get_transfer_data(){

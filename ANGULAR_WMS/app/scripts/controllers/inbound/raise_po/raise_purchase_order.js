@@ -27,6 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        .withDataProp('data')
        .withOption('drawCallback', function(settings) {
          vm.service.make_selected(settings, vm.selected);
+         $scope.$apply(function() {vm.bt_disable = true;vm.selectAll = false;});
        })
        .withOption('processing', true)
        .withOption('serverSide', true)
@@ -52,7 +53,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                   if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
                     vm.selected = {};
                   }
-                  vm.selected[meta.row] = vm.selectAll;
+                  vm.selected[meta.row] = false;
                   return vm.service.frontHtml + meta.row + vm.service.endHtml;
                 }))
 
@@ -165,6 +166,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.base();
       $state.go('app.inbound.RaisePo');
     }
+
+    vm.b_close = vm.close;
+    /*vm.b_close = function () {
+      $state.go('app.inbound.RaisePo.PurchaseOrder');
+    }*/
 
     vm.base = function() {
       
@@ -404,7 +410,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       });
       vm.service.alert_msg("Do want to Raise PO").then(function(msg) {
         if (msg == "true") {
-          vm.service.apiCall('confirm_po1/', 'GET', data).then(function(data){
+          vm.service.apiCall('confirm_po1/', 'GET', data, true).then(function(data){
             if(data.message) {
               vm.confirm_print = true;
               vm.print_enable = true;
@@ -421,6 +427,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               }
             }
           });
+        } else {
+
+          vm.bt_disable = false;
         }
       });
     }
@@ -436,7 +445,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.push({name: temp['_aData']["Order Type"], value:temp['_aData']['Supplier ID']});
         }
       });
-      vm.service.apiCall('delete_po_group/', 'GET', data).then(function(data){
+      vm.service.apiCall('delete_po_group/', 'GET', data, true).then(function(data){
         if(data.message) {
            vm.bt_disable = true;
            vm.selectAll = false;

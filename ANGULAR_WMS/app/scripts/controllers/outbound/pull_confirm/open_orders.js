@@ -106,7 +106,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var elem = angular.element($('form'));
         elem = elem[0];
         elem = $(elem).serializeArray();
-        vm.service.apiCall('picklist_confirmation/', 'POST', elem).then(function(data){
+        vm.service.apiCall('picklist_confirmation/', 'POST', elem, true).then(function(data){
           if(data.message) {
             if(data.data == "Picklist Confirmed") {
               reloadData();
@@ -124,7 +124,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               pop_msg(data.data);
             }
           }
-        }); 
+        });
     }
 
     vm.serial_scan = function(event, scan, data, record) {
@@ -206,7 +206,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     },
     function(isConfirm){
       if (isConfirm) {
-        vm.service.apiCall('picklist_delete/','GET',{key: 'process', picklist_id: pick_id}).then(function(data){
+        vm.service.apiCall('picklist_delete/','GET',{key: 'process', picklist_id: pick_id}, true).then(function(data){
           if (data.message) {
             $state.go('app.outbound.PullConfirmation');
             reloadData();
@@ -227,7 +227,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        },
        function(isConfirm){
          if (isConfirm) {
-           vm.service.apiCall('picklist_delete/','GET', {key: 'delete', picklist_id: pick_id}).then(function(data){
+           vm.service.apiCall('picklist_delete/','GET', {key: 'delete', picklist_id: pick_id}, true).then(function(data){
                 swal("Deleted!", "picklist is deleted", "success");
            });
            $state.go('app.outbound.PullConfirmation');

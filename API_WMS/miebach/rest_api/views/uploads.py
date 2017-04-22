@@ -149,7 +149,6 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
         if "shipment_check" in order_mapping:
             _shipping_date = get_cell_data(row_idx, order_mapping['shipment_date'], reader, file_type)
-            print _shipping_date
             if _shipping_date:
                 try:
                     ship_date = xldate_as_tuple(_shipping_date, 0)
@@ -157,6 +156,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 except:
                     index_status.setdefault(count, set()).add('Shipping Date is not proper')
 
+        if 'tax_percentage' in order_mapping:
+            _tax_percentage = get_cell_data(row_idx, order_mapping['tax_percentage'][0], reader, file_type)
+            if _tax_percentage and not isinstance(_tax_percentage, float):
+                index_status.setdefault(count, set()).add('Tax Percentage should be Number')
+            _invoice_amount_value = get_cell_data(row_idx, order_mapping['tax_percentage'][1], reader, file_type)
+            if _invoice_amount_value and not isinstance(_invoice_amount_value, float):
+                index_status.setdefault(count, set()).add('Invoice Amount should be Number')
 
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
@@ -209,6 +215,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 else:
                     order_data['order_id'] = get_order_id(user.id)
                     order_data['order_code'] = 'MN'
+
             elif key == 'quantity':
                 order_data[key] = int(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'invoice_amount':
@@ -261,7 +268,6 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_data['shipment_date'] = datetime.datetime(year, month, day, hour, minute, second)
                 except:
                     order_data['shipment_date'] = datetime.datetime.now()
-
             elif key == 'channel_name':
                 order_data['marketplace'] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'title':
@@ -302,6 +308,20 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     seller_order_dict['seller_id'] = seller_master[0].id
             elif key == 'invoice_no':
                 seller_order_dict['invoice_no'] = get_cell_data(row_idx, value, reader, file_type)
+            elif key == 'tax_percentage':
+                tax_percentage = get_cell_data(row_idx, value[0], reader, file_type)
+                if not tax_percentage:
+                    tax_percentage = 0
+                invoice_amount_value = get_cell_data(row_idx, value[1], reader, file_type)
+                if not invoice_amount_value:
+                    invoice_amount_value = 0
+                order_data['vat_percentage'] = tax_percentage
+                order_summary_dict['vat'] = tax_percentage
+                order_summary_dict['tax_value'] = "%.2f" % ((tax_percentage*invoice_amount_value)/100)
+                invoice_amount_value = invoice_amount_value + ((tax_percentage*invoice_amount_value)/100)
+                order_data['invoice_amount'] = invoice_amount_value
+                if not order_data['marketplace']:
+                    order_data['marketplace'] = "Offline"
             else:
                 order_data[key] = get_cell_data(row_idx, value, reader, file_type)
 
@@ -678,6 +698,19 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
                     except:
                         _size = cell_data
 
+                    _size_type = get_cell_data(row_idx, sku_file_mapping['size_type'], reader, file_type)
+                    if not _size_type:
+                        index_status.setdefault(row_idx, set()).add('Size Type should not be blank, if size is there')
+
+                    else:
+                        size_master = SizeMaster.objects.filter(user=user.id, size_name=_size_type)
+                        if not size_master:
+                            index_status.setdefault(row_idx, set()).add('Please Enter Correct Size type')
+                        else:
+                            _sizes_all = size_master[0].size_value.split("<<>>")
+                            if _size not in _sizes_all:
+                                index_status.setdefault(row_idx, set()).add('Size type and size are not matching')
+
                     if _size not in all_sizes:
                         index_status.setdefault(row_idx, set()).add('Size is not Correct')
 
@@ -718,7 +751,6 @@ def get_sku_file_mapping(reader, file_type, user=''):
     if get_cell_data(0, 0, reader, file_type) == 'WMS Code' and get_cell_data(0, 1, reader, file_type) == 'SKU Description':
         if user:
             user_profile = UserProfile.objects.get(user_id=user)
-            USER_SKU_EXCEL_MAPPING
             sku_file_mapping = copy.deepcopy(USER_SKU_EXCEL_MAPPING[user_profile.user_type])
         else:
             sku_file_mapping = copy.deepcopy(SKU_DEF_EXCEL)
@@ -729,6 +761,7 @@ def get_sku_file_mapping(reader, file_type, user=''):
 
 def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 
+    from masters import check_update_size_type
     all_sku_masters = []
     zone_master = ZoneMaster.objects.filter(user=user.id).values('id', 'zone')
     zones = map(lambda d: d['zone'], zone_master)
@@ -817,8 +850,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                     data_dict['sku_size'] = str(int(cell_data))
                 except:
                     data_dict['sku_size'] = cell_data
+                _size_type = get_cell_data(row_idx, sku_file_mapping['size_type'], reader, file_type)
 
-
+            elif key == 'size_type':
+                continue
 
             elif cell_data:
                 data_dict[key] = cell_data
@@ -833,6 +868,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
             all_sku_masters.append(sku_master)
+            sku_data = sku_master
+
+        check_update_size_type(sku_data, _size_type)
 
     get_user_sku_data(user)
     insert_update_brands(user)
@@ -2289,9 +2327,9 @@ def customer_excel_upload(request, open_sheet, user):
             elif col_idx == 8 and cell_data:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
-                    customer_data['pin_code'] = cell_data
+                    customer_data['pincode'] = cell_data
                     if customer_master:
-                        customer_master.pin_code = customer_data['pin_code']
+                        customer_master.pincode = customer_data['pin_code']
             elif col_idx == 9:
                 customer_data['address'] = cell_data
                 if customer_master:
@@ -2521,7 +2559,6 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
             order_data['return_date'] = datetime.datetime.now()
 
         if (order_data['quantity'] or order_data['damaged_quantity']) and sku_id:
-            print order_data
             returns = OrderReturns(**order_data)
             returns.save()
 

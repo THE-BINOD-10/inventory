@@ -60,9 +60,12 @@ def save_image_file(image_file, data, user, extra_image='', saved_file_path='', 
 @csrf_exempt
 def get_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user,request.user)
-    lis = ['wms_code', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'zone__zone', 'status']
+    lis = ['wms_code', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone', 'status']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
+    print filters
     search_params1, search_params2 = get_filtered_params_search(filters, lis)
+    print search_params1
+    print search_params2
     if 'status__icontains' in search_params1.keys():
         if (str(search_params['status__icontains']).lower() in "active"):
             search_params1["status__icontains"] = 1
@@ -77,6 +80,7 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
     master_data = []
     ids = []
     if search_term:
+
         status_dict = {'active': 1, 'inactive': 0}
         if search_term.lower() in status_dict:
             search_terms = status_dict[search_term.lower()]
@@ -95,14 +99,14 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                 list1 = [{}]
 
             for item in list1:
-                master_data1 = sku_master.exclude(id__in = ids).filter(Q(sku_code__iexact=search_term) | Q(wms_code__iexact=search_term) | Q(sku_desc__iexact=search_term) | Q(sku_type__iexact=search_term) | Q(sku_category__iexact=search_term) | Q(sku_class__iexact=search_term) | Q(zone__zone__iexact=search_term), user=user.id, **item).order_by(order_data)
+                master_data1 = sku_master.exclude(id__in = ids).filter(Q(sku_code__iexact=search_term) | Q(wms_code__iexact=search_term) | Q(sku_desc__iexact=search_term) | Q(sku_type__iexact=search_term) | Q(sku_category__iexact=search_term) | Q(sku_class__iexact=search_term) | Q(zone__zone__iexact=search_term) | Q(color__iexact=search_term), user=user.id, **item).order_by(order_data)
                 ids.extend(master_data1.values_list('id', flat = True))
 
-                master_data2 = sku_master.exclude(id__in =ids).filter(Q(sku_code__istartswith=search_term) | Q(wms_code__istartswith=search_term) | Q(sku_desc__istartswith=search_term) | Q(sku_type__istartswith=search_term) | Q(sku_category__istartswith=search_term) | Q(sku_class__istartswith=search_term) | Q(zone__zone__istartswith=search_term), user=user.id, **item).order_by(order_data)
+                master_data2 = sku_master.exclude(id__in =ids).filter(Q(sku_code__istartswith=search_term) | Q(wms_code__istartswith=search_term) | Q(sku_desc__istartswith=search_term) | Q(sku_type__istartswith=search_term) | Q(sku_category__istartswith=search_term) | Q(sku_class__istartswith=search_term) | Q(zone__zone__istartswith=search_term) | Q(color__istartswith=search_term), user=user.id, **item).order_by(order_data)
 
                 ids.extend(master_data2.values_list('id', flat = True))
 
-                master_data3 = sku_master.filter(Q(sku_code__icontains=search_term) | Q(wms_code__icontains=search_term) | Q(sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(zone__zone__icontains=search_term), user=user.id, **item).exclude(id__in = ids).order_by(order_data)
+                master_data3 = sku_master.filter(Q(sku_code__icontains=search_term) | Q(wms_code__icontains=search_term) | Q(sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(zone__zone__icontains=search_term) | Q(color__icontains=search_term), user=user.id, **item).exclude(id__in = ids).order_by(order_data)
                 ids.extend(master_data3.values_list('id', flat = True))
                 master_data.extend(list(master_data1))
                 master_data.extend(list(master_data2))
@@ -130,7 +134,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             zone = data.zone.zone
         temp_data['aaData'].append(OrderedDict(( ('WMS SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
                                     ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
-                                    ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}) )))
+                                    ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
+                                    ('Color', data.color) )))
 
 @csrf_exempt
 @login_required
@@ -538,11 +543,12 @@ def check_update_size_type(data, value):
     if not size_master:
         return
     size_master = size_master[0]
+    _value = size_master.size_name
     if not sku_fields:
-        SKUFields.objects.create(sku_id=data.id, field_id=size_master.id, field_type='size_type', field_value=value,
+        SKUFields.objects.create(sku_id=data.id, field_id=size_master.id, field_type='size_type', field_value= _value,
                                  creation_date=datetime.datetime.now())
     else:
-        sku_fields[0].field_value = value
+        sku_fields[0].field_value = _value
         sku_fields[0].field_id = size_master.id
         sku_fields[0].save()
 
@@ -1613,6 +1619,22 @@ def create_custom_sku(request, user=''):
     display_name, name, property_type = property_type.split(':')
     property_name = request.POST.get('property_name', '')
     unit_price = request.POST.get('unit_price', 0)
+    printing_vendor = request.POST.get('printing_vendor', [])
+    embroidery_vendor = request.POST.get('embroidery_name', [])
+
+    print_vendor_obj = None
+    embroidery_vendor_obj = None
+
+    ven_list = {}
+    if printing_vendor:
+        print_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = printing_vendor)
+        if print_vendor_obj:
+            ven_list.update({'printing_vendor': print_vendor_obj[0]})
+    if embroidery_vendor:
+        embroidery_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = embroidery_vendor)
+        if embroidery_vendor_obj:
+            ven_list.update({'embroidery_vendor': embroidery_vendor_obj[0]})
+
     product_property = ProductProperties.objects.filter(name=name, property_name=property_name, property_type=property_type)
     if not product_property:
         return HttpResponse("Wrong Data")
@@ -1632,7 +1654,7 @@ def create_custom_sku(request, user=''):
         sku_code, sku_serial = get_custom_sku_code(user, sku_size=size_name, group_sku=group_sku)
         if '-' in sku_code:
             group_sku = sku_code.split('-')[0]
-    
+
         sku_master = SKUMaster.objects.create(user=user.id, sku_code=sku_code, wms_code=sku_code, sku_desc='Custom SKU ' + sku_serial, status=1,
                                               creation_date=datetime.datetime.now(), online_percentage=100, sku_type='CS', price=unit_price)
 
@@ -1654,8 +1676,17 @@ def create_custom_sku(request, user=''):
                     sku_master.save()
                 SKUFields.objects.create(sku_id=sku_master.id, field_id=product_attribute.id, field_type='product_attribute',
                                          creation_date=datetime.datetime.now(), field_value=attribute_value)
+        for key, value in ven_list.iteritems():
+            ex_obj = SKUFields.objects.filter(sku_id = sku_master.id, field_type = key)
+            if ex_obj:
+                ex_obj = ex_obj[0]
+                ex_obj.field_id = value.id
+                ex_obj.field_value = value.name
+                ex_obj.save()
+            else:
+                SKUFields.objects.create(sku_id=sku_master.id, field_id= value.id, field_type= key, field_value=value.name)
     return HttpResponse(json.dumps({'message': 'SKU Created Successfully', 'data': sku_codes_list}))
-    
+
 @csrf_exempt
 def get_size_master_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     order_data = SIZE_MASTER_HEADERS.values()[col_num]

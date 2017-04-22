@@ -110,7 +110,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          var temp = vm.model_data.data[i][0];
          data.push({name: temp.order_id, value: temp.value});
       }
-      vm.service.apiCall('update_putaway/', 'GET', data).then(function(data){
+      vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
             vm.close();
@@ -129,7 +129,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('confirm_grn/', 'GET', elem).then(function(data){
+      vm.service.apiCall('confirm_grn/', 'GET', elem, true).then(function(data){
         if(data.message) {
           if(data.data.search("<div") != -1) {
             vm.html = $(data.data)[2];
@@ -171,7 +171,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         elem = elem[0];
         elem = $(elem).serializeArray();
         //elem.push({name: "new_sku", value: vm.new_sku});
-        vm.service.apiCall('close_po/', 'GET', elem).then(function(data){
+        vm.service.apiCall('close_po/', 'GET', elem, true).then(function(data){
           if(data.message) {
             pop_msg(data.data)
             if(data.data == 'Updated Successfully') {

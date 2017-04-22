@@ -257,7 +257,7 @@ def get_search_params(request):
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date', 'wms_code': 'wms_code',
                     'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category', 'sku_category': 'sku_category', 'sku_type': 'sku_type',
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po', 'marketplace': 'marketplace',
-                    'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'job_code', 'sku_class': 'sku_class', 'sku_size':'sku_size'}
+                    'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'job_code', 'sku_class': 'sku_class', 'sku_size':'sku_size', 'order_report_status': 'order_report_status'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = { 'search0': 'search_0', 'search1': 'search_1',
                        'search2': 'search_2', 'search3': 'search_3',
@@ -699,17 +699,19 @@ def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag):
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity,total_amount)
     send_sms(phone_no, data)
 
-def order_creation_message(items, telephone, order_id):
+def order_creation_message(items, telephone, order_id, other_charges = 0):
     data = 'Your order with ID %s has been successfully placed for ' % order_id
     total_quantity = 0
     total_amount = 0
     items_data = []
     for item in items:
         sku_desc = (item[0][:30] + '..') if len(item[0]) > 30 else item[0]
-        items_data.append('%s with Qty: %s' % (sku_desc, int(item[2])))
+        items_data.append('%s with Qty: %s' % (sku_desc, int(item[1])))
         total_quantity += int(item[1])
-        total_amount += int(item[2])
-    data += ', '.join(items_data)
+        total_amount += float(("%.2f") % (item[2]))
+    if other_charges:
+        total_amount += other_charges
+    data += ', \n '.join(items_data)
     data += '\n\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
     send_sms(telephone, data)
 
@@ -1628,6 +1630,7 @@ def get_invoice_data(order_ids, user, merge_data = ""):
     customer_details = []
     consignee = ''
     order_no = ''
+    _total_tax = 0
     invoice_date = datetime.datetime.now()
     if order_ids:
         order_ids = order_ids.split(',')
@@ -1636,6 +1639,7 @@ def get_invoice_data(order_ids, user, merge_data = ""):
         picklist_obj = picklist
         if picklist:
             invoice_date = picklist[0].updation_date
+
         for dat in order_data:
             order_id = dat.original_order_id
             order_no = str(dat.order_id)
@@ -1671,8 +1675,8 @@ def get_invoice_data(order_ids, user, merge_data = ""):
                 vat = order_summary[0].vat
                 mrp_price = order_summary[0].mrp
                 discount = order_summary[0].discount
-            else:
-                tax = float(float(dat.invoice_amount)/100) * vat
+            #else:
+            #    tax = float(float(dat.invoice_amount)/100) * vat
 
             #total_invoice += float(dat.invoice_amount)
             #total_quantity += int(dat.quantity)
@@ -1697,16 +1701,28 @@ def get_invoice_data(order_ids, user, merge_data = ""):
                 if picklist:
                     quantity = picklist[0].total
 
-            unit_price = ((float(dat.invoice_amount)/ float(dat.quantity))) - discount - (tax/float(dat.quantity))
-            invoice_amount = (float(dat.invoice_amount)/ float(dat.quantity)) * quantity
+            if dat.unit_price > 0:
+                unit_price = dat.unit_price
+            else:
+                unit_price = ((float(dat.invoice_amount)/ float(dat.quantity))) - discount - (tax/float(dat.quantity))
+
+            amt = unit_price * quantity
+            #invoice_amount = (float(dat.invoice_amount)/ float(dat.quantity)) * quantity
             unit_price = "%.2f" % unit_price
-            total_invoice += invoice_amount
+            #total_invoice += amt
             total_quantity += quantity
+            #_tax = (tax/float(dat.quantity) * quantity)
+            _tax = (amt * (vat / 100))
+            _total_tax += _tax
+            invoice_amount = _tax + amt
+            total_invoice += _tax + amt
 
             data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
-                         'quantity': quantity, 'tax': "%.2f" % (tax/float(dat.quantity) * quantity), 'unit_price': unit_price,
+                         'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price,
                          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
-                         'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size})
+                         'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt})
+            #print data
+            #print total_invoice
 
     invoice_date = get_local_date(user, invoice_date, send_date='true')
     invoice_date = invoice_date.strftime("%d %b %Y")
@@ -1720,16 +1736,17 @@ def get_invoice_data(order_ids, user, merge_data = ""):
         if total_charge_amount:
             total_invoice_amount = float(total_charge_amount) + total_invoice
 
-    total_amt = "%.2f" % (float(total_invoice) - float(total_tax))
+    total_amt = "%.2f" % (float(total_invoice) - float(_total_tax))
+    #print total_invoice
     dispatch_through = "By Road"
     invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'marketplace': marketplace, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
-                    'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % total_tax, 'total_mrp': total_mrp,
+                    'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % _total_tax, 'total_mrp': total_mrp,
                     'invoice_no': 'TI/1116/' + order_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(total_invoice),
                     'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount, 'consignee': consignee,
                     'dispatch_through': dispatch_through}
-
+    #print invoice_data
     return invoice_data
 
 def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
@@ -2378,6 +2395,26 @@ def get_shipment_time(ord_id, user):
         log.info("no shipment time for order %s" %(ord_id))
 
     return time_slot
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_vendors_list(request, user=''):
+    vendor_objs = VendorMaster.objects.filter(user = user.id)
+    resp = {}
+    for vendor in vendor_objs:
+        resp.update({vendor.vendor_id : vendor.name})
+
+    return HttpResponse(json.dumps({'data': resp}))
+
+
+
+
+
+
+
+
 
 
 

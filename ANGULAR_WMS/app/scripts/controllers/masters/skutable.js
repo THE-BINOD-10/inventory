@@ -45,6 +45,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('SKU Type').withTitle('SKU Type'),
         DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),
         DTColumnBuilder.newColumn('SKU Class').withTitle('SKU Class'),
+        DTColumnBuilder.newColumn('Color').withTitle('Color'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
         DTColumnBuilder.newColumn('Status').withTitle('Status').renderWith(function(data, type, full, meta) {
                           return vm.service.status(data);
@@ -160,6 +161,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       angular.copy(empty_data, vm.model_data);
       $state.go('app.masters.SKUMaster');
     }
+
+    vm.b_close = vm.close;
 
   //*****************
   vm.url = 'update_sku/';

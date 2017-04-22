@@ -277,7 +277,6 @@ def get_stock_summary_size_excel(filter_params, temp_data, headers, user, reques
         if not os.path.exists('static/excel_files/'):
             os.makedirs('static/excel_files/')
         workbook = xlsxwriter.Workbook(path)
-        print all_size_names
         for i, siz_nam in enumerate(all_size_names):
 
             worksheet = workbook.add_worksheet(siz_nam)
@@ -295,7 +294,6 @@ def get_stock_summary_size_excel(filter_params, temp_data, headers, user, reques
             #sort_col = all_dat[col_num]
             log.info(sizes)
             for n, header in enumerate(all_dat):
-                print all_dat
                 worksheet.write(0, n, header, bold)
             sku_classes = SKUMaster.objects.filter(user = user.id, sku_size__in = sizes).values('sku_class', 'style_name', 'sku_brand', 'sku_category').distinct()
 
@@ -303,7 +301,7 @@ def get_stock_summary_size_excel(filter_params, temp_data, headers, user, reques
             for row, sku_class in enumerate(sku_classes, 1):
                 size_dict = {}
                 st_stock_objs = stock_detail_dict.get(sku_class['sku_class'], {})
-                data = [sku_class['sku_class'], sku_class['style_name'], sku_class['sku_category'], sku_class['sku_brand']]
+                data = [sku_class['sku_class'], sku_class['style_name'], sku_class['sku_brand'], sku_class['sku_category']]
                 for size in sizes:
                     log.info(st_stock_objs)
                     log.info(size)

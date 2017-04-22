@@ -1,5 +1,5 @@
 <div id="popup" class="page-layout">
-  <form id="order-create" name="form" role="form" ui-jq="validate">
+  <form id="order-create" name="form" role="form" ui-jq="validate" class="container-fluid">
   <div class="row">
     <div class="container-fluid">
       <div class="left">
@@ -96,30 +96,38 @@
     </div>
     <div class="row"><hr></div>
     <div class="row">
-      <div class="col-md-4" style="padding-left: 0px;">
+      <div class="col-md-12" style="padding-left: 0px;">
         <h5><b>ORDER DETAILS</b></h5>
       </div>
-      <div class="col-md-4">
-        <div class="col-xs-6">
+    </div>
+    <div class="row">
+      <div class="col-md-4 col-sm-6 col-xs-12">
           <b>SHIPMENT DATE:</b>
-        </div>
-        <div class="col-xs-6">
-          <p style="color: rgb(0, 86, 255);">{{showCase.shipment_date}}</p>
-        </div>
+          <span style="color: rgb(0, 86, 255);">{{showCase.shipment_date}}</span></br>
+          <div ng-if="showCase.model_data.print_vendor.length > 0">
+            <b>PRINT VENDOR:</b>
+            <span style="color: rgb(0, 86, 255);"><span ng-repeat="vendor in showCase.model_data.print_vendor">{{vendor}}{{(!$last) ? ", ": "";}}</span></span></br>
+          </div>
+          <div ng-if="showCase.model_data.embroidery_vendor.length > 0">
+            <b>EMBROIDERY VENDOR:</b>
+            <span style="color: rgb(0, 86, 255);"><span ng-repeat="vendor in showCase.model_data.embroidery_vendor">{{vendor}}{{(!$last) ? ", ": "";}}</span></span>
+          </div>
       </div>
-      <div class="col-md-4">
-        <div class="col-md-6">
+
+      <div class="col-md-3 col-sm-3 col-xs-12">
           <b>STATUS:</b>
-        </div>
-        <div class="col-md-6">
           <select ng-if="!showCase.input_status" class="form-control pull-right" name="status_type"
                   ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
             <option ng-repeat="type in showCase.status_type" ng-selected="showCase.ord_status == true">{{type}}</option>
           </select>
           <input ng-if="showCase.input_status" type="text" class="form-control" name="remarks" ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
-        </div>
+      </div>
+      <div class="col-md-4 col-sm-3 col-xs-12">
+        <b>REMARKS:</b>
+        <input type="text" class="form-control" name="central_remarks" ng-model= "showCase.model_data.central_remarks">
       </div>
     </div>
+    <div class="row"><hr></div>
     <div class="row over-x form-group">
       <table class="table mw75">
         <thead>
@@ -140,7 +148,7 @@
 	          typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')"
 	          typeahead-loading="loadingLocations"class="form-control" name="item_code" ng-model="data.item_code" 
 	          typeahead-on-select="showCase.get_sku_data(data, $item)" ng-readonly="data.default_status">
-              <img src="{{showCase.img_url}}" style="height: 75px; padding-top: 2%; padding-left: 30%;"></img>
+              <img ng-src="{{data.image_url}}" style="height: 75px; padding-top: 2%; padding-left: 30%;"></img>
 	        </td>
             <td>
               <input type="text" class="form-control" name="product_title" ng-model="data.product_title" ng-readonly="data.default_status">

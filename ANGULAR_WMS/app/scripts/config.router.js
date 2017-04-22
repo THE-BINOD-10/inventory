@@ -941,15 +941,6 @@ var app = angular.module('urbanApp')
                             ]
                         }]).then(function () {
 
-                return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/order_category_view.js');
-              }).then(function () {
-
-                return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/order_view.js');
-              }).then(function () {
-
-                return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/other_view.js');
-              }).then(function () {
-
                 return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/orders.js');
               });
                     }]

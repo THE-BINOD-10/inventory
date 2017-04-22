@@ -36,11 +36,13 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
     if search_params.get('search_4',''):
         search_terms["sku_class__icontains"] = search_params.get('search_4','')
     if search_params.get('search_5',''):
-        search_terms["zone__zone__icontains"] = search_params.get('search_5','')
+        search_terms["color__icontains"] = search_params.get('search_5','')
     if search_params.get('search_6',''):
-        if (str(search_params.get('search_6','')).lower() in "active"):
+        search_terms["zone__zone__icontains"] = search_params.get('search_6','')
+    if search_params.get('search_7',''):
+        if (str(search_params.get('search_7','')).lower() in "active"):
             search_terms["status__icontains"] = 1
-        elif (str(search_params.get('search_6','')).lower() in "inactive"):
+        elif (str(search_params.get('search_7','')).lower() in "inactive"):
             search_terms["status__icontains"] = 0
         else:
             search_terms["status__icontains"] = "none"
@@ -69,13 +71,14 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         ws.write(data_count, 6, data.style_name)
         ws.write(data_count, 7, data.sku_size)
         ws.write(data_count, 8, data.sku_group)
-        ws.write(data_count, 9, zone)
-        ws.write(data_count, 10, data.price)
-        ws.write(data_count, 11, data.mrp)
-        ws.write(data_count, 12, data.measurement_type)
-        ws.write(data_count, 13, data.sequence)
-        ws.write(data_count, 14, data.sale_through)
-        ws.write(data_count, 15, status_dict[str(int(data.status))])
+        ws.write(data_count, 9, data.color)
+        ws.write(data_count, 10, zone)
+        ws.write(data_count, 11, data.price)
+        ws.write(data_count, 12, data.mrp)
+        ws.write(data_count, 13, data.measurement_type)
+        ws.write(data_count, 14, data.sequence)
+        ws.write(data_count, 15, data.sale_through)
+        ws.write(data_count, 16, status_dict[str(int(data.status))])
         market_map = master_data.filter(sku_id=data.id).values('sku_id', 'sku_type').distinct()
         for dat in market_map:
             #map_dat = market_map.values('marketplace_code', 'description')

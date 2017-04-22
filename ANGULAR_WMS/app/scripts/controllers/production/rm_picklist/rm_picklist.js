@@ -86,7 +86,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session , pri
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.service.apiCall(url, 'POST', elem).then(function(data){
+      vm.service.apiCall(url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data == "Success") {
             vm.close();

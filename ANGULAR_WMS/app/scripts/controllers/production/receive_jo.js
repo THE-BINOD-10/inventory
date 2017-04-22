@@ -103,7 +103,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('confirm_jo_grn/', 'POST', elem).then(function(data){
+      vm.service.apiCall('confirm_jo_grn/', 'POST', elem, true).then(function(data){
         if(data.message) {
           vm.reloadData();
           if (data.data["status"]) {
@@ -138,7 +138,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('save_receive_jo/', 'POST', elem).then(function(data){
+      vm.service.apiCall('save_receive_jo/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == 'Saved Successfully') {
             vm.close();

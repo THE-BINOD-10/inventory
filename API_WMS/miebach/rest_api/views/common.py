@@ -293,7 +293,7 @@ data_datatable = {#masters
                   'WarehouseMaster': 'get_warehouse_user_results', 'VendorMaster': 'get_vendor_master_results',\
                   'DiscountMaster':'get_discount_results', 'CustomSKUMaster': 'get_custom_sku_properties',\
                   'SizeMaster': 'get_size_master_data', 'PricingMaster': 'get_price_master_results', \
-                  'SellerMaster': 'get_seller_master', \
+                  'SellerMaster': 'get_seller_master', 'SellerMarginMapping': 'get_seller_margin_mapping',\
                   #inbound
                   'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po',\
                   'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data',\
@@ -321,6 +321,7 @@ data_datatable = {#masters
                   'StockTransferOrders': 'get_stock_transfer_orders', 'OutboundBackOrders': 'get_back_order_data',\
                   'CustomerOrderView': 'get_order_view_data', 'CustomerCategoryView': 'get_order_category_view_data',\
                   'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data',\
+                  'SellerOrderView': 'get_seller_order_view',\
                   #manage users
                   'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
                   #retail one
@@ -530,6 +531,7 @@ def configurations(request, user=''):
     all_groups = str(','.join(all_groups))
     sku_sync = get_misc_value('sku_sync', user.id)
     order_manage = get_misc_value('order_manage', user.id)
+    seller_margin = get_misc_value('seller_margin', user.id)
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     all_stages = str(','.join(all_stages))
@@ -598,7 +600,7 @@ def configurations(request, user=''):
                                                              'decimal_limit': decimal_limit, 'picklist_sort_by': picklist_sort_by,
                                                              'stock_sync': stock_sync, 'auto_generate_picklist': auto_generate_picklist,
                                                              'order_management' : order_manage, 'detailed_invoice': detailed_invoice,
-                                                             'sku_sync': sku_sync}))
+                                                             'sku_sync': sku_sync, 'seller_margin': seller_margin}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -2348,7 +2350,7 @@ def get_size_names(requst, user = ""):
 @get_admin_user
 def get_sellers_list(request, user=''):
     sellers = SellerMaster.objects.filter(user=user.id)
-    seller_list = [] 
+    seller_list = []
     for seller in sellers:
         seller_list.append({'id': seller.id, 'name': seller.name})
     return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5}))

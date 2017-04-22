@@ -1,0 +1,54 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
+        <h4 class="modal-title">{{showCase.title}}</h4>
+      </div>
+      <!-- body-->
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-4" ng-if="showCase.update">
+            <div class="form-group">
+              <label class="control-label"> Seller </label>
+              <input type="text" name="seller" class="form-control" value="{{showCase.model_data.seller_id +':'+ showCase.model_data.name}}" disabled>
+            </div>
+          </div> 
+          <div class="col-md-4" ng-if="!(showCase.update)">
+            <div class="form-group">
+              <label class="control-label"> Seller </label>
+              <select class="form-control" ng-model="showCase.model_data.seller" name="seller">
+                <option value="" ng-selected="showCase.model_data.seller == ''">Default</option>
+                <option ng-repeat="seller in showCase.sellers" value="{{seller.id}}"  ng-selected="showCase.model_data.seller == seller.id">{{seller.id + ":" + seller.name}}</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              <label class="control-label"> SKU Code </label>
+              <input type="text" autocomplete="off" name="sku_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue2(showCase.model_data,'search_wms_codes?', $event)" ng-model="showCase.model_data.sku_code" ng-readonly="showCase.update" required>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              <label class="control-label"> Margin(%) </label>
+              <input type="number" name="name" class="form-control" ng-model="showCase.model_data.margin" percentage-field percentage-max-value="99.99" percentage-max-decimals="2">
+            </div>
+          </div>
+        </div>
+        <div class="row insert-status">
+          <h4 align="center">{{showCase.service.message}}</h4>
+        </div>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)">Save</button>
+      </div>
+    </div>
+    <!-- /.modal-content -->
+  </div>
+  </form>
+  <!-- /.modal-dialog -->
+</div>

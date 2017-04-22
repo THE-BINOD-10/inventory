@@ -46,6 +46,16 @@
           </select>
         </div>
       </div>
+      <div class="row col-md-12" style="padding-bottom: 15px" ng-if="user.user_profile.user_type == 'marketplace_user'">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-rupee fa-15px pull-left" style="font-size: 18px;line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Sellor Default Margin(%)</strong>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <input type="text" class="form-control" ng-model="showCase.model_data.seller_margin" ng-change="showCase.margin_enable_save = true" ng-keyup="showCase.margin_enable_save = true" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-class="service.get_decimal_perm()">
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-1"><i ng-if="showCase.margin_enable_save" ng-click="showCase.margin_enable_save = false; showCase.switches(showCase.model_data.seller_margin,25)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
+      </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa fa-envelope-o fa-15px pull-left" style="line-height: 34px;"></i>

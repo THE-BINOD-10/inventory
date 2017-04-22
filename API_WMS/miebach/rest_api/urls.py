@@ -69,6 +69,8 @@ urlpatterns = patterns('rest_api.views',
     url(r'^insert_seller/$', 'insert_seller'),
     url(r'^get_sellers_list/$', 'get_sellers_list'),
     url(r'^update_seller_values/$', 'update_seller_values'),
+    url(r'^insert_seller_margin/$', 'insert_seller_margin'),
+    url(r'^update_seller_margin/$', 'update_seller_margin'),
 
     # Inbound
     url(r'^generated_po_data/$', 'generated_po_data'),
@@ -207,6 +209,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^update_customer_cart_data/$', 'update_customer_cart_data'),
     url(r'^delete_customer_cart_data/$', 'delete_customer_cart_data'),
     url(r'^generate_customer_invoice/$', 'generate_customer_invoice'),
+    url(r'^seller_generate_picklist/$', 'seller_generate_picklist'),
 
     # Reports
     #url(r'^location_wise_filter/$','location_wise_filter'),
@@ -244,6 +247,10 @@ urlpatterns = patterns('rest_api.views',
     url(r'^print_order_summary_report/$', 'print_order_summary_report'),
     url(r'^get_marketplaces_list_reports/$', 'get_marketplaces_list_reports'),
 
+)
+
+urlpatterns += patterns('rest_api.views',
+
     #uploads
     url(r'^order_form/$', 'order_form'),
     url(r'^order_upload/$', 'order_upload'),
@@ -276,9 +283,6 @@ urlpatterns = patterns('rest_api.views',
     url(r'^pricing_master_form/$', 'pricing_master_form'),
     url(r'^pricing_master_upload/$', 'pricing_master_upload'),
 
-)
-
-urlpatterns += patterns('rest_api.views',
     #configurations
     url(r'^configurations/$', 'configurations'),
     url(r'^switches/$', 'switches'),

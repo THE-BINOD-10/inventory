@@ -238,7 +238,13 @@ OPEN_JO_REP_DICT = {'filters': [{'label': 'SKU Code', 'name': 'sku_code', 'type'
                     'dt_url': 'get_openjo_report_details', 'excel_name': 'open_jo_report', 'print_url': 'print_open_jo_report',
                    }
 
-REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT}
+SKU_WISE_PO_DICT = {'filters': [{'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}],
+                    'dt_headers': ['PO Date', 'Supplier', 'SKU Code', 'Order Quantity', 'Received Quantity', 'Rejected Quantity', 'Receipt Date', 'Status'],
+                    'mk_dt_headers': ['PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',  'SKU Code', 'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category', 'PO Qty', 'Unit Rate', 'Pre-Tax PO Amount', 'Tax', 'After Tax PO Amount', 'Qty received', 'Qty Status'],
+                    'dt_url': 'get_sku_purchase_filter', 'excel_name': 'sku_wise_purchases', 'print_url': 'print_sku_wise_purchase',
+                   }
+
+REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT, 'sku_wise_po_report': SKU_WISE_PO_DICT}
 
 SKU_WISE_STOCK = {('sku_wise_form','skustockTable','SKU Wise Stock Summary','sku-wise', 1, 2, 'sku-wise-report') : (['SKU Code', 'WMS Code', 'Product Description', 'SKU Category', 'Total Quantity'],( (('SKU Code', 'sku_code'), ('SKU Category', 'sku_category')), (('SKU Type', 'sku_type'), ('SKU Class', 'sku_class')),(('WMS Code','wms_code'),))),}
 
@@ -675,6 +681,8 @@ SHOTANG_ORDER_FILE_EXCEL = {'order_id': 1, 'customer_name': 8, 'customer_id': 7,
                             'invoice_no': 16, 'marketplace': 'Shotang'}
 
 SELLER_ORDER_FIELDS = {'sor_id': '', 'quantity': 0, 'order_status': '', 'order_id': '', 'seller_id': '', 'status': 1, 'invoice_no': ''}
+
+SELLER_MARGIN_DICT = {'seller_id': '', 'sku_id': '', 'margin': 0}
 
 def fn_timer(function):
     @wraps(function)

@@ -304,13 +304,12 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 seller_order_dict['invoice_no'] = get_cell_data(row_idx, value, reader, file_type)
             else:
                 order_data[key] = get_cell_data(row_idx, value, reader, file_type)
-        print order_data['shipment_date']
+
         order_data['user'] = user.id
         if not 'quantity' in order_data.keys():
             order_data['quantity'] = 1
 
         seller_order_dict['quantity'] = order_data['quantity']
-        seller_order_dict['reserved'] = order_data['quantity']
 
         if type(sku_code) == float:
             cell_data = int(sku_code)

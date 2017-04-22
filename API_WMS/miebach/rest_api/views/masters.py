@@ -16,6 +16,7 @@ import os
 from django.core.files.base import ContentFile
 from sync_sku import *
 from requests import post
+log = init_logger('logs/masters.log')
 
 # Create your views here.
 
@@ -55,27 +56,6 @@ def save_image_file(image_file, data, user, extra_image='', saved_file_path='', 
     except:
         print 'not saved'
         return ''
-
-@csrf_exempt
-def sku_master(request):
-    temp_data = {"data":[]}
-    master_data = SKUMaster.objects.filter()
-    temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
-    for data in master_data[0:10]:
-        status = 'Inactive'
-        if data.status:
-            status = 'Active'
-        zone = ''
-        if data.zone_id:
-            zone = data.zone.zone
-        temp_data['data'].append({'DT_RowId': 'row_'+str(data.id), 'DT_RowData': {'pkey': data.id},
-                                  'SKU Code': data.sku_code, 'WMS SKU Code': data.wms_code,
-                                  'Product Description': data.sku_desc,'SKU Type': data.sku_type,
-                                  'SKU Category': data.sku_category, 'DT_RowClass': 'results',
-                                  'Zone': zone, 'Status': status
-                                 })
-    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
 def get_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -184,7 +164,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
             search_params["status__icontains"] = 0
         else:
             search_params["status__icontains"] = "none"
-         
+
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
@@ -729,20 +709,21 @@ def update_sku_supplier_values(request, user=''):
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt
-def insert_mapping(request,user=''):
+@get_admin_user
+def insert_mapping(request, user=''):
     data_dict = copy.deepcopy(SUPPLIER_SKU_DATA)
     integer_data = ('preference')
     for key, value in request.POST.iteritems():
 
         if key == 'wms_code':
-            sku_id = SKUMaster.objects.filter(wms_code=value.upper())
+            sku_id = SKUMaster.objects.filter(wms_code=value.upper(), user=user.id)
             if not sku_id:
                 return HttpResponse('Wrong WMS Code')
             key = 'sku'
             value = sku_id[0]
 
         elif key == 'supplier_id':
-            supplier = SupplierMaster.objects.get(id=value)
+            supplier = SupplierMaster.objects.get(id=value, user=user.id)
             value = supplier.id
 
         elif key == 'price' and not value:
@@ -1984,21 +1965,114 @@ def insert_seller(request, user=''):
 @get_admin_user
 def update_seller_values(request,user=''):
     data_id = request.POST['seller_id']
-    data = get_or_none(SellerMaster, {'seller_id': data_id, 'user': user.id})
-    for key, value in request.POST.iteritems():
-        if key not in data.__dict__.keys():
-            continue
-        if key == 'status':
-            if value == 'Active':
-                value = 1
+    log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        data = get_or_none(SellerMaster, {'seller_id': data_id, 'user': user.id})
+        for key, value in request.POST.iteritems():
+            if key not in data.__dict__.keys():
+                continue
+            if key == 'status':
+                if value == 'Active':
+                    value = 1
+                else:
+                    value = 0
+                setattr(data, key, value)
             else:
-                value = 0
-            setattr(data, key, value)
-        else:
-            setattr(data, key, value)
+                setattr(data, key, value)
 
-    data.save()
+        data.save()
+    except Exception as e:
+        log.info('Update Seller Values failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
     return HttpResponse('Updated Successfully')
 
+@csrf_exempt
+@get_admin_user
+def insert_seller_margin(request, user=''):
+    data_dict = copy.deepcopy(SELLER_MARGIN_DICT)
+    integer_data = ['margin']
+    seller_id = ''
+    sku_id = ''
+    log.info('Request params are ' + str(request.POST.dict()))
+    try:
+        for key, value in request.POST.iteritems():
+
+            if key == 'sku_code':
+                sku_master = SKUMaster.objects.filter(sku_code=value.upper(), user=user.id)
+                if not sku_master:
+                    return HttpResponse("WMS Code doesn't exists")
+                key = 'sku_id'
+                value = sku_master[0].id
+                sku_id = value
+
+            elif key == 'seller':
+                if not value:
+                    return HttpResponse("Please select Seller")
+                seller_master = SellerMaster.objects.filter(user=user.id, seller_id=value)
+                if not seller_master:
+                    return HttpResponse("Seller Master doesn't exists")
+                value = seller_master[0].id
+                key = 'seller_id'
+                seller_id = value
+
+            elif key == 'margin' and not value:
+                value = 0
+
+            if value != '':
+                data_dict[key] = value
+
+        data = SellerMarginMapping.objects.filter(seller__seller_id=seller_id, sku_id=sku_id)
+        if data:
+            return HttpResponse('Seller SKU Margin Entry Exists')
+
+        data_dict['creation_date'] = datetime.datetime.now()
+        seller_margin = SellerMarginMapping(**data_dict)
+        seller_margin.save()
+    except Exception as e:
+        log.info('Insert Seller SKU Margin failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Insert Seller SKU Margin Failed")
+
+    return HttpResponse('Added Successfully')
 
 
+@csrf_exempt
+def get_seller_margin_mapping(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    sku_master, sku_master_ids = get_sku_master(user,request.user)
+    lis = ['seller__seller_id', 'seller__name', 'sku__wms_code', 'sku__sku_desc', 'margin']
+    order_data = lis[col_num]
+    filter_params = get_filtered_params(filters, lis)
+
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        mapping_results = SellerMarginMapping.objects.filter(sku_id__in=sku_master_ids).filter( Q(seller__seller_id__icontains = search_term) |
+                                                       Q(seller__name__icontains = search_term) | Q(sku__wms_code__icontains = search_term) |
+                                                       Q(sku__sku_desc__icontains = search_term) | Q(margin__icontains = search_term),
+                                                       sku__user=user.id, **filter_params ).order_by(order_data)
+
+    else:
+        mapping_results = SellerMarginMapping.objects.filter(sku_id__in=sku_master_ids).filter(sku__user = user.id, **filter_params).order_by(order_data)
+
+    temp_data['recordsTotal'] = len(mapping_results)
+    temp_data['recordsFiltered'] = len(mapping_results)
+
+    for result in mapping_results[start_index : stop_index]:
+        temp_data['aaData'].append(OrderedDict(( ('seller_id', result.seller.seller_id), ('name', result.seller.name),
+                                                 ('sku_code', result.sku.wms_code), ('sku_desc', result.sku.sku_desc),
+                                                 ('margin', result.margin),
+                                                 ('DT_RowClass', 'results'), ('DT_RowId', result.id) )))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_seller_margin(request, user=''):
+    data_id = request.POST.get('DT_RowId', '')
+    log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        data = get_or_none(SellerMarginMapping, {'id': data_id, 'sku__user': user.id})
+        if data:
+            data.margin = request.POST.get('margin', 0)
+            data.save()
+    except Exception as e:
+        log.info('Update Seller Margin Values failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse('Update Seller Margin Failed')
+    return HttpResponse('Updated Successfully')

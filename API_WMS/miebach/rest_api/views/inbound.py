@@ -291,7 +291,7 @@ def get_quality_check_data(start_index, stop_index, temp_data, search_term, orde
                'id', 'putaway_quantity']
     st_list = ['po__order_id', 'open_st__warehouse__id', 'open_st__warehouse__username', 'id', 'id']
     rw_list = ['purchase_order__order_id', 'rwo__vendor__id', 'rwo__vendor__name', 'id', 'id']
-    
+
     del filters['search_3']
     del filters['search_4']
     qc_filters = get_filtered_params(filters, qc_list)
@@ -727,7 +727,8 @@ def switches(request, user=''):
                     'auto_generate_picklist': 'auto_generate_picklist',
                     'order_headers' : 'order_headers',
                     'detailed_invoice' : 'detailed_invoice',
-                    'scan_picklist_option' : 'scan_picklist_option'
+                    'scan_picklist_option' : 'scan_picklist_option',
+                    'seller_margin': 'seller_margin'
                   }
 
     toggle_field, selection = "", ""
@@ -1271,6 +1272,7 @@ def get_stock_locations(wms_code, exc_dict, user, exclude_zones_list, sku=''):
 def get_purchaseorder_locations(put_zone, temp_dict):
     data = temp_dict['data']
     user = temp_dict['user']
+    seller_id = temp_dict.get('seller_id', '')
     location_masters = LocationMaster.objects.filter(zone__user=user).exclude(lock_status__in=['Inbound', 'Inbound and Outbound'])
     exclude_zones_list = ['QC_ZONE', 'DAMAGED_ZONE']
     if put_zone in exclude_zones_list:
@@ -1320,7 +1322,16 @@ def get_purchaseorder_locations(put_zone, temp_dict):
                                               purchase_order__open_po__sku__mix_sku='no_mix').\
                                               values_list('location_id', flat=True))
         exc_group_dict['location_id__in'] = list(chain(no_mix_locs, no_mix_sugg))
+        exclude_dict['id__in'] = list(chain(no_mix_locs, no_mix_sugg))
 
+    if seller_id:
+        #Other Seller Locations
+        other_seller_locs = SellerStock.objects.filter(seller__user=user, quantity__gt=0).exclude(seller_id=seller_id).values_list('stock__location_id', flat=True)
+        other_seller_locs_suggested = SellerPOSummary.objects.filter(seller_po__seller__user=user, putaway_quantity__gt=0, location__isnull=False).\
+                                                      exclude(seller_po__seller_id=seller_id).values_list('location_id', flat=True)
+
+        exc_group_dict['location_id__in'] = list(chain(exc_group_dict['location_id__in'], other_seller_locs, other_seller_locs_suggested))
+        exclude_dict['id__in'] = list(chain(exclude_dict['id__in'], other_seller_locs, other_seller_locs_suggested))
     if sku_group:
         locations = LocationGroups.objects.exclude(get_dictionary_query(exc_group_dict)).filter(location__zone__user=temp_dict['user'], group=sku_group).\
                                            values_list('location_id',flat=True)
@@ -1434,79 +1445,109 @@ def save_update_order(location_quantity, location_data, temp_dict, user_check, u
         qc_saved_data.save()
     return po_loc
 
+def update_seller_summary_locs(data, location, quantity, po_received):
+    if not po_received['quantity']:
+        return po_received
+    seller_summary = SellerPOSummary.objects.get(id=po_received['id'])
+    if not seller_summary.location:
+        seller_summary.location_id = location.id
+        seller_summary.quantity = quantity
+        seller_summary.putaway_quantity = quantity
+        seller_summary.save()
+    else:
+        if seller_summary.location_id == location.id:
+            seller_summary.quantity = float(seller_summary.quantity) + quantity
+            seller_summary.putaway_quantity = float(seller_summary.putaway_quantity) + quantity
+            seller_summary.save()
+        else:
+            seller_po_summary, created = SellerPOSummary.objects.get_or_create(seller_po_id=seller_summary.seller_po.id,
+                                                         receipt_number=seller_summary.receipt_number, quantity=quantity,
+                                                         putaway_quantity=quantity, location_id=location.id,
+                                                         purchase_order_id=data.id, creation_date=datetime.datetime.now())
+    po_received['quantity'] = po_received['quantity'] - quantity
+    return po_received
+
 @csrf_exempt
-def save_po_location(put_zone, temp_dict):
+def save_po_location(put_zone, temp_dict, seller_received_list=[]):
     data = temp_dict['data']
     user = temp_dict['user']
     pallet_number = 0
     if 'pallet_number' in temp_dict.keys():
         pallet_number = temp_dict['pallet_number']
-    location = get_purchaseorder_locations(put_zone, temp_dict)
+    #location = get_purchaseorder_locations(put_zone, temp_dict)
     received_quantity = float(temp_dict['received_quantity'])
     data.status = 'grn-generated'
     data.save()
     purchase_data = get_purchase_order_data(data)
-    for loc in location:
-        location_quantity, received_quantity = get_remaining_capacity(loc, received_quantity, put_zone, pallet_number, user)
-        if not location_quantity:
-            continue
-        if not 'quality_check' in temp_dict.keys():
-            location_data = {'purchase_order_id': data.id, 'location_id': loc.id, 'status': 1}
-            user_check = 'location__zone__user'
-            if data.open_po:
-                user_check = 'purchase_order__open_po__sku__user'
-            po_loc = save_update_order(location_quantity, location_data, temp_dict, user_check, user)
-            if pallet_number:
-                if temp_dict['pallet_data'] == 'true':
-                    insert_pallet_data(temp_dict, po_loc)
-            if received_quantity == 0:
-                if float(purchase_data['order_quantity']) - float(temp_dict['received_quantity']) <= 0:
-                    data.status = 'location-assigned'
-                data.save()
-                break
-        else:
-            quality_check = temp_dict['quality_check']
-            po_location = POLocation.objects.filter(location_id=loc.id, purchase_order_id=data.id, location__zone__user=user)
-            if po_location and not pallet_number:
-                if po_location[0].status == '1':
-                    setattr(po_location[0], 'quantity', float(po_location[0].quantity) + location_quantity)
+    if not seller_received_list:
+        seller_received_list.append({'seller_id': '', 'sku_id': (purchase_data['sku']).id, 'quantity': received_quantity, 'id': ''})
+    for po_received in seller_received_list:
+        temp_dict['seller_id'] = po_received.get('seller_id', '')
+        location = get_purchaseorder_locations(put_zone, temp_dict)
+        received_quantity = po_received['quantity']
+        for loc in location:
+            location_quantity, received_quantity = get_remaining_capacity(loc, received_quantity, put_zone, pallet_number, user)
+            if not location_quantity:
+                continue
+            if po_received.get('seller_id', '') and not loc.zone.zone == 'QC_ZONE':
+                po_received = update_seller_summary_locs(data, loc, location_quantity, po_received)
+            if not 'quality_check' in temp_dict.keys():
+                location_data = {'purchase_order_id': data.id, 'location_id': loc.id, 'status': 1}
+                user_check = 'location__zone__user'
+                if data.open_po:
+                    user_check = 'purchase_order__open_po__sku__user'
+                po_loc = save_update_order(location_quantity, location_data, temp_dict, user_check, user)
+                if pallet_number:
+                    if temp_dict['pallet_data'] == 'true':
+                        insert_pallet_data(temp_dict, po_loc)
+                if received_quantity == 0:
+                    if float(purchase_data['order_quantity']) - float(temp_dict['received_quantity']) <= 0:
+                        data.status = 'location-assigned'
+                    data.save()
+                    break
+            else:
+                quality_check = temp_dict['quality_check']
+                po_location = POLocation.objects.filter(location_id=loc.id, purchase_order_id=data.id, location__zone__user=user)
+                if po_location and not pallet_number:
+                    if po_location[0].status == '1':
+                        setattr(po_location[0], 'quantity', float(po_location[0].quantity) + location_quantity)
+                    else:
+                        setattr(po_location[0], 'quantity', float(location_quantity))
+                        setattr(po_location[0], 'status', '1')
+                    po_location[0].save()
+                    po_location_id = po_location[0].id
                 else:
-                    setattr(po_location[0], 'quantity', float(location_quantity))
-                    setattr(po_location[0], 'status', '1')
-                po_location[0].save()
-                po_location_id = po_location[0].id
-            else:
-                location_data = {'purchase_order_id': data.id, 'location_id': loc.id, 'status': 1, 'quantity': location_quantity,
-                                 'original_quantity': location_quantity, 'creation_date': datetime.datetime.now()}
-                po_loc = POLocation(**location_data)
-                po_loc.save()
-                po_location_id = po_loc.id
-            if pallet_number:
-                if not put_zone == 'DAMAGED_ZONE':
-                    pallet_data = temp_dict['pallet_data']
-                    setattr(pallet_data, 'po_location_id', po_loc)
-                    pallet_data.save()
-            quality_checked_data = QualityCheck.objects.filter(purchase_order_id=data.id, purchase_order__open_po__sku__user=user)
-            data_checked = 0
-            for checked_data in quality_checked_data:
-                data_checked += float(checked_data.accepted_quantity) + float(checked_data.rejected_quantity)
+                    location_data = {'purchase_order_id': data.id, 'location_id': loc.id, 'status': 1, 'quantity': location_quantity,
+                                     'original_quantity': location_quantity, 'creation_date': datetime.datetime.now()}
+                    po_loc = POLocation(**location_data)
+                    po_loc.save()
+                    po_location_id = po_loc.id
+                if pallet_number:
+                    if not put_zone == 'DAMAGED_ZONE':
+                        pallet_data = temp_dict['pallet_data']
+                        setattr(pallet_data, 'po_location_id', po_loc)
+                        pallet_data.save()
+                quality_checked_data = QualityCheck.objects.filter(purchase_order_id=data.id, purchase_order__open_po__sku__user=user)
+                data_checked = 0
+                for checked_data in quality_checked_data:
+                    data_checked += float(checked_data.accepted_quantity) + float(checked_data.rejected_quantity)
 
-            if float(data.received_quantity) - data_checked == 0:
-                quality_check.po_location.delete()
-                data.status = 'location-assigned'
-                data.save()
-            if not received_quantity or received_quantity == 0:
-                break
-    else:
-        location = LocationMaster.objects.filter(zone__zone='DEFAULT', zone__user=user)
-        for record in location:
-            if pallet_number:
-                if temp_dict['pallet_data'] == 'true':
-                    received_quantity = confirmation_location(record, data, received_quantity, temp_dict)
-            else:
-                received_quantity = confirmation_location(record, data, received_quantity)
-            if received_quantity == 0:
-                break
+                if float(data.received_quantity) - data_checked == 0:
+                    quality_check.po_location.delete()
+                    data.status = 'location-assigned'
+                    data.save()
+                if not received_quantity or received_quantity == 0:
+                    break
+        else:
+            location = LocationMaster.objects.filter(zone__zone='DEFAULT', zone__user=user)
+            for record in location:
+                if pallet_number:
+                    if temp_dict['pallet_data'] == 'true':
+                        received_quantity = confirmation_location(record, data, received_quantity, temp_dict)
+                else:
+                    received_quantity = confirmation_location(record, data, received_quantity)
+                if received_quantity == 0:
+                    break
 
 @csrf_exempt
 @get_admin_user
@@ -1671,9 +1712,24 @@ def update_seller_po(data, value, user, receipt_id=''):
     if not receipt_id:
         return
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
+    seller_received_list = []
     for sell_po in seller_pos:
         if not value:
             break
+        unit_price = data.open_po.price
+        if not sell_po.unit_price:
+            margin_percent = get_misc_value('seller_margin', user.id)
+            seller_mapping = SellerMarginMapping.objects.filter(seller_id=sell_po.seller_id, sku_id=data.open_po.sku_id, seller__user=user.id)
+            if seller_mapping:
+                margin_percent = seller_mapping[0].margin
+            if margin_percent:
+                try:
+                    margin_percent = float(margin_percent)
+                except:
+                    margin_percent = 0
+                unit_price = float(data.open_po.price)/(1-(margin_percent/100))
+                sell_po.unit_price = float(("%."+ str(2) +"f") % (unit_price))
+                sell_po.margin_percent = margin_percent
         seller_quantity = sell_po.seller_quantity
         sell_quan = value
         if seller_quantity < value:
@@ -1685,10 +1741,14 @@ def update_seller_po(data, value, user, receipt_id=''):
         sell_po.received_quantity += sell_quan
         if sell_po.seller_quantity <= sell_po.received_quantity:
             sell_po.status = 0
-        sell_po.putaway_quantity += sell_quan
         sell_po.save()
-        SellerPOSummary.objects.create(seller_po_id=sell_po.id, receipt_number=receipt_id, quantity=sell_quan, purchase_order_id=data.id,
-                                       creation_date=datetime.datetime.now())
+
+        #seller_received_list.append({'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': sell_quan})
+        seller_po_summary, created = SellerPOSummary.objects.get_or_create(seller_po_id=sell_po.id, receipt_number=receipt_id,
+                                                         quantity=sell_quan, putaway_quantity=sell_quan, purchase_order_id=data.id,
+                                                         creation_date=datetime.datetime.now())
+        seller_received_list.append({'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': sell_quan, 'id': seller_po_summary.id})
+    return seller_received_list
 
 @csrf_exempt
 @login_required
@@ -1754,10 +1814,11 @@ def confirm_grn(request, confirm_returns = '', user=''):
         data.received_quantity = float(data.received_quantity) + float(value)
         data.saved_quantity = 0
 
+        seller_received_list = []
         if data.open_po:
             if not seller_receipt_id:
                 seller_receipt_id = get_seller_receipt_id(data.open_po)
-            update_seller_po(data, value, user, receipt_id=seller_receipt_id)
+            seller_received_list = update_seller_po(data, value, user, receipt_id=seller_receipt_id)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -1800,7 +1861,7 @@ def confirm_grn(request, confirm_returns = '', user=''):
             continue
         else:
             is_putaway = 'true'
-        save_po_location(put_zone, temp_dict)
+        save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list)
         create_bayarea_stock(purchase_data['wms_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
         data_dict = (('Order ID', data.order_id), ('Supplier ID', purchase_data['supplier_id']),
                      ('Order Date', get_local_date(request.user, data.creation_date)),
@@ -2286,28 +2347,28 @@ def putaway_location(data, value, exc_loc, user, order_id, po_id):
             loc.save()
     data.save()
 
-def create_update_seller_stock(data, value, user, stock_obj):
+def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=False):
     if not data.purchase_order.open_po:
         return
-    seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.purchase_order.open_po_id, putaway_quantity__gt=0)
-    for sell_po in seller_pos:
-        if not value:
-            break
-        received_quantity = float(stock_obj.quantity)
+    received_quantity = float(stock_obj.quantity)
+    if use_value:
+        received_quantity = value
+    seller_po_summaries = SellerPOSummary.objects.filter(seller_po__seller__user=user.id, seller_po__open_po_id=data.purchase_order.open_po_id,
+                                                putaway_quantity__gt=0, location_id=exc_loc)
+    for sell_summary in seller_po_summaries:
         if received_quantity <= 0:
             continue
-        sell_quan = value
-        if received_quantity < value:
-            sell_quan = received_quantity
-            value -= received_quantity
-        elif received_quantity >= value:
-            sell_quan = value
-            value = 0
-        sell_po.putaway_quantity -= sell_quan
-        sell_po.save()
-        seller_stock = SellerStock.objects.filter(seller_id=sell_po.seller_id, stock_id=stock_obj.id, stock__sku__user=user.id)
+        if received_quantity < float(sell_summary.putaway_quantity):
+            sell_quan = float(received_quantity)
+            sell_summary.putaway_quantity = float(sell_summary.putaway_quantity) - float(received_quantity)
+        elif received_quantity >= float(sell_summary.putaway_quantity):
+            sell_quan = float(sell_summary.putaway_quantity)
+            received_quantity -= float(sell_summary.putaway_quantity)
+            sell_summary.putaway_quantity = 0
+        sell_summary.save()
+        seller_stock = SellerStock.objects.filter(seller_id=sell_summary.seller_po.seller_id, stock_id=stock_obj.id, stock__sku__user=user.id)
         if not seller_stock:
-            SellerStock.objects.create(seller_id=sell_po.seller_id, quantity=sell_quan,
+            SellerStock.objects.create(seller_id=sell_summary.seller_po.seller_id, quantity=sell_quan,
                                        creation_date=datetime.datetime.now(), status=1, stock_id=stock_obj.id)
         else:
             seller_stock[0].quantity = float(seller_stock[0].quantity) + float(sell_quan)
@@ -2379,7 +2440,6 @@ def putaway_data(request, user=''):
                 value = count
                 count = 0
             order_data = get_purchase_order_data(data.purchase_order)
-            #create_update_seller_stock(data, value, user)
             putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
             stock_data = StockDetail.objects.filter(location_id=exc_loc, receipt_number=data.purchase_order.order_id,
                                                     sku_id=order_data['sku_id'], sku__user=user.id)
@@ -2403,7 +2463,7 @@ def putaway_data(request, user=''):
                     pallet_detail = pallet_mapping[0].pallet_detail
                     setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
                 stock_data.save()
-                create_update_seller_stock(data, value, user, stock_data)
+                create_update_seller_stock(data, value, user, stock_data, exc_loc, use_value=True)
             else:
                 record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
                                'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
@@ -2415,7 +2475,7 @@ def putaway_data(request, user=''):
                     pallet_mapping[0].save()
                 stock_detail = StockDetail(**record_data)
                 stock_detail.save()
-                create_update_seller_stock(data, value, user, stock_detail)
+                create_update_seller_stock(data, value, user, stock_detail, exc_loc)
             consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 
             if order_data['sku_code'] not in sku_codes:
@@ -2514,6 +2574,25 @@ def check_wms_qc(request, user=''):
     return HttpResponse(json.dumps({'data_dict': qc_data, 'sku_data': sku_data, 'image': image,
                               'options': REJECT_REASONS, 'use_imei': use_imei}))
 
+def get_seller_received_list(data, user):
+    seller_po_summary = SellerPOSummary.objects.filter(seller_po__seller__user=user.id, putaway_quantity__gt=0,
+                                                       seller_po__open_po_id=data.open_po_id)
+    seller_received_list = []
+    for summary in seller_po_summary:
+        seller_received_list.append({'seller_id': summary.seller_po.seller_id, 'sku': summary.seller_po.open_po.sku,
+                                     'quantity': summary.putaway_quantity, 'id': summary.id})
+    return seller_received_list
+
+def get_quality_check_seller(seller_received_list, temp_dict, purchase_data):
+    seller_summary_dict = []
+    for index, seller_received in enumerate(seller_received_list):
+        if seller_received['sku'].id == purchase_data['sku'].id:
+            seller_temp = copy.deepcopy(seller_received)
+            seller_temp['quantity'] = temp_dict['received_quantity']
+            seller_summary_dict.append(seller_temp)
+            seller_received_list[index]['quantity'] -= temp_dict['received_quantity']
+    return seller_received_list, seller_summary_dict
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -2532,6 +2611,7 @@ def confirm_quality_check(request, user=''):
         quality_check = QualityCheck.objects.get(id=q_id, po_location__location__zone__user=user.id)
         data = PurchaseOrder.objects.get(id=quality_check.purchase_order_id)
         purchase_data = get_purchase_order_data(data)
+        seller_received_dict = get_seller_received_list(data, user)
         put_zone = purchase_data['zone']
         if put_zone:
             put_zone = put_zone.zone
@@ -2544,6 +2624,7 @@ def confirm_quality_check(request, user=''):
                      'user': user.id, 'data': data, 'quality_check': quality_check }
         if temp_dict['total_check_quantity'] == 0:
              continue
+        seller_received_dict, seller_summary_dict = get_quality_check_seller(seller_received_dict, temp_dict, purchase_data)
         if get_misc_value('pallet_switch', user.id) == 'true':
             pallet_code = ''
             pallet = PalletMapping.objects.filter(po_location_id = quality_check.po_location_id)
@@ -2556,18 +2637,20 @@ def confirm_quality_check(request, user=''):
                 pallet.pallet_detail.save()
             temp_dict['pallet_number'] = pallet_code
             temp_dict['pallet_data'] = pallet
-        save_po_location(put_zone, temp_dict)
+        save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict)
         create_bayarea_stock(purchase_data['sku_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
         if temp_dict['rejected_quantity']:
             put_zone = 'DAMAGED_ZONE'
             temp_dict['received_quantity'] = temp_dict['rejected_quantity']
-            save_po_location(put_zone, temp_dict)
+            seller_received_dict, seller_summary_dict = get_quality_check_seller(seller_received_dict, temp_dict, purchase_data)
+            save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict)
         setattr(quality_check, 'accepted_quantity', temp_dict['new_quantity'])
         setattr(quality_check, 'rejected_quantity', temp_dict['rejected_quantity'])
         setattr(quality_check, 'reason', myDict['reason'][i])
         setattr(quality_check, 'status', 'qc_cleared')
         quality_check.save()
         if not temp_dict['total_check_quantity'] == temp_dict['original_quantity']:
+            put_zone = 'QC_ZONE'
             not_checked = float(quality_check.putaway_quantity) - temp_dict['total_check_quantity']
             temp_dict = {}
             temp_dict['received_quantity'] = not_checked
@@ -3730,6 +3813,9 @@ def generate_seller_invoice(request, user=''):
     invoice_date = get_local_date(user, invoice_date, send_date='true')
     inv_month_year = invoice_date.strftime("%m-%y")
     invoice_date = invoice_date.strftime("%d %b %Y")
+    company_name = user_profile.company_name
+    if user.username == 'shotang':
+        company_name = 'Pro-Shot'
 
     for summary_id in seller_summary_ids:
         seller_po_summary = SellerPOSummary.objects.get(seller_po__seller__user=user.id, id=summary_id)
@@ -3740,7 +3826,7 @@ def generate_seller_invoice(request, user=''):
         seller = seller_po_summary.seller_po.seller
         open_po = seller_po_summary.seller_po.open_po
         if not seller_address:
-            seller_address = user_profile.company_name + '\n' + user_profile.address + "\nCall: " \
+            seller_address = company_name + '\n' + user_profile.address + "\nCall: " \
                                 + user_profile.phone_number + "\nEmail: " + user.email
         if not buyer_address:
             buyer_address = seller.name + '\n' + seller.address + "\nCall: " \
@@ -3750,14 +3836,16 @@ def generate_seller_invoice(request, user=''):
         discount = 0
         quantity = seller_po_summary.quantity
         mrp_price = seller_po_summary.seller_po.open_po.price
-        invoice_amount = float(open_po.price) * float(quantity)
+        if seller_po_summary.seller_po.unit_price:
+            mrp_price = seller_po_summary.seller_po.unit_price
+        invoice_amount = float(mrp_price) * float(quantity)
         tax = float(float(invoice_amount)/100) * vat
         total_amount = invoice_amount + tax - discount
 
         total_tax += float(tax)
         total_mrp += float(mrp_price)
 
-        unit_price = open_po.price
+        unit_price = mrp_price
         unit_price = "%.2f" % unit_price
         total_invoice += total_amount
         total_quantity += quantity
@@ -3782,7 +3870,7 @@ def generate_seller_invoice(request, user=''):
     if not len(set(sell_ids.get('receipt_number__in', ''))) > 1:
         invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('receipt_number__in', ''))))
 
-    invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
+    invoice_data = {'data': data, 'company_name': company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': po_number,
                     'order_no': po_number, 'total_tax': "%.2f" % total_tax, 'total_mrp': total_mrp,

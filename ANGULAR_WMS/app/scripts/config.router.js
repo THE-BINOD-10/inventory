@@ -409,6 +409,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.PricingMaster', {
           url: '/PricingMaster',
+          permission: 'add_pricemaster',
           templateUrl: 'views/masters/pricing_master.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -439,6 +440,23 @@ var app = angular.module('urbanApp')
           .state('app.masters.SellerMaster.seller', {
              url: '/seller',
              templateUrl: 'views/masters/toggles/seller_update.html'
+           })
+        .state('app.masters.SellerMarginMapping', {
+          url: '/SellerMarginMapping',
+          permission: 'add_sellermaster',
+          templateUrl: 'views/masters/seller_margin_mapping.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/sellerMarginMapping.js');
+                    }]
+          },
+          data: {
+            title: 'Seller Margin Mapping',
+          }
+        })
+          .state('app.masters.SellerMarginMapping.Mapping', {
+             url: '/Mapping',
+             templateUrl: 'views/masters/toggles/margin_mapping_update.html'
            })
 
       // Inbound routes

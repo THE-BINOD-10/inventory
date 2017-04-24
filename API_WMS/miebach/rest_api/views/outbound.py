@@ -549,13 +549,23 @@ def picklist_headers(request, user):
 
     return headers, show_image, use_imei
 
+def create_seller_summary_details(seller_order, picklist):
+    if not seller_order or not picklist:
+        return False
+    SellerOrderDetail.objects.create(seller_order_id=seller_order.id, picklist_id=picklist.id, quantity=picklist.reserved_quantity, reserved=picklist.reserved_quantity, creation_date=datetime.datetime.now())
+
 @fn_timer
-def picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, status='', remarks=''):
+def picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, status='', remarks='', is_seller_order=False):
     stock_status = []
     if not status:
         status = 'batch_open'
     for order in order_data:
         picklist_data = copy.deepcopy(PICKLIST_FIELDS)
+        #order_quantity = float(order.quantity)
+        seller_order = None
+        if is_seller_order:
+            seller_order = order
+            order = order.order
         picklist_data['picklist_number'] = picklist_number + 1
         if remarks:
             picklist_data['remarks'] = remarks
@@ -570,16 +580,18 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
 
 
         sku_id_stocks = sku_stocks.values('id', 'sku_id').annotate(total=Sum('quantity')).order_by(order_by)
-        pick_res_locat = PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).\
-                                          filter(picklist__order__user=user.id).values('stock__sku_id').annotate(total=Sum('reserved'))
         val_dict = {}
-        val_dict['pic_res_ids'] = map(lambda d: d['stock__sku_id'], pick_res_locat)
-        val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)
-
         val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
         val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
         val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
+        pc_loc_filter = {'status': 1}
+        if is_seller_order:
+            pc_loc_filter['stock_id__in'] = val_dict['stock_ids']
+        pick_res_locat = PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(**pc_loc_filter).\
+                                          filter(picklist__order__user=user.id).values('stock__sku_id').annotate(total=Sum('reserved'))
 
+        val_dict['pic_res_ids'] = map(lambda d: d['stock__sku_id'], pick_res_locat)
+        val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)
 
         members = [ order.sku ]
         if order.sku.relation_type == 'combo':
@@ -599,8 +611,11 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
             elif order.sku.relation_type=='combo':
                 stock_detail, stock_quantity, sku_code = get_sku_stock(request, member, sku_stocks, user, val_dict, sku_id_stocks)
 
-            order_quantity = float(order.quantity)
-            if stock_quantity < float(order.quantity):
+            if not seller_order:
+                order_quantity = float(order.quantity)
+            else:
+                order_quantity = float(seller_order.quantity)
+            if stock_quantity < float(order_quantity):
                 if get_misc_value('no_stock_switch', user.id) == 'false':
                     stock_status.append(str(member.sku_code))
                     continue
@@ -623,6 +638,8 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
 
                     order.status = 0
                     order.save()
+                    if seller_order:
+                        create_seller_summary_details(seller_order, new_picklist)
                 if stock_quantity <= 0:
                     continue
 
@@ -643,6 +660,8 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
 
                 new_picklist = Picklist(**picklist_data)
                 new_picklist.save()
+                if seller_order:
+                    create_seller_summary_details(seller_order, new_picklist)
 
                 picklist_loc_data = {'picklist_id': new_picklist.id , 'status': 1, 'quantity': stock_count, 'creation_date':   datetime.datetime.now(),
                                      'stock_id': new_picklist.stock_id, 'reserved': stock_count}
@@ -989,7 +1008,7 @@ def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, me
     if user_profile.user_type == 'marketplace_user':
         if not seller_pick_number:
             seller_pick_number = get_seller_pick_id(picklist, user)
-        create_seller_order_summary(picklist, p_quantity, seller_pick_number)
+        create_seller_order_summary(picklist, p_quantity, seller_pick_number, picks_all)
     if picklist.picked_quantity > 0 and picklist.order:
         if merge_flag:
             quantity = picklist.picked_quantity
@@ -1187,26 +1206,49 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
                 else:
                     log.info("No telephone no for this order")
 
-def create_seller_order_summary(picklist, picked_count, pick_number, stock=None):
-    seller_orders = SellerOrder.objects.filter(order_id=picklist.order_id, order__user=picklist.order.user, status=1)
-    for seller_order in seller_orders:
+def create_seller_order_summary(picklist, picked_count, pick_number, picks_all, stock=None):
+    #seller_orders = SellerOrder.objects.filter(order_id=picklist.order_id, order__user=picklist.order.user, status=1)
+    seller_order_details = SellerOrderDetail.objects.filter(picklist_id=picklist.id, picklist__order__user=picklist.order.user)
+    for seller_detail in seller_order_details:
         insert_quan = 0
         if not picked_count:
             break
-        if seller_order.reserved > picked_count:
+        if seller_detail.reserved > picked_count:
             insert_quan = picked_count
             picked_count = 0
-        elif seller_order.reserved <= picked_count:
-            insert_quan = seller_order.reserved
-            picked_count = picked_count - int(seller_order.reserved)
-        seller_order.reserved = seller_order.reserved - insert_quan
-        if seller_order.reserved <= 0:
-            seller_order.status = 0
-        seller_order.save()
-        SellerOrderSummary.objects.create(picklist_id=picklist.id, pick_number=pick_number, quantity=insert_quan,
-                                              seller_order_id=seller_order.id, creation_date=datetime.datetime.now())
+        elif seller_detail.reserved <= picked_count:
+            insert_quan = seller_detail.reserved
+            picked_count = picked_count - int(seller_detail.reserved)
+        seller_detail.reserved = seller_detail.reserved - insert_quan
+        if seller_detail.reserved <= 0:
+            seller_detail.status = 0
+        seller_detail.save()
+        if not picklist.order_type == 'combo':
+            SellerOrderSummary.objects.create(picklist_id=picklist.id, pick_number=pick_number, quantity=insert_quan,
+                                              seller_order_id=seller_detail.seller_order.id, creation_date=datetime.datetime.now())
+        else:
+            combo_picks = picks_all.filter(order_id=picklist.order.id, order_type='combo').values('order__sku__sku_code', 'order_id',
+                                           'stock__sku_id', 'sku_code').distinct().annotate(total_reserved_sum=Sum('reserved_quantity'),
+                                           total_picked_sum=Sum('picked_quantity'))
+            final_picked = []
+            seller_order_summary = SellerOrderSummary.objects.filter(picklist__order_id=picklist.order.id,
+                                                                     picklist__order__user=picklist.order.user)
+            for combo_pick in combo_picks:
+                seller_picks = seller_order_summary.filter(picklist__order__sku__sku_code=combo_pick['order__sku__sku_code']).\
+                                                        aggregate(Sum('quantity'))['quantity__sum']
+                if not seller_picks:
+                    seller_picks = 0
+                picked_sum = float(combo_pick['total_picked_sum']) - seller_picks
+                final_picked.append(picked_sum)
+            if final_picked:
+                insert_picked = min(final_picked)
+                if insert_picked:
+                    SellerOrderSummary.objects.create(picklist_id=picklist.id, pick_number=pick_number, quantity=insert_picked,
+                                                  seller_order_id=seller_detail.seller_order.id, creation_date=datetime.datetime.now())
+
+
         if stock:
-            seller_stock = SellerStock.objects.filter(seller_id=seller_order.seller_id, stock_id=stock.id, seller__user=picklist.order.user)
+            seller_stock = SellerStock.objects.filter(seller_id=seller_detail.seller_order.seller_id, stock_id=stock.id, seller__user=picklist.order.user)
             if seller_stock:
                 seller_stock = seller_stock[0]
                 update_quan = int(seller_stock.quantity) - insert_quan
@@ -1368,7 +1410,7 @@ def picklist_confirmation(request, user=''):
                     if user_profile.user_type == 'marketplace_user':
                         if not seller_pick_number:
                             seller_pick_number = get_seller_pick_id(picklist, user)
-                        create_seller_order_summary(picklist, picking_count1, seller_pick_number, stock)
+                        create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all, stock)
                     if picklist.reserved_quantity == 0:
                         if picklist.status == 'batch_open':
                             picklist.status = 'batch_picked'
@@ -2886,7 +2928,7 @@ def modify_invoice_data(invoice_data, user):
                 styles_att = {'discount': 0, 'invoice_amount': 0, 'quantity': 0, 'tax': 0, 'amount': 0, 'sku_size': {}, 'display_sizes': [], 'amt': 0}
                 styles =  {}
                 sub_total = 0
-                _amt = 0
+                amt = 0
                 for single_entry in group2:
                     if not single_entry['sku_class'] in styles:
                         styles[single_entry['sku_class']] = copy.deepcopy(styles_att)
@@ -4188,7 +4230,7 @@ def generate_customer_invoice(request, user=''):
             else:
                 merge_data[detail['seller_order__order__sku__sku_code']] += detail['total_quantity']
 
-        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data)
+        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, is_seller_order=True)
         invoice_date = datetime.datetime.now()
         if seller_summary:
             seller = seller_summary[0].seller_order.seller
@@ -4211,4 +4253,205 @@ def generate_customer_invoice(request, user=''):
         log.info('Create customer invoice failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
         return HttpResponse(json.dumps({'message': 'failed'}))
     return HttpResponse(json.dumps(invoice_data, cls=DjangoJSONEncoder))
+
+@csrf_exempt
+def get_seller_order_view(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_dict={}):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    user_dict = eval(user_dict)
+    lis = ['id', 'sor_id', 'order__order_id', 'seller__name', 'order__customer_name', 'order__marketplace', 'total', 'order__creation_date', 'order__city', 'order__status']
+    data_dict = {'order__status': 1, 'order__user': user.id, 'order__quantity__gt': 0}
+
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+
+    if user_dict.get('market_places', ''):
+        marketplace = user_dict['market_places'].split(',')
+        data_dict['order__marketplace__in'] = marketplace
+    if user_dict.get('customer_id', ''):
+        data_dict['order__customer_id'], data_dict['order__customer_name'] = user_dict['customer_id'].split(':')
+    search_params = get_filtered_params(filters, lis[1:])
+
+    if 'order__order_id__icontains' in search_params.keys():
+        order_search = search_params['order__order_id__icontains']
+        search_params['order__order_id__icontains'] = ''.join(re.findall('\d+', order_search))
+        search_params['order__order_code__icontains'] = ''.join(re.findall('\D+', order_search))
+    search_params['order__sku_id__in'] = sku_master_ids
+    order_taken_val_user = CustomerOrderSummary.objects.filter(order__user=user.id)
+    single_search = "no"
+    if 'city__icontains' in search_params.keys():
+        order_taken_val_user = CustomerOrderSummary.objects.filter(Q(order_taken_by__icontains=search_params['city__icontains']))
+        single_search = "yes"
+        del(search_params['city__icontains'])
+
+    all_seller_orders = SellerOrder.objects.filter(**data_dict)
+    if search_term:
+        mapping_results = all_seller_orders.values('order__customer_name', 'order__order_id', 'order__order_code', 'order__original_order_id',
+                                                   'order__marketplace', 'sor_id', 'seller__name', 'seller_id').\
+                                              distinct().annotate(total=Sum('quantity')).filter(Q(order__customer_name__icontains=search_term) |
+                                              Q(order__order_id__icontains=search_term) | Q(order__marketplace__icontains=search_term) |
+                                              Q(sor_id__icontains=search_term) | Q(seller__name__icontains=search_term) |
+                                              Q(total__icontains=search_term),
+                                              **search_params).order_by(order_data)
+    else:
+        mapping_results = all_seller_orders.values('order__customer_name', 'order__order_id', 'order__order_code', 'order__original_order_id',
+                                            'order__marketplace', 'sor_id', 'seller__name', 'seller_id').\
+                                              distinct().annotate(total=Sum('quantity')).filter(**search_params).order_by(order_data)
+
+
+    temp_data['recordsTotal'] = mapping_results.count()
+    temp_data['recordsFiltered'] = mapping_results.count()
+
+    index = 0
+    for dat in mapping_results[start_index:stop_index]:
+        cust_status_obj = CustomerOrderSummary.objects.filter(order__order_id = dat['order__order_id'])
+        if cust_status_obj:
+            cust_status = cust_status_obj[0].status
+            time_slot = cust_status_obj[0].shipment_time_slot
+        else:
+            cust_status = ""
+            time_slot = ""
+
+        order_taken_val = ''
+        if order_taken_val_user:
+            order_taken_val = order_taken_val_user.filter(order__order_id = dat['order__order_id'])
+            if order_taken_val:
+                order_taken_val = order_taken_val[0].order_taken_by
+            else:
+                order_taken_val = ''
+        if single_search == "yes" and order_taken_val == '':
+            continue
+
+        order_id = dat['order__order_code'] + str(dat['order__order_id'])
+        check_values = str(order_id) + '<>' + str(dat['sor_id']) + '<>' + str(dat['seller_id'])
+        name = all_seller_orders.filter(order__order_id=dat['order__order_id'], order__order_code=dat['order__order_code'], order__user=user.id)
+        creation_date = name[0].creation_date
+        name = name[0].id
+        creation_data = get_local_date(user, creation_date, True).strftime("%d %b, %Y")
+        #if time_slot:
+        #    shipment_data = shipment_data + ', ' + time_slot
+
+        checkbox = "<input type='checkbox' name='%s' value='%s'>" % (str(order_id) + '<>' + str(dat['sor_id']), dat['total'])
+
+        temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('data_value', check_values), ('SOR ID', dat['sor_id']),
+                                                 ('UOR ID', order_id), ('Seller Name', dat['seller__name']),
+                                                 ('Customer Name', dat['order__customer_name']),
+                                                 ('Market Place', dat['order__marketplace']),
+                                                 ('Total Quantity', dat['total']), ('Order Taken By', order_taken_val),
+                                                 ('Creation Date', creation_data),
+                                                 ('id', index), ('DT_RowClass', 'results'), ('Status', cust_status) )))
+        index += 1
+    col_val = ['SOR ID', 'SOR ID', 'UOR ID', 'Seller Name', 'Customer Name', 'Market Place', 'Total Quantity', 'Creation Date', 'Order Taken By', 'Status']
+    if order_term:
+        order_data = col_val[col_num]
+        if order_term == "asc":
+            temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data])
+        else:
+            temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data], reverse= True)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def seller_generate_picklist(request, user=''):
+    filters = request.POST.get('filters', '')
+    order_filter = {'order__status': 1, 'order__user': user.id, 'order__quantity__gt': 0}
+    if filters:
+        filters = eval(filters)
+        if filters['market_places']:
+            order_filter['order__marketplace__in'] = (filters['market_places']).split(',')
+        if filters.get('customer_id', ''):
+            customer_id = ''.join(re.findall('\d+', filters['customer_id']))
+            order_filter['order__customer_id'] = customer_id
+    data = []
+    order_data = []
+    stock_status = ''
+    out_of_stock = []
+    picklist_number = get_picklist_number(user)
+
+    log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
+        all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**order_filter)
+
+        fifo_switch = get_misc_value('fifo_switch', user.id)
+        if fifo_switch == 'true':
+            stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by('receipt_date')
+            data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
+            stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
+        else:
+            stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by('location_id__pick_sequence')
+            stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
+        sku_stocks = stock_detail1 | stock_detail2
+        seller_stocks = SellerStock.objects.filter(seller__user=user.id).values('stock_id', 'seller_id')
+        for key, value in request.POST.iteritems():
+            if key in PICKLIST_SKIP_LIST or key in ['filters']:
+                continue
+
+            order_filter = {'quantity__gt': 0 }
+            seller_id = ''
+            if '<>' in key:
+                key = key.split('<>')
+                order_id, sor_id, seller_id = key
+                order_filter['sor_id'] = sor_id
+                order_filter['seller_id'] = seller_id
+            else:
+                order_id = key
+            if seller_id:
+                seller_stock_dict = filter(lambda person: str(person['seller_id']) == str(seller_id), seller_stocks)
+                if seller_stock_dict:
+                    sell_stock_ids =  map(lambda person: person['stock_id'], seller_stock_dict)
+                    sku_stocks = sku_stocks.filter(id__in=sell_stock_ids)
+            order_code = ''.join(re.findall('\D+', order_id))
+            order_id = ''.join(re.findall('\d+', order_id))
+            order_filter['order__order_id'] = order_id
+            order_filter['order__order_code'] = order_code
+
+            seller_orders = all_seller_orders.filter(**order_filter).order_by('order__shipment_date')
+
+            stock_status, picklist_number = picklist_generation(seller_orders, request, picklist_number, user, sku_combos, sku_stocks,\
+                                                       status = 'open', remarks='', is_seller_order=True)
+
+            if stock_status:
+                out_of_stock = out_of_stock + stock_status
+
+        if out_of_stock:
+            stock_status = 'Insufficient Stock for SKU Codes ' + ', '.join(list(set(out_of_stock)))
+        else:
+            stock_status = ''
+
+        show_image = 'false'
+        use_imei = 'false'
+        order_status = ''
+        headers = list(PROCESSING_HEADER)
+        data1 = MiscDetail.objects.filter(user=user.id, misc_type='show_image')
+        if data1:
+            show_image = data1[0].misc_value
+        if show_image == 'true':
+            headers.insert(0, 'Image')
+        imei_data = MiscDetail.objects.filter(user=user.id, misc_type='use_imei')
+        if imei_data:
+            use_imei = imei_data[0].misc_value
+        if use_imei == 'true':
+            headers.insert(-1, 'Serial Number')
+        if get_misc_value('pallet_switch', user.id) == 'true':
+            headers.insert(headers.index('Location') + 1, 'Pallet Code')
+
+        data, sku_total_quantities = get_picklist_data(picklist_number + 1, user.id)
+        if not stock_status:
+            order_status = data[0]['status']
+            if order_status == 'open':
+                headers.insert(headers.index('WMS Code'),'Order ID')
+                order_count = list(set(map(lambda d: d.get('order_no', ''), data)))
+                order_count_len = len(filter(lambda x: len(str(x))>0, order_count))
+                if order_count_len == 1:
+                    single_order = str(order_count[0])
+    except Exception as e:
+        log.info('Seller Order level Generate Picklist failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse(json.dumps({'stock_status': 'Generate Picklist Failed'}))
+
+    return HttpResponse(json.dumps({'data': data, 'headers': headers,
+                           'picklist_id': picklist_number + 1,'stock_status': stock_status, 'show_image': show_image,
+                           'use_imei': use_imei, 'order_status': order_status, 'user': request.user.id}))
+
 

@@ -84,17 +84,19 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     //Other View
     self.other_view = {
 
-                        views: ['OrderView', 'SKUView', 'CustomerOrderView', 'CustomerCategoryView'],
+                        views: ['OrderView', 'SKUView', 'CustomerOrderView', 'CustomerCategoryView', 'SellerOrderView'],
                         view: 'OrderView',
                         generate_picklist_urls : { 'CustomerOrderView': 'order_category_generate_picklist/',
                                                    'CustomerCategoryView': 'order_category_generate_picklist/',
                                                    'OrderView': 'generate_picklist/',
-                                                   'SKUView': 'batch_generate_picklist/'
+                                                   'SKUView': 'batch_generate_picklist/',
+                                                   'SellerOrderView': 'seller_generate_picklist/'
                                                  },
                         tb_headers: { 'CustomerOrderView': ['Customer Name', 'Order ID', 'Market Place', 'Total Quantity', 'Shipment Date', 'Creation Date', 'Order Taken By', 'Status'],
                                       'CustomerCategoryView': ['Customer Name', 'Order ID', 'Category', 'Total Quantity', 'Order Taken By', 'Status'],
                                       'SKUView': ['SKU Code','Title', 'Total Quantity'],
-                                      'OrderView': ['Order ID', 'SKU Code', 'Title', 'Product Quantity', 'Shipment Date', 'Order Taken By', 'Status']
+                                      'OrderView': ['Order ID', 'SKU Code', 'Title', 'Product Quantity', 'Shipment Date', 'Order Taken By', 'Status'],
+                                      'SellerOrderView': ['SOR ID', 'UOR ID', 'Seller Name', 'Customer Name', 'Market Place', 'Total Quantity', 'Creation Date', 'Order Taken By', 'Status']
                                     },
                         dt_data: {'OrderView': {}, 'OrderCategoryView': ''}
                       }

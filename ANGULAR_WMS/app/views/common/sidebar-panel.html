@@ -99,7 +99,7 @@
             <span>Size Master</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('add_pricemaster')">
           <a ui-sref="app.masters.PricingMaster">
             <span>Pricing Master</span>
           </a>
@@ -107,6 +107,11 @@
         <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
           <a ui-sref="app.masters.SellerMaster">
             <span>Seller Master</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+          <a ui-sref="app.masters.SellerMarginMapping">
+            <span>Seller Margin Mapping</span>
           </a>
         </li>
       </ul>
@@ -279,7 +284,7 @@
       </a>
     </li>
 
-    <li ui-sref-active="active">
+    <li ui-sref-active="active" ng-show="show_tab('add_issues')">
       <a ui-sref="app.OrdersSyncIssues">
          <i class="fa fa-refresh"></i>
          <span>Orders Sync Issues</span>

@@ -1438,8 +1438,10 @@ class SellerPO(models.Model):
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
     seller_quantity = models.FloatField(default=0)
     received_quantity = models.FloatField(default=0)
-    putaway_quantity = models.FloatField(default=0)
+    #putaway_quantity = models.FloatField(default=0)
     receipt_type = models.CharField(max_length=64, default='purchase_order')
+    unit_price = models.FloatField(default=0)
+    margin_percent = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1457,6 +1459,8 @@ class SellerPOSummary(models.Model):
     receipt_number = models.PositiveIntegerField(default=0)
     seller_po = models.ForeignKey(SellerPO, blank=True, null=True, db_index=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True, db_index=True)
+    location = models.ForeignKey(LocationMaster, blank=True, null=True)
+    putaway_quantity = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1467,13 +1471,28 @@ class SellerPOSummary(models.Model):
     def __unicode__(self):
         return str(self.id)
 
+class SellerMarginMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True, db_index=True)
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True, db_index=True)
+    margin = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SELLER_MARGIN_MAPPING'
+        unique_together = ('seller', 'sku')
+
+    def __unicode__(self):
+        return str(self.seller) + " : " + str(self.sku)
+
 class SellerOrder(models.Model):
     id = BigAutoField(primary_key=True)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
     sor_id = models.CharField(max_length=128,default='')
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
-    reserved = models.FloatField(default=0)
+    #reserved = models.FloatField(default=0)
     order_status = models.CharField(max_length=64, default='')
     invoice_no = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
@@ -1488,12 +1507,27 @@ class SellerOrder(models.Model):
     def __unicode__(self):
         return str(self.sor_id)
 
+class SellerOrderDetail(models.Model):
+    id = BigAutoField(primary_key=True)
+    seller_order = models.ForeignKey(SellerOrder, blank=True, null=True, db_index=True)
+    picklist = models.ForeignKey(Picklist, blank=True, null=True, db_index=True)
+    quantity = models.FloatField(default=0)
+    reserved = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SELLER_ORDER_DETAIL'
+        unique_together = ('seller_order', 'picklist')
+        index_together = ('seller_order', 'picklist')
+
 class SellerOrderSummary(models.Model):
     id = BigAutoField(primary_key=True)
     pick_number = models.PositiveIntegerField(default=0)
     seller_order = models.ForeignKey(SellerOrder, blank=True, null=True, db_index=True)
     picklist = models.ForeignKey(Picklist, blank=True, null=True, db_index=True)
     quantity = models.FloatField(default=0)
+    #reserved = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

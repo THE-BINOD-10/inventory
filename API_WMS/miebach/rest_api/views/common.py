@@ -1616,7 +1616,7 @@ def get_invoice_number(user):
         invoice_number = int(invoice_detail[0].invoice_number) + 1
     return invoice_number
 
-def get_invoice_data(order_ids, user, merge_data = ""):
+def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''
@@ -1695,7 +1695,7 @@ def get_invoice_data(order_ids, user, merge_data = ""):
                 else:
                     continue
 
-            if not picklist:
+            if not picklist and not is_seller_order:
                 picklist = Picklist.objects.filter(order_id=dat.id, order_type='combo', picked_quantity__gt=0).\
                                             annotate(total=Sum('picked_quantity'))
                 if picklist:

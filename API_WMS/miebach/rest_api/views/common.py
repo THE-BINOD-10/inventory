@@ -1616,7 +1616,7 @@ def get_invoice_number(user):
         invoice_number = int(invoice_detail[0].invoice_number) + 1
     return invoice_number
 
-def get_invoice_data(order_ids, user, merge_data = ""):
+def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''
@@ -1695,7 +1695,7 @@ def get_invoice_data(order_ids, user, merge_data = ""):
                 else:
                     continue
 
-            if not picklist:
+            if not picklist and not is_seller_order:
                 picklist = Picklist.objects.filter(order_id=dat.id, order_type='combo', picked_quantity__gt=0).\
                                             annotate(total=Sum('picked_quantity'))
                 if picklist:
@@ -2408,16 +2408,21 @@ def get_vendors_list(request, user=''):
 
     return HttpResponse(json.dumps({'data': resp}))
 
+def apply_search_sort(columns, data_dict, order_term, search_term, col_num, exact=False):
+    if search_term:
+        search_filter = []
+        for item in columns:
+            comp_var = 'in'
+            if exact:
+                comp_var = '=='
+            search_filter.append("'%s'.lower() %s str(person['%s']).lower()" % (search_term, comp_var, item))
+        final_filter = "filter(lambda person: " + ' or '.join(search_filter) + ', data_dict)'
+        data_dict = eval(final_filter)
 
-
-
-
-
-
-
-
-
-
-
-
-
+    if order_term:
+        order_data = columns[col_num]
+        if order_term == "asc":
+            data_dict = sorted(data_dict, key = lambda x: x[order_data])
+        else:
+            data_dict = sorted(data_dict, key = lambda x: x[order_data], reverse= True)
+    return data_dict

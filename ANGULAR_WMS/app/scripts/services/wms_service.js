@@ -105,10 +105,16 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         send.empty_data[data.name] = ""
       });
 
+      var method = "GET";
+      var urls = ["get_sku_purchase_filter"];
+      if (urls.indexOf(data.dt_url) > -1) {
+
+        method = "POST";
+      }
       send.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url + data.dt_url + '/',
-              type: 'GET',
+              type: method,
               data: send.empty_data,
               xhrFields: {
                 withCredentials: true
@@ -117,9 +123,38 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
        .withDataProp('data')
        .withOption('processing', true)
        .withOption('serverSide', true)
-       .withPaginationType('full_numbers');
+       .withPaginationType('full_numbers')
+       .withOption('rowCallback', rowCallback);
+
+      function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+        $('td', nRow).unbind('click');
+        $('td', nRow).bind('click', function() {
+          console.log(aData);
+          if(data["row_call"]) {
+            data.row_call(aData);
+          }
+        });
+        return nRow;
+      }
+
+      if(Session.user_profile.user_type == "marketplace_user") {
+
+        if(data["mk_dt_headers"]) {
+
+          data.dt_headers = data.mk_dt_headers;
+        }
+      }
 
       send.dtColumns = vm.build_colums(data.dt_headers);
+
+      if(data["row_call"]) {
+
+        data["row_click"] = true;
+      } else {
+
+        data["row_click"] = false;
+      }
+
       d.resolve(send);
       return d.promise;
     }

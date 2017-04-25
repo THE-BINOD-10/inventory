@@ -90,38 +90,6 @@ def get_raised_stock_transfer(start_index, stop_index, temp_data, search_term, o
                                     'DT_RowAttr': {'id': data['warehouse__username']}})
 
 
-'''def get_purchase_order_data(order):
-    order_data = {}
-    if 'job_code' in dir(order):
-        order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group, 'sku': order.product_code }
-        return order_data
-    elif order.open_po:
-        open_data = order.open_po
-        user_data = order.open_po.supplier
-        address = user_data.address
-        email_id = user_data.email_id
-        username = user_data.name
-        order_quantity = open_data.order_quantity
-    else:
-        st_order = STPurchaseOrder.objects.filter(po_id=order.id)
-        st_picklist = STOrder.objects.filter(stock_transfer__st_po_id=st_order[0].id)
-        open_data = st_order[0].open_st
-        user_data = UserProfile.objects.get(user_id=st_order[0].open_st.warehouse_id)
-        address = user_data.location
-        email_id = user_data.user.email
-        username = user_data.user.username
-        order_quantity = open_data.order_quantity
-
-
-    order_data = {'order_quantity': order_quantity, 'price': open_data.price, 'wms_code': open_data.sku.wms_code,
-                  'sku_code': open_data.sku.wms_code, 'supplier_id': user_data.id, 'zone': open_data.sku.zone,
-                  'qc_check': open_data.sku.qc_check, 'supplier_name': username,
-                  'sku_desc': open_data.sku.sku_desc, 'address': address,
-                  'phone_number': user_data.phone_number, 'email_id': email_id,
-                  'sku_group': open_data.sku.sku_group, 'sku_id': open_data.sku.id, 'sku': open_data.sku }
-
-    return order_data'''
-
 @csrf_exempt
 def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
@@ -687,6 +655,7 @@ def modify_po_update(request, user=''):
         po_suggestions['price'] = float(value['price'])
         po_suggestions['status'] = 'Manual'
         po_suggestions['remarks'] = value['remarks']
+        po_suggestions['tax'] = value['tax']
 
         data = OpenPO(**po_suggestions)
         data.save()
@@ -803,7 +772,7 @@ def confirm_po(request, user=''):
                         seller_po.seller_quantity = val[0]
                         seller_po.save()
                     else:
-                        SellerPO.objects.create(seller_id=k, open_po_id=record.id, seller_quantity=val[0],
+                        SellerPO.objects.create(seller_id=k, open_po_id=purchase_order.id, seller_quantity=val[0],
                                          creation_date=datetime.datetime.now(), status=1, receipt_type=value['receipt_type'])
         else:
             sku_id = SKUMaster.objects.filter(wms_code=key.upper(), user=user.id)
@@ -832,6 +801,7 @@ def confirm_po(request, user=''):
             po_suggestions['status'] = 'Manual'
             po_suggestions['remarks'] = value['remarks']
             po_suggestions['measurement_unit'] = "UNITS"
+            po_suggestions['tax'] = value['tax']
             if value['measurement_unit']:
                 if value['measurement_unit'] != "":
                     po_suggestions['measurement_unit'] = value['measurement_unit']
@@ -864,7 +834,11 @@ def confirm_po(request, user=''):
         order.save()
 
         amount = float(purchase_order.order_quantity) * float(purchase_order.price)
-        total += amount
+        tax = value['tax']
+        if not tax:
+            total += amount
+        else:
+            total += amount + ((amount/100) * float(tax))
 
         total_qty += float(purchase_order.order_quantity)
 
@@ -996,6 +970,7 @@ def get_raisepo_group_data(user, myDict):
         receipt_type = ''
         data_id = ''
         seller_po_id = ''
+        tax = 0
         if 'remarks' in myDict.keys():
             remarks = myDict['remarks'][i]
         if 'supplier_code' in myDict.keys():
@@ -1016,12 +991,16 @@ def get_raisepo_group_data(user, myDict):
             data_id = myDict['data-id'][i]
         if 'seller_po_id' in myDict.keys():
             seller_po_id = myDict['seller_po_id'][i]
+        if 'tax' in myDict.keys():
+            tax = myDict['tax'][0]
+            if not tax:
+                tax = 0
 
         cond = (myDict['wms_code'][i])
         all_data.setdefault(cond, {'order_quantity': 0, 'price': price, 'supplier_id': myDict['supplier_id'][0],
                                    'supplier_code': supplier_code, 'po_name': po_name, 'receipt_type': receipt_type,
                                    'remarks': remarks, 'measurement_unit': measurement_unit,
-                                   'vendor_id': vendor_id, 'ship_to': ship_to, 'sellers': {}, 'data_id': data_id})
+                                   'vendor_id': vendor_id, 'ship_to': ship_to, 'sellers': {}, 'data_id': data_id, 'tax': tax})
         all_data[cond]['order_quantity'] += float(myDict['order_quantity'][i])
         if 'dedicated_seller' in myDict:
             seller = myDict['dedicated_seller'][i]
@@ -1085,6 +1064,7 @@ def add_po(request, user=''):
             po_suggestions['status'] = 'Manual'
             po_suggestions['po_name'] = value['po_name']
             po_suggestions['remarks'] = value['remarks']
+            po_suggestions['tax'] = value['tax']
             if value.get('vendor_id', ''):
                 vendor_master = VendorMaster.objects.get(vendor_id=value['vendor_id'], user=user.id)
                 po_suggestions['vendor_id'] = vendor_master.id
@@ -1591,6 +1571,7 @@ def supplier_code_mapping(request, myDict, i, data, user=''):
                 new_mapping = SKUSupplier(**sku_mapping)
                 new_mapping.save()
 
+@fn_timer
 def get_purchase_order_data(order):
     order_data = {}
     status_dict = {'SR': 'Self Receipt', 'VR': 'Vendor Receipt'}
@@ -1727,7 +1708,10 @@ def update_seller_po(data, value, user, receipt_id=''):
                     margin_percent = float(margin_percent)
                 except:
                     margin_percent = 0
-                unit_price = float(data.open_po.price)/(1-(margin_percent/100))
+                price = float(data.open_po.price)
+                if data.open_po.tax:
+                    price = price + ((price/100)*float(data.open_po.tax))
+                unit_price = float(price)/(1-(margin_percent/100))
                 sell_po.unit_price = float(("%."+ str(2) +"f") % (unit_price))
                 sell_po.margin_percent = margin_percent
         seller_quantity = sell_po.seller_quantity
@@ -3112,6 +3096,7 @@ def confirm_add_po(request, sales_data = '', user=''):
         po_suggestions['status'] = 'Manual'
         po_suggestions['remarks'] = value['remarks']
         po_suggestions['measurement_unit'] = "UNITS"
+        po_suggestions['tax'] = value['tax']
         if value['measurement_unit']:
             if value['measurement_unit'] != "":
                 po_suggestions['measurement_unit'] = value['measurement_unit']
@@ -3145,7 +3130,11 @@ def confirm_add_po(request, sales_data = '', user=''):
                                         creation_date=datetime.datetime.now(), status=1, receipt_type=value['receipt_type'])
 
         amount = float(purchase_order.order_quantity) * float(purchase_order.price)
-        total += amount
+        tax = value['tax']
+        if not tax:
+            total += amount
+        else:
+            total += amount + ((amount/100) * float(tax))
         total_qty += purchase_order.order_quantity
         if purchase_order.sku.wms_code == 'TEMP':
             wms_code = purchase_order.wms_code
@@ -3270,7 +3259,11 @@ def confirm_po1(request, user=''):
                 order.save()
 
                 amount = float(purchase_order.order_quantity) * float(purchase_order.price)
-                total += amount
+                tax = purchase_order.tax
+                if not tax:
+                    total += amount
+                else:
+                    total += amount + ((amount/100) * float(tax))
                 total_qty += float(purchase_order.order_quantity)
 
                 if purchase_order.sku.wms_code == 'TEMP':
@@ -3832,12 +3825,14 @@ def generate_seller_invoice(request, user=''):
             buyer_address = seller.name + '\n' + seller.address + "\nCall: " \
                                 + seller.phone_number + "\nEmail: " + seller.email_id
         tax = 0
-        vat = 5.5
+        vat = seller_po_summary.seller_po.open_po.tax
         discount = 0
         quantity = seller_po_summary.quantity
         mrp_price = seller_po_summary.seller_po.open_po.price
         if seller_po_summary.seller_po.unit_price:
             mrp_price = seller_po_summary.seller_po.unit_price
+            if vat:
+                mrp_price = (mrp_price * 100)/(100+vat)
         invoice_amount = float(mrp_price) * float(quantity)
         tax = float(float(invoice_amount)/100) * vat
         total_amount = invoice_amount + tax - discount

@@ -1409,6 +1409,18 @@ var app = angular.module('urbanApp')
             title: 'Open JO Report',
           }
         })
+        .state('app.reports.SellerInvoiceDetails', {
+          url: '/SellerInvoiceDetails',
+          templateUrl: 'views/reports/seller_invoice_details.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/seller_invoice_details.js');
+              }]
+          },
+          data: {
+            title: 'Seller Invoice Details',
+          }
+        })
       // configuration route
       .state('app.configurations', {
           url: '/configurations',

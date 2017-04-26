@@ -105,16 +105,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         send.empty_data[data.name] = ""
       });
 
-      var method = "GET";
-      var urls = ["get_sku_purchase_filter"];
-      if (urls.indexOf(data.dt_url) > -1) {
-
-        method = "POST";
-      }
       send.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url + data.dt_url + '/',
-              type: method,
+              type: 'POST',
               data: send.empty_data,
               xhrFields: {
                 withCredentials: true

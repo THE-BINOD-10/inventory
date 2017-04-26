@@ -246,6 +246,8 @@ urlpatterns = patterns('rest_api.views',
     url(r'^print_daily_production_report/$', 'print_daily_production_report'),
     url(r'^print_order_summary_report/$', 'print_order_summary_report'),
     url(r'^get_marketplaces_list_reports/$', 'get_marketplaces_list_reports'),
+    url(r'^get_seller_invoices_filter/$', 'get_seller_invoices_filter'),
+    url(r'^print_seller_invoice_report/$', 'print_seller_invoice_report'),
 
 )
 

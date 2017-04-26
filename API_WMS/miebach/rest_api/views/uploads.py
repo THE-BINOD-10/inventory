@@ -777,6 +777,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
         sku_code = ''
         wms_code = ''
         sku_data = None
+        _size_type = ''
         for key, value in sku_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, sku_file_mapping[key], reader, file_type)
 
@@ -870,7 +871,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             all_sku_masters.append(sku_master)
             sku_data = sku_master
 
-        check_update_size_type(sku_data, _size_type)
+        if _size_type:
+            check_update_size_type(sku_data, _size_type)
 
     get_user_sku_data(user)
     insert_update_brands(user)

@@ -62,10 +62,7 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
     sku_master, sku_master_ids = get_sku_master(user,request.user)
     lis = ['wms_code', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone', 'status']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
-    print filters
     search_params1, search_params2 = get_filtered_params_search(filters, lis)
-    print search_params1
-    print search_params2
     if 'status__icontains' in search_params1.keys():
         if (str(search_params['status__icontains']).lower() in "active"):
             search_params1["status__icontains"] = 1
@@ -438,6 +435,7 @@ def get_sku_data(request,user=''):
     sku_data['mrp'] = data.mrp
     sku_data['size_type'] = 'Default'
     sku_data['mix_sku'] = data.mix_sku
+    sku_data['ean_number'] = data.ean_number
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -449,7 +447,7 @@ def get_sku_data(request,user=''):
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
     return  HttpResponse(json.dumps({'sku_data': sku_data,'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
-                                     'market_data':market_data, 'combo_data': combo_data, 'sizes_list': sizes_list}))
+                                     'market_data':market_data, 'combo_data': combo_data, 'sizes_list': sizes_list}, cls=DjangoJSONEncoder))
 
 @csrf_exempt
 def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -584,6 +582,9 @@ def update_sku(request,user=''):
             zone = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})
             key = 'zone_id'
             value = zone.id
+        elif key == 'ean_number':
+            if not value:
+                value = 0
         elif key == 'size_type':
             check_update_size_type(data, value)
             continue

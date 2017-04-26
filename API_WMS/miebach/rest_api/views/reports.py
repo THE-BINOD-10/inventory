@@ -689,3 +689,23 @@ def get_marketplaces_list_reports(request, user=''):
     marketplace = list(set(sales_marketplace) | set(order_marketplace))
 
     return HttpResponse(json.dumps({'marketplaces': marketplace}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_seller_invoices_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_seller_invoices_filter_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_seller_invoice_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_seller_invoices_filter_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)

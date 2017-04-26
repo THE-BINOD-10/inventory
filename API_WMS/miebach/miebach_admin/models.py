@@ -79,7 +79,7 @@ class SKUMaster(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     color = models.CharField(max_length=64, default='')
-    ean_number = models.IntegerField(db_index=True, default = 0)
+    ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default = 0)
     class Meta:
         db_table = 'SKU_MASTER'
         unique_together = ('user', 'sku_code', 'wms_code')

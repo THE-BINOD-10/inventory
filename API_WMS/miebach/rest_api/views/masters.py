@@ -1600,7 +1600,7 @@ def get_custom_sku_code(user, exist_sku='', sku_size='', group_sku=''):
     sku_code = (user.username[:3]).upper() + sku_serial
     if group_sku:
         sku_code = group_sku
-    
+
     if sku_size:
         sku_code = sku_code + '-' + sku_size
     sku_object = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
@@ -1621,9 +1621,11 @@ def create_custom_sku(request, user=''):
     unit_price = request.POST.get('unit_price', 0)
     printing_vendor = request.POST.get('printing_vendor', [])
     embroidery_vendor = request.POST.get('embroidery_name', [])
+    production_unit = request.POST.get('product_unit', [])
 
     print_vendor_obj = None
     embroidery_vendor_obj = None
+    production_unit_obj = None
 
     ven_list = {}
     if printing_vendor:
@@ -1634,6 +1636,10 @@ def create_custom_sku(request, user=''):
         embroidery_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = embroidery_vendor)
         if embroidery_vendor_obj:
             ven_list.update({'embroidery_vendor': embroidery_vendor_obj[0]})
+    if production_unit:
+        production_unit_obj = VendorMaster.objects.filter(user = user.id, vendor_id = production_unit)
+        if production_unit_obj:
+             ven_list.update({'production_unit': production_unit_obj[0]})
 
     product_property = ProductProperties.objects.filter(name=name, property_name=property_name, property_type=property_type)
     if not product_property:

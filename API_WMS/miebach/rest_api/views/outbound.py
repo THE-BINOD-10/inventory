@@ -42,11 +42,12 @@ def get_batch_data(start_index, stop_index, temp_data, search_term, order_term, 
     if search_term:
         mapping_results = OrderDetail.objects.filter(**data_dict).values('sku__sku_code', 'title', 'sku_code').distinct().\
                                               annotate(total=Sum('quantity')).filter(Q(sku__sku_code__icontains=search_term) |
-                                              Q(title__icontains=search_term) | Q(total__icontains=search_term), **search_params).\
-                                              order_by(order_data)
+                                              Q(title__icontains=search_term) | Q(total__icontains=search_term), **search_params)\
+                                              .exclude(order_code = "CO").order_by(order_data)
     else:
         mapping_results = OrderDetail.objects.filter(**data_dict).values('sku__sku_code', 'title', 'sku_code').distinct().\
-                                              annotate(total=Sum('quantity')).filter(**search_params).order_by(order_data)
+                                              annotate(total=Sum('quantity')).filter(**search_params).exclude(order_code = "CO")\
+                                              .order_by(order_data)
 
 
     temp_data['recordsTotal'] = mapping_results.count()
@@ -101,15 +102,15 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     if search_term:
         master_data = OrderDetail.objects.filter(Q(sku__sku_code__icontains = search_term, status=1) | Q(order_id__icontains = search_term,
                                                  status=1) | Q(title__icontains = search_term, status=1) | Q(quantity__icontains = search_term,
-                                                 status=1),user=user.id, quantity__gt=0).filter(**search_params)
+                                                 status=1),user=user.id, quantity__gt=0).filter(**search_params).exclude(order_code = "CO")
 
     elif order_term:
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        master_data = OrderDetail.objects.filter(**data_dict).filter(**search_params).order_by(order_data)
+        master_data = OrderDetail.objects.filter(**data_dict).filter(**search_params).exclude(order_code = "CO").order_by(order_data)
     else:
-        master_data = OrderDetail.objects.filter(**data_dict).filter(**search_params).order_by('shipment_date')
+        master_data = OrderDetail.objects.filter(**data_dict).filter(**search_params).exclude(order_code = "CO").order_by('shipment_date')
 
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -2102,6 +2103,7 @@ def insert_order_data(request, user=''):
             order_data['user'] = user.id
 
             order_data['unit_price'] = 0
+            vendor_items = ['printing_vendor', 'embroidery_vendor', 'production_unit']
 
             for key, value in request.GET.iteritems():
                 if key in ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount', 'description']:
@@ -2192,6 +2194,12 @@ def insert_order_data(request, user=''):
                 order_data['creation_date'] = datetime.datetime.now()
                 order_detail = OrderDetail(**order_data)
                 order_detail.save()
+
+                for item in vendor_items:
+                    var = ""
+                    var = SKUFields.objects.filter(sku_id = order_detail.sku_id, field_type = item, sku__user = order_detail.user)
+                    if var:
+                        OrderMapping.objects.create(mapping_id = var[0].field_id, mapping_type = item, order_id = order_detail.id)
 
                 order_objs.append(order_detail)
                 order_sku.update({order_detail.sku : order_data['quantity']})
@@ -2869,6 +2877,34 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                     sku_master[ind]['pricing_price'] = 0
     return sku_master
 
+
+def all_whstock_quant(sku_master, user):
+
+    stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
+    stock_display_warehouse = list(eval(stock_display_warehouse))
+
+    stock_qty_all = dict(StockDetail.objects.filter(sku__user__in = stock_display_warehouse, sku__sku_class = sku_master[0]['sku_class'], quantity__gt=0).values_list('sku__wms_code').distinct().annotate(in_stock=Sum('quantity')))
+
+    purchase_orders_obj = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user__in = stock_display_warehouse, open_po__sku__sku_class = sku_master[0]['sku_class'])
+
+    ordered_qties = dict(purchase_orders_obj.values_list('open_po__sku__wms_code').annotate(total_order=Sum('open_po__order_quantity')))
+    recieved_qties = dict(purchase_orders_obj.values_list('open_po__sku__wms_code').annotate(total_recieved=Sum('received_quantity')))
+
+    reserved_quantities = dict(PicklistLocation.objects.filter(stock__sku__user__in = stock_display_warehouse, stock__sku__sku_class = sku_master[0]['sku_class'], status=1).values_list('stock__sku__wms_code').distinct().annotate(in_reserved=Sum('reserved')))
+
+    for item in sku_master:
+        ordered_qty = ordered_qties.get(item["wms_code"], 0)
+        recieved_qty = recieved_qties.get(item["wms_code"], 0)
+        intransit_qty = ordered_qty - recieved_qty
+
+        reserved_qty = reserved_quantities.get(item["wms_code"], 0)
+        stock_qty = stock_qty_all.get(item["wms_code"], 0)
+
+        all_quantity = stock_qty - reserved_qty + intransit_qty
+        item['all_quantity'] = all_quantity
+
+    return sku_master
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -2901,6 +2937,8 @@ def get_sku_variants(request, user=''):
     sku_master = [ key for key,_ in groupby(sku_master)]
 
     sku_master = get_style_variants(sku_master, user, customer_id=customer_id, customer_data_id=customer_data_id)
+
+    sku_master = all_whstock_quant(sku_master, user)
 
     return HttpResponse(json.dumps({'data': sku_master}))
 
@@ -3143,6 +3181,15 @@ def generate_order_po_data(request, user=''):
 @csrf_exempt
 @get_admin_user
 def get_view_order_details(request, user=''):
+
+
+    view_order_status = get_misc_value('view_order_status', user.id)
+
+    view_order_status = view_order_status.split(',')
+
+    all_status = [key for key,value in CUSTOM_ORDER_STATUS.iteritems() if value in view_order_status]
+
+
     data_dict = []
     main_id = request.GET['order_id']
     row_id = request.GET['id']
@@ -3167,6 +3214,7 @@ def get_view_order_details(request, user=''):
 	    cus_data.append(tuple_data)
     for one_order in order_details:
         order_id = one_order.order_id
+        _order_id = order_id
         order_code = one_order.order_code
         market_place = one_order.marketplace
         order_id = order_code + str(order_id)
@@ -3197,16 +3245,20 @@ def get_view_order_details(request, user=''):
                       'image_url': one_order.sku.image_url, 'market_place': one_order.marketplace,
                       'order_id_code': one_order.order_code + str(one_order.order_id)})
     customization_data = []
-    _print_vendor, _embroidery_vendor = [], []
+    vend_dict = {'printing_vendor' : "", 'embroidery_vendor' : "", 'production_unit' : ""}
     if str(sku_type) == 'CS':
         fields_list = SKUFields.objects.filter(sku_id=sku_id,field_type=field_type)
 
-        VENDOR_FIELD = ['printing_vendor', 'embroidery_vendor']
-
-        vendor_list_obj = SKUFields.objects.filter(sku_id__in = sku_id_list, field_type__in = VENDOR_FIELD)
-        _print_vendor = vendor_list_obj.filter(field_type = 'printing_vendor').values_list('field_value', flat = True).distinct()
-
-        _embroidery_vendor = vendor_list_obj.filter(field_type = 'embroidery_vendor').values_list('field_value', flat = True).distinct()
+        vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']
+        for item in vendor_list:
+            var = ""
+            map_obj = OrderMapping.objects.filter(order__order_id = _order_id, order__user = user.id, mapping_type = item)
+            if map_obj:
+                var_id = map_obj[0].mapping_id
+                vend_obj = VendorMaster.objects.filter(id = var_id)
+                if vend_obj:
+                    var = vend_obj[0].name
+                    vend_dict[item] = var
 
         if fields_list:
             for field in fields_list:
@@ -3222,7 +3274,8 @@ def get_view_order_details(request, user=''):
                     custom_data = (attr_name,attr_desc,img_data,img_url)
                     customization_data.append(custom_data)
     data_dict.append({'customization_data': customization_data,'cus_data': cus_data,'status': status_obj, 'ord_data': order_details_data,
-                        'print_vendor' : list(_print_vendor), 'embroidery_vendor': list(_embroidery_vendor), 'central_remarks': central_remarks})
+                    'print_vendor' : vend_dict['printing_vendor'], 'embroidery_vendor': vend_dict['embroidery_vendor'],
+                    'central_remarks': central_remarks, 'production_unit': vend_dict['production_unit'], 'all_status': all_status})
 
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 
@@ -3445,10 +3498,10 @@ def get_order_category_view_data(start_index, stop_index, temp_data, search_term
                                               'order_code', 'original_order_id').distinct().\
                                               annotate(total=Sum('quantity')).filter(Q(customer_name__icontains=search_term) |
                                               Q(order_id__icontains=search_term) | Q(sku__sku_category__icontains=search_term),
-                                              **search_params).order_by(order_data)
+                                              **search_params).exclude(order_code = "CO").order_by(order_data)
     else:
-        mapping_results = OrderDetail.objects.filter(**data_dict).values('customer_name', 'order_id', 'sku__sku_category',
-                                              'order_code', 'original_order_id').distinct().\
+        mapping_results = OrderDetail.objects.filter(**data_dict).exclude(order_code = "CO").values('customer_name', 'order_id',
+                                            'sku__sku_category', 'order_code', 'original_order_id').distinct().\
                                               annotate(total=Sum('quantity')).filter(**search_params).order_by(order_data)
 
 
@@ -3522,7 +3575,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         single_search = "yes"
         del(search_params['city__icontains'])
 
-    all_orders = OrderDetail.objects.filter(**data_dict)
+    all_orders = OrderDetail.objects.filter(**data_dict).exclude(order_code = "CO")
     if search_term:
         mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id', 'shipment_date', 'marketplace').\
                                               distinct().annotate(total=Sum('quantity')).filter(Q(customer_name__icontains=search_term) |
@@ -3590,6 +3643,81 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
             temp_data['aaData'] = sorted(temp_data['aaData'], key = lambda x: x[order_data], reverse= True)
 
     """
+
+
+@csrf_exempt
+def get_custom_order_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters = {}, user_dict={}):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    #user_dict = eval(user_dict)
+    lis = ['id', 'customer_name', 'order_id', 'total', 'shipment_date', 'creation_date', 'production_unit', 'printing_vendor', 'embroidery_unit', 'order_taken_by', 'status']
+    data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0, 'order_code': "CO"}
+
+    order_taken_val_user = CustomerOrderSummary.objects.filter(order__user=user.id)
+
+    all_orders = OrderDetail.objects.filter(**data_dict)
+    mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id', 'shipment_date').\
+                                              distinct().annotate(total=Sum('quantity'))
+
+    index = 0
+    vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']
+    for dat in mapping_results:
+        vend_dict = {'printing_vendor' : "", 'embroidery_vendor' : "", 'production_unit' : ""}
+        cust_status, time_slot, order_taken_val = "", "", ""
+        if order_taken_val_user:
+            cust_status_obj = order_taken_val_user.filter(order__order_id = dat['order_id'])
+            if cust_status_obj:
+                cust_status = cust_status_obj[0].status
+                time_slot = cust_status_obj[0].shipment_time_slot
+                order_taken_val = cust_status_obj[0].order_taken_by
+
+        for item in vendor_list:
+            var = ""
+            map_obj = OrderMapping.objects.filter(order__order_id = dat['order_id'], order__user = user.id, mapping_type = item)
+            if map_obj:
+                var_id = map_obj[0].mapping_id
+                vend_obj = VendorMaster.objects.filter(id = var_id)
+                if vend_obj:
+                    var = vend_obj[0].name
+                    vend_dict[item] = var
+
+
+        order_id = dat['order_code'] + str(dat['order_id'])
+        check_values = order_id
+        name = all_orders.filter(order_id=dat['order_id'], order_code=dat['order_code'], user=user.id)[0].id
+        creation_date = all_orders.filter(order_id=dat['order_id'], order_code=dat['order_code'], user=user.id)[0].creation_date
+        creation_data = get_local_date(request.user, creation_date, True).strftime("%d %b, %Y")
+
+        shipment_data = get_local_date(request.user, dat['shipment_date'], True).strftime("%d %b, %Y")
+        if time_slot:
+            if "-" in time_slot:
+                time_slot = time_slot.split("-")[0]
+
+            shipment_data = shipment_data + ', ' + time_slot
+
+        checkbox = "<input type='checkbox' name='%s' value='%s'>" % (name, dat['total'])
+
+        temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('data_value', check_values), ('Customer Name', dat['customer_name']),
+                                                 ('Order ID', order_id), ('Production Unit', vend_dict['production_unit']),
+                                                 ('Printing Unit', vend_dict['printing_vendor']),
+                                                 ('Embroidery Unit', vend_dict['embroidery_vendor']),
+                                                 ('Total Quantity', dat['total']), ('Order Taken By', order_taken_val),
+                                                 ('Creation Date', creation_data), ('Shipment Date', shipment_data),
+                                                 ('id', index), ('DT_RowClass', 'results'), ('Status', cust_status) )))
+        index += 1
+
+
+    col_val = ['id', 'Customer Name', 'Order ID', 'Total Quantity', 'Shipment Date', 'Creation Date', 'Production Unit', 'Printing Unit', 'Embroidery Unit', 'Order Taken By', 'Status']
+
+    temp_data['aaData'] = apply_search_sort(col_val, temp_data['aaData'], order_term, search_term, col_num)
+    temp_data['recordsTotal'] = len(temp_data['aaData'])
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+
+
+
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -3746,6 +3874,23 @@ def update_order_data(request, user = ""):
             status_obj.central_remarks = myDict['central_remarks'][0]
 
             status_obj.save()
+
+            vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']
+            for item in vendor_list:
+                if myDict.has_key(item):
+                    if not myDict[item][0]:
+                        OrderMapping.objects.filter(order__id = order_obj.id, order__user = user.id, mapping_type = item).delete()
+                    else:
+                        ord_map_obj = OrderMapping.objects.filter(order__id = order_obj.id, order__user = user.id, mapping_type = item)
+                        vend_obj = VendorMaster.objects.filter(vendor_id = myDict[item][0], user = user.id)
+                        if vend_obj:
+                            vendor_id = vend_obj[0].id
+                            if ord_map_obj:
+                                ord_map_obj = ord_map_obj[0]
+                                ord_map_obj.mapping_id = vendor_id
+                                ord_map_obj.save()
+                            else:
+                                OrderMapping.objects.create(mapping_id = vendor_id, mapping_type = item, order_id = order_obj.id)
 
     end_time = datetime.datetime.now()
     duration = end_time - st_time

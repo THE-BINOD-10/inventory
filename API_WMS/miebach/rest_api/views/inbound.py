@@ -728,6 +728,8 @@ def switches(request, user=''):
                     'order_headers' : 'order_headers',
                     'detailed_invoice' : 'detailed_invoice',
                     'scan_picklist_option' : 'scan_picklist_option',
+                    'stock_display_warehouse': 'stock_display_warehouse',
+                    'view_order_status': 'view_order_status',
                     'seller_margin': 'seller_margin'
                   }
 

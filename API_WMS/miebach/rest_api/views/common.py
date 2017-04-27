@@ -18,7 +18,7 @@ from xlrd import open_workbook, xldate_as_tuple
 import operator
 from django.db.models import Q, F
 from django.conf import settings
-
+from sync_sku import *
 import csv
 import hashlib
 import os
@@ -320,6 +320,7 @@ data_datatable = {#masters
                   'PullToLocate': 'get_cancelled_putaway',\
                   'StockTransferOrders': 'get_stock_transfer_orders', 'OutboundBackOrders': 'get_back_order_data',\
                   'CustomerOrderView': 'get_order_view_data', 'CustomerCategoryView': 'get_order_category_view_data',\
+                  'CustomOrders': 'get_custom_order_data',\
                   'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data',\
                   'SellerOrderView': 'get_seller_order_view',\
                   #manage users
@@ -531,7 +532,19 @@ def configurations(request, user=''):
     all_groups = str(','.join(all_groups))
     sku_sync = get_misc_value('sku_sync', user.id)
     order_manage = get_misc_value('order_manage', user.id)
+    stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
+    view_order_status = get_misc_value('view_order_status', user.id)
     seller_margin = get_misc_value('seller_margin', user.id)
+
+    view_order_status = view_order_status.split(',')
+
+
+    if stock_display_warehouse != "false":
+        stock_display_warehouse = stock_display_warehouse.split(',')
+        stock_display_warehouse = map(int, stock_display_warehouse)
+        #stock_display_warehouse = list(eval(stock_display_warehouse))
+    else:
+        stock_display_warehouse = []
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     all_stages = str(','.join(all_stages))
@@ -574,6 +587,11 @@ def configurations(request, user=''):
     if scan_picklist_option:
         _pick_option = scan_picklist_option[0].misc_value
 
+    all_related_warehouse_id = get_related_users(user.id)
+    all_related_warehouse = dict(User.objects.filter(id__in = all_related_warehouse_id).values_list('first_name','id'))
+
+    all_view_order_status = CUSTOM_ORDER_STATUS
+
     report_data_range = MiscDetail.objects.filter(misc_type='report_data_range', user=request.user.id)
     data_range = ''
     if report_data_range:
@@ -600,6 +618,10 @@ def configurations(request, user=''):
                                                              'decimal_limit': decimal_limit, 'picklist_sort_by': picklist_sort_by,
                                                              'stock_sync': stock_sync, 'auto_generate_picklist': auto_generate_picklist,
                                                              'order_management' : order_manage, 'detailed_invoice': detailed_invoice,
+                                                             'all_related_warehouse' : all_related_warehouse,
+                                                             'stock_display_warehouse':  stock_display_warehouse,
+                                                             'all_view_order_status': all_view_order_status,
+                                                             'view_order_status': view_order_status,
                                                              'sku_sync': sku_sync, 'seller_margin': seller_margin}))
 
 @csrf_exempt
@@ -2408,16 +2430,21 @@ def get_vendors_list(request, user=''):
 
     return HttpResponse(json.dumps({'data': resp}))
 
+def apply_search_sort(columns, data_dict, order_term, search_term, col_num, exact=False):
+    if search_term:
+        search_filter = []
+        for item in columns:
+            comp_var = 'in'
+            if exact:
+                comp_var = '=='
+            search_filter.append("'%s'.lower() %s str(person['%s']).lower()" % (search_term, comp_var, item))
+        final_filter = "filter(lambda person: " + ' or '.join(search_filter) + ', data_dict)'
+        data_dict = eval(final_filter)
 
-
-
-
-
-
-
-
-
-
-
-
-
+    if order_term:
+        order_data = columns[col_num]
+        if order_term == "asc":
+            data_dict = sorted(data_dict, key = lambda x: x[order_data])
+        else:
+            data_dict = sorted(data_dict, key = lambda x: x[order_data], reverse= True)
+    return data_dict

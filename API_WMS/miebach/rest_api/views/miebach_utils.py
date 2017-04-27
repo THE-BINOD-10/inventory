@@ -138,6 +138,12 @@ SKU_SUPPLIER_FIELDS = ( (('Supplier ID *', 'supplier_id',60), ('WMS Code *', 'wm
 RAISE_PO_FIELDS = ( (('Supplier ID', 'supplier_id',11), ('PO Name', 'po_name',30)),
                     (('Ship To', 'ship_to',''), ) )
 
+
+CUSTOM_ORDER_STATUS = {'Cleared': 'clear', 'Blocked': 'block', 'PO Raised - Yet to Recieve': 'po_rais',
+                        'In Production Stage': 'prdctn', 'In Printing Stage': 'prnt', 'In Embroidery Stage': 'embrdry',
+                        'Completed': 'cmpltd'}
+
+
 RAISE_PO_FIELDS1 = OrderedDict([('WMS Code *','wms_code'), ('Supplier Code', 'supplier_code'), ('Quantity *','order_quantity'),('Price','price')])
 
 MOVE_INVENTORY_FIELDS = ( (('WMS Code *','wms_code'),('Source Location *','source_loc')),

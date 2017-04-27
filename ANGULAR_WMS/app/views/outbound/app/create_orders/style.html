@@ -31,8 +31,8 @@
         <div class="col-md-4" ng-if="Style.style_data.length > 0">
           <img ng-src="{{ showCase.service.check_image_url(Style.style_data[0]['image_url']) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail">
           <h5 align="center"><b>{{Style.style_data[0].sku_class}}</b></h5>
-          <h5 align="center" ng-if="Style.style_data[0].pricing_price"><b>{{'D83'+Style.style_data[0].pricing_price}}</b></h5>
-          <h5 align="center" ng-if="!(Style.style_data[0].pricing_price) && Style.style_data[0].price"><b>{{'D83'+Style.style_data[0].price}}</b></h5>
+          <h5 align="center" ng-if="Style.style_data[0].pricing_price"><b>{{showCase.service.price_format(Style.style_data[0].pricing_price)}}</b></h5>
+          <h5 align="center" ng-if="!(Style.style_data[0].pricing_price) && Style.style_data[0].price"><b>showCase.service.price_format(Style.style_data[0].price)}}</b></h5>
         </div>
         <div class="col-md-8" style="margin-bottom: 60px;">
           <div class="row">
@@ -41,8 +41,8 @@
                 <thead>
                   <tr>
                     <th ng-repeat="head in (showCase.service.dyn_data.style_detail.head['sagar_fab'])?showCase.service.dyn_data.style_detail.head['sagar_fab']:showCase.service.dyn_data.style_detail.head['common'];">{{head}}</th>
-                    <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">Stock</th>
-                    <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">In Transit</th>
+                    <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">1-Day Stock</th>
+                    <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">3-Day Stock</th>
                     <th>Quantity</th>
                   </tr>
                 </thead>
@@ -50,7 +50,7 @@
                   <tr ng-repeat="style in Style.style_data">
                     <td ng-repeat="head in (showCase.service.dyn_data.style_detail.keys['sagar_fab'])?showCase.service.dyn_data.style_detail.keys['sagar_fab']: showCase.service.dyn_data.style_detail.keys['common']">{{style[head]}}</th>
                     <td ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">{{style.physical_stock}}</td>
-                    <td ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">{{style.intransit_quantity}}</td>
+                    <td ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">{{style.all_quantity}}</td>
                     <td><input class="form-control" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data);" ng-class="service.get_decimal_perm()"></td>
                   </tr>
                 </tbody>

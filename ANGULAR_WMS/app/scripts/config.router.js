@@ -937,9 +937,13 @@ var app = angular.module('urbanApp')
                   files: [
                              'scripts/controllers/outbound/create_orders/create_orders.js',
                              'scripts/controllers/outbound/create_orders/create_stock_orders.js',
-                             'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
+                             'scripts/controllers/outbound/view_orders/custom_orders.js'
                             ]
-                        }]).then(function () {
+                        }]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
+                  ])
+                }).then(function () {
 
                 return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/orders.js');
               });
@@ -983,6 +987,11 @@ var app = angular.module('urbanApp')
             url: '/OrderDetails',
             permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/view_order_details.html'
+          })
+          .state('app.outbound.ViewOrders.CustomOrderDetails', {
+            url: '/CustomOrderDetails',
+            permission: 'add_picklist',
+            templateUrl: 'views/outbound/toggle/custom_order_detail.html'
           })
           .state('app.outbound.ViewOrders.GenerateInvoice', {
             url: '/Invoice',

@@ -202,9 +202,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             }
             vm.order_input_status = false;
 
-            vm.model_data["embroidery_vendor"] = data.data.data_dict[0].embroidery_vendor;
-            vm.model_data["print_vendor"] = data.data.data_dict[0].print_vendor;
             vm.model_data["central_remarks"]= data.data.data_dict[0].central_remarks;
+            vm.model_data["all_status"] = data.data.data_dict[0].all_status;
             angular.forEach(all_order_details, function(value, key){
 
 	          vm.customer_id = value.cust_id;

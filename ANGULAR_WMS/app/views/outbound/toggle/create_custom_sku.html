@@ -109,6 +109,20 @@
                  <option ng-repeat="(id, vendor) in showCase.vendors" value="{{id}}">{{vendor}}</option>
                </select>
              </div>
+             <div class="form-group">
+               <div class="checkbox">
+                 <label>
+                   <input type="checkbox" ng-model="showCase.product_unit_display" ng-init="showCase.product_unit_display = true"> Production Unit
+                 </label>
+               </div>
+             </div>
+             <div class="form-group" ng-if="showCase.product_unit_display">
+               <label class="control-label"> Production Unit Vendor </label>
+               <select class="form-control" ng-model="showCase.pop_data.product_unit" name="product_unit">
+                 <option value="">None</option>
+                 <option ng-repeat="(id, vendor) in showCase.vendors" value="{{id}}">{{vendor}}</option>
+               </select>
+             </div>
            </div>
          </div>
         <div ng-include="'views/common/msg.html'"></div>

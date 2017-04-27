@@ -96,36 +96,62 @@
     </div>
     <div class="row"><hr></div>
     <div class="row">
-      <div class="col-md-12" style="padding-left: 0px;">
+      <div class="col-md-6" style="padding-left: 0px;">
         <h5><b>ORDER DETAILS</b></h5>
+      </div>
+      <div class="col-md-6 text-right" style="padding-left: 0px;">
+        <b>SHIPMENT DATE:</b>
+        <span style="color: rgb(0, 86, 255);">{{showCase.shipment_date}}</span></br>
       </div>
     </div>
     <div class="row">
-      <div class="col-md-4 col-sm-6 col-xs-12">
-          <b>SHIPMENT DATE:</b>
-          <span style="color: rgb(0, 86, 255);">{{showCase.shipment_date}}</span></br>
-          <!--<div ng-if="showCase.model_data.print_vendor.length > 0">
+      <div class="col-md-3 col-sm-3 col-xs-6">
+          <div class="form-group">
             <b>PRINT VENDOR:</b>
-            <span style="color: rgb(0, 86, 255);"><span ng-repeat="vendor in showCase.model_data.print_vendor">{{vendor}}{{(!$last) ? ", ": "";}}</span></span></br>
+            <select class="form-control" ng-model="showCase.model_data.print_vendor" name="printing_vendor">
+               <option ng-selected="vendor == showCase.model_data.print_vendor" value="">None</option>
+               <option ng-repeat="(id, vendor) in showCase.vendors" ng-selected="vendor == showCase.model_data.print_vendor" value="{{id}}">{{vendor}}</option>
+            </select>
+            <!--<input type="text" class="form-control" name="print_vendor" ng-model= "showCase.model_data.print_vendor">-->
           </div>
-          <div ng-if="showCase.model_data.embroidery_vendor.length > 0">
+      </div>
+      <div class="col-md-3 col-sm-3 col-xs-6">
+          <div class="form-group">
             <b>EMBROIDERY VENDOR:</b>
-            <span style="color: rgb(0, 86, 255);"><span ng-repeat="vendor in showCase.model_data.embroidery_vendor">{{vendor}}{{(!$last) ? ", ": "";}}</span></span>
-          </div>-->
+            <select class="form-control" ng-model="showCase.model_data.embroidery_vendor" name="embroidery_vendor">
+               <option ng-selected="vendor == showCase.model_data.embroidery_vendor" value="">None</option>
+               <option ng-repeat="(id, vendor) in showCase.vendors" ng-selected="vendor == showCase.model_data.embroidery_vendor" value="{{id}}">{{vendor}}</option>
+            </select>
+            <!--<input type="text" class="form-control" name="embroidery_vendor" ng-model= "showCase.model_data.embroidery_vendor">-->
+          </div>
+      </div>
+      <div class="col-md-3 col-sm-3 col-xs-6">
+          <div class="form-group">
+            <b>PRODUCTION UNIT:</b>
+            <select class="form-control" ng-model="showCase.model_data.production_unit" name="production_unit">
+               <option ng-selected="vendor == showCase.model_data.production_unit" value="">None</option>
+               <option ng-repeat="(id, vendor) in showCase.vendors" ng-selected="vendor == showCase.model_data.production_unit" value="{{id}}">{{vendor}}</option>
+            </select>
+            <!--<input type="text" class="form-control" name="production_unit" ng-model= "showCase.model_data.production_unit">-->
+          </div>
       </div>
 
-      <div class="col-md-3 col-sm-3 col-xs-12">
+      <div class="col-md-3 col-sm-3 col-xs-6">
+        <div class="form-group">
           <b>STATUS:</b>
-          <select ng-if="!showCase.input_status" class="form-control pull-right" name="status_type"
+          <select ng-if="!showCase.input_status" class="form-control" name="status_type"
                   ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
             <option  ng-selected="showCase.ord_status == ''">None</option>
             <option ng-repeat="type in showCase.model_data.all_status" ng-selected="showCase.ord_status == type">{{type}}</option>
           </select>
           <input ng-if="showCase.input_status" type="text" class="form-control" name="remarks" ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
+        </div>
       </div>
-      <div class="col-md-4 col-sm-3 col-xs-12">
-        <b>REMARKS:</b>
-        <input type="text" class="form-control" name="central_remarks" ng-model= "showCase.model_data.central_remarks">
+      <div class="col-md-3 col-sm-3 col-xs-6">
+        <div class="form-group">
+          <b>REMARKS:</b>
+          <input type="text" class="form-control" name="central_remarks" ng-model= "showCase.model_data.central_remarks">
+        </div>
       </div>
     </div>
     <div class="row"><hr></div>
@@ -163,13 +189,6 @@
             <td>
               <input type="text" class="form-control" name="remarks" ng-model="data.remarks" ng-readonly="showCase.input_status">
             </td>
-	        <!--<td>
-	          <select ng-if="!showCase.input_status" class="form-control pull-right" name="status_type"
-	          ng-model="showCase.selected_status" ng-readonly="showCase.input_status">
-	            <option ng-repeat="type in showCase.status_type" ng-selected="type == showCase.selected_status">{{type}}</option>
-	          </select>
-	          <input ng-if="showCase.input_status" type="text" class="form-control" name="remarks" ng-model="data.order_status" ng-readonly="showCase.input_status">
-	        </td>-->
 	        <td ng-if="!showCase.input_status"><i style="font-size: 20px;padding-top: 7px;cursor: pointer;margin-left: -15px;"
 	        ng-click="showCase.update_order_details($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
           </tr>
@@ -180,24 +199,6 @@
     <div class="row">
       <div class="col-md-9">
       </div>
-      <!--<div class="col-md-3">
-        <div class="row">
-          <div class="col-xs-5">
-            Total Units:
-          </div>
-          <div class="col-xs-7">
-            {{showCase.quantity}}
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-xs-5">
-            Total AMT:
-          </div>
-          <div class="col-xs-7">
-            &#8377;{{showCase.invoice_amount}}
-          </div>
-        </div>
-      </div>-->
     </div>
     <div class="row" style="padding-bottom:2%;">
       <div class="col-md-6">

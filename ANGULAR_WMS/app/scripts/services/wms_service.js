@@ -20,6 +20,17 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
     vm.reports = {};
 
+    vm.price_format = function(a){
+
+      var price = String(a);
+      if(price.length == 2) {
+
+        return "DN-80"+price;
+      } else {
+        return "DN-8"+price;
+      }
+    }
+
     vm.check_quantity = function(data, a, b) {
 
       var status = false;

@@ -101,6 +101,12 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                         dt_data: {'OrderView': {}, 'OrderCategoryView': ''}
                       }
 
+    //Custom Orders
+    self.custom_orders = {
+                           view:'CustomerOrders',
+                           tb_headers:['Customer Name', 'Order ID', 'Total Quantity', 'Shipment Date', 'Creation Date', 'Production Unit', 'Printing Unit', 'Embroidery Unit', 'Order Taken By', 'Status']
+                         }
+
     /*** Production ***/
     //Job Order Putaway
 

@@ -1,54 +1,49 @@
 import clr
 import sys
 import urllib2
-from scrapy import Selector
-#from System.Collections import *
-#from System import *
-#from System.Collections.Generic import *
-#from System.Data import *
-#import System
 import datetime
 
-#sys.path.append('D:\TallyBridgeTool\DLL')
-#clr.AddReference('TallyBridgeDll')
+from scrapy import Selector
 
-#from Tally import *
+sys.path.append('D:\TallyBridgeTool\DLL')
+clr.AddReference('TallyBridgeDll')
+
+from Tally import *
 #from TallyBridge import *
 
-class TallySample:
+class TallyBridgeApp(object):
 
     def __init__(self, *args, **kwargs):
         #self.tb = TallyBridgeDll()
-	pass
+        pass
 
     def PostLedger(self, **kwargs):
         import pdb;pdb.set_trace()
-	tallyCompanyName = kwargs.get('tallyCompanyName', '')
-	oldLedgerName = kwargs.get('oldLedgerName', '')
-	ledgerName = kwargs.get('LedgerName', '')
-	openingBalance = kwargs.get('openingBalance', '')
-	parentGroupName = kwargs.get('parentGroupName', '')
-	updateOpeningBalance = kwargs.get('updateOpeningBalance', '')
-	ledgerMailingName = kwargs.get('ledgerMailingName', '')
-	return
-	if tallyCompanyName:
-	        x = Ledger()
-        	x.tallyCompanyName = tallyCompanyName#"Mieone";
-		if oldLedgerName:
-		        x.oldLedgerName = oldLedgerName#"Aravind";
-        	x.ledgerName = ledgerName#"Aravind 123";
-		if updateOpeningBalance:
-			x.updateOpeningBalance = True;
-	        	x.openingBalance =  System.Decimal(openingBalance)#System.Decimal(-200000);
-
-	        x.ledgerMailingName = ledgerMailingName#"M/s ABCDDD India Pvt. Ltd.";
-        	x.parentGroupName = parentGroupName#"Sundry Debtors";
-	        tresponse = TallyResponse()
-        	tresponse = self.tb.DoTransferLedger(x)
-	        if tresponse.errorMsg:
-        	    print tresponse
-	        else:
-        	    print 'success ledger'
+        tallyCompanyName = kwargs.get('tallyCompanyName', '')
+        oldLedgerName = kwargs.get('oldLedgerName', '')
+        ledgerName = kwargs.get('LedgerName', '')
+        openingBalance = kwargs.get('openingBalance', '')
+        parentGroupName = kwargs.get('parentGroupName', '')
+        updateOpeningBalance = kwargs.get('updateOpeningBalance', '')
+        ledgerMailingName = kwargs.get('ledgerMailingName', '')
+        return
+        if tallyCompanyName:
+            x = Ledger()
+            x.tallyCompanyName = tallyCompanyName#"Mieone";
+        if oldLedgerName:
+            x.oldLedgerName = oldLedgerName#"Aravind";
+            x.ledgerName = ledgerName#"Aravind 123";
+        if updateOpeningBalance:
+            x.updateOpeningBalance = True;
+            x.openingBalance =  System.Decimal(openingBalance)#System.Decimal(-200000);
+            x.ledgerMailingName = ledgerMailingName#"M/s ABCDDD India Pvt. Ltd.";
+            x.parentGroupName = parentGroupName#"Sundry Debtors";
+            tresponse = TallyResponse()
+            tresponse = self.tb.DoTransferLedger(x)
+            if tresponse.errorMsg:
+                print tresponse
+            else:
+                print 'success ledger'
 
     def PostStockItem(self):
         stockItem = StockItem();
@@ -83,7 +78,6 @@ class TallySample:
             print tresponse.errorMsg
         else:
             print 'success stock'
-
 
     def PostSalesVoucher(self):
         '''sv = SalesVoucher()
@@ -224,12 +218,11 @@ def Customer( tobj):
     sel = Selector(text=xml)
     nodes = sel.xpath('//root/item/orders')
     for node in nodes:
-  	tallyCompanyName, ledgerName, updateOpeningBalance, ledgerMailingName, parentGroupName = node.xpath('.//text()').extract()
-	customerledgers = [{'tallyCompanyName': tallyCompanyName, 'oldLedgerName': '', 'ledgerName': ledgerName, 'openingBalance' : '', 'parentGroupName' : parentGroupName, 'updateOpeningBalance' : updateOpeningBalance ,'ledgerMailingName' : ledgerMailingName }]
-	print customerledgers
-        import pdb;pdb.set_trace()
-	for ledgers in customerledgers:
-		tobj.PostLedger(**ledgers)
+        tallyCompanyName, ledgerName, updateOpeningBalance, ledgerMailingName, parentGroupName = node.xpath('.//text()').extract()
+        customerledgers = [{'tallyCompanyName': tallyCompanyName, 'oldLedgerName': '', 'ledgerName': ledgerName, 'openingBalance' : '', 'parentGroupName' : parentGroupName, 'updateOpeningBalance' : updateOpeningBalance ,'ledgerMailingName' : ledgerMailingName }]
+        print customerledgers
+        for ledgers in customerledgers:
+            tobj.PostLedger(**ledgers)
     response.close()
     
 

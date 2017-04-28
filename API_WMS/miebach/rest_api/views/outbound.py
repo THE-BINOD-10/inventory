@@ -2881,7 +2881,12 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
 def all_whstock_quant(sku_master, user):
 
     stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
-    stock_display_warehouse = list(eval(stock_display_warehouse))
+
+    if stock_display_warehouse != "false":
+        stock_display_warehouse = stock_display_warehouse.split(',')
+        stock_display_warehouse = map(int, stock_display_warehouse)
+    else:
+        stock_display_warehouse = []
 
     stock_qty_all = dict(StockDetail.objects.filter(sku__user__in = stock_display_warehouse, sku__sku_class = sku_master[0]['sku_class'], quantity__gt=0).values_list('sku__wms_code').distinct().annotate(in_stock=Sum('quantity')))
 
@@ -2892,15 +2897,32 @@ def all_whstock_quant(sku_master, user):
 
     reserved_quantities = dict(PicklistLocation.objects.filter(stock__sku__user__in = stock_display_warehouse, stock__sku__sku_class = sku_master[0]['sku_class'], status=1).values_list('stock__sku__wms_code').distinct().annotate(in_reserved=Sum('reserved')))
 
+    putaway_pending_job = dict(POLocation.objects.filter(location__zone__user__in = stock_display_warehouse, status = 1, job_order__product_code__sku_class = sku_master[0]['sku_class']).values_list('job_order__product_code__wms_code').distinct().annotate(Sum('quantity')))
+
+    putaway_pending_purchase = dict(POLocation.objects.filter(location__zone__user__in = stock_display_warehouse, status = 1, purchase_order__open_po__sku__sku_class = sku_master[0]['sku_class']).values_list('purchase_order__open_po__sku__wms_code').distinct().annotate(Sum('quantity')))
+
+    job_order_pro_qty = dict(JobOrder.objects.filter(product_code__user__in = stock_display_warehouse, product_code__sku_class = sku_master[0]['sku_class']).values_list('product_code__wms_code').distinct().annotate(Sum('product_quantity')))
+
+    job_order_rec_qty = dict(JobOrder.objects.filter(product_code__user__in = stock_display_warehouse, product_code__sku_class = sku_master[0]['sku_class']).values_list('product_code__wms_code').distinct().annotate(Sum('received_quantity')))
+
     for item in sku_master:
         ordered_qty = ordered_qties.get(item["wms_code"], 0)
         recieved_qty = recieved_qties.get(item["wms_code"], 0)
+
+        putaway_pending_job_qty = putaway_pending_job.get(item["wms_code"], 0)
+        putaway_pending_purchase_qty = putaway_pending_purchase.get(item["wms_code"], 0)
+
+        job_order_product_qty = job_order_pro_qty.get(item["wms_code"], 0)
+        job_order_recieved_qty = job_order_rec_qty.get(item["wms_code"], 0)
+
         intransit_qty = ordered_qty - recieved_qty
 
         reserved_qty = reserved_quantities.get(item["wms_code"], 0)
         stock_qty = stock_qty_all.get(item["wms_code"], 0)
 
-        all_quantity = stock_qty - reserved_qty + intransit_qty
+        job_order_qty = job_order_product_qty - job_order_recieved_qty + putaway_pending_job_qty
+
+        all_quantity = stock_qty - reserved_qty + intransit_qty + putaway_pending_purchase_qty + job_order_qty
         item['all_quantity'] = all_quantity
 
     return sku_master

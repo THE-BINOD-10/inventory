@@ -1895,6 +1895,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     sku_class = request_data.get('sku_class', '')
     sku_brand = request_data.get('brand', '')
     sku_category = request_data.get('category', '')
+    customer_data_id = request_data.get('customer_data_id', '')
     if not is_catalog:
         is_catalog = request_data.get('is_catalog', '')
 
@@ -1963,7 +1964,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
-            sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity)
+            sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity, customer_data_id=customer_data_id)
             sku_styles[0]['variants'] = sku_variants
             sku_styles[0]['style_quantity'] = total_quantity
 

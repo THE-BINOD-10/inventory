@@ -1176,7 +1176,7 @@ def get_supplier_data(request, user=''):
                                                                          sku_id=order_data['sku_id'], order_ids=order_ids)
             orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
                             'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
-                            'name': str(order.order_id) + '-' + str(order_data['wms_code']),
+                            'name': str(order.order_id) + '-' + str(re.sub(r'[^\x00-\x7F]+','', order_data['wms_code'])),
                             'value': get_decimal_limit(user.id, order.saved_quantity),
                             'receive_quantity': get_decimal_limit(user.id, order.received_quantity), 'price': order_data['price'],
                             'temp_wms': order_data['temp_wms'],'order_type': order_data['order_type'], 'unit': order_data['unit'],

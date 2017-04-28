@@ -21,6 +21,7 @@
     <div class="col-md-4">
       <img ng-src="{{ showCase.service.check_image_url(showCase.style_data[0]['image_url']) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail">
       <h5 align="center"><b>{{showCase.style_data[0].style_name}}</b></h5>
+      <h5 align="center" ng-if="showCase.style_data[0].price"><b>{{showCase.service.price_format(showCase.style_data[0].price)}}</b></h5>
     </div>
     <div class="col-md-8">
       <div class="row">

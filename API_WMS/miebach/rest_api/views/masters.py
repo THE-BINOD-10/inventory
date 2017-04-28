@@ -1643,7 +1643,7 @@ def create_custom_sku(request, user=''):
 
     product_property = ProductProperties.objects.filter(name=name, property_name=property_name, property_type=property_type)
     if not product_property:
-        return HttpResponse("Wrong Data")
+        return HttpResponse(json.dumps({'message': 'Wrong Data', 'data': ''}))
     product_property = product_property[0]
     data_dict = dict(request.POST.iterlists())
     sku_sizes = []
@@ -1839,7 +1839,7 @@ def barcode_service(key, data_to_send, format_name=''):
 @csrf_exempt
 def get_price_master_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters = {}):
     objs = PriceMaster.objects.filter(sku__user = user.id)
-    lis = ['sku_code', 'sku_desc', 'price_type', 'price', 'discount']
+    lis = ['sku__sku_code', 'sku__sku_desc', 'price_type', 'price', 'discount']
     order_data = PRICING_MASTER_HEADER.values()[col_num]
     search_params = get_filtered_params(filters, lis)
     if order_term == 'desc':

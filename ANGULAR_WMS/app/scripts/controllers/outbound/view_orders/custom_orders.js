@@ -91,8 +91,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
+        //$('td', nRow).unbind('click');
+        //$('td', nRow).bind('click', function() {
+        $('td:not(td:first)', nRow).unbind('click');
+          $('td:not(td:first)', nRow).bind('click', function() {
             $scope.$apply(function() {
                 console.log(aData);
                 vm.service.apiCall("get_view_order_details/", "GET", {id: $(aData[""]).attr('name'),order_id: aData["Order ID"]}).then(function(data){
@@ -161,7 +163,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         for(var i=0;i<vm.generate_data.length;i++) {
           data[vm.generate_data[i]["data_value"]]= vm.generate_data[i]['Total Quantity'];
         }
-        vm.service.apiCall(vm.g_data.generate_picklist_urls[vm.g_data.view], 'POST', data).then(function(data){
+        vm.service.apiCall('order_category_generate_picklist/', 'POST', data).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
             for(var i=0; i<vm.model_data.data.length; i++){

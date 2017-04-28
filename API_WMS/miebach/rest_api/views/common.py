@@ -18,7 +18,7 @@ from xlrd import open_workbook, xldate_as_tuple
 import operator
 from django.db.models import Q, F
 from django.conf import settings
-
+from sync_sku import *
 import csv
 import hashlib
 import os
@@ -293,7 +293,7 @@ data_datatable = {#masters
                   'WarehouseMaster': 'get_warehouse_user_results', 'VendorMaster': 'get_vendor_master_results',\
                   'DiscountMaster':'get_discount_results', 'CustomSKUMaster': 'get_custom_sku_properties',\
                   'SizeMaster': 'get_size_master_data', 'PricingMaster': 'get_price_master_results', \
-                  'SellerMaster': 'get_seller_master', \
+                  'SellerMaster': 'get_seller_master', 'SellerMarginMapping': 'get_seller_margin_mapping',\
                   #inbound
                   'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po',\
                   'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data',\
@@ -320,7 +320,9 @@ data_datatable = {#masters
                   'PullToLocate': 'get_cancelled_putaway',\
                   'StockTransferOrders': 'get_stock_transfer_orders', 'OutboundBackOrders': 'get_back_order_data',\
                   'CustomerOrderView': 'get_order_view_data', 'CustomerCategoryView': 'get_order_category_view_data',\
+                  'CustomOrders': 'get_custom_order_data',\
                   'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data',\
+                  'SellerOrderView': 'get_seller_order_view',\
                   #manage users
                   'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
                   #retail one
@@ -530,6 +532,19 @@ def configurations(request, user=''):
     all_groups = str(','.join(all_groups))
     sku_sync = get_misc_value('sku_sync', user.id)
     order_manage = get_misc_value('order_manage', user.id)
+    stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
+    view_order_status = get_misc_value('view_order_status', user.id)
+    seller_margin = get_misc_value('seller_margin', user.id)
+
+    view_order_status = view_order_status.split(',')
+
+
+    if stock_display_warehouse != "false":
+        stock_display_warehouse = stock_display_warehouse.split(',')
+        stock_display_warehouse = map(int, stock_display_warehouse)
+        #stock_display_warehouse = list(eval(stock_display_warehouse))
+    else:
+        stock_display_warehouse = []
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     all_stages = str(','.join(all_stages))
@@ -572,6 +587,11 @@ def configurations(request, user=''):
     if scan_picklist_option:
         _pick_option = scan_picklist_option[0].misc_value
 
+    all_related_warehouse_id = get_related_users(user.id)
+    all_related_warehouse = dict(User.objects.filter(id__in = all_related_warehouse_id).values_list('first_name','id'))
+
+    all_view_order_status = CUSTOM_ORDER_STATUS
+
     report_data_range = MiscDetail.objects.filter(misc_type='report_data_range', user=request.user.id)
     data_range = ''
     if report_data_range:
@@ -598,7 +618,11 @@ def configurations(request, user=''):
                                                              'decimal_limit': decimal_limit, 'picklist_sort_by': picklist_sort_by,
                                                              'stock_sync': stock_sync, 'auto_generate_picklist': auto_generate_picklist,
                                                              'order_management' : order_manage, 'detailed_invoice': detailed_invoice,
-                                                             'sku_sync': sku_sync}))
+                                                             'all_related_warehouse' : all_related_warehouse,
+                                                             'stock_display_warehouse':  stock_display_warehouse,
+                                                             'all_view_order_status': all_view_order_status,
+                                                             'view_order_status': view_order_status,
+                                                             'sku_sync': sku_sync, 'seller_margin': seller_margin}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -1614,7 +1638,7 @@ def get_invoice_number(user):
         invoice_number = int(invoice_detail[0].invoice_number) + 1
     return invoice_number
 
-def get_invoice_data(order_ids, user, merge_data = ""):
+def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''
@@ -1693,7 +1717,7 @@ def get_invoice_data(order_ids, user, merge_data = ""):
                 else:
                     continue
 
-            if not picklist:
+            if not picklist and not is_seller_order:
                 picklist = Picklist.objects.filter(order_id=dat.id, order_type='combo', picked_quantity__gt=0).\
                                             annotate(total=Sum('picked_quantity'))
                 if picklist:
@@ -1871,6 +1895,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     sku_class = request_data.get('sku_class', '')
     sku_brand = request_data.get('brand', '')
     sku_category = request_data.get('category', '')
+    customer_data_id = request_data.get('customer_data_id', '')
     if not is_catalog:
         is_catalog = request_data.get('is_catalog', '')
 
@@ -1939,7 +1964,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
-            sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity)
+            sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity, customer_data_id=customer_data_id)
             sku_styles[0]['variants'] = sku_variants
             sku_styles[0]['style_quantity'] = total_quantity
 
@@ -2348,7 +2373,7 @@ def get_size_names(requst, user = ""):
 @get_admin_user
 def get_sellers_list(request, user=''):
     sellers = SellerMaster.objects.filter(user=user.id)
-    seller_list = [] 
+    seller_list = []
     for seller in sellers:
         seller_list.append({'id': seller.id, 'name': seller.name})
     return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5}))
@@ -2406,16 +2431,21 @@ def get_vendors_list(request, user=''):
 
     return HttpResponse(json.dumps({'data': resp}))
 
+def apply_search_sort(columns, data_dict, order_term, search_term, col_num, exact=False):
+    if search_term:
+        search_filter = []
+        for item in columns:
+            comp_var = 'in'
+            if exact:
+                comp_var = '=='
+            search_filter.append("'%s'.lower() %s str(person['%s']).lower()" % (search_term, comp_var, item))
+        final_filter = "filter(lambda person: " + ' or '.join(search_filter) + ', data_dict)'
+        data_dict = eval(final_filter)
 
-
-
-
-
-
-
-
-
-
-
-
-
+    if order_term:
+        order_data = columns[col_num]
+        if order_term == "asc":
+            data_dict = sorted(data_dict, key = lambda x: x[order_data])
+        else:
+            data_dict = sorted(data_dict, key = lambda x: x[order_data], reverse= True)
+    return data_dict

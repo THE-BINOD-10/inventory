@@ -37,7 +37,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
 
-    vm.g_data = Data.other_view;
+    vm.g_data = {};
+    angular.copy(Data.other_view, vm.g_data);
+
+    if(Session.user_profile.user_type != "marketplace_user") {
+
+      vm.g_data.views.pop(1);
+    }
 
     vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'special_key': JSON.stringify(vm.special_key)}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -196,9 +202,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             }
             vm.order_input_status = false;
 
-            vm.model_data["embroidery_vendor"] = data.data.data_dict[0].embroidery_vendor;
-            vm.model_data["print_vendor"] = data.data.data_dict[0].print_vendor;
             vm.model_data["central_remarks"]= data.data.data_dict[0].central_remarks;
+            vm.model_data["all_status"] = data.data.data_dict[0].all_status;
             angular.forEach(all_order_details, function(value, key){
 
 	          vm.customer_id = value.cust_id;
@@ -291,7 +296,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           for(var i=0;i<vm.generate_data.length;i++) {
             data[vm.generate_data[i].data_value]= vm.generate_data[i].total_quantity;
           }
-        } else if(vm.g_data.view == 'CustomerOrderView' || vm.g_data.view == 'CustomerCategoryView'){
+        } else if(vm.g_data.view == 'CustomerOrderView' || vm.g_data.view == 'CustomerCategoryView' || vm.g_data.view == 'SellerOrderView'){
           for(var i=0;i<vm.generate_data.length;i++) {
             data[vm.generate_data[i]["data_value"]]= vm.generate_data[i]['Total Quantity'];
           }

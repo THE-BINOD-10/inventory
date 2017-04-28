@@ -52,7 +52,8 @@
         <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
         <br>
         <div>
-          <span class="style_name" title="{{ item.sku_class }}">{{ item.sku_class }}</span>
+          <span class="style_name" title="{{ item.sku_class }}">{{ item.sku_class }}</span><br>
+          <span class="style_name" style="font-size: 14px" ng-if="item.variants[0].price">{{ showCase.service.price_format(item.variants[0].price)  }}</span>
           <p class="style_name" style="font-size: 12px;" title="{{ item.variants[0].style_name }}">{{ item.variants[0].style_name }}</p>
           <span style="font-size: 14px; padding:2px 15px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</span></br>
           <span style="font-size: 20px;">&#8377; {{ item.variants[0].mrp }}</span>

@@ -15,9 +15,13 @@
 ### 2. Python packages requied (added in requirements.pip):
     pythonnet (requires mono before installing this pip package, or the build fails. )
 
-***Run Instructions***
+***Import Instructions***
 ----------------
 ### 1. Activate virtual enviornment
     source <path to venev>
-### 2. CMD: 
-    python TallyBridgeApp.py
+### 2. Following import statments are required: 
+    import sys
+    sys.path.append(<full path to '.............../WMS_ANGULAR/tally/'>)
+    import tally.api as tally_api
+    ex:
+        obj = tlly_api.TallyBridgeApi(dll=<dll-file-name>)

@@ -1,6 +1,7 @@
+#!/usr/bin/env python
+
 import clr
 import sys
-import urllib2
 import datetime
 
 from optparse import OptionParser
@@ -8,9 +9,10 @@ from optparse import OptionParser
 from scrapy import Selector
 
 import constants
+import exceptions
 
 sys.path.append(constants.DLL_BASE_PATH)
-print constants.DLL_BASE_PATH
+
 
 class TallyBridgeApp(object):
 
@@ -19,10 +21,9 @@ class TallyBridgeApp(object):
         clr.AddReference(self.dll_file)
         import Tally
         import TallyBridge
-        #self.tb = TallyBridgeDll()
 
-    def PostLedger(self, **kwargs):
-        import pdb;pdb.set_trace()
+    # customer mater + vendor master
+    def post_ledger(self, **kwargs):
         tallyCompanyName = kwargs.get('tallyCompanyName', '')
         oldLedgerName = kwargs.get('oldLedgerName', '')
         ledgerName = kwargs.get('LedgerName', '')
@@ -30,26 +31,27 @@ class TallyBridgeApp(object):
         parentGroupName = kwargs.get('parentGroupName', '')
         updateOpeningBalance = kwargs.get('updateOpeningBalance', '')
         ledgerMailingName = kwargs.get('ledgerMailingName', '')
-        return
+        
+        ledger = Tally.Ledger()
         if tallyCompanyName:
-            x = Ledger()
-            x.tallyCompanyName = tallyCompanyName#"Mieone"
+            ledger.tallyCompanyName = tallyCompanyName #"Mieone"
         if oldLedgerName:
-            x.oldLedgerName = oldLedgerName#"Aravind"
-            x.ledgerName = ledgerName#"Aravind 123"
+            ledger.oldLedgerName = oldLedgerName #"Aravind"
+            ledger.ledgerName = ledgerName #"Aravind 123"
         if updateOpeningBalance:
-            x.updateOpeningBalance = True
-            x.openingBalance =  System.Decimal(openingBalance)#System.Decimal(-200000)
-            x.ledgerMailingName = ledgerMailingName#"M/s ABCDDD India Pvt. Ltd."
-            x.parentGroupName = parentGroupName#"Sundry Debtors"
-            tresponse = TallyResponse()
+            ledger.updateOpeningBalance = True
+            ledger.openingBalance =  System.Decimal(openingBalance) #System.Decimal(-200000)
+            ledger.ledgerMailingName = ledgerMailingName #"M/s ABCDDD India Pvt. Ltd."
+            ledger.parentGroupName = parentGroupName #"Sundry Debtors"
+            tresponse = Tally.TallyResponse()
             tresponse = self.tb.DoTransferLedger(x)
             if tresponse.errorMsg:
                 print tresponse
             else:
                 print 'success ledger'
 
-    def PostStockItem(self):
+    # item master
+    def post_stock_item(self):
         stockItem = StockItem()
         stockItem.tallyCompanyName = "Mieone"
         stockItem.itemName = "Plain Note Book One"#Description
@@ -75,7 +77,8 @@ class TallyBridgeApp(object):
         print 'success stock'
         return
 
-    def PostSalesVoucher(self):
+    # sales invoice
+    def post_sales_voucher(self):
         '''sv = SalesVoucher()
         sv.tallyCompanyName = "Mieone"
         sv.voucherForeignKey = "SLS-005"#unique id of transaction in external software
@@ -183,58 +186,3 @@ class TallyBridgeApp(object):
             print tresponse.errorMsg
         else:
             print 'success SalesVoucher'
-
-def Customer( tobj):
-    CustomerUrl = 'http://176.9.181.43:8778/rest_api/get_customer_data'
-    response = urllib2.urlopen(CustomerUrl)
-    xml = response.read()
-    sel = Selector(text=xml)
-    nodes = sel.xpath('//root/item/orders')
-    for node in nodes:
-        tallyCompanyName, ledgerName, updateOpeningBalance, ledgerMailingName, parentGroupName = node.xpath('.//text()').extract()
-        customerledgers = [{
-            'tallyCompanyName': tallyCompanyName,
-            'oldLedgerName': '',
-            'ledgerName': ledgerName,
-            'openingBalance': '',
-            'parentGroupName': parentGroupName,
-            'updateOpeningBalance': updateOpeningBalance ,
-            'ledgerMailingName': ledgerMailingName 
-        }]
-        print customerledgers
-        for ledgers in customerledgers:
-            tobj.PostLedger(**ledgers)
-    response.close()    
-
-def set_options():
-    parser = OptionParser()
-    parser.add_option("-d", "--dll", help="DLL file name")
-    return parser
-
-
-if __name__ == '__main__':
-    opt_parser = set_options()
-    opts, _ = opt_parser.parse_args()
-    dll = opts.dll
-    if not dll:
-        print 'NOTE: you have to pass only file name not file path.'
-        print 'NOTE: file should be kept in WMS_ANGULAR/tally/DLL/<your file>.dll'
-        print 'CMD: python TallyBridgeApp.py -d <dll file name>'
-        sys.exit(1)
-    tobj = TallyBridgeApp(dll=dll)
-    print tobj
-    # #tobj.PostStockItem()
-    # Customer(tobj)
-    # ledgers = [{
-    #     'tallyCompanyName': '',
-    #     'oldLedgerName': '',
-    #     'ledgerName': '',
-    #     'openingBalance': '',
-    #     'parentGroupName': '',
-    #     'updateOpeningBalance': '',
-    #     'ledgerMailingName': '' 
-    # }]
-    # for led in ledgers:
-    #     tobj.PostLedger(**led)
-    #tobj.PostSalesVoucher()
-    sys.exit(0)

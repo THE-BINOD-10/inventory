@@ -284,8 +284,9 @@ def get_quality_check_data(start_index, stop_index, temp_data, search_term, orde
                                                Q(purchase_order__order_id__icontains = search_term ), rwo__vendor__user=user.id, **rw_filters).\
                                         values_list('purchase_order_id', flat=True)
         stock_results = list(chain(stock_results, rw_results))
-        qc_results = QualityCheck.objects.filter(purchase_order_id__in=stock_results, status='qc_pending', putaway_quantity__gt=0,
-                                                 po_location__location__zone__user = user.id)
+        result_ids = results.values_list('id', flat=True)
+        qc_results = QualityCheck.objects.exclude(id__in=result_ids).filter(purchase_order_id__in=stock_results, status='qc_pending',
+                                                  putaway_quantity__gt=0, po_location__location__zone__user = user.id)
 
         results = list(chain(results, qc_results))
     else:
@@ -299,9 +300,10 @@ def get_quality_check_data(start_index, stop_index, temp_data, search_term, orde
         stock_results = list(chain(stock_results, rw_results))
         qc_results = QualityCheck.objects.filter(Q(purchase_order__open_po__sku_id__in=sku_master_ids) | Q(purchase_order_id__in=stock_results),
                                                  status='qc_pending', putaway_quantity__gt=0, po_location__location__zone__user = user.id)
+        qc_result_ids = qc_results.values_list('id', flat=True)
         results = QualityCheck.objects.filter(Q(purchase_order__open_po__sku_id__in=sku_master_ids) | Q(purchase_order_id__in=stock_results)).\
                                        filter(status='qc_pending', putaway_quantity__gt=0, po_location__location__zone__user = user.id,
-                                              **qc_filters)
+                                              **qc_filters).exclude(id__in=qc_result_ids)
         results = list(chain(results, qc_results))
 
     for result in results:
@@ -1571,7 +1573,6 @@ def supplier_code_mapping(request, myDict, i, data, user=''):
                 new_mapping = SKUSupplier(**sku_mapping)
                 new_mapping.save()
 
-@fn_timer
 def get_purchase_order_data(order):
     order_data = {}
     status_dict = {'SR': 'Self Receipt', 'VR': 'Vendor Receipt'}
@@ -2350,9 +2351,11 @@ def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=
             received_quantity -= float(sell_summary.putaway_quantity)
             sell_summary.putaway_quantity = 0
         sell_summary.save()
-        seller_stock = SellerStock.objects.filter(seller_id=sell_summary.seller_po.seller_id, stock_id=stock_obj.id, stock__sku__user=user.id)
+        seller_stock = SellerStock.objects.filter(seller_id=sell_summary.seller_po.seller_id, stock_id=stock_obj.id,
+                                                  stock__sku__user=user.id, seller_po_summary_id=sell_summary.id)
         if not seller_stock:
             SellerStock.objects.create(seller_id=sell_summary.seller_po.seller_id, quantity=sell_quan,
+                                       seller_po_summary_id=sell_summary.id,
                                        creation_date=datetime.datetime.now(), status=1, stock_id=stock_obj.id)
         else:
             seller_stock[0].quantity = float(seller_stock[0].quantity) + float(sell_quan)

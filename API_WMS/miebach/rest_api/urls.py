@@ -160,6 +160,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^confirm_move_inventory/$', 'confirm_move_inventory'),
     url(r'^confirm_inventory_adjustment/$', 'confirm_inventory_adjustment'),
     url(r'^delete_inventory/$', 'delete_inventory'),
+    url(r'^seller_stock_summary_data/$', 'seller_stock_summary_data'),
 
     # OutBound
     url(r'^batch_generate_picklist/$', 'batch_generate_picklist'),

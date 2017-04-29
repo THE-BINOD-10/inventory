@@ -312,7 +312,7 @@ data_datatable = {#masters
                   'MoveInventory': 'get_move_inventory', 'InventoryAdjustment': 'get_move_inventory',\
                   'ConfirmCycleCount': 'get_cycle_confirmed','VendorStockTable': 'get_vendor_stock',\
                   'Available':'get_available_stock','Available+Intransit':'get_availintra_stock','Total': 'get_avinre_stock',\
-                  'StockSummaryAlt' : 'get_stock_summary_size',\
+                  'StockSummaryAlt' : 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data',\
                   #outbound
                   'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders',\
                   'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders',\
@@ -2426,3 +2426,14 @@ def apply_search_sort(columns, data_dict, order_term, search_term, col_num, exac
         else:
             data_dict = sorted(data_dict, key = lambda x: x[order_data], reverse= True)
     return data_dict
+
+def build_search_term_query(columns, search_term):
+    filter_params = OrderedDict()
+    query = Q
+    for col in columns:
+        if not 'date' in col:
+            filter_params[col + '__icontains'] = search_term
+        else:
+            filter_params[col + '__regex'] = search_term
+    query = get_dictionary_query(data_dict=filter_params)
+    return query

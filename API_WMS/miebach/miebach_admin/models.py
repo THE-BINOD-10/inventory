@@ -1307,20 +1307,6 @@ class VendorPicklist(models.Model):
     class Meta:
         db_table = 'VENDOR_PICKLIST'
 
-class SellerStock(models.Model):
-    id = BigAutoField(primary_key=True)
-    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
-    stock = models.ForeignKey(StockDetail, blank=True, null=True)
-    quantity = models.FloatField(default=0)
-    status = models.IntegerField(default=1)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'SELLER_STOCK'
-        unique_together = ('seller', 'stock')
-        index_together = ('seller', 'stock')
-
 class OrderMapping(models.Model):
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     mapping_id = models.PositiveIntegerField(default=0)
@@ -1439,7 +1425,6 @@ class SellerPO(models.Model):
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
     seller_quantity = models.FloatField(default=0)
     received_quantity = models.FloatField(default=0)
-    #putaway_quantity = models.FloatField(default=0)
     receipt_type = models.CharField(max_length=64, default='purchase_order')
     unit_price = models.FloatField(default=0)
     margin_percent = models.FloatField(default=0)
@@ -1472,6 +1457,21 @@ class SellerPOSummary(models.Model):
     def __unicode__(self):
         return str(self.id)
 
+class SellerStock(models.Model):
+    id = BigAutoField(primary_key=True)
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    stock = models.ForeignKey(StockDetail, blank=True, null=True)
+    seller_po_summary = models.ForeignKey(SellerPOSummary, blank=True, null=True, db_index=True)
+    quantity = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SELLER_STOCK'
+        unique_together = ('seller', 'stock')
+        index_together = ('seller', 'stock')
+
 class SellerMarginMapping(models.Model):
     id = BigAutoField(primary_key=True)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True, db_index=True)
@@ -1493,7 +1493,6 @@ class SellerOrder(models.Model):
     sor_id = models.CharField(max_length=128,default='')
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
-    #reserved = models.FloatField(default=0)
     order_status = models.CharField(max_length=64, default='')
     invoice_no = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
@@ -1528,7 +1527,6 @@ class SellerOrderSummary(models.Model):
     seller_order = models.ForeignKey(SellerOrder, blank=True, null=True, db_index=True)
     picklist = models.ForeignKey(Picklist, blank=True, null=True, db_index=True)
     quantity = models.FloatField(default=0)
-    #reserved = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

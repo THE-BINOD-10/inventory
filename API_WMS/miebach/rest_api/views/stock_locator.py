@@ -1036,3 +1036,136 @@ def warehouse_headers(request, user=''):
 
     return HttpResponse(json.dumps(headers))
 
+@csrf_exempt
+def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    lis = ['seller__seller_id', 'seller__name', 'stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__sku__sku_class', 'stock__sku__sku_brand', 'stock__sku__sku_category', 'stock__sku__sku_code', 'stock__sku__sku_code', 'stock__sku__sku_code', 'stock__sku__sku_code', 'stock__sku__sku_code']
+    unsorted_dict = { 7: 'Available Qty', 8: 'Reserved Qty', 9: 'Damaged Qty', 10: 'Total Qty'}
+    search_params = get_filtered_params(filters, lis)
+    search_term_query = build_search_term_query(lis[:7], search_term)
+
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+
+    search_params['stock__sku_id__in'] = sku_master_ids
+
+    all_seller_stock = SellerStock.objects.filter(seller__user=user.id)
+    dis_seller_ids = all_seller_stock.values_list('seller__seller_id', flat=True).distinct()
+    sell_stock_ids = all_seller_stock.values('seller__seller_id', 'stock_id')
+    reserved_dict = OrderedDict()
+    raw_reserved_dict = OrderedDict()
+    for seller in dis_seller_ids:
+        pick_params = {'status': 1, 'picklist__order__user': user.id}
+        rm_params = {'status': 1, 'material_picklist__jo_material__material_code__user': user.id}
+        stock_id_dict = filter(lambda d: d['seller__seller_id'] == seller, sell_stock_ids)
+        if stock_id_dict:
+            stock_ids = map(lambda d: d['stock_id'], stock_id_dict)
+            pick_params['stock_id__in'] = stock_ids
+            rm_params['stock_id__in'] = stock_ids
+        reserved_dict[seller] = dict(PicklistLocation.objects.filter(**pick_params).\
+                                     values_list('stock__sku__wms_code').distinct().annotate(reserved=Sum('reserved')))
+        raw_reserved_dict[seller] = dict(RMLocation.objects.filter(**rm_params).\
+                                           values('material_picklist__jo_material__material_code__wms_code').distinct().\
+                                           annotate(rm_reserved=Sum('reserved')))
+
+    temp_data['totalQuantity']  = 0
+    temp_data['totalReservedQuantity']  = 0
+    temp_data['totalAvailableQuantity']  = 0
+
+    categories = dict(SKUMaster.objects.filter(user=user.id).values_list('sku_code', 'sku_category'))
+    if search_term:
+        master_data = SellerStock.objects.exclude(stock__receipt_number=0).values_list('seller__seller_id',
+                                                  'seller__name', 'stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__sku__sku_class',
+                                                  'stock__sku__sku_brand').distinct().\
+                                          annotate(total=Sum('quantity')).\
+                                          filter(search_term_query, stock__sku__user = user.id, **search_params).order_by(order_data)
+        search_params['stock__location__zone__zone'] = 'DAMAGED_ZONE'
+        damaged_stock = SellerStock.objects.exclude(stock__receipt_number=0).filter(quantity__gt=0).\
+                                            values('seller__seller_id', 'seller__name',
+                                            'stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__sku__sku_class',
+                                            'stock__sku__sku_brand').distinct().\
+                                            annotate(total=Sum('quantity')).filter(search_term_query, stock__sku__user = user.id,
+                                            **search_params)
+
+    else:
+        master_data = SellerStock.objects.exclude(stock__receipt_number=0).filter(quantity__gt=0).values_list('seller__seller_id',
+                                                  'seller__name', 'stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__sku__sku_class',
+                                                  'stock__sku__sku_brand').distinct().\
+                                          annotate(total=Sum('quantity')).\
+                                          filter(stock__sku__user = user.id, **search_params).order_by(order_data)
+        search_params['stock__location__zone__zone'] = 'DAMAGED_ZONE'
+        damaged_stock = SellerStock.objects.exclude(stock__receipt_number=0).filter(quantity__gt=0).\
+                                            values('seller__seller_id', 'seller__name',
+                                            'stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__sku__sku_class',
+                                            'stock__sku__sku_brand').distinct().\
+                                            annotate(total=Sum('quantity')).filter(stock__sku__user = user.id, **search_params)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    custom_search = False
+    if col_num in unsorted_dict.keys():
+        custom_search = True
+
+    if stop_index and not custom_search:
+        master_data = master_data[start_index:stop_index]
+
+    for data in master_data:
+        quantity = 0
+        reserved = 0
+        damaged_qty = 0
+        total_qty = data[6]
+        if data[0] in reserved_dict.keys():
+            if data[2] in reserved_dict[data[0]].keys():
+                reserved = reserved_dict[data[0]][data[2]]
+        if data[0] in raw_reserved_dict.keys():
+            if data[2] in raw_reserved_dict[data[0]].keys():
+                reserved += raw_reserved_dict[data[0]][data[2]]
+        quantity = total_qty - reserved
+        damaged_dict = filter(lambda person: person['seller__seller_id'] == data[0] and person['stock__sku__sku_code'] == data[2], damaged_stock)
+        if damaged_dict:
+            damaged_qty = damaged_dict[0]['total']
+            quantity -= damaged_qty
+        if quantity < 0:
+            quantity = 0
+        stock_value = 0
+
+        temp_data['aaData'].append(OrderedDict(( ('Seller ID', data[0]), ('Seller Name', data[1]),
+                                                 ('SKU Code', data[2]), ('SKU Desc', data[3]), ('SKU Class', data[4]),
+                                                 ('SKU Brand', data[5]), ('SKU Category', categories[data[2]]), ('Available Qty', quantity),
+                                                 ('Reserved Qty', reserved), ('Damaged Qty', damaged_qty), ('Total Qty', total_qty),
+                                                 ('Stock Value', stock_value),
+                                                 ('id', str(data[0]) + '<<>>' + str(data[2])) )))
+
+    if stop_index and custom_search:
+        if temp_data['aaData']:
+            temp_data['aaData'] = apply_search_sort(temp_data['aaData'][0].keys(), temp_data['aaData'], order_term, '', col_num, exact=False)
+        temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def seller_stock_summary_data(request, user=''):
+    data_id = request.GET['data_id']
+    seller_id, wms_code = data_id.split('<<>>')
+    seller_stock_data = SellerStock.objects.exclude(stock__receipt_number=0).filter(stock__sku__wms_code=wms_code, seller__seller_id=seller_id,
+                                             seller__user = user.id)
+    zones_data = {}
+    for seller_stock in seller_stock_data:
+        stock = seller_stock.stock
+        res_qty = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id).\
+                                           aggregate(Sum('reserved'))['reserved__sum']
+
+        raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
+                                                 stock_id=stock.id).aggregate(Sum('reserved'))['reserved__sum']
+
+        if not res_qty:
+            res_qty = 0
+        if raw_reserved:
+            res_qty = float(res_qty) + float(raw_reserved)
+        zones_data.setdefault(stock.location.zone.zone, {})
+        zones_data[stock.location.zone.zone].setdefault(stock.location.location, [0, 0])
+        zones_data[stock.location.zone.zone][stock.location.location][1] += res_qty
+        zones_data[stock.location.zone.zone][stock.location.location][0] += seller_stock.quantity
+
+    return HttpResponse(json.dumps({'zones_data': zones_data}))

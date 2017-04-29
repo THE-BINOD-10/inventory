@@ -891,6 +891,22 @@ var app = angular.module('urbanApp')
             permission: 'add_inventoryadjustment',
             templateUrl: 'views/stockLocator/toggles/inventory_adj_tg.html'
           })
+        .state('app.stockLocator.SellerStock', {
+          url: '/SellerStock',
+          templateUrl: 'views/stockLocator/seller_stock.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/stockLocator/seller_stock.js');
+              }]
+          },
+          data: {
+            title: 'Seller Stock',
+          }
+        })
+          .state('app.stockLocator.SellerStock.StockDetails', {
+            url: '/StockDetails',
+            templateUrl: 'views/stockLocator/toggles/stock_details.html'
+          })
 
       // Outbound routes
       .state('app.outbound', {
@@ -1421,6 +1437,7 @@ var app = angular.module('urbanApp')
             title: 'Seller Invoice Details',
           }
         })
+
       // configuration route
       .state('app.configurations', {
           url: '/configurations',

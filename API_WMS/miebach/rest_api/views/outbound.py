@@ -396,13 +396,16 @@ def generate_picklist(request, user=''):
     remarks = request.POST['ship_reference']
     filters = request.POST.get('filters', '')
     order_filter = {'status': 1, 'user': user.id, 'quantity__gt': 0}
+    seller_order_filter = {'order__status': 1, 'order__user': user.id, 'order__quantity__gt': 0}
     if filters:
         filters = eval(filters)
         if filters['market_places']:
             order_filter['marketplace__in'] = (filters['market_places']).split(',')
+            seller_order_filter['order__marketplace__in'] = order_filter['marketplace__in']
         if filters.get('customer_id', ''):
             customer_id = ''.join(re.findall('\d+', filters['customer_id']))
             order_filter['customer_id'] = customer_id
+            seller_order_filter['order__customer_id'] = customer_id
     data = []
     stock_status = ''
     out_of_stock = []
@@ -412,6 +415,7 @@ def generate_picklist(request, user=''):
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
+    all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
     if fifo_switch == 'true':
@@ -423,13 +427,23 @@ def generate_picklist(request, user=''):
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     sku_stocks = stock_detail1 | stock_detail2
     log.info("Generate Picklist params " + str(request.POST.dict()))
+    seller_stocks = SellerStock.objects.filter(seller__user=user.id).values('stock_id', 'seller_id')
     for key, value in request.POST.iteritems():
         if key in ('sortingTable_length', 'fifo-switch', 'ship_reference', 'remarks', 'filters'):
             continue
 
         order_data = OrderDetail.objects.get(id=key,user=user.id)
+        seller_orders = all_seller_orders.filter(order_id=key).order_by('order__shipment_date')
         try:
-            stock_status, picklist_number = picklist_generation([order_data], request, picklist_number, user, sku_combos, sku_stocks, status = 'open', remarks=remarks)
+            if seller_orders:
+                for seller_order in seller_orders:
+                    seller_stock_dict = filter(lambda person: str(person['seller_id']) == str(seller_order.seller_id), seller_stocks)
+                    if seller_stock_dict:
+                        sell_stock_ids =  map(lambda person: person['stock_id'], seller_stock_dict)
+                        sku_stocks = sku_stocks.filter(id__in=sell_stock_ids)
+                    stock_status, picklist_number = picklist_generation([seller_order], request, picklist_number, user, sku_combos, sku_stocks, status = 'open', remarks=remarks, is_seller_order=True)
+            else:
+                stock_status, picklist_number = picklist_generation([order_data], request, picklist_number, user, sku_combos, sku_stocks, status = 'open', remarks=remarks)
         except Exception as e:
             log.info('Generate Picklist order view failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
             stock_status = ['Internal Server Error']

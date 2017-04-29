@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('QualityCheckCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', ServerSideProcessingCtrl]);
+  .controller('QualityCheckCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', 'focus', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert, focus) {
     var vm = this;
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
@@ -318,6 +318,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
 
       vm.selected="";
+      focus('focusIMEI');
     }
 
     vm.status_imei = "";
@@ -360,10 +361,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var msg = "Accepted. Move to Reject State?"
       if(from_data == "reject_imei") {
         msg = "Rejected. Move to Accept State?"
-      }
 
-      $timeout(function() {
-      SweetAlert.swal({
+
+        $timeout(function() {
+        SweetAlert.swal({
                title: '',
                text: msg,
                type: 'warning',
@@ -383,11 +384,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                  if (from_data == "reject_imei") {
 
                    vm.model_data.data[index1].rejected_quantity -= 1;
-                   //vm.accept_qc(field, true);
                  } else {
 
                    vm.model_data.data[index1].accepted_quantity -= 1;
-                   //vm.reject_qc(field);
                    from = "accepted";
                    to = "rejected";
                  }
@@ -397,6 +396,37 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
              }
            );
       }, 100);
+
+      } else {
+
+swal2({
+  title: '',
+  text: 'Accepted. Move to Reject State?',
+  input: 'select',
+  inputOptions: {
+    'SRB': 'Serbia',
+    'UKR': 'Ukraine',
+    'HRV': 'Croatia'
+  },
+  inputPlaceholder: 'Select Reason',
+  showCancelButton: true,
+  inputValidator: function (value) {
+    return new Promise(function (resolve, reject) {
+      if (value === 'UKR') {
+        resolve()
+      } else {
+        reject('You need to select Ukraine :)')
+      }
+    })
+  }
+}).then(function (result) {
+  swal({
+    type: 'success',
+    html: 'You selected: ' + result
+  })
+})
+      }
+
     }
 
     vm.status_move_imei = function(field) {

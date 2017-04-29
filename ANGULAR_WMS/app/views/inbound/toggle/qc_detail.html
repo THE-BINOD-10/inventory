@@ -1,4 +1,4 @@
-<div id="page-pop" style="display: block; padding-left: 13px;" class="modal fade process-toggle in" id="po-modal1" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
+<div id="page-pop" style="display: block; padding-left: 13px;z-index: 1000" class="modal fade process-toggle in" id="po-modal1" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
   <!-- Modal -->
   <form id="wms_quality_wise">
     <div class="modal-dialog modal-lg">
@@ -107,7 +107,7 @@
             <div class="col-md-3 col-sm-3 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Scan Serial Number </label>
-                <textarea ng-model="showCase.serial_scan" name="serial_number" rows="1" id="scan-qc" ng-keydown="showCase.scan_imei($event,showCase.serial_scan)" class="form-control"></textarea>
+                <textarea ng-model="showCase.serial_scan" name="serial_number" rows="1" id="scan-qc" ng-keydown="showCase.scan_imei($event,showCase.serial_scan)" class="form-control" auto-focus focus-on="focusIMEI"></textarea>
               </div>
             </div>
             <div class="col-md-9 col-sm-9 col-xs-6 mt25">

@@ -35,8 +35,16 @@ class TallyBridgeApp(object):
         buyer_name = kwargs.get('buyer_name')
         address_line1 = kwargs.get('address_line1')
         address_line2 = kwargs.get('address_line2')
-         = kwargs.get('')
-         = kwargs.get('')
+        address_line3 = kwargs.get('address_line3')
+        buyer_state = kwargs.get('buyer_state')
+        buyer_tin_no = kwargs.get('buyer_tin_no')
+        buyer_cst_no = kwargs.get('buyer_cst_no')
+        type_of_dealer = kwargs.get('type_of_dealer')
+        narration = kwargs.get('narration')
+        is_invoice = kwargs.get('is_invoice')
+        is_optional = kwargs.get('is_optional')
+        orders = kwargs.get('orders')
+        items = kwargs.get('items')
         data_list = [
         ]
         if not all(data_list):
@@ -223,15 +231,19 @@ class TallyBridgeApp(object):
     def add_item_master(self, **kwargs):
         ''' Adds items to item master in tally
         '''
-        tallyCompanyName = kwargs.get('tally_company_name')
-        itemName = kwargs.get('item_name')
+        tally_company_name = kwargs.get('tally_company_name')
+        old_item_name = kwargs.get('old_item_name')
+        item_name = kwargs.get('item_name')
+        part_no = kwargs.get('part_no')
         sku_code = kwargs.get('sku_code')
+        description = kwargs.get('description')
+        is_vat_app = kwargs.get('is_vat_app')
         unit_name = kwargs.get('unit_name')
         stock_group_name = kwargs.get('stock_group_name')
-        stock_category_name = kwargs.get('stock-category_name')
+        stock_category_name = kwargs.get('stock_category_name')
         data_list = [
-            tallyCompanyName,
-            itemName,
+            tally_company_name,
+            item_name,
             sku_code,
             unit_name,
             stock_group_name,
@@ -240,13 +252,19 @@ class TallyBridgeApp(object):
         if not all(data_list):
             raise exceptions.DataInconsistencyError
         stock_item = Tally.StockItem()
-        stock_item.tallyCompanyName = tallyCompanyName
-        stock_item.itemName = itemName
+        stock_item.tallyCompanyName = tally_company_name
+        if old_item_name:
+            stock_item.oldItemName = old_item_name
+        if part_no:
+            stockItem.partNo = part_no
+        if description:
+            stock_item.description = description
+        stock_item.itemName = item_name
         stock_item.itemAlias = sku_code #You can map SKU code either in item alias or in part no.
         stock_item.primaryUnitName = unit_name or 'nos' #The unit master should already exist in Tally.
         stock_item.stockGroupName = stock_group_name #The stock group should already exist in Tally
         stock_item.stockCategoryName = stock_category_name #The stock category should already exist in Tally
-        stock_item.isVatAppl = True
+        stock_item.isVatAppl = is_vat_app or True
         stock_item.openingQty = System.Decimal(opening_qty) # Opening Stock qty in primary units
         stock_item.openingRate = System.Decimal(opening_rate)
         stock_item.openingAmt = System.Decimal(-1 * opening_amt)        #Opening stock amount should ne negative

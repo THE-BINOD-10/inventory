@@ -1,2 +1,4 @@
 *.dll
 test.py
+*.log
+

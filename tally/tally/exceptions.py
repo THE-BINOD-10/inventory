@@ -1,19 +1,21 @@
+import json
+
 import constants
 
 
 class CommonBaseException(Exception):
 
-    def __init__(self, message, error_code, title=None):
+    def __init__(self, message, error_code):
         self.message = message
         self.error_code = error_code
 
     def __str__(self):
-        return self.message
+        return json.dumps(self.get_error())
 
     def get_error(self):
         return {
-            api_constants.API_ERROR_CODE: self.error_code,
-            api_constants.API_ERROR_MESSAGE: self.message,
+            constants.ERROR_CODE: self.error_code,
+            constants.ERROR_MESSAGE: self.message,
         }
 
 
@@ -24,6 +26,16 @@ class DataInconsistencyError(CommonBaseException):
     def __init__(self, error_message=None):
         if error_message:
             self.message = error_message
+        CommonBaseException.__init__(self, self.message, self.error_code)
+
+
+class RequiredFieldsMissingError(CommonBaseException):
+    message = 'required fields are not present'
+    error_code = 'requiredFieldsMissing'
+
+    def __init__(self, fields=[]):
+        if fields:
+            message += ', '.join(fields)
         CommonBaseException.__init__(self, self.message, self.error_code)
 
 

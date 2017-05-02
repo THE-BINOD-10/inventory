@@ -8,3 +8,7 @@ ROOT_PATH = abspath(join(dirname(__file__), '..'))
 
 DLL_BASE_PATH = join(ROOT_PATH, 'DLL')
 DLL_FILE_NAME = ''
+
+# exceptions
+ERROR_CODE = 'error_code'
+ERROR_MESSAGE = 'message'

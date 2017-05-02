@@ -6,6 +6,7 @@ import datetime
 
 import constants
 import exceptions
+import utils
 
 sys.path.append(constants.DLL_BASE_PATH)
 
@@ -168,31 +169,31 @@ class TallyBridgeApp(object):
         # and if the actual amount like Round Off is negative, the value in ledgerAmount should be positive
         # This applies to Purchase (Invoice Mode).
         # The behaviour for Purchase (Voucher Mode) is different
-        for ledg in ledgers:
-            ledger_entry = new LedgerEntry()
-            ledger_entry.ledgerName = "Knowledge Invention"
+        # for ledg in ledgers:
+        #     ledger_entry = Tally.LedgerEntry()
+        #     ledger_entry.ledgerName = "Knowledge Invention"
 
-            # This should be the grand total of the invoice (including VAT and any other charges) with a positive sign
-            # isDeemedPositive should be set to false
-            ledger_entry.ledgerAmount = (decimal)9415
-            ledger_entry.isDeemedPositive = false
+        #     # This should be the grand total of the invoice (including VAT and any other charges) with a positive sign
+        #     # isDeemedPositive should be set to false
+        #     ledger_entry.ledgerAmount = (decimal)9415
+        #     ledger_entry.isDeemedPositive = false
 
-            # Party ledger should be the 1st ledger in the invoice
-            invoice.arlLedgerEntries.Add(ledger_entry)
+        #     # Party ledger should be the 1st ledger in the invoice
+        #     invoice.arlLedgerEntries.Add(ledger_entry)
 
 
-        leAddlLedger = new LedgerEntry()
-        leAddlLedger.ledgerName = "Input VAT 5.5%"
-        leAddlLedger.ledEntryRate = (decimal)5.5
-        leAddlLedger.ledgerAmount = (decimal)490.88 * -1
-        leAddlLedger.isDeemedPositive = true
-        invoice.arlLedgerEntries.Add(leAddlLedger)
+        # leAddlLedger = new LedgerEntry()
+        # leAddlLedger.ledgerName = "Input VAT 5.5%"
+        # leAddlLedger.ledEntryRate = (decimal)5.5
+        # leAddlLedger.ledgerAmount = (decimal)490.88 * -1
+        # leAddlLedger.isDeemedPositive = true
+        # invoice.arlLedgerEntries.Add(leAddlLedger)
 
-        leAddlLedger = new LedgerEntry()
-        leAddlLedger.ledgerName = "Round Off"
-        leAddlLedger.ledgerAmount = (decimal)0.88
-        leAddlLedger.isDeemedPositive = true
-        invoice.arlLedgerEntries.Add(leAddlLedger)
+        # leAddlLedger = new LedgerEntry()
+        # leAddlLedger.ledgerName = "Round Off"
+        # leAddlLedger.ledgerAmount = (decimal)0.88
+        # leAddlLedger.isDeemedPositive = true
+        # invoice.arlLedgerEntries.Add(leAddlLedger)
 
 
         return self._transfer_and_get_resp(invoice, 'purchase_invoice')
@@ -228,8 +229,40 @@ class TallyBridgeApp(object):
         ledger.parentGroupName = parentGroupName
         return self._transfer_and_get_resp(ledger, 'ledger_master')
 
-    def add_item_master(self, **kwargs):
+
+    ##-- ITEM MASTER --##
+    @utils.required(params=[
+        'tally_company_name',
+        'item_name',
+        'sku_code',
+        'unit_name',
+        'stock_group_name',
+        'stock_category_name',
+        'opening_qty',
+        'opening_rate',
+        'opening_amt'
+    ])
+    def item_master(self, **kwargs):
         ''' Adds items to item master in tally
+        required: [
+            tally_company_name,
+            item_name,
+            sku_code,
+            unit_name or 'nos',
+            stock_group_name,
+            stock_category_name,
+            opening_qty,
+            opening_rate,
+            opening_amt
+        ]
+        optional: [
+            old_item_name,
+            part_no,
+            description
+        ]
+        default values if not pased: [
+            is_vat_app = True
+        ]
         '''
         tally_company_name = kwargs.get('tally_company_name')
         old_item_name = kwargs.get('old_item_name')
@@ -241,33 +274,30 @@ class TallyBridgeApp(object):
         unit_name = kwargs.get('unit_name')
         stock_group_name = kwargs.get('stock_group_name')
         stock_category_name = kwargs.get('stock_category_name')
-        data_list = [
-            tally_company_name,
-            item_name,
-            sku_code,
-            unit_name,
-            stock_group_name,
-            stock_category_name,
-        ]
-        if not all(data_list):
-            raise exceptions.DataInconsistencyError
+
         stock_item = Tally.StockItem()
+        
+        # required
         stock_item.tallyCompanyName = tally_company_name
+        stock_item.itemName = item_name
+        stock_item.itemAlias = sku_code
+        stock_item.primaryUnitName = unit_name or 'nos'
+        stock_item.stockGroupName = stock_group_name
+        stock_item.stockCategoryName = stock_category_name
+        stock_item.openingQty = System.Decimal(opening_qty)
+        stock_item.openingRate = System.Decimal(opening_rate)
+        stock_item.openingAmt = System.Decimal(-1 * opening_amt)        # Opening stock amount should be negative
+
+        # defaults if not passed
+        stock_item.isVatAppl = is_vat_app or True
+        
+        # optional
         if old_item_name:
             stock_item.oldItemName = old_item_name
         if part_no:
             stockItem.partNo = part_no
         if description:
             stock_item.description = description
-        stock_item.itemName = item_name
-        stock_item.itemAlias = sku_code #You can map SKU code either in item alias or in part no.
-        stock_item.primaryUnitName = unit_name or 'nos' #The unit master should already exist in Tally.
-        stock_item.stockGroupName = stock_group_name #The stock group should already exist in Tally
-        stock_item.stockCategoryName = stock_category_name #The stock category should already exist in Tally
-        stock_item.isVatAppl = is_vat_app or True
-        stock_item.openingQty = System.Decimal(opening_qty) # Opening Stock qty in primary units
-        stock_item.openingRate = System.Decimal(opening_rate)
-        stock_item.openingAmt = System.Decimal(-1 * opening_amt)        #Opening stock amount should ne negative
         return self._transfer_and_get_resp(stock_item, 'item_master')
 
     def add_purchase_returns(self, **kwargs):

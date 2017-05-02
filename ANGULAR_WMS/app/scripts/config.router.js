@@ -409,6 +409,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.PricingMaster', {
           url: '/PricingMaster',
+          permission: 'add_pricemaster',
           templateUrl: 'views/masters/pricing_master.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -439,6 +440,23 @@ var app = angular.module('urbanApp')
           .state('app.masters.SellerMaster.seller', {
              url: '/seller',
              templateUrl: 'views/masters/toggles/seller_update.html'
+           })
+        .state('app.masters.SellerMarginMapping', {
+          url: '/SellerMarginMapping',
+          permission: 'add_sellermaster',
+          templateUrl: 'views/masters/seller_margin_mapping.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/sellerMarginMapping.js');
+                    }]
+          },
+          data: {
+            title: 'Seller Margin Mapping',
+          }
+        })
+          .state('app.masters.SellerMarginMapping.Mapping', {
+             url: '/Mapping',
+             templateUrl: 'views/masters/toggles/margin_mapping_update.html'
            })
 
       // Inbound routes
@@ -919,9 +937,13 @@ var app = angular.module('urbanApp')
                   files: [
                              'scripts/controllers/outbound/create_orders/create_orders.js',
                              'scripts/controllers/outbound/create_orders/create_stock_orders.js',
-                             'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
+                             'scripts/controllers/outbound/view_orders/custom_orders.js'
                             ]
-                        }]).then(function () {
+                        }]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
+                  ])
+                }).then(function () {
 
                 return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/orders.js');
               });
@@ -965,6 +987,11 @@ var app = angular.module('urbanApp')
             url: '/OrderDetails',
             permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/view_order_details.html'
+          })
+          .state('app.outbound.ViewOrders.CustomOrderDetails', {
+            url: '/CustomOrderDetails',
+            permission: 'add_picklist',
+            templateUrl: 'views/outbound/toggle/custom_order_detail.html'
           })
           .state('app.outbound.ViewOrders.GenerateInvoice', {
             url: '/Invoice',

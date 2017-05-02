@@ -21,6 +21,7 @@
     <div class="col-md-4">
       <img ng-src="{{ showCase.service.check_image_url(showCase.style_data[0]['image_url']) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail">
       <h5 align="center"><b>{{showCase.style_data[0].style_name}}</b></h5>
+      <h5 align="center" ng-if="showCase.style_data[0].price"><b>{{showCase.service.price_format(showCase.style_data[0].price)}}</b></h5>
     </div>
     <div class="col-md-8">
       <div class="row">
@@ -29,8 +30,8 @@
             <thead>
               <tr>
                 <th ng-repeat="head in (showCase.service.dyn_data.style_detail.head[user.userName])?showCase.service.dyn_data.style_detail.head[user.userName]:showCase.service.dyn_data.style_detail.head['common'];">{{head}}</th>
-                <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock[user.userName]">Stock</th>
-                <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock[user.userName]">In Transit</th>
+                <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock[user.userName]">1-Day Stock</th>
+                <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock[user.userName]">3-Day Stock</th>
                 <th>Quantity</th>
               </tr>
             </thead>
@@ -38,7 +39,7 @@
               <tr ng-repeat="style in showCase.style_data">
                 <td ng-repeat="head in (showCase.service.dyn_data.style_detail.keys[user.userName])?showCase.service.dyn_data.style_detail.keys[user.userName]: showCase.service.dyn_data.style_detail.keys['common']">{{style[head]}}</th>
                 <td ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock[user.userName]">{{style.physical_stock}}</td>
-                <td ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock[user.userName]">{{style.intransit_quantity}}</td>
+                <td ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock[user.userName]">{{style.all_quantity}}</td>
                 <td><input class="form-control" ng-model="style.quantity" ng-change="showCase.change_style_quantity(showCase.style_data);" ng-class="service.get_decimal_perm()"></td>
               </tr>
             </tbody>

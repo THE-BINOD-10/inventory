@@ -106,7 +106,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             if ('WMS Code not found'==data.data) {
                pop_msg(data.data);
             } else {
-              generate_details_data(field);
+              for(var i=0;vm.model_data.data.length; i++) {
+                if(vm.model_data.data[i].wms_code == field) {
+                  vm.current_index = i;
+                  break;
+                }
+              }
               vm.model_data1 = data.data;
               qc_details();
             }
@@ -251,8 +256,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             fb.generate = true;
             if(vm.permissions.use_imei) {
               fb.generate = true;
+              fb.stop_listening(fb.poData);
               fb.remove_po(fb.poData["id"]);
-              fb.stop_listening(fb.poData["id"]);
             }
             vm.close();
           } else {
@@ -267,9 +272,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.enable_button = true;
     vm.show_serial = true;;
 
-    vm.accept_qc = function(field) {
+    vm.accept_qc = function(field, status_imei) {
 
-      vm.enable_button = false;
+      if(!status_imei) {
+        vm.enable_button = false;
+      }
       var sku = vm.model_data.data[vm.current_index];
       sku.accepted_quantity = Number(sku.accepted_quantity) + 1;
 
@@ -284,15 +291,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
-    vm.reject_qc = function() {
+    vm.reject_qc = function(imei) {
 
       vm.reason_show = false;
       var sku = vm.model_data.data[vm.current_index];
-      sku.accepted_quantity = Number(sku.accepted_quantity) - 1;
+      var field = "";
+      if(!imei) {
+
+        sku.accepted_quantity = Number(sku.accepted_quantity) - 1;
+        var index = sku["accept_imei"].length-1;
+        var field = sku["accept_imei"][index].split("<<>>")[0];
+        sku["accept_imei"].splice(index,1);
+      } else {
+        field = imei;
+      }
       sku.rejected_quantity = Number(sku.rejected_quantity) + 1;
-      var index = sku["accept_imei"].length-1;
-      var field = sku["accept_imei"][index].split("<<>>")[0];
-      sku["accept_imei"].splice(index,1);
 
       if(!(sku["reject_imei"])) {
         sku["reject_imei"] = [];
@@ -305,6 +318,104 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
 
       vm.selected="";
+    }
+
+    vm.status_imei = "";
+    vm.status_scan_imei = function(event, field) {
+      if ( event.keyCode == 13 && field.length > 0) {
+        var data = {imei: field, order_id: vm.model_data.order_id};
+        if(vm.imei_list.indexOf(field) != -1) {
+          vm.status_move_imei(field);
+        } else {
+          vm.service.apiCall('check_imei_qc/', 'GET', data).then(function(data){
+            if(data.data.status == "") {
+
+              vm.service.showNoty("Yet to scan IMEI")
+            } else {
+
+              vm.service.showNoty(data.data.status);
+            }
+          })
+        }
+        vm.status_imei = "";
+      }
+    }
+
+    vm.status_ac_rj = function(field, data){
+
+      var index = -1;
+      for(var i = 0; i < data.length; i++) {
+
+        if(field == data[i].split("<<>>")[0]) {
+
+          index = i;
+          break;
+        }
+      }
+      return index;
+    }
+
+    vm.status_imei_here = function(index1, index2, from_data, field) {
+
+      var msg = "Accepted. Move to Reject State?"
+      if(from_data == "reject_imei") {
+        msg = "Rejected. Move to Accept State?"
+      }
+
+      $timeout(function() {
+      SweetAlert.swal({
+               title: '',
+               text: msg,
+               type: 'warning',
+               showCancelButton: true,
+               confirmButtonColor: '#33cc66',
+               confirmButtonText: 'Ok',
+               closeOnConfirm: true,
+             },
+             function (status) {
+               if(status) {
+
+                 vm.current_index = index1;
+                 var serial = vm.model_data.data[index1][from_data][index2];
+                 vm.model_data.data[index1][from_data].splice(index2, 1);
+                 var from = "rejected";
+                 var to = "accepted";
+                 if (from_data == "reject_imei") {
+
+                   vm.model_data.data[index1].rejected_quantity -= 1;
+                   //vm.accept_qc(field, true);
+                 } else {
+
+                   vm.model_data.data[index1].accepted_quantity -= 1;
+                   //vm.reject_qc(field);
+                   from = "accepted";
+                   to = "rejected";
+                 }
+                 vm.enable_button = true;
+                 fb.remove_add_serial(vm.model_data.data[index1], serial, from, to)
+               }
+             }
+           );
+      }, 100);
+    }
+
+    vm.status_move_imei = function(field) {
+
+      for(var i = 0; i < vm.model_data.data.length; i++) {
+
+        var data = vm.model_data.data[i];
+        var reject = vm.status_ac_rj(field, data.reject_imei);
+        var accept = vm.status_ac_rj(field, data.accept_imei);
+        if(reject != -1) {
+
+          vm.status_imei_here(i, reject, "reject_imei", field);
+          break;
+        } else if(accept != -1) {
+
+          vm.status_imei_here(i, accept, "accept_imei", field);
+          break;
+        }
+      }
     }
 
     //firebase integrations
@@ -379,6 +490,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     fb["change_po_data"] = function(data) {
 
       vm.fb.poData['serials'] = Object.values(vm.fb.poData['serials']);
+      vm.imei_list = vm.fb.poData['serials'];
+      //vm.imei_list = Object.values(vm.fb.poData['serials']);
       angular.forEach(vm.model_data.data, function(data){
         var name= data.wms_code+"<<>>"+ data.location+ "<<>>" + data.id;
         if(vm.fb.poData[name]) {
@@ -392,6 +505,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       })
       fb.add_new = true;
+
+      /*firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/").on("child_changed", function(sku) {
+
+        if(sku.V.path.o[3] == "serials") {
+          vm.fb.poData['serials'] = Object.values(sku.val());
+          vm.imei_list = vm.fb.poData['serials'];
+        }
+      })*/
     }
 
     fb["recent_accept"] = "";
@@ -402,7 +523,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
         fb["recent_accept"] = snapshot.path.o[5];
       });
-      firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/serials/").push(serial);
+      firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/serials/").push(serial.split("<<>>")[0]);
     }
 
     fb["reject_serial"] = function(data, serial) {
@@ -414,13 +535,32 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         })
       }
       firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/rejected/").push(serial);
-      firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/serials/").push(serial);
+      firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/serials/").push(serial.split("<<>>")[0]);
+    }
+
+    fb["remove_add_serial"] = function(data, serial, remove_from, add_to) {
+
+      var name= data.wms_code+"<<>>"+ data.location+ "<<>>" + data.id;
+      firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/"+remove_from+"/").once("value", function(snapshot) {
+        if(snapshot.val()) {
+          var status = true;
+          angular.forEach(snapshot.val(), function(value,key) {
+            if(serial == value && status) {
+              status = false;
+              firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/"+remove_from+"/"+key).once("value", function(snapshot) {
+                snapshot.ref.remove();
+              })
+            }
+          })
+        }
+      })
+      firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/"+add_to+"/").push(serial);
     }
 
     fb["delete_accept_serial"] = function() {
 
       angular.forEach(vm.fb.poData, function(value, key) {
-        firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+key + "/").on("child_removed", function(snapshot) {
+        firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+key + "/accepted/").on("child_removed", function(snapshot) {
           if(snapshot.V.path.o[4] == "accepted") {
 
             if(vm.model_data['data']) {
@@ -430,12 +570,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 var sku = vm.model_data.data[i];
                 if(sku.wms_code == sku_data[0] && sku.location == sku_data[1] && sku.id == sku_data[2]) {
 
-                  var imei = Object.values(snapshot.val());
-                  imei = imei[0];
+                  var imei = snapshot.val();
                   var index = sku.accept_imei.indexOf(imei);
                   if(index != -1) {
                     vm.model_data.data[i].accept_imei.splice(index, 1);
                     vm.model_data.data[i].accepted_quantity -= 1;
+                    $timeout(function() {$scope.$apply();}, 500);
+                  };
+                  break;
+                }
+              }
+            }
+          }
+        })
+        firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+key + "/rejected/").on("child_removed", function(snapshot) {
+          if(snapshot.V.path.o[4] == "rejected") {
+
+            if(vm.model_data['data']) {
+              var sku_data = snapshot.V.path.o[3].split("<<>>");
+              for(var i=0; i < vm.model_data.data.length; i++) {
+
+                var sku = vm.model_data.data[i];
+                if(sku.wms_code == sku_data[0] && sku.location == sku_data[1] && sku.id == sku_data[2]) {
+
+                  var imei = snapshot.val();
+                  var index = sku.reject_imei.indexOf(imei);
+                  if(index != -1) {
+                    vm.model_data.data[i].reject_imei.splice(index, 1);
+                    vm.model_data.data[i].rejected_quantity -= 1;
                     $timeout(function() {$scope.$apply();}, 500);
                   };
                   break;

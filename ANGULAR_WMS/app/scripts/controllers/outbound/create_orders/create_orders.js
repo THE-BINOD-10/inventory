@@ -133,7 +133,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     }
     vm.catlog_data.index = "";
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
-                sale_through: vm.order_type_value} 
+                sale_through: vm.order_type_value, customer_data_id: vm.model_data.customer_id};
     vm.catlog_data.index = ""
     vm.scroll_data = false;
     vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
@@ -158,7 +158,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
       cat_name = "";
     }
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
-                sale_through: vm.order_type_value}
+                sale_through: vm.order_type_value, customer_data_id: vm.model_data.customer_id}
     vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
 
       if(data.message) {

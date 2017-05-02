@@ -4,7 +4,7 @@
   </div>
   <div class="layout-body">
     <div ng-controller="Uploads">
-      <div class="col-md-4" ng-repeat="upload in uploads">
+      <div class="col-md-4" ng-repeat="upload in uploads" ng-if="upload.show">
         <div class="panel" style="margin-bottom: 20px;">
           <div class="panel-heading border">
             {{upload.title}}

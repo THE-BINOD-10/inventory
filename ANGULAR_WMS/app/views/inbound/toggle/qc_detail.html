@@ -97,15 +97,20 @@
           </div>
           <div class="row" ng-if="showCase.permissions.use_imei">
             <div class="col-md-12"><hr></div>
+            <div class="col-md-2 col-sm-2 col-xs-4"><button class="form-control pull-left" type="button" ng-click="showCase.show_status_scan = true">Status Swap</button></div>
+            <div class="col-md-3 col-sm-3 col-xs-4" ng-if="showCase.show_status_scan">
+              <textarea placeholder="Scan IMEI" name="serial_number" rows="1" ng-model="showCase.status_imei" ng-keydown="showCase.status_scan_imei($event,showCase.status_imei)" class="form-control"></textarea>
+            </div>
+          </div>
+          <div class="row" ng-if="showCase.permissions.use_imei">
+            <div class="col-md-12"><hr></div>
             <div class="col-md-3 col-sm-3 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Scan Serial Number </label>
-                <!--<textarea ng-model="showCase.serial_scan" name="serial_number" rows="1" id="scan-qc" ng-keydown="showCase.scan_serial($event,showCase.serial_scan,showCase.model_data.order_id)" class="form-control"></textarea>-->
                 <textarea ng-model="showCase.serial_scan" name="serial_number" rows="1" id="scan-qc" ng-keydown="showCase.scan_imei($event,showCase.serial_scan)" class="form-control"></textarea>
               </div>
             </div>
             <div class="col-md-9 col-sm-9 col-xs-6 mt25">
-              <!--<button class="form-control" type="button" name="accept" ng-disabled="showCase.enable_button" style="width: 48%;display: inline-block;" ng-click="showCase.accept_qc()">Accept</button>-->
               <button class="form-control pull-left" type="button" name="reject" ng-disabled="showCase.enable_button" ng-click="showCase.reason_show = true; showCase.enable_button = true" style="width:100px">Reject</button>
               <select id="reject_reason" class="ml10 form-control pull-left" ng-model="showCase.selected" ng-if="showCase.reason_show" style="width:200px">
                 <option selected value="">None</option>

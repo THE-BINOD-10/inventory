@@ -10,7 +10,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^status/$', 'status'),
     url(r'^logout/$', 'logout'),
     url(r'^get_trial_user_data/$', 'get_trial_user_data'),
-    url(r'^sku_master/$', 'sku_master'),
+    #url(r'^sku_master/$', 'sku_master'),
     url(r'^location_master/$', 'location_master'),
     url(r'^results_data/$', 'results_data'),
     url(r'^home/$', 'home'),
@@ -69,6 +69,8 @@ urlpatterns = patterns('rest_api.views',
     url(r'^insert_seller/$', 'insert_seller'),
     url(r'^get_sellers_list/$', 'get_sellers_list'),
     url(r'^update_seller_values/$', 'update_seller_values'),
+    url(r'^insert_seller_margin/$', 'insert_seller_margin'),
+    url(r'^update_seller_margin/$', 'update_seller_margin'),
 
     # Inbound
     url(r'^generated_po_data/$', 'generated_po_data'),
@@ -207,6 +209,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^update_customer_cart_data/$', 'update_customer_cart_data'),
     url(r'^delete_customer_cart_data/$', 'delete_customer_cart_data'),
     url(r'^generate_customer_invoice/$', 'generate_customer_invoice'),
+    url(r'^seller_generate_picklist/$', 'seller_generate_picklist'),
 
     # Reports
     #url(r'^location_wise_filter/$','location_wise_filter'),
@@ -279,7 +282,6 @@ urlpatterns += patterns('rest_api.views',
     url(r'customer_upload/$', 'customer_upload'),
     url(r'^pricing_master_form/$', 'pricing_master_form'),
     url(r'^pricing_master_upload/$', 'pricing_master_upload'),
-
 
     #configurations
     url(r'^configurations/$', 'configurations'),

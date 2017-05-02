@@ -25,3 +25,7 @@
     import tally.api as tally_api
     ex:
         obj = tlly_api.TallyBridgeApi(dll=<dll-file-name>)
+
+
+### Tally Prerequisites at client level:
+    1. 

@@ -37,27 +37,3 @@ class TallyBridgeApi(object):
 
     def add_sales_return(self, **kwargs):
         pass
-
-
-
-# def Customer( tobj):
-#     CustomerUrl = 'http://176.9.181.43:8778/rest_api/get_customer_data'
-#     response = urllib2.urlopen(CustomerUrl)
-#     xml = response.read()
-#     sel = Selector(text=xml)
-#     nodes = sel.xpath('//root/item/orders')
-#     for node in nodes:
-#         tallyCompanyName, ledgerName, updateOpeningBalance, ledgerMailingName, parentGroupName = node.xpath('.//text()').extract()
-#         customerledgers = [{
-#             'tallyCompanyName': tallyCompanyName,
-#             'oldLedgerName': '',
-#             'ledgerName': ledgerName,
-#             'openingBalance': '',
-#             'parentGroupName': parentGroupName,
-#             'updateOpeningBalance': updateOpeningBalance ,
-#             'ledgerMailingName': ledgerMailingName 
-#         }]
-#         print customerledgers
-#         for ledgers in customerledgers:
-#             tobj.PostLedger(**ledgers)
-#     response.close() 

@@ -27,6 +27,16 @@ class DataInconsistencyError(CommonBaseException):
         CommonBaseException.__init__(self, self.message, self.error_code)
 
 
+class TallyDataTransferError(CommonBaseException):
+    message = 'could not transmitt data! '
+    error_code = 'tallyDataTransfer'
+
+    def __init__(self, error_message=None):
+        if error_message:
+            self.message += error_message
+        CommonBaseException.__init__(self, self.message, self.error_code)
+
+
 class CompanyNameNotPresentError(CommonBaseException):
     message = 'Company name is mandatory'
     error_code = 'companyNameNotPresent'

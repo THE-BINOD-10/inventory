@@ -364,67 +364,48 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
 
         $timeout(function() {
-        SweetAlert.swal({
-               title: '',
-               text: msg,
-               type: 'warning',
-               showCancelButton: true,
-               confirmButtonColor: '#33cc66',
-               confirmButtonText: 'Ok',
-               closeOnConfirm: true,
-             },
-             function (status) {
-               if(status) {
-
-                 vm.current_index = index1;
-                 var serial = vm.model_data.data[index1][from_data][index2];
+swal2({
+  title: '',
+  text: 'Rejected. Move to Accept State?',
+  showCancelButton: true,
+}).then(function (result) {
+                 var serial1 = vm.model_data.data[index1][from_data][index2];
                  vm.model_data.data[index1][from_data].splice(index2, 1);
                  var from = "rejected";
                  var to = "accepted";
-                 if (from_data == "reject_imei") {
-
-                   vm.model_data.data[index1].rejected_quantity -= 1;
-                 } else {
-
-                   vm.model_data.data[index1].accepted_quantity -= 1;
-                   from = "accepted";
-                   to = "rejected";
-                 }
-                 vm.enable_button = true;
-                 fb.remove_add_serial(vm.model_data.data[index1], serial, from, to)
-               }
-             }
-           );
+                 vm.model_data.data[index1].rejected_quantity -= 1;
+                 var serial2 = serial1.split("<<>>");
+                 serial2 = serial2[0]+"<<>>"+serial2[1]
+                 fb.remove_add_serial(vm.model_data.data[index1], serial1, serial2, from, to)
+             });
       }, 100);
 
       } else {
-
+              vm.model_data1.reasons = {};
+              angular.forEach(vm.model_data1.options, function(reason){
+                vm.model_data1.reasons[reason] = reason;
+              })
+$timeout(function() {
 swal2({
   title: '',
   text: 'Accepted. Move to Reject State?',
   input: 'select',
-  inputOptions: {
-    'SRB': 'Serbia',
-    'UKR': 'Ukraine',
-    'HRV': 'Croatia'
-  },
+  inputOptions: vm.model_data1.reasons,
   inputPlaceholder: 'Select Reason',
   showCancelButton: true,
-  inputValidator: function (value) {
-    return new Promise(function (resolve, reject) {
-      if (value === 'UKR') {
-        resolve()
-      } else {
-        reject('You need to select Ukraine :)')
-      }
-    })
-  }
 }).then(function (result) {
-  swal({
-    type: 'success',
-    html: 'You selected: ' + result
-  })
+
+                 var serial1 = vm.model_data.data[index1][from_data][index2];
+                 vm.model_data.data[index1][from_data].splice(index2, 1);
+                 var to = "rejected";
+                 var from = "accepted";
+                 vm.model_data.data[index1].accepted_quantity -= 1;
+                 var serial2 = serial1.split("<<>>");
+                 serial2 = serial2[0]+"<<>>"+serial2[1]+"<<>>"+result;
+                 fb.remove_add_serial(vm.model_data.data[index1], serial1, serial2, from, to)
+
 })
+},100);
       }
 
     }
@@ -568,14 +549,14 @@ swal2({
       firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/serials/").push(serial.split("<<>>")[0]);
     }
 
-    fb["remove_add_serial"] = function(data, serial, remove_from, add_to) {
+    fb["remove_add_serial"] = function(data, serial1, serial2, remove_from, add_to) {
 
       var name= data.wms_code+"<<>>"+ data.location+ "<<>>" + data.id;
       firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/"+remove_from+"/").once("value", function(snapshot) {
         if(snapshot.val()) {
           var status = true;
           angular.forEach(snapshot.val(), function(value,key) {
-            if(serial == value && status) {
+            if(serial1 == value && status) {
               status = false;
               firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/"+remove_from+"/"+key).once("value", function(snapshot) {
                 snapshot.ref.remove();
@@ -584,7 +565,7 @@ swal2({
           })
         }
       })
-      firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/"+add_to+"/").push(serial);
+      firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/"+add_to+"/").push(serial2);
     }
 
     fb["delete_accept_serial"] = function() {

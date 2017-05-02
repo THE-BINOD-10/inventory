@@ -563,7 +563,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'supplier_wise': 'get_supplier_details_data', 'sales_report': 'get_sales_return_filter_data',
                         'inventory_adjust_report': 'get_adjust_filter_data', 'inventory_aging_report': 'get_aging_filter_data',
                         'stock_summary_report': 'get_stock_summary_data', 'daily_production_report': 'get_daily_production_data',
-                        'order_summary_report': 'get_order_summary_data', 'seller_invoices_filter': 'get_seller_invoices_filter_data'}
+                        'order_summary_report': 'get_order_summary_data', 'seller_invoices_filter': 'get_seller_invoices_filter_data',
+                        'open_jo_report': 'get_openjo_details'}
 
 SHIPMENT_STATUS = ['Dispatched', 'In Transit', 'Out for Delivery', 'Delivered']
 
@@ -709,6 +710,8 @@ SHOTANG_ORDER_FILE_EXCEL = {'order_id': 1, 'customer_name': 8, 'customer_id': 7,
 SELLER_ORDER_FIELDS = {'sor_id': '', 'quantity': 0, 'order_status': '', 'order_id': '', 'seller_id': '', 'status': 1, 'invoice_no': ''}
 
 SELLER_MARGIN_DICT = {'seller_id': '', 'sku_id': '', 'margin': 0}
+
+RECEIVE_OPTIONS = OrderedDict(( ('One step Receipt + Qc', 'receipt-qc'), ('Two step Receiving', '2-step-receive')))
 
 def fn_timer(function):
     @wraps(function)
@@ -1477,9 +1480,10 @@ def get_openjo_details(search_params, user, sub_user):
         last_data = sorted(last_data, key=itemgetter(last_data[0].keys()[order_index]), reverse=True)
         temp_data['aaData'] = last_data[start_index:stop_index]
         return temp_data
-    elif stop_index:
-        temp_data['aaData'] = last_data[start_index:stop_index]
-        return temp_data
+    temp_data['aaData'] = last_data
+    if stop_index:
+        temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+    return temp_data
 
 def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *

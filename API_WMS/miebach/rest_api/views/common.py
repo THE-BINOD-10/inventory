@@ -525,13 +525,17 @@ def configurations(request, user=''):
     picklist_sort_by = get_misc_value('picklist_sort_by', user.id)
     stock_sync = get_misc_value('stock_sync', user.id)
     auto_generate_picklist = get_misc_value('auto_generate_picklist', user.id)
-    detailed_invoice = get_misc_value('detailed_invoice', user.id) 
+    detailed_invoice = get_misc_value('detailed_invoice', user.id)
     all_groups = SKUGroups.objects.filter(user=user.id).values_list('group', flat=True)
     internal_mails = get_misc_value('Internal Emails', user.id)
     all_groups = str(','.join(all_groups))
     sku_sync = get_misc_value('sku_sync', user.id)
     order_manage = get_misc_value('order_manage', user.id)
     seller_margin = get_misc_value('seller_margin', user.id)
+    receive_process = get_misc_value('receive_process', user.id)
+    if receive_process == 'false':
+        MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+        receive_process = '2-step-receive'
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     all_stages = str(','.join(all_stages))
@@ -600,7 +604,8 @@ def configurations(request, user=''):
                                                              'decimal_limit': decimal_limit, 'picklist_sort_by': picklist_sort_by,
                                                              'stock_sync': stock_sync, 'auto_generate_picklist': auto_generate_picklist,
                                                              'order_management' : order_manage, 'detailed_invoice': detailed_invoice,
-                                                             'sku_sync': sku_sync, 'seller_margin': seller_margin}))
+                                                             'sku_sync': sku_sync, 'seller_margin': seller_margin,
+                                                             'receive_process': receive_process, 'receive_options': RECEIVE_OPTIONS}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):

@@ -699,7 +699,8 @@ def switches(request, user=''):
                     'order_headers' : 'order_headers',
                     'detailed_invoice' : 'detailed_invoice',
                     'scan_picklist_option' : 'scan_picklist_option',
-                    'seller_margin': 'seller_margin'
+                    'seller_margin': 'seller_margin',
+                    'receive_process': 'receive_process'
                   }
 
     toggle_field, selection = "", ""
@@ -1153,6 +1154,7 @@ def get_supplier_data(request, user=''):
     for order in purchase_orders:
         order_data = get_purchase_order_data(order)
         po_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
+        sku_details = json.loads(serializers.serialize("json", [order_data['sku']], indent=1, use_natural_foreign_keys=True, fields = ('sku_code', 'wms_code', 'sku_desc', 'color', 'sku_class', 'sku_brand', 'sku_category', 'image_url')))
         if po_quantity > 0:
             sku_extra_data, product_images, order_ids = get_order_json_data(user, mapping_id=order.id, mapping_type='PO',
                                                                          sku_id=order_data['sku_id'], order_ids=order_ids)
@@ -1163,9 +1165,9 @@ def get_supplier_data(request, user=''):
                             'receive_quantity': get_decimal_limit(user.id, order.received_quantity), 'price': order_data['price'],
                             'temp_wms': order_data['temp_wms'],'order_type': order_data['order_type'], 'unit': order_data['unit'],
                             'dis': True,
-                            'sku_extra_data': sku_extra_data, 'product_images': product_images}])
+                            'sku_extra_data': sku_extra_data, 'product_images': product_images, 'sku_details': sku_details}])
 
-    return HttpResponse(json.dumps({'data': orders, 'po_id': order_id,
+    return HttpResponse(json.dumps({'data': orders, 'po_id': order_id, 'options': REJECT_REASONS,
         'supplier_id': order_data['supplier_id'], 'use_imei': use_imei, 'temp': temp, 'po_reference': po_reference, 'order_ids': order_ids}))
 
 
@@ -1581,7 +1583,8 @@ def get_purchase_order_data(order):
     temp_wms = ''
     unit = ""
     if 'job_code' in dir(order):
-        order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group, 'sku': order.product_code }
+        order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group, 'sku': order.product_code,
+                      'supplier_code': ''}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]
@@ -1594,6 +1597,7 @@ def get_purchase_order_data(order):
         sku = open_data.job_order.product_code
         order_type = ''
         price = 0
+        supplier_code = ''
     elif order.open_po:
         open_data = order.open_po
         user_data = order.open_po.supplier
@@ -1605,6 +1609,7 @@ def get_purchase_order_data(order):
         price = open_data.price
         unit = open_data.measurement_unit
         order_type = status_dict[order.open_po.order_type]
+        supplier_code = open_data.supplier_code
         if sku.wms_code == 'TEMP':
             temp_wms = open_data.wms_code
     elif st_order and not order.open_po:
@@ -1618,13 +1623,15 @@ def get_purchase_order_data(order):
         sku = open_data.sku
         price = open_data.price
         order_type = ''
+        supplier_code = ''
 
     order_data = {'order_quantity': order_quantity, 'price': price, 'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
-                  'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms, 'order_type': order_type}
+                  'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms, 'order_type': order_type,
+                  'supplier_code': supplier_code}
 
     return order_data
 
@@ -1735,33 +1742,15 @@ def update_seller_po(data, value, user, receipt_id=''):
         seller_received_list.append({'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': sell_quan, 'id': seller_po_summary.id})
     return seller_received_list
 
-@csrf_exempt
-@login_required
-@get_admin_user
-def confirm_grn(request, confirm_returns = '', user=''):
-    status_msg = ''
-    data_dict = ''
-    pallet_data = ''
-    all_data = {}
-    headers = ('WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Price')
-    putaway_data = {headers: []}
+def generate_grn(myDict, request, user):
     order_quantity_dict = {}
-    total_received_qty = 0
-    total_order_qty = 0
-    total_price = 0
+    all_data = {}
+    seller_receipt_id = {}
     pallet_number = ''
     po_data = []
-    is_putaway = ''
-    purchase_data = ''
-    seller_name = user.username
-    seller_receipt_id = ''
-
-    if not confirm_returns:
-        request_data = request.GET
-        myDict = dict(request_data.iterlists())
-    else:
-        myDict = confirm_returns
-
+    pallet_data = ''
+    status_msg = ''
+    data_dict = ''
     for i in range(len(myDict['id'])):
         temp_dict = {}
         value = myDict['quantity'][i]
@@ -1843,6 +1832,10 @@ def confirm_grn(request, confirm_returns = '', user=''):
             data_dict = (('Order ID', data.order_id), ('Supplier ID', purchase_data['supplier_id']),
                          ('Order Date', get_local_date(request.user, data.creation_date)),
                          ('Supplier Name', purchase_data['supplier_name']))
+
+            price = float(value) * float(purchase_data['price'])
+            po_data.append((purchase_data['wms_code'], purchase_data['supplier_code'], purchase_data['sku_desc'],
+                            purchase_data['order_quantity'], value, price))
             continue
         else:
             is_putaway = 'true'
@@ -1852,54 +1845,82 @@ def confirm_grn(request, confirm_returns = '', user=''):
                      ('Order Date', get_local_date(request.user, data.creation_date)),
                      ('Supplier Name', purchase_data['supplier_name']))
 
-        price = float(data.received_quantity) * float(purchase_data['price'])
-        po_data.append((purchase_data['wms_code'], purchase_data['supplier_name'], purchase_data['sku_desc'], purchase_data['order_quantity'],
-                        purchase_data['price'], price))
+        price = float(value) * float(purchase_data['price'])
+        po_data.append((purchase_data['wms_code'], purchase_data['supplier_code'], purchase_data['sku_desc'], purchase_data['order_quantity'],
+                        value, price))
+    return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict
 
-    for key, value in all_data.iteritems():
-        putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[-1], key[2]))
-        total_order_qty += order_quantity_dict[key[0]]
-        total_received_qty += value
-        total_price += float(key[2]) * float(value)
-
-    if is_putaway == 'true':
-        btn_class = 'inb-putaway'
+@csrf_exempt
+@login_required
+@get_admin_user
+def confirm_grn(request, confirm_returns = '', user=''):
+    data_dict = ''
+    headers = ('WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Price')
+    putaway_data = {headers: []}
+    total_received_qty = 0
+    total_order_qty = 0
+    total_price = 0
+    pallet_number = ''
+    is_putaway = ''
+    purchase_data = ''
+    seller_name = user.username
+    if not confirm_returns:
+        request_data = request.POST
+        myDict = dict(request_data.iterlists())
     else:
-        btn_class = 'inb-qc'
+        myDict = confirm_returns
 
-    if not status_msg:
-        if not purchase_data:
-            return HttpResponse('Success')
-        address = purchase_data['address']
-        address = '\n'.join(address.split(','))
-        telephone = purchase_data['phone_number']
-        name = purchase_data['supplier_name']
-        supplier_email = purchase_data['email_id']
-        order_id = data.order_id
-        order_date = get_local_date(request.user, data.creation_date)
+    log.info('Request params for ' + user.username + ' is ' + str(myDict))
+    try:
+        po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict = generate_grn(myDict, request, user)
 
-        profile = UserProfile.objects.get(user=request.user.id)
-        po_reference = '%s%s_%s' % (data.prefix, str(order_date).split(' ')[0].replace('-', ''), order_id)
-        table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity')
-        report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
-                            'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': '', 'po_reference': po_reference,
-                            'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}
+        for key, value in all_data.iteritems():
+            putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[-1], key[2]))
+            total_order_qty += order_quantity_dict[key[0]]
+            total_received_qty += value
+            total_price += float(key[2]) * float(value)
 
-        misc_detail = get_misc_value('receive_po', user.id)
-        if misc_detail == 'true':
-            t = loader.get_template('templates/toggle/po_download.html')
-            c = Context(report_data_dict)
-            rendered = t.render(c)
-            send_message = get_misc_value('send_message', user.id)
-            if send_message == 'true':
-                write_and_mail_pdf(po_reference, rendered, request, '', '', po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
-        return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,
-                               'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,
-                               'seller_name': seller_name,
-                               'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
-                               'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class})
-    else:
-        return HttpResponse(status_msg)
+        if is_putaway == 'true':
+            btn_class = 'inb-putaway'
+        else:
+            btn_class = 'inb-qc'
+
+        if not status_msg:
+            if not purchase_data:
+                return HttpResponse('Success')
+            address = purchase_data['address']
+            address = '\n'.join(address.split(','))
+            telephone = purchase_data['phone_number']
+            name = purchase_data['supplier_name']
+            supplier_email = purchase_data['email_id']
+            order_id = data.order_id
+            order_date = get_local_date(request.user, data.creation_date)
+
+            profile = UserProfile.objects.get(user=request.user.id)
+            po_reference = '%s%s_%s' % (data.prefix, str(order_date).split(' ')[0].replace('-', ''), order_id)
+            table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity', 'Amount')
+            report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
+                                'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
+                                'po_reference': po_reference, 'total_qty': total_received_qty,
+                                'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}
+
+            misc_detail = get_misc_value('receive_po', user.id)
+            if misc_detail == 'true':
+                t = loader.get_template('templates/toggle/po_download.html')
+                c = Context(report_data_dict)
+                rendered = t.render(c)
+                send_message = get_misc_value('send_message', user.id)
+                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
+            return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,
+                                   'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,
+                                   'seller_name': seller_name,
+                                   'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
+                                   'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class})
+        else:
+            return HttpResponse(status_msg)
+    except Exception as e:
+        log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
+        return HttpResponse("Generate GRN Failed")
 
 @csrf_exempt
 def confirmation_location(record, data, total_quantity, temp_dict = ''):
@@ -2529,32 +2550,55 @@ def check_wms_qc(request, user=''):
     if data:
         use_imei = data[0].misc_value
 
+    is_receive_po = request.POST.get('receive_po', False)
     for key,value in request.POST.iteritems():
-        filter_params = {'purchase_order__open_po__sku__wms_code': key, 'po_location__status': 2,
-                         'po_location__location__zone__user': user.id, 'status': 'qc_pending'}
+        if key == 'receive_po':
+            continue
+        order_id = ''
         if value and '_' in value:
             value = value.split('_')[-1]
-            filter_params['purchase_order__order_id'] = value
+            order_id = value
+        if not is_receive_po:
+            filter_params = {'purchase_order__open_po__sku__wms_code': key, 'po_location__status': 2,
+                             'po_location__location__zone__user': user.id, 'status': 'qc_pending'}
+            if order_id:
+                filter_params['purchase_order__order_id'] = value
+            model_name = QualityCheck
+            field_mapping = {'purchase_order': 'data.purchase_order', 'prefix': 'data.purchase_order.prefix',
+                             'creation_date': 'data.purchase_order.creation_date','order_id': 'data.purchase_order.order_id',
+                             'quantity': 'data.po_location.quantity', 'accepted_quantity': 'data.accepted_quantity',
+                             'rejected_quantity': 'data.rejected_quantity'}
+        else:
+            filter_params = {'open_po__sku__wms_code': key, 'open_po__sku__user': user.id, 'open_po__order_quantity__gt': F('received_quantity')}
+            if order_id:
+                filter_params['order_id'] = value
+            model_name = PurchaseOrder
+            field_mapping = {'purchase_order': 'data', 'prefix': 'data.prefix', 'creation_date': 'data.creation_date',
+                             'order_id': 'data.order_id', 'quantity': '(data.open_po.order_quantity) - (data.received_quantity)',
+                             'accepted_quantity': '0', 'rejected_quantity': '0'}
         st_purchase = STPurchaseOrder.objects.exclude(po__status__in=['confirmed-putaway', 'stock-transfer']).\
                                               filter(po__order_id=value, open_st__sku__wms_code=key, open_st__sku__user=user.id).\
                                               values_list('po_id', flat=True)
-        if st_purchase:
+        if st_purchase and not is_receive_po:
             del filter_params['purchase_order__open_po__sku__wms_code']
             filter_params['purchase_order_id__in'] = st_purchase
+        elif st_purchase:
+            del filter_params['open_po__sku__wms_code']
+            filter_params['id__in'] = st_purchase
 
 
-        quality_check_data = QualityCheck.objects.filter(**filter_params)
-        if not quality_check_data:
+        model_data = model_name.objects.filter(**filter_params)
+        if not model_data:
             return HttpResponse("WMS Code not found")
-        for quality_check in quality_check_data:
-            purchase_data = get_purchase_order_data(quality_check.purchase_order)
+        for data in model_data:
+            purchase_data = get_purchase_order_data(eval(field_mapping['purchase_order']))
             sku = purchase_data['sku']
             image = sku.image_url
-            po_reference = '%s%s_%s' % (quality_check.purchase_order.prefix, str(quality_check.purchase_order.creation_date).\
-                                        split(' ')[0].replace('-', ''), quality_check.purchase_order.order_id)
-            qc_data.append({'id': quality_check.id,'order_id': po_reference,
-                             'quantity': quality_check.po_location.quantity, 'accepted_quantity': quality_check.accepted_quantity,
-                            'rejected_quantity': quality_check.rejected_quantity})
+            po_reference = '%s%s_%s' % (eval(field_mapping['prefix']), str(eval(field_mapping['creation_date'])).\
+                                        split(' ')[0].replace('-', ''), eval(field_mapping['order_id']))
+            qc_data.append({'id': data.id,'order_id': po_reference,
+                             'quantity': eval(field_mapping['quantity']), 'accepted_quantity': eval(field_mapping['accepted_quantity']),
+                            'rejected_quantity': eval(field_mapping['rejected_quantity'])})
             sku_data = OrderedDict( ( ('SKU Code', sku.sku_code), ('Product Description', sku.sku_desc),
                                       ('SKU Brand', sku.sku_brand), ('SKU Category', sku.sku_category), ('SKU Class', sku.sku_class),
                                       ('Color', sku.color) ))
@@ -2580,14 +2624,7 @@ def get_quality_check_seller(seller_received_list, temp_dict, purchase_data):
             seller_received_list[index]['quantity'] -= temp_dict['received_quantity']
     return seller_received_list, seller_summary_dict
 
-@csrf_exempt
-@login_required
-@get_admin_user
-def confirm_quality_check(request, user=''):
-    myDict = dict(request.POST.iterlists())
-    total_sum = sum(float(i) for i in myDict['accepted_quantity'] + myDict['rejected_quantity'])
-    if total_sum < 1:
-        return HttpResponse('Update Quantities')
+def update_quality_check(myDict, request, user):
     for i in range(len(myDict['id'])):
         temp_dict = {}
         q_id = myDict['id'][i]
@@ -2647,6 +2684,78 @@ def confirm_quality_check(request, user=''):
             qc_data['purchase_order_id'] = data.id
             temp_dict['qc_data'] = qc_data
             save_po_location(put_zone, temp_dict)
+
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def confirm_quality_check(request, user=''):
+    myDict = dict(request.POST.iterlists())
+    total_sum = sum(float(i) for i in myDict['accepted_quantity'] + myDict['rejected_quantity'])
+    if total_sum < 1:
+        return HttpResponse('Update Quantities')
+
+    update_quality_check(myDict, request, user)
+    '''for i in range(len(myDict['id'])):
+        temp_dict = {}
+        q_id = myDict['id'][i]
+        if not myDict['accepted_quantity'][i]:
+            myDict['accepted_quantity'][i] = 0
+        if not myDict['rejected_quantity'][i]:
+            myDict['rejected_quantity'][i] = 0
+        quality_check = QualityCheck.objects.get(id=q_id, po_location__location__zone__user=user.id)
+        data = PurchaseOrder.objects.get(id=quality_check.purchase_order_id)
+        purchase_data = get_purchase_order_data(data)
+        seller_received_dict = get_seller_received_list(data, user)
+        put_zone = purchase_data['zone']
+        if put_zone:
+            put_zone = put_zone.zone
+        else:
+            put_zone = 'DEFAULT'
+
+        temp_dict = {'received_quantity': float(myDict['accepted_quantity'][i]), 'original_quantity': float(quality_check.putaway_quantity),
+                     'rejected_quantity': float(myDict['rejected_quantity'][i]), 'new_quantity': float(myDict['accepted_quantity'][i]),
+                     'total_check_quantity': float(myDict['accepted_quantity'][i]) + float(myDict['rejected_quantity'][i]),
+                     'user': user.id, 'data': data, 'quality_check': quality_check }
+        if temp_dict['total_check_quantity'] == 0:
+             continue
+        seller_received_dict, seller_summary_dict = get_quality_check_seller(seller_received_dict, temp_dict, purchase_data)
+        if get_misc_value('pallet_switch', user.id) == 'true':
+            pallet_code = ''
+            pallet = PalletMapping.objects.filter(po_location_id = quality_check.po_location_id)
+            if pallet:
+                pallet = pallet[0]
+                pallet_code = pallet.pallet_detail.pallet_code
+                if pallet and (not temp_dict['total_check_quantity'] == pallet.pallet_detail.quantity):
+                    return HttpResponse('Partial quality check is not allowed for pallets')
+                setattr(pallet.pallet_detail, 'quantity', temp_dict['new_quantity'])
+                pallet.pallet_detail.save()
+            temp_dict['pallet_number'] = pallet_code
+            temp_dict['pallet_data'] = pallet
+        save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict)
+        create_bayarea_stock(purchase_data['sku_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
+        if temp_dict['rejected_quantity']:
+            put_zone = 'DAMAGED_ZONE'
+            temp_dict['received_quantity'] = temp_dict['rejected_quantity']
+            seller_received_dict, seller_summary_dict = get_quality_check_seller(seller_received_dict, temp_dict, purchase_data)
+            save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict)
+        setattr(quality_check, 'accepted_quantity', temp_dict['new_quantity'])
+        setattr(quality_check, 'rejected_quantity', temp_dict['rejected_quantity'])
+        setattr(quality_check, 'reason', myDict['reason'][i])
+        setattr(quality_check, 'status', 'qc_cleared')
+        quality_check.save()
+        if not temp_dict['total_check_quantity'] == temp_dict['original_quantity']:
+            put_zone = 'QC_ZONE'
+            not_checked = float(quality_check.putaway_quantity) - temp_dict['total_check_quantity']
+            temp_dict = {}
+            temp_dict['received_quantity'] = not_checked
+            temp_dict['user'] = user.id
+            temp_dict['data'] = data
+            qc_data = copy.deepcopy(QUALITY_CHECK_FIELDS)
+            qc_data['purchase_order_id'] = data.id
+            temp_dict['qc_data'] = qc_data
+            save_po_location(put_zone, temp_dict)'''
 
     use_imei = 'false'
     misc_data = MiscDetail.objects.filter(user=user.id, misc_type='use_imei')
@@ -3362,7 +3471,7 @@ def check_serial_exists(request, user=''):
             status = "imei does not exists"
     return HttpResponse(status)
 
-def save_qc_serials(key, scan_data, user):
+def save_qc_serials(key, scan_data, user, qc_id=''):
     try:
         for scan_value in scan_data:
             scan_value = scan_value.split(',')
@@ -3370,16 +3479,22 @@ def save_qc_serials(key, scan_data, user):
             if not scan_value:
                 continue
             for value in scan_value:
-                value = value.split('<<>>')
+                if qc_id:
+                    imei = value
+                    reason = ''
+                    if '<<>>' in value:
+                        imei, reason = value.split('<<>>')
+                else:
+                    imei, qc_id, reason = value.split('<<>>')
                 if not value:
                    continue
-                po_mapping = POIMEIMapping.objects.filter(imei_number=value[0], purchase_order__open_po__sku__user=user)
+                po_mapping = POIMEIMapping.objects.filter(imei_number=imei, purchase_order__open_po__sku__user=user)
                 if po_mapping:
                     qc_serial_dict = copy.deepcopy(QC_SERIAL_FIELDS)
-                    qc_serial_dict['quality_check_id'] = value[1]
+                    qc_serial_dict['quality_check_id'] = qc_id
                     qc_serial_dict['serial_number_id'] = po_mapping[0].id
                     qc_serial_dict['status'] = key
-                    qc_serial_dict['reason'] = value[2]
+                    qc_serial_dict['reason'] = reason
                     qc_serial = QCSerialMapping(**qc_serial_dict)
                     qc_serial.save()
     except Exception as e:
@@ -3962,3 +4077,83 @@ def check_return_imei(request, user=''):
         log.info("Check Return Imei failed for params " + str(request.GET.dict()) + " and error statement is " + str(e))
 
     return HttpResponse(json.dumps(return_data))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def confirm_receive_qc(request, user=''):
+    data_dict = ''
+    headers = ('WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Price')
+    putaway_data = {headers: []}
+    total_received_qty = 0
+    total_order_qty = 0
+    total_price = 0
+    pallet_number = ''
+    is_putaway = ''
+    purchase_data = ''
+    btn_class = ''
+    seller_name = user.username
+    myDict = dict(request.POST.iterlists())
+
+    log.info('Request params for ' + user.username + ' is ' + str(myDict))
+    for ind in range(0, len(myDict['id'])):
+        myDict.setdefault('imei_number', [])
+        imeis_list = [im.split('<<>>')[0] for im in (myDict['rejected'][ind]).split(',')] + myDict['accepted'][ind].split(',')
+        myDict['imei_number'].append(','.join(imeis_list))
+    po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict = generate_grn(myDict, request, user)
+    for i in range(0, len(myDict['id'])):
+        quanlity_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i], po_location__location__zone__user=user.id,
+                                                      status='qc_pending')
+        for quality_check in quanlity_checks:
+            qc_dict = {'id': [quality_check.id], 'unit': [myDict['unit'][i]], 'accepted': [myDict['accepted'][i]],
+                       'rejected': [myDict['rejected'][i]], 'accepted_quantity': [myDict['accepted_quantity'][i]],
+                       'rejected_quantity': [myDict['rejected_quantity'][i]], 'reason': ['']}
+            update_quality_check(qc_dict, request, user)
+
+            if myDict.get("accepted",''):
+                save_qc_serials('accepted', [myDict.get("accepted",'')[i]], user.id, qc_id=quality_check.id)
+            if myDict.get("rejected",''):
+                save_qc_serials('rejected', [myDict.get("rejected",'')[i]], user.id, qc_id=quality_check.id)
+
+    for key, value in all_data.iteritems():
+        putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[-1], key[2]))
+        total_order_qty += order_quantity_dict[key[0]]
+        total_received_qty += value
+        total_price += float(key[2]) * float(value)
+
+    if not status_msg:
+        if not purchase_data:
+            return HttpResponse('Success')
+        address = purchase_data['address']
+        address = '\n'.join(address.split(','))
+        telephone = purchase_data['phone_number']
+        name = purchase_data['supplier_name']
+        supplier_email = purchase_data['email_id']
+        order_id = data.order_id
+        order_date = get_local_date(request.user, data.creation_date)
+
+        profile = UserProfile.objects.get(user=request.user.id)
+        po_reference = '%s%s_%s' % (data.prefix, str(order_date).split(' ')[0].replace('-', ''), order_id)
+        table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity', 'Amount')
+        report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
+                            'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
+                            'po_reference': po_reference, 'total_qty': total_received_qty,
+                            'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}
+
+        misc_detail = get_misc_value('receive_po', user.id)
+        if misc_detail == 'true':
+            t = loader.get_template('templates/toggle/po_download.html')
+            c = Context(report_data_dict)
+            rendered = t.render(c)
+            send_message = get_misc_value('send_message', user.id)
+            write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
+        return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,
+                               'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,
+                               'seller_name': seller_name,
+                               'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
+                               'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class})
+    else:
+        return HttpResponse(status_msg)
+    #except Exception as e:
+    #    log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
+

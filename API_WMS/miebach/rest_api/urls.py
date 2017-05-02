@@ -119,6 +119,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^generate_seller_invoice/$', 'generate_seller_invoice'),
     url('^check_imei_qc/$', 'check_imei_qc'),
     url('^check_return_imei/$', 'check_return_imei'),
+    url('^confirm_receive_qc/$', 'confirm_receive_qc'),
 
     # Production
     url(r'^generated_jo_data/$', 'generated_jo_data'),

@@ -429,7 +429,8 @@ def get_sales_return_filter_data(search_params, user, request_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     search_parameters['sku__user'] = user.id
-    if search_parameters:
+    sales_return = OrderReturns.objects.filter(**search_parameters)
+    if marketplace:
         sales_return = OrderReturns.objects.filter(Q(order__marketplace=marketplace) | Q(marketplace=marketplace), **search_parameters)
     temp_data['recordsTotal'] = len(sales_return)
     temp_data['recordsFiltered'] = len(sales_return)

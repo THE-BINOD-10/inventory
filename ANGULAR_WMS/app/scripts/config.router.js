@@ -531,7 +531,11 @@ var app = angular.module('urbanApp')
           .state('app.inbound.RevceivePo.barcode', {
             url: '/Barcode',
             templateUrl: 'views/masters/toggles/barcode.html'
-            })
+          })
+          .state('app.inbound.RevceivePo.qc_detail', {
+            url: '/QC_Detail',
+            templateUrl: 'views/inbound/toggle/grn_qc.html'
+          })
         .state('app.inbound.QualityCheck', {
           url: '/QualityCheck',
           permission: 'add_qualitycheck',

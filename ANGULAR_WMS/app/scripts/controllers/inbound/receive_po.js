@@ -353,6 +353,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
+    vm.change_sku_scan = function(event, sku) {
+
+      if (event.keyCode == 13 && sku.length > 0) {
+        event.stopPropagation();
+        var status = true;
+        for(var i = 0; i < vm.model_data.data.length; i++) {
+
+          var data = vm.model_data.data[i][0];
+          if(data.wms_code == sku) {
+
+            vm.enable_button = true;
+            vm.reason_show = false;
+            vm.current_index = i;
+            status = false;
+            break;
+          }
+        }
+        if(status) {
+
+          Service.showNoty("SKU Not Found");
+        }
+        vm.change_sku = "";
+      }
+    }
+
     vm.print_grn = function() {
       vm.service.print_data(vm.html, "Generate GRN");
     }

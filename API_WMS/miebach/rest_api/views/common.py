@@ -60,8 +60,7 @@ def get_user_permissions(request, user):
     user_perms = PERMISSION_KEYS
     permissions = Permission.objects.all()
     user_perms = []
-    ignore_list = ['session', 'webhookdata', 'swxmapping', 'userprofile', 'useraccesstokens', 'contenttype', 'user',
-                   'permission','group','logentry']
+    ignore_list = PERMISSION_IGNORE_LIST
     for permission in permissions:
         temp = permission.codename.split('_')[-1]
         if not temp in user_perms and not temp in ignore_list and 'add' in permission.codename:
@@ -147,6 +146,25 @@ def add_user_permissions(request, response_data, user=''):
     response_data['message'] = 'Success'
     return response_data
 
+def add_user_type_permissions(user_profile):
+    update_perm = False
+    if user_profile.user_type == 'warehouse_user':
+        exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment', 'shipmentinfo', 'shipmenttracking']
+        update_perm = True
+    elif user_profile.user_type == 'marketplace_user':
+        exc_perms = []
+        update_perm = True
+    if update_perm:
+        exc_perms = exc_perms + PERMISSION_IGNORE_LIST
+        perms_list = []
+        for perm in exc_perms:
+            perms_list.append('add_' + str(perm))
+            perms_list.append('change_' + str(perm))
+            perms_list.append('delete_' + str(perm))
+        permissions = Permission.objects.exclude(codename__in=perms_list)
+        for permission in permissions:
+            user_profile.user.user_permissions.add(permission)
+
 @csrf_exempt
 def wms_login(request):
     """
@@ -170,6 +188,7 @@ def wms_login(request):
                 user_profile = UserProfile(user=user, phone_number='',
 	                                           is_active=1, prefix=prefix, swx_id=0)
                 user_profile.save()
+                add_user_type_permissions(user_profile)
         else:
             return HttpResponse(json.dumps(response_data), content_type='application/json')
 

@@ -713,6 +713,9 @@ SELLER_MARGIN_DICT = {'seller_id': '', 'sku_id': '', 'margin': 0}
 
 RECEIVE_OPTIONS = OrderedDict(( ('One step Receipt + Qc', 'receipt-qc'), ('Two step Receiving', '2-step-receive')))
 
+PERMISSION_IGNORE_LIST = ['session', 'webhookdata', 'swxmapping', 'userprofile', 'useraccesstokens', 'contenttype', 'user',
+                          'permission','group','logentry', 'corsmodel']
+
 def fn_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):

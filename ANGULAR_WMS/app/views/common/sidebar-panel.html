@@ -274,7 +274,7 @@
           </a>
         </li>
         <li ui-sref-active="active">
-          <a ui-sref="app.outbound.CustomerInvoices">
+          <a ui-sref="app.outbound.CustomerInvoices" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
             <span>Customer Invoices</span>
           </a>
         </li> 

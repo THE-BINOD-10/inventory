@@ -962,6 +962,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.status_imei = "";
     vm.status_scan_imei = function(event, field) {
       if ( event.keyCode == 13 && field.length > 0) {
+        vm.enable_button = true;
+        vm.reason_show = false;
         var data = {imei: field, order_id: vm.model_data.order_id};
         if(vm.imei_list.indexOf(field) != -1) {
           vm.status_move_imei(field);
@@ -990,9 +992,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(reject != -1) {
 
           vm.status_imei_here(i, reject, "reject_imei", field);
+          vm.current_index = i;
+          vm.model_data1["sku_data"] = data.sku_details[0].fields;
           break;
         } else if(accept != -1) {
 
+          vm.current_index = i;
+          vm.model_data1["sku_data"] = data.sku_details[0].fields;
           vm.status_imei_here(i, accept, "accept_imei", field);
           break;
         }

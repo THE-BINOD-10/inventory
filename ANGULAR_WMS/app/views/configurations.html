@@ -53,7 +53,7 @@
         </div>
         <div class="col-md-2 col-sm-4 col-xs-4 create_orders">
           <select class="form-control" ng-model="showCase.model_data.receive_process" ng-change="showCase.switches(showCase.model_data.receive_process, 27)">
-            <option ng-repeat="(key, value) in showCase.model_data.receive_options" value="{{value}}" ng-selected="value == showCase.model_data.scan_picklist_option"> {{key}}</option>
+            <option ng-repeat="(key, value) in showCase.model_data.receive_options" value="{{value}}" ng-selected="value == showCase.model_data.receive_process"> {{key}}</option>
           </select>
         </div>
       </div>

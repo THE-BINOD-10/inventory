@@ -1828,7 +1828,7 @@ def generate_grn(myDict, request, user):
             qc_data = copy.deepcopy(QUALITY_CHECK_FIELDS)
             qc_data['purchase_order_id'] = data.id
             temp_dict['qc_data'] = qc_data
-            save_po_location(put_zone, temp_dict)
+            save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list)
             data_dict = (('Order ID', data.order_id), ('Supplier ID', purchase_data['supplier_id']),
                          ('Order Date', get_local_date(request.user, data.creation_date)),
                          ('Supplier Name', purchase_data['supplier_name']))
@@ -2606,7 +2606,8 @@ def check_wms_qc(request, user=''):
                               'options': REJECT_REASONS, 'use_imei': use_imei}))
 
 def get_seller_received_list(data, user):
-    seller_po_summary = SellerPOSummary.objects.filter(seller_po__seller__user=user.id, putaway_quantity__gt=0,
+    seller_po_summary = SellerPOSummary.objects.filter(Q(location_id__isnull=True) | Q(location__zone__zone='QC_ZONE'),
+                                                       seller_po__seller__user=user.id, putaway_quantity__gt=0,
                                                        seller_po__open_po_id=data.open_po_id)
     seller_received_list = []
     for summary in seller_po_summary:
@@ -2616,12 +2617,22 @@ def get_seller_received_list(data, user):
 
 def get_quality_check_seller(seller_received_list, temp_dict, purchase_data):
     seller_summary_dict = []
+    temp_received_quantity = temp_dict['received_quantity']
     for index, seller_received in enumerate(seller_received_list):
+        if not temp_received_quantity:
+            break
         if seller_received['sku'].id == purchase_data['sku'].id:
             seller_temp = copy.deepcopy(seller_received)
-            seller_temp['quantity'] = temp_dict['received_quantity']
+            temp_quan = 0
+            if seller_received['quantity'] > temp_received_quantity:
+                temp_quan = temp_received_quantity
+                temp_received_quantity = 0
+            else:
+                temp_quan = seller_received['quantity']
+                temp_received_quantity -= seller_received['quantity']
+            seller_temp['quantity'] = temp_quan
             seller_summary_dict.append(seller_temp)
-            seller_received_list[index]['quantity'] -= temp_dict['received_quantity']
+            seller_received_list[index]['quantity'] -= temp_quan
     return seller_received_list, seller_summary_dict
 
 def update_quality_check(myDict, request, user):
@@ -4102,9 +4113,10 @@ def confirm_receive_qc(request, user=''):
         myDict['imei_number'].append(','.join(imeis_list))
     po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict = generate_grn(myDict, request, user)
     for i in range(0, len(myDict['id'])):
-        quanlity_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i], po_location__location__zone__user=user.id,
+        quality_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i], po_location__location__zone__user=user.id,
                                                       status='qc_pending')
-        for quality_check in quanlity_checks:
+
+        for quality_check in quality_checks:
             qc_dict = {'id': [quality_check.id], 'unit': [myDict['unit'][i]], 'accepted': [myDict['accepted'][i]],
                        'rejected': [myDict['rejected'][i]], 'accepted_quantity': [myDict['accepted_quantity'][i]],
                        'rejected_quantity': [myDict['rejected_quantity'][i]], 'reason': ['']}

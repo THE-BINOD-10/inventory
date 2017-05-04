@@ -151,8 +151,13 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
             order_id = int(float(order_id))
         except:
             order_id = str(order_id)
+        quantity = float(data.quantity)
+        seller_order = SellerOrder.objects.filter(order_id=data.id, order__user=user.id, status=0).aggregate(Sum('quantity'))['quantity__sum']
+        if seller_order:
+            quantity = quantity - seller_order
+
         temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('Order ID', order_id), ('SKU Code', sku_code),
-                                                 ('Title', data.title),('id', count), ('Product Quantity', data.quantity),
+                                                 ('Title', data.title),('id', count), ('Product Quantity', quantity),
                                                  ('Shipment Date', shipment_data),
                                                  ('Marketplace', data.marketplace), ('DT_RowClass', 'results'),
                                                  ('DT_RowAttr', {'data-id': str(data.order_id)} ), ('Order Taken By', order_taken_val), ('Status', cust_status)) ) )
@@ -433,7 +438,7 @@ def generate_picklist(request, user=''):
             continue
 
         order_data = OrderDetail.objects.get(id=key,user=user.id)
-        seller_orders = all_seller_orders.filter(order_id=key).order_by('order__shipment_date')
+        seller_orders = all_seller_orders.filter(order_id=key, status=1).order_by('order__shipment_date')
         try:
             if seller_orders:
                 for seller_order in seller_orders:
@@ -650,10 +655,19 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
                     new_picklist = Picklist(**picklist_data)
                     new_picklist.save()
 
-                    order.status = 0
-                    order.save()
                     if seller_order:
                         create_seller_summary_details(seller_order, new_picklist)
+                        seller_order.status = 0
+                        seller_order.save()
+                        sell_order = SellerOrder.objects.filter(order_id=order.id, status=1)
+                        if not sell_order:
+                            order.status = 0
+                            order.save()
+                    else:
+                        order.status = 0
+                        order.save()
+                    #if seller_order:
+                    #    create_seller_summary_details(seller_order, new_picklist)
                 if stock_quantity <= 0:
                     continue
 
@@ -689,7 +703,17 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
                     st_order.save()
 
                 if not stock_diff:
-                    setattr(order, 'status', 0)
+                    #setattr(order, 'status', 0)
+                    if seller_order:
+                        seller_order.status = 0
+                        seller_order.save()
+                        sell_order = SellerOrder.objects.filter(order_id=order.id, status=1)
+                        if not sell_order:
+                            order.status = 0
+                            order.save()
+                    else:
+                        order.status = 0
+                        order.save()
                     break
 
             order.save()
@@ -3586,10 +3610,16 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         #    shipment_data = shipment_data + ', ' + time_slot
 
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (name, dat['total'])
+        tot_quantity = dat['total']
+        seller_order = SellerOrder.objects.filter(order__order_id=dat['order_id'], order__order_code=dat['order_code'],
+                                                  order__user=user.id, status=0).aggregate(Sum('quantity'))['quantity__sum']
+        if seller_order:
+            tot_quantity = dat['total'] - seller_order
+
 
         temp_data['aaData'].append(OrderedDict(( ('', checkbox), ('data_value', check_values), ('Customer Name', dat['customer_name']),
                                                  ('Order ID', order_id), ('Market Place', dat['marketplace']),
-                                                 ('Total Quantity', dat['total']), ('Order Taken By', order_taken_val),
+                                                 ('Total Quantity', tot_quantity), ('Order Taken By', order_taken_val),
                                                  ('Creation Date', creation_data), ('Shipment Date', shipment_data),
                                                  ('id', index), ('DT_RowClass', 'results'), ('Status', cust_status) )))
         index += 1
@@ -3610,13 +3640,16 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
 def order_category_generate_picklist(request, user=''):
     filters = request.POST.get('filters', '')
     order_filter = {'status': 1, 'user': user.id, 'quantity__gt': 0}
+    seller_order_filter = {'order__status': 1, 'order__user': user.id, 'order__quantity__gt': 0}
     if filters:
         filters = eval(filters)
         if filters['market_places']:
             order_filter['marketplace__in'] = (filters['market_places']).split(',')
+            seller_order_filter['order__marketplace__in'] = order_filter['marketplace__in']
         if filters.get('customer_id', ''):
             customer_id = ''.join(re.findall('\d+', filters['customer_id']))
             order_filter['customer_id'] = customer_id
+            seller_order_filter['order__customer_id'] = customer_id
     data = []
     order_data = []
     stock_status = ''
@@ -3626,6 +3659,7 @@ def order_category_generate_picklist(request, user=''):
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
+    all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
     if fifo_switch == 'true':
@@ -3636,6 +3670,8 @@ def order_category_generate_picklist(request, user=''):
         stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by('location_id__pick_sequence')
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     sku_stocks = stock_detail1 | stock_detail2
+
+    seller_stocks = SellerStock.objects.filter(seller__user=user.id).values('stock_id', 'seller_id')
     for key, value in request.POST.iteritems():
         if key in PICKLIST_SKIP_LIST or key in ['filters']:
             continue
@@ -3653,12 +3689,26 @@ def order_category_generate_picklist(request, user=''):
         order_filter['order_code'] = order_code
 
         order_detail = all_orders.filter(**order_filter).order_by('shipment_date')
+        seller_orders = all_seller_orders.filter(order_id__in=order_detail.values_list('id', flat=True), status=1).\
+                                          order_by('order__shipment_date')
+        try:
+            if seller_orders:
+                for seller_order in seller_orders:
+                    seller_stock_dict = filter(lambda person: str(person['seller_id']) == str(seller_order.seller_id), seller_stocks)
+                    if seller_stock_dict:
+                        sell_stock_ids =  map(lambda person: person['stock_id'], seller_stock_dict)
+                        sku_stocks = sku_stocks.filter(id__in=sell_stock_ids)
+                    stock_status, picklist_number = picklist_generation([seller_order], request, picklist_number, user, sku_combos, sku_stocks, status = 'open', remarks='', is_seller_order=True)
+                    if stock_status:
+                        out_of_stock = out_of_stock + stock_status
+            else:
+                stock_status, picklist_number = picklist_generation(order_detail, request, picklist_number, user, sku_combos, sku_stocks,\
+                                                                    status = 'open', remarks=remarks)
+                if stock_status:
+                    out_of_stock = out_of_stock + stock_status
+        except Exception as e:
+            log.info('Generate Picklist order view failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
 
-        stock_status, picklist_number = picklist_generation(order_detail, request, picklist_number, user, sku_combos, sku_stocks,\
-                                                            status = 'open', remarks='')
-
-        if stock_status:
-            out_of_stock = out_of_stock + stock_status
 
     if out_of_stock:
         stock_status = 'Insufficient Stock for SKU Codes ' + ', '.join(list(set(out_of_stock)))
@@ -4273,7 +4323,7 @@ def get_seller_order_view(start_index, stop_index, temp_data, search_term, order
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
     lis = ['id', 'sor_id', 'order__order_id', 'seller__name', 'order__customer_name', 'order__marketplace', 'total', 'order__creation_date', 'order__city', 'order__status']
-    data_dict = {'order__status': 1, 'order__user': user.id, 'order__quantity__gt': 0}
+    data_dict = {'order__status': 1, 'order__user': user.id, 'order__quantity__gt': 0, 'status': 1}
 
     order_data = lis[col_num]
     if order_term == 'desc':

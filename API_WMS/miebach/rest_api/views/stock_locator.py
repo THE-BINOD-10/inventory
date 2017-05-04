@@ -534,8 +534,8 @@ def get_aggregate_data(user_groups, sku_list):
     data = []
     for user in user_groups:
         available = 0
-        total = StockDetail.objects.filter(sku__wms_code__in = list(sku_list), sku__user=user).aggregate(Sum('quantity'))['quantity__sum']
-        reserved = PicklistLocation.objects.filter(stock__sku__sku_code__in = list(sku_list)).aggregate(Sum('reserved'))['reserved__sum']
+        total = StockDetail.objects.filter(sku__wms_code__in = sku_list, sku__user=user).aggregate(Sum('quantity'))['quantity__sum']
+        reserved = PicklistLocation.objects.filter(stock__sku__sku_code__in = sku_list).aggregate(Sum('reserved'))['reserved__sum']
         purch = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user,open_po__sku__sku_code__in=sku_list).values('open_po__sku__sku_code').annotate(total_order=Sum('open_po__order_quantity'),total_received=Sum('received_quantity'))
         total_order = sum(map(lambda d: d['total_order'], purch))
         total_received = sum(map(lambda d: d['total_received'], purch))

@@ -1367,8 +1367,8 @@ def picklist_confirmation(request, user=''):
                     tot_quan = 0
                     for stock in total_stock:
                         tot_quan += float(stock.quantity)
-                    if tot_quan < reserved_quantity1:
-                        total_stock = create_temp_stock(picklist.stock.sku.sku_code, picklist.stock.location.zone, abs(reserved_quantity1 - tot_quan), list(total_stock), user.id)
+                    #if tot_quan < reserved_quantity1:
+                        #total_stock = create_temp_stock(picklist.stock.sku.sku_code, picklist.stock.location.zone, abs(reserved_quantity1 - tot_quan), list(total_stock), user.id)
 
                     for stock in total_stock:
 
@@ -1428,7 +1428,7 @@ def picklist_confirmation(request, user=''):
                         if merge_flag:
                             quantity = picklist.picked_quantity
                         else:
-                            quantity = value[0]['picked_quantity']
+                            quantity = picking_count1
                         if picklist.order.order_id in picklists_send_mail.keys():
                             if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
                                 qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] )
@@ -1452,6 +1452,7 @@ def picklist_confirmation(request, user=''):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         if get_misc_value('automate_invoice', user.id) == 'true' and single_order:
             order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True).distinct()
+            print order_ids
             order_id = picklists_send_mail.keys()
             if order_ids and order_id:
                 ord_id = order_id[0]
@@ -2934,6 +2935,8 @@ def all_whstock_quant(sku_master, user):
         job_order_qty = job_order_product_qty - job_order_recieved_qty + putaway_pending_job_qty
 
         all_quantity = stock_qty - reserved_qty + intransit_qty + putaway_pending_purchase_qty + job_order_qty
+        if user.id in stock_display_warehouse:
+            all_quantity  -= item['physical_stock']
         item['all_quantity'] = all_quantity
 
     return sku_master

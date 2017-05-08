@@ -1695,6 +1695,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             discount = 0
             mrp_price = dat.sku.mrp
             order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=dat.id)
+            tax_type = ''
             if order_summary:
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat

@@ -242,6 +242,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
    });
   }
 
+  vm.update_picklist = function(pick_id) {
+
+    vm.service.apiCall('update_picklist_loc/','GET',{picklist_id: pick_id}, true).then(function(data){
+      if (data.message) {
+
+        vm.service.apiCall('view_picklist/', 'GET' , {data_id: pick_id}, true).then(function(data){
+                if(data.message) {
+                  angular.copy(data.data, vm.model_data);
+                  for(var i=0; i<vm.model_data.data.length; i++){
+                    vm.model_data.data[i]['sub_data'] = [];
+                    var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
+                    var temp = {zone: vm.model_data.data[i].zone,
+                                location: vm.model_data.data[i].location,
+                                orig_location: vm.model_data.data[i].location,
+                                picked_quantity: value, new: false}
+                    if(Session.user_profile.user_type == "marketplace_user") {
+                      temp["picked_quantity"] = vm.model_data.data[i].picked_quantity;
+                    }
+                    vm.model_data.data[i]['sub_data'].push(temp);
+                  }
+                  angular.copy(vm.model_data.sku_total_quantities ,vm.remain_quantity);
+                  vm.count_sku_quantity();
+                }
+        });
+      }
+    });
+  }
+
     vm.isLast = isLast;
     function isLast(check) {
 
@@ -544,7 +572,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var send = $(data.$name+":visible").serializeArray();
       vm.service.apiCall("edit_invoice/","POST",send).then(function(data){
         if(data.message) {
+          vm.pdf_data.invoice_date =  vm.pdf_data.inv_date;
           vm.invoice_edit = false;
+          vm.service.showNoty("Updated Successfully");
         }
       })
       console.log("edit");

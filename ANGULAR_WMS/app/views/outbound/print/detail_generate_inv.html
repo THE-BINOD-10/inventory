@@ -15,7 +15,7 @@
             <h4 style="margin-bottom:2px" align="center">Tax Invoice</h4>
           </div>
           <div class="row col-md-12" style="margin-top: 0px;">
-            <table class="top-table table table-bordered bl br mb0" ng-if="user.userName == 'sagar_fab'" 
+            <table class="top-table table table-bordered bl br mb0"
                    style="margin-bottom:0px;height:{{showCase.x}}px;">
               <tbody class="rm-padding">
                 <tr>
@@ -43,7 +43,8 @@
                   <td style="text-align:left">
                     <strong>Invoice Number:</strong>{{showCase.pdf_data.invoice_no}}
                     <br>
-                    <strong>Invoice Date:</strong>{{showCase.pdf_data.invoice_date}}
+                    <strong>Invoice Date:</strong><span ng-if="!showCase.invoice_edit">{{showCase.pdf_data.invoice_date}}</span>
+                    <input type="text" name="invoice_date" ng-if="showCase.invoice_edit" class="form-control stk-readonly" ng-model="showCase.pdf_data.inv_date" ui-jq="datepicker" data-date-today-highlight="true" data-date-autoclose="true" data-date-set-date="showCase.pdf_data.inv_date" readonly>
                     <br>
                     <strong>Order Number:</strong>{{showCase.pdf_data.order_id}}
                     <br>
@@ -120,7 +121,7 @@
                     <center>Disc</center>
                   </th>
                   <th class="w50">
-                    <center>VAT(%)</center>
+                    <center>{{(showCase.pdf_data.tax_type)?showCase.pdf_data.tax_type: 'VAT'}}(%)</center>
                   </th>
                   <th>
                     <center>Amt</center>
@@ -191,6 +192,11 @@
                         </address>
                       </div>
                     </div>
+                  </td>
+                </tr>
+                <tr class="rm-padding">
+                  <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+                    <b>Total amount (After rounding): &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{showCase.pdf_data.rounded_invoice_amount}}</span></b>
                   </td>
                 </tr>
                 <tr class="rm-padding">

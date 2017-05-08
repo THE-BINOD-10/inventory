@@ -36,21 +36,17 @@
         </div>
         <div class="col-md-8" style="margin-bottom: 60px;">
           <div class="row">
-            <div class="table-responsive">
+            <div class="">
               <table class="table table-bordered">
                 <thead>
                   <tr>
-                    <th ng-repeat="head in (showCase.service.dyn_data.style_detail.head['sagar_fab'])?showCase.service.dyn_data.style_detail.head['sagar_fab']:showCase.service.dyn_data.style_detail.head['common'];">{{head}}</th>
-                    <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">1-Day Stock</th>
-                    <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">3-Day Stock</th>
+                    <th ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{hd}}</th>
                     <th>Quantity</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr ng-repeat="style in Style.style_data">
-                    <td ng-repeat="head in (showCase.service.dyn_data.style_detail.keys['sagar_fab'])?showCase.service.dyn_data.style_detail.keys['sagar_fab']: showCase.service.dyn_data.style_detail.keys['common']">{{style[head]}}</th>
-                    <td ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">{{style.physical_stock}}</td>
-                    <td ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">{{style.all_quantity}}</td>
+                    <td ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{style[Style.style_headers[hd]]}}</td> 
                     <td><input class="form-control" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data);" ng-class="service.get_decimal_perm()"></td>
                   </tr>
                 </tbody>

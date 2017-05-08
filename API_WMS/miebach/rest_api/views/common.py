@@ -28,7 +28,7 @@ import datetime
 from utils import *
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Sum, Count
-
+import math
 log = init_logger('logs/common.log')
 # Create your views here.
 
@@ -534,9 +534,11 @@ def configurations(request, user=''):
     order_manage = get_misc_value('order_manage', user.id)
     stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
     view_order_status = get_misc_value('view_order_status', user.id)
+    style_headers = get_misc_value('style_headers', user.id)
     seller_margin = get_misc_value('seller_margin', user.id)
 
     view_order_status = view_order_status.split(',')
+    style_headers = style_headers.split(',')
 
 
     if stock_display_warehouse != "false":
@@ -608,7 +610,7 @@ def configurations(request, user=''):
                                                              'mail_reports': MAIL_REPORTS, 'data_range': data_range,
                                                              'report_freq': report_freq, 'email': email,
                                                              'reports_data': reports_data, 'display_none': display_none,
-                                                             'internal_mails' : internal_mails,
+                                                             'internal_mails' : internal_mails, 'style_detail_headers': STYLE_DETAIL_HEADERS,
                                                              'scan_picklist_option': _pick_option, "picklist_options": PICKLIST_OPTIONS,
                                                              'is_config': 'true', 'order_headers': ORDER_HEADERS_d,
                                                              'all_groups': all_groups, 'display_pos': display_pos,
@@ -621,7 +623,7 @@ def configurations(request, user=''):
                                                              'all_related_warehouse' : all_related_warehouse,
                                                              'stock_display_warehouse':  stock_display_warehouse,
                                                              'all_view_order_status': all_view_order_status,
-                                                             'view_order_status': view_order_status,
+                                                             'view_order_status': view_order_status, 'style_headers': style_headers,
                                                              'sku_sync': sku_sync, 'seller_margin': seller_margin}))
 
 @csrf_exempt
@@ -1697,6 +1699,9 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                 vat = order_summary[0].vat
                 mrp_price = order_summary[0].mrp
                 discount = order_summary[0].discount
+                tax_type = order_summary[0].tax_type
+                if order_summary[0].invoice_date:
+                    invoice_date = order_summary[0].invoice_date
             #else:
             #    tax = float(float(dat.invoice_amount)/100) * vat
 
@@ -1740,13 +1745,14 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             total_invoice += _tax + amt
 
             data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
-                         'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price,
+                         'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
                          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
                          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt})
             #print data
             #print total_invoice
 
     invoice_date = get_local_date(user, invoice_date, send_date='true')
+    inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
     order_charges = {}
 
@@ -1761,13 +1767,16 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     total_amt = "%.2f" % (float(total_invoice) - float(_total_tax))
     #print total_invoice
     dispatch_through = "By Road"
+    _total_invoice = math.ceil(total_invoice)
+    _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
     invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'marketplace': marketplace, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
                     'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % _total_tax, 'total_mrp': total_mrp,
-                    'invoice_no': 'TI/1116/' + order_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(total_invoice),
+                    'invoice_no': _invoice_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(_total_invoice),
                     'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount, 'consignee': consignee,
-                    'dispatch_through': dispatch_through}
+                    'dispatch_through': dispatch_through, 'inv_date': inv_date, 'tax_type': tax_type,
+                    'rounded_invoice_amount': _total_invoice}
     #print invoice_data
     return invoice_data
 
@@ -2449,3 +2458,20 @@ def apply_search_sort(columns, data_dict, order_term, search_term, col_num, exac
         else:
             data_dict = sorted(data_dict, key = lambda x: x[order_data], reverse= True)
     return data_dict
+
+
+
+def password_notification_message(username, password, name, to):
+    """ Send SMS for password modification """
+    print "sms coming"
+    arguments = "%s -- %s -- %s -- %s" % (username, password, name, to)
+    log.info(arguments)
+    try:
+        data = " Dear Customer, Your credentials for %s Customer Portal are as follows: \n Username: %s \n Password: %s" %(name, username, password)
+
+        send_sms(to, data)
+    except:
+        log.info("message sending failed")
+
+
+

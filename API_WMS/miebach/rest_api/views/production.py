@@ -635,10 +635,18 @@ def confirm_jo(request, user=''):
     creation_date = get_local_date(user, creation_date)
     user_profile = UserProfile.objects.get(user_id=user.id)
     user_data = {'company_name': user_profile.company_name, 'username': user.first_name, 'location': user_profile.location}
+    _vendor_id = ""
+    _vendor_name = ""
+    if order_type == "VP":
+        vend_objs = VendorMaster.objects.filter(user = user.id, vendor_id = vendor_id)
+        if vend_objs:
+            _vendor_id = vendor_id
+            _vendor_name = vend_objs[0].name
 
-    return render(request, 'templates/toggle/jo_template.html', {'tot_mat_qty': tot_mat_qty, 'tot_pro_qty': tot_pro_qty, 'all_data': all_data,
-                                                                 'creation_date': creation_date, 'job_code': job_code, 'user_data': user_data,
-                                                                 'headers': RAISE_JO_HEADERS})    
+    return render(request, 'templates/toggle/jo_template.html', {'tot_mat_qty': tot_mat_qty, 'tot_pro_qty': tot_pro_qty,
+                                                                'all_data': all_data, 'creation_date': creation_date, 'job_code': job_code,
+                                                                'user_data': user_data, 'headers': RAISE_JO_HEADERS,
+                                                                'vendor_id': _vendor_id, 'vendor_name': _vendor_name})
 
 def get_job_code(user):
     jo_code = JobOrder.objects.filter(product_code__user=user).order_by('-job_code')

@@ -759,13 +759,21 @@ def insert_mapping(request, user=''):
     sku_supplier.save()
     return HttpResponse('Added Successfully')
 
-def update_customer_password(data, password):
+def update_customer_password(data, password, user):
     customer_user_map = CustomerUserMapping.objects.filter(customer_id=data.id, customer__user=data.user)
     if customer_user_map:
         customer_user = customer_user_map[0].user
-        customer_user.set_password(password)
+        if password:
+            customer_user.set_password(password)
         customer_user.email = data.email_id
+        customer_user.first_name  = data.name
         customer_user.save()
+        if user.first_name:
+            name = user.first_name
+        else:
+            name = user.username
+        if password:
+            password_notification_message(customer_user.username, password, name, data.phone_number)
 
 @csrf_exempt
 @login_required
@@ -777,6 +785,7 @@ def update_customer_values(request,user=''):
     create_login = request.POST.get('create_login', '')
     login_created = request.POST.get('login_created', '')
     password = request.POST.get('password', '')
+    _name = data.name
     for key, value in request.POST.iteritems():
         if key not in data.__dict__.keys():
             continue
@@ -800,8 +809,12 @@ def update_customer_values(request,user=''):
         status_msg = create_update_user(data, password, username)
         if 'already' in status_msg:
             return HttpResponse(status_msg)
-    if login_created == 'true' and password:
-        update_customer_password(data, password)
+    name_ch = False
+    if _name != data.name:
+        name_ch = True
+    if login_created == 'true':
+        if password or name_ch:
+            update_customer_password(data, password, user)
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt

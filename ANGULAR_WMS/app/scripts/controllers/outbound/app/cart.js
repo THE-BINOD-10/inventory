@@ -78,7 +78,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
         var elem = angular.element($('form'));
         elem = elem[0];
         elem = $(elem).serializeArray();
-        vm.service.apiCall('insert_order_data/', 'GET', elem).then(function(data){
+        vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
           if(data.message) {
             if(data.data.indexOf("Success") != -1) {
               vm.delete_customer_cart_data(vm.model_data.data);

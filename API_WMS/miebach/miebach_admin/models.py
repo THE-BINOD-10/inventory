@@ -1012,6 +1012,7 @@ class CustomerOrderSummary(models.Model):
     consignee = models.CharField(max_length=256, default='')
     payment_terms = models.CharField(max_length=24, default='')
     dispatch_through = models.CharField(max_length=24, default='')
+    invoice_date = models.DateTimeField(null=True, blank=True)
     central_remarks = models.CharField(max_length=256, default='')
 
     class Meta:

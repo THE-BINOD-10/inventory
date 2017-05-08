@@ -365,4 +365,11 @@ urlpatterns += patterns('rest_api.views',
 
     #get list of vendors . @common.py
     url(r'get_vendors_list/', 'get_vendors_list'),
+
+    #update_picklist_loc
+    url(r'update_picklist_loc/', 'update_picklist_loc'),
+
+
+
+
     )

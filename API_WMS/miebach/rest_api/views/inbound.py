@@ -730,7 +730,8 @@ def switches(request, user=''):
                     'scan_picklist_option' : 'scan_picklist_option',
                     'stock_display_warehouse': 'stock_display_warehouse',
                     'view_order_status': 'view_order_status',
-                    'seller_margin': 'seller_margin'
+                    'seller_margin': 'seller_margin',
+                    'style_headers': 'style_headers'
                   }
 
     toggle_field, selection = "", ""

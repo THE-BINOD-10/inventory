@@ -934,7 +934,11 @@ def validate_inventory_form(open_sheet, user_id):
             if col_idx == 2:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
-                cell_data = str(cell_data)
+                try:
+                    cell_data = str(re.sub(r'[^\x00-\x7F]+','', cell_data))
+                except:
+                    cell_data = ''
+
                 mapping_dict[row_idx] = cell_data
                 #sku_master = SKUMaster.objects.filter(wms_code = cell_data,user=user_id)
                 #if not sku_master:

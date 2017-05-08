@@ -550,7 +550,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'supplier_wise': 'get_supplier_details_data', 'sales_report': 'get_sales_return_filter_data',
                         'inventory_adjust_report': 'get_adjust_filter_data', 'inventory_aging_report': 'get_aging_filter_data',
                         'stock_summary_report': 'get_stock_summary_data', 'daily_production_report': 'get_daily_production_data',
-                        'order_summary_report': 'get_order_summary_data'}
+                        'order_summary_report': 'get_order_summary_data', 'open_jo_report': 'get_openjo_details'}
 
 SHIPMENT_STATUS = ['Dispatched', 'In Transit', 'Out for Delivery', 'Delivered']
 
@@ -637,6 +637,10 @@ PAYMENT_MODES = ['Credit Card', 'Debit Card', 'Cash', 'NEFT', 'RTGS', 'IMPS', 'O
 
 ORDER_HEADERS_d = OrderedDict(( ('Unit Price', 'unit_price'), ('Amount', 'amount'), ('Tax', 'tax'), ('Total Amount', 'total_amount'),
                                        ( 'Remarks', 'remarks') ))
+
+STYLE_DETAIL_HEADERS = OrderedDict(( ('SKU Code', 'wms_code'), ('SKU Description', 'sku_desc'), ('Size', 'sku_size'),
+                                     ('1-Day Stock', 'physical_stock'), ('3-Day Stock', 'all_quantity')
+                                  ))
 
 TAX_TYPES = OrderedDict(( ('DEFAULT', 0), ('VAT', 5.5), ('CST', 2) ))
 
@@ -1387,9 +1391,12 @@ def get_openjo_details(search_params, user, sub_user):
         last_data = sorted(last_data, key=itemgetter(last_data[0].keys()[order_index]), reverse=True)
         temp_data['aaData'] = last_data[start_index:stop_index]
         return temp_data
-    elif stop_index:
-        temp_data['aaData'] = last_data[start_index:stop_index]
-        return temp_data
+    temp_data['aaData'] = last_data
+    if stop_index:
+        temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+    return temp_data
+
+
 
 def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *

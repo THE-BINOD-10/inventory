@@ -638,6 +638,10 @@ PAYMENT_MODES = ['Credit Card', 'Debit Card', 'Cash', 'NEFT', 'RTGS', 'IMPS', 'O
 ORDER_HEADERS_d = OrderedDict(( ('Unit Price', 'unit_price'), ('Amount', 'amount'), ('Tax', 'tax'), ('Total Amount', 'total_amount'),
                                        ( 'Remarks', 'remarks') ))
 
+STYLE_DETAIL_HEADERS = OrderedDict(( ('SKU Code', 'wms_code'), ('SKU Description', 'sku_desc'), ('Size', 'sku_size'),
+                                     ('1-Day Stock', 'physical_stock'), ('3-Day Stock', 'all_quantity')
+                                  ))
+
 TAX_TYPES = OrderedDict(( ('DEFAULT', 0), ('VAT', 5.5), ('CST', 2) ))
 
 ##RETAILONE RELATED

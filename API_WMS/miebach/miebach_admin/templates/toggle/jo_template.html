@@ -25,6 +25,14 @@
                 <div class="form-group clearfix">
 
                     <div>
+                        <div style="float: left;">
+                            {% if vendor_id %}
+                            <p><b>Vendor ID:</b> {{ vendor_id }}</p>
+                            {% endif %}
+                            {% if vendor_name %}
+                            <p><b>Vendor Name:</b> {{ vendor_name }}</p>
+                            {% endif %}
+                        </div>
                         <div style="float: right;">
                             <p><b>Job Order ID:</b> {{ job_code }}</p>
 

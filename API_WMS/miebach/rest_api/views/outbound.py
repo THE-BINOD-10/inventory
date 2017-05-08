@@ -1451,7 +1451,7 @@ def picklist_confirmation(request, user=''):
         if not (single_order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         if get_misc_value('automate_invoice', user.id) == 'true' and single_order:
-            order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True)
+            order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True).distinct()
             order_id = picklists_send_mail.keys()
             if order_ids and order_id:
                 ord_id = order_id[0]
@@ -1494,6 +1494,9 @@ def edit_invoice(request, user=''):
     payment_terms = request.POST.get("credit_period", "")
     dispatch_through = request.POST.get("dispatch_through", "")
     picklists_send_mail = request.POST.get("picklists_send_mail", "")
+    invoice_date = request.POST.get("invoice_date", "")
+    if invoice_date:
+        invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
     if picklists_send_mail:
         picklists_send_mail = eval(picklists_send_mail)
     order_id_val = ''.join(re.findall('\d+', order_ids))
@@ -1507,6 +1510,8 @@ def edit_invoice(request, user=''):
             cust_obj.consignee = consignee
             cust_obj.payment_terms = payment_terms
             cust_obj.dispatch_through = dispatch_through
+            if invoice_date:
+                cust_obj.invoice_date = invoice_date
             cust_obj.save()
 
     picklist_obj = Picklist.objects.filter(order_id__in = ord_ids, order__user = user.id)
@@ -1517,11 +1522,17 @@ def edit_invoice(request, user=''):
 
 def add_consignee_data(invoice_data, order_ids, user):
     cust_ord_objs = CustomerOrderSummary.objects.filter(order__id__in = order_ids)
+    if not cust_ord_objs:
+        return invoice_data
     for obj in cust_ord_objs:
         if obj.consignee:
             invoice_data['consignee'] = obj.consignee
-        if obj.payment_terms or obj.dispatch_through:
-            invoice_data['customer_details'][0]['credit_period'] = obj.payment_terms
+        if obj.payment_terms:
+            if invoice_data['customer_details']:
+                invoice_data['customer_details'][0]['credit_period'] = obj.payment_terms
+            else:
+                invoice_data['customer_details'] = [{'credit_period' : obj.payment_terms}]
+        if obj.dispatch_through:
             invoice_data['dispatch_through'] = obj.dispatch_through
             break
 
@@ -2071,7 +2082,7 @@ def get_order_customer_details(order_data, request):
 @get_admin_user
 @fn_timer
 def insert_order_data(request, user=''):
-    myDict = dict(request.GET.iterlists())
+    myDict = dict(request.POST.iterlists())
     order_id = ''
     invalid_skus = []
     items = []
@@ -2080,12 +2091,12 @@ def insert_order_data(request, user=''):
     order_sku = {}
     tracking_dict = {}
     valid_status = validate_order_form(myDict, request, user)
-    payment_mode = request.GET.get('payment_mode', '')
-    payment_received = request.GET.get('payment_received', '')
-    tax_percent = request.GET.get('tax', '')
-    telephone = request.GET.get('telephone', '')
-    custom_order = request.GET.get('custom_order', '')
-    user_type = request.GET.get('user_type', '')
+    payment_mode = request.POST.get('payment_mode', '')
+    payment_received = request.POST.get('payment_received', '')
+    tax_percent = request.POST.get('tax', '')
+    telephone = request.POST.get('telephone', '')
+    custom_order = request.POST.get('custom_order', '')
+    user_type = request.POST.get('user_type', '')
     created_order_id = ''
     if valid_status:
         return HttpResponse(valid_status)
@@ -2105,7 +2116,7 @@ def insert_order_data(request, user=''):
             order_data['unit_price'] = 0
             vendor_items = ['printing_vendor', 'embroidery_vendor', 'production_unit']
 
-            for key, value in request.GET.iteritems():
+            for key, value in request.POST.iteritems():
                 if key in ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount', 'description']:
                     continue
 
@@ -2962,7 +2973,7 @@ def get_sku_variants(request, user=''):
 
     sku_master = all_whstock_quant(sku_master, user)
 
-    return HttpResponse(json.dumps({'data': sku_master}))
+    return HttpResponse(json.dumps({'data': sku_master, 'style_headers': STYLE_DETAIL_HEADERS}))
 
 def modify_invoice_data(invoice_data, user):
 
@@ -4620,5 +4631,152 @@ def seller_generate_picklist(request, user=''):
     return HttpResponse(json.dumps({'data': data, 'headers': headers,
                            'picklist_id': picklist_number + 1,'stock_status': stock_status, 'show_image': show_image,
                            'use_imei': use_imei, 'order_status': order_status, 'user': request.user.id}))
+
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_picklist_loc(request, user = ""):
+    picklist_no = request.GET.get('picklist_id', "")
+    if not picklist_no:
+        return HttpResponse('PICKLIST ID missing')
+
+    filter_param = {'order__user' : user.id, 'reserved_quantity__gt' : 0, 'stock__isnull' : True, 'picklist_number' : picklist_no}
+    picklist_objs = Picklist.objects.filter(**filter_param)
+    picklist_data = {}
+    for item in picklist_objs:
+
+        _sku_code = item.order.sku.sku_code
+        if item.sku_code:
+            _sku_code = item.sku_code
+
+        stock_objs = StockDetail.objects.filter(sku__sku_code = _sku_code, sku__user = user.id, quantity__gt = 0).order_by('location__pick_sequence')
+
+        consumed_qty = 0
+
+        picklist_data['order_id'] = item.order
+        picklist_data['sku_code'] = item.sku_code
+        picklist_data['picklist_number'] = picklist_no
+        picklist_data['reserved_quantity'] = 0
+        picklist_data['picked_quantity'] = 0
+        picklist_data['remarks'] = item.remarks
+        picklist_data['order_type'] = item.order_type
+        picklist_data['status'] = item.status
+
+        consumed_qty = picklist_location_suggestion(request, item.order, stock_objs, user, item.reserved_quantity, picklist_data, consumed_qty)
+
+        item.reserved_quantity -= consumed_qty
+        item.save()
+        if item.reserved_quantity == 0:
+            item.delete()
+    return HttpResponse('Success')
+
+
+"""
+            reserved_quantity = PicklistLocation.objects.filter(stock_id=stock_obj.id, status=1, picklist__order__user=user.id).aggregate(Sum('reserved'))['reserved__sum']
+            qty = stock_obj.quantity - reserved_quantity
+            if qty > item.reserved_quantity:
+                item.stock = stock_obj.id
+                stock_obj.quantity -= item.reserved_quantity
+                item.save()
+                stock_obj.save()
+                break
+            else:
+                remained_qty = item.reserved_quantity - qty
+                item.stock = stock_obj.id
+                item.reserved_quantity = qty
+                stock_obj.quantity = 0
+                item.save()
+                stock_obj.save()
+                Picklist.objects.create(order = item.order__id, sku_code = item.sku_code, picklist_number = picklist_no,
+                            reserved_quantity = remained_qty, picked_quantity = 0, remarks = item.remarks, order_type = item.order_type,
+                            status = item.status)
+
+
+
+"""
+def picklist_location_suggestion(request, order, stock_detail, user, order_quantity, picklist_data, consumed_qty = 0):
+
+    stock_diff = 0
+
+    for stock in stock_detail:
+        stock_count, stock_diff = get_stock_count(request, order, stock, stock_diff, user, order_quantity)
+        if not stock_count:
+            continue
+
+        consumed_qty += stock_count
+        picklist_data['stock_id'] = stock.id
+        picklist_data['reserved_quantity'] = stock_count
+        if 'st_po' in dir(order):
+            picklist_data['order_id'] = None
+        else:
+            picklist_data['order_id'] = order.id
+
+        new_picklist = Picklist(**picklist_data)
+        new_picklist.save()
+        seller_order = ""
+        if seller_order:
+            create_seller_summary_details(seller_order, new_picklist)
+
+        picklist_loc_data = {'picklist_id': new_picklist.id , 'status': 1, 'quantity': stock_count, 'creation_date':   datetime.datetime.now(),
+                             'stock_id': new_picklist.stock_id, 'reserved': stock_count}
+        po_loc = PicklistLocation(**picklist_loc_data)
+        po_loc.save()
+        if 'st_po' in dir(order):
+            st_order_dict = copy.deepcopy(ST_ORDER_FIELDS)
+            st_order_dict['picklist_id'] = new_picklist.id
+            st_order_dict['stock_transfer_id'] = order.id
+            st_order = STOrder(**st_order_dict)
+            st_order.save()
+
+        if not stock_diff:
+            setattr(order, 'status', 0)
+            break
+    return consumed_qty
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

@@ -590,7 +590,8 @@ def configurations(request, user=''):
         _pick_option = scan_picklist_option[0].misc_value
 
     all_related_warehouse_id = get_related_users(user.id)
-    all_related_warehouse = dict(User.objects.filter(id__in = all_related_warehouse_id).values_list('first_name','id'))
+    all_related_warehouse = dict(User.objects.filter(id__in = all_related_warehouse_id).exclude(id = user.id).values_list('first_name','id'))
+    all_related_warehouse.update({"Intransit of Current Warehouse" : user.id})
 
     all_view_order_status = CUSTOM_ORDER_STATUS
 

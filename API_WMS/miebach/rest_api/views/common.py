@@ -541,7 +541,7 @@ def configurations(request, user=''):
     style_headers = style_headers.split(',')
 
 
-    if stock_display_warehouse != "false":
+    if stock_display_warehouse and stock_display_warehouse != "false":
         stock_display_warehouse = stock_display_warehouse.split(',')
         stock_display_warehouse = map(int, stock_display_warehouse)
         #stock_display_warehouse = list(eval(stock_display_warehouse))

@@ -1525,6 +1525,7 @@ class SellerOrderSummary(models.Model):
     id = BigAutoField(primary_key=True)
     pick_number = models.PositiveIntegerField(default=0)
     seller_order = models.ForeignKey(SellerOrder, blank=True, null=True, db_index=True)
+    order = models.ForeignKey(OrderDetail, blank=True, null=True, db_index=True)
     picklist = models.ForeignKey(Picklist, blank=True, null=True, db_index=True)
     quantity = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)

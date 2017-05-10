@@ -1169,3 +1169,52 @@ def seller_stock_summary_data(request, user=''):
         zones_data[stock.location.zone.zone][stock.location.location][0] += seller_stock.quantity
 
     return HttpResponse(json.dumps({'zones_data': zones_data}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_imei_details(request, user=''):
+    # returns imei details
+    imei = request.GET['imei']
+    resp = {'result': 0, 'data': {}}
+
+    if imei:
+
+        imei_data = QCSerialMapping.objects.filter(serial_number__purchase_order__open_po__sku__user = user.id, serial_number__imei_number = imei)
+        if imei_data:
+
+            imei_data = imei_data[0]
+            resp['data'] = {'imei_data':{'id': imei_data.id, 'imei_number': imei_data.serial_number.imei_number, 'status': imei_data.status,\
+                                         'reason': imei_data.reason, 'sku_code': imei_data.serial_number.purchase_order.open_po.sku.sku_code},
+                            'options': REJECT_REASONS}
+        else:
+
+            resp['result'] = 1;
+            resp['data'] = "IMEI Not Found"
+    else:
+
+        resp['result'] = 1;
+        resp['data'] = "IMEI Not Found"
+
+    return HttpResponse(json.dumps(resp))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def change_imei_status(request, user=''):
+    # returns imei details
+    request_data = request.POST
+    resp = {'status': 0, 'message': 'No Data found'}
+    log.info("Change Imei status params " + str(request.POST.dict()))
+    try:
+        data_id = request_data.get('id', '')
+        qc_serial = QCSerialMapping.objects.get(id=data_id)
+        resp = {'status': 1, 'message': 'No Data found'}
+        if qc_serial:
+            qc_serial.status = request_data.get('status', '')
+            qc_serial.reason = request_data.get('reason', '')
+            qc_serial.save()
+            resp = {'status': 1, 'message': 'Updated Successfully'}
+    except Exception as e:
+        log.info('Change Imei status failed for %s and params are %s and error statement is %s' % (str(user.username), str(request_data.dict()), str(e)))
+    return HttpResponse(json.dumps(resp))

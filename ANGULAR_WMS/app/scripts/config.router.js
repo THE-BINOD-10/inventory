@@ -877,6 +877,11 @@ var app = angular.module('urbanApp')
             permission: 'add_inventoryadjustment',
             templateUrl: 'views/stockLocator/toggles/mv_inventory_tg.html'
           })
+          .state('app.stockLocator.MoveInventory.IMEI', {
+            url: '/IMEI',
+            permission: 'add_inventoryadjustment',
+            templateUrl: 'views/stockLocator/toggles/imei.html'
+          })
         .state('app.stockLocator.InventoryAdjustment', {
           url: '/InventoryAdjustment',
           permission: 'add_inventoryadjustment',
@@ -1149,9 +1154,17 @@ var app = angular.module('urbanApp')
             title: 'Customer Invoices',
           }
         })
-         .state('app.outbound.CustomerInvoices.Invoice', {
-            url: '/Invoice',
+         .state('app.outbound.CustomerInvoices.InvoiceM', {
+            url: '/InvoiceM',
             templateUrl: 'views/outbound/print/customer_invoice.html'
+         })
+         .state('app.outbound.CustomerInvoices.InvoiceN', {
+            url: '/InvoiceN',
+            templateUrl: 'views/outbound/print/generate_invoice.html'
+          })
+          .state('app.outbound.CustomerInvoices.InvoiceD', {
+            url: '/InvoiceD',
+            templateUrl: 'views/outbound/print/detail_generate_inv.html'
           })
       // Upload route
       .state('app.uploads', {

@@ -161,6 +161,8 @@ urlpatterns = patterns('rest_api.views',
     url(r'^confirm_inventory_adjustment/$', 'confirm_inventory_adjustment'),
     url(r'^delete_inventory/$', 'delete_inventory'),
     url(r'^seller_stock_summary_data/$', 'seller_stock_summary_data'),
+    url(r'^get_imei_details/$', 'get_imei_details'),
+    url(r'^change_imei_status/$', 'change_imei_status'),
 
     # OutBound
     url(r'^batch_generate_picklist/$', 'batch_generate_picklist'),
@@ -211,6 +213,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^delete_customer_cart_data/$', 'delete_customer_cart_data'),
     url(r'^generate_customer_invoice/$', 'generate_customer_invoice'),
     url(r'^seller_generate_picklist/$', 'seller_generate_picklist'),
+    url(r'^customer_invoice_data/$', 'customer_invoice_data'),
 
     # Reports
     #url(r'^location_wise_filter/$','location_wise_filter'),

@@ -32,5 +32,4 @@ def dump_user_images(source_user, dest_user, sku_codes=[]):
         print source.image_url
     print 'success'
 
-#dump_user_images(3, 10)
 

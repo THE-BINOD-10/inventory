@@ -22,7 +22,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      14: 'invoice_prefix', 15: 'float_switch', 16: 'automate_invoice', 17: 'show_mrp', 18: 'decimal_limit',
                      19: 'picklist_sort_by', 20: 'stock_sync', 21: 'sku_sync', 22: 'auto_generate_picklist',
                      23: 'detailed_invoice', 24: 'scan_picklist_option', 25: 'stock_display_warehouse', 26: 'view_order_status', 
-                     27: 'seller_margin', 28: 'style_headers'}
+                     27: 'seller_margin', 28: 'style_headers', 29: 'receive_process'}
   vm.empty = {};
   vm.message = "";
 

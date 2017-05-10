@@ -5,7 +5,7 @@ angular.module('urbanApp', ['datatables'])
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
 
-    var vm = this;
+    /*var vm = this;
     vm.colFilters = colFilters;
     vm.service = Service;
     vm.service.print_enable = false;
@@ -52,7 +52,47 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
             });
         });
         return nRow;
-    } 
+    }
+
+  */
+  var vm = this;
+  vm.service = Service;
+  vm.datatable = false;
+
+  vm.empty_data = {}
+  vm.model_data = {};
+
+  vm.row_call = function(aData) {
+
+    console.log(aData);
+    $http.get(Session.url+'print_po_reports/?data='+aData.DT_RowAttr["data-id"], {withCredential: true})
+      .success(function(data, status, headers, config) {
+        console.log(data);
+        var html = $(data);
+        vm.print_page = $(html).clone();
+        html = $(html).find(".modal-body > .form-group");
+        $(html).find(".modal-footer").remove()
+        $(".modal-body").html(html);
+      });
+      $state.go('app.reports.GoodsReceiptNote.PurchaseOrder');
+  }
+
+  vm.report_data = {};
+  vm.service.get_report_data("grn_report").then(function(data){
+
+    angular.copy(data, vm.report_data);
+    vm.report_data["row_call"] = vm.row_call;
+    vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(data){
+
+      vm.empty_data = data.empty_data;
+      angular.copy(vm.empty_data, vm.model_data);
+      vm.dtOptions = data.dtOptions;
+      vm.dtColumns = data.dtColumns;
+      vm.datatable = true;
+      vm.dtInstance = {};
+    })
+  })
+
 
   vm.print_page = "";
   vm.dtInstance = {};

@@ -69,6 +69,17 @@
         </div>
       </div>
 
+     <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Receive Process </strong>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-4 create_orders">
+          <select class="form-control" ng-model="showCase.model_data.receive_process" ng-change="showCase.switches(showCase.model_data.receive_process, 29)">
+            <option ng-repeat="(key, value) in showCase.model_data.receive_options" value="{{value}}" ng-selected="value == showCase.model_data.receive_process"> {{key}}</option>
+          </select>
+        </div>
+      </div>
       <div class="row col-md-12" style="padding-bottom: 15px" ng-if="user.user_profile.user_type == 'marketplace_user'">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa fa-rupee fa-15px pull-left" style="font-size: 18px;line-height: 34px;"></i>

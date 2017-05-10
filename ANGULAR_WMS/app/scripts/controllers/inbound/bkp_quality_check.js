@@ -81,9 +81,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       angular.copy(empty_data, vm.model_data);
       vm.imei_list = [];
       if(vm.permissions.use_imei) {
-        $timeout(function() {
-          fb.stop_fb();
-        }, 1000);
+        fb.stop_fb();
       }
       $state.go('app.inbound.QualityCheck');
     }
@@ -258,7 +256,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             fb.generate = true;
             if(vm.permissions.use_imei) {
               fb.generate = true;
-              //fb.stop_listening(fb.poData);
+              fb.stop_listening(fb.poData);
               fb.remove_po(fb.poData["id"]);
             }
             vm.close();
@@ -274,6 +272,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.enable_button = true;
     vm.show_serial = true;;
 
+    vm.current_imei_index = -1;
     vm.accept_qc = function(field, status_imei) {
 
       if(!status_imei) {
@@ -288,24 +287,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       sku["accept_imei"].push(field+"<<>>"+sku.id+"<<>>");
       vm.model_data.data[vm.current_index] = sku
 
+      vm.current_imei_index = sku["accept_imei"].length-1;
       if(vm.permissions.use_imei) {
         fb.accept_serial(sku, field+"<<>>"+sku.id+"<<>>");
       }
     }
 
-    vm.reject_qc = function(imei) {
+    vm.reject_qc = function() {
 
       vm.reason_show = false;
+      vm.enable_button = true;
       var sku = vm.model_data.data[vm.current_index];
       var field = "";
-      if(!imei) {
+      if(!(vm.current_imei_index > -1)) {
 
         sku.accepted_quantity = Number(sku.accepted_quantity) - 1;
         var index = sku["accept_imei"].length-1;
         var field = sku["accept_imei"][index].split("<<>>")[0];
         sku["accept_imei"].splice(index,1);
       } else {
-        field = imei;
+        sku.accepted_quantity = Number(sku.accepted_quantity) - 1;
+        var field = sku["accept_imei"][vm.current_imei_index].split("<<>>")[0];
+        sku["accept_imei"].splice(vm.current_imei_index,1);
       }
       sku.rejected_quantity = Number(sku.rejected_quantity) + 1;
 
@@ -363,53 +366,46 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var msg = "Accepted. Move to Reject State?"
       if(from_data == "reject_imei") {
         msg = "Rejected. Move to Accept State?"
-
-
-        $timeout(function() {
-swal2({
-  title: '',
-  text: 'Rejected. Move to Accept State?',
-  showCancelButton: true,
-}).then(function (result) {
-                 var serial1 = vm.model_data.data[index1][from_data][index2];
-                 vm.model_data.data[index1][from_data].splice(index2, 1);
-                 var from = "rejected";
-                 var to = "accepted";
-                 vm.model_data.data[index1].rejected_quantity -= 1;
-                 var serial2 = serial1.split("<<>>");
-                 serial2 = serial2[0]+"<<>>"+serial2[1]
-                 fb.remove_add_serial(vm.model_data.data[index1], serial1, serial2, from, to)
-             });
-      }, 100);
-
-      } else {
-              vm.model_data1.reasons = {};
-              angular.forEach(vm.model_data1.options, function(reason){
-                vm.model_data1.reasons[reason] = reason;
-              })
-$timeout(function() {
-swal2({
-  title: '',
-  text: 'Accepted. Move to Reject State?',
-  input: 'select',
-  inputOptions: vm.model_data1.reasons,
-  inputPlaceholder: 'Select Reason',
-  showCancelButton: true,
-}).then(function (result) {
-
-                 var serial1 = vm.model_data.data[index1][from_data][index2];
-                 vm.model_data.data[index1][from_data].splice(index2, 1);
-                 var to = "rejected";
-                 var from = "accepted";
-                 vm.model_data.data[index1].accepted_quantity -= 1;
-                 var serial2 = serial1.split("<<>>");
-                 serial2 = serial2[0]+"<<>>"+serial2[1]+"<<>>"+result;
-                 fb.remove_add_serial(vm.model_data.data[index1], serial1, serial2, from, to)
-
-})
-},100);
       }
 
+      $timeout(function() {
+      SweetAlert.swal({
+               title: '',
+               text: msg,
+               type: 'warning',
+               showCancelButton: true,
+               confirmButtonColor: '#33cc66',
+               confirmButtonText: 'Ok',
+               closeOnConfirm: true,
+             },
+             function (status) {
+               if(status) {
+
+                 vm.current_index = index1;
+                 var serial = vm.model_data.data[index1][from_data][index2];
+                 var from = "rejected";
+                 var to = "accepted";
+                 if (from_data == "reject_imei") {
+
+                   vm.model_data.data[index1][from_data].splice(index2, 1);
+                   vm.model_data.data[index1].rejected_quantity -= 1;
+                   fb.remove_add_serial(vm.model_data.data[index1], serial, from, to)
+                 } else {
+
+                   //vm.model_data.data[index1].accepted_quantity -= 1;
+                   from = "accepted";
+                   to = "rejected";
+                   vm.enable_button = false;
+                   vm.current_index = index1;
+                   vm.current_imei_index = index2;
+                   vm.reason_show = true;
+                 }
+                 //vm.enable_button = true;
+                 //fb.remove_add_serial(vm.model_data.data[index1], serial, from, to)
+               }
+             }
+           );
+      }, 100);
     }
 
     vm.status_move_imei = function(field) {
@@ -551,14 +547,14 @@ swal2({
       firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/serials/").push(serial.split("<<>>")[0]);
     }
 
-    fb["remove_add_serial"] = function(data, serial1, serial2, remove_from, add_to) {
+    fb["remove_add_serial"] = function(data, serial, remove_from, add_to) {
 
       var name= data.wms_code+"<<>>"+ data.location+ "<<>>" + data.id;
       firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/"+remove_from+"/").once("value", function(snapshot) {
         if(snapshot.val()) {
           var status = true;
           angular.forEach(snapshot.val(), function(value,key) {
-            if(serial1 == value && status) {
+            if(serial == value && status) {
               status = false;
               firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/"+remove_from+"/"+key).once("value", function(snapshot) {
                 snapshot.ref.remove();
@@ -567,7 +563,7 @@ swal2({
           })
         }
       })
-      firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/"+add_to+"/").push(serial2);
+      firebase.database().ref("/QualityCheck/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/"+add_to+"/").push(serial);
     }
 
     fb["delete_accept_serial"] = function() {
@@ -720,7 +716,6 @@ swal2({
           console.log(data.ref.remove())
         })
       }
-      fb.stop_listening(fb.poData);
     }
 
     fb["stop_listening"] = function(po) {

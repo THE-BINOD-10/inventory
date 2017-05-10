@@ -60,8 +60,7 @@ def get_user_permissions(request, user):
     user_perms = PERMISSION_KEYS
     permissions = Permission.objects.all()
     user_perms = []
-    ignore_list = ['session', 'webhookdata', 'swxmapping', 'userprofile', 'useraccesstokens', 'contenttype', 'user',
-                   'permission','group','logentry']
+    ignore_list = PERMISSION_IGNORE_LIST
     for permission in permissions:
         temp = permission.codename.split('_')[-1]
         if not temp in user_perms and not temp in ignore_list and 'add' in permission.codename:
@@ -147,6 +146,25 @@ def add_user_permissions(request, response_data, user=''):
     response_data['message'] = 'Success'
     return response_data
 
+def add_user_type_permissions(user_profile):
+    update_perm = False
+    if user_profile.user_type == 'warehouse_user':
+        exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment', 'shipmentinfo', 'shipmenttracking']
+        update_perm = True
+    elif user_profile.user_type == 'marketplace_user':
+        exc_perms = []
+        update_perm = True
+    if update_perm:
+        exc_perms = exc_perms + PERMISSION_IGNORE_LIST
+        perms_list = []
+        for perm in exc_perms:
+            perms_list.append('add_' + str(perm))
+            perms_list.append('change_' + str(perm))
+            perms_list.append('delete_' + str(perm))
+        permissions = Permission.objects.exclude(codename__in=perms_list)
+        for permission in permissions:
+            user_profile.user.user_permissions.add(permission)
+
 @csrf_exempt
 def wms_login(request):
     """
@@ -170,6 +188,7 @@ def wms_login(request):
                 user_profile = UserProfile(user=user, phone_number='',
 	                                           is_active=1, prefix=prefix, swx_id=0)
                 user_profile.save()
+                add_user_type_permissions(user_profile)
         else:
             return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -312,7 +331,7 @@ data_datatable = {#masters
                   'MoveInventory': 'get_move_inventory', 'InventoryAdjustment': 'get_move_inventory',\
                   'ConfirmCycleCount': 'get_cycle_confirmed','VendorStockTable': 'get_vendor_stock',\
                   'Available':'get_available_stock','Available+Intransit':'get_availintra_stock','Total': 'get_avinre_stock',\
-                  'StockSummaryAlt' : 'get_stock_summary_size',\
+                  'StockSummaryAlt' : 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data',\
                   #outbound
                   'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders',\
                   'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders',\
@@ -526,7 +545,7 @@ def configurations(request, user=''):
     picklist_sort_by = get_misc_value('picklist_sort_by', user.id)
     stock_sync = get_misc_value('stock_sync', user.id)
     auto_generate_picklist = get_misc_value('auto_generate_picklist', user.id)
-    detailed_invoice = get_misc_value('detailed_invoice', user.id) 
+    detailed_invoice = get_misc_value('detailed_invoice', user.id)
     all_groups = SKUGroups.objects.filter(user=user.id).values_list('group', flat=True)
     internal_mails = get_misc_value('Internal Emails', user.id)
     all_groups = str(','.join(all_groups))
@@ -536,12 +555,16 @@ def configurations(request, user=''):
     view_order_status = get_misc_value('view_order_status', user.id)
     style_headers = get_misc_value('style_headers', user.id)
     seller_margin = get_misc_value('seller_margin', user.id)
+    receive_process = get_misc_value('receive_process', user.id)
+    if receive_process == 'false':
+        MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+        receive_process = '2-step-receive'
 
     view_order_status = view_order_status.split(',')
     style_headers = style_headers.split(',')
 
 
-    if stock_display_warehouse != "false":
+    if stock_display_warehouse and stock_display_warehouse != "false":
         stock_display_warehouse = stock_display_warehouse.split(',')
         stock_display_warehouse = map(int, stock_display_warehouse)
         #stock_display_warehouse = list(eval(stock_display_warehouse))
@@ -625,7 +648,8 @@ def configurations(request, user=''):
                                                              'stock_display_warehouse':  stock_display_warehouse,
                                                              'all_view_order_status': all_view_order_status,
                                                              'view_order_status': view_order_status, 'style_headers': style_headers,
-                                                             'sku_sync': sku_sync, 'seller_margin': seller_margin}))
+                                                             'sku_sync': sku_sync, 'seller_margin': seller_margin,
+                                                             'receive_process': receive_process, 'receive_options': RECEIVE_OPTIONS}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -2461,11 +2485,8 @@ def apply_search_sort(columns, data_dict, order_term, search_term, col_num, exac
             data_dict = sorted(data_dict, key = lambda x: x[order_data], reverse= True)
     return data_dict
 
-
-
 def password_notification_message(username, password, name, to):
     """ Send SMS for password modification """
-    print "sms coming"
     arguments = "%s -- %s -- %s -- %s" % (username, password, name, to)
     log.info(arguments)
     try:
@@ -2475,5 +2496,13 @@ def password_notification_message(username, password, name, to):
     except:
         log.info("message sending failed")
 
-
-
+def build_search_term_query(columns, search_term):
+    filter_params = OrderedDict()
+    query = Q
+    for col in columns:
+        if not 'date' in col:
+            filter_params[col + '__icontains'] = search_term
+        else:
+            filter_params[col + '__regex'] = search_term
+    query = get_dictionary_query(data_dict=filter_params)
+    return query

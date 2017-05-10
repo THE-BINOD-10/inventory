@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('MoveInventoryCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('MoveInventoryCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'focus', '$timeout', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, focus, $timeout) {
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
@@ -114,6 +114,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
     vm.close = close;
     function close() {
+      vm.model_imei = {};
       $state.go('app.stockLocator.MoveInventory');
     }
 
@@ -143,7 +144,53 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
             }
           }
         });
-      }  
+      }
+    }
+
+    vm.move_imei = function() {
+
+      $state.go("app.stockLocator.MoveInventory.IMEI");
+    }
+
+    vm.model_imei = {};
+    vm.scan_imei = function(event, field) {
+      if ( event.keyCode == 13 && field) {
+
+        vm.service.apiCall('get_imei_details/', 'GET', {imei:field}, true).then(function(data){
+
+          if(!data.data.result) {
+            vm.model_imei = data.data.data;
+            vm.model_imei["display_details"]= true;
+            if(vm.model_imei.status = "accepted") {
+
+              vm.model_imei["show_options"] = true;
+              focus('reason');
+            }
+            $timeout(function(){$scope.$apply()},200);
+          } else {
+
+            vm.model_imei = {}
+            colFilters.showNoty(data.data.data);
+          }
+        })
+        vm.imei="";
+      }
+    }
+
+    vm.submit_imei = function(data){
+
+      if(data.$valid) {
+
+        var send = $("form:visible").serializeArray();
+        vm.service.apiCall("change_imei_status/", 'POST', send, true).then(function(data){
+
+          if(data.message) {
+            colFilters.showNoty(data.data.message);
+            vm.model_imei = {};
+          }
+          console.log(data);
+        })
+      }
     }
   }
 

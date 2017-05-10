@@ -70,6 +70,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         sku_size: "",
                         style_name: "",
                         mix_sku: "",
+                        ean_number: "",
                         image_url:"images/wms/dflt.jpg",
                       },
                       "zones":[],
@@ -147,6 +148,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.combo = (vm.model_data.combo_data.length > 0) ? true: false;
                   vm.model_data.sku_data.image_url = vm.service.check_image_url(vm.model_data.sku_data.image_url);
                   vm.change_size_type(vm.model_data.sku_data.size_type);
+                  if(vm.model_data.sku_data.ean_number == "0") {
+
+                    vm.model_data.sku_data.ean_number = "";
+                  }
                   $state.go('app.masters.SKUMaster.update');
                  }
                 });

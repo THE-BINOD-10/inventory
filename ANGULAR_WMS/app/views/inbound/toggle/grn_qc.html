@@ -4,7 +4,7 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.update_details(showCase.current_details, true)"><span aria-hidden="true">x</span>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.goBack()"><span aria-hidden="true">x</span>
           </button>
           <h4 class="modal-title" id="myLargeModalLabel">WMS Code wise Quality Check</h4> 
         </div>
@@ -13,7 +13,7 @@
             <div class="row">
               <div class="col-md-3 col-sm-4 col-xs-12">
                 <div class="form-group">
-                  <div class="Enlarge"> <img ng-src="{{service.check_image_url(showCase.model_data1.image)}}" style="width: 100%">
+                  <div class="Enlarge"> <img ng-src="{{service.check_image_url(showCase.model_data.data[showCase.current_index][0].sku_details[0].fields.image_url)}}" style="width: 100%">
                   </div>
                 </div>
               </div>
@@ -24,7 +24,7 @@
                       <label> </label>
                     </label>
                   </div>
-                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data1.sku_data['SKU Code']}}</b> </div>
+                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data.data[showCase.current_index][0].sku_details[0].fields.sku_code}}</b> </div>
                 </div>
                 <div class="row">
                   <div class="col-md-6 col-sm-6 col-xs-4">
@@ -32,7 +32,7 @@
                       <label> </label>
                     </label>
                   </div>
-                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data1.sku_data['Product Description']}}</b> </div>
+                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data.data[showCase.current_index][0].sku_details[0].fields.sku_desc}}</b> </div>
                 </div>
                 <div class="row">
                   <div class="col-md-6 col-sm-6 col-xs-4">
@@ -40,7 +40,7 @@
                       <label> </label>
                     </label>
                   </div>
-                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data1.sku_data['SKU Brand']}}</b> </div>
+                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data.data[showCase.current_index][0].sku_details[0].fields.sku_brand}}</b> </div>
                 </div>
                 <div class="row">
                   <div class="col-md-6 col-sm-6 col-xs-4">
@@ -48,7 +48,7 @@
                       <label> </label>
                     </label>
                   </div>
-                  <div class="col-md-6 col-sm-6 col-xs-4"> <b>: {{showCase.model_data1.sku_data['SKU Category']}}</b> </div>
+                  <div class="col-md-6 col-sm-6 col-xs-4"> <b>: {{showCase.model_data.data[showCase.current_index][0].sku_details[0].fields.sku_category}}</b> </div>
                 </div>
                 <div class="row">
                   <div class="col-md-6 col-sm-6 col-xs-4">
@@ -56,7 +56,7 @@
                       <label> </label>
                     </label>
                   </div>
-                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data1.sku_data['SKU Class']}}</b> </div>
+                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data.data[showCase.current_index][0].sku_details[0].fields.sku_class}}</b> </div>
                 </div>
                 <div class="row">
                   <div class="col-md-6 col-sm-6 col-xs-4">
@@ -64,7 +64,7 @@
                       <label> </label>
                     </label>
                   </div>
-                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data1.sku_data['Color']}}</b> </div>
+                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data.data[showCase.current_index][0].sku_details[0].fields.color}}</b> </div>
                 </div>
               </div>
             </div>
@@ -83,11 +83,11 @@
                     <tr>
                       <td>
                         <input name="id" value="{{showCase.model_data.po_reference}}" type="hidden"> {{showCase.model_data.po_reference}} </td>
-                      <td>{{showCase.model_data.data[showCase.current_index].quantity}}</td>
+                      <td>{{showCase.model_data.data[showCase.current_index][0].po_quantity}}</td>
                       <td>
-                        <input name="accepted_quantity" ng-model="showCase.model_data.data[showCase.current_index].accepted_quantity" type="text" ng-readonly="showCase.permissions.use_imei" ng-class="service.get_decimal_perm()" class="form-control"> </td>
+                        <input name="accepted_quantity" ng-model="showCase.model_data.data[showCase.current_index][0].accepted_quantity" type="text" ng-readonly="showCase.permissions.use_imei" ng-class="service.get_decimal_perm()" class="form-control"> </td>
                       <td>
-                        <input name="rejected_quantity" ng-model="showCase.model_data.data[showCase.current_index].rejected_quantity" type="text" ng-readonly="showCase.permissions.use_imei" ng-class="service.get_decimal_perm()" class="form-control">
+                        <input name="rejected_quantity" ng-model="showCase.model_data.data[showCase.current_index][0].rejected_quantity" type="text" ng-readonly="showCase.permissions.use_imei" ng-class="service.get_decimal_perm()" class="form-control">
                       </td>
                     </tr>
                   </tbody>
@@ -101,20 +101,23 @@
             <div class="col-md-3 col-sm-3 col-xs-4" ng-if="showCase.show_status_scan">
               <textarea placeholder="Scan IMEI" name="serial_number" rows="1" ng-model="showCase.status_imei" ng-keydown="showCase.status_scan_imei($event,showCase.status_imei)" class="form-control"></textarea>
             </div>
+            <div class="col-md-3 col-sm-3 col-xs-4 pull-right">
+              <textarea placeholder="Scan SKU" rows="1" ng-model="showCase.change_sku" ng-keydown="showCase.change_sku_scan($event,showCase.change_sku)" class="form-control"></textarea>
+            </div>
           </div>
           <div class="row" ng-if="showCase.permissions.use_imei">
             <div class="col-md-12"><hr></div>
             <div class="col-md-3 col-sm-3 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Scan Serial Number </label>
-                <textarea ng-model="showCase.serial_scan" name="serial_number" rows="1" id="scan-qc" ng-keydown="showCase.scan_imei($event,showCase.serial_scan)" class="form-control" auto-focus focus-on="focusIMEI"></textarea>
+                <textarea ng-model="showCase.serial_scan" name="serial_number" rows="1" id="scan-qc" ng-keydown="showCase.from_qc_scan($event,showCase.serial_scan)" class="form-control" auto-focus focus-on="focusIMEI"></textarea>
               </div>
             </div>
             <div class="col-md-9 col-sm-9 col-xs-6 mt25">
               <button class="form-control pull-left" type="button" name="reject" ng-disabled="showCase.enable_button" ng-click="showCase.reason_show = true; showCase.enable_button = true" style="width:100px">Reject</button>
               <select id="reject_reason" class="ml10 form-control pull-left" ng-model="showCase.selected" ng-if="showCase.reason_show" style="width:200px">
                 <option selected value="">None</option>
-                <option ng-repeat="opt in showCase.model_data1.options" value="{{opt}}">{{opt}}</option>
+                <option ng-repeat="opt in showCase.model_data.options" value="{{opt}}">{{opt}}</option>
               </select>
               <button type="button" class="ml10 form-control btn-default pull-left" id="save-reason" ng-click="showCase.reject_qc();" ng-if="showCase.reason_show" style="width:100px">Done</button>
             </div>
@@ -127,8 +130,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.update_details(showCase.current_details, true)">Close</button>
-          <button type="button" class="btn pop pop-green hide" ng-click="showCase.update_details(showCase.current_details, true)">Save</button>
+          <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.goBack()">Close</button>
+          <button type="button" class="btn pop pop-green hide" ng-click="showCase.update_details()">Save</button>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('SKUWisePurchaseOrdersCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('SellerInvoiceDetailsCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
 
@@ -13,7 +13,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.model_data = {};
 
   vm.report_data = {};
-  vm.service.get_report_data("sku_wise_po_report").then(function(data){
+  vm.service.get_report_data("seller_invoice_details").then(function(data){
 
     angular.copy(data, vm.report_data);
     vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(data){
@@ -26,6 +26,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.dtInstance = {};
     })
   })
+
+
+  vm.print_page = "";
+  vm.dtInstance = {};
+
+  vm.empty_data = {
+                    'from_date': '',
+                    'to_date': '',
+                    'open_po': '',
+                    'wms_code': ''
+                    };
+
+  vm.model_data = {};
+  angular.copy(vm.empty_data, vm.model_data);
 
   }
 

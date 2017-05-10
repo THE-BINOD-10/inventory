@@ -15,6 +15,7 @@ from miebach_utils import *
 from django.core import serializers
 import csv
 from sync_sku import *
+log = init_logger('logs/uploads.log')
 
 @csrf_exempt
 def error_file_download(error_file):
@@ -111,7 +112,7 @@ def get_order_mapping(reader, file_type):
 
 def check_create_seller_order(seller_order_dict, order, user):
     if seller_order_dict.get('seller_id', ''):
-        sell_order_ins = SellerOrder.objects.filter(seller_id=seller_order_dict['seller_id'], order_id=order.id, seller__user=user.id)
+        sell_order_ins = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id, seller__user=user.id)
         seller_order_dict['order_id'] = order.id
         if not sell_order_ins:
             seller_order = SellerOrder(**seller_order_dict)
@@ -417,7 +418,11 @@ def order_upload(request, user=''):
         no_of_rows = reader.nrows
         file_type = 'xls'
 
-    upload_status = order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
+    try:
+        upload_status = order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
+    except Exception as e:
+        log.info('Order Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Order Upload Failed")
 
     if not upload_status == 'success':
         return HttpResponse(upload_status)
@@ -777,6 +782,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
         sku_code = ''
         wms_code = ''
         sku_data = None
+        _size_type = ''
         for key, value in sku_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, sku_file_mapping[key], reader, file_type)
 
@@ -870,7 +876,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             all_sku_masters.append(sku_master)
             sku_data = sku_master
 
-        check_update_size_type(sku_data, _size_type)
+        if _size_type:
+            check_update_size_type(sku_data, _size_type)
 
     get_user_sku_data(user)
     insert_update_brands(user)

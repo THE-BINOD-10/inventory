@@ -10,7 +10,6 @@ urlpatterns = patterns('rest_api.views',
     url(r'^status/$', 'status'),
     url(r'^logout/$', 'logout'),
     url(r'^get_trial_user_data/$', 'get_trial_user_data'),
-    #url(r'^sku_master/$', 'sku_master'),
     url(r'^location_master/$', 'location_master'),
     url(r'^results_data/$', 'results_data'),
     url(r'^home/$', 'home'),
@@ -119,6 +118,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^generate_seller_invoice/$', 'generate_seller_invoice'),
     url('^check_imei_qc/$', 'check_imei_qc'),
     url('^check_return_imei/$', 'check_return_imei'),
+    url('^confirm_receive_qc/$', 'confirm_receive_qc'),
 
     # Production
     url(r'^generated_jo_data/$', 'generated_jo_data'),
@@ -160,6 +160,9 @@ urlpatterns = patterns('rest_api.views',
     url(r'^confirm_move_inventory/$', 'confirm_move_inventory'),
     url(r'^confirm_inventory_adjustment/$', 'confirm_inventory_adjustment'),
     url(r'^delete_inventory/$', 'delete_inventory'),
+    url(r'^seller_stock_summary_data/$', 'seller_stock_summary_data'),
+    url(r'^get_imei_details/$', 'get_imei_details'),
+    url(r'^change_imei_status/$', 'change_imei_status'),
 
     # OutBound
     url(r'^batch_generate_picklist/$', 'batch_generate_picklist'),
@@ -210,6 +213,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^delete_customer_cart_data/$', 'delete_customer_cart_data'),
     url(r'^generate_customer_invoice/$', 'generate_customer_invoice'),
     url(r'^seller_generate_picklist/$', 'seller_generate_picklist'),
+    url(r'^customer_invoice_data/$', 'customer_invoice_data'),
 
     # Reports
     #url(r'^location_wise_filter/$','location_wise_filter'),
@@ -246,6 +250,8 @@ urlpatterns = patterns('rest_api.views',
     url(r'^print_daily_production_report/$', 'print_daily_production_report'),
     url(r'^print_order_summary_report/$', 'print_order_summary_report'),
     url(r'^get_marketplaces_list_reports/$', 'get_marketplaces_list_reports'),
+    url(r'^get_seller_invoices_filter/$', 'get_seller_invoices_filter'),
+    url(r'^print_seller_invoice_report/$', 'print_seller_invoice_report'),
 
 )
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import exceptions
+import common_exceptions
 from tally_wrapper import TallyBridgeApp
 
 class TallyBridgeApi(object):
@@ -11,7 +11,7 @@ class TallyBridgeApi(object):
             print 'NOTE: you have to pass only file name not file path.'
             print 'NOTE: file should be kept in WMS_ANGULAR/tally/DLL/<your file>.dll'
             print 'CMD: python TallyBridgeApp.py -d <dll file name>'
-            raise exceptions.DllFileNotPresentError
+            raise common_exceptions.DllFileNotPresentError
         self.bridge = TallyBridgeApp(dll=self.dll_file)
 
     def add_customer(self, **kwargs):

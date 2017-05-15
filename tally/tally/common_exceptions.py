@@ -30,12 +30,12 @@ class DataInconsistencyError(CommonBaseException):
 
 
 class RequiredFieldsMissingError(CommonBaseException):
-    message = 'required fields are not present'
+    message = 'required fields are not present: '
     error_code = 'requiredFieldsMissing'
 
     def __init__(self, fields=[]):
         if fields:
-            message += ', '.join(fields)
+            self.message += ', '.join(fields)
         CommonBaseException.__init__(self, self.message, self.error_code)
 
 

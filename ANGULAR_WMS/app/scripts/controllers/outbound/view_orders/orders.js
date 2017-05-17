@@ -271,6 +271,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.message = "";
       vm.confirm_disable = false;
       vm.merge_invoice = false;
+      vm.print_enable = false;
     }
 
     vm.generate = generate;
@@ -817,11 +818,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       });
   }
 
+  vm.print_enable = false;
   vm.confirm_po = function() {
       var elem = $(form).serializeArray();
 
       Service.apiCall("confirm_back_order/", "POST", elem).then(function(data){
-        if(data.message) {vm.confirm_disable = true; vm.message = data.data; reloadData();};
+        if(data.message) {
+          vm.confirm_disable = true; vm.message = data.data; reloadData();
+
+          if(data.data.search("<div") != -1) {
+                vm.html = $(data.data)[0];
+                var html = $(vm.html).closest("form").clone();
+                angular.element(".modal-body").html($(html));
+                //angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
+                //angular.element(".modal-body").html($(html));
+                vm.print_enable = true;
+           } else {
+             vm.service.pop_msg(data.data);
+           }
+        };
       });
   }
 
@@ -855,6 +870,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       })
       console.log("edit");
     }
+
+  vm.print_grn = function() {
+
+    vm.service.print_data(vm.html, "Purchase Order");
+  }
 
   }
 

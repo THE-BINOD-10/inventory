@@ -2084,7 +2084,12 @@ def confirm_back_order(request, user=''):
         all_data[cond].append(( data_dict['wms_code'][i], data_dict['quantity'][i], data_dict['title'][i], data_dict['price'][i],
                                 data_dict['remarks'][i], order_id, job_order_id))
 
+
+    all_invoices = []
+    all_invoice_data = []
     for key,value in all_data.iteritems():
+        print key
+        print value
         order_id = 1
         purchase_order_id = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
         if purchase_order_id:
@@ -2124,8 +2129,15 @@ def confirm_back_order(request, user=''):
             purchase_order = PurchaseOrder(**purchase_order_dict)
             purchase_order.save()
 
+            customer_name = ""
             if val[6]:
                 create_order_mapping(user, purchase_order.id, val[6], mapping_type='JO-PO')
+                ord_objs = OrderDetail.objects.filter(id = val[6])
+                if ord_objs:
+                    if ord_objs[0].customer_name:
+                        customer_name = ord_objs[0].customer_name
+                    elif ord_objs[0].marketplace:
+                        customer_name = ord_objs[0].marketplace
 
             sku_extra_data = ''
             if val[5]:
@@ -2162,19 +2174,21 @@ def confirm_back_order(request, user=''):
                 vendor_name = purchase_order.open_po.vendor.name
                 vendor_telephone = purchase_order.open_po.vendor.phone_number
 
+
+
             po_reference = '%s%s_%s' % (purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''), order_id)
             table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Unit Price', 'Amount', 'Remarks')
 
             po_data.append(( wms_code, supplier_code, purchase_order.open_po.sku.sku_desc, purchase_order.open_po.order_quantity,
-                             purchase_order.open_po.price, amount, purchase_order.open_po.remarks, sku_extra_data))
+                             purchase_order.open_po.price, amount, purchase_order.open_po.remarks))
 
             profile = UserProfile.objects.get(user=request.user.id)
             data_dictionary = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                          'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference,
                          'user_name': request.user.username, 'total_qty': total_qty, 'company_name': profile.company_name,
-                         'location': profile.location, 'w_address': profile.address,
+                         'location': profile.location, 'w_address': profile.address, 'executive_name': request.user.first_name,
                          'company_name': profile.company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
-                         'vendor_telephone': vendor_telephone, 'customization': customization}
+                         'vendor_telephone': vendor_telephone, 'customization': customization, 'customer_name': customer_name}
 
         t = loader.get_template('templates/toggle/po_download.html')
         c = Context(data_dictionary)
@@ -2186,11 +2200,20 @@ def confirm_back_order(request, user=''):
         if send_message == 'true':
             write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0])
 
+
         if not status:
             status = "Created PO Numbers are " + str(order_id)
         else:
             status += ", " + str(order_id)
-    return HttpResponse(status)
+
+        all_invoice_data.append(data_dictionary)
+    #import pdb;pdb.set_trace();
+    #t1 = loader.get_template('templates/toggle/po_template_order.html')
+    t1 = loader.get_template('templates/print/po_multi_form.html')
+    c1 = Context({'total_data':all_invoice_data})
+    rendered1 = t1.render(c1)
+
+    return HttpResponse(rendered1)
 
 @csrf_exempt
 @get_admin_user

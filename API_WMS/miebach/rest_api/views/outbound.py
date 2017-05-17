@@ -503,14 +503,17 @@ def get_sku_stock(request, sku, sku_stocks, user, val_dict, sku_id_stocks=''):
     return stock_detail, stock_count, sku.wms_code
 
 
-def get_stock_count(request, order, stock, stock_diff, user, order_quantity):
+def get_stock_count(request, order, stock, stock_diff, user, order_quantity, prev_reserved = False):
     reserved_quantity = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id).aggregate(Sum('reserved'))['reserved__sum']
     if not reserved_quantity:
         reserved_quantity = 0
 
     stock_quantity = float(stock.quantity) - reserved_quantity
+    if prev_reserved:
+        if stock_quantity >= 0:
+            return order_quantity, 0
     if stock_quantity <= 0:
-        return '', stock_diff
+        return 0, stock_diff
 
     if stock_diff:
         if stock_quantity >= stock_diff:
@@ -1073,6 +1076,7 @@ def insert_order_serial(picklist, val, order=''):
             imei_mapping.save()
             log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
 
+"""
 def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity=''):
     for pic_loc in pick_loc:
         if float(pic_loc.reserved) >= update_picked:
@@ -1090,7 +1094,7 @@ def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity
         pic_loc.save()
         if not update_picked:
             break
-
+"""
 def update_picklist_pallet(stock, picking_count1):
     pallet = stock.pallet_detail
     if float(pallet.quantity) - picking_count1 >=0:
@@ -2917,6 +2921,9 @@ def all_whstock_quant(sku_master, user):
 
     job_order_rec_qty = dict(JobOrder.objects.filter(product_code__user__in = stock_display_warehouse, product_code__sku_class = sku_master[0]['sku_class']).values_list('product_code__wms_code').distinct().annotate(Sum('received_quantity')))
 
+    day_1_total = 0
+    day_3_total = 0
+    total_qty = {}
     for item in sku_master:
         ordered_qty = ordered_qties.get(item["wms_code"], 0)
         recieved_qty = recieved_qties.get(item["wms_code"], 0)
@@ -2939,7 +2946,12 @@ def all_whstock_quant(sku_master, user):
             all_quantity  -= item['physical_stock']
         item['all_quantity'] = all_quantity
 
-    return sku_master
+        day_1_total += item['physical_stock']
+        day_3_total += item['all_quantity']
+
+    total_qty['physical_stock'] = day_1_total
+    total_qty['all_quantity'] = day_3_total
+    return sku_master, total_qty
 
 @csrf_exempt
 @login_required
@@ -2974,9 +2986,11 @@ def get_sku_variants(request, user=''):
 
     sku_master = get_style_variants(sku_master, user, customer_id=customer_id, customer_data_id=customer_data_id)
 
-    sku_master = all_whstock_quant(sku_master, user)
+    sku_master, total_qty = all_whstock_quant(sku_master, user)
 
-    return HttpResponse(json.dumps({'data': sku_master, 'style_headers': STYLE_DETAIL_HEADERS}))
+    _data = {'data': sku_master, 'style_headers': STYLE_DETAIL_HEADERS}
+    _data.update({'total_qty': total_qty})
+    return HttpResponse(json.dumps(_data))
 
 def modify_invoice_data(invoice_data, user):
 
@@ -4645,16 +4659,32 @@ def update_picklist_loc(request, user = ""):
     if not picklist_no:
         return HttpResponse('PICKLIST ID missing')
 
-    filter_param = {'order__user' : user.id, 'reserved_quantity__gt' : 0, 'stock__isnull' : True, 'picklist_number' : picklist_no}
+    filter_param = {'order__user' : user.id, 'reserved_quantity__gt' : 0, 'picklist_number' : picklist_no}
     picklist_objs = Picklist.objects.filter(**filter_param)
     picklist_data = {}
+    total_req = {}
     for item in picklist_objs:
-
         _sku_code = item.order.sku.sku_code
         if item.sku_code:
             _sku_code = item.sku_code
 
         stock_objs = StockDetail.objects.filter(sku__sku_code = _sku_code, sku__user = user.id, quantity__gt = 0).order_by('location__pick_sequence')
+        #==========================================================================================
+        if _sku_code in total_req.keys():
+            total_req[_sku_code] += item.reserved_quantity
+        else:
+            total_req[_sku_code] = item.reserved_quantity
+
+        picklist_data['stock_id'] = 0
+        if item.stock_id:
+            picklist_data['stock_id'] = item.stock_id
+            current_stock_objs = stock_objs.filter(id = item.stock_id)
+            if current_stock_objs:
+                current_stock_obj = current_stock_objs[0]
+                if current_stock_obj.quantity >= total_req[_sku_code]:
+                    continue
+
+        #============================================================================================
 
         consumed_qty = 0
 
@@ -4700,17 +4730,26 @@ def update_picklist_loc(request, user = ""):
 
 """
 def picklist_location_suggestion(request, order, stock_detail, user, order_quantity, picklist_data, consumed_qty = 0):
-
+    already_reserved = False
     stock_diff = 0
-
+    print order_quantity
     for stock in stock_detail:
-        stock_count, stock_diff = get_stock_count(request, order, stock, stock_diff, user, order_quantity)
+        if picklist_data['stock_id'] == stock.id:
+            already_reserved = True
+        stock_count, stock_diff = get_stock_count(request, order, stock, stock_diff, user, order_quantity, already_reserved)
+        print stock_count, stock_diff
         if not stock_count:
-            continue
-
-        consumed_qty += stock_count
-        picklist_data['stock_id'] = stock.id
-        picklist_data['reserved_quantity'] = stock_count
+            #continue 
+            picklist_data['reserved_quantity'] = order_quantity
+            consumed_qty += order_quantity
+            try:
+                del picklist_data['stock_id']
+            except:
+                pass
+        else:
+            consumed_qty += stock_count
+            picklist_data['stock_id'] = stock.id
+            picklist_data['reserved_quantity'] = stock_count
         if 'st_po' in dir(order):
             picklist_data['order_id'] = None
         else:
@@ -4722,10 +4761,11 @@ def picklist_location_suggestion(request, order, stock_detail, user, order_quant
         if seller_order:
             create_seller_summary_details(seller_order, new_picklist)
 
-        picklist_loc_data = {'picklist_id': new_picklist.id , 'status': 1, 'quantity': stock_count, 'creation_date':   datetime.datetime.now(),
+        if stock_count:
+            picklist_loc_data = {'picklist_id': new_picklist.id , 'status': 1, 'quantity': stock_count, 'creation_date':   datetime.datetime.now(),
                              'stock_id': new_picklist.stock_id, 'reserved': stock_count}
-        po_loc = PicklistLocation(**picklist_loc_data)
-        po_loc.save()
+            po_loc = PicklistLocation(**picklist_loc_data)
+            po_loc.save()
         if 'st_po' in dir(order):
             st_order_dict = copy.deepcopy(ST_ORDER_FIELDS)
             st_order_dict['picklist_id'] = new_picklist.id
@@ -4736,6 +4776,7 @@ def picklist_location_suggestion(request, order, stock_detail, user, order_quant
         if not stock_diff:
             setattr(order, 'status', 0)
             break
+
     return consumed_qty
 
 

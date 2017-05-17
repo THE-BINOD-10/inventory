@@ -3326,6 +3326,7 @@ def confirm_po1(request, user=''):
             if send_message == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0])
 
+    print data_dict
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 @csrf_exempt

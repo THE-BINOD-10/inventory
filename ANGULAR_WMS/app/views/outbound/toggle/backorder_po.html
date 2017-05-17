@@ -69,7 +69,8 @@
         </div>
       <!-- body end-->
         <div class="modal-footer">
-          <button type="submit" class="btn pop pop-green" ng-disabled="showCase.confirm_disable" ng-click="showCase.confirm_po(form)">Confirm PO</button>
+          <button ng-if="!showCase.print_enable" type="submit" class="btn pop pop-green" ng-disabled="showCase.confirm_disable" ng-click="showCase.confirm_po(form)">Confirm PO</button>
+           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
         </div>
       </div>
     </div>

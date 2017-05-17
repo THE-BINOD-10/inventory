@@ -1220,7 +1220,7 @@ app.directive('percentageField', [ '$filter', function( $filter ) {
             // designed to catch common url input issues.
             function into(input) {
                 var valid;
-                if( input == '' )
+                if( input == '' || !(input))
                 {
                     ngModel.$setValidity( 'valid', true );
                     return '';

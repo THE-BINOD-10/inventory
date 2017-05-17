@@ -299,6 +299,8 @@ urlpatterns += patterns('rest_api.views',
     url(r'^save_stages/$', 'save_stages'),
     url(r'^order_management_toggle/$', 'order_management_toggle'),
     url(r'^order_management_check/$', 'order_management_check'),
+    url(r'^save_tally_data/$', 'save_tally_data'),
+    url(r'^delete_tally_data/$', 'delete_tally_data'),
 
     #manage users
     url(r'^add_user/$', 'add_user'),
@@ -312,6 +314,7 @@ urlpatterns += patterns('rest_api.views',
     url(r'^set_timezone/$', 'set_timezone'),
     url(r'^get_file_checksum/$', 'get_file_checksum'),
     url(r'^get_file_content/$', 'get_file_content'),
+    url(r'get_tally_data/', 'get_tally_data'),
 
     #Retailone
     url(r'^get_marketplace_data/$', 'get_marketplace_data'),
@@ -374,8 +377,5 @@ urlpatterns += patterns('rest_api.views',
 
     #update_picklist_loc
     url(r'update_picklist_loc/', 'update_picklist_loc'),
-
-
-
 
     )

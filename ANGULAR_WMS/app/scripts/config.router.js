@@ -1547,6 +1547,19 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/channels/add_amazon.html'
         })
 
+      // Tally Configuration
+      .state('app.tally', {
+        url: '/Tally',
+        templateUrl: 'views/tally/tally_config.html',
+        resolve: {
+          deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+            return $ocLazyLoad.load('scripts/controllers/tally/tally_config.js');
+          }]
+        },
+        data: {
+          title: 'Tally Configuration',
+        }
+      })
 
       // ManageUsers route
       .state('app.ManageUsers', {

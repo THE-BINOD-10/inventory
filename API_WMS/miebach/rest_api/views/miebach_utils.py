@@ -155,12 +155,18 @@ ADJUST_INVENTORY_FIELDS = ( (('WMS Code *','wms_code'),('Location *','location')
 
 MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Location', 'Quantity']
 
-SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.']
+SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'CST Number', 'TIN Number', 'PAN Number', 'PIN Code',
+                    'City', 'State', 'Country']
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
-CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Credit Period', 'Tin Number', 'Email', 'Phone No.', 'City', 'State', 'Pin Code',
-                    'Address', 'Selling Price Type']
+CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Credit Period', 'CST Number', 'TIN Number', 'PAN Number', 'Email', 'Phone No.',
+                    'City', 'State', 'Country', 'Pin Code', 'Address', 'Selling Price Type']
+
+CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 1), ('credit_period', 2), ('cst_number', 3), ('tin_number', 4),
+                                       ('pan_number', 5), ('email_id', 6), ('phone_number', 7), ('city', 8), ('state', 9), ('country', 10),
+                                       ('pincode', 11), ('address', 12), ('price_type', 13)
+                                    ))
 
 SALES_RETURN_HEADERS = ['Return ID', 'Return Date', 'SKU Code', 'Product Description', 'Market Place', 'Quantity']
 
@@ -686,7 +692,7 @@ BARCODE_DICT = {'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': ''
 
 BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
 
-BARCODE_ADDRESS_DICT = {'adam_clothing1': 'Adam Exports 401, 4th Floor, Pratiek Plazza, S.V.Road, Goregaon West, Mumbai - 400062. MADE IN INDIA'}
+BARCODE_ADDRESS_DICT = {'adam_clothing1': 'Adam Exports 401, 4th Floor,\n Pratiek Plazza, S.V.Road,\n Goregaon West, Mumbai - 400062.\n MADE IN INDIA'}
 
 PRICING_MASTER_HEADERS = ['SKU Code', 'Selling Price type', 'Price', 'Discount']
 
@@ -730,6 +736,12 @@ MP_CUSTOMER_INVOICE_HEADERS = ['UOR ID', 'SOR ID', 'Seller ID', 'Customer Name',
                                'Invoice Number']
 
 WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time']
+
+SUPPLIER_EXCEL_FIELDS = OrderedDict(( ('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4), ('cst_number', 5),
+                                      ('tin_number', 6), ('pan_number', 7), ('pincode', 8), ('city', 9), ('state', 10), ('country', 11)
+
+                                   ))
+STATUS_DICT = {1: True, 0: False}
 
 def fn_timer(function):
     @wraps(function)

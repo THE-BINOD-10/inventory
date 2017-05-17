@@ -133,9 +133,13 @@ class SupplierMaster(models.Model):
     pincode = models.CharField(max_length=64)
     phone_number = models.CharField(max_length=32)
     email_id = models.EmailField(max_length=64)
+    cst_number = models.CharField(max_length=64, default='')
+    tin_number = models.CharField(max_length=64, default='')
+    pan_number = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    supplier_type = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'SUPPLIER_MASTER'
@@ -535,12 +539,15 @@ class CustomerMaster(models.Model):
     phone_number = models.CharField(max_length=32)
     email_id = models.EmailField(max_length=64, default='')
     tin_number = models.CharField(max_length=64, default='')
+    cst_number = models.CharField(max_length=64, default='')
+    pan_number = models.CharField(max_length=64, default='')
     credit_period = models.PositiveIntegerField(default=0)
     price_type = models.CharField(max_length=32, default='')
     tax_type = models.CharField(max_length=32, default='')
     status = models.IntegerField(max_length=1, default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    customer_type = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'CUSTOMER_MASTER'
@@ -1537,6 +1544,121 @@ class SellerOrderSummary(models.Model):
 
     def __unicode__(self):
         return str(self.id)
+
+class TallyConfiguration(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    tally_ip = models.CharField(max_length=32,default='')
+    tally_port = models.PositiveIntegerField(default=0)
+    tally_path = models.CharField(max_length=256, default='')
+    company_name = models.CharField(max_length=64, default='')
+    stock_group = models.CharField(max_length=32, default='')
+    stock_category = models.CharField(max_length=32, default='')
+    maintain_bill = models.IntegerField(default=0)
+    automatic_voucher = models.IntegerField(default=0)
+    credit_period = models.IntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TALLY_CONFIGURATION'
+
+    def __unicode__(self):
+        return str(self.company_name)
+
+    def json(self):
+        return {
+            'id': self.id,
+            'user_id': self.user.id,
+            'tally_ip': self.tally_ip,
+            'tally_port': self.tally_port,
+            'tally_path': self.tally_path,
+            'company_name': self.company_name,
+            'stock_group': self.stock_group,
+            'stock_category': self.stock_category,
+            'maintain_bill': int(self.maintain_bill),
+            'automatic_voucher': int(self.automatic_voucher),
+            'credit_period': self.credit_period
+        }
+
+class MasterGroupMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    master_type = models.CharField(max_length=32,default='')
+    master_value = models.CharField(max_length=32,default='')
+    parent_group = models.CharField(max_length=32,default='')
+    sub_group = models.CharField(max_length=32,default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MASTER_GROUP_MAPPING'
+        unique_together = ('master_type', 'master_value', 'user')
+
+    def __unicode__(self):
+        return str(self.parent_group)
+
+    def json(self):
+        return {
+            'id': self.id,
+            'user_id': self.user.id,
+            'master_type': self.master_type,
+            'master_value': self.master_value,
+            'parent_group': self.parent_group,
+            'sub_group': self.sub_group,
+        }
+
+class GroupLedgerMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    ledger_type = models.CharField(max_length=64,default='')
+    product_group = models.CharField(max_length=64,default='')
+    state = models.CharField(max_length=64,default='')
+    ledger_name = models.CharField(max_length=64,default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'GROUP_LEDGER_MAPPING'
+        unique_together = ('ledger_type', 'product_group', 'user')
+
+    def __unicode__(self):
+        return str(self.parent_group)
+
+    def json(self):
+        return {
+            'id': self.id,
+            'user_id': self.user.id,
+            'ledger_type': self.ledger_type,
+            'product_group': self.product_group,
+            'state': self.state,
+            'ledger_name': self.ledger_name
+        }
+
+class VatLedgerMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    tax_type = models.CharField(max_length=32,default='')
+    tax_percentage = models.FloatField(default=0)
+    ledger_name = models.CharField(max_length=64,default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "VAT_LEDGER_MAPPING"
+        unique_together = ('tax_type', 'ledger_name', 'user')
+
+    def __unicode__(self):
+        return str(self.ledger_name)
+
+    def json(self):
+        return {
+            'id': self.id,
+            'user_id': self.user.id,
+            'tax_type': self.tax_type,
+            'tax_percentage': self.tax_percentage,
+            'ledger_name': self.ledger_name,
+        }
 
 class CustomerCartData(models.Model):
     id = BigAutoField(primary_key=True)

@@ -29,6 +29,7 @@ from utils import *
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Sum, Count
 import math
+import re
 log = init_logger('logs/common.log')
 # Create your views here.
 
@@ -2506,3 +2507,189 @@ def build_search_term_query(columns, search_term):
             filter_params[col + '__regex'] = search_term
     query = get_dictionary_query(data_dict=filter_params)
     return query
+
+def validate_email(email):
+    check = re.match(r"[^@]+@[^@]+\.[^@]+", email)
+    if not check:
+        return True
+    else:
+        return False
+
+def get_tally_model_data(model_name, col_filter, col_data, field_name):
+    data_list = []
+    exist_values = []
+    for col_name in col_data:
+        temp_filter = copy.deepcopy(col_filter)
+        temp_filter[field_name] = col_name
+        model_group = model_name.objects.filter(**temp_filter)
+        if model_group:
+            model_group = model_group[0]
+            data_list.append(model_group.json())
+            exist_values.append(col_name)
+        else:
+            data_list.append({field_name: col_name})
+
+    exc_filter = {field_name + '__in': exist_values}
+    model_name.objects.exclude(**exc_filter).filter(**col_filter).delete()
+    return data_list
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_tally_data(request, user = ""):
+    """ Get Tally Configuration Data"""
+
+    try:
+        result_data = {}
+        tab_col_dict = {'SupplierMaster': 'supplier_type', 'CustomerMaster': 'customer_type', 'SKUMaster' : 'product_group'}
+
+        for table_name, col_name in tab_col_dict.iteritems():
+            log.info("%s ---- %s" %(table_name, col_name))
+
+            django_objs = eval(table_name).objects.filter(user = user.id).exclude(**{col_name:""}).values_list(col_name, flat = True).distinct()
+
+            result_data[col_name] = list(django_objs)
+            if col_name in ['customer_type', 'supplier_type']:
+                result_data[col_name].append('Default')
+
+        headers = OrderedDict(( ('sku_brand', 'Brand'), ('sku_category', 'Category'), ('sku_group', 'Group'), ('sku_class', 'Class'),
+                                ('sku_type', 'Type')
+                             ))
+        result_data['headers'] = headers
+        tally_config = TallyConfiguration.objects.filter(user_id=user.id)
+        config_dict = {}
+        if tally_config:
+            config_dict = tally_config[0].json()
+            config_dict['automatic_voucher'] = STATUS_DICT[config_dict['automatic_voucher']]
+            config_dict['maintain_bill'] = STATUS_DICT[config_dict['maintain_bill']]
+        master_groups = OrderedDict()
+        master_groups['vendor'] = get_tally_model_data(MasterGroupMapping, {'master_type': 'vendor', 'user_id': user.id},\
+                                                       result_data['supplier_type'], 'master_value')
+        master_groups['customer'] = get_tally_model_data(MasterGroupMapping,{'master_type': 'customer', 'user_id': user.id},
+                                                         result_data['customer_type'], 'master_value')
+        result_data['master_groups'] = master_groups
+        group_ledger_mapping = GroupLedgerMapping.objects.filter(user_id=user.id)
+        group_ledgers = OrderedDict()
+        for group_ledger in group_ledger_mapping:
+            group_ledgers.setdefault(group_ledger.ledger_type, [])
+            group_ledgers[group_ledger.ledger_type].append(group_ledger.json())
+        result_data['group_ledgers'] = group_ledgers
+        vat_ledger_mapping = VatLedgerMapping.objects.filter(user_id=user.id)
+        vat_ledgers = OrderedDict()
+        for vat_ledger in vat_ledger_mapping:
+            vat_ledgers.setdefault(vat_ledger.tax_type, [])
+            vat_ledgers[vat_ledger.tax_type].append(vat_ledger.json())
+        result_data['vat_ledgers'] = vat_ledgers
+        result_data['config_dict'] = config_dict
+        res = {'data': result_data}
+        log.info('Tally data for ' + user.username + ' is ' + str(res))
+        res['status'] = 1
+    except Exception as e:
+        res = {'status': 0, 'data': {}}
+        log.info('Get Tally Data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
+
+    return HttpResponse(json.dumps(res))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_tally_data(request, user = ""):
+    """ Save or Update Tally Configuration Data"""
+
+    data = {}
+    request_data = copy.deepcopy(request.POST)
+    log.info('Save Tally Configuration data for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        for key, value in request.POST.iterlists():
+            if not ('purchase' in key or 'sales' in key or 'customer' in key or 'vendor' in key):
+                continue
+            if key in request_data.keys():
+                del request_data[key]
+            field_type, name = key.split('_', 1)
+            data.setdefault(field_type, [])
+            for index, val in enumerate(value):
+                if len(data[field_type]) < index + 1:
+                    data[field_type].append({})
+                data[field_type][index][name] = val
+
+        tally_config = TallyConfiguration.objects.filter(user_id=user.id)
+        tally_obj = None
+        if tally_config:
+            tally_obj = tally_config[0]
+
+        tally_dict = {'creation_date': datetime.datetime.now(), 'user_id': user.id}
+        number_fields = ['tally_port', 'credit_period']
+        switch_fields = ['automatic_voucher', 'maintain_bill']
+        status_dict = {'true': 1, 'false': 0}
+        for key, value in request_data.iteritems():
+            if not value and key in number_fields:
+                value = 0
+            if key in switch_fields:
+                value = status_dict[value]
+            tally_dict[key] = value
+            if tally_obj:
+                setattr(tally_obj, key, value)
+        if tally_obj:
+            tally_obj.save()
+        else:
+            TallyConfiguration.objects.create(**tally_dict)
+
+        for key, value in data.iteritems():
+            if key in ['customer', 'vendor']:
+                for val in value:
+                    table_ins = MasterGroupMapping.objects.filter(master_type=key, master_value=val['type'], user_id=user.id)
+                    if table_ins:
+                        table_ins = table_ins[0]
+                        table_ins.parent_group = val['parent_group']
+                        table_ins.sub_group = val['sub_group']
+                        table_ins.save()
+                    else:
+                        MasterGroupMapping.objects.create(master_type=key, master_value=val['type'], parent_group = val['parent_group'],
+                                                          user_id=user.id, sub_group = val['sub_group'], creation_date=datetime.datetime.now())
+            else:
+                for val in value:
+                    if val.get('product_group', ''):
+                        table_ins = GroupLedgerMapping.objects.filter(ledger_type=key, product_group=val['product_group'],
+                                                                      state=val['state'], user_id=user.id)
+                        if table_ins:
+                            table_ins = table_ins[0]
+                            table_ins.ledger_name = val['ledger_name']
+                            table_ins.state = val['state']
+                            table_ins.save()
+                        else:
+                            GroupLedgerMapping.objects.create(ledger_type=key, product_group=val['product_group'], user_id=user.id,
+                                                              ledger_name = val['ledger_name'], state = val['state'],
+                                                              creation_date=datetime.datetime.now())
+                    if val.get('vat_ledger_name', ''):
+                        table_ins = VatLedgerMapping.objects.filter(tax_type=key, ledger_name=val['vat_ledger_name'], user_id=user.id)
+                        if table_ins:
+                            table_ins = table_ins[0]
+                            table_ins.tax_percentage = val['vat_percentage']
+                            table_ins.save()
+                        else:
+                            VatLedgerMapping.objects.create(tax_type=key, ledger_name=val['vat_ledger_name'], user_id=user.id,
+                                                            tax_percentage = val['vat_percentage'], creation_date=datetime.datetime.now())
+        res = {'status': 1, 'message': 'Updated Successfully'}
+    except Exception as e:
+        res = {'status': 0, 'message': 'Updating Failed'}
+        log.info('Save Tally Data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+    return HttpResponse(json.dumps(res))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_tally_data(request, user = ""):
+    """Delete Tally Group Ledger Mapping or Vat Ledger Mapping"""
+
+    log.info('Delete tally data for ' + user.username + ' request params is ' + str(request.GET.dict()))
+    try:
+        for key, value in request.GET.iteritems():
+            if key == 'group_ledger_id':
+                GroupLedgerMapping.objects.filter(id=value, user_id=user.id).delete()
+            elif key == 'vat_ledger_id':
+                VatLedgerMapping.objects.filter(id=value, user_id=user.id).delete()
+        res = {'status': 1, 'message': 'Deleted Successfully'}
+    except Exception as e:
+        res = {'status': 0, 'message': 'Deletion Failed'}
+        log.info('Delete Tally Data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
+    return HttpResponse(json.dumps(res))

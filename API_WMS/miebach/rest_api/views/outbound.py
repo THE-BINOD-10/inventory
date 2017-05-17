@@ -3590,7 +3590,10 @@ def update_payment_status(request, user=''):
 @csrf_exempt
 @get_admin_user
 def create_orders_data(request, user=''):
-    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': TAX_TYPES}))
+    tax_types = TAX_TYPES
+    if user.username == 'dazzle_export':
+        tax_types = D_TAX_TYPES 
+    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types}))
 
 @csrf_exempt
 def get_order_category_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, user_dict={}):

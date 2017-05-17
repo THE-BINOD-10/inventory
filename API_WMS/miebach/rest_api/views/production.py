@@ -2207,7 +2207,6 @@ def confirm_back_order(request, user=''):
             status += ", " + str(order_id)
 
         all_invoice_data.append(data_dictionary)
-    #import pdb;pdb.set_trace();
     #t1 = loader.get_template('templates/toggle/po_template_order.html')
     t1 = loader.get_template('templates/print/po_multi_form.html')
     c1 = Context({'total_data':all_invoice_data})

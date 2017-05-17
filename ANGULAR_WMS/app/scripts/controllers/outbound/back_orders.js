@@ -177,8 +177,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
     function confirm_po() {
       var elem = $(form).serializeArray();
 
-      Service.apiCall("confirm_back_order/", "POST", elem).then(function(data){
-        if(data.message) {vm.confirm_disable = true; vm.message = data.data; reloadData();};
+      Service.apiCall("confirm_back_order/", "POST", elem, true).then(function(data){
+        if(data.message) {
+          vm.confirm_disable = true; vm.message = data.data; reloadData();
+          if(data.data.search("<div") != -1) {
+                vm.html = $(data.data)[0];
+                var html = $(vm.html).closest("form").clone();
+                angular.element(".modal-body").html($(html));
+                vm.print_enable = true;
+           } else {
+             vm.service.pop_msg(data.data);
+           }
+        };
       });
     }
 
@@ -320,6 +330,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
     function print() {
       colFilters.print_data(vm.html);
     }
- 
+
+  vm.print_grn = function() {
+
+    vm.service.print_data(vm.html, "Purchase Order");
+  }
+
   }
 

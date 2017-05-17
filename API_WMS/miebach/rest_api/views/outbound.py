@@ -528,9 +528,10 @@ def get_stock_count(request, order, stock, stock_diff, user, order_quantity, pre
         reserved_quantity = 0
 
     stock_quantity = float(stock.quantity) - reserved_quantity
-    if prev_reserved:
-        if stock_quantity >= 0:
-            return order_quantity, 0
+    #if prev_reserved:
+    #    if stock_quantity >= 0:
+    #        #return order_quantity, 0
+    #        return 0, stock_diff
     if stock_quantity <= 0:
         return 0, stock_diff
 
@@ -1116,25 +1117,6 @@ def insert_order_serial(picklist, val, order=''):
             imei_mapping.save()
             log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
 
-"""
-def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity=''):
-    for pic_loc in pick_loc:
-        if float(pic_loc.reserved) >= update_picked:
-            pic_loc.reserved = float(pic_loc.reserved) - update_picked
-            if update_quantity:
-                pic_loc.quantity = float(pic_loc.quantity) - update_picked
-            update_picked = 0
-        elif float(pic_loc.reserved) < update_picked:
-            update_picked = update_picked - pic_loc.reserved
-            if update_quantity:
-                pic_loc.quantity = 0
-            pic_loc.reserved = 0
-        if pic_loc.reserved <= 0:
-            pic_loc.status = 0
-        pic_loc.save()
-        if not update_picked:
-            break
-"""
 def update_picklist_pallet(stock, picking_count1):
     pallet = stock.pallet_detail
     if float(pallet.quantity) - picking_count1 >=0:
@@ -1535,7 +1517,6 @@ def picklist_confirmation(request, user=''):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         if get_misc_value('automate_invoice', user.id) == 'true' and single_order:
             order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True).distinct()
-            print order_ids
             order_id = picklists_send_mail.keys()
             if order_ids and order_id:
                 ord_id = order_id[0]
@@ -4829,27 +4810,29 @@ def update_picklist_loc(request, user = ""):
     filter_param = {'order__user' : user.id, 'reserved_quantity__gt' : 0, 'picklist_number' : picklist_no}
     picklist_objs = Picklist.objects.filter(**filter_param)
     picklist_data = {}
-    total_req = {}
     for item in picklist_objs:
         _sku_code = item.order.sku.sku_code
         if item.sku_code:
             _sku_code = item.sku_code
 
-        stock_objs = StockDetail.objects.filter(sku__sku_code = _sku_code, sku__user = user.id, quantity__gt = 0).order_by('location__pick_sequence')
-        if _sku_code in total_req.keys():
-            total_req[_sku_code] += item.reserved_quantity
-        else:
-            total_req[_sku_code] = item.reserved_quantity
+        stock_objs = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0, sku__sku_code = _sku_code).order_by('location__pick_sequence')
 
         picklist_data['stock_id'] = 0
+        stock_quan = 0
         if item.stock_id:
             picklist_data['stock_id'] = item.stock_id
             current_stock_objs = stock_objs.filter(id = item.stock_id)
             if current_stock_objs:
                 current_stock_obj = current_stock_objs[0]
-                if current_stock_obj.quantity >= total_req[_sku_code]:
+                stock_quan = current_stock_obj.quantity
+                if current_stock_obj.quantity >= item.reserved_quantity:
                     continue
 
+        needed_quantity = item.reserved_quantity
+        if stock_quan:
+            needed_quantity = needed_quantity - stock_quan
+        if not needed_quantity:
+            continue
         consumed_qty = 0
 
         picklist_data['order_id'] = item.order
@@ -4861,66 +4844,43 @@ def update_picklist_loc(request, user = ""):
         picklist_data['order_type'] = item.order_type
         picklist_data['status'] = item.status
 
-        consumed_qty = picklist_location_suggestion(request, item.order, stock_objs, user, item.reserved_quantity, picklist_data, consumed_qty)
+        consumed_qty = picklist_location_suggestion(request, item.order, stock_objs, user, needed_quantity, picklist_data)
 
         item.reserved_quantity -= consumed_qty
         item.save()
-        if item.reserved_quantity == 0:
+        if item.reserved_quantity == 0 and not item.picked_quantity:
             item.delete()
     return HttpResponse('Success')
 
 
-"""
-            reserved_quantity = PicklistLocation.objects.filter(stock_id=stock_obj.id, status=1, picklist__order__user=user.id).aggregate(Sum('reserved'))['reserved__sum']
-            qty = stock_obj.quantity - reserved_quantity
-            if qty > item.reserved_quantity:
-                item.stock = stock_obj.id
-                stock_obj.quantity -= item.reserved_quantity
-                item.save()
-                stock_obj.save()
-                break
-            else:
-                remained_qty = item.reserved_quantity - qty
-                item.stock = stock_obj.id
-                item.reserved_quantity = qty
-                stock_obj.quantity = 0
-                item.save()
-                stock_obj.save()
-                Picklist.objects.create(order = item.order__id, sku_code = item.sku_code, picklist_number = picklist_no,
-                            reserved_quantity = remained_qty, picked_quantity = 0, remarks = item.remarks, order_type = item.order_type,
-                            status = item.status)
-
-
-
-"""
-def picklist_location_suggestion(request, order, stock_detail, user, order_quantity, picklist_data, consumed_qty = 0):
+def picklist_location_suggestion(request, order, stock_detail, user, order_quantity, picklist_data):
     already_reserved = False
     stock_diff = 0
-    print order_quantity
+    consumed_qty = 0
+    need_quantity = order_quantity
     for stock in stock_detail:
-        if picklist_data['stock_id'] == stock.id:
-            already_reserved = True
         stock_count, stock_diff = get_stock_count(request, order, stock, stock_diff, user, order_quantity, already_reserved)
-        print stock_count, stock_diff
-        if not stock_count:
-            #continue 
-            picklist_data['reserved_quantity'] = order_quantity
-            consumed_qty += order_quantity
-            try:
-                del picklist_data['stock_id']
-            except:
-                pass
-        else:
-            consumed_qty += stock_count
-            picklist_data['stock_id'] = stock.id
-            picklist_data['reserved_quantity'] = stock_count
+        need_quantity -= stock_count
         if 'st_po' in dir(order):
             picklist_data['order_id'] = None
         else:
             picklist_data['order_id'] = order.id
+        if not stock_count:
+            continue
+        else:
+            consumed_qty += stock_count
+            picklist_data['stock_id'] = stock.id
+            picklist_data['reserved_quantity'] = stock_count
 
-        new_picklist = Picklist(**picklist_data)
-        new_picklist.save()
+        exist_pick = Picklist.objects.filter(stock_id=picklist_data.get('stock_id', 0), order_id=picklist_data['order_id'],
+                                             status__icontains='open')
+        if not exist_pick:
+            new_picklist = Picklist(**picklist_data)
+            new_picklist.save()
+        else:
+            new_picklist = exist_pick[0]
+            new_picklist.reserved_quantity += stock_count
+            new_picklist.save()
         seller_order = ""
         if seller_order:
             create_seller_summary_details(seller_order, new_picklist)
@@ -4940,6 +4900,20 @@ def picklist_location_suggestion(request, order, stock_detail, user, order_quant
         if not stock_diff:
             setattr(order, 'status', 0)
             break
+    if need_quantity >= 0:
+        picklist_data['reserved_quantity'] = need_quantity
+        consumed_qty += need_quantity
+        if 'stock_id' in picklist_data.keys():
+            del picklist_data['stock_id']
+        exist_pick = Picklist.objects.filter(stock_id=picklist_data.get('stock_id', 0), order_id=picklist_data['order_id'],
+                                             status__icontains='open')
+        if not exist_pick:
+            new_picklist = Picklist(**picklist_data)
+            new_picklist.save()
+        else:
+            new_picklist = exist_pick[0]
+            new_picklist.reserved_quantity += stock_count
+            new_picklist.save()
 
     return consumed_qty
 

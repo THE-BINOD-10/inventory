@@ -4833,7 +4833,6 @@ def update_picklist_loc(request, user = ""):
             _sku_code = item.sku_code
 
         stock_objs = StockDetail.objects.filter(sku__sku_code = _sku_code, sku__user = user.id, quantity__gt = 0).order_by('location__pick_sequence')
-        #==========================================================================================
         if _sku_code in total_req.keys():
             total_req[_sku_code] += item.reserved_quantity
         else:
@@ -4847,8 +4846,6 @@ def update_picklist_loc(request, user = ""):
                 current_stock_obj = current_stock_objs[0]
                 if current_stock_obj.quantity >= total_req[_sku_code]:
                     continue
-
-        #============================================================================================
 
         consumed_qty = 0
 

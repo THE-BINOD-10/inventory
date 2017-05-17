@@ -1,0 +1,71 @@
+<div id="page-pop" class="modal fade in" id="move-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="overflow: hidden; display: block;">
+  <!-- Modal -->
+  <form name="myForm" role="form" ui-jq="validate" ui-options="validationOpt" class="form-horizontal">
+    <div class="modal fade in" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="display: block;">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div ng-include="'views/common/loader.html'"></div>
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">×</span>
+            </button>
+            <h4 class="modal-title" id="myLargeModalLabel">Move Inventory</h4>
+          </div>
+          <div class="modal-body">
+            <div class="row mt30">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label class="col-sm-5 col-xs-5 control-label">Scan IMEI :</label>
+                  <div class="col-sm-4 col-xs-5">
+                    <textarea class="form-control" rows="1" ng-model="showCase.imei" ng-keydown="showCase.scan_imei($event, showCase.imei)" auto-focus placeholder="Scan IMEI Number"></textarea>
+                  </div>
+                </div>
+                <div class="form-group" ng-show="showCase.model_imei.display_details">
+                  <label class="col-sm-5 col-xs-5 control-label text-right">IMEI Number :</label>
+                  <div class="col-sm-4 col-xs-5">
+                    <p class="form-control-static">{{showCase.model_imei.imei_data.imei_number}}</p>
+                    <input type="hidden" name="imei_number" value="{{showCase.model_imei.imei_data.imei_number}}" ng-model="showCase.model_imei.imei_data.imei_number" required>
+                    <input type="hidden" name="id" value="{{showCase.model_imei.imei_data.id}}">
+                  </div>
+                </div>
+                <div class="form-group" ng-if="showCase.model_imei.display_details">
+                  <label class="col-sm-5 col-xs-5 control-label text-right">WMS Code :</label>
+                  <div class="col-sm-4 col-xs-5">
+                    <p class="form-control-static">{{showCase.model_imei.imei_data.sku_code}}</p>
+                    <input type="hidden" name="sku_code" ng-model="showCase.model_imei.imei_data.sku_code" value="{{showCase.model_imei.imei_data.sku_code}}" required>
+                  </div>
+                </div>
+                <div class="form-group" ng-if="showCase.model_imei.display_details">
+                  <label class="col-sm-5 col-xs-5 control-label text-right">Current Status :</label>
+                  <div class="col-sm-4 col-xs-5">
+                    <p class="form-control-static">{{showCase.model_imei.imei_data.status}}</p>
+                    <input type="hidden" name="status" value="{{(showCase.model_imei.imei_data.status == 'accepted')? 'rejected': 'accepted'}}" required>
+                  </div>
+                </div>
+                <div class="form-group" ng-if="showCase.model_imei.display_details && showCase.model_imei.imei_data.status == 'rejected'">
+                  <label class="col-sm-5 col-xs-5 control-label text-right">Reason :</label>
+                  <div class="col-sm-4 col-xs-5">
+                    <p class="form-control-static">{{showCase.model_imei.imei_data.reason}}</p>
+                  </div>
+                </div>
+                <div class="form-group" ng-if="showCase.model_imei.show_options && showCase.model_imei.imei_data.status == 'accepted'">
+                  <label class="col-sm-5 col-xs-5 control-label text-right">Options* :</label>
+                  <div class="col-sm-4 col-xs-5">
+                    <select name="reason" class="form-control" ng-model="showCase.model_imei.imei_data.reason" focus-on="reason" required>
+                      <option value="">Select Reason</option>
+                      <option ng-repeat="option in showCase.model_imei.options" value="{{option}}">{{option}}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
+            <button ng-disabled="myForm.$invalid" type="submit" class="btn pop pop-green" ng-click="showCase.submit_imei(myForm)">{{'Move To '+((showCase.model_imei.imei_data.status == 'accepted')? 'reject': 'accept')}}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

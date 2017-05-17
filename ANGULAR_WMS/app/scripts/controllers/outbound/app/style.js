@@ -27,6 +27,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   vm.style_open = false;
   vm.stock_quantity = 0;
   vm.style_data = [];
+  vm.style_total_counts = {};
   vm.open_style = function() {
 
     vm.style_data = [];
@@ -36,6 +37,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         vm.style_open = true;
         vm.check_stock=true;
         vm.style_data = data.data.data;
+        vm.style_total_counts = data.data.total_qty;
         if(vm.style_data.length > 0) {
             vm.stock_quantity = 0;
             angular.forEach(vm.style_data, function(record){

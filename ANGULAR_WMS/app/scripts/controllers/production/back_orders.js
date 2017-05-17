@@ -55,25 +55,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
             }).notSortable()
        )
 
-    /*vm.dtColumns = [
-        DTColumnBuilder.newColumn(null).withTitle(titleHtml).notSortable().withOption('width', '20px')
-            .renderWith(function(data, type, full, meta) {
-                if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                  vm.selected = {};
-                 }
-                vm.selected[meta.row] = vm.selectAll;
-                vm.selectedRows[meta.row] = full;
-                return '<input class="data-select" type="checkbox" ng-model="showCase.selected[' + meta.row + ']" ng-change="showCase.toggleOne(showCase.selected)">';
-            }).notSortable(),
-        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
-        DTColumnBuilder.newColumn('Ordered Quantity').withTitle('Ordered Quantity'),
-        DTColumnBuilder.newColumn('Stock Quantity').withTitle('Stock Quantity'),
-        DTColumnBuilder.newColumn('Transit Quantity').withTitle('Transit Quantity'),
-        DTColumnBuilder.newColumn('Procurement Quantity').withTitle('Procurement Quantity')
-    ];*/
-
-    
-
     vm.selectedRows = {};
     vm.dtInstance = {};
     vm.reloadData = reloadData;
@@ -146,6 +127,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
       vm.print_enable = false;
       vm.message = "";
       vm.model_data = {};
+      reloadData();
       $state.go("app.production.BackOrders");
     }
 
@@ -181,8 +163,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
     vm.confirm_po = confirm_po;
     function confirm_po() {
       var elem = $(form).serializeArray();
-      Service.apiCall("confirm_back_order/", "POST", elem).then(function(data){
-        if(data.message) {vm.confirm_disable = true; vm.message = data.data; reloadData();};
+      Service.apiCall("confirm_back_order/", "POST", elem, true).then(function(data){
+        if(data.message) {vm.confirm_disable = true; vm.message = data.data; reloadData();
+
+          if(data.data.search("<div") != -1) {
+                vm.html = $(data.data)[0];
+                var html = $(vm.html).closest("form").clone();
+                angular.element(".modal-body").html($(html));
+                //angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
+                //angular.element(".modal-body").html($(html));
+                vm.print_enable = true;
+           } else {
+             vm.service.pop_msg(data.data);
+           }
+        };
       });
     }
 
@@ -195,6 +189,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
           //data[temp['WMS Code']+":"+"Order_det"] = temp['order_id'];
         }
       });
+      vm.bt_disable = true;
       Service.apiCall("generate_rm_po_data/", "POST", data).then(function(data){
         if(data.message) { 
 
@@ -204,15 +199,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
       });
     }
 
-    vm.backorder_rwo = function() {
-      var data = {};
+
+    vm.backorder_rwo = function() { var data = {};
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
           var temp = vm.selectedRows[parseInt(key)];
           data[temp['WMS Code']+":"+$(temp[""]).attr("name")] = temp['Procurement Quantity'];
         }
       });
-      Service.apiCall("generate_rm_rwo_data/", "POST", data).then(function(data){
+      vm.bt_disable = true;
+      Service.apiCall("generate_rm_rwo_data/", "POST", data, true).then(function(data){
         if(data.message) {
 
           angular.copy(data.data, vm.model_data);
@@ -283,23 +279,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
       var elem = angular.element($('form:visible'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      elem = $.param(elem);
-      $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-      $http({  
-               method: 'POST',
-               url:Session.url+"confirm_rwo/",
-               withCredential: true,
-               data: elem}).success(function(data, status, headers, config) {
-
+      vm.service.apiCall("confirm_rwo/", "POST", elem, true).then(function(data){
+      //elem = $.param(elem);
+      //$http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+      //$http({  
+       //        method: 'POST',
+       //        url:Session.url+"confirm_rwo/",
+       //        withCredential: true,
+       //        data: elem}).success(function(data, status, headers, config) {
+       if(data.message){
             vm.reloadData();
-            if(data.search("<div") != -1) {
-              vm.html = $(data)[0];
+            if(data.data.search("<div") != -1) {
+              vm.html = $(data.data)[0];
               var html = $(vm.html).closest("form").clone();
               angular.element(".modal-body:visible").html($(html).find(".modal-body > .form-group"));
               vm.print_enable = true;
             } else {
-              pop_msg(data)
+              pop_msg(data.data)
             }
+       }
       });
     }
 
@@ -319,18 +317,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      elem = $.param(elem);
-      $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-      $http({
-               method: 'POST',
-               url:Session.url+"save_rwo/",
-               withCredential: true,
-               data: elem}).success(function(data, status, headers, config) {
-        pop_msg(data);
-        if(data == "Added Successfully") {
+      vm.service.apiCall("save_rwo/", "POST", elem, true).then(function(data){
+      //elem = $.param(elem);
+      //$http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+      //$http({
+      //         method: 'POST',
+      //         url:Session.url+"save_rwo/",
+      //         withCredential: true,
+      //        data: elem}).success(function(data, status, headers, config) {
+      //  pop_msg(data);
+       if(data.message) {
+        if(data.data == "Added Successfully") {
           vm.confirm_disable;
           reloadData();
         }
+       }
       });
     }
 
@@ -346,6 +347,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
       $state.go($state.current, {}, {reload: true});
     }
 
+    vm.print_grn = function() {
 
+      vm.service.print_data(vm.html, "Purchase Order");
+    }
   }
 

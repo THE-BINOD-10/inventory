@@ -1,0 +1,32 @@
+<form id="toggle-po">
+  {% for data in total_data %}
+  <div class="" style="width:100%;page-break-after: always;border: 1px solid #e4e4e4;padding: 15px;">
+    <div class="">
+      <div class="">
+        <div class="row">
+          <table style="font-size:12px;width:480px">
+            <tbody>
+              <tr>
+                <td rowspan="3" style="text-align:left;width:380px;"><h4 style="padding-left:20px">Purchase Order</h4></td>
+                {% if data.company_name %}
+                <td style="text-align:center;">{{ data.company_name }}</td>
+                {% endif %}
+              </tr>
+              {% if data.address %}
+              <tr>
+                <td style="text-align:center;width:480px;">{{ data.w_address|linebreaks }}</td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+          <hr>
+        </div>
+        <div class="form-group clearfix" style="">
+          {% include 'print/po_print_base.html' %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <br>
+  {% endfor %}
+</form>

@@ -1,6 +1,7 @@
 'use strict';
 
 var app = angular.module('urbanApp')
+
 app.service('Service',['$rootScope', '$compile','$q', '$http', '$state', '$timeout', 'Session', 'colFilters', 'SweetAlert', 'COLORS', 'DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', '$window', Service]); 
 
 function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, colFilters, SweetAlert, COLORS, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, $window) {
@@ -119,7 +120,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       send.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url + data.dt_url + '/',
-              type: 'GET',
+              type: 'POST',
               data: send.empty_data,
               xhrFields: {
                 withCredentials: true
@@ -128,9 +129,38 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
        .withDataProp('data')
        .withOption('processing', true)
        .withOption('serverSide', true)
-       .withPaginationType('full_numbers');
+       .withPaginationType('full_numbers')
+       .withOption('rowCallback', rowCallback);
+
+      function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+        $('td', nRow).unbind('click');
+        $('td', nRow).bind('click', function() {
+          console.log(aData);
+          if(data["row_call"]) {
+            data.row_call(aData);
+          }
+        });
+        return nRow;
+      }
+
+      if(Session.user_profile.user_type == "marketplace_user") {
+
+        if(data["mk_dt_headers"]) {
+
+          data.dt_headers = data.mk_dt_headers;
+        }
+      }
 
       send.dtColumns = vm.build_colums(data.dt_headers);
+
+      if(data["row_call"]) {
+
+        data["row_click"] = true;
+      } else {
+
+        data["row_click"] = false;
+      }
+
       d.resolve(send);
       return d.promise;
     }
@@ -842,7 +872,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
       elem.push({name: 'format', value: 'sku_master'})
 
-      vm.apiCall('generate_barcodes/', 'POST', elem).then(function(data){
+      vm.apiCall('generate_barcodes/', 'POST', elem, true).then(function(data){
 
         if(data.message) {
 
@@ -1190,7 +1220,7 @@ app.directive('percentageField', [ '$filter', function( $filter ) {
             // designed to catch common url input issues.
             function into(input) {
                 var valid;
-                if( input == '' )
+                if( input == '' || !(input))
                 {
                     ngModel.$setValidity( 'valid', true );
                     return '';
@@ -1231,3 +1261,35 @@ app.directive('percentageField', [ '$filter', function( $filter ) {
         }
     };
 }]);
+
+//focus me
+app.directive('focusOn', function() {
+   return function(scope, elem, attr) {
+      scope.$on('focusOn', function(e, name) {
+        if(name === attr.focusOn) {
+          elem[0].focus();
+        }
+      });
+   };
+});
+
+app.factory('focus', function ($rootScope, $timeout) {
+  return function(name) {
+    $timeout(function (){
+      $rootScope.$broadcast('focusOn', name);
+    });
+  }
+});
+
+// auto focus
+
+app.directive('autoFocus', function($timeout) {
+    return {
+        restrict: 'AC',
+        link: function(_scope, _element) {
+            $timeout(function(){
+                _element[0].focus();
+            }, 0);
+        }
+    };
+});

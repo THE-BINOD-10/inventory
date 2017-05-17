@@ -426,6 +426,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   vm.style_open = false;
   vm.style_data = [];
+  vm.style_total_counts = {}
   vm.style_headers = {};
   vm.style_detail_hd = [];
   if (Session.roles.permissions["style_headers"]) {
@@ -447,6 +448,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         vm.style_open = true;
         vm.check_stock=true;
         vm.style_data = data.data.data;
+        vm.style_total_counts = data.data.total_qty;
         vm.style_headers = data.data.style_headers;
         vm.style_detail_hd = Object.keys(vm.style_headers);
         //var quant_len = data.data.data.length-1;

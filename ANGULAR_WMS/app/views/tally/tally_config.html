@@ -1,0 +1,423 @@
+<div class="page-layout" data-ng-controller="TallyConfigCtrl as showCase">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body">
+    <div class="panel">
+      <div class="panel-body">
+        <form name="form" role="form">
+          <section class="form-horizontal mr20 ml20">
+            <div class="row">
+              <div class="col-md-12">
+                <strong style="line-height: 34px;" class="pull-left"> BASIC CONFIGURATION :</strong>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label class="col-sm-4 col-xs-5 control-label text-right">Tally Machine Details * :</label>
+                  <div class="col-sm-4 col-xs-5">
+                    <input type="text" name="tally_ip" class="form-control" ng-model="showCase.data.config_dict.tally_ip"  required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-sm-4 col-xs-5 control-label text-right"> Tally Port * :</label>
+                  <div class="col-sm-4 col-xs-5">
+                    <input type="text" name="tally_port" class="form-control" ng-model="showCase.data.config_dict.tally_port" ng-class="service.get_decimal_perm()" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-sm-4 col-xs-5 control-label text-right"> Tally Path * :</label>
+                  <div class="col-sm-4 col-xs-5">
+                    <input type="text" name="tally_path" class="form-control" ng-model="showCase.data.config_dict.tally_path" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-sm-4 col-xs-5 control-label text-right"> Tally Company Name * :</label>
+                  <div class="col-sm-4 col-xs-5">
+                    <input type="text" name="company_name" class="form-control" ng-model="showCase.data.config_dict.company_name" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-sm-4 col-xs-5 control-label text-right"> Tally Version Name :</label>
+                  <div class="col-sm-4 col-xs-5">
+                    <p class="form-control-static">Tally ERP 9</p>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-sm-4 col-xs-5 control-label text-right"> Maintain Bill Wise Details In Tally:</label>
+                  <div class="col-sm-4 col-xs-5">
+                    <label class="switch switch-sm square mt5">
+                      <div>
+                        <input type="checkbox" name="maintain_bill" ng-model="showCase.data.config_dict.maintain_bill" value="{{showCase.data.config_dict.maintain_bill}}">
+                        <span>
+                          <i class="handle"></i>
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-sm-4 col-xs-5 control-label text-right"> Voucher No Configured As Automatic In Tally:</label>
+                  <div class="col-sm-4 col-xs-5">
+                    <label class="switch switch-sm square mt5">
+                      <div>
+                        <input type="checkbox" name="automatic_voucher" ng-model="showCase.data.config_dict.automatic_voucher" value="{{showCase.data.config_dict.automatic_voucher}}">
+                        <span>
+                          <i class="handle"></i>
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <hr>
+              </div>
+            </div>
+          </section>
+          <section class="form-horizontal mr20 ml20">
+            <div class="row">
+              <div class="col-md-12">
+                <strong style="line-height: 34px;" class="pull-left"> ITEM MASTER CONFIGURATION : </strong>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label class="col-sm-4 col-xs-5 control-label text-right"> Stock Group * :</label>
+                  <div class="col-sm-3 col-xs-5">
+                    <select name="stock_group" class="form-control" ng-model="showCase.data.config_dict.stock_group" required>
+                      <option value="">Select</option>
+                      <option ng-repeat="header in showCase.data.headers" value="{{header}}" ng-selected="showCase.data.config_dict.stock_group == header">{{header}}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-sm-4 col-xs-5 control-label text-right"> Stock Category * :</label>
+                  <div class="col-sm-3 col-xs-5">
+                    <select name="stock_category" class="form-control" ng-model="showCase.data.config_dict.stock_category" required>
+                      <option value="">Select</option>
+                      <option ng-repeat="header in showCase.data.headers" value="{{header}}" ng-selected="showCase.data.config_dict.stock_category == header">{{header}}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <hr>
+              </div>
+            </div>
+          </section>
+          <section class="form-horizontali mr20 ml20">
+            <div class="row">
+              <div class="col-md-12">
+                <strong style="line-height: 34px;" class="pull-left"> CUSTOMER MASTER CONFIGURATION : </strong>
+              </div>
+            </div>
+            <div class="row ">
+              <div class="col-md-1"></div>
+              <div class="col-md-10">
+                <table class="table">
+                <thead>
+                  <tr>
+                    <th>Customer Type</th>
+                    <th>Parent Group *</th>
+                    <th>Sub Group</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="type in showCase.data.master_groups.customer">
+                    <td>{{type.master_value}}
+                      <input type="hidden" name="customer_type" class="form-control" value="{{type.master_value}}">
+                    </td>
+                    <td>
+                      <input type="text" required name="customer_parent_group" class="form-control" ng-model="type.parent_group">
+                    </td>
+                    <td>
+                      <input type="text" name="customer_sub_group" class="form-control" ng-model="type.sub_group">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <hr>
+              </div>
+            </div>
+          </section>
+          <section class="form-horizontali mr20 ml20">
+            <div class="row">
+              <div class="col-md-12">
+                <strong style="line-height: 34px;" class="pull-left"> VENDOR MASTER CONFIGURATION : </strong>
+              </div>
+            </div>
+            <div class="row ">
+              <div class="col-md-1"></div>
+              <div class="col-md-10">
+                <table class="table">
+                <thead>
+                  <tr>
+                    <th>Supplier Type</th>
+                    <th>Parent Group *</th>
+                    <th>Sub Group</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="type in showCase.data.master_groups.vendor">
+                    <td>{{type.master_value}}
+                      <input type="hidden" name="vendor_type" class="form-control" value="{{type.master_value}}">
+                    </td>
+                    <td>
+                      <input type="text" required name="vendor_parent_group" class="form-control" ng-model="type.parent_group">
+                    </td>
+                    <td>
+                      <input type="text" name="vendor_sub_group" class="form-control" ng-model="type.sub_group">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <hr>
+              </div>
+            </div>
+          </section>
+          <section class="form-horizontali mr20 ml20">
+            <div class="row">
+              <div class="col-md-12">
+                <strong style="line-height: 34px;" class="pull-left"> SALES INVOICE CONFIGURATION : </strong>
+              </div>
+            </div>
+            <div class="row ">
+              <div class="col-md-1"></div>
+              <div class="col-md-2">
+                <h5>Default Credit Period</h5>
+              </div>
+              <div class="col-md-2">
+                <input type="text" name="credit_period" class="form-control ng-pristine ng-valid" ng-model="showCase.data.config_dict.credit_period" percentage-field percentage-max-decimals="0" decimal-number>
+              </div>
+              <div class="col-md-2">
+                <h5>days</h5>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-1"></div>
+              <div class="col-md-4">
+                <h5>1. Sales Ledger Name mapped with Customer type</h5>
+              </div>
+              <div class="col-md-7"></div>
+            </div>
+            <div class="row">
+              <div class="col-md-1"></div>
+              <div class="col-md-10">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Product Group</th>
+                      <th>State</th>
+                      <th>Sales Ledger Name</th>
+                      <th class="plus"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat="record in showCase.data.group_ledgers.sales">
+                      <td>
+                        <select name="sales_product_group" class="form-control" ng-model="record.product_group" required ng-change="showCase.checkStateGroup(showCase.data.group_ledgers.sales, $index)">
+                          <option value="">Select</option>
+                          <option ng-repeat="header in showCase.data.product_group" value="{{header}}" ng-selected="record.product_group == header">{{header}}</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input type="text" required name="sales_state" class="form-control ng-required" ng-model="record.state" ng-blur="showCase.checkStateGroup(showCase.data.group_ledgers.sales, $index)">
+                      </td>
+                      <td>
+                        <input type="text" required name="sales_ledger_name" class="form-control ng-required" ng-model="record.ledger_name">
+                      </td>
+                      <td style="font-size: 20px;">
+                        <i title="Remove Field" class="fa fa-minus-square-o" style="padding-left: 15px;cursor:pointer;"
+                           ng-click="showCase.remove(showCase.data.group_ledgers.sales, $index, 'group_ledger_id')"></i>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-1"></div>
+              <div class="col-md-10">
+                <span class="plus pull-right">
+                  <i class="fa fa-plus-circle" style="font-size: 45px;margin-top: -10px;cursor:pointer;"
+                     ng-click="showCase.data.group_ledgers.sales.push({'product_group': '', 'state': '', 'ledger_name': ''})"></i>
+                </span>
+              </div>
+              <div class="col-md-1"></div>
+            </div>
+            <div class="row">
+              <div class="col-md-1"></div>
+              <div class="col-md-6">
+                <h5>2. Output VAT Ledger name mapped with VAT percentage</h5>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-1"></div>
+              <div class="col-md-10">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>VAT Percentage</th>
+                      <th>VAT Ledger Name</th>
+                      <th class="plus"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat="record in showCase.data.vat_ledgers.sales">
+                      <td>
+                        <input type="text" required name="sales_vat_percentage" class="form-control ng-required" ng-model="record.tax_percentage" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" decimal-number>
+                      </td>
+                      <td>
+                        <input type="text" required name="sales_vat_ledger_name" class="form-control ng-required" ng-model="record.ledger_name" ng-blur="showCase.checkPercentageLedger(showCase.data.vat_ledgers.sales, $index)">
+                      </td>
+                      <td  style="font-size: 20px;">
+                        <i title="Remove Field" class="fa fa-minus-square-o" style="padding-left: 15px;cursor:pointer;"
+                           ng-click="showCase.remove(showCase.data.vat_ledgers.sales, $index, 'vat_ledger_id')"></i>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="col-md-4"></div>
+            </div>
+            <div class="row">
+              <div class="col-md-1"></div>
+              <div class="col-md-10">
+                <span class="plus pull-right">
+                  <i class="fa fa-plus-circle" style="font-size: 45px;margin-top: -10px;cursor:pointer;"
+                     ng-click="showCase.data.vat_ledgers.sales.push({'tax_percentage': '', 'ledger_name': ''})"></i>
+                </span>
+              </div>
+              <div class="col-md-1"></div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <hr>
+              </div>
+            </div>
+          </section>
+          <section class="form-horizontali mr20 ml20">
+            <div class="row">
+              <div class="col-md-12">
+                <strong style="line-height: 34px;" class="pull-left"> PURCHASE INVOICE CONFIGURATION : </strong>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-1"></div>
+              <div class="col-md-4">
+                <h5>1. Purchase Ledger Name mapped with Customer type</h5>
+              </div>
+              <div class="col-md-7"></div>
+            </div>
+            <div class="row">
+              <div class="col-md-1"></div>
+              <div class="col-md-10">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Product Group</th>
+                      <th>State</th>
+                      <th>Purchase Ledger Name</th>
+                      <th class="plus"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat="record in showCase.data.group_ledgers.purchase">
+                      <td>
+                        <select name="purchase_product_group" class="form-control" ng-model="record.product_group" required ng-change="showCase.checkStateGroup(showCase.data.group_ledgers.purchase, $index)">
+                          <option value="">Select</option>
+                          <option ng-repeat="header in showCase.data.product_group" value="{{header}}" ng-selected="record.product_group == header">{{header}}</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input type="text" required name="purchase_state" class="form-control ng-required" ng-model="record.state" ng-change="showCase.checkStateGroup(showCase.data.group_ledgers.purchase, $index)">
+                      </td>
+                      <td>
+                        <input type="text" required name="purchase_ledger_name" class="form-control ng-required" ng-model="record.ledger_name">
+                      </td>
+                      <td  style="font-size: 20px;">
+                        <i title="Remove Field" class="fa fa-minus-square-o" style="padding-left: 15px;cursor:pointer;"
+                           ng-click="showCase.remove(showCase.data.group_ledgers.purchase, $index, 'group_ledger_id');"></i>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-1"></div>
+              <div class="col-md-10">
+                <span class="plus pull-right">
+                  <i class="fa fa-plus-circle" style="font-size: 45px;margin-top: -10px;cursor:pointer;"
+                     ng-click="showCase.data.group_ledgers.purchase.push({'product_group': '', 'state': '', 'ledger_name': ''})"></i>
+                </span>
+              </div>
+              <div class="col-md-1"></div>
+            </div>
+            <div class="row">
+              <div class="col-md-1"></div>
+              <div class="col-md-6">
+                <h5>2. Input VAT Ledger name mapped with VAT percentage</h5>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-1"></div>
+              <div class="col-md-10">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>VAT Percentage</th>
+                      <th>VAT Ledger Name</th>
+                      <th class="plus"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat="record in showCase.data.vat_ledgers.purchase">
+                      <td>
+                        <input type="text" required name="purchase_vat_percentage" class="form-control ng-required" ng-model="record.tax_percentage" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" decimal-number>
+                      </td>
+                      <td>
+                        <input type="text" required name="purchase_vat_ledger_name" class="form-control ng-required" ng-model="record.ledger_name" ng-blur="showCase.checkPercentageLedger(showCase.data.vat_ledgers.purchase, $index)">
+                      </td>
+                      <td  style="font-size: 20px;">
+                        <i title="Remove Field" class="fa fa-minus-square-o" style="padding-left: 15px;cursor:pointer;"
+                           ng-click="showCase.remove(showCase.data.vat_ledgers.purchase, $index, 'vat_ledger_id')"></i>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="col-md-4"></div>
+            </div>
+            <div class="row">
+              <div class="col-md-1"></div>
+              <div class="col-md-10">
+                <span class="plus pull-right">
+                  <i class="fa fa-plus-circle" style="font-size: 45px;margin-top: -10px;cursor:pointer;"
+                     ng-click="showCase.data.vat_ledgers.purchase.push({'tax_percentage': '', 'ledger_name': ''})"></i>
+                </span>
+              </div>
+              <div class="col-md-1"></div>
+            </div>
+          </section>
+          <button type="submit" class="btn btn-success" style="margin-left:50%;margin-bottom:2%;" ng-click="showCase.submit(form)">Save</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

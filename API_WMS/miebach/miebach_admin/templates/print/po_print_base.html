@@ -1,0 +1,66 @@
+<div>
+  <div style="float: left;">
+    {% if not data.vendor_name %}
+    <p style="font-weight: bold;">To: </p>
+    {% else %}
+    <p style="font-weight: bold;">Shipped From: </p>
+    {% endif %}
+    <p>{{ data.name }}</p>
+       {{ data.address|linebreaks }}
+    <p><b>Telephone:</b> {{ data.telephone }}</p>
+    {% if data.vendor_name %}
+    <p style="font-weight: bold;">Shipped To: </p>
+    <p>{{ data.vendor_name }}</p>
+      {{ data.vendor_address|linebreaks }}
+    <p><b>Telephone:</b> {{ data.vendor_telephone }}</p>
+      {% endif %}
+  </div>
+  <div style="float: right;">
+    <p><b>Customer Name:</b> {{ data.customer_name }}</p>
+    <p><b>Order ID:</b> {{ data.order_id }}</p>
+    <p><b>PO Reference:</b> {{ data.po_reference }}</p>
+    <p><b>Date:</b> {{ data.order_date }}</p>
+    <p><b>Executive Name:</b> {{ data.executive_name }}</p>
+  </div>
+  <br/> <br/>
+</div>
+<div style="clear:both;">
+  <table class="table borderless">
+    <thead>
+      <tr>
+        {% for table_header in data.table_headers %}
+        <th>{{ table_header }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for dat in data.data %}
+      <tr>
+        {% for d in dat %}
+        <td>{{ d }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <table class='table borderless'>
+    <tbody>
+      <tr>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td>Total Order Quantity</td>
+        <td>{{ data.total_qty }}</td>
+        <td> Total Amount</td>
+        <td>{{ data.total }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

@@ -669,6 +669,7 @@ STYLE_DETAIL_HEADERS = OrderedDict(( ('SKU Code', 'wms_code'), ('SKU Description
                                   ))
 
 TAX_TYPES = OrderedDict(( ('DEFAULT', 0), ('VAT', 5.5), ('CST', 2) ))
+D_TAX_TYPES = OrderedDict(( ('DEFAULT', 0), ('VAT', 6), ('CST', 2) ))
 
 ##RETAILONE RELATED
 R1_ORDER_MAPPING = {'id': 'id', 'order_id': 'order_id', 'items': 'items',

@@ -2581,6 +2581,15 @@ def get_tally_data(request, user = ""):
         for vat_ledger in vat_ledger_mapping:
             vat_ledgers.setdefault(vat_ledger.tax_type, [])
             vat_ledgers[vat_ledger.tax_type].append(vat_ledger.json())
+        if not vat_ledgers.get('purchase', ''):
+            vat_ledgers['purchase'] = []
+        if not vat_ledgers.get('sales', ''):
+            vat_ledgers['sales'] = []
+        if not group_ledgers.get('purchase', ''):
+            group_ledgers['purchase'] = []
+        if not group_ledgers.get('sales', ''):
+            group_ledgers['sales'] = []
+
         result_data['vat_ledgers'] = vat_ledgers
         result_data['config_dict'] = config_dict
         res = {'data': result_data}

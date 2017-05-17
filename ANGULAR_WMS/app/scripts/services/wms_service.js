@@ -872,7 +872,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
       elem.push({name: 'format', value: 'sku_master'})
 
-      vm.apiCall('generate_barcodes/', 'POST', elem).then(function(data){
+      vm.apiCall('generate_barcodes/', 'POST', elem, true).then(function(data){
 
         if(data.message) {
 

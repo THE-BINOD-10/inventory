@@ -52,7 +52,10 @@
       <div class="modal-footer">
         <div class="form-group" style="margin-bottom:0px;">
           <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
-          <button type="submit" class="btn pop pop-green" ng-click="showCase.service.generate_barcodes(form)">Generate Barcodes</button>
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.service.generate_barcodes(form)" ng-disabled="process">
+            <span>Generate Barcodes</span>
+            <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+          </button>
         </div>
       </div>
     </div><!-- /.modal-content -->

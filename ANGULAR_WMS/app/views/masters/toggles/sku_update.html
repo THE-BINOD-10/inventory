@@ -87,6 +87,12 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
+                <label class="control-label"> Product Group</label>
+                <input type="text" name="product_group" class="form-control" ng-model="showCase.model_data.sku_data.product_group" maxlength="60">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
                 <label class="control-label"> Mix SKU </label>
                 <select class="form-control" name="mix_sku" ng-model="showCase.model_data.sku_data.mix_sku">
                   <option ng-selected="showCase.model_data.sku_data.mix_sku == ''" value="">Default</option>
@@ -98,14 +104,14 @@
               <div class="form-group">
                 <label class="control-label"> Status </label>
                   <select class="form-control" name="status" ng-model="showCase.model_data.sku_data.status" ng-options="qc for qc in showCase.status_data">
-                </select> 
+                </select>
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.permissions.add_qualitycheck">
               <div class="form-group">
                 <label class="control-label"> Quality Check </label>
                 <select class="form-control qc_check" name="qc_check" ng-model="showCase.model_data.sku_data.qc_check" ng-options="qc for qc in showCase.qc_data">
-                </select> 
+                </select>
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -121,22 +127,25 @@
               </div>
             </div>
 
-             <div class="col-md-4 col-sm-6 col-xs-6">
+            <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> MRP </label>
                 <input type="text" name="mrp" class="form-control" ng-model="showCase.model_data.sku_data.mrp" decimal-number>
               </div>
             </div>
 
-           <div class="col-md-4 col-sm-6 col-xs-6">
+            <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Color </label>
                 <input type="text" name="color" class="form-control" ng-model="showCase.model_data.sku_data.color">
               </div>
             </div>
- 
-
-
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> EAN Number </label>
+                <input type="text" name="ean_number" class="form-control" ng-model="showCase.model_data.sku_data.ean_number" decimal-number>
+              </div>
+            </div>
           </div>
           <div class="row">
             <div class="col-md-12"><hr></div>

@@ -6,7 +6,7 @@
     </div>
     <div class="layout-body">
       <div class="panel">
-        <div ng-include="'views/common/datatable.html'"></div>
+        <div ng-if="showCase.display" ng-include="'views/common/datatable.html'"></div>
         <div class="panel-footer">
           <button type="button" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_invoice()" ng-disabled="showCase.bt_disable">Generate Invoice</button>
         </div>

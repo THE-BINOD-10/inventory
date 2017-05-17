@@ -531,7 +531,11 @@ var app = angular.module('urbanApp')
           .state('app.inbound.RevceivePo.barcode', {
             url: '/Barcode',
             templateUrl: 'views/masters/toggles/barcode.html'
-            })
+          })
+          .state('app.inbound.RevceivePo.qc_detail', {
+            url: '/QC_Detail',
+            templateUrl: 'views/inbound/toggle/grn_qc.html'
+          })
         .state('app.inbound.QualityCheck', {
           url: '/QualityCheck',
           permission: 'add_qualitycheck',
@@ -873,6 +877,11 @@ var app = angular.module('urbanApp')
             permission: 'add_inventoryadjustment',
             templateUrl: 'views/stockLocator/toggles/mv_inventory_tg.html'
           })
+          .state('app.stockLocator.MoveInventory.IMEI', {
+            url: '/IMEI',
+            permission: 'add_inventoryadjustment',
+            templateUrl: 'views/stockLocator/toggles/imei.html'
+          })
         .state('app.stockLocator.InventoryAdjustment', {
           url: '/InventoryAdjustment',
           permission: 'add_inventoryadjustment',
@@ -890,6 +899,22 @@ var app = angular.module('urbanApp')
             url: '/Adjustment',
             permission: 'add_inventoryadjustment',
             templateUrl: 'views/stockLocator/toggles/inventory_adj_tg.html'
+          })
+        .state('app.stockLocator.SellerStock', {
+          url: '/SellerStock',
+          templateUrl: 'views/stockLocator/seller_stock.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/stockLocator/seller_stock.js');
+              }]
+          },
+          data: {
+            title: 'Seller Stock',
+          }
+        })
+          .state('app.stockLocator.SellerStock.StockDetails', {
+            url: '/StockDetails',
+            templateUrl: 'views/stockLocator/toggles/stock_details.html'
           })
 
       // Outbound routes
@@ -1138,9 +1163,17 @@ var app = angular.module('urbanApp')
             title: 'Customer Invoices',
           }
         })
-         .state('app.outbound.CustomerInvoices.Invoice', {
-            url: '/Invoice',
+         .state('app.outbound.CustomerInvoices.InvoiceM', {
+            url: '/InvoiceM',
             templateUrl: 'views/outbound/print/customer_invoice.html'
+         })
+         .state('app.outbound.CustomerInvoices.InvoiceN', {
+            url: '/InvoiceN',
+            templateUrl: 'views/outbound/print/generate_invoice.html'
+          })
+          .state('app.outbound.CustomerInvoices.InvoiceD', {
+            url: '/InvoiceD',
+            templateUrl: 'views/outbound/print/detail_generate_inv.html'
           })
       // Upload route
       .state('app.uploads', {
@@ -1418,6 +1451,19 @@ var app = angular.module('urbanApp')
             title: 'Open JO Report',
           }
         })
+        .state('app.reports.SellerInvoiceDetails', {
+          url: '/SellerInvoiceDetails',
+          templateUrl: 'views/reports/seller_invoice_details.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/seller_invoice_details.js');
+              }]
+          },
+          data: {
+            title: 'Seller Invoice Details',
+          }
+        })
+
       // configuration route
       .state('app.configurations', {
           url: '/configurations',
@@ -1501,6 +1547,19 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/channels/add_amazon.html'
         })
 
+      // Tally Configuration
+      .state('app.tally', {
+        url: '/Tally',
+        templateUrl: 'views/tally/tally_config.html',
+        resolve: {
+          deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+            return $ocLazyLoad.load('scripts/controllers/tally/tally_config.js');
+          }]
+        },
+        data: {
+          title: 'Tally Configuration',
+        }
+      })
 
       // ManageUsers route
       .state('app.ManageUsers', {

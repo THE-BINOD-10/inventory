@@ -80,7 +80,6 @@ DATABASES = {
         'NAME': 'sreekanth',
         'USER': 'root',
         'PASSWORD': 'Hdrn^Miebach@',
-        #'HOST': '88.99.193.85',
         'TEST_MIRROR': 'default',
     }
 }

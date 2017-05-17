@@ -557,6 +557,7 @@ def configurations(request, user=''):
     style_headers = get_misc_value('style_headers', user.id)
     seller_margin = get_misc_value('seller_margin', user.id)
     receive_process = get_misc_value('receive_process', user.id)
+    tally_config = get_misc_value('tally_config', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
@@ -650,7 +651,8 @@ def configurations(request, user=''):
                                                              'all_view_order_status': all_view_order_status,
                                                              'view_order_status': view_order_status, 'style_headers': style_headers,
                                                              'sku_sync': sku_sync, 'seller_margin': seller_margin,
-                                                             'receive_process': receive_process, 'receive_options': RECEIVE_OPTIONS}))
+                                                             'receive_process': receive_process, 'receive_options': RECEIVE_OPTIONS,
+                                                             'tally_config': tally_config}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):

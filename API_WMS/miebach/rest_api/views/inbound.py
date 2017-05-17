@@ -703,7 +703,8 @@ def switches(request, user=''):
                     'view_order_status': 'view_order_status',
                     'style_headers': 'style_headers',
                     'seller_margin': 'seller_margin',
-                    'receive_process': 'receive_process'
+                    'receive_process': 'receive_process',
+                    'tally_config': 'tally_config'
                   }
 
     toggle_field, selection = "", ""

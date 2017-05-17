@@ -1551,6 +1551,7 @@ var app = angular.module('urbanApp')
       .state('app.tally', {
         url: '/Tally',
         templateUrl: 'views/tally/tally_config.html',
+        permission: 'tally_config',
         resolve: {
           deps: ['$ocLazyLoad', function ($ocLazyLoad) {
             return $ocLazyLoad.load('scripts/controllers/tally/tally_config.js');

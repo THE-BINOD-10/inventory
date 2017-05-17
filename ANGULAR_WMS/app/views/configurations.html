@@ -105,6 +105,22 @@
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-th fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Tally Enable/Disable </strong>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="switch switch-sm square mt5">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.tally_config" ng-change="showCase.switches(showCase.model_data.tally_config, 30)">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa fa-envelope-o fa-15px pull-left" style="line-height: 34px;"></i>
           <strong style="line-height: 34px;" class="pull-left ml20"> Send [PO] Messages and Email</strong>
         </div>

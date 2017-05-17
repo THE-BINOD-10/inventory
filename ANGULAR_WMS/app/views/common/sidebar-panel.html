@@ -289,7 +289,7 @@
       </a>
     </li>
 
-    <li ui-sref-active="active" ng-show="show_tab('add_issues')">
+    <li ui-sref-active="active" ng-show="show_tab('show_pull_now')">
       <a ui-sref="app.OrdersSyncIssues">
          <i class="fa fa-refresh"></i>
          <span>Orders Sync Issues</span>
@@ -413,7 +413,7 @@
     <!-- /Channels -->
 
     <!-- Tally -->
-    <li ui-sref-active="active">
+    <li ui-sref-active="active"  ng-show="show_tab('tally_config')">
       <a ui-sref="app.tally">
         <i class="fa fa-tasks"></i>
         <span>Tally</span>

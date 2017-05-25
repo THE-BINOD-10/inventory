@@ -62,10 +62,7 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
     sku_master, sku_master_ids = get_sku_master(user,request.user)
     lis = ['wms_code', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone', 'status']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
-    print filters
     search_params1, search_params2 = get_filtered_params_search(filters, lis)
-    print search_params1
-    print search_params2
     if 'status__icontains' in search_params1.keys():
         if (str(search_params['status__icontains']).lower() in "active"):
             search_params1["status__icontains"] = 1
@@ -194,7 +191,11 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
         temp_data['aaData'].append(OrderedDict(( ('id', data.id), ('name', data.name), ('address', data.address),
-                                                 ('phone_number', data.phone_number), ('email_id', data.email_id), ('status', status),
+                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
+                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
+                                                 ('pan_number', data.pan_number), ('city', data.city), ('state', data.state),
+                                                 ('country', data.country), ('pincode', data.pincode),
+                                                 ('status', status), ('supplier_type', data.supplier_type),
                                                  ('DT_RowId', data.id), ('DT_RowClass', 'results') )))
 
 @csrf_exempt
@@ -273,8 +274,12 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                                                  ('phone_number', data.phone_number), ('email_id', data.email_id), ('status', status),
                                                  ('tin_number', data.tin_number), ('credit_period', data.credit_period),
                                                  ('login_created', login_created), ('username', user_name), ('price_type_list', price_types),
-                                                 ('price_type', price_type), ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
-                                                 ('tax_type', data.tax_type))))
+                                                 ('price_type', price_type), ('cst_number', data.cst_number),
+                                                 ('pan_number', data.pan_number), ('customer_type', data.customer_type),
+                                                 ('pincode', data.pincode), ('city', data.city), ('state', data.state),
+                                                 ('country', data.country),('tax_type', data.tax_type),
+                                                 ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
+                                             )))
 
 @csrf_exempt
 def get_bom_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -379,7 +384,7 @@ def location_master(request, user=''):
         for loc in modified_zone:
             zone = loc[0]['zone']
             data.append({'zone':zone, 'data': list(loc[1])})
-    
+
     all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
 
     return HttpResponse(json.dumps({'location_data': data, 'sku_groups': all_groups, 'lock_fields': ['Inbound', 'Outbound',
@@ -428,6 +433,7 @@ def get_sku_data(request,user=''):
     sku_data['sku_brand'] = data.sku_brand
     sku_data['style_name'] = data.style_name
     sku_data['sku_size'] = data.sku_size
+    sku_data['product_group'] = data.product_group
     sku_data['zone'] = zone_name
     sku_data['threshold_quantity'] = data.threshold_quantity
     sku_data['online_percentage'] = data.online_percentage
@@ -438,6 +444,7 @@ def get_sku_data(request,user=''):
     sku_data['mrp'] = data.mrp
     sku_data['size_type'] = 'Default'
     sku_data['mix_sku'] = data.mix_sku
+    sku_data['ean_number'] = data.ean_number
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -449,7 +456,7 @@ def get_sku_data(request,user=''):
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
     return  HttpResponse(json.dumps({'sku_data': sku_data,'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
-                                     'market_data':market_data, 'combo_data': combo_data, 'sizes_list': sizes_list}))
+                                     'market_data':market_data, 'combo_data': combo_data, 'sizes_list': sizes_list}, cls=DjangoJSONEncoder))
 
 @csrf_exempt
 def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -584,6 +591,9 @@ def update_sku(request,user=''):
             zone = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})
             key = 'zone_id'
             value = zone.id
+        elif key == 'ean_number':
+            if not value:
+                value = 0
         elif key == 'size_type':
             check_update_size_type(data, value)
             continue
@@ -647,53 +657,69 @@ def delete_bom_data(request, user=''):
 @login_required
 @get_admin_user
 def update_supplier_values(request, user=''):
-    data_id = request.POST['id']
-    data = get_or_none(SupplierMaster, {'id': data_id, 'user': user.id})
-    for key, value in request.POST.iteritems():
-        if key == 'status':
-            if value == 'Active':
-                value = 1
-            else:
-                value = 0
-        setattr(data, key, value)
+    """ Update Supplier Data """
 
-    data.save()
+    log.info('Update Supplier request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        data_id = request.POST['id']
+        data = get_or_none(SupplierMaster, {'id': data_id, 'user': user.id})
+        for key, value in request.POST.iteritems():
+            if key not in data.__dict__.keys():
+                continue
+            if key == 'status':
+                if value == 'Active':
+                    value = 1
+                else:
+                    value = 0
+            setattr(data, key, value)
+
+        data.save()
+    except Exception as e:
+        log.info('Update Supplier Values failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse('Update Supplier Failed')
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt
 @login_required
 @get_admin_user
 def insert_supplier(request, user=''):
-    supplier_id = request.POST['id']
-    if not supplier_id:
-        return HttpResponse('Missing Required Fields')
-    data = filter_or_none(SupplierMaster, {'id': supplier_id})
-    status_msg = 'Supplier Exists'
-    sku_status = 0
-    rep_email = filter_or_none(SupplierMaster, {'email_id': request.POST['email_id'], 'user': user.id})
-    rep_phone = filter_or_none(SupplierMaster, {'phone_number': request.POST['phone_number'], 'user': user.id})
-    if rep_email:
-        return HttpResponse('Email already exists')
-    if rep_phone:
-        return HttpResponse('Phone Number already exists')
+    """ Add New Supplier"""
 
-    if not data:
-        data_dict = copy.deepcopy(SUPPLIER_DATA)
-        for key, value in request.POST.iteritems():
-            if key == 'status':
-                if value == 'Active':
-                    value = 1
-                else:
-                    value = 0
-            if value == '':
-                continue
-            data_dict[key] = value
+    log.info('Add New Supplier request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        supplier_id = request.POST['id']
+        if not supplier_id:
+            return HttpResponse('Missing Required Fields')
+        data = filter_or_none(SupplierMaster, {'id': supplier_id})
+        status_msg = 'Supplier Exists'
+        sku_status = 0
+        rep_email = filter_or_none(SupplierMaster, {'email_id': request.POST['email_id'], 'user': user.id})
+        rep_phone = filter_or_none(SupplierMaster, {'phone_number': request.POST['phone_number'], 'user': user.id})
+        if rep_email and request.POST['email_id']:
+            return HttpResponse('Email already exists')
+        if rep_phone and request.POST['phone_number']:
+            return HttpResponse('Phone Number already exists')
 
-        data_dict['user'] = user.id
-        supplier_master = SupplierMaster(**data_dict)
-        supplier_master.save()
-        status_msg = 'New Supplier Added'
+        if not data:
+            data_dict = copy.deepcopy(SUPPLIER_DATA)
+            for key, value in request.POST.iteritems():
+                if key == 'status':
+                    if value == 'Active':
+                        value = 1
+                    else:
+                        value = 0
+                if value == '':
+                    continue
+                data_dict[key] = value
 
+            data_dict['user'] = user.id
+            supplier_master = SupplierMaster(**data_dict)
+            supplier_master.save()
+            status_msg = 'New Supplier Added'
+
+    except Exception as e:
+        log.info('Add New Supplier failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        status_msg = 'Add Supplier Failed'
     return HttpResponse(status_msg)
 
 @csrf_exempt
@@ -759,97 +785,118 @@ def insert_mapping(request, user=''):
     sku_supplier.save()
     return HttpResponse('Added Successfully')
 
-def update_customer_password(data, password):
+def update_customer_password(data, password, user):
     customer_user_map = CustomerUserMapping.objects.filter(customer_id=data.id, customer__user=data.user)
     if customer_user_map:
         customer_user = customer_user_map[0].user
-        customer_user.set_password(password)
+        if password:
+            customer_user.set_password(password)
         customer_user.email = data.email_id
+        customer_user.first_name  = data.name
         customer_user.save()
+        if user.first_name:
+            name = user.first_name
+        else:
+            name = user.username
+        if password:
+            password_notification_message(customer_user.username, password, name, data.phone_number)
 
 @csrf_exempt
 @login_required
 @get_admin_user
 def update_customer_values(request,user=''):
-    data_id = request.POST['customer_id']
-    username = request.POST['username']
-    data = get_or_none(CustomerMaster, {'customer_id': data_id, 'user': user.id})
-    create_login = request.POST.get('create_login', '')
-    login_created = request.POST.get('login_created', '')
-    password = request.POST.get('password', '')
-    for key, value in request.POST.iteritems():
-        if key not in data.__dict__.keys():
-            continue
-        if key == 'status':
-            if value == 'Active':
-                value = 1
-            else:
-                value = 0
-        if key == 'email_id':
-            if not value:
-                continue
-            customer_master = CustomerMaster.objects.exclude(customer_id=data_id).filter(user=user.id, email_id=value)
-            if customer_master:
-                return HttpResponse('Email Already exists')
-            setattr(data, key, value)
-        else:
-            setattr(data, key, value)
+    """ Update Customer Data"""
 
-    data.save()
-    if create_login == 'true':
-        status_msg = create_update_user(data, password, username)
-        if 'already' in status_msg:
-            return HttpResponse(status_msg)
-    if login_created == 'true' and password:
-        update_customer_password(data, password)
-    return HttpResponse('Updated Successfully')
-
-@csrf_exempt
-@login_required
-@get_admin_user
-def insert_customer(request, user=''):
-    customer_id = request.POST['customer_id']
-    create_login = request.POST.get('create_login', '')
-    password = request.POST.get('password', '')
-    username = request.POST.get('username', '')
-    if not customer_id:
-        return HttpResponse('Missing Required Fields')
-    data = filter_or_none(CustomerMaster, {'customer_id': customer_id, 'user': user.id})
-    status_msg = 'Customer Exists'
-    sku_status = 0
-    rep_email = filter_or_none(CustomerMaster, {'email_id': request.POST['email_id'], 'user': user.id})
-    #rep_phone = filter_or_none(CustomerMaster, {'phone_number': request.POST['phone_number'], 'user': user.id})
-    if rep_email:
-        return HttpResponse('Email already exists')
-    #if rep_phone:
-    #    return HttpResponse('Phone Number already exists')
-
-    if not data:
-        data_dict = copy.deepcopy(CUSTOMER_DATA)
+    log.info('Update Customer Values request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        data_id = request.POST['customer_id']
+        username = request.POST['username']
+        data = get_or_none(CustomerMaster, {'customer_id': data_id, 'user': user.id})
+        create_login = request.POST.get('create_login', '')
+        login_created = request.POST.get('login_created', '')
+        password = request.POST.get('password', '')
+        _name = data.name
         for key, value in request.POST.iteritems():
-            if key in ['create_login', 'password', 'login_created', 'username']:
+            if key not in data.__dict__.keys():
                 continue
             if key == 'status':
                 if value == 'Active':
                     value = 1
                 else:
                     value = 0
-            if value == '':
-                continue
-            data_dict[key] = value
+            if key == 'email_id':
+                if not value:
+                    continue
+                setattr(data, key, value)
+            else:
+                setattr(data, key, value)
 
-        data_dict['user'] = user.id
-        customer_master = CustomerMaster(**data_dict)
-        customer_master.save()
-        status_msg = 'New Customer Added'
+        data.save()
         if create_login == 'true':
-            if not username:
-                return HttpResponse('Username is Mandatory')
-            rep_username = filter_or_none(User, {'username': username})
-            if rep_username:
-                return HttpResponse('Username already exists')
-            status_msg = create_update_user(customer_master, password, username)
+            status_msg = create_update_user(data, password, username)
+            if 'already' in status_msg:
+                return HttpResponse(status_msg)
+        name_ch = False
+        if _name != data.name:
+            name_ch = True
+        if login_created == 'true':
+            if password or name_ch:
+                update_customer_password(data, password, user)
+    except Exception as e:
+        log.info('Update Customer Values failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse('Update Customer Data Failed')
+    return HttpResponse('Updated Successfully')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_customer(request, user=''):
+    """ Add New Customer"""
+    log.info('Add New Customer request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        customer_id = request.POST['customer_id']
+        create_login = request.POST.get('create_login', '')
+        password = request.POST.get('password', '')
+        username = request.POST.get('username', '')
+        if not customer_id:
+            return HttpResponse('Missing Required Fields')
+        data = filter_or_none(CustomerMaster, {'customer_id': customer_id, 'user': user.id})
+        status_msg = 'Customer Exists'
+        sku_status = 0
+        #rep_email = filter_or_none(CustomerMaster, {'email_id': request.POST['email_id'], 'user': user.id})
+        #rep_phone = filter_or_none(CustomerMaster, {'phone_number': request.POST['phone_number'], 'user': user.id})
+        #if rep_email:
+        #    return HttpResponse('Email already exists')
+        #if rep_phone:
+        #    return HttpResponse('Phone Number already exists')
+
+        if not data:
+            data_dict = copy.deepcopy(CUSTOMER_DATA)
+            for key, value in request.POST.iteritems():
+                if key in ['create_login', 'password', 'login_created', 'username']:
+                    continue
+                if key == 'status':
+                    if value == 'Active':
+                        value = 1
+                    else:
+                        value = 0
+                if value == '':
+                    continue
+                data_dict[key] = value
+
+            data_dict['user'] = user.id
+            customer_master = CustomerMaster(**data_dict)
+            customer_master.save()
+            status_msg = 'New Customer Added'
+            if create_login == 'true':
+                if not username:
+                    return HttpResponse('Username is Mandatory')
+                rep_username = filter_or_none(User, {'username': username})
+                if rep_username:
+                    return HttpResponse('Username already exists')
+                status_msg = create_update_user(customer_master, password, username)
+    except Exception as e:
+        log.info('Add New Customer failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
 
     return HttpResponse(status_msg)
 
@@ -1791,7 +1838,6 @@ def generate_barcode_dict(pdf_format, myDict, user):
             if pdf_format == 'format1':
                 single['Style'] = str(sku_data.style_name).replace("'",'')
                 single['Color'] = sku_data.color.replace("'",'')
-            #if pdf_format == 'format2':
             if pdf_format in ['format3', 'format2']:
                 single['color'] = sku_data.color.replace("'",'')
                 present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
@@ -1799,11 +1845,13 @@ def generate_barcode_dict(pdf_format, myDict, user):
                     single["Packed on"] = str(present).replace("'",'')
                     single['Marketed By'] = user_prf.company_name.replace("'",'')
                 if pdf_format == 'format3':
-                    email = user.email
-                    if email:
-                        email = '\n\nEmail: ' + user.email 
                     single['MFD'] = str(present).replace("'",'')
-                    single['Marketed By'] = user_prf.company_name.replace("'",'') + email.replace("'",'')
+                    single['Marketed By'] = user_prf.company_name.replace("'",'')
+                    phone_number = user_prf.phone_number
+                    if not phone_number:
+                        phone_number = ''
+                    single['Contact No'] = phone_number
+                    single['Email'] = user.email
                 single["Gender"] = str(sku_data.style_name).replace("'",'')
                 single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
                 single['MRP'] = str(sku_data.price).replace("'",'')
@@ -1814,8 +1862,6 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 if len(sku_data.sku_desc) >= 25:
                     single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
             barcodes_list.append(single)
-    #barcode_pdf_dict['barcodes'] = barcodes_list
-    #barcode_pdf_dict['key'] = BARCODE_KEYS[pdf_format]
     constructed_url = barcode_service(BARCODE_KEYS[pdf_format], barcodes_list, pdf_format)
     return constructed_url
 

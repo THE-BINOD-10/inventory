@@ -6,7 +6,7 @@
         <th ng-if="permissions.show_mrp">MRP</center></th>
         <th><center>Rate</center></th>
         <th><center>Disc</center></th>
-        <th><center>VAT(%)</center></th>
+        <th><center>{{(showCase.pdf_data.tax_type)?showCase.pdf_data.tax_type: 'VAT'}}(%)</center></th>
         <th><center>Tax</center></th>
         <th><center>Total</center></th>
       </tr>
@@ -50,6 +50,11 @@
               </address>
             </div>
           </div>
+        </td>
+      </tr>
+      <tr class="rm-padding">
+        <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+          <b>Total amount (After rounding): &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{showCase.pdf_data.rounded_invoice_amount}}</span></b>
         </td>
       </tr>
       <tr class="rm-padding">

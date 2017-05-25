@@ -12,9 +12,22 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.styleId = $stateParams.styleId;
   }
 
+  vm.style_headers = {};
+  vm.style_detail_hd = [];
+  if (Session.roles.permissions["style_headers"]) {
+    vm.en_style_headers = Session.roles.permissions["style_headers"].split(",");
+  } else {
+    vm.en_style_headers = [];
+  }
+  if(vm.en_style_headers.length == 0) {
+
+    vm.en_style_headers = ["wms_code", "sku_desc"]
+  }
+
   vm.style_open = false;
   vm.stock_quantity = 0;
   vm.style_data = [];
+  vm.style_total_counts = {};
   vm.open_style = function() {
 
     vm.style_data = [];
@@ -24,12 +37,15 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         vm.style_open = true;
         vm.check_stock=true;
         vm.style_data = data.data.data;
+        vm.style_total_counts = data.data.total_qty;
         if(vm.style_data.length > 0) {
             vm.stock_quantity = 0;
             angular.forEach(vm.style_data, function(record){
-              vm.stock_quantity = vm.stock_quantity + Number(record.physical_stock);
+              vm.stock_quantity = vm.stock_quantity + Number(record.physical_stock) + Number(record.all_quantity);
             })
         }
+        vm.style_headers = data.data.style_headers;
+        vm.style_detail_hd = Object.keys(vm.style_headers);
       }
     });
     vm.style_total_quantity = 0;

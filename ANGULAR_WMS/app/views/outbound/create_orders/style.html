@@ -29,18 +29,18 @@
           <table class="table table-bordered">
             <thead>
               <tr>
-                <th ng-repeat="head in (showCase.service.dyn_data.style_detail.head[user.userName])?showCase.service.dyn_data.style_detail.head[user.userName]:showCase.service.dyn_data.style_detail.head['common'];">{{head}}</th>
-                <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock[user.userName]">1-Day Stock</th>
-                <th ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock[user.userName]">3-Day Stock</th>
+                <th ng-repeat="hd in showCase.style_detail_hd" ng-if="showCase.en_style_headers.indexOf(showCase.style_headers[hd]) != -1">{{hd}}</th>
                 <th>Quantity</th>
               </tr>
             </thead>
             <tbody>
               <tr ng-repeat="style in showCase.style_data">
-                <td ng-repeat="head in (showCase.service.dyn_data.style_detail.keys[user.userName])?showCase.service.dyn_data.style_detail.keys[user.userName]: showCase.service.dyn_data.style_detail.keys['common']">{{style[head]}}</th>
-                <td ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock[user.userName]">{{style.physical_stock}}</td>
-                <td ng-show="showCase.check_stock" ng-if="showCase.service.dyn_data.style_detail.check_stock[user.userName]">{{style.all_quantity}}</td>
+                <td ng-repeat="hd in showCase.style_detail_hd" ng-if="showCase.en_style_headers.indexOf(showCase.style_headers[hd]) != -1">{{style[showCase.style_headers[hd]]}}</td>
                 <td><input class="form-control" ng-model="style.quantity" ng-change="showCase.change_style_quantity(showCase.style_data);" ng-class="service.get_decimal_perm()"></td>
+              </tr>
+              <tr>
+                <td ng-repeat="hd in showCase.style_detail_hd" ng-if="showCase.en_style_headers.indexOf(showCase.style_headers[hd]) != -1" style="font-size: 16px;"><b>{{showCase.style_total_counts[showCase.style_headers[hd]]}}</b></td>
+                <td></td>
               </tr>
             </tbody>
           </table>

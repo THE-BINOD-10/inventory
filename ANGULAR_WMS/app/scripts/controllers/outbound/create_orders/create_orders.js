@@ -73,7 +73,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('insert_order_data/', 'GET', elem).then(function(data){
+      vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
         if(data.message) {
           if(data.data.indexOf("Success") != -1) {
             angular.copy(empty_data, vm.model_data);
@@ -426,6 +426,18 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   vm.style_open = false;
   vm.style_data = [];
+  vm.style_total_counts = {}
+  vm.style_headers = {};
+  vm.style_detail_hd = [];
+  if (Session.roles.permissions["style_headers"]) {
+    vm.en_style_headers = Session.roles.permissions["style_headers"].split(",");
+  } else {
+    vm.en_style_headers = [];
+  }
+  if(vm.en_style_headers.length == 0) {
+
+    vm.en_style_headers = ["wms_code", "sku_desc"];
+  }
   vm.stock_quantity = 0;
   vm.open_style = function(data) {
 
@@ -436,6 +448,9 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         vm.style_open = true;
         vm.check_stock=true;
         vm.style_data = data.data.data;
+        vm.style_total_counts = data.data.total_qty;
+        vm.style_headers = data.data.style_headers;
+        vm.style_detail_hd = Object.keys(vm.style_headers);
         //var quant_len = data.data.data.length-1;
         //vm.stock_quantity = vm.style_data[quant_len].style_quantity;
       }

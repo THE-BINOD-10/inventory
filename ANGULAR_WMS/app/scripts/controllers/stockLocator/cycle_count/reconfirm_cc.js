@@ -49,8 +49,10 @@ function ServerSideProcessingCtrl($scope, $state, $http, $compile, Session, DTOp
     };
 
     $scope.$on('change_filters_data', function(){
-      vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
-      vm.reloadData();
+      if($("#"+vm.dtInstance.id+":visible").length != 0) {
+        vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
+        vm.reloadData();
+      }
     });
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {

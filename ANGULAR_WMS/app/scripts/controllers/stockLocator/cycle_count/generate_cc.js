@@ -67,9 +67,11 @@ function ServerSideProcessingCtrl($scope, $state, $http, $compile, Session, DTOp
     };
 
     $scope.$on('change_filters_data', function(){
-      vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
-      vm.bt_disable = false;
-      vm.reloadData();
+      if($("#"+vm.dtInstance.id+":visible").length != 0) {
+        vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
+        vm.bt_disable = false;
+        vm.reloadData();
+      }
     });
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
@@ -95,6 +97,7 @@ function ServerSideProcessingCtrl($scope, $state, $http, $compile, Session, DTOp
     vm.generate_data = []
     vm.generate_cycle = generate_cycle;
     function generate_cycle() {
+      vm.bt_disable = true;
       for(var key in vm.selected){
         if(vm.selected[key]) {	
           vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[Number(key)]["_aData"]);
@@ -143,7 +146,7 @@ function ServerSideProcessingCtrl($scope, $state, $http, $compile, Session, DTOp
             angular.copy(data.data, vm.model_data);
             $state.go('app.stockLocator.CycleCount.Generate');
           }
-        });  
+        });
       }
     }
 
@@ -154,7 +157,7 @@ function ServerSideProcessingCtrl($scope, $state, $http, $compile, Session, DTOp
       for(var i=0;i<vm.model_data.data.length; i++) {
         data[vm.model_data.data[i].id] = vm.model_data.data[i].seen_quantity;
       }
-      vm.service.apiCall('submit_cycle_count/', 'GET', data).then(function(data){
+      vm.service.apiCall('submit_cycle_count/', 'GET', data, true).then(function(data){
         if(data.message) {
           if(data.data == "Updated Successfully") {
             vm.close();

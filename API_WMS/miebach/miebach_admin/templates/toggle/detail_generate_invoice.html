@@ -102,7 +102,7 @@
           {% if permissions.show_mrp %}<th>MRP(&#8377;)</center></th>{% endif %}
           <th><center>Rate</center></th>
           <th class="w50"><center>Disc</center></th>
-          <th class="w50"><center>VAT(%)</center></th>
+          <th class="w50"><center>{% if tax_type %}{{tax_type}}{% else %} VAT {% endif %}(%)</center></th>
           <th><center>Amt</center></th>
           <th><center>Tax</center></th>
           <th><center>Total</center></th>
@@ -173,6 +173,11 @@
           </td>
         </tr>
         {% endif %}
+        <tr class="rm-padding">
+          <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
+            <b>Total amount (After rounding): &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{rounded_invoice_amount}}</span></b>
+          </td>
+        </tr>
         <tr class="rm-padding">
           <td {% if permissions.show_mrp %} colspan='9' {% else %} colspan='8' {% endif %} style="text-align:left;">
             <b>Amount in words: &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{price_in_words}} </span></b>

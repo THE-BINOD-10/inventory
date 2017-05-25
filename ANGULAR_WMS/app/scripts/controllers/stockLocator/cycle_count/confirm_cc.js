@@ -50,8 +50,10 @@ function ServerSideProcessingCtrl($scope, $state, $http, $compile, Session, DTOp
     };
 
     $scope.$on('change_filters_data', function(){
-      vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
-      vm.reloadData();
+      if($("#"+vm.dtInstance.id+":visible").length != 0) {
+        vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
+        vm.reloadData();
+      }
     });
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
@@ -83,7 +85,7 @@ function ServerSideProcessingCtrl($scope, $state, $http, $compile, Session, DTOp
       for(var i=0;i<vm.model_data.data.length; i++) {
         data[vm.model_data.data[i].id] = vm.model_data.data[i].seen_quantity;
       }
-      vm.service.apiCall('submit_cycle_count/', 'GET', data).then(function(data){
+      vm.service.apiCall('submit_cycle_count/', 'GET', data, true).then(function(data){
         if(data.message) {
           if(data.data == "Updated Successfully") {
             reloadData();

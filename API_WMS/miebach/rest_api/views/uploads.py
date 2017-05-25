@@ -15,6 +15,7 @@ from miebach_utils import *
 from django.core import serializers
 import csv
 from sync_sku import *
+log = init_logger('logs/uploads.log')
 
 @csrf_exempt
 def error_file_download(error_file):
@@ -111,7 +112,7 @@ def get_order_mapping(reader, file_type):
 
 def check_create_seller_order(seller_order_dict, order, user):
     if seller_order_dict.get('seller_id', ''):
-        sell_order_ins = SellerOrder.objects.filter(seller_id=seller_order_dict['seller_id'], order_id=order.id, seller__user=user.id)
+        sell_order_ins = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id, seller__user=user.id)
         seller_order_dict['order_id'] = order.id
         if not sell_order_ins:
             seller_order = SellerOrder(**seller_order_dict)
@@ -417,7 +418,11 @@ def order_upload(request, user=''):
         no_of_rows = reader.nrows
         file_type = 'xls'
 
-    upload_status = order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
+    try:
+        upload_status = order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
+    except Exception as e:
+        log.info('Order Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Order Upload Failed")
 
     if not upload_status == 'success':
         return HttpResponse(upload_status)
@@ -777,6 +782,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
         sku_code = ''
         wms_code = ''
         sku_data = None
+        _size_type = ''
         for key, value in sku_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, sku_file_mapping[key], reader, file_type)
 
@@ -870,7 +876,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             all_sku_masters.append(sku_master)
             sku_data = sku_master
 
-        check_update_size_type(sku_data, _size_type)
+        if _size_type:
+            check_update_size_type(sku_data, _size_type)
 
     get_user_sku_data(user)
     insert_update_brands(user)
@@ -934,7 +941,11 @@ def validate_inventory_form(open_sheet, user_id):
             if col_idx == 2:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
-                cell_data = str(cell_data)
+                try:
+                    cell_data = str(re.sub(r'[^\x00-\x7F]+','', cell_data))
+                except:
+                    cell_data = ''
+
                 mapping_dict[row_idx] = cell_data
                 #sku_master = SKUMaster.objects.filter(wms_code = cell_data,user=user_id)
                 #if not sku_master:
@@ -1099,15 +1110,16 @@ def inventory_upload(request, user=''):
 def validate_supplier_form(open_sheet, user_id):
     index_status = {}
     supplier_ids = []
+    mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
     for row_idx in range(0, open_sheet.nrows):
-        for col_idx in range(0, len(SUPPLIER_HEADERS)):
-            cell_data = open_sheet.cell(row_idx, col_idx).value
+        for key, value in mapping_dict.iteritems():
+            cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
             if row_idx == 0:
-                if col_idx == 0 and cell_data != 'Supplier Id':
+                if open_sheet.cell(row_idx, 0).value != 'Supplier Id':
                     return 'Invalid File'
                 break
 
-            if col_idx == 0:
+            if key == 'id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 if cell_data and cell_data in supplier_ids:
@@ -1115,21 +1127,16 @@ def validate_supplier_form(open_sheet, user_id):
                     for index, data in enumerate(supplier_ids):
                         if data == cell_data:
                             index_status.setdefault(index + 1, set()).add('Duplicate Supplier ID')
-                if cell_data:
-                    supplier_master = SupplierMaster.objects.filter(id=cell_data)
-                    if supplier_master:
-                        index_status.setdefault(row_idx, set()).add('Supplier Id already exists')
                 supplier_ids.append(cell_data)
 
-            if col_idx == 1:
+            elif key == 'name':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Missing Supplier Name')
-                else:
-                    temp1 = namevalid(cell_data)
-                    #if temp1:
-                    #    index_status.setdefault(row_idx, set()).add(temp1 % 'Supplier Name')
+            elif key == 'email_id':
+                if cell_data and validate_email(cell_data):
+                    index_status.setdefault(row_idx, set()).add('Enter Valid Email address')
 
-            if col_idx == 4:
+            elif key == 'phone_number':
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Wrong contact information')
@@ -1142,40 +1149,54 @@ def validate_supplier_form(open_sheet, user_id):
     return f_name
 
 def supplier_excel_upload(request, open_sheet, user, demo_data=False):
+    mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
+    number_str_fields = ['pincode', 'phone_number']
     for row_idx in range(1, open_sheet.nrows):
         sku_code = ''
         wms_code = ''
         supplier_data = copy.deepcopy(SUPPLIER_DATA)
-        for col_idx in range(0, len(SUPPLIER_HEADERS)):
-            cell_data = open_sheet.cell(row_idx, col_idx).value
-            if col_idx == 0:
+        supplier_master = None
+        for key, value in mapping_dict.iteritems():
+            cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
+            if key == 'id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 supplier_data['id'] = cell_data
+                supplier_obj = SupplierMaster.objects.filter(id=cell_data)
+                if supplier_obj:
+                    supplier_master = supplier_obj[0]
                 if demo_data:
                     user_profile = UserProfile.objects.filter(user_id=user.id)
                     if user_profile:
                         supplier_data['id'] = user_profile[0].prefix + '_' + supplier_data['id']
-            if col_idx == 1:
-                supplier_data['name']  = cell_data
+            elif key == 'name':
                 if not isinstance(cell_data, (str, unicode)):
-                    supplier_data['name'] = str(int(cell_data))
+                    cell_data = str(int(cell_data))
+                supplier_data['name'] = cell_data
+                if supplier_master and cell_data:
+                    setattr(supplier_master, key, cell_data)
 
-            if col_idx == 2:
-                supplier_data['address'] = cell_data
-            if col_idx == 3:
-                supplier_data['email_id'] = cell_data
-            if col_idx == 4:
+            elif key in number_str_fields:
                 if cell_data:
                     cell_data = int(float(cell_data))
-                    supplier_data['phone_number'] = cell_data
+                    supplier_data[key] = cell_data
+                    if supplier_master:
+                        setattr(supplier_master, key, cell_data)
 
-        supplier = SupplierMaster.objects.filter(id=supplier_data['id'], user=user.id)
-        if not supplier:
-            supplier_data['creation_date'] = datetime.datetime.now()
-            supplier_data['user'] = user.id
-            supplier = SupplierMaster(**supplier_data)
-            supplier.save()
+            else:
+                supplier_data[key] = cell_data
+                if supplier_master and cell_data:
+                    setattr(supplier_master, key, cell_data)
+
+        if not supplier_master:
+            supplier = SupplierMaster.objects.filter(id=supplier_data['id'], user=user.id)
+            if not supplier:
+                supplier_data['creation_date'] = datetime.datetime.now()
+                supplier_data['user'] = user.id
+                supplier = SupplierMaster(**supplier_data)
+                supplier.save()
+        else:
+            supplier_master.save()
 
     return 'success'
 
@@ -1228,10 +1249,6 @@ def validate_vendor_form(open_sheet, user_id):
             if col_idx == 1:
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Missing Vendor Name')
-                else:
-                    temp1 = namevalid(cell_data)
-                    #if temp1:
-                    #    index_status.setdefault(row_idx, set()).add(temp1 % 'Supplier Name')
 
             if col_idx == 4:
                 if cell_data:
@@ -2222,16 +2239,18 @@ def customer_form(request, user=''):
 def validate_customer_form(open_sheet, user_id):
     index_status = {}
     customer_ids = []
+    mapping_dict = copy.deepcopy(CUSTOMER_EXCEL_MAPPING)
+    number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code'}
     for row_idx in range(0, open_sheet.nrows):
         customer_master = None
-        for col_idx in range(0, len(CUSTOMER_HEADERS)):
-            cell_data = open_sheet.cell(row_idx, col_idx).value
-            if row_idx == 0:
-                if col_idx == 0 and cell_data != 'Customer Id':
-                    return 'Invalid File'
-                break
+        if row_idx == 0:
+            if open_sheet.cell(row_idx, 0).value != 'Customer Id':
+                return 'Invalid File'
+            break
+        for key, value in mapping_dict.iteritems():
+            cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
 
-            if col_idx == 0:
+            if key == 'customer_id':
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Customer ID Should be in number')
@@ -2243,26 +2262,16 @@ def validate_customer_form(open_sheet, user_id):
                 else:
                     index_status.setdefault(row_idx, set()).add('Customer ID is Missing')
 
-            elif col_idx == 1:
+            elif key == 'name':
                 if not cell_data and not customer_master:
                     index_status.setdefault(row_idx, set()).add('Missing Customer Name')
 
-            elif col_idx == 2:
+            elif key in number_fields.keys():
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
-                        index_status.setdefault(row_idx, set()).add('Credit Period Should be in number')
+                        index_status.setdefault(row_idx, set()).add('%s Should be in number' % number_fields[key])
 
-            elif col_idx == 5:
-                if cell_data:
-                    if not isinstance(cell_data, (int, float)):
-                        index_status.setdefault(row_idx, set()).add('Phone Number Should be in number')
-
-            elif col_idx == 8:
-                if cell_data:
-                    if not isinstance(cell_data, (int, float)):
-                        index_status.setdefault(row_idx, set()).add('Pin Code Should be in number')
-
-            elif col_idx == 10:
+            elif key == 'price_type':
                 if cell_data:
                     price_types = list(PriceMaster.objects.filter(sku__user=user_id).values_list('price_type', flat=True).distinct())
                     if not cell_data in price_types:
@@ -2276,68 +2285,37 @@ def validate_customer_form(open_sheet, user_id):
     return f_name
 
 def customer_excel_upload(request, open_sheet, user):
+    mapping_dict = copy.deepcopy(CUSTOMER_EXCEL_MAPPING)
+    number_fields = ['credit_period', 'phone_number', 'pincode']
     for row_idx in range(1, open_sheet.nrows):
         customer_data = copy.deepcopy(CUSTOMER_DATA)
         customer_master = None
 
-        for col_idx in range(0, len(CUSTOMER_HEADERS)):
-            cell_data = open_sheet.cell(row_idx, col_idx).value
-            if col_idx == 0:
+        for key, value in mapping_dict.iteritems():
+            cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
+            if key == 'customer_id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 customer_data['customer_id'] = cell_data
                 customer_master = CustomerMaster.objects.filter(customer_id=cell_data, user=user.id)
                 if customer_master:
                     customer_master = customer_master[0]
-            elif col_idx == 1:
+            elif key == 'name':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
                 customer_data['name']  = cell_data
                 if customer_master:
                     customer_master.name = customer_data['name']
-            elif col_idx == 2:
+            elif key in number_fields:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
-                    customer_data['credit_period'] = cell_data
+                    customer_data[key] = cell_data
                     if customer_master:
-                        customer_master.credit_period = customer_data['credit_period']
-
-            elif col_idx == 3 and cell_data:
-                customer_data['tin_number'] = cell_data
-                if customer_master:
-                    customer_master.tin_number = customer_data['tin_number']
-            elif col_idx == 4 and cell_data:
-                customer_data['email_id'] = cell_data
-                if customer_master:
-                    customer_master.email_id = customer_data['email_id']
-            elif col_idx == 5:
-                if cell_data:
-                    cell_data = int(float(cell_data))
-                    customer_data['phone_number'] = cell_data
-                    if customer_master:
-                        customer_master.phone_number = customer_data['phone_number']
-            elif col_idx == 6 and cell_data:
-                customer_data['city'] = cell_data
-                if customer_master:
-                    customer_master.city = customer_data['city']
-            elif col_idx == 7 and cell_data:
-                customer_data['state'] = cell_data
-                if customer_master:
-                    customer_master.state = customer_data['state']
-            elif col_idx == 8 and cell_data:
-                if isinstance(cell_data, (int, float)):
-                    cell_data = int(cell_data)
-                    customer_data['pincode'] = cell_data
-                    if customer_master:
-                        customer_master.pincode = customer_data['pin_code']
-            elif col_idx == 9:
-                customer_data['address'] = cell_data
-                if customer_master:
-                    customer_master.address = customer_data['address']
-            elif col_idx == 10:
-                customer_data['price_type'] = cell_data
-                if customer_master:
-                    customer_master.price_type = customer_data['price_type']
+                        setattr(customer_master, key, cell_data)
+            else:
+                customer_data[key] = cell_data
+                if cell_data and customer_master:
+                   setattr(customer_master, key, cell_data)
 
         if customer_master:
             customer_master.save()

@@ -311,12 +311,10 @@ class TallyBridgeApp(object):
 
     ##--- Customer and Vendor Master ---##
     @utils.required(params=[
-            'tallyCompanyName',
-            'ledgerName',
-            'ledgerAlias',
-            'updateOpeningBalance',
-            'openingBalance',
-            'parentGroupName',
+            'tally_company_name',
+            'ledger_name',
+            'ledger_alias',
+            'parent_group_name',
             'state'
     ])
     def customer_and_vendor_master(self, **kwargs):
@@ -373,6 +371,7 @@ class TallyBridgeApp(object):
         panNo = kwargs.get('pan_no')
         serviceTaxNo = kwargs.get('service_tax_no')
         defaultCreditPeriod = kwargs.get('default_credit_period')
+        maintainBillWiseDetails = kwargs.get('maintain_billWise_details')
 
         ledger = Tally.Ledger()
 

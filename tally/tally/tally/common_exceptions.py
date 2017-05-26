@@ -5,18 +5,22 @@ import constants
 
 class CommonBaseException(Exception):
 
-    def __init__(self, message, error_code):
+    def __init__(self, message, error_code, extra={}):
         self.message = message
         self.error_code = error_code
+        self.extra = extra
 
     def __str__(self):
         return json.dumps(self.get_error())
 
     def get_error(self):
-        return {
+        error = {
             constants.ERROR_CODE: self.error_code,
             constants.ERROR_MESSAGE: self.message,
         }
+        if self.extra:
+            error.update(self.extra)
+        return error
 
 
 class DataInconsistencyError(CommonBaseException):
@@ -30,13 +34,13 @@ class DataInconsistencyError(CommonBaseException):
 
 
 class RequiredFieldsMissingError(CommonBaseException):
-    message = 'required fields are not present: '
+    message = 'required fields are not present'
     error_code = 'requiredFieldsMissing'
 
     def __init__(self, fields=[]):
         if fields:
-            self.message += ', '.join(fields)
-        CommonBaseException.__init__(self, self.message, self.error_code)
+            extra = {'fields': fields}
+        CommonBaseException.__init__(self, self.message, self.error_code, extra=extra)
 
 
 class TallyDataTransferError(CommonBaseException):

@@ -12,3 +12,13 @@ DLL_FILE_NAME = ''
 # exceptions
 ERROR_CODE = 'error_code'
 ERROR_MESSAGE = 'message'
+
+
+
+
+SALES_INVOICE = 'sales_invioce'
+PURCHASE_INVOICE = 'purchase_invioce'
+VENDOR_OR_CUSTOMER = 'vendor_or_customer'
+ITEM_MASTER = 'item_master'
+DEBIT_NOTE_INVOICE = 'debit_note_invioce'
+CREDIT_NOTE_INVOICE = 'credit_note_invioce'

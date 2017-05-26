@@ -8,19 +8,34 @@ import constants
 import common_exceptions
 import utils
 
-print dir(common_exceptions)
-
-sys.path.append(constants.DLL_BASE_PATH)
-
 
 class TallyBridgeApp(object):
 
-    def __init__(self, *args, **kwargs):
+
+    def __init__(self, **kwargs):
         self.dll_file = kwargs.get('dll', constants.DLL_FILE_NAME)
+
+        sys.path.append(self.dll_file)
         clr.AddReference(self.dll_file)
-        self.tally_bridge = TallyBridgeDll()
+        clr.AddReference('System')
+
+        global System
+        global TallyBridge
+        global Tally
+
+        import System
         import Tally
         import TallyBridge
+
+        self.tally_bridge = TallyBridge.TallyBridgeDll()
+        self.TRANSFER_FUNCTION_MAP = {
+            constants.SALES_INVOICE: self.tally_bridge.DoTransferVoucher,
+            constants.PURCHASE_INVOICE: self.tally_bridge.DoTransferVoucher,
+            constants.VENDOR_OR_CUSTOMER: self.tally_bridge.DoTransferLedger,
+            constants.ITEM_MASTER: self.tally_bridge.DoTransferStockItem,
+            constants.DEBIT_NOTE_INVOICE: self.tally_bridge.DoTransferVoucher,
+            constants.CREDIT_NOTE_INVOICE: self.tally_bridge.DoTransferVoucher,
+        }
 
     ##--- Sales Invoice Master ---##
     @utils.required(params=[
@@ -35,7 +50,7 @@ class TallyBridgeApp(object):
         'ledgers'
     ])
     def sales_invoice(self, **kwargs):
-        ''' Add/ Edits sales invoice
+        ''' Add/Edits sales invoice
         required: [
             tally_company_name,
             voucher_foreign_key,
@@ -207,10 +222,10 @@ class TallyBridgeApp(object):
         invoice.isOptional = is_optional or False
         invoice.typeOfVoucher = type_of_voucher or 'Sales'
 
-        return self._transfer_and_get_resp(invoice, 'salse_voucher')
+        return self._transfer_and_get_resp(invoice, constants.SALES_INVOICE)
 
     @utils.required(params=[])
-    def add_purchase_invoice(self, **kwargs):
+    def purchase_invoice(self, **kwargs):
         ''' Adds a purchase invoice to tally
 
         '''
@@ -292,7 +307,7 @@ class TallyBridgeApp(object):
         # invoice.arlLedgerEntries.Add(leAddlLedger)
 
 
-        return self._transfer_and_get_resp(invoice, 'purchase_invoice')
+        return self._transfer_and_get_resp(invoice, 'constants.purchase_invoice')
 
     ##--- Customer and Vendor Master ---##
     @utils.required(params=[
@@ -304,7 +319,7 @@ class TallyBridgeApp(object):
             'parentGroupName',
             'state'
     ])
-    def add_ledger(self, **kwargs):
+    def customer_and_vendor_master(self, **kwargs):
         ''' Adds a new customer or a vendor to tally
         required: [
             tally_company_name,
@@ -401,7 +416,7 @@ class TallyBridgeApp(object):
             ledger.oldLedgerName = oldLedgerName
         if ledgerMailingName:
             ledger.ledgerMailingName = ledgerMailingName
-        return self._transfer_and_get_resp(ledger, 'ledger_master')
+        return self._transfer_and_get_resp(ledger, constants.VENDOR_OR_CUSTOMER)
 
 
     ##-- ITEM MASTER --##
@@ -448,6 +463,9 @@ class TallyBridgeApp(object):
         unit_name = kwargs.get('unit_name')
         stock_group_name = kwargs.get('stock_group_name')
         stock_category_name = kwargs.get('stock_category_name')
+        opening_qty = kwargs.get('opening_qty', 0)
+        opening_rate = kwargs.get('opening_rate', 0)
+        opening_amt = kwargs.get('opening_amt', 0)
 
         stock_item = Tally.StockItem()
         
@@ -472,13 +490,13 @@ class TallyBridgeApp(object):
             stockItem.partNo = part_no
         if description:
             stock_item.description = description
-        return self._transfer_and_get_resp(stock_item, 'item_master')
+        return self._transfer_and_get_resp(stock_item, constants.ITEM_MASTER)
 
-    def add_purchase_returns(self, **kwargs):
-            pass    
+    def purchase_returns(self, **kwargs):
+        return self._transfer_and_get_resp('', constants.CREDIT_NOTE_INVOICE)
 
-    def add_sales_returns(self, **kwargs):
-            pass    
+    def sales_returns(self, **kwargs):
+        return self._transfer_and_get_resp('', constants.DEBIT_NOTE_INVOICE)
 
     # private
     def _transfer_and_get_resp(self, obj, type):
@@ -486,7 +504,7 @@ class TallyBridgeApp(object):
         and responds accordingly
         '''
         resp = Tally.TallyResponse()
-        resp = self.tally_bridge.DoTransferStockItem(obj)
+        resp = self.TRANSFER_FUNCTION_MAP[type](obj)
         if resp.errorMsg:
             raise common_exceptions.TallyDataTransferError(error_message=resp.errorMsg)
         return {'success': True, 'type': type, 'resp': resp}

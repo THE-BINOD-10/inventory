@@ -23,7 +23,8 @@ angular
     'auth',
     'App',
     'oitozero.ngSweetAlert',
-    'datatables'
+    'datatables',
+    'slick'
   ])
   .constant('COLORS', {
     'default': '#e2e2e2',

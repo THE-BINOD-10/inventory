@@ -733,6 +733,9 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
             elif key == 'mix_sku':
                 if cell_data and cell_data.lower() not in MIX_SKU_MAPPING.keys():
                     index_status.setdefault(row_idx, set()).add('Invalid option for Mix SKU')
+            elif key == 'load_unit_handle':
+                if cell_data and cell_data.lower() not in LOAD_UNIT_HANDLE_DICT.keys():
+                    index_status.setdefault(row_idx, set()).add('Invalid option for Load Unit Handling')
 
     master_sku = SKUMaster.objects.filter(user=user.id)
     master_sku = [data.sku_code for data in master_sku]
@@ -850,9 +853,16 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                     sku_data.mix_sku = cell_data
                 data_dict[key] = cell_data
 
+            elif key == 'load_unit_handle':
+                if cell_data:
+                    cell_data = LOAD_UNIT_HANDLE_DICT[cell_data.lower()]
+                if sku_data and cell_data:
+                    setattr(sku_data, key, cell_data)
+                data_dict[key] = cell_data
 
-            elif key == 'sku_size': 
-                try: 
+
+            elif key == 'sku_size':
+                try:
                     data_dict['sku_size'] = str(int(cell_data))
                 except:
                     data_dict['sku_size'] = cell_data

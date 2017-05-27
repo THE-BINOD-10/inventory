@@ -140,6 +140,8 @@
           <tbody>
             <tr ng-repeat="data in showCase.model_data.data">
               <td>
+                <input type="hidden" name="extra_data" value="{{data.extra}}">
+
                 <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search WMS Code" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" typeahead-on-select="showCase.get_sku_data(data, $item)">
                 <!--ng-blur="showCase.service.checkSearchValue(data.sku_id,'search_wms_codes?', $event);showCase.get_invoice(data)">-->
               </td>
@@ -203,7 +205,7 @@
           <button type="submit" class="btn btn-primary pull-right" style="margin: auto;display: block;" ng-disabled="showCase.bt_disable" ng-click="showCase.insert_order_data(form)">Create Order </button>
 	</div>
         <div class="col-md-6 col-sm-6 col-xs-6">
-	  <button type="submit" class="btn btn-primary pull-left" style="margin: auto;display: block;" ng-if="showCase.custom_order" ng-click="showCase.show()">Create Custom SKU</button>
+	  <button type="button" class="btn btn-primary pull-left" style="margin: auto;display: block;" ng-if="showCase.custom_order" ng-click="showCase.show()">Create Custom SKU</button>
 	</div>
       </div>
     </div>

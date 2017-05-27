@@ -29,9 +29,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Template Name').withTitle('Template Name'),
-        DTColumnBuilder.newColumn('Template Type').withTitle('Template Type'),
-        DTColumnBuilder.newColumn('Template Value').withTitle('Template Value'),
-        DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
+        DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date')
     ];
 
     vm.dtInstance = {};
@@ -47,7 +45,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $scope.$apply(function() {
               vm.service.apiCall('get_product_properties/?data_id='+aData.DT_RowAttr['data-id']).then(function(data){
                 if(data.message) {
-                  angular.copy(data.data.data[0], vm.model_data);
+                  angular.copy(data.data, vm.model_data);
                   vm.update = true;
                   vm.title = "Update Custom SKU";
                   $state.go('app.masters.CustomSKUMaster.AddCustomSKU');
@@ -57,7 +55,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         });
     }
 
-  var empty_data = {name:'', property_name: '', property_type:'', attributes: [{attribute_name:'', description:'', new: true}]};
+  var empty_data = {name:'', property_name: '', property_type:'', selected_cats: [], attributes: [{attribute_name:'', description:'', new: true}]};
   vm.model_data = {};
   vm.template_types = {};
   vm.template_values= [];
@@ -88,6 +86,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.base();
     $state.go('app.masters.CustomSKUMaster.AddCustomSKU');
+    vm.multiRefresh("brands");
+    vm.multiRefresh("cats");
+    vm.multiRefresh("sizes");
   } 
 
   vm.change_template_values = function(){
@@ -122,11 +123,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 withCredentials: true
             },
             'success': function(response) {
-              if(response.indexOf("Added") > -1 || response.indexOf("Updated") > -1) {
+              if(response.indexOf("Success") > -1) {
                 vm.service.refresh(vm.dtInstance);
                 vm.close();
               } else {
-                vm.pop_msg(response);
+                vm.service.pop_msg(response);
               }
               $rootScope.process = false;
             }});
@@ -135,11 +136,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.submit = submit;
   function submit(data) {
     if (data.$valid) {
-      if (!vm.update) {
-        vm.custom('create_custom_sku_template/', form);
-      } else {
-        vm.custom('update_custom_sku_template/', form);
-      }
+      vm.custom('create_update_custom_sku_template/', form);
     } else {
       vm.service.pop_msg('Please fill required fields');
     }
@@ -148,10 +145,87 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.remove_attribute = function(index,attribute) {
 
    if(vm.update) {
-     vm.service.apiCall('delete_product_attribute/?data_id='+attribute.id);
+     vm.service.apiCall('delete_product_attribute/?data_id='+attribute.id+"&name="+vm.model_data.name);
    }
    vm.model_data.attributes.splice(index, 1);
   }
 
+  vm.brands = [];
+  vm.catss = []
+  //Get all brands
+  vm.getBrands = function() {
+
+    vm.service.apiCall("get_sku_categories/").then(function(data){
+      if (data.message) {
+
+        vm.brands = data.data.brands;
+        vm.catss = data.data.categories;
+        vm.multiRefresh("brands")
+      }
+    })
+  }
+
+  vm.getBrands();
+
+  // On change of brands
+  vm.changeCat = function(brand) {
+
+    console.log(brand);
+    if(!brand) {
+
+      vm.cats = [];
+      vm.multiRefresh("cats")
+    } else if(brand.length > 0) {
+
+      vm.getCats(brand);
+    } else {
+      vm.cats = [];
+      vm.multiRefresh("cats")
+    }
+  }
+
+  vm.cats = [];
+  // Get categories
+  vm.getCats = function(brands) {
+
+    var send = brands.join("<<>>")
+    vm.service.apiCall("get_categories_list/?brand="+send).then(function(data){
+      if(data.message) {
+
+        console.log(data.data);
+        vm.cats = data.data;
+        vm.multiRefresh("cats");
+       }
+    })
+  }
+
+  vm.sizes = [];
+  //get all size names
+  vm.getSizes = function() {
+
+    vm.service.apiCall("get_size_names/").then(function(data){
+
+      console.log(data.data);
+      if(data.message) {
+
+        vm.sizes = data.data.size_names;
+        vm.multiRefresh("sizes");
+      }
+    })
+  }
+  vm.getSizes();
+
+  vm.multiRefresh = function(name) {
+
+    $timeout(function() {
+      $("."+name).chosen("destroy");
+      $("."+name).chosen();
+    }, 500);
+  }
+
+  vm.changeCatList = function(data){
+
+    console.log(data);
+  }
 }
 

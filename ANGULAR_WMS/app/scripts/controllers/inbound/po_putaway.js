@@ -54,21 +54,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     } 
 
     function change_data(data) {
-      var dat = {};
-      dat['po_number'] = data.po_number;
-      dat['order_id'] = data.order_id;
-      dat['data'] = []
-      for (var i = 0; i < data.data.length; i++) {
-        var temp = data.data[i];
-        var qt = (vm.permissions.use_imei)?0:temp[3];
-        dat.data.push({'wms_code': temp[0], 'pallet_number': temp[6], 'original_quantity': temp[2],
-                  'id': temp[5], 'orig_loc_id': temp[4], 'sub_data': [{'loc': temp[1], 'quantity': qt}],
-                  'unit': temp[7], 'orig_data': ''})
-      
-      }
-      angular.copy(dat, vm.model_data);
+      //var dat = {};
+      //dat['po_number'] = data.po_number;
+      //dat['order_id'] = data.order_id;
+      //dat['data'] = []
+      //for (var i = 0; i < data.data.length; i++) {
+      //  var temp = data.data[i];
+      //  var qt = (vm.permissions.use_imei)?0:temp[3];
+      //  dat.data.push({'wms_code': temp[0], 'pallet_number': temp[6], 'original_quantity': temp[2],
+      //            'id': temp[5], 'orig_loc_id': temp[4], 'sub_data': [{'loc': temp[1], 'quantity': qt}],
+      //            'unit': temp[7], 'orig_data': ''})
+      //
+      //}
+      angular.copy(data, vm.model_data);
       vm.model_data["sku_total_quantities"] = data.sku_total_quantities;
-      console.log(dat);
+      if(vm.permissions.use_imei) {
+        angular.forEach(vm.model_data.data, function(data){
+          data.sub_data[0].quantity = 0;
+        })
+      }
+      console.log(data);
       angular.copy(vm.model_data.sku_total_quantities ,vm.remain_quantity);
       vm.count_sku_quantity();
     }

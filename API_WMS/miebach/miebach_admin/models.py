@@ -76,10 +76,12 @@ class SKUMaster(models.Model):
     measurement_type = models.CharField(max_length=32, default = '')
     sale_through = models.CharField(max_length=32, default = '')
     mix_sku = models.CharField(max_length=32, default = '', db_index=True)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
     color = models.CharField(max_length=64, default='')
     ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default = 0)
+    load_unit_handle = models.CharField(max_length=32, default='unit', db_index=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
     class Meta:
         db_table = 'SKU_MASTER'
         unique_together = ('user', 'sku_code', 'wms_code')
@@ -1059,6 +1061,18 @@ class SalesPersons(models.Model):
     class Meta:
         db_table = 'SALES_PERSONS'
 
+class SizeMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    size_name = models.CharField(max_length=64, default='')
+    size_value = models.CharField(max_length=256, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SIZE_MASTER'
+        unique_together = ('user', 'size_name')
+
 class ProductGroups(models.Model):
     group_type = models.CharField(max_length=64)
     group_value = models.CharField(max_length=64)
@@ -1068,19 +1082,8 @@ class ProductGroups(models.Model):
     class Meta:
         db_table = 'PRODUCT_GROUPS'
 
-class ProductProperties(models.Model):
-    user = models.ForeignKey(User, default=None)
-    name = models.CharField(max_length=64, default='')
-    property_type = models.CharField(max_length=64, default='')
-    property_name = models.CharField(max_length=64, default='')
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'PRODUCT_PROPERTIES'
-
 class ProductAttributes(models.Model):
-    product_property = models.ForeignKey(ProductProperties, default=None)
+    user = models.ForeignKey(User, default=None)
     attribute_name = models.CharField(max_length=64, default='')
     description = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -1088,7 +1091,23 @@ class ProductAttributes(models.Model):
 
     class Meta:
         db_table = 'PRODUCT_ATTRIBUTES'
+        unique_together = ('user', 'attribute_name')
+        index_together = ('user', 'attribute_name')
 
+class ProductProperties(models.Model):
+    user = models.ForeignKey(User, default=None)
+    name = models.CharField(max_length=64, default='')
+    brand = models.CharField(max_length=64, default='')
+    category = models.CharField(max_length=64, default='')
+    size_types = models.ManyToManyField(SizeMaster, default=None)
+    attributes = models.ManyToManyField(ProductAttributes, default=None)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PRODUCT_PROPERTIES'
+        unique_together = ('name', 'brand', 'category')
+        index_together = ('name', 'brand', 'category')
 
 class SKUFields(models.Model):
     sku = models.ForeignKey(SKUMaster)
@@ -1324,18 +1343,6 @@ class OrderMapping(models.Model):
 
     class Meta:
         db_table = 'ORDER_MAPPING'
-
-class SizeMaster(models.Model):
-    id = BigAutoField(primary_key=True)
-    user = models.PositiveIntegerField()
-    size_name = models.CharField(max_length=64, default='')
-    size_value = models.CharField(max_length=256, default='')
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'SIZE_MASTER'
-        unique_together = ('user', 'size_name')
 
 class Brands(models.Model):
     user = models.ForeignKey(User)

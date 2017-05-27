@@ -1158,7 +1158,7 @@ def get_supplier_data(request, user=''):
     for order in purchase_orders:
         order_data = get_purchase_order_data(order)
         po_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
-        sku_details = json.loads(serializers.serialize("json", [order_data['sku']], indent=1, use_natural_foreign_keys=True, fields = ('sku_code', 'wms_code', 'sku_desc', 'color', 'sku_class', 'sku_brand', 'sku_category', 'image_url')))
+        sku_details = json.loads(serializers.serialize("json", [order_data['sku']], indent=1, use_natural_foreign_keys=True, fields = ('sku_code', 'wms_code', 'sku_desc', 'color', 'sku_class', 'sku_brand', 'sku_category', 'image_url', 'load_unit_handle')))
         if po_quantity > 0:
             sku_extra_data, product_images, order_ids = get_order_json_data(user, mapping_id=order.id, mapping_type='PO',
                                                                          sku_id=order_data['sku_id'], order_ids=order_ids)
@@ -1588,7 +1588,7 @@ def get_purchase_order_data(order):
     unit = ""
     if 'job_code' in dir(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group, 'sku': order.product_code,
-                      'supplier_code': ''}
+                      'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]
@@ -1632,7 +1632,7 @@ def get_purchase_order_data(order):
     order_data = {'order_quantity': order_quantity, 'price': price, 'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username,
-                  'sku_desc': sku.sku_desc, 'address': address, 'unit': unit,
+                  'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
                   'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms, 'order_type': order_type,
                   'supplier_code': supplier_code}
@@ -2242,7 +2242,7 @@ def get_received_orders(request, user=''):
                     if all_data[cond] == [0, '', 0, '', []]:
                         all_data[cond] = [all_data[cond][0] + float(location.quantity), order_data['wms_code'],
                                           float(location.quantity), location.location.fill_sequence, [{'orig_id': location.id,
-                                          'orig_quantity': location.quantity}]]
+                                          'orig_quantity': location.quantity}], order_data['unit']]
                     else:
                         if all_data[cond][2] < float(location.quantity):
                             all_data[cond][2] = float(location.quantity)
@@ -2251,15 +2251,22 @@ def get_received_orders(request, user=''):
                         all_data[cond][3] = location.location.fill_sequence
                         all_data[cond][4].append({'orig_id': location.id, 'orig_quantity': location.quantity})
             if temp == 'false' or (temp == 'true' and not pallet_mapping):
-                data[location.id] = (order_data['wms_code'], location.location.location, location.quantity, location.quantity,
-                                     location.location.fill_sequence, location.id, pallet_number, order_data['unit'])
+                data[location.id] = {'wms_code': order_data['wms_code'], 'location': location.location.location,
+                                     'original_quantity': location.quantity, 'quantity': location.quantity,
+                                     'fill_sequence': location.location.fill_sequence, 'id': location.id,
+                                     'pallet_number': pallet_number, 'unit': order_data['unit'],
+                                     'load_unit_handle': order_data['load_unit_handle'],
+                                     'sub_data': [{'loc': location.location.location, 'quantity': location.quantity}]}
 
     if temp == 'true' and all_data:
         for key, value in all_data.iteritems():
-            data[key[0]] = (value[1], key[1], value[0], value[0], value[3], '', key[0], value[4])
+            data[key[0]] = {'wms_code': value[1], 'location': key[1], 'original_quantity': value[0], 'quantity': value[0],
+                            'fill_sequence': value[3], 'id': '', 'pallet_number': key[0], 'pallet_group_data': value[4],
+                            'unit': value[5], 'load_unit_handle': order_data['load_unit_handle'],
+                            'sub_data': [{'loc': key[1], 'quantity': value[0]}]}
 
     data_list = data.values()
-    data_list.sort(key=lambda x: x[4])
+    data_list.sort(key=lambda x: x['fill_sequence'])
     po_number = '%s%s_%s' % (order.prefix, str(order.po_date).split(' ')[0].replace('-', ''), order.order_id)
     return HttpResponse(json.dumps({'data': data_list, 'po_number': po_number,'order_id': order_id,'user': request.user.id,
                                     'sku_total_quantities': sku_total_quantities}))

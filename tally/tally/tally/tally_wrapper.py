@@ -560,7 +560,15 @@ class TallyBridgeApp(object):
             stock_item.description = description
         return self._transfer_and_get_resp(stock_item, constants.ITEM_MASTER)
 
-    @utils.required(params=[])
+    @utils.required(params=[
+        'tally_company_name',
+        'voucher_foreign_key',
+        'dt_of_voucher',
+        'buyer_name',
+        'buyer_state',
+        'items',
+        'party_ledger'
+    ])
     def sales_returns(self, **kwargs):
         ''' Adds/Edits sales returns in tally
         required: [

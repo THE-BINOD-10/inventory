@@ -564,23 +564,134 @@ class TallyBridgeApp(object):
     def sales_returns(self, **kwargs):
         ''' Adds/Edits sales returns in tally
         required: [
-
+            tally_company_name,
+            voucher_foreign_key,
+            dt_of_voucher,
+            buyer_name,
+            buyer_state,
+            items,
+            party_ledger
         ]
         optional: [
-
+            party_ledger_tax,
+            voucher_no,
+            reference,
+            reference_date,
+            voucher_identifier,
+            consignee_name,
+            consignee_address,
+            consignee_address_1,
+            buyer_address_1,
+            buyer_TIN_no,
+            buyer_CST_no,
+            type_of_dealer,
+            narration
         ]
         default values if not pased: [
-
+            voucher_type_name = Debit Note,
+            type_of_voucher = Debit Note,
+            is_invoice = True,
+            is_optional = False
         ]
         '''
+        tally_company_name = kwargs.get('tally_company_name')
+        voucher_foreign_key = kwargs.get('dt_of_voucher')
+        dt_of_voucher = kwargs.get('dt_of_voucher')
+        buyer_name = kwargs.get('dt_of_voucher')
+        buyer_state = kwargs.get('dt_of_voucher')
+        items = kwargs.get('items')
+        voucher_no = kwargs.get('voucher_no')
+        reference = kwargs.get('reference')
+        reference_date = kwargs.get('reference_date')
+        voucher_identifier = kwargs.get('voucher_identifier')
+        consignee_name = kwargs.get('consignee_name')
+        consignee_address = kwargs.get('consignee_address')
+        consignee_address_1 = kwargs.get('consignee_address_1')
+        buyer_address_1 = kwargs.get('buyer_address_1')
+        buyer_TIN_no = kwargs.get('buyer_TIN_no')
+        buyer_CST_no = kwargs.get('buyer_CST_no')
+        type_of_dealer = kwargs.get('type_of_dealer')
+        narration = kwargs.get('narration')
+        voucher_type_name = kwargs.get('voucher_type_name')
+        type_of_voucher = kwargs.get('type_of_voucher')
+        is_invoice = kwargs.get('is_invoice')
+        is_optional = kwargs.get('is_optional')
+        party_ledger = kwargs.get('party_ledger')
+        party_ledger_tax = kwargs.get('party_ledger_tax')
+
         credit_note = Tally.CreditNote()
 
         # required
+        credit_note.tallyCompanyName = tally_company_name
+        credit_note.voucherForeignKey = voucher_foreign_key
+        credit_note.dtOfVoucher = DateTime.ParseExact(dt_of_voucher, "dd/MM/yyyy", null)
+        credit_note.buyerName = buyer_name
+        credit_note.buyerState = buyer_state
+        # items entry
+        for item in items:
+            inv_entry = Tally.InventoryEntry()
+            inv_entry.itemName = item.get('name')
+            inv_entry.isDeemedPositive = item.get('is_deemed_positive', True)                                            # always True
+            inv_entry.actualQty = item.get('actual_qty')
+            inv_entry.billedQty = item.get('billed_qty')
+            inv_entry.qtyUnit = item.get('qty_unit')
+            inv_entry.rate = item.get('rate')
+            inv_entry.rateUnit = item.get('rate_unit')
+            inv_entry.discountPerc = item.get('discount_percentage', 0)
+            inv_entry.amount = System.Decimal(item.get('amount')) * -1                                                    # always positive
+            # Accounting Allocation for the item
+            inv_entry_acc = Tally.LedgerEntry()
+            inv_entry_acc.ledgerName = item.get('ledger_name')
+            inv_entry_acc.ledgerAmount = inv_entry.amount
+            inv_entry.arlAccountingAllocations.Add(inv_entry_acc)
+            debitNote.arlInvEntries.Add(inv_entry)
+        # Party Ledger
+        party_ledger_entry = Tally.LedgerEntry()
+        party_ledger_entry.ledgerName = party_ledger.get('name')
+        party_ledger_entry.ledgerAmount = System.Decimal(party_ledger.get('amount', 0))                                    # always positive
+        party_ledger_entry.isDeemedPositive = party_ledger.get('is_deemed_positive') or False                              # always False
+        credit_note.arlLedgerEntries.Add(party_ledger_entry);
 
         # optional
+        # party ledger tax entry
+        if party_ledger_tax and party_ledger_tax.get('entry_rate', 0):
+            party_ledger_tax_entry = Tally.LedgerEntry();
+            party_ledger_tax_entry.ledgerName = party_ledger_tax.get('name')
+            party_ledger_tax_entry.ledEntryRate = System.decimal(party_ledger_tax.get('entry_rate'))
+            party_ledger_tax_entry.ledgerAmount = System.decimal(party_ledger_tax.get('amount')) * -1                       # always negetive
+            party_ledger_tax_entry.isDeemedPositive = party_ledger_tax.get('is_deemed_positive') or True                    # always True
+            debitNote.arlLedgerEntries.Add(party_ledger_tax_entry);
+        # TODO: ROUND OFF
+        if voucher_no:
+            credit_note.voucherNo = voucher_no
+        if reference:
+            credit_note.reference = reference
+        if reference_date:
+            credit_note.referenceDate = DateTime.ParseExact(reference_date, "dd/MM/yyyy", null)
+        if voucher_identifier:
+            credit_note.voucherIdentifier = voucher_identifier
+        if consignee_name:
+            credit_note.consigneeName = consignee_name                                                                       # In case of Debit Note, consignee is same as buyer
+        if consignee_address:
+            credit_note.consigneeAddress = consignee_address
+        if consignee_address_1:
+            credit_note.consigneeAddress = [consignee_address_1, consignee_address_2, consignee_address_3]
+        if buyer_address_1:
+            credit_note.buyerAddress = [buyer_address_1, buyer_address_2, buyer_address_3]
+        if buyer_TIN_no:
+            credit_note.buyerTINNo = buyer_TIN_no
+        if buyer_CST_no:
+            credit_note.buyerCSTNo = buyer_CST_no
+        if type_of_dealer:
+            credit_note.typeOfDealer = type_of_dealer
+        if narration:
+            credit_note.narration = narration
 
         # defaults if not passed
-
+        credit_note.voucherTypeName = voucher_type_name or "Credit Note"                                                      # This should be the name of the Debit Note voucher type in Tally
+        credit_note.typeOfVoucher = type_of_voucher or "Credit Note"
+        credit_note.isInvoice = is_invoice or True
+        credit_note.isOptional = is_optional or False
         return self._transfer_and_get_resp(credit_note, constants.CREDIT_NOTE_INVOICE)
 
     @utils.required(params=[
@@ -662,7 +773,7 @@ class TallyBridgeApp(object):
         for item in items:
             inv_entry = Tally.InventoryEntry()
             inv_entry.itemName = item.get('name')
-            inv_entry.isDeemedPositive = item.get('name', False)                                                         # always False
+            inv_entry.isDeemedPositive = item.get('is_deemed_positive', False)                                            # always False
             inv_entry.actualQty = item.get('actual_qty')
             inv_entry.billedQty = item.get('billed_qty')
             inv_entry.qtyUnit = item.get('qty_unit')
@@ -680,7 +791,7 @@ class TallyBridgeApp(object):
         party_ledger_entry = Tally.LedgerEntry()
         party_ledger_entry.ledgerName = party_ledger.get('name')
         party_ledger_entry.ledgerAmount = System.Decimal(party_ledger.get('amount', 0)) * -1                               # always negetive
-        party_ledger_entry.isDeemedPositive = party_ledger.get('is_deemed_positive') or True                               # always true\
+        party_ledger_entry.isDeemedPositive = party_ledger.get('is_deemed_positive') or True                               # always True
         debit_note.arlLedgerEntries.Add(party_ledger_entry);
 
         # optional

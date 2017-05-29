@@ -1484,8 +1484,8 @@ class SellerStock(models.Model):
 
     class Meta:
         db_table = 'SELLER_STOCK'
-        unique_together = ('seller', 'stock')
-        index_together = ('seller', 'stock')
+        unique_together = ('seller', 'stock', 'seller_po_summary')
+        index_together = ('seller', 'stock', 'seller_po_summary')
 
 class SellerMarginMapping(models.Model):
     id = BigAutoField(primary_key=True)

@@ -1566,57 +1566,65 @@ def create_update_custom_sku_template(request, user=''):
     sizes_list = []
     brands_list = copy.deepcopy(request_dict.get('brands', ''))
     saved_file_path = ''
-    for key, value in request_dict.iteritems():
-        if key == 'sizes':
-            for val in value:
-                sizes_list.append(SizeMaster.objects.get(size_name=val, user=user.id))
-        elif key in ['attribute_name']:
-           for ind, val in enumerate(value):
-               attributes_list.append({'attribute_name': val, 'description': request_dict['description'][ind], 'user_id': user.id})
-    for item in range(0, len(request_dict.get('categories', []))):
-        category = request_dict['categories'][item]
-        brands = sku_master.filter(sku_category=category, sku_brand__in=request_dict['brands']).values_list('sku_brand', flat=True).distinct()
-        for brand in brands:
-            data_list.append({'name': template_name, 'brand': brand, 'category': category})
-        if brand in brands_list:
-            brands_list.remove(brand)
-    status = ''
-    if is_new == 'true':
-        prod_pro_obj = ProductProperties.objects.filter(user_id=user.id, name=template_name)
-        if prod_pro_obj:
-            status = 'Template Name Already exists'
-        if brands_list:
-            status = 'Please select category or remove the brand for these brands ' + ','.join(brands_list)
-    else:
-        data_list = ProductProperties.objects.filter(user_id=user.id, name=template_name).values('name', 'brand', 'category').distinct()
-    if not status:
-        for data_dict in data_list:
-            data_dict['user_id'] = user.id
-            product_pro_obj = ProductProperties.objects.filter(**data_dict)
-            if not product_pro_obj:
-                data_dict['creation_date'] = datetime.datetime.now()
-                product_property, created = ProductProperties.objects.get_or_create(**data_dict)
-            else:
-                product_property = product_pro_obj[0]
-            for size_type_obj in sizes_list:
-                product_property.size_types.add(size_type_obj)
-            for attr_dict in attributes_list:
-                product_attr_obj = ProductAttributes.objects.filter(user_id=user.id, attribute_name=attr_dict['attribute_name'])
-                if not product_attr_obj:
-                    attr_dict['user_id'] = user.id
-                    attr_dict['creation_date'] = datetime.datetime.now()
-                    product_attribute, created = ProductAttributes.objects.get_or_create(**attr_dict)
+    log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        for key, value in request_dict.iteritems():
+            if key == 'sizes':
+                for val in value:
+                    sizes_list.append(SizeMaster.objects.get(size_name=val, user=user.id))
+            elif key in ['attribute_name']:
+               for ind, val in enumerate(value):
+                   attributes_list.append({'attribute_name': val, 'description': request_dict['description'][ind], 'user_id': user.id})
+        for item in range(0, len(request_dict.get('categories', []))):
+            category = request_dict['categories'][item]
+            brands = sku_master.filter(sku_category=category, sku_brand__in=request_dict['brands']).values_list('sku_brand', flat=True).distinct()
+            for brand in brands:
+                data_list.append({'name': template_name, 'brand': brand, 'category': category})
+            if brand in brands_list:
+                brands_list.remove(brand)
+        status = ''
+        if is_new == 'true':
+            prod_pro_obj = ProductProperties.objects.filter(user_id=user.id, name=template_name)
+            if prod_pro_obj:
+                status = 'Template Name Already exists'
+            if brands_list:
+                status = 'Please select category or remove the brand for these brands ' + ','.join(brands_list)
+        else:
+            data_list = ProductProperties.objects.filter(user_id=user.id, name=template_name).values('name', 'brand', 'category').distinct()
+        if not status:
+            for data_dict in data_list:
+                data_dict['user_id'] = user.id
+                product_pro_obj = ProductProperties.objects.filter(**data_dict)
+                if not product_pro_obj:
+                    data_dict['creation_date'] = datetime.datetime.now()
+                    product_property, created = ProductProperties.objects.get_or_create(**data_dict)
                 else:
-                    product_attribute = product_attr_obj[0]
-                    product_attribute.description = attr_dict['description']
-                    product_attribute.save()
-                if attr_dict['attribute_name'] not in product_property.attributes.values_list('attribute_name', flat=True):
-                    product_property.attributes.add(product_attribute)
+                    product_property = product_pro_obj[0]
+                for size_type_obj in sizes_list:
+                    product_property.size_types.add(size_type_obj)
+                for attr_dict in attributes_list:
+                    product_attr_obj = ProductAttributes.objects.filter(user_id=user.id, attribute_name=attr_dict['attribute_name'])
+                    if not product_attr_obj:
+                        attr_dict['user_id'] = user.id
+                        attr_dict['creation_date'] = datetime.datetime.now()
+                        product_attribute, created = ProductAttributes.objects.get_or_create(**attr_dict)
+                    else:
+                        product_attribute = product_attr_obj[0]
+                        product_attribute.description = attr_dict['description']
+                        product_attribute.save()
+                    if attr_dict['attribute_name'] not in product_property.attributes.values_list('attribute_name', flat=True):
+                        product_property.attributes.add(product_attribute)
 
-                image_file = request.FILES.get('files-0','')
-                if image_file and not saved_file_path:
-                    saved_file_path = save_template_image_file(image_file, product_property, user, image_type='product_property')
-        status = 'Added Successfully'
+                    image_file = request.FILES.get('files-0','')
+                    if image_file and not saved_file_path:
+                        saved_file_path = save_template_image_file(image_file, product_property, user, image_type='product_property')
+            status = 'Added Successfully'
+    except Exception as e:
+        log.info('Create or Update Custom sku template failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        if is_new == 'true':
+            status = 'SKU Template Creation Failed'
+        else:
+            status = 'SKU Template Updation Failed'
     return HttpResponse(status)
 
 @csrf_exempt
@@ -1678,56 +1686,60 @@ def create_custom_sku(request, user=''):
     embroidery_vendor_obj = None
     production_unit_obj = None
 
-    ven_list = {}
-    if printing_vendor:
-        print_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = printing_vendor)
-        if print_vendor_obj:
-            ven_list.update({'printing_vendor': print_vendor_obj[0].id})
-    if embroidery_vendor:
-        embroidery_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = embroidery_vendor)
-        if embroidery_vendor_obj:
-            ven_list.update({'embroidery_vendor': embroidery_vendor_obj[0].id})
-    if production_unit:
-        production_unit_obj = VendorMaster.objects.filter(user = user.id, vendor_id = production_unit)
-        if production_unit_obj:
-             ven_list.update({'production_unit': production_unit_obj[0].id})
+    log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        ven_list = {}
+        if printing_vendor:
+            print_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = printing_vendor)
+            if print_vendor_obj:
+                ven_list.update({'printing_vendor': print_vendor_obj[0].id})
+        if embroidery_vendor:
+            embroidery_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = embroidery_vendor)
+            if embroidery_vendor_obj:
+                ven_list.update({'embroidery_vendor': embroidery_vendor_obj[0].id})
+        if production_unit:
+            production_unit_obj = VendorMaster.objects.filter(user = user.id, vendor_id = production_unit)
+            if production_unit_obj:
+                 ven_list.update({'production_unit': production_unit_obj[0].id})
 
-    product_property = ProductProperties.objects.filter(name=name, user=user.id)
-    if not product_property:
-        return HttpResponse(json.dumps({'message': 'Wrong Data', 'data': ''}))
-    product_property = product_property[0]
-    data_dict = dict(request.POST.iterlists())
-    sku_sizes = []
+        product_property = ProductProperties.objects.filter(name=name, user=user.id)
+        if not product_property:
+            return HttpResponse(json.dumps({'message': 'Wrong Data', 'data': ''}))
+        product_property = product_property[0]
+        data_dict = dict(request.POST.iterlists())
+        sku_sizes = []
 
-    saved_file_path = ''
-    image_url = ''
-    if image_file:
-        path = 'static/temp_files/' + str(user.id)
-        image_name = ('%s_%s') % (str(name), datetime.datetime.now().strftime('%d_%I_%S'))
-        image_url = save_image_file_path(path, image_file, image_name)
-    for style in eval(style_data):
-        for sku_size in style['sizes']:
-            try:
-                quantity = float(sku_size['value'])
-            except:
-                quantity = 0
-            if not quantity:
-                continue
-            sku_obj = SKUMaster.objects.filter(user=user.id, sku_class=style['name'], sku_size=sku_size['name'])
-            if not sku_obj:
-                continue
-            else:
-                sku_obj = sku_obj[0]
-            attribute_data = []
-            for i in range(0, len(data_dict['field_name'])):
-                attribute_name = data_dict['field_name'][i]
-                attribute_value = data_dict['field_value'][i]
-                attribute_data.append({'attribute_name': data_dict['field_name'][i], 'attribute_value': data_dict['field_value'][i]})
-            sku_codes_list.append({'sku_code': sku_obj.sku_code, 'quantity': quantity, 'description': sku_obj.sku_desc,
-                                   'unit_price': unit_price, 'remarks': style.get('remarks', ''), 'image_url': image_url,
-                                   'attribute_data': attribute_data,
-                                   'vendors_list': ven_list})
-    return HttpResponse(json.dumps({'message': 'Success', 'data': sku_codes_list}))
+        saved_file_path = ''
+        image_url = ''
+        if image_file:
+            path = 'static/temp_files/' + str(user.id)
+            image_name = ('%s_%s') % (str(name), datetime.datetime.now().strftime('%d_%I_%S'))
+            image_url = save_image_file_path(path, image_file, image_name)
+        for style in eval(style_data):
+            for sku_size in style['sizes']:
+                try:
+                    quantity = float(sku_size['value'])
+                except:
+                    quantity = 0
+                if not quantity:
+                    continue
+                sku_obj = SKUMaster.objects.filter(user=user.id, sku_class=style['name'], sku_size=sku_size['name'])
+                if not sku_obj:
+                    continue
+                else:
+                    sku_obj = sku_obj[0]
+                attribute_data = []
+                for i in range(0, len(data_dict['field_name'])):
+                    attribute_name = data_dict['field_name'][i]
+                    attribute_value = data_dict['field_value'][i]
+                    attribute_data.append({'attribute_name': data_dict['field_name'][i], 'attribute_value': data_dict['field_value'][i]})
+                sku_codes_list.append({'sku_code': sku_obj.sku_code, 'quantity': quantity, 'description': sku_obj.sku_desc,
+                                       'unit_price': unit_price, 'remarks': style.get('remarks', ''), 'image_url': image_url,
+                                       'attribute_data': attribute_data,
+                                       'vendors_list': ven_list})
+        return HttpResponse(json.dumps({'message': 'Success', 'data': sku_codes_list}))
+    except Exception as e:
+        log.info('Create Custom SKU failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
     '''for i in range(0, len(data_dict['sku_size'])):
         sku_size = data_dict['sku_size'][i]
         quantity = data_dict['quantity'][i]

@@ -560,6 +560,10 @@ MYNTRA_RETURN_EXCEL = OrderedDict((('sku_id', [5,7]), ('quantity', 8), ('reason'
 UNIWEAR_RETURN_EXCEL = OrderedDict((('sku_id', 4), ('channel', 14),('reason', 12),
                                         ('return_id', 5),  ('return_date', 8)))
 
+MYNTRA_BULK_PO_EXCEL = OrderedDict(( ('order_id', 0), ('original_order_id', 0), ('sku_code', 1), ('title', 3),
+                                     ('marketplace', 'Myntra'), ('mrp', 7), ('quantity', 6), ('invoice_amount', [6, 12]),
+                                     ('vat', {'tax': 10, 'quantity': 6, 'tax_value': 11}),
+                                  ))
 
 UNI_COMMERCE_EXCEL1 = {'order_id': 8, 'channel_name': 2, 'sku_code': 20, 'customer_name': 9, 'email_id': 10, 'telephone': 11,
                        'address': [12, 13, 14], 'state': 15, 'pin_code': 16, 'invoice_amount': 19, 'recreate': True}
@@ -718,8 +722,12 @@ MYNTRA_MUMBAI_ADDRESS = 'Myntra jabong India Pvt Ltd.\nKsquare Industrial Park, 
                          Before Padgha Toll naka Nashik-Mumbai Highway \nNear Pushkar Mela Hotel Rahul Narkhede,\n\
                          Padgha Bhiwandi - 421101, Maharashtra\n\
                          TIN:27461499703'
+MYNTRA_BULK_ADDRESS = 'MYNTRA DESIGNS PVT LTD\nKsquare Industrial Park, Warehouse 4\n\
+                         Before Padgha Toll naka Nashik-Mumbai Highway \nNear Pushkar Mela Hotel Rahul Narkhede,\n\
+                         Padgha-Bhiwandi\nTin# 27590747736'
 
-USER_MYNTRA_ADDRESS = {'campus_sutra': MYNTRA_BANGALORE_ADDRESS, 'adam_clothing': MYNTRA_MUMBAI_ADDRESS, 'adam_clothing1': MYNTRA_MUMBAI_ADDRESS}
+USER_MYNTRA_ADDRESS = {'campus_sutra': MYNTRA_BANGALORE_ADDRESS, 'adam_clothing': MYNTRA_MUMBAI_ADDRESS,
+                       'adam_clothing1': MYNTRA_MUMBAI_ADDRESS, 'adam_clothing1:bulk': MYNTRA_BULK_ADDRESS}
 
 SHOTANG_ORDER_FILE_EXCEL = {'order_id': 1, 'customer_name': 8, 'customer_id': 7, 'telephone': 9, 'address': 10, 'title': 13, 'sku_code': 2,
                             'invoice_amount': 6, 'sor_id': 0, 'order_date': 3, 'quantity': 4, 'order_status': 19, 'seller': 11,

@@ -3351,7 +3351,7 @@ def get_view_order_details(request, user=''):
     if custom_data:
         attr_list = json.loads(custom_data[0].json_data)
         if isinstance(attr_list, dict):
-            attr_list.get('attribute_data', '')
+            attr_list = attr_list.get('attribute_data', '')
         else:
             attr_list = []
 	for attr in attr_list:
@@ -3384,43 +3384,33 @@ def get_view_order_details(request, user=''):
         sku_code = one_order.sku.sku_code
         sku_type = one_order.sku.sku_type
         field_type = 'product_attribute'
+        vend_dict = {'printing_vendor' : "", 'embroidery_vendor' : "", 'production_unit' : ""}
+        sku_extra_data = {}
+        if str(order_code) == 'CO':
+            vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']
+            for item in vendor_list:
+                var = ""
+                map_obj = OrderMapping.objects.filter(order__order_id = _order_id, order__user = user.id, mapping_type = item)
+                if map_obj:
+                    var_id = map_obj[0].mapping_id
+                    vend_obj = VendorMaster.objects.filter(id = var_id)
+                    if vend_obj:
+                        var = vend_obj[0].name
+                        vend_dict[item] = var
+
+            order_json = OrderJson.objects.filter(order_id=one_order.id)
+            if order_json:
+                sku_extra_data = eval(order_json[0].json_data)
+
         order_details_data.append({'product_title':product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
                       'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone,'email': email, 'address': address, 'city': city, 
                       'state': state, 'pin': pin, 'shipment_date': str(shipment_date),'item_code': sku_code, 'order_id': order_id,
                       'image_url': one_order.sku.image_url, 'market_place': one_order.marketplace,
-                      'order_id_code': one_order.order_code + str(one_order.order_id)})
-    customization_data = []
-    vend_dict = {'printing_vendor' : "", 'embroidery_vendor' : "", 'production_unit' : ""}
-    if str(order_code) == 'CO':
-        fields_list = SKUFields.objects.filter(sku_id=sku_id,field_type=field_type)
-
-        vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']
-        for item in vendor_list:
-            var = ""
-            map_obj = OrderMapping.objects.filter(order__order_id = _order_id, order__user = user.id, mapping_type = item)
-            if map_obj:
-                var_id = map_obj[0].mapping_id
-                vend_obj = VendorMaster.objects.filter(id = var_id)
-                if vend_obj:
-                    var = vend_obj[0].name
-                    vend_dict[item] = var
-
-        if fields_list:
-            for field in fields_list:
-                field_id = field.field_id
-                attr_id = field.id
-                attr_values = ProductAttributes.objects.filter(id=attr_id)
-                if attr_values:
-                    attr_name = attr_values[0].attribute_name
-                    attr_desc = attr_values[0].description
-                    pro_pro_id = attr_values[0].product_property_id
-                    img_data = ProductImages.objects.get(image_id=pro_pro_id).image_id
-                    img_url = ProductImages.objects.get(image_id=pro_pro_id).image_url
-                    custom_data = (attr_name,attr_desc,img_data,img_url)
-                    customization_data.append(custom_data)
-    data_dict.append({'customization_data': customization_data,'cus_data': cus_data,'status': status_obj, 'ord_data': order_details_data,
-                    'print_vendor' : vend_dict['printing_vendor'], 'embroidery_vendor': vend_dict['embroidery_vendor'],
-                    'central_remarks': central_remarks, 'production_unit': vend_dict['production_unit'], 'all_status': all_status})
+                      'order_id_code': one_order.order_code + str(one_order.order_id), 'print_vendor' : vend_dict['printing_vendor'],
+                      'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
+                      'sku_extra_data': sku_extra_data})
+    data_dict.append({'cus_data': cus_data,'status': status_obj, 'ord_data': order_details_data,
+                      'central_remarks': central_remarks, 'all_status': all_status})
 
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 

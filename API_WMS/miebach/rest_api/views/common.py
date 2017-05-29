@@ -1684,6 +1684,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     consignee = ''
     order_no = ''
     _total_tax = 0
+    purchase_type = ''
     invoice_date = datetime.datetime.now()
     if order_ids:
         order_ids = order_ids.split(',')
@@ -1691,8 +1692,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
         picklist = Picklist.objects.filter(order_id__in=order_ids).order_by('-updation_date')
         picklist_obj = picklist
         if picklist:
-            invoice_date = datetime.datetime.strptime('May 16 2017 11:00', '%b %d %Y %I:%M')
-            #invoice_date = picklist[0].updation_date
+            invoice_date = picklist[0].updation_date
 
         for dat in order_data:
             order_id = dat.original_order_id
@@ -1705,8 +1705,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             if ':' in dat.sku.sku_desc:
                 title = dat.sku.sku_desc.split(':')[0]
             if not order_date:
-                order_date = datetime.datetime.strptime('May 15 2017 11:00', '%b %d %Y %I:%M')
-                order_date = get_local_date(user, order_date, send_date='true')
+                order_date = get_local_date(user, dat.creation_date, send_date='true')
                 order_date = order_date.strftime("%d %b %Y")
             if dat.customer_id and dat.customer_name and not customer_details:
                 customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id,
@@ -1719,7 +1718,13 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             if not marketplace:
                 marketplace = dat.marketplace
                 if marketplace.lower() == 'myntra':
-                    marketplace = USER_MYNTRA_ADDRESS.get(user.username, 'Myntra')
+                    if 'bays' in (dat.original_order_id).lower():
+                        username = user.username + ':bulk'
+                        purchase_type = 'SMART_JIT'
+                    else:
+                        username = user.username
+
+                    marketplace = USER_MYNTRA_ADDRESS.get(username, 'Myntra')
             tax = 0
             vat = 5.5
             discount = 0
@@ -1799,7 +1804,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     total_amt = "%.2f" % (float(total_invoice) - float(_total_tax))
     #print total_invoice
     dispatch_through = "By Road"
-    _total_invoice = math.ceil(total_invoice)
+    _total_invoice = round(total_invoice)
     _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
     invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'marketplace': marketplace, 'total_amt': total_amt,
@@ -1808,7 +1813,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                     'invoice_no': _invoice_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(_total_invoice),
                     'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount, 'consignee': consignee,
                     'dispatch_through': dispatch_through, 'inv_date': inv_date, 'tax_type': tax_type,
-                    'rounded_invoice_amount': _total_invoice}
+                    'rounded_invoice_amount': _total_invoice, 'purchase_type': purchase_type}
     #print invoice_data
     return invoice_data
 

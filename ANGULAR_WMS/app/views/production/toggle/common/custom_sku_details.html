@@ -1,10 +1,10 @@
                       <div style="padding-top: 10px;" ng-if="data.sku_extra_data.attribute_data.length > 0">
-                        <span ng-show="$first">
+                        <span ng-show="$first || data.display">
                           <div class="tooltip" style="color:#33cc66">Detail
                             <span class="tooltiptext">
                               <div>
-                                <div ng-if="data.product_images.length">
-                                  <img ng-src="{{showCase.service.check_image_url(data.product_images[0])}}" style="width: 100%;">
+                                <div ng-if="data.sku_extra_data.image_url">
+                                  <img ng-src="{{showCase.service.check_image_url(data.sku_extra_data.image_url)}}" style="width: 100%;">
                                 </div>
                                 <table style="margin: 0px;width: 100%;">
                                   <tbody>

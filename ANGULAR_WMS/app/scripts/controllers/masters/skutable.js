@@ -71,6 +71,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         style_name: "",
                         mix_sku: "",
                         ean_number: "",
+                        load_unit_handle: "0",
                         image_url:"images/wms/dflt.jpg",
                       },
                       "zones":[],

@@ -29,8 +29,8 @@
               <hr>
             </div>
           </div>
-          <div class="row over-x" id="jo-putaway">
-            <table class="table mw55">
+          <div class="row" id="jo-putaway">
+            <table class="table">
 	      <thead>
                 <tr>
                   <th>WMS CODE</th>
@@ -48,28 +48,10 @@
                   <input type="hidden" name="pallet_number" value="{{data.pallet_number}}">
                   <td><input type="text" name="wms_code" class="form-control" value="{{data.wms_code}}" ng-readonly="showCase.update"></td>
                   <td><input type="text" name="location" class="form-control" ng-model="record.location"></td>
-                  <td ng-if="showCase.permissions.pallet_switch"><input type="text" name="pallet_code" class="form-control" ng-model="data.pallet_code" disabled></td>
+                  <td ng-if="showCase.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" type="text" name="pallet_code" class="form-control" ng-model="data.pallet_code" disabled></td>
                   <td><input type="text" name="original_quantity" class="form-control" ng-model="data.product_quantity" ng-disabled="showCase.update"></td>
                   <td><input type="text" name="putaway_quantity" class="form-control" ng-model="record.putaway_quantity" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
-                  <td ng-if="data.sku_extra_data.length > 0" class="detail">
-                    <span ng-show="$first">
-                      <div class="tooltip">Detail
-                        <span class="tooltiptext">
-                          <div>
-                            <div ng-if="data.product_images.length">
-                              <img ng-src="{{showCase.service.check_image_url(data.product_images[0])}}">
-                            </div>
-                            <table>
-                              <tbody>
-                                <tr ng-repeat="tip in data.sku_extra_data">
-                                  <td>{{tip.attribute_name}}</td><td>{{tip.attribute_value}}</td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                        </span>
-                      </div>
-                    </span>
+                  <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                   </td>
                   <td class=""><i ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
                 </tr>

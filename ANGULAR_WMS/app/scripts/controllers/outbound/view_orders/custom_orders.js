@@ -138,7 +138,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               vm.img_url = vm.service.check_image_url(image_url);
               console.log(vm.model_data);
               vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity, 
-              invoice_amount: vm.invoice_amount, image_url: vm.img_url, remarks: vm.remarks, default_status: true})
+              invoice_amount: vm.invoice_amount, image_url: vm.img_url, remarks: vm.remarks, default_status: true,
+              sku_extra_data: value.sku_extra_data, display: true})
             });
                 $state.go('app.outbound.ViewOrders.CustomOrderDetails'); 
                 })
@@ -223,11 +224,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
   vm.confirm_disable = false;
   vm.close = close;
-    function close() {
-      $state.go('app.outbound.ViewOrders');
-      vm.message = "";
-      vm.confirm_disable = false;
-    }
+  function close() {
+    $state.go('app.outbound.ViewOrders');
+    vm.message = "";
+    vm.confirm_disable = false;
+    vm.reloadData();
+  }
 
   vm.message = "";
   vm.pop_msg =  function(msg) {
@@ -286,4 +288,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.vendors = data.data.data;
     }
   })
+
+   vm.raise_stock_transfer = function() {
+
+    var data = []
+    for(var key in vm.selected){
+      if(vm.selected[key]) {
+        var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+        data.push({wms_code: temp['SKU Code'], order_quantity: 1, price: 0})
+      }
+    }
+    Service.stock_transfer = JSON.stringify(data)
+    $state.go('app.outbound.ViewOrders.ST', {data: Service.stock_transfer})
+    //$state.go('app.outbound.ViewOrders.ST', )
+  }
+
+  vm.backorder_po = function() {
+    var data = [];
+    for(var key in vm.selected){
+      if(vm.selected[key]) {
+        var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+        data.push({name: 'id', value: $(temp[""]).attr("name")})
+      }
+    }
+    $state.go("app.outbound.ViewOrders.PO", {data: JSON.stringify(data)});
+  }
 }

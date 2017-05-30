@@ -18,6 +18,7 @@ from operator import itemgetter
 from django.db.models import Sum
 from itertools import groupby
 import datetime
+import shutil
 from utils import *
 log = init_logger('logs/outbound.log')
 
@@ -875,6 +876,7 @@ def get_picklist_data(data_id,user_id):
             sequence = 0
             location = 'NO STOCK'
             image = ''
+            load_unit_handle = ''
             if order.order and order.order.sku:
                 image = order.order.sku.image_url
             if stock_id:
@@ -884,6 +886,7 @@ def get_picklist_data(data_id,user_id):
                 location = stock_id.location.location
                 image = stock_id.sku.image_url
                 wms_code = stock_id.sku.wms_code
+                load_unit_handle = stock_id.sku.load_unit_handle
 
             match_condition = (location, pallet_detail, wms_code, sku_code, title)
             if match_condition not in batch_data:
@@ -897,7 +900,7 @@ def get_picklist_data(data_id,user_id):
                                                      flat=True).distinct()[:2]
                     last_picked_locs = ','.join(last_picked)
 
-                batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'picked_quantity': order.reserved_quantity, 'id': order.id, 'invoice_amount': invoice, 'price': invoice * order.reserved_quantity, 'image': image, 'order_id': str(order.order_id), 'status': order.status, 'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs, 'customer_name': customer_name, 'marketplace': marketplace, 'order_no': order_id, 'remarks': remarks}
+                batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'picked_quantity': order.reserved_quantity, 'id': order.id, 'invoice_amount': invoice, 'price': invoice * order.reserved_quantity, 'image': image, 'order_id': str(order.order_id), 'status': order.status, 'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs, 'customer_name': customer_name, 'marketplace': marketplace, 'order_no': order_id, 'remarks': remarks, 'load_unit_handle': load_unit_handle}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
@@ -950,6 +953,7 @@ def get_picklist_data(data_id,user_id):
             sequence = 0
             location = 'NO STOCK'
             image = ''
+            load_unit_handle = ''
             if stock_id:
                 zone = stock_id.location.zone.zone
                 st_id = order.stock_id
@@ -957,6 +961,7 @@ def get_picklist_data(data_id,user_id):
                 location = stock_id.location.location
                 image = stock_id.sku.image_url
                 wms_code = stock_id.sku.wms_code
+                load_unit_handle = stock_id.sku.load_unit_handle
 
             stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks, reserved_instances)
             last_picked_locs = ''
@@ -966,7 +971,7 @@ def get_picklist_data(data_id,user_id):
                                                  flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
 
-            data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'order_id': str(order.order_id), 'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': invoice_amount, 'price': invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'order_no': order_id,'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs, 'customer_name': customer_name, 'marketplace' : marketplace, 'remarks': remarks})
+            data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'order_id': str(order.order_id), 'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': invoice_amount, 'price': invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'order_no': order_id,'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs, 'customer_name': customer_name, 'marketplace' : marketplace, 'remarks': remarks, 'load_unit_handle': load_unit_handle})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -993,12 +998,14 @@ def get_picklist_data(data_id,user_id):
             location = 'NO STOCK'
             pallet_code = ''
             image = ''
+            load_unit_handle = ''
             if stock_id:
                 zone = stock_id.location.zone.zone
                 st_id = order.stock_id
                 sequence = stock_id.location.pick_sequence
                 location = stock_id.location.location
                 image = stock_id.sku.image_url
+                load_unit_handle = stock_id.sku.load_unit_handle
 
             customer_name = ''
             if order.order:
@@ -1021,7 +1028,7 @@ def get_picklist_data(data_id,user_id):
                          'invoice_amount': order.order.invoice_amount, 'price': order.order.invoice_amount * order.reserved_quantity,
                          'image': image, 'status': order.status, 'pallet_code': pallet_code, 'sku_code': order.order.sku_code,
                          'title': order.order.title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
-                         'customer_name': customer_name, 'remarks': remarks,
+                         'customer_name': customer_name, 'remarks': remarks, 'load_unit_handle': load_unit_handle,
                          'marketplace' :marketplace })
 
             if wms_code in sku_total_quantities.keys():
@@ -2122,15 +2129,34 @@ def validate_order_form(myDict, request, user):
         status += " Quantities missing sku codes are " + ",".join(invalid_quantities)
     return status
 
-def create_order_json(order_detail, json_dat={}):
-    sku_fields = SKUFields.objects.filter(sku_id=order_detail.sku_id, field_type='product_attribute')
-    json_data = []
-    for sku_field in sku_fields:
-        product_attributes = ProductAttributes.objects.filter(id=sku_field.field_id)
-        for product_attribute in product_attributes:
-            json_data.append({'attribute_name': product_attribute.attribute_name, 'attribute_value': sku_field.field_value})
-    if json_data:
-        OrderJson.objects.create(order_id=order_detail.id, json_data=json.dumps(json_data), creation_date=datetime.datetime.now())
+def create_order_json(order_detail, json_dat={}, ex_image_url={}):
+    for key, value in json_dat.get('vendors_list', {}).iteritems():
+        OrderMapping.objects.create(mapping_id = value, mapping_type = key, order_id = order_detail.id)
+    keys_list = ['vendors_list', 'remarks', 'sku_code', 'quantity', 'description']
+    for key in keys_list:
+        if json_dat.get(key, ''):
+            del json_dat[key]
+
+    if json_dat.get('image_url', ''):
+        temp_url = json_dat['image_url']
+        if ex_image_url.get(json_dat['image_url'], ''):
+            json_dat['image_url'] = ex_image_url[json_dat['image_url']]
+        elif os.path.exists(json_dat['image_url'][1:]):
+            new_path = 'static/images/co_images/' + str(order_detail.user)
+            if not os.path.exists(new_path):
+                os.makedirs(new_path)
+            extension = json_dat['image_url'].split('.')[-1]
+            new_file_path = new_path + str(order_detail.id) + '.' + extension
+            shutil.move(json_dat['image_url'][1:], new_file_path)
+            if os.path.exists(json_dat['image_url'][1:]):
+                os.remove(json_dat['image_url'][1:])
+            json_dat['image_url'] = '/' + new_file_path
+            ex_image_url[temp_url] = json_dat['image_url']
+        else:
+            json_dat['image_url'] = ''
+    if json_dat:
+        OrderJson.objects.create(order_id=order_detail.id, json_data=json.dumps(json_dat), creation_date=datetime.datetime.now())
+    return ex_image_url
 
 def get_order_customer_details(order_data, request):
     customer_user = CustomerUserMapping.objects.filter(user_id=request.user.id)
@@ -2163,10 +2189,14 @@ def insert_order_data(request, user=''):
     custom_order = request.POST.get('custom_order', '')
     user_type = request.POST.get('user_type', '')
     created_order_id = ''
+    ex_image_url = {}
     if valid_status:
         return HttpResponse(valid_status)
 
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
+
+    continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount', 'description',
+                     'extra_data']
     try:
         for i in range(0, len(myDict['sku_id'])):
             order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
@@ -2182,7 +2212,7 @@ def insert_order_data(request, user=''):
             vendor_items = ['printing_vendor', 'embroidery_vendor', 'production_unit']
 
             for key, value in request.POST.iteritems():
-                if key in ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount', 'description']:
+                if key in continue_list:
                     continue
 
                 if key == 'sku_id':
@@ -2271,11 +2301,11 @@ def insert_order_data(request, user=''):
                 order_detail = OrderDetail(**order_data)
                 order_detail.save()
 
-                for item in vendor_items:
-                    var = ""
-                    var = SKUFields.objects.filter(sku_id = order_detail.sku_id, field_type = item, sku__user = order_detail.user)
-                    if var:
-                        OrderMapping.objects.create(mapping_id = var[0].field_id, mapping_type = item, order_id = order_detail.id)
+                #for item in vendor_items:
+                #    var = ""
+                #    var = SKUFields.objects.filter(sku_id = order_detail.sku_id, field_type = item, sku__user = order_detail.user)
+                #    if var:
+                #        OrderMapping.objects.create(mapping_id = var[0].field_id, mapping_type = item, order_id = order_detail.id)
 
                 order_objs.append(order_detail)
                 order_sku.update({order_detail.sku : order_data['quantity']})
@@ -2286,8 +2316,9 @@ def insert_order_data(request, user=''):
                     order_summary = CustomerOrderSummary(**order_summary_dict)
                     order_summary.save()
 
-                if sku_master[0].sku_type == 'CS':
-                    create_order_json(order_detail)
+                extra_data = request.POST.get('extra_data', '')
+                if custom_order == 'true' and extra_data:
+                    ex_image_url = create_order_json(order_detail, eval(extra_data), ex_image_url)
 
             items.append([sku_master[0].sku_desc, order_data['quantity'], order_data.get('invoice_amount', 0)])
 
@@ -3319,6 +3350,10 @@ def get_view_order_details(request, user=''):
     sku_id_list = []
     if custom_data:
         attr_list = json.loads(custom_data[0].json_data)
+        if isinstance(attr_list, dict):
+            attr_list = attr_list.get('attribute_data', '')
+        else:
+            attr_list = []
 	for attr in attr_list:
 	    tuple_data = (attr['attribute_name'],attr['attribute_value'])
 	    cus_data.append(tuple_data)
@@ -3349,43 +3384,33 @@ def get_view_order_details(request, user=''):
         sku_code = one_order.sku.sku_code
         sku_type = one_order.sku.sku_type
         field_type = 'product_attribute'
+        vend_dict = {'printing_vendor' : "", 'embroidery_vendor' : "", 'production_unit' : ""}
+        sku_extra_data = {}
+        if str(order_code) == 'CO':
+            vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']
+            for item in vendor_list:
+                var = ""
+                map_obj = OrderMapping.objects.filter(order__order_id = _order_id, order__user = user.id, mapping_type = item)
+                if map_obj:
+                    var_id = map_obj[0].mapping_id
+                    vend_obj = VendorMaster.objects.filter(id = var_id)
+                    if vend_obj:
+                        var = vend_obj[0].name
+                        vend_dict[item] = var
+
+            order_json = OrderJson.objects.filter(order_id=one_order.id)
+            if order_json:
+                sku_extra_data = eval(order_json[0].json_data)
+
         order_details_data.append({'product_title':product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
                       'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone,'email': email, 'address': address, 'city': city, 
                       'state': state, 'pin': pin, 'shipment_date': str(shipment_date),'item_code': sku_code, 'order_id': order_id,
                       'image_url': one_order.sku.image_url, 'market_place': one_order.marketplace,
-                      'order_id_code': one_order.order_code + str(one_order.order_id)})
-    customization_data = []
-    vend_dict = {'printing_vendor' : "", 'embroidery_vendor' : "", 'production_unit' : ""}
-    if str(sku_type) == 'CS':
-        fields_list = SKUFields.objects.filter(sku_id=sku_id,field_type=field_type)
-
-        vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']
-        for item in vendor_list:
-            var = ""
-            map_obj = OrderMapping.objects.filter(order__order_id = _order_id, order__user = user.id, mapping_type = item)
-            if map_obj:
-                var_id = map_obj[0].mapping_id
-                vend_obj = VendorMaster.objects.filter(id = var_id)
-                if vend_obj:
-                    var = vend_obj[0].name
-                    vend_dict[item] = var
-
-        if fields_list:
-            for field in fields_list:
-                field_id = field.field_id
-                attr_id = field.id
-                attr_values = ProductAttributes.objects.filter(id=attr_id)
-                if attr_values:
-                    attr_name = attr_values[0].attribute_name
-                    attr_desc = attr_values[0].description
-                    pro_pro_id = attr_values[0].product_property_id
-                    img_data = ProductImages.objects.get(image_id=pro_pro_id).image_id
-                    img_url = ProductImages.objects.get(image_id=pro_pro_id).image_url
-                    custom_data = (attr_name,attr_desc,img_data,img_url)
-                    customization_data.append(custom_data)
-    data_dict.append({'customization_data': customization_data,'cus_data': cus_data,'status': status_obj, 'ord_data': order_details_data,
-                    'print_vendor' : vend_dict['printing_vendor'], 'embroidery_vendor': vend_dict['embroidery_vendor'],
-                    'central_remarks': central_remarks, 'production_unit': vend_dict['production_unit'], 'all_status': all_status})
+                      'order_id_code': one_order.order_code + str(one_order.order_id), 'print_vendor' : vend_dict['printing_vendor'],
+                      'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
+                      'sku_extra_data': sku_extra_data})
+    data_dict.append({'cus_data': cus_data,'status': status_obj, 'ord_data': order_details_data,
+                      'central_remarks': central_remarks, 'all_status': all_status})
 
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 
@@ -4927,3 +4952,53 @@ def customer_invoice_data(request, user=''):
     else:
         headers = WH_CUSTOMER_INVOICE_HEADERS
     return HttpResponse(json.dumps({'headers': headers}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_template_names(request, user=''):
+
+    template_names = []
+    name = request.GET.get('q', '')
+
+    if name:
+       template_names = list(ProductProperties.objects.filter(user_id=user.id, name__icontains=name).values_list('name', flat=True).distinct())
+
+    return HttpResponse(json.dumps(template_names, cls=DjangoJSONEncoder))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_custom_template_styles(request, user=''):
+    request_data = request.GET
+    filter_params = {'user': user.id, 'status': 1}
+    sku_category = request_data.get('category', '')
+    sku_brand = request_data.get('brand', '')
+    customer_data_id = request_data.get('customer_data_id', '')
+    name = request_data.get('name', '')
+    customer_id = ''
+
+    product_properties = ProductProperties.objects.filter(user=user.id, name=name)
+    brands_list = product_properties.values_list('brand', flat=True)
+    categories_list = product_properties.values_list('category', flat=True)
+    sku_master = SKUMaster.objects.exclude(sku_class='').filter(user=user.id, sku_brand__in=brands_list, sku_category__in=categories_list)
+    if sku_brand and not sku_brand.upper() == 'ALL':
+        filter_params['sku_brand'] = sku_brand
+    if sku_category and not sku_category.upper() == 'ALL':
+        filter_params['sku_category'] = sku_category
+    start, stop = 0, None
+
+    sku_master = sku_master.filter(**filter_params)
+    size_dict = request_data.get('size_filter', '')
+    query_string = 'sku__sku_code'
+    if size_dict:
+        size_dict = eval(size_dict)
+        if size_dict:
+            classes = get_sku_available_stock(user, sku_master, query_string, size_dict)
+            sku_master = sku_master.filter(sku_class__in = classes)
+
+    sku_master = sku_master.order_by('sequence')
+    product_styles = sku_master.values_list('sku_class', flat=True).distinct()
+    product_styles = list(OrderedDict.fromkeys(product_styles))
+    data = get_styles_data(user, product_styles, sku_master, start, stop, customer_id='', customer_data_id='', is_file='')
+    return HttpResponse(json.dumps({'data': data}))

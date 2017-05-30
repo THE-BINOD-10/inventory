@@ -107,6 +107,8 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(UNI_WARE_EXCEL1)
     elif get_cell_data(0, 0, reader, file_type) == 'Order ID' and get_cell_data(0, 1, reader, file_type) == 'UOR ID':
         order_mapping = copy.deepcopy(SHOTANG_ORDER_FILE_EXCEL)
+    elif get_cell_data(0, 2, reader, file_type) == 'VENDOR ARTICLE NUMBER' and get_cell_data(0, 3, reader, file_type) == 'VENDOR ARTICLE NAME':
+        order_mapping = copy.deepcopy(MYNTRA_BULK_PO_EXCEL)
 
     return order_mapping
 
@@ -219,9 +221,16 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
             elif key == 'quantity':
                 order_data[key] = int(get_cell_data(row_idx, value, reader, file_type))
+            elif key == 'unit_price':
+                order_data[key] = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'invoice_amount':
-                if get_cell_data(row_idx, value, reader, file_type):
-                    order_data[key] = float(get_cell_data(row_idx, value, reader, file_type))
+                if isinstance(value, list):
+                    cell_data = float(get_cell_data(row_idx, value[0], reader, file_type)) * \
+                                float(get_cell_data(row_idx, value[1], reader, file_type))
+                else:
+                    cell_data = get_cell_data(row_idx, value, reader, file_type)
+                if cell_data:
+                    order_data[key] = float(cell_data)
                 else:
                     order_data[key] = 0
                 sku_length = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
@@ -250,6 +259,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_summary_dict['issue_type'] = 'order'
                     order_summary_dict['vat'] = vat
                     order_summary_dict['tax_value'] = "%.2f" % tax_value
+                elif isinstance(value, dict):
+                    vat = float(get_cell_data(row_idx, value['tax'], reader, file_type))
+                    tax_value = float(get_cell_data(row_idx, value['tax_value'], reader, file_type))
+                    quantity = float(get_cell_data(row_idx, value['quantity'], reader, file_type))
+                    order_summary_dict['issue_type'] = 'order'
+                    order_summary_dict['vat'] = vat
+                    order_summary_dict['tax_value'] = "%.2f" % (tax_value * quantity)
             elif key == 'address':
                 if isinstance(value, (list)):
                     cell_data = ''
@@ -733,6 +749,9 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
             elif key == 'mix_sku':
                 if cell_data and cell_data.lower() not in MIX_SKU_MAPPING.keys():
                     index_status.setdefault(row_idx, set()).add('Invalid option for Mix SKU')
+            elif key == 'load_unit_handle':
+                if cell_data and cell_data.lower() not in LOAD_UNIT_HANDLE_DICT.keys():
+                    index_status.setdefault(row_idx, set()).add('Invalid option for Load Unit Handling')
 
     master_sku = SKUMaster.objects.filter(user=user.id)
     master_sku = [data.sku_code for data in master_sku]
@@ -850,9 +869,16 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                     sku_data.mix_sku = cell_data
                 data_dict[key] = cell_data
 
+            elif key == 'load_unit_handle':
+                if cell_data:
+                    cell_data = LOAD_UNIT_HANDLE_DICT[cell_data.lower()]
+                if sku_data and cell_data:
+                    setattr(sku_data, key, cell_data)
+                data_dict[key] = cell_data
 
-            elif key == 'sku_size': 
-                try: 
+
+            elif key == 'sku_size':
+                try:
                     data_dict['sku_size'] = str(int(cell_data))
                 except:
                     data_dict['sku_size'] = cell_data
@@ -2236,19 +2262,19 @@ def customer_form(request, user=''):
     return xls_to_response(wb, '%s.customer_form.xls' % str(user.id))
 
 @csrf_exempt
-def validate_customer_form(open_sheet, user_id):
+def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='xls'):
     index_status = {}
     customer_ids = []
     mapping_dict = copy.deepcopy(CUSTOMER_EXCEL_MAPPING)
     number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code'}
-    for row_idx in range(0, open_sheet.nrows):
+    for row_idx in range(0, no_of_rows):
         customer_master = None
         if row_idx == 0:
-            if open_sheet.cell(row_idx, 0).value != 'Customer Id':
+            if get_cell_data(row_idx, 0, reader, file_type) != 'Customer Id':
                 return 'Invalid File'
             break
         for key, value in mapping_dict.iteritems():
-            cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
+            cell_data = get_cell_data(row_idx, mapping_dict[key], reader, file_type)
 
             if key == 'customer_id':
                 if cell_data:
@@ -2284,15 +2310,16 @@ def validate_customer_form(open_sheet, user_id):
     write_error_file(f_name, index_status, open_sheet, CUSTOMER_HEADERS, 'Customer')
     return f_name
 
-def customer_excel_upload(request, open_sheet, user):
+def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
     mapping_dict = copy.deepcopy(CUSTOMER_EXCEL_MAPPING)
     number_fields = ['credit_period', 'phone_number', 'pincode']
-    for row_idx in range(1, open_sheet.nrows):
+    for row_idx in range(1, no_of_rows):
         customer_data = copy.deepcopy(CUSTOMER_DATA)
         customer_master = None
 
         for key, value in mapping_dict.iteritems():
-            cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
+            cell_data = get_cell_data(row_idx, mapping_dict[key], reader, file_type)
+            #cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
             if key == 'customer_id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
@@ -2331,18 +2358,37 @@ def customer_excel_upload(request, open_sheet, user):
 @get_admin_user
 def customer_upload(request, user=''):
     fname = request.FILES['files']
-    if fname.name.split('.')[-1] == 'xls' or fname.name.split('.')[-1] == 'xlsx':
+    if (fname.name).split('.')[-1] == 'csv':
+        reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
+        no_of_rows = len(reader)
+        file_type = 'csv'
+
+    elif (fname.name).split('.')[-1] == 'xls' or (fname.name).split('.')[-1] == 'xlsx':
+        try:
+            data = fname.read()
+            if '<table' in data:
+                open_book, open_sheet = html_excel_data(data, fname)
+            else:
+                open_book = open_workbook(filename=None, file_contents=data)
+                open_sheet = open_book.sheet_by_index(0)
+        except:
+            return HttpResponse("Invalid File")
+        reader = open_sheet
+        no_of_rows = reader.nrows
+        file_type = 'xls'
+    '''if fname.name.split('.')[-1] == 'xls' or fname.name.split('.')[-1] == 'xlsx':
         try:
             open_book = open_workbook(filename=None, file_contents=fname.read())
             open_sheet = open_book.sheet_by_index(0)
         except:
-            return HttpResponse('Invalid File')
+            return HttpResponse('Invalid File')'''
 
-        status = validate_customer_form(open_sheet, str(user.id))
+        status = validate_customer_form(request, reader, user, no_of_rows, fname, file_type)
         if status != 'Success':
             return HttpResponse(status)
 
-        customer_excel_upload(request, open_sheet, user)
+        customer_excel_upload(request, reader, user, no_of_rows, fname, file_type)
+        #customer_excel_upload(request, open_sheet, user)
 
     return HttpResponse('Success')
 

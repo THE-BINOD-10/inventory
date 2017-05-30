@@ -153,7 +153,7 @@ def add_user_type_permissions(user_profile):
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment', 'shipmentinfo', 'shipmenttracking']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
-        exc_perms = []
+        exc_perms = ['productproperties', 'sizemaster', 'pricemaster']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST
@@ -189,7 +189,7 @@ def wms_login(request):
                 user_profile = UserProfile(user=user, phone_number='',
 	                                           is_active=1, prefix=prefix, swx_id=0)
                 user_profile.save()
-                add_user_type_permissions(user_profile)
+                #add_user_type_permissions(user_profile)
         else:
             return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -2413,8 +2413,8 @@ def get_sellers_list(request, user=''):
     sellers = SellerMaster.objects.filter(user=user.id)
     seller_list = []
     for seller in sellers:
-        seller_list.append({'id': seller.id, 'name': seller.name})
-    return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5}))
+        seller_list.append({'id': seller.seller_id, 'name': seller.name})
+    return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES}))
 
 def update_filled_capacity(locations, user_id):
     location_masters = LocationMaster.objects.filter(location__in=locations, zone__user=user_id)

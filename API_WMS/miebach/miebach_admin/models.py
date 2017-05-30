@@ -898,6 +898,7 @@ class SellerMaster(models.Model):
     vat_number = models.CharField(max_length=64, default='')
     tin_number = models.CharField(max_length=64, default='')
     price_type = models.CharField(max_length=32, default='')
+    supplier = models.ForeignKey(SupplierMaster, null=True, blank=True, default = None)
     status = models.IntegerField(max_length=1, default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

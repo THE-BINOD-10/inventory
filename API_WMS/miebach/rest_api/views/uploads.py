@@ -2236,19 +2236,19 @@ def customer_form(request, user=''):
     return xls_to_response(wb, '%s.customer_form.xls' % str(user.id))
 
 @csrf_exempt
-def validate_customer_form(open_sheet, user_id):
+def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='xls'):
     index_status = {}
     customer_ids = []
     mapping_dict = copy.deepcopy(CUSTOMER_EXCEL_MAPPING)
     number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code'}
-    for row_idx in range(0, open_sheet.nrows):
+    for row_idx in range(0, no_of_rows):
         customer_master = None
         if row_idx == 0:
-            if open_sheet.cell(row_idx, 0).value != 'Customer Id':
+            if get_cell_data(row_idx, 0, reader, file_type) != 'Customer Id':
                 return 'Invalid File'
             break
         for key, value in mapping_dict.iteritems():
-            cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
+            cell_data = get_cell_data(row_idx, mapping_dict[key], reader, file_type)
 
             if key == 'customer_id':
                 if cell_data:
@@ -2284,15 +2284,16 @@ def validate_customer_form(open_sheet, user_id):
     write_error_file(f_name, index_status, open_sheet, CUSTOMER_HEADERS, 'Customer')
     return f_name
 
-def customer_excel_upload(request, open_sheet, user):
+def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
     mapping_dict = copy.deepcopy(CUSTOMER_EXCEL_MAPPING)
     number_fields = ['credit_period', 'phone_number', 'pincode']
-    for row_idx in range(1, open_sheet.nrows):
+    for row_idx in range(1, no_of_rows):
         customer_data = copy.deepcopy(CUSTOMER_DATA)
         customer_master = None
 
         for key, value in mapping_dict.iteritems():
-            cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
+            cell_data = get_cell_data(row_idx, mapping_dict[key], reader, file_type)
+            #cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
             if key == 'customer_id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
@@ -2331,18 +2332,37 @@ def customer_excel_upload(request, open_sheet, user):
 @get_admin_user
 def customer_upload(request, user=''):
     fname = request.FILES['files']
-    if fname.name.split('.')[-1] == 'xls' or fname.name.split('.')[-1] == 'xlsx':
+    if (fname.name).split('.')[-1] == 'csv':
+        reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
+        no_of_rows = len(reader)
+        file_type = 'csv'
+
+    elif (fname.name).split('.')[-1] == 'xls' or (fname.name).split('.')[-1] == 'xlsx':
+        try:
+            data = fname.read()
+            if '<table' in data:
+                open_book, open_sheet = html_excel_data(data, fname)
+            else:
+                open_book = open_workbook(filename=None, file_contents=data)
+                open_sheet = open_book.sheet_by_index(0)
+        except:
+            return HttpResponse("Invalid File")
+        reader = open_sheet
+        no_of_rows = reader.nrows
+        file_type = 'xls'
+    '''if fname.name.split('.')[-1] == 'xls' or fname.name.split('.')[-1] == 'xlsx':
         try:
             open_book = open_workbook(filename=None, file_contents=fname.read())
             open_sheet = open_book.sheet_by_index(0)
         except:
-            return HttpResponse('Invalid File')
+            return HttpResponse('Invalid File')'''
 
-        status = validate_customer_form(open_sheet, str(user.id))
+        status = validate_customer_form(request, reader, user, no_of_rows, fname, file_type)
         if status != 'Success':
             return HttpResponse(status)
 
-        customer_excel_upload(request, open_sheet, user)
+        customer_excel_upload(request, reader, user, no_of_rows, fname, file_type)
+        #customer_excel_upload(request, open_sheet, user)
 
     return HttpResponse('Success')
 

@@ -187,6 +187,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           if(data.message) {
             colFilters.showNoty(data.data.message);
             vm.model_imei = {};
+            focus('focusIMEI');
           }
           console.log(data);
         })

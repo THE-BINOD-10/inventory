@@ -1,16 +1,21 @@
 'use strict';
 
-function StockTransferPOP($scope, $http, $state, $timeout, Session, colFilters, Service) {
+function StockTransferPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams) {
 
   var vm = this;
-  var state_data = Service.stock_transfer;
+  vm.state_data = "";
   vm.service = Service;
+
+  if($stateParams.data){
+     vm.state_data = $stateParams.data;
+  }
+
   vm.pop_data = {};
   var empty_data = {data: [{wms_code: "", order_quantity: "", price: ""}], warehouse_name: ""};
   angular.copy(empty_data, vm.pop_data);
-  if(state_data)  {
+  if(vm.state_data)  {
 
-    angular.copy(JSON.parse(state_data), vm.pop_data.data);
+    angular.copy(JSON.parse(vm.state_data), vm.pop_data.data);
   } else {
     $state.go($state.$current.parent);
   }
@@ -38,69 +43,28 @@ function StockTransferPOP($scope, $http, $state, $timeout, Session, colFilters, 
       vm.warehouse_list = data.data.warehouses;
     }
   })
-  vm.bt_disable = false; 
-  /*vm.insert_order_data = function(data) {
-    if (data.$valid) {
-      vm.bt_disable = true;
-      console.log(form);
-      var elem = angular.element(form);
-      elem = $(elem).serializeArray();
-      vm.service.apiCall('create_stock_transfer/', 'POST', elem).then(function(data){
-        if(data.message) {
-          if("Confirmed Successfully" == data.data) {
-            angular.copy(empty_data, vm.pop_data);
-            Service.stock_transfer = "";
-            colFilters.showNoty("Confirmed Successfully");
-          }
-          vm.service.pop_msg(data.data);
-          vm.bt_disable = false;
-        }
-      })
-    } else {
-      vm.service.pop_msg("Fill Required Fields");
-    }
-  }*/
 
-    function pop_msg(msg) {
-      vm.message = msg;
-      $timeout(function () {
-          vm.message = "";
-      }, 2000);
-      //reloadData();
-    }
-
-    /*vm.reloadData = reloadData;
-
-    function reloadData () {
-        vm.dtInstance.reloadData();
-    };*/
-
+  vm.bt_disable = false;
 
   vm.insert_order_data = function(data) {
-     if (data.$valid) {
+    if (data.$valid) {
       var elem = angular.element($('form'));
       elem = elem[0];
-      elem = $(elem).serialize();
-      $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-        $http({
-               method: 'POST',
-               url:Session.url+'confirm_st/',
-               withCredential: true,
-               data: elem
-               }).success(function(data, status, headers, config) {
-                  if(data == 'Confirmed Successfully') {
-                    //vm.close();
-                    //vm.reloadData();
-                    pop_msg(data);
-                  } else {
-                    pop_msg(data);
-                  }
-              });
-     }
+      elem = $(elem).serializeArray();
+      Service.apiCall("confirm_st/", "POST", elem, true).then(function(data){
+        if(data.message) {
+          if(data.data == 'Confirmed Successfully') {
+            vm.service.pop_msg(data.data);
+          } else {
+            vm.service.pop_msg(data.data);
+          }
+        }
+      });
+    }
   }
 
 }
 
 angular
   .module('urbanApp')
-  .controller('StockTransferPOP', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', StockTransferPOP]);
+  .controller('StockTransferPOP', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', StockTransferPOP]);

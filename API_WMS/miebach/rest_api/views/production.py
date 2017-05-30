@@ -1307,13 +1307,15 @@ def confirmed_jo_data(request, user=''):
                                  'pallet_number': pallet.pallet_detail.pallet_code, 'stages_list': rem_stages,
                                  'sub_data': [{'received_quantity': jo_quantity,
                                  'pallet_number': pallet.pallet_detail.pallet_code, 'stages_list': rem_stages, 'pallet_id': pallet.id,
-                                 'status_track_id': tracking.id}], 'sku_extra_data': sku_extra_data, 'product_images': product_images })
+                                 'status_track_id': tracking.id}], 'sku_extra_data': sku_extra_data, 'product_images': product_images,
+                                 'load_unit_handle': rec.product_code.load_unit_handle})
             else:
                 all_data.append({'id': rec.id, 'wms_code': rec.product_code.wms_code,
                                  'product_quantity': jo_quantity, 'received_quantity': tracking.quantity, 'pallet_number': '',
                                  'stages_list': rem_stages, 'sub_data': [{'received_quantity': jo_quantity, 'pallet_number': '',
                                  'stages_list': rem_stages, 'pallet_id': '', 'status_track_id': tracking.id}],
-                                 'sku_extra_data': sku_extra_data, 'product_images': product_images })
+                                 'sku_extra_data': sku_extra_data, 'product_images': product_images,
+                                 'load_unit_handle': rec.product_code.load_unit_handle})
         else:
             cond = (rec.id)
             jo_quantity = float(rec.product_quantity) - float(rec.received_quantity) - stage_quantity
@@ -1331,13 +1333,15 @@ def confirmed_jo_data(request, user=''):
                                      'status_track_id': '', 'sub_data': [{'received_quantity': jo_quantity,
                                      'pallet_number': pallet.pallet_detail.pallet_code,
                                      'stages_list': stages_list, 'pallet_id': pallet.id, 'status_track_id': ''}],
-                                     'sku_extra_data': sku_extra_data, 'product_images': product_images })
+                                     'sku_extra_data': sku_extra_data, 'product_images': product_images,
+                                     'load_unit_handle': rec.product_code.load_unit_handle})
             else:
                 all_data.append({'id': rec.id, 'wms_code': rec.product_code.wms_code,
                                  'product_quantity': jo_quantity, 'received_quantity': jo_quantity, 'pallet_number': '',
                                  'stages_list': stages_list, 'status_track_id': '', 'sub_data': [{'received_quantity': jo_quantity,
                                  'pallet_number': '', 'stages_list': stages_list, 'pallet_id': '', 'status_track_id': ''}],
-                                 'sku_extra_data': sku_extra_data, 'product_images': product_images })
+                                 'sku_extra_data': sku_extra_data, 'product_images': product_images,
+                                 'load_unit_handle': rec.product_code.load_unit_handle})
 
     return HttpResponse(json.dumps({'data': all_data, 'job_code': job_code, 'temp': temp, 'order_ids': order_ids,
                                     'sku_brands': ','.join(sku_brands), 'sku_categories': ','.join(sku_categories),
@@ -1588,12 +1592,14 @@ def received_jo_data(request, user=''):
                                      'product_quantity': location.quantity, 'putaway_quantity': location.quantity,
                                      'sku_extra_data': sku_extra_data, 'product_images': product_images,
                                      'pallet_code': pallet.pallet_detail.pallet_code, 'sub_data': [{'putaway_quantity': location.quantity,
-                                     'location': location.location.location}] })
+                                     'location': location.location.location}],
+                                     'load_unit_handle': rec.product_code.load_unit_handle})
             else:
                 all_data.append({'id': location.id, 'wms_code': rec.product_code.wms_code, 'location': location.location.location,
                                  'product_quantity': location.quantity, 'putaway_quantity': location.quantity, 'pallet_code': '',
                                  'sku_extra_data': sku_extra_data, 'product_images': product_images,
-                                 'sub_data': [{'putaway_quantity': location.quantity, 'location': location.location.location}] })
+                                 'sub_data': [{'putaway_quantity': location.quantity, 'location': location.location.location}],
+                                 'load_unit_handle': rec.product_code.load_unit_handle})
     return HttpResponse(json.dumps({'data': all_data,  'job_code': job_code, 'temp': temp, 'order_ids': order_ids}))
 
 def validate_locations(all_data, user):
@@ -2088,8 +2094,6 @@ def confirm_back_order(request, user=''):
     all_invoices = []
     all_invoice_data = []
     for key,value in all_data.iteritems():
-        print key
-        print value
         order_id = 1
         purchase_order_id = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
         if purchase_order_id:
@@ -2129,9 +2133,10 @@ def confirm_back_order(request, user=''):
             purchase_order = PurchaseOrder(**purchase_order_dict)
             purchase_order.save()
 
-            customer_name = ""
+            order_detail_id = ''
             if val[6]:
                 create_order_mapping(user, purchase_order.id, val[6], mapping_type='JO-PO')
+                order_detail_id = val[6]
                 ord_objs = OrderDetail.objects.filter(id = val[6])
                 if ord_objs:
                     if ord_objs[0].customer_name:
@@ -2142,10 +2147,24 @@ def confirm_back_order(request, user=''):
             sku_extra_data = ''
             if val[5]:
                 create_order_mapping(user, purchase_order.id, val[5], mapping_type='PO')
+                order_detail_id = val[5]
                 sku_extra_data, product_images, order_ids = get_order_json_data(user, mapping_id=purchase_order.id, mapping_type='PO',
                                                                                 sku_id=sku_master.id, order_ids=[])
                 if sku_extra_data:
                     customization = 'true'
+
+            customer_name = ''
+            executive_name = ''
+            if order_detail_id:
+                ord_objs = OrderDetail.objects.filter(id = order_detail_id)
+                if ord_objs:
+                    if ord_objs[0].customer_name:
+                        customer_name = ord_objs[0].customer_name
+                    elif ord_objs[0].marketplace:
+                        customer_name = ord_objs[0].marketplace
+                customer_order = CustomerOrderSummary.objects.filter(order_id=order_detail_id, order__user=user.id)
+                if customer_order:
+                    executive_name = customer_order[0].order_taken_by
 
             # Send Mail code
             supplier_code = ''
@@ -2186,7 +2205,7 @@ def confirm_back_order(request, user=''):
             data_dictionary = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                          'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference,
                          'user_name': request.user.username, 'total_qty': total_qty, 'company_name': profile.company_name,
-                         'location': profile.location, 'w_address': profile.address, 'executive_name': request.user.first_name,
+                         'location': profile.location, 'w_address': profile.address, 'executive_name': executive_name,
                          'company_name': profile.company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                          'vendor_telephone': vendor_telephone, 'customization': customization, 'customer_name': customer_name}
 

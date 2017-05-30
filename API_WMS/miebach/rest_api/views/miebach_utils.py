@@ -35,7 +35,7 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sku_desc': '', 'sku_group': '', 'sku_type': '', 'mix_sku': '',
             'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'color': '', 'mrp': 0,
             'status': 1, 'online_percentage': 0, 'qc_check': 0, 'sku_brand': '', 'sku_size': '', 'style_name': '', 'price': 0,
-             'ean_number': 0}
+             'ean_number': 0, 'load_unit_handle': 'unit'}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(), 'st_po_id': '', 'sku_id': '', 'status': 1}
 OPEN_ST_FIELDS = {'warehouse_id': '', 'order_quantity': 0, 'price': 0, 'sku_id': '', 'status': 1, 'creation_date': datetime.datetime.now()}
@@ -289,7 +289,7 @@ LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequenc
 
 SKU_HEADERS = ['WMS Code','SKU Description', 'SKU Group', 'SKU Type', 'SKU Category', 'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size',
                'Size Type', 'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url', 'Threshold Quantity', 'Measurment Type',
-               'Sale Through', 'Color', 'EAN Number', 'Status']
+               'Sale Through', 'Color', 'EAN Number', 'Load Unit Handling(Options: Enable, Disable)', 'Status']
 
 MARKET_USER_SKU_HEADERS = ['WMS Code','SKU Description', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category', 'SKU Class',
                            'SKU Brand', 'Style Name', 'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Put Zone',
@@ -507,7 +507,7 @@ EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 8, 'invoice_amount': 3, 'chann
 SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('sku_group', 2), ('sku_type', 3), ('sku_category', 4), ('sku_class', 5),
                               ('sku_brand', 6), ('style_name', 7), ('sku_size', 8), ('size_type', 9), ('zone_id', 10), ('price', 11),
                               ('mrp', 12), ('sequence', 13), ('image_url', 14), ('threshold_quantity', 15), ('measurement_type', 16),
-                              ('sale_through', 17), ('color', 18), ('ean_number', 19), ('status', 20)
+                              ('sale_through', 17), ('color', 18), ('ean_number', 19), ('load_unit_handle', 20), ('status', 21)
                            ))
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('sku_group', 2), ('sku_type', 3), ('sku_category', 4),
                                           ('sku_class', 5), ('sku_brand', 6), ('style_name', 7), ('mix_sku', 8), ('zone_id', 9),
@@ -560,6 +560,10 @@ MYNTRA_RETURN_EXCEL = OrderedDict((('sku_id', [5,7]), ('quantity', 8), ('reason'
 UNIWEAR_RETURN_EXCEL = OrderedDict((('sku_id', 4), ('channel', 14),('reason', 12),
                                         ('return_id', 5),  ('return_date', 8)))
 
+MYNTRA_BULK_PO_EXCEL = OrderedDict(( ('order_id', 0), ('original_order_id', 0), ('sku_code', 1), ('title', 3),
+                                     ('marketplace', 'Myntra'), ('mrp', 7), ('quantity', 6), ('invoice_amount', [6, 12]),
+                                     ('vat', {'tax': 10, 'quantity': 6, 'tax_value': 11}),
+                                  ))
 
 UNI_COMMERCE_EXCEL1 = {'order_id': 8, 'channel_name': 2, 'sku_code': 20, 'customer_name': 9, 'email_id': 10, 'telephone': 11,
                        'address': [12, 13, 14], 'state': 15, 'pin_code': 16, 'invoice_amount': 19, 'recreate': True}
@@ -714,11 +718,16 @@ RETURNS_TYPE_MAPPING = {'return to origin(rto)': 'rto', 'customer initiated retu
 MYNTRA_BANGALORE_ADDRESS = 'Myntra Designs Pvt Ltd\nNumber 88/17-18 and 19, Khata number 44 and 45, Ward Number 7 ,\n\
                             Singasandra Village, Hongasandra panchayat,\nBegur Hobli, Bangalore - 560068\nKarnataka       TIN:29910754899'
 
-MYNTRA_MUMBAI_ADDRESS = 'Myntra Designs Pvt Ltd\nSSN Logistics Pvt Ltd, B-2, Antariksha Lodgidrome Warehousing Complex, Opp\n\
-                         Vashere HP petrol pump Aamne-sape, Pagdha, Kalyan rd,Bhiwandi - 421302\n\
-                         TIN: 27590747736'
+MYNTRA_MUMBAI_ADDRESS = 'Myntra jabong India Pvt Ltd.\nKsquare Industrial Park, Warehouse 4\n\
+                         Before Padgha Toll naka Nashik-Mumbai Highway \nNear Pushkar Mela Hotel Rahul Narkhede,\n\
+                         Padgha Bhiwandi - 421101, Maharashtra\n\
+                         TIN:27461499703'
+MYNTRA_BULK_ADDRESS = 'MYNTRA DESIGNS PVT LTD\nKsquare Industrial Park, Warehouse 4\n\
+                         Before Padgha Toll naka Nashik-Mumbai Highway \nNear Pushkar Mela Hotel Rahul Narkhede,\n\
+                         Padgha-Bhiwandi\nTin# 27590747736'
 
-USER_MYNTRA_ADDRESS = {'campus_sutra': MYNTRA_BANGALORE_ADDRESS, 'adam_clothing': MYNTRA_MUMBAI_ADDRESS, 'adam_clothing1': MYNTRA_MUMBAI_ADDRESS}
+USER_MYNTRA_ADDRESS = {'campus_sutra': MYNTRA_BANGALORE_ADDRESS, 'adam_clothing': MYNTRA_MUMBAI_ADDRESS,
+                       'adam_clothing1': MYNTRA_MUMBAI_ADDRESS, 'adam_clothing1:bulk': MYNTRA_BULK_ADDRESS}
 
 SHOTANG_ORDER_FILE_EXCEL = {'order_id': 1, 'customer_name': 8, 'customer_id': 7, 'telephone': 9, 'address': 10, 'title': 13, 'sku_code': 2,
                             'invoice_amount': 6, 'sor_id': 0, 'order_date': 3, 'quantity': 4, 'order_status': 19, 'seller': 11,
@@ -748,6 +757,7 @@ PO_RECEIPT_TYPES = ['Purchase Order', 'Buy & Sell', 'Hosted Warehouse']
 
 PO_ORDER_TYPES = {'SR': 'Self Receipt', 'VR': 'Vendor Receipt', 'HW': 'Hosted Warehouse', 'BS': 'Buy & Sell'}
 
+LOAD_UNIT_HANDLE_DICT = {'enable': 'pallet', 'disable': 'unit'}
 
 def fn_timer(function):
     @wraps(function)

@@ -53,7 +53,8 @@
     "fullcalendar": "~2.3.1",
     "jquery.easy-pie-chart": "~2.1.6",
     "d3": "~3.5.5",
-    "angular-web-notification": "*"
+    "angular-web-notification": "*",
+    "angular-slick": "*"
   },
   "appPath": "app",
   "moduleName": "urbanApp",

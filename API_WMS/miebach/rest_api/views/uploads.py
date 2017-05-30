@@ -107,6 +107,8 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(UNI_WARE_EXCEL1)
     elif get_cell_data(0, 0, reader, file_type) == 'Order ID' and get_cell_data(0, 1, reader, file_type) == 'UOR ID':
         order_mapping = copy.deepcopy(SHOTANG_ORDER_FILE_EXCEL)
+    elif get_cell_data(0, 2, reader, file_type) == 'VENDOR ARTICLE NUMBER' and get_cell_data(0, 3, reader, file_type) == 'VENDOR ARTICLE NAME':
+        order_mapping = copy.deepcopy(MYNTRA_BULK_PO_EXCEL)
 
     return order_mapping
 
@@ -219,9 +221,16 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
             elif key == 'quantity':
                 order_data[key] = int(get_cell_data(row_idx, value, reader, file_type))
+            elif key == 'unit_price':
+                order_data[key] = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'invoice_amount':
-                if get_cell_data(row_idx, value, reader, file_type):
-                    order_data[key] = float(get_cell_data(row_idx, value, reader, file_type))
+                if isinstance(value, list):
+                    cell_data = float(get_cell_data(row_idx, value[0], reader, file_type)) * \
+                                float(get_cell_data(row_idx, value[1], reader, file_type))
+                else:
+                    cell_data = get_cell_data(row_idx, value, reader, file_type)
+                if cell_data:
+                    order_data[key] = float(cell_data)
                 else:
                     order_data[key] = 0
                 sku_length = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
@@ -250,6 +259,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_summary_dict['issue_type'] = 'order'
                     order_summary_dict['vat'] = vat
                     order_summary_dict['tax_value'] = "%.2f" % tax_value
+                elif isinstance(value, dict):
+                    vat = float(get_cell_data(row_idx, value['tax'], reader, file_type))
+                    tax_value = float(get_cell_data(row_idx, value['tax_value'], reader, file_type))
+                    quantity = float(get_cell_data(row_idx, value['quantity'], reader, file_type))
+                    order_summary_dict['issue_type'] = 'order'
+                    order_summary_dict['vat'] = vat
+                    order_summary_dict['tax_value'] = "%.2f" % (tax_value * quantity)
             elif key == 'address':
                 if isinstance(value, (list)):
                     cell_data = ''
@@ -733,6 +749,9 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
             elif key == 'mix_sku':
                 if cell_data and cell_data.lower() not in MIX_SKU_MAPPING.keys():
                     index_status.setdefault(row_idx, set()).add('Invalid option for Mix SKU')
+            elif key == 'load_unit_handle':
+                if cell_data and cell_data.lower() not in LOAD_UNIT_HANDLE_DICT.keys():
+                    index_status.setdefault(row_idx, set()).add('Invalid option for Load Unit Handling')
 
     master_sku = SKUMaster.objects.filter(user=user.id)
     master_sku = [data.sku_code for data in master_sku]
@@ -850,9 +869,16 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                     sku_data.mix_sku = cell_data
                 data_dict[key] = cell_data
 
+            elif key == 'load_unit_handle':
+                if cell_data:
+                    cell_data = LOAD_UNIT_HANDLE_DICT[cell_data.lower()]
+                if sku_data and cell_data:
+                    setattr(sku_data, key, cell_data)
+                data_dict[key] = cell_data
 
-            elif key == 'sku_size': 
-                try: 
+
+            elif key == 'sku_size':
+                try:
                     data_dict['sku_size'] = str(int(cell_data))
                 except:
                     data_dict['sku_size'] = cell_data

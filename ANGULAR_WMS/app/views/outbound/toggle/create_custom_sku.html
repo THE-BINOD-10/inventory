@@ -1,5 +1,5 @@
 <div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
-  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate" id="create_form">
+  <form name="custom_form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate" id="create_form">
   <div class="modal-dialog model-custom modal-lg">
     <div class="modal-content">
       <div class="modal-header">
@@ -8,38 +8,92 @@
       </div>
       <!-- body-->
       <div class="modal-body">
-	<div class="row">
-	  <div class="col-md-4">
-	    <div class="form-group">
-	      <label class="control-label"> Select Category </label>
-		<select class="form-control" ng-model="showCase.model_data.template_type" name="property_type" ng-change="showCase.change_template_values();">
-		  <option ng-repeat="type in showCase.template_types" ng-selected="type.field_name == showCase.model_data.template_type" value="{{type.field_value}}:{{type.template_name}}:{{type.field_name}}">{{type.field_value}}:{{type.template_name}}</option>
-		</select>
-	    </div>
-	  </div>
-	  <div class="col-md-4">
-	    <div class="form-group">
-              <label class="control-label"> Select Value </label>
-	      <select class="form-control" ng-model="showCase.model_data.template_value" ng-change="showCase.change_category_values();" name="property_name">
-		<option ng-repeat="type in showCase.template_values" value="{{type}}">{{type}}</option>
-	      </select>
-	    </div>
-	  </div>
+        <div class="row">
           <div class="col-md-4">
             <div class="form-group">
-              <label class="control-label"> Select Size Name </label>
-              <select class="form-control" ng-model="showCase.pop_data.size_name" ng-change="showCase.change_sizes_list(showCase.pop_data.size_name)" name="size_name">
-                <option value="">None</option>
-                <option ng-repeat="name in showCase.pop_data.sizes_list" value="{{name.size_name}}">{{name.size_name}}</option>
+              <label class="control-label"> Template * </label>
+              <input type="text" autocomplete="off" ng-model="showCase.pop_data.name" name="template" placeholder="Search Template" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_template_names?')" typeahead-loading="loadingLocations" class="form-control" typeahead-on-select="showCase.getTemplateData(showCase.pop_data, $item);" required>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              <label class="control-label"> Brands </label>
+              <select class="form-control" ng-model="showCase.pop_data.brand" name="brand" ng-change="showCase.getCategoriesList(showCase.pop_data.name, showCase.pop_data.brand)">
+                <option value="ALL">All</option>
+                <option ng-repeat="type in showCase.pop_data.brands" value="{{type}}">{{type}}</option>
               </select>
             </div>
           </div>
-	</div>
+          <div class="col-md-4">
+            <div class="form-group">
+              <label class="control-label"> Select Size Name * </label>
+              <select class="form-control" ng-model="showCase.pop_data.size_name" name="size_name" ng-change="showCase.changeSizes(showCase.pop_data.size_name)">
+                <option ng-repeat="name in showCase.pop_data.size_names" ng-select="showCase.pop_data.size_name == name" value="{{name}}">{{name}}</option>
+              </select>
+            </div>
+          </div>
+	    </div>
+        <div class="row" ng-if="showCase.custom_data.cats.length > 0"><hr></div>
+
+        <div class="tag-display row mt10" ng-if="showCase.custom_data.cats.length > 0">
+          <div class="col-md-1 col-sm-1 col-xs-12">
+          </div>
+          <div class="col-md-10 col-sm-10 col-xs-12">
+            <a ng-repeat="cate in showCase.custom_data.cats" class="cat-tags" ng-class="(showCase.selectedCat == $index)? 'style_name': '';" ng-click="showCase.getCustomStyles(cate, $index);" href="">{{cate}}</a>
+          </div>
+        </div>
+        <div class="row" style="padding: 0px 30px;">
+          <div ng-if="showCase.pop_data.style_data.length > 0">
+            <slick lazy-load='ondemand' slides-to-show=4 slides-to-scroll=4 class="slider lazy" infinite="false">
+              <div ng-repeat="item in showCase.pop_data.style_data" style="padding:5px" ng-click="showCase.addSKU(item)">
+                <div class="image" style="width:100%;margin-right:0px;cursor: pointer">
+                  <img data-lazy="{{showCase.service.check_image_url(item.image_url)}}" style="width:100%"/>
+                  <div style="text-align: center;">
+                    <span class="style_name" title="jean101">{{item.sku_class}}</span><br>
+                    <span class="style_name" style="font-size: 14px">{{ showCase.service.price_format(item.variants[0].price)}}</span>
+                    <p class="style_name" style="font-size: 12px;" title="jean101">{{ item.variants[0].style_name }}</p>
+                    <span style="font-size: 14px; padding:2px 15px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</span><br>
+                    <span style="font-size: 20px;">&#8377; {{ item.variants[0].mrp }}</span><br>
+                  </div>
+                </div>
+              </div>
+            </slick>
+          </div>
+          <div ng-if="showCase.custom_styles_loading">
+            <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+          </div>
+        </div>
         <div class="row"><hr></div>
-	<div class="row">
+        <div class="row" ng-if="showCase.pop_data.sizes.length > 0">
+          <input type="hidden" name="style_data" value="{{ showCase.custom_data.sku_data}}">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Style</th>
+                <th ng-repeat="hd in showCase.pop_data.sizes">{{hd}}</th>
+                <th>Total</th>
+                <th>Remarks</th>
+                <th class="plus"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="sku in showCase.custom_data.sku_data">
+                <td>{{sku.name}}</td>
+                <td ng-repeat="size in sku.sizes">
+                  <input ng-if="sku.av_sizes.indexOf(size.name) != -1" type="text" ng-class="service.get_decimal_perm()" ng-model="size.value" ng-change="showCase.calTotal(sku, size.value)">
+                </td>
+                <td><input type="text" readonly ng-class="service.get_decimal_perm()" value="{{sku.total}}"></td>
+                <td><input type="text" ng-model="sku.remarks"></td>
+                <td><i style="font-size: 20px;margin-top: -3px;cursor: pointer;margin-left: -15px;" ng-click="showCase.removeSKU($index)" class="fa fa-minus-square-o"></i></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="row"><hr></div>
+     	<div class="row">
            <div class="col-md-8">
              <h4>Specifications:</h4>
-      	     <div class="col-md-6 col-sm-6 col-xs-12" ng-repeat="attr in showCase.attributes">
+      	     <div class="col-md-6 col-sm-6 col-xs-12" ng-repeat="attr in showCase.pop_data.attributes">
                <div class="form-group">
                  <input type="hidden" name="field_name" value="{{attr.attribute_name}}">
                  <label class="control-label">{{attr.attribute_name}}</label>
@@ -55,7 +109,7 @@
                  </div>
                </div>
              </div>
-             <div class="col-md-12 col-sm-12 col-xs-12" ng-show="showCase.pop_data.size_name">
+             <!--<div class="col-md-12 col-sm-12 col-xs-12" ng-show="showCase.pop_data.size_name">
                <hr>
                <h4>Sizes:</h4>
                <table class="table table-stk">
@@ -73,7 +127,7 @@
                    </tr>
                  </tbody>
                </table>
-             </div>
+             </div>-->
            </div>
            <div class="col-md-4">
              <img style="width: 100%;border-radius: 5px;box-shadow: 0px 0px 11px 1px grey;margin-bottom: 10px" ng-src="{{showCase.service.check_image_url(showCase.image)}}" ng-show="showCase.image"></img>
@@ -84,11 +138,11 @@
              <div class="form-group">
                <div class="checkbox">
                  <label>
-                   <input type="checkbox" ng-model="showCase.printing"> Printing
+                   <input type="checkbox" ng-model="showCase.pop_data.printing"> Printing
                  </label>
                </div>
              </div>
-             <div class="form-group" ng-if="showCase.printing">
+             <div class="form-group" ng-if="showCase.pop_data.printing">
                <label class="control-label"> Printing Vendors </label>
                <select class="form-control" ng-model="showCase.pop_data.printing_vendor" name="printing_vendor">
                  <option value="">None</option>
@@ -98,11 +152,11 @@
              <div class="form-group">
                <div class="checkbox">
                  <label>
-                   <input type="checkbox" ng-model="showCase.embroid"> Embroidery
+                   <input type="checkbox" ng-model="showCase.pop_data.embroid"> Embroidery
                  </label>
                </div>
              </div>
-             <div class="form-group" ng-if="showCase.embroid">
+             <div class="form-group" ng-if="showCase.pop_data.embroid">
                <label class="control-label"> Embroidery Vendors </label>
                <select class="form-control" ng-model="showCase.pop_data.embroidery_name" name="embroidery_name">
                  <option value="">None</option>
@@ -112,11 +166,11 @@
              <div class="form-group">
                <div class="checkbox">
                  <label>
-                   <input type="checkbox" ng-model="showCase.product_unit_display" ng-init="showCase.product_unit_display = true"> Production Unit
+                   <input type="checkbox" ng-model="showCase.pop_data.product_unit_display" ng-init="showCase.pop_data.product_unit_display = true"> Production Unit
                  </label>
                </div>
              </div>
-             <div class="form-group" ng-if="showCase.product_unit_display">
+             <div class="form-group" ng-if="showCase.pop_data.product_unit_display">
                <label class="control-label"> Production Unit Vendor </label>
                <select class="form-control" ng-model="showCase.pop_data.product_unit" name="product_unit">
                  <option value="">None</option>
@@ -130,7 +184,7 @@
       <!-- body end-->
       <div class="modal-footer">
         <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
-        <button type="submit" ng-disabled="showCase.pop_btn" class="btn pop pop-green" ng-click="showCase.add_custom_sku(form)">Save</button>
+        <button type="submit" ng-disabled="showCase.pop_btn" class="btn pop pop-green" ng-click="showCase.add_custom_sku(custom_form)">Save</button>
       </div>
     </div>
     <!-- /.modal-content -->

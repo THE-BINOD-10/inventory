@@ -104,8 +104,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
     function add_wms_code() {
-      vm.model_data.data.push([{"wms_code":"", "po_quantity":"", "receive_quantity":"", "price":"", "dis": false, "order_id": vm.model_data.data[0][0].order_id, is_new: true, "unit": ""}]);
+      vm.model_data.data.push([{"wms_code":"", "po_quantity":"", "receive_quantity":"", "price":"", "dis": false,
+                                "order_id": vm.model_data.data[0][0].order_id, is_new: true, "unit": "",
+                                "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
       //vm.new_sku = true
+    }
+    vm.get_sku_details = function(data, selected) {
+
+      data.sku_details[0].fields.load_unit_handle = selected.load_unit_handle;
+      data.wms_code = selected.wms_code;
+      $timeout(function() {$scope.$apply();}, 1000);
     }
 
     vm.submit = submit;
@@ -220,7 +228,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               for(var i=0; i<vm.model_data.data.length; i++) {
                 vm.sku_list_1.push(vm.model_data.data[i][0]["wms_code"]);
                 if(vm.field == vm.model_data.data[i][0]["wms_code"]){
-                  $('input[value="'+vm.field+'"]').parents('tr').find("input[name='imei']").trigger('focus');
+                  $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
                 }
               }
               if (vm.sku_list_1.indexOf(vm.field) == -1){

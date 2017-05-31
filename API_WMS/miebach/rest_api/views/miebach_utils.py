@@ -168,6 +168,9 @@ CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 1), ('credit
                                        ('pincode', 11), ('address', 12), ('price_type', 13)
                                     ))
 
+MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 1), ('pincode', 2), ('state', 3), ('phone_number', 4)
+                                                ))
+
 SALES_RETURN_HEADERS = ['Return ID', 'Return Date', 'SKU Code', 'Product Description', 'Market Place', 'Quantity']
 
 SALES_RETURN_TOGGLE = ['Return ID', 'SKU Code', 'Product Description', 'Shipping Quantity', 'Return Quantity', 'Damaged Quantity' ]
@@ -705,7 +708,7 @@ PRICE_DEF_EXCEL = OrderedDict(( ('sku_id', 0), ('price_type', 1), ('price', 2), 
 
 PRICE_MASTER_DATA = {'sku_id': '', 'price_type': '', 'price': 0, 'discount': 0}
 
-SELLER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': ''}
+SELLER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': '', 'margin': 0}
 
 USER_SKU_EXCEL = {'warehouse_user': SKU_HEADERS, 'marketplace_user': MARKET_USER_SKU_HEADERS, 'customer': SKU_HEADERS}
 

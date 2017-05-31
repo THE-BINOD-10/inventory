@@ -112,6 +112,14 @@ def get_order_mapping(reader, file_type):
 
     return order_mapping
 
+def get_customer_master_mapping(reader, file_type):
+    mapping_dict = {}
+    if get_cell_data(0, 0, reader, file_type) == 'Customer Id' and get_cell_data(0, 1, reader, file_type) == 'Customer Name':
+        mapping_dict = copy.deepcopy(CUSTOMER_EXCEL_MAPPING)
+    elif get_cell_data(0, 0, reader, file_type) == 'Customer ID' and get_cell_data(0, 1, reader, file_type) == 'Name':
+        mapping_dict = copy.deepcopy(MARKETPLACE_CUSTOMER_EXCEL_MAPPING)
+    return mapping_dict
+
 def check_create_seller_order(seller_order_dict, order, user):
     if seller_order_dict.get('seller_id', ''):
         sell_order_ins = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id, seller__user=user.id)
@@ -2265,14 +2273,10 @@ def customer_form(request, user=''):
 def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='xls'):
     index_status = {}
     customer_ids = []
-    mapping_dict = copy.deepcopy(CUSTOMER_EXCEL_MAPPING)
+    mapping_dict = get_customer_master_mapping(reader, file_type)
     number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code'}
-    for row_idx in range(0, no_of_rows):
+    for row_idx in range(1, no_of_rows):
         customer_master = None
-        if row_idx == 0:
-            if get_cell_data(row_idx, 0, reader, file_type) != 'Customer Id':
-                return 'Invalid File'
-            break
         for key, value in mapping_dict.iteritems():
             cell_data = get_cell_data(row_idx, mapping_dict[key], reader, file_type)
 
@@ -2282,7 +2286,7 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
                         index_status.setdefault(row_idx, set()).add('Customer ID Should be in number')
                     else:
                         cell_data = int(cell_data)
-                        customer_master_obj = CustomerMaster.objects.filter(customer_id=cell_data, user=user_id)
+                        customer_master_obj = CustomerMaster.objects.filter(customer_id=cell_data, user=user.id)
                         if customer_master_obj:
                             customer_master = customer_master_obj[0]
                 else:
@@ -2299,19 +2303,25 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
 
             elif key == 'price_type':
                 if cell_data:
-                    price_types = list(PriceMaster.objects.filter(sku__user=user_id).values_list('price_type', flat=True).distinct())
+                    price_types = list(PriceMaster.objects.filter(sku__user=user.id).values_list('price_type', flat=True).distinct())
                     if not cell_data in price_types:
                         index_status.setdefault(row_idx, set()).add('Invalid Selling Price Type')
 
     if not index_status:
         return 'Success'
 
-    f_name = '%s.customer_form.xls' % user_id
-    write_error_file(f_name, index_status, open_sheet, CUSTOMER_HEADERS, 'Customer')
-    return f_name
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        rewrite_csv_file(f_name, index_status, reader)
+        return f_name
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        rewrite_excel_file(f_name, index_status, reader)
+        return f_name
 
 def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
-    mapping_dict = copy.deepcopy(CUSTOMER_EXCEL_MAPPING)
+    mapping_dict = get_customer_master_mapping(reader, file_type)
     number_fields = ['credit_period', 'phone_number', 'pincode']
     for row_idx in range(1, no_of_rows):
         customer_data = copy.deepcopy(CUSTOMER_DATA)
@@ -2358,37 +2368,34 @@ def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
 @get_admin_user
 def customer_upload(request, user=''):
     fname = request.FILES['files']
-    if (fname.name).split('.')[-1] == 'csv':
-        reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
-        no_of_rows = len(reader)
-        file_type = 'csv'
+    try:
+        if (fname.name).split('.')[-1] == 'csv':
+            reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
+            no_of_rows = len(reader)
+            file_type = 'csv'
 
-    elif (fname.name).split('.')[-1] == 'xls' or (fname.name).split('.')[-1] == 'xlsx':
-        try:
-            data = fname.read()
-            if '<table' in data:
-                open_book, open_sheet = html_excel_data(data, fname)
-            else:
-                open_book = open_workbook(filename=None, file_contents=data)
-                open_sheet = open_book.sheet_by_index(0)
-        except:
-            return HttpResponse("Invalid File")
-        reader = open_sheet
-        no_of_rows = reader.nrows
-        file_type = 'xls'
-    '''if fname.name.split('.')[-1] == 'xls' or fname.name.split('.')[-1] == 'xlsx':
-        try:
-            open_book = open_workbook(filename=None, file_contents=fname.read())
-            open_sheet = open_book.sheet_by_index(0)
-        except:
-            return HttpResponse('Invalid File')'''
+        elif (fname.name).split('.')[-1] == 'xls' or (fname.name).split('.')[-1] == 'xlsx':
+            try:
+                data = fname.read()
+                if '<table' in data:
+                    open_book, open_sheet = html_excel_data(data, fname)
+                else:
+                    open_book = open_workbook(filename=None, file_contents=data)
+                    open_sheet = open_book.sheet_by_index(0)
+            except:
+                return HttpResponse("Invalid File")
+            reader = open_sheet
+            no_of_rows = reader.nrows
+            file_type = 'xls'
 
-        status = validate_customer_form(request, reader, user, no_of_rows, fname, file_type)
-        if status != 'Success':
-            return HttpResponse(status)
+            status = validate_customer_form(request, reader, user, no_of_rows, fname, file_type)
+            if status != 'Success':
+                return HttpResponse(status)
 
-        customer_excel_upload(request, reader, user, no_of_rows, fname, file_type)
-        #customer_excel_upload(request, open_sheet, user)
+            customer_excel_upload(request, reader, user, no_of_rows, fname, file_type)
+    except Exception as e:
+        log.info('Customer Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Customer Upload Failed")
 
     return HttpResponse('Success')
 

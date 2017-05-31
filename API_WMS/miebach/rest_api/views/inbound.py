@@ -1760,6 +1760,8 @@ def update_seller_po(data, value, user, receipt_id=''):
         unit_price = data.open_po.price
         if not sell_po.unit_price:
             margin_percent = get_misc_value('seller_margin', user.id)
+            if sell_po.seller.margin:
+                margin_percent = sell_po.seller.margin
             seller_mapping = SellerMarginMapping.objects.filter(seller_id=sell_po.seller_id, sku_id=data.open_po.sku_id, seller__user=user.id)
             if seller_mapping:
                 margin_percent = seller_mapping[0].margin

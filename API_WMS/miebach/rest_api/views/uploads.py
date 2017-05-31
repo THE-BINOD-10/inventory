@@ -105,7 +105,7 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(UNI_WARE_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Sale Order Item Code' and get_cell_data(0, 2, reader, file_type) == 'Reverse Pickup Code':
         order_mapping = copy.deepcopy(UNI_WARE_EXCEL1)
-    elif get_cell_data(0, 0, reader, file_type) == 'Order ID' and get_cell_data(0, 1, reader, file_type) == 'UOR ID':
+    elif get_cell_data(0, 0, reader, file_type) == 'SOR ID' and get_cell_data(0, 1, reader, file_type) == 'UOR ID':
         order_mapping = copy.deepcopy(SHOTANG_ORDER_FILE_EXCEL)
     elif get_cell_data(0, 2, reader, file_type) == 'VENDOR ARTICLE NUMBER' and get_cell_data(0, 3, reader, file_type) == 'VENDOR ARTICLE NAME':
         order_mapping = copy.deepcopy(MYNTRA_BULK_PO_EXCEL)
@@ -269,11 +269,14 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_summary_dict['tax_value'] = "%.2f" % tax_value
                 elif isinstance(value, dict):
                     vat = float(get_cell_data(row_idx, value['tax'], reader, file_type))
-                    tax_value = float(get_cell_data(row_idx, value['tax_value'], reader, file_type))
                     quantity = float(get_cell_data(row_idx, value['quantity'], reader, file_type))
                     order_summary_dict['issue_type'] = 'order'
                     order_summary_dict['vat'] = vat
-                    order_summary_dict['tax_value'] = "%.2f" % (tax_value * quantity)
+                    if not value.get('tot_tax', ''):
+                        tax_value = float(get_cell_data(row_idx, value['tax_value'], reader, file_type))
+                        order_summary_dict['tax_value'] = "%.2f" % (tax_value * quantity)
+                    else:
+                        order_summary_dict['tax_value'] = "%.2f" % (float(get_cell_data(row_idx, value['tot_tax'], reader, file_type)))
             elif key == 'address':
                 if isinstance(value, (list)):
                     cell_data = ''
@@ -320,9 +323,12 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     cell_data = str(int(cell_data))
                 seller_order_dict['sor_id'] = cell_data
             elif key == 'order_date':
-                cell_data = get_cell_data(row_idx, value, reader, file_type)
-                year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
-                order_date = datetime.datetime(year, month, day, hour, minute, second)
+                try:
+                    cell_data = get_cell_data(row_idx, value, reader, file_type)
+                    year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                    order_date = datetime.datetime(year, month, day, hour, minute, second)
+                except:
+                    order_date = datetime.datetime.now()
                 order_data['creation_date'] = order_date
             elif key == 'order_status':
                 seller_order_dict[key] = get_cell_data(row_idx, value, reader, file_type)

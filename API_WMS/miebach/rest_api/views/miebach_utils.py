@@ -732,9 +732,9 @@ MYNTRA_BULK_ADDRESS = 'MYNTRA DESIGNS PVT LTD\nKsquare Industrial Park, Warehous
 USER_MYNTRA_ADDRESS = {'campus_sutra': MYNTRA_BANGALORE_ADDRESS, 'adam_clothing': MYNTRA_MUMBAI_ADDRESS,
                        'adam_clothing1': MYNTRA_MUMBAI_ADDRESS, 'adam_clothing1:bulk': MYNTRA_BULK_ADDRESS}
 
-SHOTANG_ORDER_FILE_EXCEL = {'order_id': 1, 'customer_name': 8, 'customer_id': 7, 'telephone': 9, 'address': 10, 'title': 13, 'sku_code': 2,
-                            'invoice_amount': 6, 'sor_id': 0, 'order_date': 3, 'quantity': 4, 'order_status': 19, 'seller': 11,
-                            'invoice_no': 16, 'marketplace': 'Shotang'}
+SHOTANG_ORDER_FILE_EXCEL = {'order_id': 1, 'customer_name': 6, 'customer_id': 5, 'telephone': 7, 'address': 8, 'sku_code': 2,
+                            'invoice_amount': 16, 'sor_id': 0, 'order_date': 3, 'quantity': 4, 'order_status': 11, 'seller': 9,
+                            'marketplace': 'Shotang', 'vat': {'tax': 14, 'quantity': 4, 'tot_tax': 15} }
 
 SELLER_ORDER_FIELDS = {'sor_id': '', 'quantity': 0, 'order_status': '', 'order_id': '', 'seller_id': '', 'status': 1, 'invoice_no': ''}
 

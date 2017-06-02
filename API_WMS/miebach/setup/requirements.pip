@@ -18,4 +18,5 @@ num2words==0.5.4
 XlsxWriter==0.9.6
 longerusername==0.4
 south==1.0.2
+pythonnet==2.3.0
 Pillow==4.0.0

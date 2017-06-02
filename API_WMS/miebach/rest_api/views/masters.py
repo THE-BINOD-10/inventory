@@ -2047,7 +2047,7 @@ def get_seller_master(start_index, stop_index, temp_data, search_term, order_ter
         temp_data['aaData'].append(OrderedDict(( ('seller_id', data.seller_id), ('name', data.name), ('address', data.address),
                                                  ('phone_number', data.phone_number), ('email_id', data.email_id), ('status', status),
                                                  ('tin_number', data.tin_number), ('vat_number', data.vat_number),
-                                                 ('price_type_list', price_types),
+                                                 ('price_type_list', price_types), ('margin', float(data.margin)),
                                                  ('price_type', price_type), ('DT_RowId', data.seller_id), ('DT_RowClass', 'results') )))
 
 @login_required

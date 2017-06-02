@@ -135,6 +135,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
   change_filter_data();
 
+  // Catlog code
+
   vm.style = "";
   vm.catlog_data = {data: [], index: ""}
 
@@ -171,7 +173,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                 sale_through: vm.order_type_value, size_filter:size_stock}
     vm.catlog_data.index = ""
     vm.scroll_data = false;
-    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
+    vm.service.apiCall("get_sku_catalogs/", "GET", data, true).then(function(data) {
 
 	if(data.message) {
 
@@ -647,7 +649,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
-  //Order type 
   vm.order_type = false;
   vm.order_type_value = "offline"
   vm.change_order_type = function() {
@@ -671,19 +672,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.order_type_value = "Offline";
     }
   }
-
-  /*vm.create_order_data = {}
-  vm.get_create_order_data = function(){
-    vm.service.apiCall("create_orders_data/").then(function(data){
-
-      if(data.message) {
-        vm.create_order_data = data.data;
-        vm.model_data.tax_type = 'VAT'
-        vm.change_tax_type();
-      }
-    })
-  }
-  vm.get_create_order_data();*/
 
   vm.change_tax_type = function() {
 
@@ -728,7 +716,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   vm.date_changed = function(){
-    //$('.datepicker').hide();
     $(this);
   }
 
@@ -743,8 +730,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
       var header = $(".layout-header").height();
       var menu = $(".style-menu").height();
-      //var search = $(".search-box").height();
-      //search = (search)? search+25 : 0;
       var cart = $(".cart_button").outerHeight();
       $(".app_body").css('height',height-header-menu-cart);
       $(".app_body").css('overflow-y', 'auto');
@@ -756,50 +741,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   $scope.$watch(function(){
     vm.add_scroll();
   });
-
-  /*vm.insert_customer_cart_data = function(){
-
-    var send = JSON.stringify(vm.model_data.data);
-    vm.service.apiCall('insert_customer_cart_data/?data='+send).then(function(data){
-       console.log(data);
-    })
-  }
-
-  vm.get_customer_cart_data = function() {
-
-    vm.service.apiCall("get_customer_cart_data").then(function(data){
-      if(data.message) {
-
-        angular.copy(data.data.data,vm.model_data.data);
-        vm.change_remarks();
-      }
-    })
-  }
-  vm.get_customer_cart_data();
-
-  vm.update_customer_cart_data = function(data) {
-
-    var send = {'sku_code': data.sku_id, 'quantity': data.quantity}
-    vm.service.apiCall("update_customer_cart_data", "GET", send)
-  }
-
-  vm.delete_customer_cart_data = function(data) {
-
-    var send = {sku_codes: ""}
-    angular.forEach(data, function(record){
-      send.sku_codes = send.sku_codes + record.sku_id + ","
-    })
-    send.sku_codes = send.sku_codes.slice(0,-1);
-    vm.service.apiCall("delete_customer_cart_data", "GET", send)
-  }
-
-  vm.change_remarks = function(remark) {
-
-    angular.forEach(vm.model_data.data, function(data){
-      data['remarks'] = vm.model_data.remarks;
-    })
-  }
-  */
 
   vm.sizeform = function(form) {
     var config = {};

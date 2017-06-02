@@ -126,12 +126,22 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.catlog_data = {data: [], index: ""}
 
   vm.tag_details_loading = false;
+  vm.data_loading = "not done"
 
-  vm.tag_details = function(cat_name, brand) {
+  vm.tag_details = function(cat_name, brand, scroll, status) {
+
+    if(scroll && vm.data_loading == "done") {
+
+      return false;
+    } else {
+
+      vm.data_loading = "not done";
+    }
 
     if(vm.tag_details_loading) {
 
-      return false;
+      vm.cancel();
+      //return false;
     } else {
 
       vm.tag_details_loading = true
@@ -141,51 +151,87 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     if(cat_name == "All") {
       cat_name = "";
     }
-    vm.catlog_data.index = "";
+    if(!scroll) {
+      vm.catlog_data.index = "";
+    }
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, customer_data_id: vm.model_data.customer_id};
     vm.catlog_data.index = ""
     vm.scroll_data = false;
-    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
+    //vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
 
-	if(data.message) {
+  	//  if(data.message) {
 
-        angular.copy([], vm.catlog_data.data);
-        vm.catlog_data.index = data.data.next_index;
-	    angular.forEach(data.data.data, function(item){
-          vm.catlog_data.data.push(item);
-        })
-        vm.scroll_data = true;
-	}
-    vm.tag_details_loading = false;
+    vm.getingData(data).then(function(data) {
+      console.log(data);
+      vm.scroll_data = true;
+      if(data == 'done') {
+          var data = {data: vm.gotData};
+          if(!scroll) {
+            angular.copy([], vm.catlog_data.data);
+          } else {
+            if(vm.gotData.data.length == 0){
+              vm.data_loading = "done";
+            }
+          }
+          if(status) {
+            angular.copy([], vm.catlog_data.data);
+          }
+          vm.catlog_data.index = data.data.next_index;
+	      angular.forEach(data.data.data, function(item){
+            vm.catlog_data.data.push(item);
+          })
+    	//  }
+        vm.tag_details_loading = false;
+      }
     })
 
+  }
+
+  vm.gotData = {};
+  vm.getingData = function(data) {
+
+    vm.loading = true;
+    var canceller = $q.defer();
+    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(response) {
+      if(response.message) {
+        vm.gotData = response.data;
+        canceller.resolve("done");
+      }
+      vm.loading = false;
+    });
+    vm.cancel = function() {
+      canceller.resolve("cancelled");
+    };
+    return canceller.promise;
   }
 
   vm.get_category = function(status, scroll) {
     vm.scroll_data = false;
     var cat_name = vm.category;
-    if(vm.category == "All") {
-      cat_name = "";
-    }
+    //if(vm.category == "All") {
+    //  cat_name = "";
+    //}
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, customer_data_id: vm.model_data.customer_id}
-    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
 
-      if(data.message) {
+    vm.tag_details(vm.category, vm.brand, scroll, status);
+    //vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
 
-        if(status) {
+    //  if(data.message) {
 
-          vm.catlog_data.index = "";
-          angular.copy([], vm.catlog_data.data);
-        }
-        vm.catlog_data.index = data.data.next_index;
-        angular.forEach(data.data.data, function(item){
-          vm.catlog_data.data.push(item);
-        })
-      }
-      vm.scroll_data = true;
-    })
+    //    if(status) {
+
+    //      vm.catlog_data.index = "";
+    //      angular.copy([], vm.catlog_data.data);
+    //    }
+    //    vm.catlog_data.index = data.data.next_index;
+    //    angular.forEach(data.data.data, function(item){
+    //      vm.catlog_data.data.push(item);
+    //    })
+    //  }
+    //  vm.scroll_data = true;
+    //})
 
   }
 

@@ -57,13 +57,13 @@
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.g_data.alternate_view">
               <div class="form-group">
                 <label class="control-label">From Date</label>
-                <input name="from_date" ui-jq="datepicker" ng-model="showCase.special_key.from_date" class="form-control stk-readonly" type="text" id="shipment_date" data-date-today-highlight="true" data-date-autoclose="true" readonly>
+                <input name="from_date" ui-jq="datepicker" ng-model="showCase.special_key.from_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.g_data.alternate_view">
               <div class="form-group">
                 <label class="control-label">To Date</label>
-                <input name="to_date" ui-jq="datepicker" ng-model="showCase.special_key.to_date" class="form-control stk-readonly" type="text" id="shipment_date" data-date-today-highlight="true" data-date-autoclose="true" readonly>
+                <input name="to_date" ui-jq="datepicker" ng-model="showCase.special_key.to_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
               </div>
             </div>
           </div>
@@ -77,7 +77,7 @@
 
     </div>
   </div>
-  <div ng-include="'views/common/no-onclick-table.html'"></div>
+  <div ng-include="'views/common/datatable.html'"></div>
   <div class="col-md-12">
 
     	<button type="submit" class="btn btn-success" ng-disabled="showCase.bt_disable" style="display: block;margin: auto;" ng-click="showCase.add(form)">Create Shipment</button>

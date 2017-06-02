@@ -679,6 +679,9 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
 
             stock_diff = 0
 
+            if seller_order and seller_order.order_status == 'DELIVERY_RESCHEDULED':
+                rto_stocks = stock_detail.filter(location__zone__zone='RTO_ZONE')
+                stock_detail = list(chain(rto_stocks, stock_detail))
             for stock in stock_detail:
                 stock_count, stock_diff = get_stock_count(request, order, stock, stock_diff, user, order_quantity)
                 if not stock_count:

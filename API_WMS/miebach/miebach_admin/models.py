@@ -567,24 +567,6 @@ class CustomerUserMapping(models.Model):
         db_table = 'CUSTOMER_USER_MAPPING'
 
 
-class OrderReturns(models.Model):
-    id = BigAutoField(primary_key=True)
-    return_id = models.CharField(max_length=256)
-    order = models.ForeignKey(OrderDetail, blank=True, null=True)
-    return_date = models.DateTimeField(auto_now_add=True)
-    quantity = models.FloatField(default=0)
-    damaged_quantity = models.FloatField(default=0)
-    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
-    return_type = models.CharField(max_length=64, default='')
-    reason = models.CharField(max_length=256,default='')
-    status = models.CharField(max_length=64)
-    marketplace = models.CharField(max_length=32,default='')
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'ORDER_RETURNS'
-
 class UserProfile(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.OneToOneField(User)
@@ -679,32 +661,6 @@ class OrderIMEIMapping(models.Model):
 
     class Meta:
         db_table = 'ORDER_IMEI_MAPPING'
-
-class ReturnsIMEIMapping(models.Model):
-    id = BigAutoField(primary_key = True)
-    order_imei = models.ForeignKey(OrderIMEIMapping, blank=True, null=True)
-    order_return = models.ForeignKey(OrderReturns, blank=True, null=True)
-    status = models.CharField(max_length = 64, default = '')
-    reason = models.CharField(max_length = 128, default = '')
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'RETURNS_IMEI_MAPPING'
-        unique_together = ('order_imei', 'order_return')
-        index_together = ('order_imei', 'order_return')
-
-class ReturnsLocation(models.Model):
-    id = BigAutoField(primary_key=True)
-    returns = models.ForeignKey(OrderReturns, blank=True, null=True)
-    location = models.ForeignKey(LocationMaster, blank=True, null=True)
-    quantity = models.FloatField(default=0)
-    status = models.CharField(max_length=32)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'RETURNS_LOCATION'
 
 class CancelledLocation(models.Model):
     id = BigAutoField(primary_key=True)
@@ -900,6 +856,8 @@ class SellerMaster(models.Model):
     vat_number = models.CharField(max_length=64, default='')
     tin_number = models.CharField(max_length=64, default='')
     price_type = models.CharField(max_length=32, default='')
+    margin = models.CharField(max_length=256, default=0)
+    supplier = models.ForeignKey(SupplierMaster, null=True, blank=True, default = None)
     status = models.IntegerField(max_length=1, default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1521,6 +1479,52 @@ class SellerOrder(models.Model):
 
     def __unicode__(self):
         return str(self.sor_id)
+
+class OrderReturns(models.Model):
+    id = BigAutoField(primary_key=True)
+    return_id = models.CharField(max_length=256)
+    order = models.ForeignKey(OrderDetail, blank=True, null=True)
+    seller_order = models.ForeignKey(SellerOrder, blank=True, null=True)
+    return_date = models.DateTimeField(auto_now_add=True)
+    quantity = models.FloatField(default=0)
+    damaged_quantity = models.FloatField(default=0)
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    return_type = models.CharField(max_length=64, default='')
+    reason = models.CharField(max_length=256,default='')
+    status = models.CharField(max_length=64)
+    marketplace = models.CharField(max_length=32,default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_RETURNS'
+
+class ReturnsIMEIMapping(models.Model):
+    id = BigAutoField(primary_key = True)
+    order_imei = models.ForeignKey(OrderIMEIMapping, blank=True, null=True)
+    order_return = models.ForeignKey(OrderReturns, blank=True, null=True)
+    status = models.CharField(max_length = 64, default = '')
+    reason = models.CharField(max_length = 128, default = '')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'RETURNS_IMEI_MAPPING'
+        unique_together = ('order_imei', 'order_return')
+        index_together = ('order_imei', 'order_return')
+
+class ReturnsLocation(models.Model):
+    id = BigAutoField(primary_key=True)
+    returns = models.ForeignKey(OrderReturns, blank=True, null=True)
+    location = models.ForeignKey(LocationMaster, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    status = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'RETURNS_LOCATION'
+
 
 class SellerOrderDetail(models.Model):
     id = BigAutoField(primary_key=True)

@@ -355,5 +355,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.dtInstance.DataTable.context[0].ajax.data['special_key'] = JSON.stringify(vm.special_key);
       vm.reloadData();
     }
+
+    vm.updateDate = function() {
+
+      $('.shipment-date').datepicker('update');
+    }
   }
 

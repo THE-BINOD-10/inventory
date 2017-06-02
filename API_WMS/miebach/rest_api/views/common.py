@@ -1008,7 +1008,7 @@ def auto_po(wms_codes, user):
                 po_suggestions['order_quantity'] = supplier_id[0].moq
                 if not supplier_id[0].moq:
                     po_suggestions['order_quantity'] = get_auto_po_quantity(sku, stock_quantity=total_sku)
-                
+
                 po_suggestions['status'] = 'Automated'
                 po_suggestions['price'] = supplier_id[0].price
                 if po_suggestions['order_quantity'] > 0:
@@ -2792,3 +2792,8 @@ def save_image_file_path(path, image_file, image_name):
     except:
         image_url = ''
     return image_url
+
+def folder_check(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return True

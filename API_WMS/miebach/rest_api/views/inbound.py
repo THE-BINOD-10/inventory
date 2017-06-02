@@ -1310,7 +1310,7 @@ def get_purchaseorder_locations(put_zone, temp_dict):
     user = temp_dict['user']
     seller_id = temp_dict.get('seller_id', '')
     location_masters = LocationMaster.objects.filter(zone__user=user).exclude(lock_status__in=['Inbound', 'Inbound and Outbound'])
-    exclude_zones_list = ['QC_ZONE', 'DAMAGED_ZONE']
+    exclude_zones_list = ['QC_ZONE', 'DAMAGED_ZONE', 'RTO_ZONE']
     if put_zone in exclude_zones_list:
         location = location_masters.filter(zone__zone=put_zone)
         if location:
@@ -1760,6 +1760,8 @@ def update_seller_po(data, value, user, receipt_id=''):
         unit_price = data.open_po.price
         if not sell_po.unit_price:
             margin_percent = get_misc_value('seller_margin', user.id)
+            if sell_po.seller.margin:
+                margin_percent = sell_po.seller.margin
             seller_mapping = SellerMarginMapping.objects.filter(seller_id=sell_po.seller_id, sku_id=data.open_po.sku_id, seller__user=user.id)
             if seller_mapping:
                 margin_percent = seller_mapping[0].margin
@@ -1869,7 +1871,13 @@ def generate_grn(myDict, request, user):
         if put_zone:
             put_zone = put_zone.zone
         else:
-            put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)[0]
+            put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)
+            if not put_zone:
+                create_default_zones(user, 'DEFAULT', 'DFLT1', 9999)
+                put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)[0]
+            else:
+                put_zone = put_zone[0]
+
             put_zone = put_zone.zone
 
         temp_dict = {'received_quantity': float(value), 'user': user.id, 'data': data, 'pallet_number': pallet_number,
@@ -2128,13 +2136,13 @@ def create_return_order(data, i, user):
     else:
         return "", status
 
-def create_rto_zone(user):
+def create_default_zones(user, zone, location, sequence):
     try:
-        new_zone,created = ZoneMaster.objects.get_or_create(user=user.id, zone='RTO_ZONE', creation_date=datetime.datetime.now())
-        locations, loc_created = LocationMaster.objects.get_or_create(location='RTO-R1', max_capacity=100000, fill_sequence=10000,
-                                                        pick_sequence=10000, status=1, zone_id=new_zone.id,
+        new_zone,created = ZoneMaster.objects.get_or_create(user=user.id, zone=zone, creation_date=datetime.datetime.now())
+        locations, loc_created = LocationMaster.objects.get_or_create(location=location, max_capacity=100000, fill_sequence=sequence,
+                                                        pick_sequence=sequence, status=1, zone_id=new_zone.id,
                                                         creation_date=datetime.datetime.now())
-        log.info('RTO_ZONE created for user %s' % user.username)
+        log.info('%s created for user %s' % (zone, user.username))
     except Exception as e:
         log.info(e)
         return []
@@ -2147,6 +2155,7 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
         put_zone = zone.zone
     else:
         put_zone = 'DEFAULT'
+
     all_data.append({'received_quantity': float(order_returns.quantity), 'put_zone': put_zone})
     if damaged_quantity:
         all_data.append({'received_quantity': float(damaged_quantity), 'put_zone': 'DAMAGED_ZONE'})
@@ -2157,7 +2166,7 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
         if is_rto and not data['put_zone'] == 'DAMAGED_ZONE':
             locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone='RTO_ZONE')
             if not locations:
-                locations = create_rto_zone(user)
+                locations = create_default_zones(user, 'RTO_ZONE', 'RTO-R1', 10000)
         else:
             locations = get_purchaseorder_locations(data['put_zone'], temp_dict)
 
@@ -2237,7 +2246,6 @@ def confirm_sales_return(request, user=''):
             save_return_imeis(user, order_returns[0], 'return', data_dict['returns_imeis'][i])
         if 'damaged_imeis_reason' in data_dict.keys() and data_dict['damaged_imeis_reason'][i]:
             save_return_imeis(user, order_returns[0], 'damaged', data_dict['damaged_imeis_reason'][i])
-        #return_loc_params = [order_returns, all_data, data_dict['damaged'][i], request, user]
         return_loc_params = {'order_returns': order_returns, 'all_data': all_data, 'damaged_quantity': data_dict['damaged'][i],
                              'request': request, 'user': user}
         if return_type:
@@ -2247,7 +2255,6 @@ def confirm_sales_return(request, user=''):
         locations_status = save_return_locations(**return_loc_params)
         if not locations_status == 'Success':
             return HttpResponse(locations_status)
-        #save_return_locations(order_returns, all_data, data_dict['damaged'][i], request, user)
 
     return HttpResponse('Updated Successfully')
 
@@ -3387,10 +3394,12 @@ def write_and_mail_pdf(f_name, html_data, request, supplier_email, phone_no, po_
     if misc_internal_mail and internal_mail:
         internal_mail = internal_mail[0].misc_value.split(",")
         receivers.extend(internal_mail)
-    file = open(file_name, "w+b")
+    path = 'static/temp_files/'
+    folder_check(path)
+    file = open(path + file_name, "w+b")
     file.write(html_data)
     file.close()
-    os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
+    os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))
 
     if supplier_email:
         receivers.append(supplier_email)
@@ -3398,7 +3407,7 @@ def write_and_mail_pdf(f_name, html_data, request, supplier_email, phone_no, po_
     if request.user.email:
         receivers.append(request.user.email)
     if supplier_email or internal or internal_mail:
-        send_mail_attachment(receivers, '%s %s' % (request.user.username, report_type), 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name), files=[pdf_file])
+        send_mail_attachment(receivers, '%s %s' % (request.user.username, report_type), 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name), files=[{'path': path + pdf_file, 'name': pdf_file}])
 
     if phone_no:
         po_message(po_data, phone_no, request.user.username, f_name, order_date, ean_flag)
@@ -3571,6 +3580,19 @@ def save_qc_serials(key, scan_data, user, qc_id=''):
     except Exception as e:
         log.info('Save QC Serial failed for ' + str(scan_data) + ' error statement is ' + str(e))
 
+def get_return_seller_id(returns_id, user):
+    ''' Returns Seller Master ID'''
+    return_imei = ReturnsIMEIMapping.objects.filter(order_return_id=returns_id, order_return__sku__user=user.id)
+    seller_id = ''
+    if return_imei:
+        order_imei = return_imei[0].order_imei
+        if order_imei.po_imei and order_imei.po_imei.purchase_order and order_imei.po_imei.purchase_order.open_po:
+            open_po_id = order_imei.po_imei.purchase_order.open_po_id
+            seller_po = SellerPO.objects.filter(open_po_id=open_po_id, open_po__sku__user=user.id)
+            if seller_po:
+                seller_id = seller_po[0].seller_id
+    return seller_id
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -3602,12 +3624,14 @@ def returns_putaway_data(request, user=''):
         if not status:
             sku_id = returns_data.returns.sku_id
             return_wms_codes.append(returns_data.returns.sku.wms_code)
+            seller_id = get_return_seller_id(returns_data.returns.id, user)
             stock_data = StockDetail.objects.filter(location_id=location_id[0].id, receipt_number=receipt_number, sku_id=sku_id,
                                                     sku__user=user.id)
             if stock_data:
                 stock_data = stock_data[0]
                 setattr(stock_data, 'quantity', float(stock_data.quantity) + quantity)
                 stock_data.save()
+                stock_id = stock_data.id
                 mod_locations.append(stock_data.location.location)
             else:
                 stock_dict = {'location_id': location_id[0].id, 'receipt_number': receipt_number, 'receipt_date': datetime.datetime.now(),
@@ -3615,7 +3639,19 @@ def returns_putaway_data(request, user=''):
                               'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now()}
                 new_stock = StockDetail(**stock_dict)
                 new_stock.save()
+                stock_id = new_stock.id
                 mod_locations.append(new_stock.location.location)
+            if stock_id and seller_id:
+                seller_stock = SellerStock.objects.filter(stock_id=stock_id, seller_id=seller_id, seller__user=user.id)
+                if seller_stock:
+                    seller_stock = seller_stock[0]
+                    setattr(seller_stock, 'quantity', float(seller_stock.quantity) + quantity)
+                    seller_stock.save()
+                else:
+                    seller_stock_dict = {'seller_id': seller_id, 'stock_id': stock_id, 'quantity': quantity, 'status': 1,
+                                         'creation_date': datetime.datetime.now()}
+                    seller_stock = SellerStock(**seller_stock_dict)
+                    seller_stock.save()
             returns_data.quantity = float(returns_data.quantity) - float(quantity)
             if returns_data.quantity <= 0:
                 returns_data.status = 0
@@ -4143,6 +4179,9 @@ def check_return_imei(request, user=''):
                     invoice_number = shipment_info[0].invoice_number
                 return_data['data'] = {'sku_code': order_imei[0].order.sku.sku_code, 'invoice_number': invoice_number, 'order_id': order_id,
                                        'sku_desc': order_imei[0].order.title, 'shipping_quantity': 1}
+                order_return = OrderReturns.objects.filter(order_id=order_imei[0].order.id, sku__user=user.id)
+                if order_return:
+                    return_data['data'].update({'id': order_return[0].id, 'return_id': order_return[0].return_id})
                 log.info(return_data)
     except Exception as e:
         log.info("Check Return Imei failed for params " + str(request.GET.dict()) + " and error statement is " + str(e))
@@ -4167,6 +4206,7 @@ def confirm_receive_qc(request, user=''):
     myDict = dict(request.POST.iterlists())
 
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
+    #try:
     for ind in range(0, len(myDict['id'])):
         myDict.setdefault('imei_number', [])
         imeis_list = [im.split('<<>>')[0] for im in (myDict['rejected'][ind]).split(',')] + myDict['accepted'][ind].split(',')
@@ -4228,4 +4268,5 @@ def confirm_receive_qc(request, user=''):
         return HttpResponse(status_msg)
     #except Exception as e:
     #    log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
+    #    return HttpResponse("Generate GRN Failed")
 

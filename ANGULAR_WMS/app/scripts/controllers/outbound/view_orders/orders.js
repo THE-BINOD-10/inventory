@@ -43,6 +43,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     if(Session.user_profile.user_type != "marketplace_user") {
 
       vm.g_data.views.pop(1);
+    } else if(Session.user_profile.user_type == "marketplace_user") {
+
+      vm.g_data.views = ["CustomerOrderView", "SellerOrderView"];
+      if (vm.g_data.views.indexOf(vm.g_data.view) == -1) {
+
+        vm.g_data.view = "SellerOrderView";
+      }
     }
 
     vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'special_key': JSON.stringify(vm.special_key)}

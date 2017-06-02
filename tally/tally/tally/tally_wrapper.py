@@ -28,7 +28,6 @@ class TallyBridgeApp(object):
         import TallyBridge
 
         self.tally_bridge = TallyBridge.TallyBridgeDll()
-        import pdb;pdb.set_trace()
         self.TRANSFER_FUNCTION_MAP = {
             constants.SALES_INVOICE: self.tally_bridge.DoTransferVoucher,
             constants.PURCHASE_INVOICE: self.tally_bridge.DoTransferVoucher,

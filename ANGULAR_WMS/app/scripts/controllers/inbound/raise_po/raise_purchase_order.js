@@ -75,12 +75,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           vm.service.apiCall('generated_po_data/', 'GET', data).then(function(data){
             if (data.message) {
               //angular.copy(data.data, vm.model_data);
-              var receipt_types = ['Buy & Sell', 'Purchase Order'];
+              var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
               vm.update_part = false;
               var empty_data = {"supplier_id":vm.supplier_id,
                       "po_name": "",
                       "ship_to": "",
-                      "receipt_type": receipt_types[data.data.receipt_type],
+                      "receipt_type": data.data.receipt_type,
                       "seller_types": [],
                       "total_price": 0,
                       "tax": "",
@@ -89,6 +89,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               };
               vm.model_data = {};
               angular.copy(empty_data, vm.model_data);
+
+              if(vm.model_data.receipt_type == 'Hosted Warehouse') {
+
+                vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
+              }
 
               angular.forEach(vm.model_data.data, function(one_row){
                vm.model_data.total_price = vm.model_data.total_price + (one_row.fields.order_quantity * one_row.fields.price);
@@ -110,7 +115,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 if (data.message) {
                   var seller_data = data.data.sellers;
                   vm.model_data.tax = data.data.tax;
-
+                  vm.model_data["receipt_types"] = data.data.receipt_types;
                   angular.forEach(seller_data, function(seller_single){
                     vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
                   });
@@ -119,9 +124,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
                   vm.seller_change = function(type) {
 
-                    vm.selected_seller = type;
-                    vm.default_status = false;
-                    vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
+                    if(vm.model_data.receipt_type == 'Hosted Warehouse') {
+
+                      angular.forEach(vm.model_data.data, function(data){
+
+                        data.fields.dedicated_seller = type;
+                      })
+                    } else {
+                      vm.selected_seller = type;
+                      vm.default_status = false;
+                      vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
+                    }
                   }
                 }
               });
@@ -147,7 +160,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     var empty_data = {"supplier_id":"",
                       "po_name": "",
                       "ship_to": "",
-                      "receipt_types": ['Buy & Sell', 'Purchase Order'],
+                      "receipt_types": ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'],
                       "seller_types": [],
                       "total_price": 0,
                       "tax": "",
@@ -190,7 +203,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         if (data.message) {
           var seller_data = data.data.sellers;
           vm.model_data.tax = data.data.tax;
-
+          vm.model_data["receipt_types"] = data.data.receipt_types;
           angular.forEach(seller_data, function(seller_single){
               vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
           });
@@ -203,7 +216,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.default_status = false;
             vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
           }
-
+          vm.model_data.receipt_type = 'Purchase Order';
           $state.go('app.inbound.RaisePo.PurchaseOrder');
         }
 
@@ -376,7 +389,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.raise_po = function(url, elem) {
 
-      vm.service.alert_msg("Do want to Raise PO").then(function(msg) {
+      vm.service.alert_msg("Do you want to Raise PO").then(function(msg) {
         if (msg == "true") {
           vm.service.apiCall(url, 'GET', elem).then(function(data){
             if(data.message) {
@@ -408,7 +421,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.push({name: temp['_aData']["Order Type"], value :temp['_aData']['Supplier ID']});
         }
       });
-      vm.service.alert_msg("Do want to Raise PO").then(function(msg) {
+      vm.service.alert_msg("Do you want to Raise PO").then(function(msg) {
         if (msg == "true") {
           vm.service.apiCall('confirm_po1/', 'GET', data, true).then(function(data){
             if(data.message) {

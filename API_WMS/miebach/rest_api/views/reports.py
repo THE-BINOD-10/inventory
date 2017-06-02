@@ -644,6 +644,8 @@ def excel_reports(request, user=''):
     report_data = func_name(search_params, user, request.user)
     if isinstance(report_data, tuple):
         report_data = report_data[0]
+    if temp[1] == 'grn_inventory_addition' and len(report_data['aaData']) > 0:
+        headers = report_data['aaData'][0].keys()
     excel_data = print_excel(request,report_data, headers, excel_name)
     return excel_data
 

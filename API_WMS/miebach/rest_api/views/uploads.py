@@ -113,12 +113,14 @@ def get_order_mapping(reader, file_type):
     return order_mapping
 
 def get_customer_master_mapping(reader, file_type):
+    ''' Return Customer Master Excel file indexes'''
     mapping_dict = {}
     if get_cell_data(0, 0, reader, file_type) == 'Customer Id' and get_cell_data(0, 1, reader, file_type) == 'Customer Name':
         mapping_dict = copy.deepcopy(CUSTOMER_EXCEL_MAPPING)
     elif get_cell_data(0, 0, reader, file_type) == 'Customer ID' and get_cell_data(0, 1, reader, file_type) == 'Name':
         mapping_dict = copy.deepcopy(MARKETPLACE_CUSTOMER_EXCEL_MAPPING)
     return mapping_dict
+
 
 def check_create_seller_order(seller_order_dict, order, user):
     if seller_order_dict.get('seller_id', ''):
@@ -127,6 +129,13 @@ def check_create_seller_order(seller_order_dict, order, user):
         if not sell_order_ins:
             seller_order = SellerOrder(**seller_order_dict)
             seller_order.save()
+
+def update_seller_order(seller_order_dict, order, user):
+    seller_orders = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id, seller__user=user.id)
+    for seller_order in seller_orders:
+        seller_order.order_status = seller_order_dict.get('order_status', '')
+        seller_order.status = 1
+        seller_order.save()
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
     index_status = {}
@@ -299,7 +308,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             elif key == 'channel_name':
                 order_data['marketplace'] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'title':
-                order_data[key] = get_cell_data(row_idx, value, reader, file_type)[:256]
+                order_data[key] = str(get_cell_data(row_idx, value, reader, file_type))[:256]
             elif key == 'pin_code':
                 pin_code = get_cell_data(row_idx, value, reader, file_type)
                 if isinstance(pin_code, float) or isinstance(pin_code, int):
@@ -368,13 +377,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             cell_data = sku_code.upper()
 
         if not order_data.get('order_id', ''):
-            order_detail = OrderDetail.objects.filter(order_code='MN',user=user.id).order_by('-order_id')
-            if order_detail:
-                order_data['order_id'] = int(order_detail[0].order_id) + 1
-                order_data['order_code'] = 'MN'
-            else:
-                order_data['order_id'] = 1001
-                order_data['order_code'] = 'MN'
+            order_data['order_id'] = get_order_id(user_id)
+            order_data['order_code'] = 'MN'
 
         sku_codes = str(cell_data).split(',')
         for cell_data in sku_codes:
@@ -389,9 +393,9 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     market_mapping = MarketplaceMapping.objects.filter(description=order_data['title'], sku__user=user.id, sku__status=1)
                 if market_mapping:
                     order_data['sku_id'] = market_mapping[0].sku_id
-                else:
-                    order_data['sku_id'] = SKUMaster.objects.get(sku_code='TEMP', user=user.id).id
-                    order_data['sku_code'] = sku_code
+                #else:
+                #    order_data['sku_id'] = SKUMaster.objects.get(sku_code='TEMP', user=user.id).id
+                #    order_data['sku_code'] = sku_code
 
             order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], sku=order_data['sku_id'], user=user.id)
             order_create = True
@@ -420,6 +424,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_obj.quantity = order_obj.quantity + order_data['quantity']
                 order_obj.save()
                 check_create_seller_order(seller_order_dict, order_obj, user)
+            elif order_obj and order_create and seller_order_dict.get('seller_id', '') and \
+                 seller_order_dict.get('order_status') == 'DELIVERY_RESCHEDULED':
+                order_obj = order_obj[0]
+                if int(order_obj.status) == 2:
+                    order_obj.status = 1
+                    update_seller_order(seller_order_dict, order_obj, user)
+                    order_obj.save()
 
 
     return 'success'
@@ -2508,6 +2519,21 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                     return_obj = OrderReturns.objects.filter(return_id = return_cod, sku__sku_code = sku_cod, sku__user = user.id)
                     if return_obj:
                         index_status.setdefault(row_idx, set()).add('Return Order is already exist')
+            elif key == 'seller_order_id':
+                sor_id = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                sku_code = get_cell_data(row_idx, order_mapping['sku_id'], reader, file_type)
+                order_id = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
+                if isinstance(sor_id, float):
+                    sor_id = str(int(sor_id))
+                if isinstance(order_id, float):
+                    order_id = str(int(order_id))
+                if isinstance(sku_code, float):
+                    sku_code = str(int(sku_code))
+                if sor_id:
+                    seller_order = SellerOrder.objects.filter(sor_id=sor_id, order__order_id=order_id,
+                                                              order__sku__sku_code=sku_code, order__user=user.id)
+                    if not seller_order:
+                        index_status.setdefault(row_idx, set()).add('Invalid Sor ID')
 
     if not index_status:
         return 'Success'
@@ -2537,8 +2563,8 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
         for key, value in order_mapping.iteritems():
             if key == 'sku_id':
                 sku_code= ""
-                if isinstance(order_mapping[key], list):
-                    for item in order_mapping[key]:
+                if isinstance(value, list):
+                    for item in value:
                         if isinstance(get_cell_data(row_idx, item, reader, file_type), float):
                             content = int(get_cell_data(row_idx, item, reader, file_type))
                         sku_code = "%s%s" %(sku_code, get_cell_data(row_idx, item, reader, file_type))
@@ -2580,10 +2606,19 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                     else:
                         order_data[key] = xldate_as_tuple(cell_data, 0)
 
-            elif key == "marketplace":
+            elif key == 'marketplace':
                 order_data[key] = value
-            elif key == "channel":
+            elif key == 'channel':
                 order_data["marketplace"] = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+            elif key == 'seller_order_id':
+                sor_id = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+                if isinstance(sor_id, float):
+                    sor_id = str(int(sor_id))
+                if sor_id:
+                    seller_order = SellerOrder.objects.filter(sor_id=sor_id, order_id=order_data['order_id'],
+                                                              order__sku__sku_code=sku_code, order__user=user.id)
+                    if seller_order:
+                        order_data[key] = seller_order[0].id
             else:
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
                 if cell_data:
@@ -2595,7 +2630,11 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
         if not order_data['return_date']:
             order_data['return_date'] = datetime.datetime.now()
 
+        if order_data.get('return_type', '') == 'DAMAGED_MISSING':
+            order_data['damaged_quantity'] = order_data['quantity']
         if (order_data['quantity'] or order_data['damaged_quantity']) and sku_id:
+            #if order_data.get('seller_order_id', '') and 'order_id' in order_data.keys():
+            #    del order_data['order_id']
             returns = OrderReturns(**order_data)
             returns.save()
 
@@ -2603,7 +2642,8 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                 returns.return_id = 'MN%s' % returns.id
             returns.save()
 
-            save_return_locations([returns], all_data, order_data['damaged_quantity'], request, user)
+            if not order_data.get('seller_order_id', ''):
+                save_return_locations([returns], all_data, order_data['damaged_quantity'], request, user)
     return 'Success'
 
 def get_sales_returns_mapping(reader, file_type):
@@ -2615,6 +2655,8 @@ def get_sales_returns_mapping(reader, file_type):
         order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Sale Order Item Code':
         order_mapping = copy.deepcopy(UNIWEAR_RETURN_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'SOR ID' and get_cell_data(0, 1, reader, file_type) == 'UOR ID':
+        order_mapping = copy.deepcopy(SHOTANG_RETURN_EXCEL)
     return order_mapping
 
 

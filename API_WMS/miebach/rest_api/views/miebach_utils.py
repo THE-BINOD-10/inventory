@@ -552,9 +552,14 @@ MYNTRA_EXCEL = {'invoice_amount': 14, 'marketplace': 'Myntra', 'sku_code': 2, 'q
 
 UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code': 1, 'recreate': True}
 
-# ---  Return Marketplace headers --
+# ---  Returns Default headers --
 GENERIC_RETURN_EXCEL = OrderedDict((('sku_id', 2), ('order_id', 1), ('quantity', 3), ('damaged_quantity', 4),
                                    ('return_id', 0),  ('return_date', 5)))
+
+# ---  Shotang Returns headers --
+SHOTANG_RETURN_EXCEL = OrderedDict((('sku_id', 2), ('order_id', 1), ('quantity', 3), ('return_date', 4), ('seller_order_id', 0),
+                                    ('marketplace', 'Shotang')
+                                  ))
 
 #MYNTRA_RETURN_EXCEL = OrderedDict((('sku_id', [5,7]), ('quantity', 8), ('reason', 13), ('marketplace', "MYNTRA")))
 
@@ -583,7 +588,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'inventory_adjust_report': 'get_adjust_filter_data', 'inventory_aging_report': 'get_aging_filter_data',
                         'stock_summary_report': 'get_stock_summary_data', 'daily_production_report': 'get_daily_production_data',
                         'order_summary_report': 'get_order_summary_data', 'seller_invoices_filter': 'get_seller_invoices_filter_data',
-                        'open_jo_report': 'get_openjo_details'}
+                        'open_jo_report': 'get_openjo_details', 'grn_inventory_addition': 'get_grn_inventory_addition_data'}
 
 SHIPMENT_STATUS = ['Dispatched', 'In Transit', 'Out for Delivery', 'Delivered']
 
@@ -1181,6 +1186,7 @@ def get_po_filter_data(search_params, user, sub_user):
     if 'from_date' in search_params:
         search_parameters[ field_mapping['from_date'] + '__gte'] = search_params['from_date']
     if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date']  + datetime.timedelta(1), datetime.time())
         search_parameters[ field_mapping['to_date'] + '__lte'] = search_params['to_date']
 
     if 'open_po' in search_params and search_params['open_po']:
@@ -1188,8 +1194,8 @@ def get_po_filter_data(search_params, user, sub_user):
         if temp:
             search_parameters[field_mapping['order_id']] = temp[-1]
 
-    if 'wms_code' in search_params:
-        search_parameters[field_mapping['wms_code']] = search_params['wms_code']
+    if 'sku_code' in search_params:
+        search_parameters[field_mapping['wms_code']] = search_params['sku_code']
 
 
     search_parameters[field_mapping['user']] = user.id
@@ -1787,3 +1793,65 @@ def get_seller_invoices_filter_data(search_params, user, sub_user):
             temp_data['aaData'] = apply_search_sort(temp_data['aaData'][0].keys(), temp_data['aaData'], order_term, '', col_num, exact=False)
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
+
+def get_grn_inventory_addition_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+
+    search_parameters = {}
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    temp_data = copy.deepcopy( AJAX_DATA )
+    temp_data['draw'] = search_params.get('draw')
+    result_values = ['purchase_order__order_id', 'receipt_number', 'purchase_order__open_po__sku__sku_code', 'seller_po__seller__seller_id',
+                     'purchase_order__received_quantity', 'purchase_order__open_po__price', 'purchase_order__open_po__tax',
+                     'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price']
+
+    if 'from_date' in search_params:
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date']  + datetime.timedelta(1), datetime.time())
+        search_parameters['creation_date__lte'] = search_params['to_date']
+
+    if 'open_po' in search_params and search_params['open_po']:
+        temp = re.findall('\d+', search_params['open_po'])
+        if temp:
+            search_parameters['purchase_order__order_id'] = temp[-1]
+
+    if 'sku_code' in search_params:
+        search_parameters['seller_po__open_po__sku__wms_code'] = search_params['sku_code']
+
+
+    search_parameters['seller_po__seller__user'] = user.id
+    search_parameters['seller_po__open_po__sku_id__in'] = sku_master_ids
+    query_data = SellerPOSummary.objects.filter(**search_parameters)
+    model_data = query_data.values(*result_values).distinct().annotate(total_received=Sum('quantity'))
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
+    for data in model_data:
+        result = purchase_orders.filter(order_id=data['purchase_order__order_id'],open_po__sku__user=user.id)[0]
+        po_number = '%s%s_%s' %(data['purchase_order__prefix'], str(result.creation_date).split(' ')[0].replace('-', ''), data['purchase_order__order_id'])
+        amount = float(data['total_received'] * data['purchase_order__open_po__price'])
+        aft_unit_price = float(data['purchase_order__open_po__price']) + (float(data['purchase_order__open_po__price']/100) * float(data['purchase_order__open_po__tax']))
+        post_amount = aft_unit_price * float(data['total_received'])
+        margin_price = float(data['seller_po__unit_price'] - aft_unit_price)
+        if margin_price < 0:
+            margin_price = 0
+        margin_price = "%.2f" % (margin_price * float(data['total_received']))
+        final_price = data['seller_po__unit_price']
+        if not final_price:
+            final_price = aft_unit_price
+        invoice_total_amount = float(final_price) * float(data['total_received'])
+        temp_data['aaData'].append(OrderedDict(( ('Transaction ID', po_number + '/' + str(data['receipt_number'])),
+                                                 ('Product Code', data['purchase_order__open_po__sku__sku_code']),
+                                                 ('Seller ID', data['seller_po__seller__seller_id']),
+                                                 ('Quantity', data['total_received']),
+                                                 ('Price', invoice_total_amount), ('Type', 'Add'),
+                                             )))
+    return temp_data
+

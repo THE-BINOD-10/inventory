@@ -400,7 +400,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], sku=order_data['sku_id'], user=user.id)
             order_create = True
             if user_profile.user_type == 'marketplace_user':
-                if not seller_order_dict['seller_id']:
+                if not seller_order_dict['seller_id'] or (not seller_order_dict.get('order_status','') in ['PROCESSED', 'DELIVERY_RESCHEDULED']):
                     order_create = False
             if not order_obj and order_create:
                 if not 'shipment_date' in order_mapping.keys():

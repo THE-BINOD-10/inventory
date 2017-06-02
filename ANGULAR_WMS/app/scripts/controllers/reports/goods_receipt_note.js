@@ -90,6 +90,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.dtColumns = data.dtColumns;
       vm.datatable = true;
       vm.dtInstance = {};
+      vm.report_data['excel2'] = true;
     })
   })
 

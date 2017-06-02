@@ -295,7 +295,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                                'return_quantity': 1, 'damaged_quantity': '', 'track_id_enable': false,
                                'is_new': true, 'marketplace': '', 'return_type': '', 'sku_desc': data.data.sku_desc,
                                'invoice_number': data.data.invoice_number, 'returns_imeis': [field], 'damaged_imeis': [],
-                               'damaged_imeis_reason': []});
+                               'damaged_imeis_reason': [], 'id': data.data.id});
       vm.imei_data["index"] = vm.model_data.data.length-1;
     }
 

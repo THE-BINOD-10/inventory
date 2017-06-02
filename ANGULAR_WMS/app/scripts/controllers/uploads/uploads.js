@@ -183,7 +183,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
     vm.service.showNoty("Started Uploading");
     $(".preloader").removeClass("ng-hide").addClass("ng-show");
     var file = $scope.files[0];
-               
+
     console.log('file is ' );
     console.dir(file);
     var uploadUrl = Session.url+data;
@@ -196,7 +196,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
       headers: {'Content-Type': undefined}
     })
     .success(function(data){
-      if (data == "Success" || (data.search("Invalid") > -1) || (data.search("not") > -1)) {
+      if ((data == "Success") || (data.search("Invalid") > -1) || (data.search("not") > -1) || (data.search("Fail") > -1)) {
         var type = "";
         type = (data == "Success")? "": "error";
         vm.service.showNoty(data, type);
@@ -212,7 +212,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
       vm.service.showNoty("Upload Fail");
       $("input").val('');
       $scope.disable = false;
-    }); 
+    });
   };
 
   function upload_status(msg, index) {

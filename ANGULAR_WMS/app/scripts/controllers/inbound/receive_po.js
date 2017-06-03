@@ -322,7 +322,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       event.stopPropagation();
       if (event.keyCode == 13 && field.length > 0) {
 
-        if(vm.imei_list.indexOf(field) > -1) {
+        if (!vm.enable_button) {
+
+          focus('focusSKU');
+          Service.showNoty("Scan SKU first before scaning IMEI");
+        } else if (vm.imei_list.indexOf(field) > -1) {
 
           Service.showNoty("IMEI Already Scanned");
         } else if(vm.model_data.data[vm.current_index][0].po_quantity == vm.model_data.data[vm.current_index][0].value) {
@@ -334,6 +338,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               if (data.data == "") {
                 vm.imei_list.push(field);
                 vm.accept_qc(vm.model_data.data[vm.current_index], field);
+                focus('focusSKU');
               } else {
                 Service.showNoty(data.data);
               }
@@ -341,6 +346,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           })
           console.log(vm.current_index);
         }
+        vm.serial_scan = "";
       }
     }
 
@@ -365,24 +371,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       if (event.keyCode == 13 && sku.length > 0) {
         event.stopPropagation();
-        var status = true;
-        for(var i = 0; i < vm.model_data.data.length; i++) {
+        vm.service.apiCall('check_sku/', 'GET',{'sku_code': sku}).then(function(data){
+          if(data.message) {
+            sku = data.data.sku_code;
+            var status = true;
+            for(var i = 0; i < vm.model_data.data.length; i++) {
 
-          var data = vm.model_data.data[i][0];
-          if(data.wms_code == sku) {
+              var data = vm.model_data.data[i][0];
+              if(data.wms_code == sku) {
 
-            vm.enable_button = true;
-            vm.reason_show = false;
-            vm.current_index = i;
-            status = false;
-            break;
+                vm.enable_button = true;
+                vm.reason_show = false;
+                vm.current_index = i;
+                focus('focusIMEI');
+                status = false;
+                break;
+              }
+            }
+            if(status) {
+
+              Service.showNoty("SKU Not Found");
+            }
+            vm.change_sku = "";
           }
-        }
-        if(status) {
-
-          Service.showNoty("SKU Not Found");
-        }
-        vm.change_sku = "";
+        })
       }
     }
 
@@ -964,6 +976,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.selected = "";
     vm.reject_qc = function(imei) {
 
+      focus('focusSKU');
       vm.reason_show = false;
       var sku = vm.model_data.data[vm.current_index][0];
       var field = "";
@@ -989,7 +1002,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
 
       vm.selected="";
-      focus('focusIMEI');
     }
 
     vm.status_imei = "";

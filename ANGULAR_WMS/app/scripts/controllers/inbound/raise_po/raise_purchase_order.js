@@ -161,6 +161,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                       "po_name": "",
                       "ship_to": "",
                       "receipt_types": ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'],
+                      "receipt_type": 'Purchase Order',
                       "seller_types": [],
                       "total_price": 0,
                       "tax": "",
@@ -186,7 +187,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }*/
 
     vm.base = function() {
-      
+
       vm.title = "Raise PO";
       vm.vendor_produce = false;
       vm.confirm_print = false;
@@ -217,7 +218,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
           }
           vm.model_data.receipt_type = 'Purchase Order';
+          if (Session.user_profile.user_type == 'marketplace_user') {
+            vm.model_data.receipt_type = 'Hosted Warehouse';
+          }
           $state.go('app.inbound.RaisePo.PurchaseOrder');
+
         }
 
       });

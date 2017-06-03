@@ -49,12 +49,18 @@ def send_mail_attachment(send_to, subject, text, files=[]):
 
     for f in files:
 
-        attachment = open(f, "rb")
+        if isinstance(f, dict):
+            file_path = f['path']
+            file_name = f['name']
+        else:
+            file_path = f
+            file_name = f
+        attachment = open(file_path, "rb")
 
         part = MIMEBase('application', 'octet-stream')
         part.set_payload((attachment).read())
         encoders.encode_base64(part)
-        part.add_header('Content-Disposition', "attachment; filename= %s" % f)
+        part.add_header('Content-Disposition', "attachment; filename= %s" % file_name)
 
         msg.attach(part)
 

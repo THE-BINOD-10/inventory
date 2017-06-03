@@ -1,0 +1,33 @@
+<div class="center-wrapper" data-ng-controller="createAccountCtrl">
+  <div class="center-content" style="background: url('images/2016-09-20.png') no-repeat center center fixed;background-repeat: no-repeat;background-size: cover;">
+    <div class="row no-margin">
+      <div class="col-xs-10 col-xs-offset-1 col-sm-6 col-sm-offset-3 col-md-4 col-md-offset-4">
+        <form id="form" name="form" class="form-layout">
+          <div class="text-center mb15">
+            <img ng-src="images/stockone_logo_white.png" style="width: 100%;">
+          </div>
+
+          <p class="text-center mb15" style="color:#fff;font-size: 20px;">Sign up for a 30 day free trial</p>
+
+          <div class="alert alert-warning" ng-show="invalid">
+            <span class="close" ng-click="invalid = false">&times;</span>
+            <strong>Warning!</strong> {{invalid_msg}}.
+          </div>
+
+          <div class="alert alert-success" ng-show="valid">
+            <span class="close" ng-click="valid = false">&times;</span>
+            {{valid_msg}}
+          </div>
+
+          <div class="form-inputs">
+            <input name="full_name" type="text" class="form-control input-lg" ng-model="form_data.full_name" placeholder="Full Name" ng-readonly="readonly" required>
+            <input name="email" type="email" class="form-control input-lg" ng-model="form_data.email" placeholder="Email Address" ng-readonly="readonly" required>
+            <input name="contact" id="phone" type="text" class="form-control input-lg" ng-model="form_data.phone" placeholder="Contact Number" ui-jq="mask" ui-options="'(999) 999-9999'" required ng-readonly="readonly" />
+            <input name="company" type="text" class="form-control input-lg" ng-model="form_data.company" placeholder="Company Name" ng-readonly="readonly" required>
+          </div>
+          <button class="btn btn-success btn-block btn-lg mb15" type="submit" ng-click="signup(form)">Request Trial</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

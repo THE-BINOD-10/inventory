@@ -125,56 +125,113 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.style = "";
   vm.catlog_data = {data: [], index: ""}
 
-  vm.tag_details = function(cat_name, brand) {
+  vm.tag_details_loading = false;
+  vm.data_loading = "not done"
+
+  vm.tag_details = function(cat_name, brand, scroll, status) {
+
+    if(scroll && vm.data_loading == "done") {
+
+      return false;
+    } else {
+
+      vm.data_loading = "not done";
+    }
+
+    if(vm.tag_details_loading) {
+
+      vm.cancel();
+      //return false;
+    } else {
+
+      vm.tag_details_loading = true
+    }
 
     vm.category = cat_name;
     if(cat_name == "All") {
       cat_name = "";
     }
-    vm.catlog_data.index = "";
+    if(!scroll) {
+      vm.catlog_data.index = "";
+    }
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, customer_data_id: vm.model_data.customer_id};
     vm.catlog_data.index = ""
     vm.scroll_data = false;
-    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
-    
-	if(data.message) {
-        
-        angular.copy([], vm.catlog_data.data);
-        vm.catlog_data.index = data.data.next_index;
-	angular.forEach(data.data.data, function(item){
-          vm.catlog_data.data.push(item);
-        })
-        vm.scroll_data = true;
-	}
+    //vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
+
+  	//  if(data.message) {
+
+    vm.getingData(data).then(function(data) {
+      console.log(data);
+      vm.scroll_data = true;
+      if(data == 'done') {
+          var data = {data: vm.gotData};
+          if(!scroll) {
+            angular.copy([], vm.catlog_data.data);
+          } else {
+            if(vm.gotData.data.length == 0){
+              vm.data_loading = "done";
+            }
+          }
+          if(status) {
+            angular.copy([], vm.catlog_data.data);
+          }
+          vm.catlog_data.index = data.data.next_index;
+	      angular.forEach(data.data.data, function(item){
+            vm.catlog_data.data.push(item);
+          })
+    	//  }
+        vm.tag_details_loading = false;
+      }
     })
 
+  }
+
+  vm.gotData = {};
+  vm.getingData = function(data) {
+
+    vm.loading = true;
+    var canceller = $q.defer();
+    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(response) {
+      if(response.message) {
+        vm.gotData = response.data;
+        canceller.resolve("done");
+      }
+      vm.loading = false;
+    });
+    vm.cancel = function() {
+      canceller.resolve("cancelled");
+    };
+    return canceller.promise;
   }
 
   vm.get_category = function(status, scroll) {
     vm.scroll_data = false;
     var cat_name = vm.category;
-    if(vm.category == "All") {
-      cat_name = "";
-    }
+    //if(vm.category == "All") {
+    //  cat_name = "";
+    //}
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, customer_data_id: vm.model_data.customer_id}
-    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
 
-      if(data.message) {
+    vm.tag_details(vm.category, vm.brand, scroll, status);
+    //vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
 
-        if(status) {
+    //  if(data.message) {
 
-          vm.catlog_data.index = "";
-          angular.copy([], vm.catlog_data.data);
-        }
-        vm.catlog_data.index = data.data.next_index;
-        angular.forEach(data.data.data, function(item){
-          vm.catlog_data.data.push(item);
-        })
-      }
-      vm.scroll_data = true;
-    })
+    //    if(status) {
+
+    //      vm.catlog_data.index = "";
+    //      angular.copy([], vm.catlog_data.data);
+    //    }
+    //    vm.catlog_data.index = data.data.next_index;
+    //    angular.forEach(data.data.data, function(item){
+    //      vm.catlog_data.data.push(item);
+    //    })
+    //  }
+    //  vm.scroll_data = true;
+    //})
 
   }
 
@@ -230,6 +287,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     vm.base();
     vm.model_data.template_value = "";
     vm.model_data.template_type = ""
+    angular.copy(vm.empty_custom, vm.custom_data);
     $state.go('app.outbound.CreateOrders.CreateCustomSku');
   }
 
@@ -238,17 +296,17 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     vm.title = "Create Custom SKU";
     //vm.update = false;
     //angular.copy(empty_data, vm.model_data);
-    vm.service.apiCall('get_sku_field_names/','GET',{'field_type':'create_orders'}).then(function(data){
+    //vm.service.apiCall('get_sku_field_names/','GET',{'field_type':'create_orders'}).then(function(data){
 
-      if(data.message) {
-	vm.template_types = data.data.template_types;
+    //  if(data.message) {
+	//vm.template_types = data.data.template_types;
         //vm.template_types = data.data.template_types;
         //vm.model_data.template_type = vm.template_types[0].field_name;
         //vm.template_values = vm.template_types[0].field_data;
-        vm.model_data.template_type = vm.template_types[0].field_value;
-        vm.pop_data.sizes_list = data.data.sizes_list;
-      }
-    })
+    //    vm.model_data.template_type = vm.template_types[0].field_value;
+    //    vm.pop_data.sizes_list = data.data.sizes_list;
+    //  }
+    //})
   }
 
   vm.change_template_values = function(){
@@ -295,11 +353,11 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     })
 
   vm.pop_btn = true;
-  vm.check_quantity = function(data){
+  vm.check_quantity = function(){
 
     vm.pop_btn = true;
-    angular.forEach(data, function(record){
-      if(Number(record.quantity)> 0) {
+    angular.forEach(vm.custom_data.sku_data, function(record){
+      if(Number(record.total)> 0) {
         vm.pop_btn = false;
       }
     });
@@ -329,7 +387,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
             },
             'success': function(response) {
               var response = JSON.parse(response);
-              if(response.message == "SKU Created Successfully") {
+              if(response.message == "Success") {
 
                 colFilters.showNoty("Custom SKU Created And Also Added In Order");
                 vm.add_to_order(response.data, vm.pop_data);
@@ -374,21 +432,13 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     }
     angular.forEach(data, function(record){
 
-      var temp = {sku_id: record.sku_code, description: record.sku_desc, quantity: Number(record.quantity), invoice_amount: "", price: Number(sizes.unit_price), tax: vm.tax, total_amount: ''}
+      var temp = {sku_id: record.sku_code, description: record.description, quantity: Number(record.quantity), invoice_amount: "", price: Number(sizes.unit_price), tax: vm.tax, total_amount: '', extra: record, remarks: record.remarks};
       temp.invoice_amount = temp.quantity*temp.price;
-      temp.total_amount = ((temp.invoice_amount/100)*5.5)+temp.invoice_amount;
+      temp.total_amount = ((temp.invoice_amount/100)*temp.tax)+temp.invoice_amount;
       vm.model_data.data.push(temp);
     });
 
     vm.cal_total();
-    /*if (vm.model_data.data[0].sku_id) {
-      vm.model_data.data.push({sku_id: data, quantity: "", invoice_amount: "", price: "", tax: vm.tax}); 
-    } else {
-      vm.model_data.data[0].sku_id = data;
-      vm.model_data.data[0].quantity = "1";
-      vm.model_data.data[0].invoice_amount = "";
-      vm.model_data.data[0].price = "";
-    }*/
   }
 
  vm.close = function() {
@@ -809,6 +859,173 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
           break;
         }
       }
+    }
+  }
+
+  vm.empty_custom = {sku_data: [], cats: []}
+
+  vm.custom_data = {};
+  angular.copy(vm.empty_custom, vm.custom_data);
+  //custom SKU
+  vm.removeSKU = function(index) {
+
+    vm.custom_data.sku_data.splice(index, 1);
+  }
+
+  vm.getTemplateData = function(e, name) {
+
+    console.log(e,name);
+    angular.copy(vm.empty_custom, vm.custom_data);
+    if(name) {
+
+      vm.service.apiCall('get_product_properties/?data_id='+name).then(function(data){
+        if(data.message) {
+          angular.copy(data.data, vm.pop_data);
+          vm.pop_data.brand = "ALL";
+          vm.getCategoriesList(vm.pop_data.name, vm.pop_data.brand);
+          vm.pop_data.size_name = vm.pop_data.size_names[0];
+          vm.pop_data.sizes = vm.sizes[vm.pop_data.size_name];
+        }
+      })
+    }
+  }
+
+  vm.sizes = {};
+  //get all size names
+  vm.getSizes = function() {
+
+    vm.service.apiCall("get_size_names/").then(function(data){
+
+      console.log(data.data);
+      if(data.message) {
+
+        vm.sizes = data.data;
+      }
+    })
+  }
+  vm.getSizes();
+
+  vm.selectedCat = 0;
+  vm.getCategoriesList = function(name, brand){
+
+    vm.service.apiCall("get_categories_list/", "GET", {name: name, brand: brand}).then(function(data){
+      if(data.message) {
+        console.log(data.data);
+        vm.custom_data.cats = [];
+        if(data.data.length > 0) {
+
+          data.data.push("All");
+        }
+        vm.custom_data.cats = data.data;
+        vm.selectedCat = vm.custom_data.cats.length - 1;
+        vm.getCustomStyles(vm.custom_data.cats[vm.selectedCat]);
+      }
+    })
+  }
+
+  vm.changeSizes = function(name) {
+
+    if(name) {
+
+      if(vm.sizes[name]) {
+
+        vm.pop_data.sizes = vm.sizes[name];
+
+        angular.forEach(vm.custom_data.sku_data, function(data){
+
+          data.sizes = [];
+          data.total = 0;
+          angular.forEach(vm.pop_data.sizes, function(size) {
+
+            data.sizes.push({name: size, value: 0});
+          })
+        })
+      } else {
+
+        vm.pop_data.sizes = [];
+      }
+    } else {
+
+      vm.pop_data.sizes = [];
+    }
+  }
+
+  vm.calTotal = function(sku, value) {
+
+    if(value) {
+
+      if(!(Number(value) > -1)) {
+
+        return false;
+      }
+    }
+
+    sku.total = 0;
+    angular.forEach(sku.sizes, function(size) {
+
+      sku.total += Number(size.value);
+    })
+
+    vm.check_quantity()
+  }
+
+  vm.custom_styles_loading = false;
+  vm.styles_loading = false;
+  vm.getCustomStyles = function(name, index) {
+
+    if(!vm.styles_loading) {
+
+      vm.styles_loading = true
+    } else {
+
+      return false;
+    }
+    vm.custom_styles_loading = true;
+    vm.pop_data.style_data = [];
+    if (index > -1) {
+      vm.selectedCat = index;
+    }
+    vm.service.apiCall("get_custom_template_styles/", "GET", {name: vm.pop_data.name, brand: vm.pop_data.brand, category: name}).then(function(data){
+      if(data.message) {
+        console.log(data.data);
+        vm.pop_data.style_data = data.data.data;
+      }
+      vm.custom_styles_loading = false;
+      vm.styles_loading = false;
+    })
+  }
+
+  vm.addSKU = function(item){
+
+    var status = true;
+    for(var i = 0; i < vm.custom_data.sku_data.length; i++){
+
+      if(vm.custom_data.sku_data[i].name == item.sku_class) {
+
+        status = false;
+        break;
+      }
+    }
+
+    if(status) {
+
+      var temp = {name: item.sku_class, sizes: [], total:0, remarks:'', av_sizes:[]};
+
+      angular.forEach(vm.pop_data.sizes, function(size) {
+
+         temp.sizes.push({name: size, value: 0});
+      })
+      angular.forEach(item.variants, function(data){
+
+        if(data.sku_size) {
+
+          temp.av_sizes.push(data.sku_size);
+        }
+      })
+      vm.custom_data.sku_data.push(temp);
+    } else {
+
+      vm.service.showNoty("Style Already Added");
     }
   }
 }

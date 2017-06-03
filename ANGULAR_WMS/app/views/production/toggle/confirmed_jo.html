@@ -66,31 +66,7 @@
                     <td>
                       <input type="text" name="measurement" class="form-control" value="{{item.measurement_type}}" ng-readonly="showCase.update">        
                     </td>
-                    <td>
-                      <div style="padding-top: 10px;" ng-if="data.sku_extra_data.length > 0">
-                        <span ng-show="$first">
-                          <div class="tooltip" style="color:#33cc66">Detail
-                            <span class="tooltiptext">
-                              <div>
-                                <div ng-if="data.product_images.length">
-                                  <img ng-src="{{showCase.service.check_image_url(data.product_images[0])}}" style="width: 100%;">
-                                </div>
-                                <table style="margin: 0px;width: 100%;">
-                                <!--<thead>
-                                <tr><th align="right" style="text-align:right">property</th><th align="left">value</th>
-                                </tr>
-                                </thead>-->
-                                  <tbody>
-                                    <tr ng-repeat="tip in data.sku_extra_data">
-                                      <td>{{tip.attribute_name}}</td><td>{{tip.attribute_value}}</td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </span>
-                          </div>
-                        </span>
-                      </div>
+                    <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                     </td>
                   </tr>
                 </tbody>

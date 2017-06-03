@@ -1083,3 +1083,54 @@ pre {
   background: #fff;
 }
 
+.slick-prev {
+
+    position: absolute;
+    display: block;
+    line-height: 0;
+    font-size: 0;
+    cursor: pointer;
+    background: transparent;
+    color: transparent;
+    top: 50%;
+    margin-top: -10px;
+    padding: 0;
+    border: none;
+    left: -25px;
+}
+
+.slick-prev:before {
+
+  content: '\2039';
+    font-size: 40px;
+    line-height: 1;
+    color: grey;
+    opacity: 0.85;
+    -webkit-font-smoothing: antialiased;
+}
+
+.slick-next {
+
+  position: absolute;
+    display: block;
+    line-height: 0;
+    font-size: 0;
+    cursor: pointer;
+    background: transparent;
+    color: transparent;
+    top: 50%; 
+    margin-top: -10px;
+    padding: 0;
+    border: none;
+    right: -25px; 
+}
+
+.slick-next:before {
+
+  content: '\203A';
+    font-size: 40px;
+    line-height: 1;
+    color: grey;
+    opacity: 0.85;
+    -webkit-font-smoothing: antialiased;
+}

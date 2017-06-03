@@ -192,6 +192,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
       });
     }
 
+    vm.process = false;
     vm.backorder_po = function() {
       var data = {};
       angular.forEach(vm.selected, function(value, key) {
@@ -200,12 +201,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
           data[temp['WMS Code']+":"+$(temp[""]).attr("name")] = temp['Procurement Quantity'];
         }
       });
+      vm.process = true
       Service.apiCall("generate_po_data/", "POST", data).then(function(data){
         if(data.message) { 
 
           angular.copy(data.data, vm.model_data)
           $state.go("app.outbound.BackOrders.PO");
         };
+        vm.process = false;
       });
     }
 
@@ -217,6 +220,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
           data[temp['WMS Code']+":"+$(temp[""]).attr("name")] = temp['Procurement Quantity'];
         }
       });
+      vm.process = true;
       Service.apiCall("generate_jo_data/", "POST", data).then(function(data){
         if(data.message) {
 
@@ -227,6 +231,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
             }
           });
           $state.go("app.outbound.BackOrders.JO");
+          vm.process = false;
         };
       });
     }
@@ -236,15 +241,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
         for(var key in vm.selected){
             if(vm.selected[key]) {
                 var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData;
-                Service.apiCall("create_stock_transfer_data/", "POST", temp).then(function(api_data){
-                    console.log(temp);
-                    console.log(data);
-                    var price = api_data.data.price;
-                    data.push({wms_code: temp['WMS Code'], order_quantity: temp['Ordered Quantity'], price: price})
-                    Service.stock_transfer = JSON.stringify(data)
-                    $state.go('app.outbound.BackOrders.ST')
-                });
+                data.push({wms_code: temp['WMS Code'], order_quantity: temp['Ordered Quantity'], price: 0})
             }
+        }
+        Service.stock_transfer = JSON.stringify(data);
+        if(data) {
+          $state.go('app.outbound.BackOrders.ST');
+          vm.reloadData();
         }
    }
 

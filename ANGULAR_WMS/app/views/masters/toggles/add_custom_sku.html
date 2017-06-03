@@ -6,38 +6,50 @@
         <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
         <h4 class="modal-title">{{showCase.title}}</h4> </div>
       <!-- body-->
-      <div class="modal-body">
+      <div class="modal-body" ng-init="showCase.getBrands(); showCase.getSizes()">
           <div class="row">
             <div class="col-md-4 col-sm-6 col-xs-12">
               <div class="form-group">
                 <label class="control-label"> Template Name* </label>
                 <input type="text" name="name" class="form-control" ng-model="showCase.model_data.name" ng-readonly="showCase.update" required>
                 <input type="hidden" name="id" ng-if="showCase.update" value="{{showCase.model_data.id}}">
+                <input type="hidden" name="is_new" value="{{(showCase.update)? false: true;}}">
               </div>
             </div>
-            <div class="col-md-4 col-sm-6 col-xs-12">
-              <div class="row">
-                <div class="col-md-12">
-                  <div class="form-group">
-                    <label class="control-label"> Template Type </label>
-                    <select class="form-control" ng-model="showCase.model_data.property_type" name="property_type" ng-change="showCase.change_template_values();" ng-disabled="showCase.update">
-                      <option ng-repeat="type in showCase.template_types" ng-selected="type.field_name == showCase.model_data.property_type" value="{{type.field_name}}">{{type.field_value}}</option>
-                    </select>
-                  </div>
-                </div>
+          </div>
+          <div class="row"><hr></div>
+          <div class="row" ng-if="!showCase.update">
+            <div class="col-md-4 col-sm-4 col-xs-12">
+              <div class="form-group">
+                <label class="control-label"> Brands * </label>
+                <select data-placeholder="Select Brands" multiple class="chosen brands" chosen style="width: 100%;" ng-model="showCase.model_data.selected_brands" name="brands" required ng-change="showCase.changeCat(showCase.model_data.selected_brands)">
+                  <option ng-repeat="opt in showCase.brands" value="{{opt}}">{{opt}}</option>
+                </select>
               </div>
             </div>
-            <div class="col-md-4 col-sm-6 col-xs-12">
-              <div class="row">
-                <div class="col-md-12">
-                  <div class="form-group">
-                    <label class="control-label"> Template value </label>
-                    <select class="form-control" ng-model="showCase.model_data.property_name" name="property_name" ng-disabled="showCase.update">
-                      <option ng-repeat="type in showCase.template_values" ng-selected="type == showCase.model_data.property_name" value="{{type}}">{{type}}</option>
-                    </select>
-                  </div>
-                </div>
+            <div class="col-md-4 col-sm-4 col-xs-12">
+              <div class="form-group">
+                <label class="control-label"> Categories * </label>
+                <select data-placeholder="Select Categories" multiple class="chosen cats" chosen style="width: 100%;" ng-model="showCase.model_data.selected_cats" name="categories" ng-change="showCase.changeCatList(showCase.model_data.selected_cats);" required>
+                   <option ng-repeat="opt in showCase.cats" value="{{opt}}" ng-seleted="showCase.model_data.selected_cats.indexOf(opt) != -1">{{opt}}</option>
+                 </select>
               </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-12">
+              <div class="form-group">
+                <label class="control-label"> Sizes * </label>
+                <select data-placeholder="Select Sizes" multiple class="chosen sizes" chosen style="width: 100%;" ng-model="showCase.model_data.selected_sizes" name="sizes" required>
+                   <option ng-repeat="opt in showCase.sizes" value="{{opt}}">{{opt}}</option>
+                 </select>
+              </div>
+            </div>
+          </div>
+          <div class="row" ng-if="showCase.update">
+            <div class="col-md-4" ng-repeat="(name, value) in {'brands': 'Brands', 'categories': 'Categories', 'size_names': 'Sizes'}">
+              <h4 style="padding-left: 20px;">{{value}}</h4>
+              <ul>
+                <li ng-repeat="item in showCase.model_data[name]">{{item}}</li>
+              </ul>
             </div>
           </div>
           <div class="row"><hr></div>
@@ -49,9 +61,9 @@
                 <input type="file" id="image-upload" name="files" image-upload multiple="">
               </div>
             </div>
-            <div class="col-md-6" ng-if="showCase.model_data.images.length > 0">
+            <div class="col-md-6" ng-if="showCase.model_data.product_images.length > 0">
               <div class="image">
-                <img ng-src="{{showCase.service.check_image_url(showCase.model_data.images[0])}}"></img>
+                <img ng-src="{{showCase.service.check_image_url(showCase.model_data.product_images[0])}}"></img>
               </div>
             </div>
           </div>

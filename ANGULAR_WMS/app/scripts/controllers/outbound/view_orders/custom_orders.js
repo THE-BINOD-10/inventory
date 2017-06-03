@@ -138,7 +138,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               vm.img_url = vm.service.check_image_url(image_url);
               console.log(vm.model_data);
               vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity, 
-              invoice_amount: vm.invoice_amount, image_url: vm.img_url, remarks: vm.remarks, default_status: true})
+              invoice_amount: vm.invoice_amount, image_url: vm.img_url, remarks: vm.remarks, default_status: true,
+              sku_extra_data: value.sku_extra_data, display: true})
             });
                 $state.go('app.outbound.ViewOrders.CustomOrderDetails'); 
                 })
@@ -223,11 +224,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
   vm.confirm_disable = false;
   vm.close = close;
-    function close() {
-      $state.go('app.outbound.ViewOrders');
-      vm.message = "";
-      vm.confirm_disable = false;
-    }
+  function close() {
+    $state.go('app.outbound.ViewOrders');
+    vm.message = "";
+    vm.confirm_disable = false;
+    vm.reloadData();
+  }
 
   vm.message = "";
   vm.pop_msg =  function(msg) {
@@ -286,4 +288,44 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.vendors = data.data.data;
     }
   })
+
+   vm.raise_stock_transfer = function() {
+
+    var data = []
+    for(var key in vm.selected){
+      if(vm.selected[key]) {
+        var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+        data.push(temp['order_id'])
+      }
+    }
+    vm.service.apiCall('get_stock_transfer_details/', 'GET', {order_id: data.join(",")}).then(function(data){
+      if(data.message) {
+
+        Service.stock_transfer = JSON.stringify(data.data.data_dict)
+        $state.go('app.outbound.ViewOrders.ST', {data: Service.stock_transfer})
+      }
+    })
+  }
+
+  vm.backorder_po = function() {
+    var data = [];
+    for(var key in vm.selected){
+      if(vm.selected[key]) {
+        var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+        data.push({name: 'id', value: $(temp[""]).attr("name")})
+      }
+    }
+    $state.go("app.outbound.ViewOrders.PO", {data: JSON.stringify(data)});
+  }
+
+  vm.raise_jo = function() {
+      var data = [];
+      for(var key in vm.selected){
+        if(vm.selected[key]) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+          data.push({name: 'id', value: $(temp[""]).attr("name")})
+        }
+      }
+      $state.go("app.outbound.ViewOrders.JO", {data: JSON.stringify(data)});
+  }
 }

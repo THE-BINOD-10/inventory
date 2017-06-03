@@ -4206,67 +4206,67 @@ def confirm_receive_qc(request, user=''):
     myDict = dict(request.POST.iterlists())
 
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
-    #try:
-    for ind in range(0, len(myDict['id'])):
-        myDict.setdefault('imei_number', [])
-        imeis_list = [im.split('<<>>')[0] for im in (myDict['rejected'][ind]).split(',')] + myDict['accepted'][ind].split(',')
-        myDict['imei_number'].append(','.join(imeis_list))
-    po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict = generate_grn(myDict, request, user)
-    for i in range(0, len(myDict['id'])):
-        quality_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i], po_location__location__zone__user=user.id,
-                                                      status='qc_pending')
+    try:
+        for ind in range(0, len(myDict['id'])):
+            myDict.setdefault('imei_number', [])
+            imeis_list = [im.split('<<>>')[0] for im in (myDict['rejected'][ind]).split(',')] + myDict['accepted'][ind].split(',')
+            myDict['imei_number'].append(','.join(imeis_list))
+        po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict = generate_grn(myDict, request, user)
+        for i in range(0, len(myDict['id'])):
+            quality_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i], po_location__location__zone__user=user.id,
+                                                          status='qc_pending')
 
-        for quality_check in quality_checks:
-            qc_dict = {'id': [quality_check.id], 'unit': [myDict['unit'][i]], 'accepted': [myDict['accepted'][i]],
-                       'rejected': [myDict['rejected'][i]], 'accepted_quantity': [myDict['accepted_quantity'][i]],
-                       'rejected_quantity': [myDict['rejected_quantity'][i]], 'reason': ['']}
-            update_quality_check(qc_dict, request, user)
+            for quality_check in quality_checks:
+                qc_dict = {'id': [quality_check.id], 'unit': [myDict['unit'][i]], 'accepted': [myDict['accepted'][i]],
+                           'rejected': [myDict['rejected'][i]], 'accepted_quantity': [myDict['accepted_quantity'][i]],
+                           'rejected_quantity': [myDict['rejected_quantity'][i]], 'reason': ['']}
+                update_quality_check(qc_dict, request, user)
 
-            if myDict.get("accepted",''):
-                save_qc_serials('accepted', [myDict.get("accepted",'')[i]], user.id, qc_id=quality_check.id)
-            if myDict.get("rejected",''):
-                save_qc_serials('rejected', [myDict.get("rejected",'')[i]], user.id, qc_id=quality_check.id)
+                if myDict.get("accepted",''):
+                    save_qc_serials('accepted', [myDict.get("accepted",'')[i]], user.id, qc_id=quality_check.id)
+                if myDict.get("rejected",''):
+                    save_qc_serials('rejected', [myDict.get("rejected",'')[i]], user.id, qc_id=quality_check.id)
 
-    for key, value in all_data.iteritems():
-        putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[-1], key[2]))
-        total_order_qty += order_quantity_dict[key[0]]
-        total_received_qty += value
-        total_price += float(key[2]) * float(value)
+        for key, value in all_data.iteritems():
+            putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[-1], key[2]))
+            total_order_qty += order_quantity_dict[key[0]]
+            total_received_qty += value
+            total_price += float(key[2]) * float(value)
 
-    if not status_msg:
-        if not purchase_data:
-            return HttpResponse('Success')
-        address = purchase_data['address']
-        address = '\n'.join(address.split(','))
-        telephone = purchase_data['phone_number']
-        name = purchase_data['supplier_name']
-        supplier_email = purchase_data['email_id']
-        order_id = data.order_id
-        order_date = get_local_date(request.user, data.creation_date)
+        if not status_msg:
+            if not purchase_data:
+                return HttpResponse('Success')
+            address = purchase_data['address']
+            address = '\n'.join(address.split(','))
+            telephone = purchase_data['phone_number']
+            name = purchase_data['supplier_name']
+            supplier_email = purchase_data['email_id']
+            order_id = data.order_id
+            order_date = get_local_date(request.user, data.creation_date)
 
-        profile = UserProfile.objects.get(user=request.user.id)
-        po_reference = '%s%s_%s' % (data.prefix, str(order_date).split(' ')[0].replace('-', ''), order_id)
-        table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity', 'Amount')
-        report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
-                            'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
-                            'po_reference': po_reference, 'total_qty': total_received_qty,
-                            'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}
+            profile = UserProfile.objects.get(user=request.user.id)
+            po_reference = '%s%s_%s' % (data.prefix, str(order_date).split(' ')[0].replace('-', ''), order_id)
+            table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity', 'Amount')
+            report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
+                                'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
+                                'po_reference': po_reference, 'total_qty': total_received_qty,
+                                'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}
 
-        misc_detail = get_misc_value('receive_po', user.id)
-        if misc_detail == 'true':
-            t = loader.get_template('templates/toggle/po_download.html')
-            c = Context(report_data_dict)
-            rendered = t.render(c)
-            send_message = get_misc_value('send_message', user.id)
-            write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
-        return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,
-                               'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,
-                               'seller_name': seller_name,
-                               'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
-                               'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class})
-    else:
-        return HttpResponse(status_msg)
-    #except Exception as e:
-    #    log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
-    #    return HttpResponse("Generate GRN Failed")
+            misc_detail = get_misc_value('receive_po', user.id)
+            if misc_detail == 'true':
+                t = loader.get_template('templates/toggle/po_download.html')
+                c = Context(report_data_dict)
+                rendered = t.render(c)
+                send_message = get_misc_value('send_message', user.id)
+                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
+            return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,
+                                   'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,
+                                   'seller_name': seller_name,
+                                   'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
+                                   'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class})
+        else:
+            return HttpResponse(status_msg)
+    except Exception as e:
+        log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
+        return HttpResponse("Generate GRN Failed")
 

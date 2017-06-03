@@ -190,7 +190,8 @@ def wms_login(request):
                 user_profile = UserProfile(user=user, phone_number='',
 	                                           is_active=1, prefix=prefix, swx_id=0)
                 user_profile.save()
-                #add_user_type_permissions(user_profile)
+                if user.is_staff:
+                    add_user_type_permissions(user_profile)
         else:
             return HttpResponse(json.dumps(response_data), content_type='application/json')
 

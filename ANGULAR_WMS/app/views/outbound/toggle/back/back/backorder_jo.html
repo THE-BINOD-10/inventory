@@ -1,0 +1,64 @@
+<div ng-controller="BackorderJOPOP as pop" id="page-pop" class="modal fade in over-x" id="po-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="display: block; padding-left: 15px;">
+  <!-- Modal -->
+  <form name="form" role="form" ui-jq="validate" ui-options="pop.validationOpt">
+    <div class="modal-dialog modal-lg model-custom">
+      <div class="modal-content mw60">
+        <div ng-include="'views/common/loader.html'"></div>
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="$state.go($state.$current.parent)"><span aria-hidden="true">×</span>
+          </button>
+          <h4 class="modal-title" id="myLargeModalLabel">Raise Job Order</h4> </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-12">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Product SKU Code</th>
+                    <th>Product SKU Quantity</th>
+                    <th>Material SKU Code </th>
+                    <th>Material SKU Quantity</th>
+                    <th class="plus"></th>
+                  </tr>
+                </thead>
+                <tbody ng-repeat="data in pop.pop_data.data">
+                  <tr ng-repeat="item in data.sub_data">
+                    <td>
+                      <input type="hidden" name="order_id" value="{{data.order_id}}">
+                      <input type="hidden" name="id" value="{{item.id}}">
+
+                      <input type="text" autocomplete="off" ng-readonly="pop.update && (!(item.new_sku))" ng-show="$first" name="product_code" class="form-control" placeholder="Search Product SKU Code" typeahead="address for address in pop.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="data.product_code" ng-blur="pop.service.checkSearchValue(data.product_code,'search_wms_codes?', $event, 'RM', 'Product SKU Code');pop.get_product_data(data.product_code, data, $parent.$index)">
+                    </td>
+                    <td>
+                      <input ng-show="$first" type="text" name="product_quantity" ng-model="data.product_description" ng-change="pop.change_quantity(data)" class="form-control" ng-class="service.get_decimal_perm()">
+                    </td>
+                    <td>
+                      <input type="text" autocomplete="off" name="material_code" class="form-control" placeholder="Search Material SKU Code" typeahead="address for address in pop.service.getSearchValues($viewValue, 'search_wms_codes?','RM')" typeahead-loading="loadingLocations" ng-model="item.material_code" ng-blur="pop.service.checkSearchValue(item.material_code,'search_wms_codes?', $event, 'RM', 'Material SKU Code')">
+                      <!--<input type="text" name="material_code" ng-model="item.material_code" class="form-control">-->
+                    </td>
+                    <td>
+                      <input type="text" positive-number name="material_quantity" class="form-control" value="{{(data.product_description > -1)? pop.service.decimal(data.product_description, item.material_quantity): item.material_quantity;}}" ng-class="service.get_decimal_perm()">
+                    </td>
+                    <td>
+                      <i ng-click="pop.update_data(data, $index, $last, $first)" ng-class="pop.isLast($last)"></i> </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12" style="margin-top:10px">
+              <center><button ng-click="pop.add_product();" type="button" class="btn btn-default">Add New Product SKU Code</button></center>
+            </div>
+          </div>
+          <div class="row insert-status"><h4 align="center">{{pop.message}}</h4></div>
+        </div>
+        <div class="modal-footer">
+          <button ng-if="(!(pop.print_enable))" type="submit" class="btn pop pop-green" ng-click="pop.confirm_jo(form)">Confirm</button>
+          <button ng-if="pop.print_enable" type="button" class="btn pop pop-green" ng-click="pop.print()">Print</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

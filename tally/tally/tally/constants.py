@@ -9,13 +9,11 @@ ROOT_PATH = abspath(join(dirname(__file__), '..'))
 DLL_BASE_PATH = join(ROOT_PATH, 'DLL')
 DLL_FILE_NAME = ''
 
-# exceptions
+# Exception Keys
 ERROR_CODE = 'error_code'
 ERROR_MESSAGE = 'message'
 
-
-
-
+# TALLY interaction point types
 SALES_INVOICE = 'sales_invioce'
 PURCHASE_INVOICE = 'purchase_invioce'
 VENDOR_OR_CUSTOMER = 'vendor_or_customer'

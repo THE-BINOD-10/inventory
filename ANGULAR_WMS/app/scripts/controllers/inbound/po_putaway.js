@@ -68,11 +68,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       //}
       angular.copy(data, vm.model_data);
       vm.model_data["sku_total_quantities"] = data.sku_total_quantities;
-      if(vm.permissions.use_imei) {
-        angular.forEach(vm.model_data.data, function(data){
-          data.sub_data[0].quantity = 0;
-        })
-      }
+      //if(vm.permissions.use_imei) {
+      //  angular.forEach(vm.model_data.data, function(data){
+      //    data.sub_data[0].quantity = 0;
+      //  })
+      //}
       console.log(data);
       angular.copy(vm.model_data.sku_total_quantities ,vm.remain_quantity);
       vm.count_sku_quantity();

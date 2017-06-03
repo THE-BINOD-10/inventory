@@ -102,7 +102,7 @@
               <textarea placeholder="Scan IMEI" name="serial_number" rows="1" ng-model="showCase.status_imei" ng-keydown="showCase.status_scan_imei($event,showCase.status_imei)" class="form-control"></textarea>
             </div>
             <div class="col-md-3 col-sm-3 col-xs-4 pull-right">
-              <textarea placeholder="Scan SKU" rows="1" ng-model="showCase.change_sku" ng-keydown="showCase.change_sku_scan($event,showCase.change_sku)" class="form-control"></textarea>
+              <textarea placeholder="Scan SKU" rows="1" ng-model="showCase.change_sku" ng-keydown="showCase.change_sku_scan($event,showCase.change_sku)" class="form-control" auto-focus focus-on="focusSKU"></textarea>
             </div>
           </div>
           <div class="row" ng-if="showCase.permissions.use_imei">
@@ -110,7 +110,7 @@
             <div class="col-md-3 col-sm-3 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Scan Serial Number </label>
-                <textarea ng-model="showCase.serial_scan" name="serial_number" rows="1" id="scan-qc" ng-keydown="showCase.from_qc_scan($event,showCase.serial_scan)" class="form-control" auto-focus focus-on="focusIMEI"></textarea>
+                <textarea ng-model="showCase.serial_scan" name="serial_number" rows="1" id="scan-qc" ng-keydown="showCase.from_qc_scan($event,showCase.serial_scan)" class="form-control" focus-on="focusIMEI"></textarea>
               </div>
             </div>
             <div class="col-md-9 col-sm-9 col-xs-6 mt25">

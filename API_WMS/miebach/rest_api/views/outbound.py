@@ -1735,9 +1735,9 @@ def get_customer_sku(request, user=''):
     order_shipment = OrderShipment.objects.filter(shipment_number = ship_no)
     all_orders = OrderDetail.objects.filter(**search_params)
     customer_dict = all_orders.values('customer_id', 'customer_name').distinct()
-    filter_list = ['sku__sku_code', 'id', 'order_id']
+    filter_list = ['sku__sku_code', 'id', 'order_id', 'sku__sku_desc']
     if sku_grouping == 'true':
-        filter_list = ['sku__sku_code']
+        filter_list = ['sku__sku_code', 'sku__sku_desc']
 
     for customer in customer_dict:
         customer_picklists = Picklist.objects.filter(order__customer_id=customer['customer_id'], order__customer_name=customer['customer_name'],
@@ -3321,6 +3321,27 @@ def generate_order_po_data(request, user=''):
                           'quantity': order_detail.quantity, 'selected_item': selected_item, 'price': price})
 
     return HttpResponse(json.dumps({'data_dict': data_dict, 'supplier_list': supplier_list}))
+
+@csrf_exempt
+@get_admin_user
+def get_stock_transfer_details(request, user=''):
+
+    ids = request.GET.get('order_id','')
+    main_ids = []
+    if ids:
+        main_ids = ids.split(",")
+    else:
+        HttpResponse("Fail")
+
+    order_details = OrderDetail.objects.filter(order_id__in = main_ids, user=user.id)
+
+    order_details_data = []
+    sku_id_list = []
+
+    for one_order in order_details:
+        order_details_data.append({'order_quantity': one_order.quantity, 'wms_code': one_order.sku.sku_code, 'price': 0})
+
+    return HttpResponse(json.dumps({'data_dict': order_details_data}))
 
 @csrf_exempt
 @get_admin_user

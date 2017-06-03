@@ -1636,7 +1636,7 @@ def get_purchase_order_data(order):
     unit = ""
     if 'job_code' in dir(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group, 'sku': order.product_code,
-                      'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle}
+                      'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle, 'sku_desc': order.product_code.sku_desc}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]
@@ -2297,7 +2297,7 @@ def get_received_orders(request, user=''):
                     if all_data[cond] == [0, '', 0, '', []]:
                         all_data[cond] = [all_data[cond][0] + float(location.quantity), order_data['wms_code'],
                                           float(location.quantity), location.location.fill_sequence, [{'orig_id': location.id,
-                                          'orig_quantity': location.quantity}], order_data['unit']]
+                                          'orig_quantity': location.quantity}], order_data['unit'], order_data['sku_desc']]
                     else:
                         if all_data[cond][2] < float(location.quantity):
                             all_data[cond][2] = float(location.quantity)
@@ -2306,7 +2306,8 @@ def get_received_orders(request, user=''):
                         all_data[cond][3] = location.location.fill_sequence
                         all_data[cond][4].append({'orig_id': location.id, 'orig_quantity': location.quantity})
             if temp == 'false' or (temp == 'true' and not pallet_mapping):
-                data[location.id] = {'wms_code': order_data['wms_code'], 'location': location.location.location,
+                data[location.id] = {'wms_code': order_data['wms_code'], 'sku_desc': order_data['sku_desc'],
+                                     'location': location.location.location,
                                      'original_quantity': location.quantity, 'quantity': location.quantity,
                                      'fill_sequence': location.location.fill_sequence, 'id': location.id,
                                      'pallet_number': pallet_number, 'unit': order_data['unit'],
@@ -2318,7 +2319,7 @@ def get_received_orders(request, user=''):
             data[key[0]] = {'wms_code': value[1], 'location': key[1], 'original_quantity': value[0], 'quantity': value[0],
                             'fill_sequence': value[3], 'id': '', 'pallet_number': key[0], 'pallet_group_data': value[4],
                             'unit': value[5], 'load_unit_handle': order_data['load_unit_handle'],
-                            'sub_data': [{'loc': key[1], 'quantity': value[0]}]}
+                            'sub_data': [{'loc': key[1], 'quantity': value[0]}], 'sku_desc': value[6]}
 
     data_list = data.values()
     data_list.sort(key=lambda x: x['fill_sequence'])
@@ -4206,67 +4207,67 @@ def confirm_receive_qc(request, user=''):
     myDict = dict(request.POST.iterlists())
 
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
-    #try:
-    for ind in range(0, len(myDict['id'])):
-        myDict.setdefault('imei_number', [])
-        imeis_list = [im.split('<<>>')[0] for im in (myDict['rejected'][ind]).split(',')] + myDict['accepted'][ind].split(',')
-        myDict['imei_number'].append(','.join(imeis_list))
-    po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict = generate_grn(myDict, request, user)
-    for i in range(0, len(myDict['id'])):
-        quality_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i], po_location__location__zone__user=user.id,
-                                                      status='qc_pending')
+    try:
+        for ind in range(0, len(myDict['id'])):
+            myDict.setdefault('imei_number', [])
+            imeis_list = [im.split('<<>>')[0] for im in (myDict['rejected'][ind]).split(',')] + myDict['accepted'][ind].split(',')
+            myDict['imei_number'].append(','.join(imeis_list))
+        po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict = generate_grn(myDict, request, user)
+        for i in range(0, len(myDict['id'])):
+            quality_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i], po_location__location__zone__user=user.id,
+                                                          status='qc_pending')
 
-        for quality_check in quality_checks:
-            qc_dict = {'id': [quality_check.id], 'unit': [myDict['unit'][i]], 'accepted': [myDict['accepted'][i]],
-                       'rejected': [myDict['rejected'][i]], 'accepted_quantity': [myDict['accepted_quantity'][i]],
-                       'rejected_quantity': [myDict['rejected_quantity'][i]], 'reason': ['']}
-            update_quality_check(qc_dict, request, user)
+            for quality_check in quality_checks:
+                qc_dict = {'id': [quality_check.id], 'unit': [myDict['unit'][i]], 'accepted': [myDict['accepted'][i]],
+                           'rejected': [myDict['rejected'][i]], 'accepted_quantity': [myDict['accepted_quantity'][i]],
+                           'rejected_quantity': [myDict['rejected_quantity'][i]], 'reason': ['']}
+                update_quality_check(qc_dict, request, user)
 
-            if myDict.get("accepted",''):
-                save_qc_serials('accepted', [myDict.get("accepted",'')[i]], user.id, qc_id=quality_check.id)
-            if myDict.get("rejected",''):
-                save_qc_serials('rejected', [myDict.get("rejected",'')[i]], user.id, qc_id=quality_check.id)
+                if myDict.get("accepted",''):
+                    save_qc_serials('accepted', [myDict.get("accepted",'')[i]], user.id, qc_id=quality_check.id)
+                if myDict.get("rejected",''):
+                    save_qc_serials('rejected', [myDict.get("rejected",'')[i]], user.id, qc_id=quality_check.id)
 
-    for key, value in all_data.iteritems():
-        putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[-1], key[2]))
-        total_order_qty += order_quantity_dict[key[0]]
-        total_received_qty += value
-        total_price += float(key[2]) * float(value)
+        for key, value in all_data.iteritems():
+            putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[-1], key[2]))
+            total_order_qty += order_quantity_dict[key[0]]
+            total_received_qty += value
+            total_price += float(key[2]) * float(value)
 
-    if not status_msg:
-        if not purchase_data:
-            return HttpResponse('Success')
-        address = purchase_data['address']
-        address = '\n'.join(address.split(','))
-        telephone = purchase_data['phone_number']
-        name = purchase_data['supplier_name']
-        supplier_email = purchase_data['email_id']
-        order_id = data.order_id
-        order_date = get_local_date(request.user, data.creation_date)
+        if not status_msg:
+            if not purchase_data:
+                return HttpResponse('Success')
+            address = purchase_data['address']
+            address = '\n'.join(address.split(','))
+            telephone = purchase_data['phone_number']
+            name = purchase_data['supplier_name']
+            supplier_email = purchase_data['email_id']
+            order_id = data.order_id
+            order_date = get_local_date(request.user, data.creation_date)
 
-        profile = UserProfile.objects.get(user=request.user.id)
-        po_reference = '%s%s_%s' % (data.prefix, str(order_date).split(' ')[0].replace('-', ''), order_id)
-        table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity', 'Amount')
-        report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
-                            'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
-                            'po_reference': po_reference, 'total_qty': total_received_qty,
-                            'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}
+            profile = UserProfile.objects.get(user=request.user.id)
+            po_reference = '%s%s_%s' % (data.prefix, str(order_date).split(' ')[0].replace('-', ''), order_id)
+            table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity', 'Amount')
+            report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
+                                'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
+                                'po_reference': po_reference, 'total_qty': total_received_qty,
+                                'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}
 
-        misc_detail = get_misc_value('receive_po', user.id)
-        if misc_detail == 'true':
-            t = loader.get_template('templates/toggle/po_download.html')
-            c = Context(report_data_dict)
-            rendered = t.render(c)
-            send_message = get_misc_value('send_message', user.id)
-            write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
-        return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,
-                               'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,
-                               'seller_name': seller_name,
-                               'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
-                               'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class})
-    else:
-        return HttpResponse(status_msg)
-    #except Exception as e:
-    #    log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
-    #    return HttpResponse("Generate GRN Failed")
+            misc_detail = get_misc_value('receive_po', user.id)
+            if misc_detail == 'true':
+                t = loader.get_template('templates/toggle/po_download.html')
+                c = Context(report_data_dict)
+                rendered = t.render(c)
+                send_message = get_misc_value('send_message', user.id)
+                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
+            return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,
+                                   'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,
+                                   'seller_name': seller_name,
+                                   'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
+                                   'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class})
+        else:
+            return HttpResponse(status_msg)
+    except Exception as e:
+        log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
+        return HttpResponse("Generate GRN Failed")
 

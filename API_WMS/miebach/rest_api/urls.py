@@ -216,6 +216,7 @@ urlpatterns = patterns('rest_api.views',
     url(r'^seller_generate_picklist/$', 'seller_generate_picklist'),
     url(r'^customer_invoice_data/$', 'customer_invoice_data'),
     url('^get_custom_template_styles/$', 'get_custom_template_styles'),
+    url(r'^get_stock_transfer_details/$', 'get_stock_transfer_details'),
 
     # Reports
     #url(r'^location_wise_filter/$','location_wise_filter'),

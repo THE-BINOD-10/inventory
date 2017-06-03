@@ -6,9 +6,10 @@ django.setup()
 from miebach_admin.models import *
 import datetime
 
-#delete_user = 7
+#delete_user = 605
 def delete_user_demo_data(delete_user):
-    delete_models_list = [ZoneMaster, SKUMaster, SupplierMaster, OrderDetail, PalletDetail, Issues, OrderShipment, CustomerMaster,
+    delete_models_list = [ZoneMaster, SKUMaster, SellerMaster, SupplierMaster, OrderDetail, PalletDetail, Issues,
+                          OrderShipment, CustomerMaster, SizeMaster,
                           SkuTypeMapping, SKUGroups, CategoryDiscount, SalesPersons, VendorMaster, Marketplaces, ProductionStages, OrdersAPI,
                           OrdersTrack, POTaxMaster]
 

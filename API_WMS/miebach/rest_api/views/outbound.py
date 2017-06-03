@@ -1735,9 +1735,9 @@ def get_customer_sku(request, user=''):
     order_shipment = OrderShipment.objects.filter(shipment_number = ship_no)
     all_orders = OrderDetail.objects.filter(**search_params)
     customer_dict = all_orders.values('customer_id', 'customer_name').distinct()
-    filter_list = ['sku__sku_code', 'id', 'order_id']
+    filter_list = ['sku__sku_code', 'id', 'order_id', 'sku__sku_desc']
     if sku_grouping == 'true':
-        filter_list = ['sku__sku_code']
+        filter_list = ['sku__sku_code', 'sku__sku_desc']
 
     for customer in customer_dict:
         customer_picklists = Picklist.objects.filter(order__customer_id=customer['customer_id'], order__customer_name=customer['customer_name'],

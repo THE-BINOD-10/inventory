@@ -1636,7 +1636,7 @@ def get_purchase_order_data(order):
     unit = ""
     if 'job_code' in dir(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group, 'sku': order.product_code,
-                      'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle}
+                      'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle, 'sku_desc': order.product_code.sku_desc}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]
@@ -2297,7 +2297,7 @@ def get_received_orders(request, user=''):
                     if all_data[cond] == [0, '', 0, '', []]:
                         all_data[cond] = [all_data[cond][0] + float(location.quantity), order_data['wms_code'],
                                           float(location.quantity), location.location.fill_sequence, [{'orig_id': location.id,
-                                          'orig_quantity': location.quantity}], order_data['unit']]
+                                          'orig_quantity': location.quantity}], order_data['unit'], order_data['sku_desc']]
                     else:
                         if all_data[cond][2] < float(location.quantity):
                             all_data[cond][2] = float(location.quantity)
@@ -2306,7 +2306,8 @@ def get_received_orders(request, user=''):
                         all_data[cond][3] = location.location.fill_sequence
                         all_data[cond][4].append({'orig_id': location.id, 'orig_quantity': location.quantity})
             if temp == 'false' or (temp == 'true' and not pallet_mapping):
-                data[location.id] = {'wms_code': order_data['wms_code'], 'location': location.location.location,
+                data[location.id] = {'wms_code': order_data['wms_code'], 'sku_desc': order_data['sku_desc'],
+                                     'location': location.location.location,
                                      'original_quantity': location.quantity, 'quantity': location.quantity,
                                      'fill_sequence': location.location.fill_sequence, 'id': location.id,
                                      'pallet_number': pallet_number, 'unit': order_data['unit'],
@@ -2318,7 +2319,7 @@ def get_received_orders(request, user=''):
             data[key[0]] = {'wms_code': value[1], 'location': key[1], 'original_quantity': value[0], 'quantity': value[0],
                             'fill_sequence': value[3], 'id': '', 'pallet_number': key[0], 'pallet_group_data': value[4],
                             'unit': value[5], 'load_unit_handle': order_data['load_unit_handle'],
-                            'sub_data': [{'loc': key[1], 'quantity': value[0]}]}
+                            'sub_data': [{'loc': key[1], 'quantity': value[0]}], 'sku_desc': value[6]}
 
     data_list = data.values()
     data_list.sort(key=lambda x: x['fill_sequence'])

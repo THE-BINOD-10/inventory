@@ -1397,7 +1397,7 @@ def get_zones_list(request, user=''):
 def insert_sku(request,user=''):
     """ Insert New SKU Details """
 
-    log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     try:
         wms = request.POST['wms_code']

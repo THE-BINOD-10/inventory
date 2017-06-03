@@ -11,7 +11,7 @@ from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 from itertools import chain
 from django.db.models import Sum, Count
-
+from rest_api.views.common import get_local_date
 import json
 import datetime
 from django.db.models import Q, F
@@ -377,11 +377,15 @@ def receipt_search(request):
 def today_returns(request):
     return HttpResponse("Pending...")
 
+def form_default_domain(request, org_url):
+        img_url = "/".join(["%s:/" % (request.META['wsgi.url_scheme']), request.META['HTTP_HOST'], org_url.lstrip("/")]) if org_url.startswith("/static") else org_url
+        return img_url
 @csrf_exempt
 def get_order_detail(request):
     order_data = []
     order_id = request.POST.get('order_id')
     purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, status='', open_po__sku__user=request.user.id)
+
     for order in purchase_orders:
         supplier_id = order.open_po.supplier_id
         sku_id = order.open_po.sku_id
@@ -389,8 +393,10 @@ def get_order_detail(request):
         supplier_code = SKUSupplier.objects.filter(supplier_id=supplier_id, sku_id=sku_id)
         if supplier_code:
             design_code = supplier_code[0].supplier_code
-
-        order_data.append(OrderedDict(( ('id', order.id), ('design_code', design_code), ('order_quantity', order.open_po.order_quantity), ('price', order.open_po.price), ('image_url', order.open_po.sku.image_url), ('wms_code', order.open_po.sku.wms_code) )))
+        
+        #img_url = "/".join([request.META['HTTP_HOST'], order.open_po.sku.image_url.lstrip("/")]) if order.open_po.sku.image_url.startswith("/static") else order.open_po.sku.image_url
+        img_url = form_default_domain(request, order.open_po.sku.image_url)
+        order_data.append(OrderedDict(( ('id', order.id), ('design_code', design_code), ('order_quantity', order.open_po.order_quantity), ('price', order.open_po.price), ('image_url', img_url), ('wms_code', order.open_po.sku.wms_code) )))
     return return_response(order_data)
 
 @csrf_exempt
@@ -503,10 +509,10 @@ def get_transactions_data(request):
 def picklist_data(request):
     use_imei = 'false'
     data_id = request.POST['data_id']
-    data = get_picklist_data(data_id, request.user.id)
+    data = get_picklist_data(request, data_id, request.user.id)
     return return_response({'results': data})
 
-def get_picklist_data(data_id,user_id):
+def get_picklist_data(request, data_id,user_id):
 
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user_id) | Q(stock__sku__user=user_id), picklist_number=data_id)
     pick_stocks = StockDetail.objects.filter(sku__user=user_id)
@@ -552,7 +558,7 @@ def get_picklist_data(data_id,user_id):
                 st_id = order.stock_id
                 sequence = stock_id.location.pick_sequence
                 location = stock_id.location.location
-                image = stock_id.sku.image_url
+                image = form_default_domain(request, stock_id.sku.image_url)
                 wms_code = stock_id.sku.wms_code
 
             match_condition = (location, pallet_detail, wms_code, sku_code, title)
@@ -602,7 +608,7 @@ def get_picklist_data(data_id,user_id):
                 st_id = order.stock_id
                 sequence = stock_id.location.pick_sequence
                 location = stock_id.location.location
-                image = stock_id.sku.image_url
+                image = form_default_domain(request, stock_id.sku.image_url)#stock_id.sku.image_url
 
             data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'order_id': order.order_id, 'picked_quantity':order.picked_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': invoice_amount, 'price': invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'order_no': order_id,'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title})
         data = sorted(data, key=itemgetter('sequence'))
@@ -619,15 +625,17 @@ def get_picklist_data(data_id,user_id):
             sequence = 0
             location = 'NO STOCK'
             image = ''
+            pallet_code = ''
             if stock_id:
                 zone = stock_id.location.zone.zone
                 st_id = order.stock_id
+                pallet_code = stock_id.pallet_detail.pallet_code if stock_id.pallet_detail else ''
                 sequence = stock_id.location.pick_sequence
                 location = stock_id.location.location
-                image = stock_id.sku.image_url
+                image = form_default_domain(request, stock_id.sku.image_url)
 
-            if order.reserved_quantity == 0:
-                continue
+            #if order.reserved_quantity == 0:
+            #    continue
 
             data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity,                'picklist_number': data_id, 'order_id': order.order_id, 'stock_id': st_id, 'picked_quantity':order.picked_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': order.order.invoice_amount, 'price': order.order.invoice_amount * order.reserved_quantity, 'image': image,          'status': order.status, 'pallet_code': pallet_code, 'sku_code': order.order.sku_code, 'title': order.order.title })
         data = sorted(data, key=itemgetter('sequence'))
@@ -761,7 +769,7 @@ def putaway_list(request):
         po_reference = '%s%s_%s' % (supplier.prefix, str(supplier.creation_date).split(' ')[0].replace('-', ''), supplier.order_id)
         temp_data['aaData'].append({'Supplier ID': order_data['supplier_id'],
                                     'Supplier Name': order_data['supplier_name'],
-                                    ' Order ID': supplier.order_id, 'Order Date': str(supplier.creation_date).split('+')[0],
+                                    ' Order ID': supplier.order_id, 'Order Date': str(get_local_date(request.user, supplier.creation_date, send_date='')).split('+')[0],
                                     ' PO Number': po_reference })
     return return_response(temp_data)
 

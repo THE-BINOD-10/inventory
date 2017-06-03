@@ -15,10 +15,10 @@ class TallyBridgeApi(object):
         self.bridge = TallyBridgeApp(dll=self.dll_file)
 
     def add_customer(self, **kwargs):
-        return self.bridge.post_ledger(kwargs)
+        return self.bridge.customer_and_vendor_master(kwargs)
 
     def add_vendor(self, **kwargs):
-        return self.bridge.post_ledger(kwargs)
+        return self.bridge.customer_and_vendor_master(kwargs)
 
     def add_item(self, **kwargs):
         return self.bridge.item_master(kwargs)
@@ -27,10 +27,10 @@ class TallyBridgeApi(object):
         return self.bridge.post_sales_voucher(kwargs)
 
     def add_sales_invoice(self, **kwargs):
-        pass
+        return self.bridge.sales_invoice(kwargs)
 
     def add_purchase_return(self, **kwargs):
-        pass
+        return self.bridge.purchase_returns(kwargs)
 
     def add_sales_return(self, **kwargs):
-        pass
+        return self.bridge.sales_returns(kwargs)

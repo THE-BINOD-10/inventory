@@ -4863,7 +4863,7 @@ def update_picklist_loc(request, user = ""):
             continue
         consumed_qty = 0
 
-        picklist_data['order_id'] = item.order
+        picklist_data['order_id'] = item.order.id
         picklist_data['sku_code'] = item.sku_code
         picklist_data['picklist_number'] = picklist_no
         picklist_data['reserved_quantity'] = 0

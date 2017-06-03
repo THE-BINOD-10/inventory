@@ -104,8 +104,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
     function add_wms_code() {
-      vm.model_data.data.push([{"wms_code":"", "po_quantity":"", "receive_quantity":"", "price":"", "dis": false, "order_id": vm.model_data.data[0][0].order_id, is_new: true, "unit": ""}]);
+      vm.model_data.data.push([{"wms_code":"", "po_quantity":"", "receive_quantity":"", "price":"", "dis": false,
+                                "order_id": vm.model_data.data[0][0].order_id, is_new: true, "unit": "",
+                                "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
       //vm.new_sku = true
+    }
+    vm.get_sku_details = function(data, selected) {
+
+      data.sku_details[0].fields.load_unit_handle = selected.load_unit_handle;
+      data.wms_code = selected.wms_code;
+      $timeout(function() {$scope.$apply();}, 1000);
     }
 
     vm.submit = submit;
@@ -220,7 +228,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               for(var i=0; i<vm.model_data.data.length; i++) {
                 vm.sku_list_1.push(vm.model_data.data[i][0]["wms_code"]);
                 if(vm.field == vm.model_data.data[i][0]["wms_code"]){
-                  $('input[value="'+vm.field+'"]').parents('tr').find("input[name='imei']").trigger('focus');
+                  $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
                 }
               }
               if (vm.sku_list_1.indexOf(vm.field) == -1){
@@ -314,7 +322,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       event.stopPropagation();
       if (event.keyCode == 13 && field.length > 0) {
 
-        if(vm.imei_list.indexOf(field) > -1) {
+        if (!vm.enable_button) {
+
+          focus('focusSKU');
+          Service.showNoty("Scan SKU first before scaning IMEI");
+        } else if (vm.imei_list.indexOf(field) > -1) {
 
           Service.showNoty("IMEI Already Scanned");
         } else if(vm.model_data.data[vm.current_index][0].po_quantity == vm.model_data.data[vm.current_index][0].value) {
@@ -326,6 +338,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               if (data.data == "") {
                 vm.imei_list.push(field);
                 vm.accept_qc(vm.model_data.data[vm.current_index], field);
+                focus('focusSKU');
               } else {
                 Service.showNoty(data.data);
               }
@@ -333,6 +346,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           })
           console.log(vm.current_index);
         }
+        vm.serial_scan = "";
       }
     }
 
@@ -357,24 +371,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       if (event.keyCode == 13 && sku.length > 0) {
         event.stopPropagation();
-        var status = true;
-        for(var i = 0; i < vm.model_data.data.length; i++) {
+        vm.service.apiCall('check_sku/', 'GET',{'sku_code': sku}).then(function(data){
+          if(data.message) {
+            sku = data.data.sku_code;
+            var status = true;
+            for(var i = 0; i < vm.model_data.data.length; i++) {
 
-          var data = vm.model_data.data[i][0];
-          if(data.wms_code == sku) {
+              var data = vm.model_data.data[i][0];
+              if(data.wms_code == sku) {
 
-            vm.enable_button = true;
-            vm.reason_show = false;
-            vm.current_index = i;
-            status = false;
-            break;
+                vm.enable_button = true;
+                vm.reason_show = false;
+                vm.current_index = i;
+                focus('focusIMEI');
+                status = false;
+                break;
+              }
+            }
+            if(status) {
+
+              Service.showNoty("SKU Not Found");
+            }
+            vm.change_sku = "";
           }
-        }
-        if(status) {
-
-          Service.showNoty("SKU Not Found");
-        }
-        vm.change_sku = "";
+        })
       }
     }
 
@@ -956,6 +976,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.selected = "";
     vm.reject_qc = function(imei) {
 
+      focus('focusSKU');
       vm.reason_show = false;
       var sku = vm.model_data.data[vm.current_index][0];
       var field = "";
@@ -981,7 +1002,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
 
       vm.selected="";
-      focus('focusIMEI');
     }
 
     vm.status_imei = "";

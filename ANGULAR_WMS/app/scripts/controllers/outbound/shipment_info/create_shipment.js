@@ -44,6 +44,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
             }
         })
        .withPaginationType('full_numbers')
+       .withOption('rowCallback', rowCallback)
        .withOption('RecordsTotal', function( settings ) {
          console.log("complete")
        })
@@ -71,6 +72,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
       vm.reloadData();
     });
+
+    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+
+      $('td:not(td:first)', nRow).unbind('click');
+      $('td:not(td:first)', nRow).bind('click', function() {
+
+        $scope.$apply(function() {
+          console.log(vm.selected, nRow, aData, iDisplayIndex, iDisplayIndexFull);
+          if (vm.selected[iDisplayIndex]) {
+            vm.selected[iDisplayIndex] = false;
+          } else {
+            vm.selected[iDisplayIndex] = true;
+          }
+
+          vm.bt_disable = vm.service.toggleOne(vm.selectAll, vm.selected, vm.bt_disable);
+          vm.selectAll = vm.service.select_all(vm.selectAll, vm.selected);
+        })
+      })
+    }
 
     //DATA table end
 
@@ -334,6 +354,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
       vm.dtInstance.DataTable.context[0].ajax.data['special_key'] = JSON.stringify(vm.special_key);
       vm.reloadData();
+    }
+
+    vm.updateDate = function() {
+
+      $('.shipment-date').datepicker('update');
     }
   }
 

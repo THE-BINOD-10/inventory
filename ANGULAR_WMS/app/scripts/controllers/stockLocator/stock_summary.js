@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     vm.service = Service;
     vm.g_data = Data.stock_summary;
     vm.apply_filters = colFilters;
+    vm.permissions = Session.roles.permissions;
     vm.data_display = false;
     vm.tb_data = {};
     vm.selected_size = vm.g_data.size_type;
@@ -77,6 +78,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
                   if(data.message) {
                     vm.wms_code = aData['WMS Code'];
                     angular.copy(data.data, vm.model_data);
+                    vm.model_data["sku_data"] = aData;
                     $state.go('app.stockLocator.StockSummary.Detail');
                   }
                 });

@@ -155,7 +155,7 @@
       </div>
     </div>
     <div class="row"><hr></div>
-    <div class="row over-x form-group">
+    <div class="row form-group">
       <table class="table mw75">
         <thead>
           <tr>
@@ -165,6 +165,7 @@
             <th>INVOICE AMT (&#8377;)</th>
             <th>REMARKS</th>
             <!--<th>STATUS</th>-->
+            <th></th>
             <th ng-if="!showCase.input_status" class="plus"></th>
           </tr>
         </thead>
@@ -188,6 +189,8 @@
             </td>
             <td>
               <input type="text" class="form-control" name="remarks" ng-model="data.remarks" ng-readonly="showCase.input_status">
+            </td>
+            <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
             </td>
 	        <td ng-if="!showCase.input_status"><i style="font-size: 20px;padding-top: 7px;cursor: pointer;margin-left: -15px;"
 	        ng-click="showCase.update_order_details($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>

@@ -77,10 +77,9 @@ WSGI_APPLICATION = 'miebach.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'WMS_PROD1',
+        'NAME': 'WMS_SREE',
         'USER': 'root',
-        'PASSWORD': 'Mbch@He@drn232017Mar',
-        'HOST': '88.99.193.85',
+        'PASSWORD': 'Hdrn^Miebach@',
         'TEST_MIRROR': 'default',
     }
 }

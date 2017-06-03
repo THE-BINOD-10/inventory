@@ -76,10 +76,12 @@ class SKUMaster(models.Model):
     measurement_type = models.CharField(max_length=32, default = '')
     sale_through = models.CharField(max_length=32, default = '')
     mix_sku = models.CharField(max_length=32, default = '', db_index=True)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
     color = models.CharField(max_length=64, default='')
     ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default = 0)
+    load_unit_handle = models.CharField(max_length=32, default='unit', db_index=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
     class Meta:
         db_table = 'SKU_MASTER'
         unique_together = ('user', 'sku_code', 'wms_code')
@@ -565,24 +567,6 @@ class CustomerUserMapping(models.Model):
         db_table = 'CUSTOMER_USER_MAPPING'
 
 
-class OrderReturns(models.Model):
-    id = BigAutoField(primary_key=True)
-    return_id = models.CharField(max_length=256)
-    order = models.ForeignKey(OrderDetail, blank=True, null=True)
-    return_date = models.DateTimeField(auto_now_add=True)
-    quantity = models.FloatField(default=0)
-    damaged_quantity = models.FloatField(default=0)
-    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
-    return_type = models.CharField(max_length=64, default='')
-    reason = models.CharField(max_length=256,default='')
-    status = models.CharField(max_length=64)
-    marketplace = models.CharField(max_length=32,default='')
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'ORDER_RETURNS'
-
 class UserProfile(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.OneToOneField(User)
@@ -677,32 +661,6 @@ class OrderIMEIMapping(models.Model):
 
     class Meta:
         db_table = 'ORDER_IMEI_MAPPING'
-
-class ReturnsIMEIMapping(models.Model):
-    id = BigAutoField(primary_key = True)
-    order_imei = models.ForeignKey(OrderIMEIMapping, blank=True, null=True)
-    order_return = models.ForeignKey(OrderReturns, blank=True, null=True)
-    status = models.CharField(max_length = 64, default = '')
-    reason = models.CharField(max_length = 128, default = '')
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'RETURNS_IMEI_MAPPING'
-        unique_together = ('order_imei', 'order_return')
-        index_together = ('order_imei', 'order_return')
-
-class ReturnsLocation(models.Model):
-    id = BigAutoField(primary_key=True)
-    returns = models.ForeignKey(OrderReturns, blank=True, null=True)
-    location = models.ForeignKey(LocationMaster, blank=True, null=True)
-    quantity = models.FloatField(default=0)
-    status = models.CharField(max_length=32)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'RETURNS_LOCATION'
 
 class CancelledLocation(models.Model):
     id = BigAutoField(primary_key=True)
@@ -898,6 +856,8 @@ class SellerMaster(models.Model):
     vat_number = models.CharField(max_length=64, default='')
     tin_number = models.CharField(max_length=64, default='')
     price_type = models.CharField(max_length=32, default='')
+    margin = models.CharField(max_length=256, default=0)
+    supplier = models.ForeignKey(SupplierMaster, null=True, blank=True, default = None)
     status = models.IntegerField(max_length=1, default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1059,6 +1019,18 @@ class SalesPersons(models.Model):
     class Meta:
         db_table = 'SALES_PERSONS'
 
+class SizeMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    size_name = models.CharField(max_length=64, default='')
+    size_value = models.CharField(max_length=256, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SIZE_MASTER'
+        unique_together = ('user', 'size_name')
+
 class ProductGroups(models.Model):
     group_type = models.CharField(max_length=64)
     group_value = models.CharField(max_length=64)
@@ -1068,19 +1040,8 @@ class ProductGroups(models.Model):
     class Meta:
         db_table = 'PRODUCT_GROUPS'
 
-class ProductProperties(models.Model):
-    user = models.ForeignKey(User, default=None)
-    name = models.CharField(max_length=64, default='')
-    property_type = models.CharField(max_length=64, default='')
-    property_name = models.CharField(max_length=64, default='')
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'PRODUCT_PROPERTIES'
-
 class ProductAttributes(models.Model):
-    product_property = models.ForeignKey(ProductProperties, default=None)
+    user = models.ForeignKey(User, default=None)
     attribute_name = models.CharField(max_length=64, default='')
     description = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -1088,7 +1049,23 @@ class ProductAttributes(models.Model):
 
     class Meta:
         db_table = 'PRODUCT_ATTRIBUTES'
+        unique_together = ('user', 'attribute_name')
+        index_together = ('user', 'attribute_name')
 
+class ProductProperties(models.Model):
+    user = models.ForeignKey(User, default=None)
+    name = models.CharField(max_length=64, default='')
+    brand = models.CharField(max_length=64, default='')
+    category = models.CharField(max_length=64, default='')
+    size_types = models.ManyToManyField(SizeMaster, default=None)
+    attributes = models.ManyToManyField(ProductAttributes, default=None)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PRODUCT_PROPERTIES'
+        unique_together = ('name', 'brand', 'category')
+        index_together = ('name', 'brand', 'category')
 
 class SKUFields(models.Model):
     sku = models.ForeignKey(SKUMaster)
@@ -1325,18 +1302,6 @@ class OrderMapping(models.Model):
     class Meta:
         db_table = 'ORDER_MAPPING'
 
-class SizeMaster(models.Model):
-    id = BigAutoField(primary_key=True)
-    user = models.PositiveIntegerField()
-    size_name = models.CharField(max_length=64, default='')
-    size_value = models.CharField(max_length=256, default='')
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'SIZE_MASTER'
-        unique_together = ('user', 'size_name')
-
 class Brands(models.Model):
     user = models.ForeignKey(User)
     brand_name = models.CharField(max_length=64, default='')
@@ -1477,8 +1442,8 @@ class SellerStock(models.Model):
 
     class Meta:
         db_table = 'SELLER_STOCK'
-        unique_together = ('seller', 'stock')
-        index_together = ('seller', 'stock')
+        unique_together = ('seller', 'stock', 'seller_po_summary')
+        index_together = ('seller', 'stock', 'seller_po_summary')
 
 class SellerMarginMapping(models.Model):
     id = BigAutoField(primary_key=True)
@@ -1514,6 +1479,52 @@ class SellerOrder(models.Model):
 
     def __unicode__(self):
         return str(self.sor_id)
+
+class OrderReturns(models.Model):
+    id = BigAutoField(primary_key=True)
+    return_id = models.CharField(max_length=256)
+    order = models.ForeignKey(OrderDetail, blank=True, null=True)
+    seller_order = models.ForeignKey(SellerOrder, blank=True, null=True)
+    return_date = models.DateTimeField(auto_now_add=True)
+    quantity = models.FloatField(default=0)
+    damaged_quantity = models.FloatField(default=0)
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    return_type = models.CharField(max_length=64, default='')
+    reason = models.CharField(max_length=256,default='')
+    status = models.CharField(max_length=64)
+    marketplace = models.CharField(max_length=32,default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_RETURNS'
+
+class ReturnsIMEIMapping(models.Model):
+    id = BigAutoField(primary_key = True)
+    order_imei = models.ForeignKey(OrderIMEIMapping, blank=True, null=True)
+    order_return = models.ForeignKey(OrderReturns, blank=True, null=True)
+    status = models.CharField(max_length = 64, default = '')
+    reason = models.CharField(max_length = 128, default = '')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'RETURNS_IMEI_MAPPING'
+        unique_together = ('order_imei', 'order_return')
+        index_together = ('order_imei', 'order_return')
+
+class ReturnsLocation(models.Model):
+    id = BigAutoField(primary_key=True)
+    returns = models.ForeignKey(OrderReturns, blank=True, null=True)
+    location = models.ForeignKey(LocationMaster, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    status = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'RETURNS_LOCATION'
+
 
 class SellerOrderDetail(models.Model):
     id = BigAutoField(primary_key=True)

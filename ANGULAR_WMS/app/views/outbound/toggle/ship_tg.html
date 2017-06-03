@@ -38,7 +38,7 @@
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Shipment Date *</label>
-                <input type="text" class="form-control stk-readonly" ui-jq="datepicker" name="shipment_date" readonly required data-date-start-date="showCase.today_date" id="shipment_date" data-date-today-highlight="true">
+                <input type="text" class="form-control stk-readonly shipment-date" ui-jq="datepicker" name="shipment_date" readonly required data-date-start-date="showCase.today_date" id="shipment_date" data-date-today-highlight="true" ng-init="showCase.updateDate()">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
@@ -62,7 +62,7 @@
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
               <div class="form-group">
                 <label class="control-label"> IMEI Scan </label>
-                <input type="text" ng-model="showCase.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, showCase.imei_number)">
+                <input type="text" ng-model="showCase.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, showCase.imei_number)" auto-focus>
               </div>
             </div>
           </div>
@@ -77,6 +77,7 @@
                 <tr>
                   <th ng-if="(!(showCase.sku_group))"> Order ID </th>
                   <th> SKU Code </th>
+                  <th> Description </th>
                   <th> Order Quantity </th>
                   <th> Picked Quantity </th>
                   <th> Shipping Quantity </th>
@@ -94,6 +95,7 @@
                   <input type="hidden" name="imei_number" class="form-control" ng-init="record.imei_list=[]" value="{{record.imei_list.join(',')}}">
                   <td ng-if="(!(showCase.sku_group))">{{data.order_id}}</td>
                   <td>{{data.sku__sku_code}}</td>
+                  <td>{{data.sku_desc}}</td>
                   <td> {{data.ordered}} </td>
                   <td> {{data.picked}} </td>
                   <td><input class="form-control" name="shipping_quantity" ng-model="record.shipping_quantity" type="text" ng-class="service.get_decimal_perm()" ng-change="showCase.cal_quantity(record, data)" ng-readonly="showCase.mk_user"></td>

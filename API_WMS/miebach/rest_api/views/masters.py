@@ -13,7 +13,6 @@ from common import *
 from miebach_utils import *
 from django.core import serializers
 import os
-from django.core.files.base import ContentFile
 from sync_sku import *
 from requests import post
 log = init_logger('logs/masters.log')
@@ -390,9 +389,9 @@ def location_master(request, user=''):
     return HttpResponse(json.dumps({'location_data': data, 'sku_groups': all_groups, 'lock_fields': ['Inbound', 'Outbound',
                                     'Inbound and Outbound']}), content_type='application/json')
 
-#get sku data
 @get_admin_user
 def get_sku_data(request,user=''):
+    """ Get SKU Details """
 
     market_data = []
     combo_data = []
@@ -404,6 +403,7 @@ def get_sku_data(request,user=''):
     filter_params = {'user': user.id}
     zones = filter_by_values(ZoneMaster, filter_params, ['zone'])
     all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
+    load_unit_dict = {'unit': 0, 'pallet': 1}
 
     zone_name = ''
     if data.zone_id:
@@ -445,6 +445,8 @@ def get_sku_data(request,user=''):
     sku_data['size_type'] = 'Default'
     sku_data['mix_sku'] = data.mix_sku
     sku_data['ean_number'] = data.ean_number
+    sku_data['color'] = data.color
+    sku_data['load_unit_handle'] = load_unit_dict.get(data.load_unit_handle, 'unit')
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -563,47 +565,57 @@ def check_update_size_type(data, value):
 @login_required
 @get_admin_user
 def update_sku(request,user=''):
-    wms = request.POST['wms_code']
-    description = request.POST['sku_desc']
-    zone = request.POST['zone_id']
-    if not wms or not description:
-        return HttpResponse('Missing Required Fields')
-    data = get_or_none(SKUMaster, {'wms_code': wms, 'user': user.id})
-    image_file = request.FILES.get('files-0','')
-    if image_file:
-        save_image_file(image_file, data, user)
-    for key, value in request.POST.iteritems():
+    """ Update SKU Details"""
 
-        if key == 'status':
-            if value == 'Active':
-                value = 1
-            else:
-                value = 0
-        elif key == 'qc_check':
-            if value == 'Enable':
-                value = 1
-            else:
-                value = 0
-        elif key == 'threshold_quantity':
-            if not value:
-                value = 0
-        elif key == 'zone_id' and value:
-            zone = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})
-            key = 'zone_id'
-            value = zone.id
-        elif key == 'ean_number':
-            if not value:
-                value = 0
-        elif key == 'size_type':
-            check_update_size_type(data, value)
-            continue
-        setattr(data, key, value)
+    log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    load_unit_dict = LOAD_UNIT_HANDLE_DICT
+    try:
+        wms = request.POST['wms_code']
+        description = request.POST['sku_desc']
+        zone = request.POST['zone_id']
+        if not wms or not description:
+            return HttpResponse('Missing Required Fields')
+        data = get_or_none(SKUMaster, {'wms_code': wms, 'user': user.id})
+        image_file = request.FILES.get('files-0','')
+        if image_file:
+            save_image_file(image_file, data, user)
+        for key, value in request.POST.iteritems():
 
-    data.save()
+            if key == 'status':
+                if value == 'Active':
+                    value = 1
+                else:
+                    value = 0
+            elif key == 'qc_check':
+                if value == 'Enable':
+                    value = 1
+                else:
+                    value = 0
+            elif key == 'threshold_quantity':
+                if not value:
+                    value = 0
+            elif key == 'zone_id' and value:
+                zone = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})
+                key = 'zone_id'
+                value = zone.id
+            elif key == 'ean_number':
+                if not value:
+                    value = 0
+            elif key == 'load_unit_handle':
+                value = load_unit_dict.get(value.lower(), 'unit')
+            elif key == 'size_type':
+                check_update_size_type(data, value)
+                continue
+            setattr(data, key, value)
 
-    update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=data)
-    get_user_sku_data(user)
-    insert_update_brands(user)
+        data.save()
+
+        update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=data)
+        get_user_sku_data(user)
+        insert_update_brands(user)
+    except Exception as e:
+        log.info('Update SKU Data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse('Update SKU Failed')
 
     return HttpResponse('Updated Successfully')
 
@@ -1383,61 +1395,72 @@ def get_zones_list(request, user=''):
 @login_required
 @get_admin_user
 def insert_sku(request,user=''):
-    wms = request.POST['wms_code']
-    description = request.POST['sku_desc']
-    zone = request.POST['zone_id']
-    size_type = request.POST.get('size_type', '')
-    if not wms or not description or not zone:
-        return HttpResponse('Missing Required Fields')
-    filter_params = {'zone': zone, 'user': user.id}
-    zone_master = filter_or_none(ZoneMaster, filter_params)
-    if not zone_master:
-        return HttpResponse('Invalid Zone, Please enter valid Zone')
-    filter_params = {'wms_code': wms, 'user': user.id}
-    data = filter_or_none(SKUMaster, filter_params)
-    status_msg = 'SKU exists'
+    """ Insert New SKU Details """
 
-    if not data:
-        data_dict = copy.deepcopy(SKU_DATA)
-        data_dict['user'] = user.id
-        for key, value in request.POST.iteritems():
-            if key in data_dict.keys():
-                if key == 'zone_id':
-                    value = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})
-                    value = value.id
-                elif key == 'status':
-                    if value == 'Active':
-                        value = 1
-                    else:
-                        value = 0
-                elif key == 'qc_check':
-                    if value == 'Enable':
-                        value = 1
-                    else:
-                        value = 0
-                if value == '':
-                    continue
-                data_dict[key] = value
+    log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    load_unit_dict = LOAD_UNIT_HANDLE_DICT
+    try:
+        wms = request.POST['wms_code']
+        description = request.POST['sku_desc']
+        zone = request.POST['zone_id']
+        size_type = request.POST.get('size_type', '')
+        if not wms or not description or not zone:
+            return HttpResponse('Missing Required Fields')
+        filter_params = {'zone': zone, 'user': user.id}
+        zone_master = filter_or_none(ZoneMaster, filter_params)
+        if not zone_master:
+            return HttpResponse('Invalid Zone, Please enter valid Zone')
+        filter_params = {'wms_code': wms, 'user': user.id}
+        data = filter_or_none(SKUMaster, filter_params)
+        status_msg = 'SKU exists'
 
-        data_dict['sku_code'] = data_dict['wms_code']
-        sku_master = SKUMaster(**data_dict)
-        sku_master.save()
-        image_file = request.FILES.get('files-0','')
-        if image_file:
-            save_image_file(image_file, sku_master, user)
-        if size_type:
-            check_update_size_type(sku_master, size_type)
-        status_msg = 'New WMS Code Added'
+        if not data:
+            data_dict = copy.deepcopy(SKU_DATA)
+            data_dict['user'] = user.id
+            for key, value in request.POST.iteritems():
+                if key in data_dict.keys():
+                    if key == 'zone_id':
+                        value = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})
+                        value = value.id
+                    elif key == 'status':
+                        if value == 'Active':
+                            value = 1
+                        else:
+                            value = 0
+                    elif key == 'qc_check':
+                        if value == 'Enable':
+                            value = 1
+                        else:
+                            value = 0
+                    elif key == 'load_unit_handle':
+                        value = load_unit_dict.get(value.lower(), 'unit')
+                    if value == '':
+                        continue
+                    data_dict[key] = value
 
-        update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=sku_master)
+            data_dict['sku_code'] = data_dict['wms_code']
+            sku_master = SKUMaster(**data_dict)
+            sku_master.save()
+            image_file = request.FILES.get('files-0','')
+            if image_file:
+                save_image_file(image_file, sku_master, user)
+            if size_type:
+                check_update_size_type(sku_master, size_type)
+            status_msg = 'New WMS Code Added'
 
-    insert_update_brands(user)
-    get_user_sku_data(user)
+            update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=sku_master)
 
-    all_users = get_related_users(user.id)
-    sync_sku_switch = get_misc_value('sku_sync', user.id)
-    if all_users and sync_sku_switch == 'true':
-        create_sku([sku_master], all_users)
+        insert_update_brands(user)
+        get_user_sku_data(user)
+
+        all_users = get_related_users(user.id)
+        sync_sku_switch = get_misc_value('sku_sync', user.id)
+        if all_users and sync_sku_switch == 'true':
+            create_sku([sku_master], all_users)
+    except Exception as e:
+        log.info('Insert New SKU failed for %s and params are %s and error statement is %s' % (str(user.username),\
+                                                                                               str(request.POST.dict()), str(e)))
+        status_msg = 'Insert SKU Falied'
 
     return HttpResponse(status_msg)
 
@@ -1469,23 +1492,25 @@ def upload_images(request, user=''):
 
 @csrf_exempt
 def get_custom_sku_properties(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}):
-    lis = ['name', 'property_type', 'property_name', 'creation_date']
+    lis = ['name', 'creation_date']
     order_data = lis[col_num]
     search_params = get_filtered_params(filters, lis)
     if order_term == 'desc':
         order_data = '-%s' % order_data
+    product_properties = ProductProperties.objects.filter(user=user.id)
     if search_term:
-        master_data = ProductProperties.objects.filter(Q(property_type__icontains=search_term) | Q(property_name__icontains=search_term),
-                                                       user=user.id, **search_params).order_by(order_data)
+        master_data = ProductProperties.objects.filter(Q(name__icontains=search_term) | Q(creation_date__regex=search_term),
+                                                       user=user.id, **search_params).order_by(order_data).values_list('name', flat=True).\
+                                                       distinct()
     else:
-        master_data = ProductProperties.objects.filter(user=user.id, **search_params).order_by(order_data)
-    temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+        master_data = ProductProperties.objects.filter(user=user.id, **search_params).order_by(order_data).values_list('name', flat=True).\
+                                                      distinct()
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = master_data.count()
     for data in master_data[start_index:stop_index]:
-        temp_data['aaData'].append(OrderedDict(( ('Template Name', data.name), ('Template Type', data.property_type),
-                                                 ('Template Value', data.property_name),
-                                                 ('Creation Date', get_local_date(user, data.creation_date)),
-                                                 ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data.id}) )))
+        creation_date = product_properties.filter(name=data)[0].creation_date
+        temp_data['aaData'].append(OrderedDict(( ('Template Name', data), ('Creation Date', get_local_date(user, creation_date)),
+                                                 ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data}) )))
 
 
 @csrf_exempt
@@ -1494,71 +1519,32 @@ def get_custom_sku_properties(start_index, stop_index, temp_data, search_term, o
 def get_product_properties(request, user=''):
     filter_params = {'user': user.id}
     data_id = request.GET.get('data_id', '')
-    property_type = request.GET.get('property_type', '')
-    property_name = request.GET.get('property_name', '')
-    name = request.GET.get('template_name', '')
     if data_id:
-        filter_params['id'] = data_id
-    if property_type:
-        filter_params['property_type'] = property_type
-    if property_name:
-        filter_params['property_name'] = property_name
-    if name:
-        filter_params['name'] = name
-    product_properties = list(ProductProperties.objects.filter(**filter_params).values('id', 'name', 'property_type', 'property_name'))
-    for ind, product in enumerate(product_properties):
-        product_attributes = list(ProductAttributes.objects.filter(product_property_id=product['id']).values('id', 'attribute_name',
-                                  'description'))
-        product_properties[ind]['attributes'] = product_attributes
-        product_images = list(ProductImages.objects.filter(image_id=product['id'], image_type='product_property').\
+        filter_params['name'] = data_id
+    size_names = []
+    attributes = []
+    brands = []
+    categories = []
+    template_name = ''
+    product_properties = ProductProperties.objects.filter(**filter_params)
+    if product_properties:
+        product = product_properties[0]
+        template_name = product.name
+        size_names = list(product.size_types.values_list('size_name', flat=True).distinct())
+        attributes = list(product.attributes.values('id', 'attribute_name', 'description').distinct())
+        brands = list(product_properties.values_list('brand', flat=True).distinct())
+        categories = list(product_properties.values_list('category', flat=True).distinct())
+        product_images = list(ProductImages.objects.filter(image_id=product.id, image_type='product_property').\
                                                     values_list('image_url', flat=True).distinct())
-        product_properties[ind]['images'] = product_images
-    return HttpResponse(json.dumps({'data': product_properties}))
+    return HttpResponse(json.dumps({'name': template_name, 'size_names': size_names, 'attributes': attributes, 'brands': brands,
+                        'categories': categories, 'product_images': product_images}))
 
-@csrf_exempt
-@login_required
-@get_admin_user
-def get_sku_field_names(request, user=''):
-    field_type = request.GET.get('field_type', '')
-    sku_field_types = copy.deepcopy(SKU_FIELD_TYPES)
-    if field_type == 'create_orders':
-       product_properties = list(ProductProperties.objects.filter(user=user.id).values('id', 'name', 'property_type', 'property_name'))
-       data = []
-       for product in product_properties:
-           filter_dict = filter(lambda sku_field_types: sku_field_types['field_name'] == product['property_type'], sku_field_types)
-           if filter_dict:
-               data.append({'field_name': product['property_type'], 'field_value': filter_dict[0]['field_value'],
-                            'template_name': product['name'], 'id': product['id'], 'property_name': product['property_name']})
-       sku_field_types = data
-       
-    for dat in sku_field_types:
-        exclude_dict = {dat['field_name']: ''}
-        sku_master = list(SKUMaster.objects.exclude(**exclude_dict).filter(user=user.id).values_list(*[dat['field_name']], flat=True).\
-                     distinct())
-        dat['field_data'] = sku_master
-    size_names = SizeMaster.objects.filter(user=user.id)
-    sizes_list = []
-    for sizes in size_names:
-        sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
-    return HttpResponse(json.dumps({'template_types': sku_field_types, 'sizes_list': sizes_list}))
 
 def save_template_image_file(image_file, master, user, image_type=''):
-    extension = image_file.name.split('.')[-1]
-    path = 'static/images/sku_templates/'
-    folder = str(user.id)
+    path = 'static/images/sku_templates/' + str(user.id)
     image_name = str(master.name)
-    if not os.path.exists(path + folder):
-        os.makedirs(path + folder)
-    full_filename = os.path.join(path, folder, str(image_name) + '.' +str(extension))
-    fout = open(full_filename, 'wb+')
-    file_content = ContentFile( image_file.read() )
-
-    try:
-        # Iterate through the chunks.
-        for chunk in file_content.chunks():
-            fout.write(chunk)
-        fout.close()
-        image_url = '/' + path + folder + '/' + str(image_name) + '.' +str(extension)
+    image_url = save_image_file_path(path, image_file, image_name)
+    if image_url:
         product_images = ProductImages.objects.filter(image_id=master.id, image_url=image_url, image_type=image_type)
         if not product_images:
             ProductImages.objects.create(image_id=master.id, image_url=image_url, image_type=image_type,
@@ -1566,68 +1552,93 @@ def save_template_image_file(image_file, master, user, image_type=''):
         else:
             product_images[0].image_url = image_url
             product_images[0].save()
-
-    except:
-        print 'not saved'
+    return image_url
 
 @csrf_exempt
 @login_required
 @get_admin_user
-def create_custom_sku_template(request, user=''):
-    status = ''
-    property_type = request.POST.get('property_type', '')
-    name = request.POST.get('name', '')
-    property_name = request.POST.get('property_name', '')
-    if not (property_type or name or property_name):
-        return HttpResponse(json.dumps({'message': 'Missing Required Fields'}))
-    product_instance = ProductProperties.objects.filter(name=name, user_id=user.id)
-    if product_instance:
-        return HttpResponse(json.dumps({'message': 'Template Name already exists'}))
-    product_property = ProductProperties.objects.create(property_type=property_type, name=name, property_name=property_name,
-                                                        creation_date=datetime.datetime.now(), user_id=user.id)
-    data_dict = dict(request.POST.iterlists())
-    for i in range(0, len(data_dict['attribute_name'])):
-        attribute_name = data_dict['attribute_name'][i]
-        description = data_dict['description'][i]
-        if attribute_name:
-            ProductAttributes.objects.create(product_property_id=product_property.id, attribute_name=attribute_name, description=description,
-                                             creation_date=datetime.datetime.now())
+def create_update_custom_sku_template(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user,request.user)
+    request_dict = dict(request.POST.iterlists())
+    template_name = request.POST.get('name', '')
+    is_new = request.POST.get('is_new', '')
+    data_list = []
+    attributes_list = []
+    sizes_list = []
+    brands_list = copy.deepcopy(request_dict.get('brands', ''))
+    saved_file_path = ''
+    log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        for key, value in request_dict.iteritems():
+            if key == 'sizes':
+                for val in value:
+                    sizes_list.append(SizeMaster.objects.get(size_name=val, user=user.id))
+            elif key in ['attribute_name']:
+               for ind, val in enumerate(value):
+                   attributes_list.append({'attribute_name': val, 'description': request_dict['description'][ind], 'user_id': user.id})
+        for item in range(0, len(request_dict.get('categories', []))):
+            category = request_dict['categories'][item]
+            brands = sku_master.filter(sku_category=category, sku_brand__in=request_dict['brands']).values_list('sku_brand', flat=True).distinct()
+            for brand in brands:
+                data_list.append({'name': template_name, 'brand': brand, 'category': category})
+            if brand in brands_list:
+                brands_list.remove(brand)
+        status = ''
+        if is_new == 'true':
+            prod_pro_obj = ProductProperties.objects.filter(user_id=user.id, name=template_name)
+            if prod_pro_obj:
+                status = 'Template Name Already exists'
+            if brands_list:
+                status = 'Please select category or remove the brand for these brands ' + ','.join(brands_list)
+        else:
+            data_list = ProductProperties.objects.filter(user_id=user.id, name=template_name).values('name', 'brand', 'category').distinct()
+        if not status:
+            for data_dict in data_list:
+                data_dict['user_id'] = user.id
+                product_pro_obj = ProductProperties.objects.filter(**data_dict)
+                if not product_pro_obj:
+                    data_dict['creation_date'] = datetime.datetime.now()
+                    product_property, created = ProductProperties.objects.get_or_create(**data_dict)
+                else:
+                    product_property = product_pro_obj[0]
+                for size_type_obj in sizes_list:
+                    product_property.size_types.add(size_type_obj)
+                for attr_dict in attributes_list:
+                    product_attr_obj = ProductAttributes.objects.filter(user_id=user.id, attribute_name=attr_dict['attribute_name'])
+                    if not product_attr_obj:
+                        attr_dict['user_id'] = user.id
+                        attr_dict['creation_date'] = datetime.datetime.now()
+                        product_attribute, created = ProductAttributes.objects.get_or_create(**attr_dict)
+                    else:
+                        product_attribute = product_attr_obj[0]
+                        product_attribute.description = attr_dict['description']
+                        product_attribute.save()
+                    if attr_dict['attribute_name'] not in product_property.attributes.values_list('attribute_name', flat=True):
+                        product_property.attributes.add(product_attribute)
 
-    image_file = request.FILES.get('files-0','')
-    if image_file:
-        save_template_image_file(image_file, product_property, user, image_type='product_property')
-
-    return HttpResponse(json.dumps({'message': 'Added Successfully'}))
-
-@csrf_exempt
-@login_required
-@get_admin_user
-def update_custom_sku_template(request, user=''):
-    data_id = request.POST.get('id', '')
-    product_property = ProductProperties.objects.get(id=data_id)
-    data_dict = dict(request.POST.iterlists())
-    for i in range(0, len(data_dict['attribute_name'])):
-        attribute_name = data_dict['attribute_name'][i]
-        description = data_dict['description'][i]
-        if attribute_name:
-            product_attribute = ProductAttributes.objects.filter(product_property_id=product_property.id, attribute_name=attribute_name)
-            if not product_attribute:
-                ProductAttributes.objects.create(product_property_id=product_property.id, attribute_name=attribute_name,
-                                                 description=description, creation_date=datetime.datetime.now())
-
-    image_file = request.FILES.get('files-0','')
-    if image_file:
-        save_template_image_file(image_file, product_property, user, image_type='product_property')
-
-    return HttpResponse(json.dumps({'message': 'Updated Successfully'}))
+                    image_file = request.FILES.get('files-0','')
+                    if image_file and not saved_file_path:
+                        saved_file_path = save_template_image_file(image_file, product_property, user, image_type='product_property')
+            status = 'Added Successfully'
+    except Exception as e:
+        log.info('Create or Update Custom sku template failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        if is_new == 'true':
+            status = 'SKU Template Creation Failed'
+        else:
+            status = 'SKU Template Updation Failed'
+    return HttpResponse(status)
 
 @csrf_exempt
 @login_required
 @get_admin_user
 def delete_product_attribute(request, user=''):
     data_id = request.GET.get('data_id', '')
+    name = request.GET.get('name', '')
     if data_id:
-        ProductAttributes.objects.filter(id=data_id).delete()
+        product_attribute = ProductAttributes.objects.get(id=data_id, user_id=user.id)
+        product_properties = ProductProperties.objects.filter(name=name, user_id=user.id)
+        for product in product_properties:
+            product.attributes.remove(product_attribute)
     return HttpResponse(json.dumps({'message': 'Deleted Successfully'}))
 
 def get_custom_sku_code(user, exist_sku='', sku_size='', group_sku=''):
@@ -1661,10 +1672,12 @@ def get_custom_sku_code(user, exist_sku='', sku_size='', group_sku=''):
 @get_admin_user
 def create_custom_sku(request, user=''):
     image_file = request.FILES.get('files-0', '')
+    name = request.POST.get('template', '')
     sku_codes_list = []
-    property_type = request.POST.get('property_type', '')
-    display_name, name, property_type = property_type.split(':')
-    property_name = request.POST.get('property_name', '')
+    #property_type = request.POST.get('property_type', '')
+    #display_name, name, property_type = property_type.split(':')
+    #property_name = request.POST.get('property_name', '')
+    style_data = request.POST.get('style_data', '')
     unit_price = request.POST.get('unit_price', 0)
     printing_vendor = request.POST.get('printing_vendor', [])
     embroidery_vendor = request.POST.get('embroidery_name', [])
@@ -1674,27 +1687,61 @@ def create_custom_sku(request, user=''):
     embroidery_vendor_obj = None
     production_unit_obj = None
 
-    ven_list = {}
-    if printing_vendor:
-        print_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = printing_vendor)
-        if print_vendor_obj:
-            ven_list.update({'printing_vendor': print_vendor_obj[0]})
-    if embroidery_vendor:
-        embroidery_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = embroidery_vendor)
-        if embroidery_vendor_obj:
-            ven_list.update({'embroidery_vendor': embroidery_vendor_obj[0]})
-    if production_unit:
-        production_unit_obj = VendorMaster.objects.filter(user = user.id, vendor_id = production_unit)
-        if production_unit_obj:
-             ven_list.update({'production_unit': production_unit_obj[0]})
+    log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        ven_list = {}
+        if printing_vendor:
+            print_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = printing_vendor)
+            if print_vendor_obj:
+                ven_list.update({'printing_vendor': print_vendor_obj[0].id})
+        if embroidery_vendor:
+            embroidery_vendor_obj = VendorMaster.objects.filter(user = user.id, vendor_id = embroidery_vendor)
+            if embroidery_vendor_obj:
+                ven_list.update({'embroidery_vendor': embroidery_vendor_obj[0].id})
+        if production_unit:
+            production_unit_obj = VendorMaster.objects.filter(user = user.id, vendor_id = production_unit)
+            if production_unit_obj:
+                 ven_list.update({'production_unit': production_unit_obj[0].id})
 
-    product_property = ProductProperties.objects.filter(name=name, property_name=property_name, property_type=property_type)
-    if not product_property:
-        return HttpResponse(json.dumps({'message': 'Wrong Data', 'data': ''}))
-    product_property = product_property[0]
-    data_dict = dict(request.POST.iterlists())
-    sku_sizes = []
-    for i in range(0, len(data_dict['sku_size'])):
+        product_property = ProductProperties.objects.filter(name=name, user=user.id)
+        if not product_property:
+            return HttpResponse(json.dumps({'message': 'Wrong Data', 'data': ''}))
+        product_property = product_property[0]
+        data_dict = dict(request.POST.iterlists())
+        sku_sizes = []
+
+        saved_file_path = ''
+        image_url = ''
+        if image_file:
+            path = 'static/temp_files/' + str(user.id)
+            image_name = ('%s_%s') % (str(name), datetime.datetime.now().strftime('%d_%I_%S'))
+            image_url = save_image_file_path(path, image_file, image_name)
+        for style in eval(style_data):
+            for sku_size in style['sizes']:
+                try:
+                    quantity = float(sku_size['value'])
+                except:
+                    quantity = 0
+                if not quantity:
+                    continue
+                sku_obj = SKUMaster.objects.filter(user=user.id, sku_class=style['name'], sku_size=sku_size['name'])
+                if not sku_obj:
+                    continue
+                else:
+                    sku_obj = sku_obj[0]
+                attribute_data = []
+                for i in range(0, len(data_dict['field_name'])):
+                    attribute_name = data_dict['field_name'][i]
+                    attribute_value = data_dict['field_value'][i]
+                    attribute_data.append({'attribute_name': data_dict['field_name'][i], 'attribute_value': data_dict['field_value'][i]})
+                sku_codes_list.append({'sku_code': sku_obj.sku_code, 'quantity': quantity, 'description': sku_obj.sku_desc,
+                                       'unit_price': unit_price, 'remarks': style.get('remarks', ''), 'image_url': image_url,
+                                       'attribute_data': attribute_data,
+                                       'vendors_list': ven_list})
+        return HttpResponse(json.dumps({'message': 'Success', 'data': sku_codes_list}))
+    except Exception as e:
+        log.info('Create Custom SKU failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+    '''for i in range(0, len(data_dict['sku_size'])):
         sku_size = data_dict['sku_size'][i]
         quantity = data_dict['quantity'][i]
         if sku_size and not (sku_size in sku_sizes) and quantity and float(quantity) > 0:
@@ -1738,7 +1785,7 @@ def create_custom_sku(request, user=''):
                 ex_obj.save()
             else:
                 SKUFields.objects.create(sku_id=sku_master.id, field_id= value.id, field_type= key, field_value=value.name)
-    return HttpResponse(json.dumps({'message': 'SKU Created Successfully', 'data': sku_codes_list}))
+    return HttpResponse(json.dumps({'message': 'SKU Created Successfully', 'data': sku_codes_list}))'''
 
 @csrf_exempt
 def get_size_master_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
@@ -2001,7 +2048,7 @@ def get_seller_master(start_index, stop_index, temp_data, search_term, order_ter
         temp_data['aaData'].append(OrderedDict(( ('seller_id', data.seller_id), ('name', data.name), ('address', data.address),
                                                  ('phone_number', data.phone_number), ('email_id', data.email_id), ('status', status),
                                                  ('tin_number', data.tin_number), ('vat_number', data.vat_number),
-                                                 ('price_type_list', price_types),
+                                                 ('price_type_list', price_types), ('margin', float(data.margin)),
                                                  ('price_type', price_type), ('DT_RowId', data.seller_id), ('DT_RowClass', 'results') )))
 
 @login_required

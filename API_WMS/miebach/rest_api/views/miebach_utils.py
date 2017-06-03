@@ -35,7 +35,7 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sku_desc': '', 'sku_group': '', 'sku_type': '', 'mix_sku': '',
             'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'color': '', 'mrp': 0,
             'status': 1, 'online_percentage': 0, 'qc_check': 0, 'sku_brand': '', 'sku_size': '', 'style_name': '', 'price': 0,
-             'ean_number': 0}
+             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(), 'st_po_id': '', 'sku_id': '', 'status': 1}
 OPEN_ST_FIELDS = {'warehouse_id': '', 'order_quantity': 0, 'price': 0, 'sku_id': '', 'status': 1, 'creation_date': datetime.datetime.now()}
@@ -168,6 +168,9 @@ CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 1), ('credit
                                        ('pincode', 11), ('address', 12), ('price_type', 13)
                                     ))
 
+MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 1), ('pincode', 2), ('state', 3), ('phone_number', 4)
+                                                ))
+
 SALES_RETURN_HEADERS = ['Return ID', 'Return Date', 'SKU Code', 'Product Description', 'Market Place', 'Quantity']
 
 SALES_RETURN_TOGGLE = ['Return ID', 'SKU Code', 'Product Description', 'Shipping Quantity', 'Return Quantity', 'Damaged Quantity' ]
@@ -289,7 +292,7 @@ LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequenc
 
 SKU_HEADERS = ['WMS Code','SKU Description', 'SKU Group', 'SKU Type', 'SKU Category', 'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size',
                'Size Type', 'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url', 'Threshold Quantity', 'Measurment Type',
-               'Sale Through', 'Color', 'EAN Number', 'Status']
+               'Sale Through', 'Color', 'EAN Number', 'Load Unit Handling(Options: Enable, Disable)', 'Status']
 
 MARKET_USER_SKU_HEADERS = ['WMS Code','SKU Description', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category', 'SKU Class',
                            'SKU Brand', 'Style Name', 'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Put Zone',
@@ -507,7 +510,7 @@ EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 8, 'invoice_amount': 3, 'chann
 SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('sku_group', 2), ('sku_type', 3), ('sku_category', 4), ('sku_class', 5),
                               ('sku_brand', 6), ('style_name', 7), ('sku_size', 8), ('size_type', 9), ('zone_id', 10), ('price', 11),
                               ('mrp', 12), ('sequence', 13), ('image_url', 14), ('threshold_quantity', 15), ('measurement_type', 16),
-                              ('sale_through', 17), ('color', 18), ('ean_number', 19), ('status', 20)
+                              ('sale_through', 17), ('color', 18), ('ean_number', 19), ('load_unit_handle', 20), ('status', 21)
                            ))
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('sku_group', 2), ('sku_type', 3), ('sku_category', 4),
                                           ('sku_class', 5), ('sku_brand', 6), ('style_name', 7), ('mix_sku', 8), ('zone_id', 9),
@@ -549,9 +552,14 @@ MYNTRA_EXCEL = {'invoice_amount': 14, 'marketplace': 'Myntra', 'sku_code': 2, 'q
 
 UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code': 1, 'recreate': True}
 
-# ---  Return Marketplace headers --
+# ---  Returns Default headers --
 GENERIC_RETURN_EXCEL = OrderedDict((('sku_id', 2), ('order_id', 1), ('quantity', 3), ('damaged_quantity', 4),
                                    ('return_id', 0),  ('return_date', 5)))
+
+# ---  Shotang Returns headers --
+SHOTANG_RETURN_EXCEL = OrderedDict((('sku_id', 2), ('order_id', 1), ('quantity', 3), ('return_date', 4), ('seller_order_id', 0),
+                                    ('marketplace', 'Shotang')
+                                  ))
 
 #MYNTRA_RETURN_EXCEL = OrderedDict((('sku_id', [5,7]), ('quantity', 8), ('reason', 13), ('marketplace', "MYNTRA")))
 
@@ -580,7 +588,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'inventory_adjust_report': 'get_adjust_filter_data', 'inventory_aging_report': 'get_aging_filter_data',
                         'stock_summary_report': 'get_stock_summary_data', 'daily_production_report': 'get_daily_production_data',
                         'order_summary_report': 'get_order_summary_data', 'seller_invoices_filter': 'get_seller_invoices_filter_data',
-                        'open_jo_report': 'get_openjo_details'}
+                        'open_jo_report': 'get_openjo_details', 'grn_inventory_addition': 'get_grn_inventory_addition_data'}
 
 SHIPMENT_STATUS = ['Dispatched', 'In Transit', 'Out for Delivery', 'Delivered']
 
@@ -705,7 +713,7 @@ PRICE_DEF_EXCEL = OrderedDict(( ('sku_id', 0), ('price_type', 1), ('price', 2), 
 
 PRICE_MASTER_DATA = {'sku_id': '', 'price_type': '', 'price': 0, 'discount': 0}
 
-SELLER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': ''}
+SELLER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': '', 'margin': 0}
 
 USER_SKU_EXCEL = {'warehouse_user': SKU_HEADERS, 'marketplace_user': MARKET_USER_SKU_HEADERS, 'customer': SKU_HEADERS}
 
@@ -729,9 +737,9 @@ MYNTRA_BULK_ADDRESS = 'MYNTRA DESIGNS PVT LTD\nKsquare Industrial Park, Warehous
 USER_MYNTRA_ADDRESS = {'campus_sutra': MYNTRA_BANGALORE_ADDRESS, 'adam_clothing': MYNTRA_MUMBAI_ADDRESS,
                        'adam_clothing1': MYNTRA_MUMBAI_ADDRESS, 'adam_clothing1:bulk': MYNTRA_BULK_ADDRESS}
 
-SHOTANG_ORDER_FILE_EXCEL = {'order_id': 1, 'customer_name': 8, 'customer_id': 7, 'telephone': 9, 'address': 10, 'title': 13, 'sku_code': 2,
-                            'invoice_amount': 6, 'sor_id': 0, 'order_date': 3, 'quantity': 4, 'order_status': 19, 'seller': 11,
-                            'invoice_no': 16, 'marketplace': 'Shotang'}
+SHOTANG_ORDER_FILE_EXCEL = {'order_id': 1, 'customer_name': 6, 'customer_id': 5, 'telephone': 7, 'address': 8, 'sku_code': 2,
+                            'invoice_amount': 16, 'sor_id': 0, 'order_date': 3, 'quantity': 4, 'order_status': 11, 'seller': 9,
+                            'marketplace': 'Shotang', 'vat': {'tax': 14, 'quantity': 4, 'tot_tax': 15} }
 
 SELLER_ORDER_FIELDS = {'sor_id': '', 'quantity': 0, 'order_status': '', 'order_id': '', 'seller_id': '', 'status': 1, 'invoice_no': ''}
 
@@ -752,6 +760,12 @@ SUPPLIER_EXCEL_FIELDS = OrderedDict(( ('id', 0), ('name', 1), ('address', 2), ('
 
                                    ))
 STATUS_DICT = {1: True, 0: False}
+
+PO_RECEIPT_TYPES = ['Purchase Order', 'Buy & Sell', 'Hosted Warehouse']
+
+PO_ORDER_TYPES = {'SR': 'Self Receipt', 'VR': 'Vendor Receipt', 'HW': 'Hosted Warehouse', 'BS': 'Buy & Sell'}
+
+LOAD_UNIT_HANDLE_DICT = {'enable': 'pallet', 'disable': 'unit'}
 
 def fn_timer(function):
     @wraps(function)
@@ -1094,7 +1108,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
             aft_amount = float(order_data['order_quantity']) * float(aft_price)
             temp = OrderedDict(( ('PO Date', str(data.po_date).split('+')[0]), ('PO Number', po_number),
                                  ('Supplier ID', order_data['supplier_id']), ('Supplier Name', order_data['supplier_name']),
-                                 ('Recepient', 'Pro-Shot'), ('SKU Code', order_data['sku_code']), ('SKU Description', order_data['sku_desc']),
+                                 ('Recepient', 'SSHProc'),('SKU Code', order_data['sku_code']),('SKU Description', order_data['sku_desc']),
                                  ('SKU Class', order_data['sku'].sku_class), ('SKU Style Name', order_data['sku'].style_name),
                                  ('SKU Brand', order_data['sku'].sku_brand), ('SKU Category', order_data['sku'].sku_category),
                                  ('PO Qty', order_data['order_quantity']), ('Unit Rate', order_data['price']),
@@ -1172,6 +1186,7 @@ def get_po_filter_data(search_params, user, sub_user):
     if 'from_date' in search_params:
         search_parameters[ field_mapping['from_date'] + '__gte'] = search_params['from_date']
     if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date']  + datetime.timedelta(1), datetime.time())
         search_parameters[ field_mapping['to_date'] + '__lte'] = search_params['to_date']
 
     if 'open_po' in search_params and search_params['open_po']:
@@ -1179,8 +1194,8 @@ def get_po_filter_data(search_params, user, sub_user):
         if temp:
             search_parameters[field_mapping['order_id']] = temp[-1]
 
-    if 'wms_code' in search_params:
-        search_parameters[field_mapping['wms_code']] = search_params['wms_code']
+    if 'sku_code' in search_params:
+        search_parameters[field_mapping['wms_code']] = search_params['sku_code']
 
 
     search_parameters[field_mapping['user']] = user.id
@@ -1230,7 +1245,7 @@ def get_po_filter_data(search_params, user, sub_user):
             temp_data['aaData'].append(OrderedDict(( ('Received Date', get_local_date(user, result.updation_date)),
                                                      ('PO Date', get_local_date(user, result.creation_date)), ('PO Number', po_number),
                                                      ('Supplier ID', data[field_mapping['supplier_id']]),
-                                                     ('Supplier Name', data[field_mapping['supplier_name']]), ('Recepient', 'Pro-Shot'),
+                                                     ('Supplier Name', data[field_mapping['supplier_name']]), ('Recepient', 'SSHProc'),
                                                      ('SKU Code', data['purchase_order__open_po__sku__sku_code']),
                                                      ('SKU Description', data['purchase_order__open_po__sku__sku_desc']),
                                                      ('SKU Class', data['purchase_order__open_po__sku__sku_class']),
@@ -1778,3 +1793,65 @@ def get_seller_invoices_filter_data(search_params, user, sub_user):
             temp_data['aaData'] = apply_search_sort(temp_data['aaData'][0].keys(), temp_data['aaData'], order_term, '', col_num, exact=False)
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
+
+def get_grn_inventory_addition_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+
+    search_parameters = {}
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    temp_data = copy.deepcopy( AJAX_DATA )
+    temp_data['draw'] = search_params.get('draw')
+    result_values = ['purchase_order__order_id', 'receipt_number', 'purchase_order__open_po__sku__sku_code', 'seller_po__seller__seller_id',
+                     'purchase_order__received_quantity', 'purchase_order__open_po__price', 'purchase_order__open_po__tax',
+                     'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price']
+
+    if 'from_date' in search_params:
+        search_parameters['creation_date__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date']  + datetime.timedelta(1), datetime.time())
+        search_parameters['creation_date__lte'] = search_params['to_date']
+
+    if 'open_po' in search_params and search_params['open_po']:
+        temp = re.findall('\d+', search_params['open_po'])
+        if temp:
+            search_parameters['purchase_order__order_id'] = temp[-1]
+
+    if 'sku_code' in search_params:
+        search_parameters['seller_po__open_po__sku__wms_code'] = search_params['sku_code']
+
+
+    search_parameters['seller_po__seller__user'] = user.id
+    search_parameters['seller_po__open_po__sku_id__in'] = sku_master_ids
+    query_data = SellerPOSummary.objects.filter(**search_parameters)
+    model_data = query_data.values(*result_values).distinct().annotate(total_received=Sum('quantity'))
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
+    for data in model_data:
+        result = purchase_orders.filter(order_id=data['purchase_order__order_id'],open_po__sku__user=user.id)[0]
+        po_number = '%s%s_%s' %(data['purchase_order__prefix'], str(result.creation_date).split(' ')[0].replace('-', ''), data['purchase_order__order_id'])
+        amount = float(data['total_received'] * data['purchase_order__open_po__price'])
+        aft_unit_price = float(data['purchase_order__open_po__price']) + (float(data['purchase_order__open_po__price']/100) * float(data['purchase_order__open_po__tax']))
+        post_amount = aft_unit_price * float(data['total_received'])
+        margin_price = float(data['seller_po__unit_price'] - aft_unit_price)
+        if margin_price < 0:
+            margin_price = 0
+        margin_price = "%.2f" % (margin_price * float(data['total_received']))
+        final_price = data['seller_po__unit_price']
+        if not final_price:
+            final_price = aft_unit_price
+        invoice_total_amount = float(final_price) * float(data['total_received'])
+        temp_data['aaData'].append(OrderedDict(( ('Transaction ID', po_number + '/' + str(data['receipt_number'])),
+                                                 ('Product Code', data['purchase_order__open_po__sku__sku_code']),
+                                                 ('Seller ID', data['seller_po__seller__seller_id']),
+                                                 ('Quantity', data['total_received']),
+                                                 ('Price', invoice_total_amount), ('Type', 'Add'),
+                                             )))
+    return temp_data
+

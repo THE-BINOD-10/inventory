@@ -26,6 +26,7 @@ from generate_reports import *
 from num2words import num2words
 import datetime
 from utils import *
+from django.core.files.base import ContentFile
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Sum, Count
 import math
@@ -153,7 +154,7 @@ def add_user_type_permissions(user_profile):
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment', 'shipmentinfo', 'shipmenttracking']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
-        exc_perms = []
+        exc_perms = ['productproperties', 'sizemaster', 'pricemaster']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST
@@ -189,7 +190,8 @@ def wms_login(request):
                 user_profile = UserProfile(user=user, phone_number='',
 	                                           is_active=1, prefix=prefix, swx_id=0)
                 user_profile.save()
-                add_user_type_permissions(user_profile)
+                if user.is_staff:
+                    add_user_type_permissions(user_profile)
         else:
             return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -1007,7 +1009,7 @@ def auto_po(wms_codes, user):
                 po_suggestions['order_quantity'] = supplier_id[0].moq
                 if not supplier_id[0].moq:
                     po_suggestions['order_quantity'] = get_auto_po_quantity(sku, stock_quantity=total_sku)
-                
+
                 po_suggestions['status'] = 'Automated'
                 po_suggestions['price'] = supplier_id[0].price
                 if po_suggestions['order_quantity'] > 0:
@@ -1906,13 +1908,13 @@ def resize_image(url, user):
     path = 'static/images/resized/'
     folder = str(user.id)
 
-    height = 600
-    width = 400
+    height = 193
+    width = 258
 
     if url:
-        new_file_name = url.split("/")[-1].split(".")[0]+"_"+str(height)+"_"+str(width)+"."+url.split(".")[1]
+        new_file_name = url.split("/")[-1].split(".")[0]+"-"+str(width)+"x"+str(height)+"."+url.split(".")[1]
         file_name = url.split(".")
-        file_name = "%s_%s_%s.%s" %(file_name[0], height, width, file_name[1])
+        file_name = "%s-%sx%s.%s" %(file_name[0], width, height, file_name[1])
 
         if not os.path.exists(path + folder):
             os.makedirs(path + folder)
@@ -1920,22 +1922,26 @@ def resize_image(url, user):
         if os.path.exists(path+folder+"/"+new_file_name):
             return "/"+path+folder+"/"+new_file_name;
 
-        else:
+        try:
             from PIL import Image
             temp_url = url[1:]
             image = Image.open(temp_url)
             imageresize = image.resize((height ,width), Image.ANTIALIAS)
             imageresize.save(path+folder+"/"+new_file_name, 'JPEG', quality=75)
-            return "/"+path+folder+"/"+new_file_name
+            url = "/"+path+folder+"/"+new_file_name
+            return url
+        except:
+            print 'Issue for ' + url
+            return url
     else:
         return url
 
 def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if not request_data:
         request_data = request.GET
-    from rest_api.views.outbound import get_style_variants
+    #from rest_api.views.outbound import get_style_variants
     filter_params = {'user': user.id}
-    get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size', 'style_name', 'sale_through']
+    #get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size', 'style_name', 'sale_through']
     sku_category = request_data.get('category', '')
     sku_class = request_data.get('sku_class', '')
     sku_brand = request_data.get('brand', '')
@@ -1986,11 +1992,11 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     sku_master = sku_master.order_by('sequence')
     product_styles = sku_master.values_list('sku_class', flat=True).distinct()
     product_styles = list(OrderedDict.fromkeys(product_styles))
-    data = []
     if is_file:
         start, stop = 0, len(product_styles)
 
-    stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku__sku_class').distinct().\
+    data = get_styles_data(user, product_styles, sku_master, start, stop, customer_id=customer_id, customer_data_id=customer_data_id, is_file=is_file)
+    '''stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku__sku_class').distinct().\
                                      annotate(in_stock=Sum('quantity'))
     reserved_quantities = PicklistLocation.objects.filter(stock__sku__user=user.id, status=1).values('stock__sku__sku_class').distinct().\
                                        annotate(in_reserved=Sum('reserved'))
@@ -2000,7 +2006,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     reserved_quans = map(lambda d: d['in_reserved'], reserved_quantities)
     for product in product_styles[start: stop]:
         sku_object = sku_master.filter(user=user.id, sku_class=product)
-        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence').\
+        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id').\
                                        order_by('-image_url')
         total_quantity = 0
         if product in stock_skus:
@@ -2013,11 +2019,11 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             sku_styles[0]['variants'] = sku_variants
             sku_styles[0]['style_quantity'] = total_quantity
 
-            #sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'],user)
+            sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'], user)
 
             data.append(sku_styles[0])
         if not is_file and len(data) >= 20:
-            break
+            break'''
     return data, start, stop
 
 def get_user_sku_data(user):
@@ -2081,7 +2087,8 @@ def search_wms_data(request, user=''):
     master_data = query_objects.filter(Q(wms_code__exact = search_key) | Q(sku_desc__exact = search_key),user=user.id)
     if master_data:
         master_data = master_data[0]
-        total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, 'measurement_unit': master_data.measurement_type})
+        total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
+                           'measurement_unit': master_data.measurement_type, 'load_unit_handle': master_data.load_unit_handle})
 
     master_data = query_objects.filter(Q(wms_code__istartswith = search_key) | Q(sku_desc__istartswith = search_key),user=user.id)
     total_data = build_search_data(total_data, master_data, limit)
@@ -2399,16 +2406,19 @@ def all_size_list(user):
 @csrf_exempt
 @login_required
 @get_admin_user
-def get_size_names(requst, user = ""): 
+def get_size_names(requst, user = ""):
     size_names = SizeMaster.objects.filter(user=user.id)
-    sizes_list = {'DEFAULT': ['S', 'M', 'L', 'XL', 'XXL']}
+    sizes_list = {}
+    if not size_names.filter(size_name='DEFAULT'):
+        SizeMaster.objects.create(user=user.id, size_name='DEFAULT', creation_date=datetime.datetime.now(),
+                                  size_value='S<<>>M<<>>L<<>>XL<<>>XXL')
+        size_names = SizeMaster.objects.filter(user=user.id)
     for sizes in size_names:
         size_value_list = (sizes.size_value).split('<<>>')
         size_value_list = filter(None, size_value_list)
         sizes_list.update({sizes.size_name : size_value_list})
 
     size_name = list(size_names.values_list('size_name', flat = True))
-    size_name.append('DEFAULT')
     sizes_list.update({'size_names': size_name})
 
     return HttpResponse(json.dumps(sizes_list))
@@ -2420,8 +2430,8 @@ def get_sellers_list(request, user=''):
     sellers = SellerMaster.objects.filter(user=user.id)
     seller_list = []
     for seller in sellers:
-        seller_list.append({'id': seller.id, 'name': seller.name})
-    return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5}))
+        seller_list.append({'id': seller.seller_id, 'name': seller.name})
+    return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES}))
 
 def update_filled_capacity(locations, user_id):
     location_masters = LocationMaster.objects.filter(location__in=locations, zone__user=user_id)
@@ -2711,3 +2721,80 @@ def delete_tally_data(request, user = ""):
         res = {'status': 0, 'message': 'Deletion Failed'}
         log.info('Delete Tally Data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
     return HttpResponse(json.dumps(res))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_categories_list(request, user = ""):
+    sku_master, sku_master_ids = get_sku_master(user,request.user)
+    brand = request.GET.get('brand', '')
+    name = request.GET.get('name', '')
+    filter_params = {'user': user.id}
+    if name:
+        filter_params['name'] = name
+        if not brand == 'ALL':
+            filter_params['brand'] = brand
+        categories_list = ProductProperties.objects.filter(**filter_params).values_list('category', flat=True)
+    else:
+        if brand:
+            filter_params['sku_brand__in'] = brand.split('<<>>')
+        categories_list = sku_master.filter(**filter_params).exclude(sku_category='').values_list('sku_category', flat=True).distinct()
+    return HttpResponse(json.dumps(list(categories_list)))
+
+def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='', customer_data_id='', is_file=''):
+    data = []
+    from rest_api.views.outbound import get_style_variants
+    get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size',
+                      'style_name', 'sale_through']
+    stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku__sku_class').distinct().\
+                                     annotate(in_stock=Sum('quantity'))
+    reserved_quantities = PicklistLocation.objects.filter(stock__sku__user=user.id, status=1).values('stock__sku__sku_class').distinct().\
+                                       annotate(in_reserved=Sum('reserved'))
+    stock_skus = map(lambda d: d['sku__sku_class'], stock_objs)
+    stock_quans = map(lambda d: d['in_stock'], stock_objs)
+    reserved_skus = map(lambda d: d['stock__sku__sku_class'], reserved_quantities)
+    reserved_quans = map(lambda d: d['in_reserved'], reserved_quantities)
+    for product in product_styles[start: stop]:
+        sku_object = sku_master.filter(user=user.id, sku_class=product)
+        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id').\
+                                       order_by('-image_url')
+        total_quantity = 0
+        if product in stock_skus:
+            total_quantity = stock_quans[stock_skus.index(product)]
+        if product in reserved_skus:
+            total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
+        if sku_styles:
+            sku_variants = list(sku_object.values(*get_values))
+            sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity, customer_data_id=customer_data_id)
+            sku_styles[0]['variants'] = sku_variants
+            sku_styles[0]['style_quantity'] = total_quantity
+
+            sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'], user)
+
+            data.append(sku_styles[0])
+        if not is_file and len(data) >= 20:
+            break
+    return data
+
+def save_image_file_path(path, image_file, image_name):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    extension = image_file.name.split('.')[-1]
+    full_filename = os.path.join(path, str(image_name) + '.' +str(extension))
+    fout = open(full_filename, 'wb+')
+    file_content = ContentFile( image_file.read() )
+
+    try:
+        # Iterate through the chunks.
+        for chunk in file_content.chunks():
+            fout.write(chunk)
+        fout.close()
+        image_url = '/' + path + '/' + str(image_name) + '.' +str(extension)
+    except:
+        image_url = ''
+    return image_url
+
+def folder_check(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return True

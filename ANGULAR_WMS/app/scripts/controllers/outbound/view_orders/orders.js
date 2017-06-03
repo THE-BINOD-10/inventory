@@ -43,6 +43,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     if(Session.user_profile.user_type != "marketplace_user") {
 
       vm.g_data.views.pop(1);
+    } else if(Session.user_profile.user_type == "marketplace_user") {
+
+      vm.g_data.views = ["CustomerOrderView", "SellerOrderView"];
+      if (vm.g_data.views.indexOf(vm.g_data.view) == -1) {
+
+        vm.g_data.view = "SellerOrderView";
+      }
     }
 
     vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'special_key': JSON.stringify(vm.special_key)}
@@ -272,6 +279,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.confirm_disable = false;
       vm.merge_invoice = false;
       vm.print_enable = false;
+      vm.reloadData();
     }
 
     vm.generate = generate;
@@ -729,19 +737,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.push({name: 'id', value: $(temp[""]).attr("name")})
         }
       }
-      Service.apiCall("generate_order_jo_data/", "POST", data).then(function(data){
-        if(data.message) {
+      //Service.apiCall("generate_order_jo_data/", "POST", data).then(function(data){
+      //  if(data.message) {
 
-          angular.copy(data.data, vm.model_data);
-          angular.forEach(vm.model_data.data, function(temp){
-            if(temp.sub_data.length == 0) {
-              temp["sub_data"] = [{material_code: "", material_quantity: ""}];
-            }
-          });
-          $state.go("app.outbound.ViewOrders.JO");
-        };
-      });
-      data = [];
+      //    angular.copy(data.data, vm.model_data);
+      //    angular.forEach(vm.model_data.data, function(temp){
+      //      if(temp.sub_data.length == 0) {
+      //        temp["sub_data"] = [{material_code: "", material_quantity: ""}];
+      //      }
+      //    });
+          $state.go("app.outbound.ViewOrders.JO", {data: JSON.stringify(data)});
+      //  };
+      //});
+      //data = [];
   }
 
   vm.get_product_data = function(item, sku_data) {
@@ -775,23 +783,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var elem = angular.element($('form:visible'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      elem = $.param(elem);
+      //elem = $.param(elem);
       $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-      $http({
-               method: 'POST',
-               url:Session.url+"confirm_jo/",
-               withCredential: true,
-               data: elem}).success(function(data, status, headers, config) {
+      Service.apiCall("confirm_jo/", "POST", elem, true).then(function(data){
+        if(data.message) {
+      //$http({
+      //         method: 'POST',
+      //         url:Session.url+"confirm_jo/",
+      //         withCredential: true,
+      //         data: elem}).success(function(data, status, headers, config) {
 
             vm.reloadData();
-            if(data.search("<div") != -1) {
-              vm.html = $(data)[0];
+            if(data.data.search("<div") != -1) {
+              vm.html = $(data.data)[0];
               var html = $(vm.html).closest("form").clone();
               angular.element(".modal-body:visible").html($(html).find(".modal-body > .form-group"));
               vm.print_enable = true;
             } else {
               pop_msg(data)
             }
+        }
       });
   }
 
@@ -809,20 +820,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.push({name: 'id', value: $(temp[""]).attr("name")})
         }
       }
-      Service.apiCall("generate_order_po_data/", "POST", data).then(function(data){
-        if(data.message) {
+      //Service.apiCall("generate_order_po_data/", "POST", data).then(function(data){
+      //  if(data.message) {
 
-          angular.copy(data.data, vm.model_data)
-          $state.go("app.outbound.ViewOrders.PO");
-        };
-      });
+      //    angular.copy(data.data, vm.model_data)
+          $state.go("app.outbound.ViewOrders.PO", {data: JSON.stringify(data)});
+      //  };
+      //});
   }
 
   vm.print_enable = false;
   vm.confirm_po = function() {
       var elem = $(form).serializeArray();
 
-      Service.apiCall("confirm_back_order/", "POST", elem).then(function(data){
+      Service.apiCall("confirm_back_order/", "POST", elem, true).then(function(data){
         if(data.message) {
           vm.confirm_disable = true; vm.message = data.data; reloadData();
 
@@ -850,12 +861,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
     Service.stock_transfer = JSON.stringify(data)
-    $state.go('app.outbound.ViewOrders.ST')
+    $state.go('app.outbound.ViewOrders.ST', {data: Service.stock_transfer})
+    //$state.go('app.outbound.ViewOrders.ST', )
   }
 
   vm.change_datatable = function() {
     Data.other_view.view =  vm.g_data.view;
-    $state.go($state.current, {}, {reload: true}); 
+    $state.go($state.current, {}, {reload: true});
   }
 
   // Edit invoice

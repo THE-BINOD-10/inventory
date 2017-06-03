@@ -295,12 +295,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     for(var key in vm.selected){
       if(vm.selected[key]) {
         var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
-        data.push({wms_code: temp['SKU Code'], order_quantity: 1, price: 0})
+        data.push(temp['order_id'])
       }
     }
-    Service.stock_transfer = JSON.stringify(data)
-    $state.go('app.outbound.ViewOrders.ST', {data: Service.stock_transfer})
-    //$state.go('app.outbound.ViewOrders.ST', )
+    vm.service.apiCall('get_stock_transfer_details/', 'GET', {order_id: data.join(",")}).then(function(data){
+      if(data.message) {
+
+        Service.stock_transfer = JSON.stringify(data.data.data_dict)
+        $state.go('app.outbound.ViewOrders.ST', {data: Service.stock_transfer})
+      }
+    })
   }
 
   vm.backorder_po = function() {
@@ -312,5 +316,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
     $state.go("app.outbound.ViewOrders.PO", {data: JSON.stringify(data)});
+  }
+
+  vm.raise_jo = function() {
+      var data = [];
+      for(var key in vm.selected){
+        if(vm.selected[key]) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+          data.push({name: 'id', value: $(temp[""]).attr("name")})
+        }
+      }
+      $state.go("app.outbound.ViewOrders.JO", {data: JSON.stringify(data)});
   }
 }

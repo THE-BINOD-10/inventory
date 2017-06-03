@@ -28,7 +28,6 @@
   </div>
 
 <div class="app_body" scrolly="showCase.scroll(e)">
-  <div class="process-overlay" ng-if="process"><div class="process-text"></div></div>
   <div class="row search-items mt15 search-box">
     <div class="row">
       <div class="col-md-1 col-sm-1 col-xs-1"></div>
@@ -135,7 +134,7 @@
     </div>
     <input type="hidden" name="index" value="{{showCase.catlog_data.index}}">
 
-    <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="showCase.loading">
+    <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="showCase.data_loading">
       <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
     </div>
 

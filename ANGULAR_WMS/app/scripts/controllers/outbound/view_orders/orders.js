@@ -737,19 +737,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.push({name: 'id', value: $(temp[""]).attr("name")})
         }
       }
-      Service.apiCall("generate_order_jo_data/", "POST", data).then(function(data){
-        if(data.message) {
+      //Service.apiCall("generate_order_jo_data/", "POST", data).then(function(data){
+      //  if(data.message) {
 
-          angular.copy(data.data, vm.model_data);
-          angular.forEach(vm.model_data.data, function(temp){
-            if(temp.sub_data.length == 0) {
-              temp["sub_data"] = [{material_code: "", material_quantity: ""}];
-            }
-          });
-          $state.go("app.outbound.ViewOrders.JO");
-        };
-      });
-      data = [];
+      //    angular.copy(data.data, vm.model_data);
+      //    angular.forEach(vm.model_data.data, function(temp){
+      //      if(temp.sub_data.length == 0) {
+      //        temp["sub_data"] = [{material_code: "", material_quantity: ""}];
+      //      }
+      //    });
+          $state.go("app.outbound.ViewOrders.JO", {data: JSON.stringify(data)});
+      //  };
+      //});
+      //data = [];
   }
 
   vm.get_product_data = function(item, sku_data) {

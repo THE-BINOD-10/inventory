@@ -7,6 +7,17 @@
   </div>
   <div ng-include="'views/common/datatable.html'"></div>
   <div class="panel-footer">
+    <div class="row">
+      <div class="col-md-2 col-sm-4 col-xs-6 mb10">
+        <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable">Raise PO</button>
+      </div>
+      <div class="col-md-2 col-sm-4 col-xs-6 mb10">
+        <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.raise_jo()" ng-disabled="showCase.bt_disable">Raise JO</button>
+      </div>
+      <div class="col-md-2 col-sm-4 col-xs-6 mb10">
+        <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.raise_stock_transfer()" ng-disabled="showCase.bt_disable">Raise Stock Transfer</button>
+      </div>
+    </div>
     <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_picklist()">Generate Picklist</button>
   </div>
 </div>

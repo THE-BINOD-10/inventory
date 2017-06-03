@@ -97,7 +97,7 @@ def get_generated_jo(start_index, stop_index, temp_data, search_term, order_term
 
         temp_data['aaData'].append({ '': checkbox, 'Job Code': data.jo_material.job_order.job_code,
                                      'Creation Date': get_local_date(request.user, data.creation_date), 'Order Type': order_type,
-                                     'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data.jo_material.job_order.job_code}, 'Quantity' : pro_quantity })
+                                     'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data.jo_material.job_order.job_code}, 'Quantity' : get_decimal_limit(user.id ,pro_quantity) })
     col_val = ['Job Code', 'Creation Date', 'Order Type', 'Quantity']
     if order_term and col_num == 3:
         order_data = col_val[col_num]
@@ -806,14 +806,15 @@ def get_raw_picklist_data(data_id, user):
                    continue
                 batch_data[match_condition] = {'wms_code': location.material_picklist.jo_material.material_code.sku_code,
                                                'zone': zone, 'sequence': sequence, 'location': location_name,
-                                               'reserved_quantity': location.reserved, 'job_code': picklist.jo_material.job_order.job_code,
-                                               'stock_id': stock_id, 'picked_quantity': location.reserved,
+                                               'reserved_quantity': get_decimal_limit(user.id, location.reserved), 'job_code': picklist.jo_material.job_order.job_code,
+                                               'stock_id': stock_id, 'picked_quantity': get_decimal_limit(user.id, location.reserved),
                                                'pallet_code': pallet_code, 'id': location.id,
                                                'title': location.material_picklist.jo_material.material_code.sku_desc,
                                                'image': picklist.jo_material.material_code.image_url, 'measurement_type' : picklist.jo_material.unit_measurement_type}
             else:
-                batch_data[match_condition]['reserved_quantity'] += float(location.reserved)
-                batch_data[match_condition]['picked_quantity'] += float(location.reserved)
+                batch_data[match_condition]['reserved_quantity'] = get_decimal_limit(user.id, float(float(batch_data[match_condition]['reserved_quantity']) + float(location.reserved)))
+                batch_data[match_condition]['picked_quantity'] = get_decimal_limit(user.id, float(float(batch_data[match_condition]['picked_quantity']) + float(location.reserved)))
+
 
     data = batch_data.values()
 

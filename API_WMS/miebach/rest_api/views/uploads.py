@@ -295,7 +295,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                         else:
                             cell_data = str(cell_data) + ", " + str(get_cell_data(row_idx, val, reader, file_type))
                 else:
-                    order_data[key] = get_cell_data(row_idx, value, reader, file_type)[:256]
+                    order_data[key] = str(get_cell_data(row_idx, value, reader, file_type))[:256]
             elif key == 'sku_code':
                 sku_code =  get_cell_data(row_idx, value, reader, file_type)
             elif key == 'shipment_date':
@@ -427,7 +427,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             elif order_obj and order_create and seller_order_dict.get('seller_id', '') and \
                  seller_order_dict.get('order_status') == 'DELIVERY_RESCHEDULED':
                 order_obj = order_obj[0]
-                if int(order_obj.status) == 2:
+                if int(order_obj.status) in [2, 4]:
                     order_obj.status = 1
                     update_seller_order(seller_order_dict, order_obj, user)
                     order_obj.save()

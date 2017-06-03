@@ -445,6 +445,7 @@ def get_sku_data(request,user=''):
     sku_data['size_type'] = 'Default'
     sku_data['mix_sku'] = data.mix_sku
     sku_data['ean_number'] = data.ean_number
+    sku_data['color'] = data.color
     sku_data['load_unit_handle'] = load_unit_dict.get(data.load_unit_handle, 'unit')
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:

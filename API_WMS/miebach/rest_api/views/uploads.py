@@ -385,6 +385,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             sku_master=SKUMaster.objects.filter(sku_code=cell_data, user=user.id)
             if sku_master:
                 order_data['sku_id'] = sku_master[0].id
+                if not 'title' in order_mapping.keys():
+                    order_data['title'] = sku_master[0].sku_desc
             else:
                 market_mapping = ''
                 if cell_data:
@@ -393,6 +395,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     market_mapping = MarketplaceMapping.objects.filter(description=order_data['title'], sku__user=user.id, sku__status=1)
                 if market_mapping:
                     order_data['sku_id'] = market_mapping[0].sku_id
+                    if not 'title' in order_mapping.keys():
+                        order_data['title'] = market_mapping[0].sku.sku_desc
                 #else:
                 #    order_data['sku_id'] = SKUMaster.objects.get(sku_code='TEMP', user=user.id).id
                 #    order_data['sku_code'] = sku_code

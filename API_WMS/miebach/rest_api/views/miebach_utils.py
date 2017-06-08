@@ -168,7 +168,7 @@ CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 1), ('credit
                                        ('pincode', 11), ('address', 12), ('price_type', 13)
                                     ))
 
-MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 1), ('pincode', 2), ('state', 3), ('phone_number', 4)
+MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 1), ('pincode', 2), ('city', 3), ('phone_number', 4)
                                                 ))
 
 SALES_RETURN_HEADERS = ['Return ID', 'Return Date', 'SKU Code', 'Product Description', 'Market Place', 'Quantity']

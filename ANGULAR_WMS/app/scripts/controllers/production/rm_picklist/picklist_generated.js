@@ -86,7 +86,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
     }
 
     vm.confirm_disable = false;
-    vm.submit = function() {
+    vm.submit = function(form) {
+
+      if(form.$valid) {
       var elem = angular.element($('form'));
       elem = elem[1];
       elem = $(elem).serializeArray();
@@ -101,6 +103,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
           }
         }
       });
+      }
     }
 
     function pop_msg(msg) {
@@ -120,7 +123,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
     function change_model_data() {
 
       angular.forEach(vm.model_data.data, function(item){
-        item["sub_data"] = [{zone: item.zone, location: item.location, picked_quantity: item.picked_quantity}]
+        var dict = {zone: item.zone, location: item.location, picked_quantity: item.picked_quantity, pallet_code: item.pallet_code, capacity: item.picked_quantity};
+        if (item.pallet_code) {
+          dict["pallet_visible"] = true;
+        }
+        item["sub_data"] = []
+        item.sub_data.push(dict);
       })
       console.log(vm.model_data);
     }
@@ -128,10 +136,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
   vm.cal_quantity = cal_quantity;
   function cal_quantity(record, data) {
     console.log(record);
+
+    if(!record.picked_quantity) {
+
+      return false;
+    }
+
+    if (Number(record.picked_quantity) > record.capacity) {
+
+      record.picked_quantity = record.capacity;
+    }
+
     var total = 0;
     for(var i=0; i < data.sub_data.length; i++) {
         total = total + Number(data.sub_data[i].picked_quantity);
     }
+
     if(data.reserved_quantity >= total){
       console.log(record.picked_quantity)
     } else {
@@ -157,7 +177,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
       if(total < data.reserved_quantity) {
         var clone = {};
         angular.copy(data.sub_data[index], clone);
-        clone.picked_quantity = data.reserved_quantity - total;
+        clone.pallet_code = "";
+        clone.picked_quantity = 0;
+        //clone.picked_quantity = data.reserved_quantity - total;
         data.sub_data.push(clone);
       }
     } else {
@@ -178,6 +200,110 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
         change_model_data();
       }
       vm.process = false;
+    })
+  }
+
+  vm.checkPallet = function(index, sku_data) {
+
+    var status = false;
+    for(var i = 0; i < sku_data.sub_data.length; i++) {
+
+      if(sku_data.sub_data[i].pallet_code.toLowerCase() == sku_data.sub_data[index].pallet_code.toLowerCase() && i != index) {
+
+        status = true;
+        break;
+      }
+    }
+    return status;
+  }
+
+  vm.checkCapacity = function(index, sku_data, from, element) {
+
+    console.log(vm.model_data);
+    var row_data = sku_data.sub_data[index];
+    element.preventDefault();
+    if (from == "location") {
+
+      if(!row_data.location) {
+
+        vm.service.showNoty("Please Fill Location");
+        row_data.picked_quantity = 0;
+        return false;
+      }
+    } else if (from == "pallet_code"){
+      if (!row_data.location) {
+
+        vm.service.showNoty("Please Fill Location");
+        row_data.picked_quantity = 0;
+        return false;
+      } else if (!row_data.pallet_code) {
+
+        vm.service.showNoty("Please Fill Pallet Code");
+        row_data.picked_quantity = 0;
+        return false;
+      }
+    }
+
+    if(vm.checkPallet(index, sku_data)) {
+
+      row_data.pallet_code = "";
+      vm.service.showNoty("Already Pallet Code Exist");
+      return false;
+    }
+
+    var send = {sku_code: sku_data.wms_code, location: row_data.location, pallet_code: row_data.pallet_code}
+
+    vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
+
+      if(data.message) {
+
+        if(data.data.status == 0) {
+
+          vm.service.showNoty(data.data.message);
+
+          if(data.data.message== "Invalid Location") {
+
+            row_data.location = "";
+            angular.element(element.target).focus();
+          } else if (data.data.message == "Invalid Location and Pallet code Combination") {
+
+            row_data.pallet_code = "";
+            angular.element(element.target).focus();
+          }
+          row_data.picked_quantity = 0;
+        } else {
+
+          var data = data.data.data;
+          data = Object.values(data)[0];
+          row_data["capacity"] = Number(data.total_quantity);
+
+          if(Number(row_data.picked_quantity) > Number(data.total_quantity)) {
+
+            row_data.picked_quantity = Number(data.total_quantity);
+          } else {
+
+            var total = 0;
+            row_data.picked_quantity = 0;
+            angular.forEach(sku_data.sub_data, function(record) {
+
+              total += Number(record.picked_quantity);
+            })
+
+            if (sku_data.reserved_quantity > total) {
+
+              row_data.picked_quantity = sku_data.reserved_quantity - total;
+            } else {
+
+              row_data.picked_quantity = 0;
+            }
+
+            if (row_data.picked_quantity > row_data.capacity) {
+
+              row_data.picked_quantity = row_data.capacity;
+            }
+          }
+        }
+      }
     })
   }
 

@@ -319,6 +319,7 @@ urlpatterns += patterns('rest_api.views',
     url(r'^get_file_content/$', 'get_file_content'),
     url(r'get_tally_data/', 'get_tally_data'),
     url(r'get_categories_list/', 'get_categories_list'),
+    url(r'get_sku_stock_check/', 'get_sku_stock_check'),
 
     #Retailone
     url(r'^get_marketplace_data/$', 'get_marketplace_data'),

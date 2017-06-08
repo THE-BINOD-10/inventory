@@ -303,7 +303,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         } else if(vm.g_data.view == 'SKUView') {
 
           for(var i=0;i<vm.generate_data.length;i++) {
-            data[vm.generate_data[i].data_value]= vm.generate_data[i].total_quantity;
+            data[vm.generate_data[i].data_value]= vm.generate_data[i]['Total Quantity'];
           }
         } else if(vm.g_data.view == 'CustomerOrderView' || vm.g_data.view == 'CustomerCategoryView' || vm.g_data.view == 'SellerOrderView'){
           for(var i=0;i<vm.generate_data.length;i++) {

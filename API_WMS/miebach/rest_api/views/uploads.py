@@ -809,6 +809,8 @@ def get_sku_file_mapping(reader, file_type, user=''):
             sku_file_mapping = copy.deepcopy(SKU_DEF_EXCEL)
     elif get_cell_data(0, 1, reader, file_type) == 'Product Code' and get_cell_data(0, 2, reader, file_type) == 'Name':
         sku_file_mapping = copy.deepcopy(ITEM_MASTER_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'product_id' and get_cell_data(0, 1, reader, file_type) == 'product_variant_id':
+        sku_file_mapping = copy.deepcopy(SHOTANG_SKU_MASTER_EXCEL)
 
     return sku_file_mapping
 
@@ -934,7 +936,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
         if _size_type:
             check_update_size_type(sku_data, _size_type)
 
-    get_user_sku_data(user)
+    #get_user_sku_data(user)
     insert_update_brands(user)
 
     all_users = get_related_users(user.id)
@@ -2493,8 +2495,8 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                                                               sku_id__sku_code=sku_code, user=user.id)
                     if not order_detail:
                         index_status.setdefault(row_idx, set()).add("Order ID doesn't exists")
-                    elif int(order_detail[0].status) == 4:
-                        index_status.setdefault(row_idx, set()).add("Order Processed already")
+                    #elif int(order_detail[0].status) == 4:
+                    #    index_status.setdefault(row_idx, set()).add("Order Processed already")
 
             elif key == 'quantity':
                 if not cell_data:
@@ -2606,7 +2608,10 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
                 if cell_data:
                     if isinstance(cell_data, str):
-                        order_data[key] = datetime.datetime.strptime(cell_data, "%d-%m-%Y %H:%M")
+                        try:
+                            order_data[key] = datetime.datetime.strptime(cell_data, "%d-%m-%Y %H:%M")
+                        except:
+                            order_data[key] = datetime.datetime.now()
                     else:
                         order_data[key] = xldate_as_tuple(cell_data, 0)
 

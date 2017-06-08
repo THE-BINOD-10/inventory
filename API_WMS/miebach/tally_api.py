@@ -17,8 +17,8 @@ from django.contrib import auth
 from miebach_admin.models import *
 from rest_api.views.common import *
 from rest_api.views.miebach_utils import *
-import pdb;pdb.set_trace()
-from tally.api import *
+#from tally.api import *
+
 class TallyAPI:
     def __init__(self, user=''):
         self.user = user
@@ -27,7 +27,7 @@ class TallyAPI:
         tally_obj = TallyConfiguration.objects.filter(user_id=user)
         if tally_obj:
             self.tally_dict = tally_obj[0].json()
-        self.tally_bridge_api = TallyBridgeApi(dll='/home/headrun/miebach_srikanth/WMS_ANGULAR/tally/tally/DLL/TallyBridgeDll.dll')
+        #self.tally_bridge_api = TallyBridgeApi(dll='/home/headrun/miebach_srikanth/WMS_ANGULAR/tally/tally/DLL/TallyBridgeDll.dll')
         self.headers = { 'ContentType' : self.content_type }
 
     def get_item_master(self, limit=10):
@@ -37,6 +37,7 @@ class TallyAPI:
                                         values_list('order_id', flat=True)
         sku_masters = SKUMaster.objects.exclude(id__in=exclude_ids).filter(user=user_id)[:limit]
         tally_company_name = 'Mieone'
+        data_list = []
         for sku_master in sku_masters:
             data_dict = {}
             data_dict['item_name'] = sku_master.sku_desc
@@ -46,19 +47,22 @@ class TallyAPI:
             data_dict['stock_group_name'] = self.tally_dict.get('stock_group_name', '')
             data_dict['stock_category_name'] = self.tally_dict.get('stock_category_name', '')
 
-            data_dict['opening_qty'] = 0
+            #data_dict['opening_qty'] = 0 #Present Stock
             data_dict['opening_rate'] = sku_master.price
-            data_dict['opening_amt'] = 0
+            data_dict['opening_amt'] = 0 # opening qty * opening rate
             data_dict['tally_company_name'] = self.tally_dict.get('company_name', '')
-            data_dict['post_stock_item'] = ''
-            self.tally_bridge_api.add_item(**data_dict)
-            send_ids.append(sku_master.id)
-        if send_ids:
-            OrdersAPI.objects.filter(user=user_id, engine_type='Tally', order_type='sku', order_id__in=send_ids).update(status=9)
+            #data_dict['post_stock_item'] = ''
+            data_list.append(data_dict)
+            #self.tally_bridge_api.add_item(**data_dict)
+            #send_ids.append(sku_master.id)
+        #if send_ids:
+        #    OrdersAPI.objects.filter(user=user_id, engine_type='Tally', order_type='sku', order_id__in=send_ids).update(status=9)
+        return data_list
 
     def update_masters_data(self, masters, master_type, field_mapping, user_id):
         master_group = MasterGroupMapping.objects.filter(user_id=user_id, master_type=master_type)
         send_ids =[]
+        data_list = []
         for master in masters:
             data_dict = {}
             data_dict['tally_company_name'] = self.tally_dict.get('company_name', '')
@@ -80,35 +84,46 @@ class TallyAPI:
             data_dict['tin_no'] = master.tin_number
             data_dict['cst_no'] = master.cst_number
             data_dict['pan_no'] = master.pan_number
-            credit_period = master.credit_period
-            if not credit_period and self.tally_dict.get('credit_perod', 0):
-                credit_period = self.tally_dict.get('credit_perod')
-            data_dict['default_credit_period'] = credit_period
+            if master_type == 'customer':
+                credit_period = master.credit_period
+                if not credit_period and self.tally_dict.get('credit_perod', 0):
+                    credit_period = self.tally_dict.get('credit_perod')
+                data_dict['default_credit_period'] = credit_period
             data_dict['maintainBillWiseDetails'] = STATUS_DICT[self.tally_dict.get('maintain_bill', 0)]
-            if master_type == 'vendor':
-                self.tally_bridge_api.add_vendor(data_dict)
-            else:
-                self.tally_bridge_api.add_customer(data_dict)
-            send_ids.append(master.id)
-        if send_ids:
-            OrdersAPI.objects.filter(user=user_id, engine_type='Tally', order_type=master_type, order_id__in=send_ids).update(status=9)
+            data_list.append(data_dict)
+            #if master_type == 'vendor':
+            #    self.tally_bridge_api.add_vendor(data_dict)
+            #else:
+            #    self.tally_bridge_api.add_customer(data_dict)
+            #send_ids.append(master.id)
+        #if send_ids:
+        #    OrdersAPI.objects.filter(user=user_id, engine_type='Tally', order_type=master_type, order_id__in=send_ids).update(status=9)
+        return data_list
 
     def get_supplier_master(self, limit=10):
         user_id = self.user
         exclude_ids = OrdersAPI.objects.filter(user=user_id, engine_type='Tally', order_type='vendor', status__in=[1,9]).\
                                             values_list('order_id', flat=True)
         supplier_masters = SupplierMaster.objects.exclude(id__in=exclude_ids).filter(user=user_id)[:limit]
-        self.update_masters_data(supplier_masters, 'vendor', {'id': 'id', 'type': 'supplier_type'}, user_id)
+        data_list = self.update_masters_data(supplier_masters, 'vendor', {'id': 'id', 'type': 'supplier_type'}, user_id)
+        return data_list
 
     def get_customer_master(self, limit=10):
         user_id = self.user
         exclude_ids = OrdersAPI.objects.filter(user=user_id, engine_type='Tally', order_type='customer', status__in=[1,9]).\
                                             values_list('order_id', flat=True)
         customer_masters = CustomerMaster.objects.exclude(id__in=exclude_ids).filter(user=user_id)[:limit]
-        self.update_masters_data(customer_masters, 'customer', {'id': 'customer_id', 'type': 'customer_type'}, user_id)
+        data_list = self.update_masters_data(customer_masters, 'customer', {'id': 'customer_id', 'type': 'customer_type'}, user_id)
+        return data_list
+
+    def get_purchase_invoice(self, limit=10):
+        user_id = self.user
+        OrdersAPI.objects.filter(user=user_id, engine_type='Tally', )
 
     def run_main(self):
         self.get_item_master()
+        self.get_customer_master()
+        self.get_supplier_master()
 
 tally_api_obj = TallyAPI(user=3)
 tally_api_obj.run_main()

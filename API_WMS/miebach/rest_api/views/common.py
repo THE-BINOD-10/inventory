@@ -2834,7 +2834,7 @@ def get_sku_stock_check(request, user=''):
     if request.GET.get('pallet_code', ''):
         search_params['pallet_detail__pallet_code'] = request.GET.get('pallet_code')
         stock_detail = StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).\
-                            filter(location__location=request.GET.get('location', ''), sku__user=user.id,
+                            filter(location__location=request.GET.get('location', ''), sku__user=user.id, quantity__gt=0,
                                    sku__sku_code=search_params['sku__sku_code'],
                                    pallet_detail__pallet_code=request.GET['pallet_code'])
         if not stock_detail:

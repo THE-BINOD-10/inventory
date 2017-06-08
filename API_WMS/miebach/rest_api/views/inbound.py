@@ -1443,6 +1443,7 @@ def get_remaining_capacity(loc, received_quantity, put_zone, pallet_number, user
 
     filled_capacity = float(total_quantity) + float(filled_capacity)
     remaining_capacity = float(loc.max_capacity) - float(filled_capacity)
+    remaining_capacity = float(get_decimal_limit(user, remaining_capacity))
     if remaining_capacity <= 0:
         return '',received_quantity
     elif remaining_capacity < received_quantity:

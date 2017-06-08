@@ -702,7 +702,7 @@ def get_extra_data(excel_headers, result_data, user):
 @csrf_exempt
 @login_required
 @get_admin_user
-def print_excel(request, temp_data, headers, excel_name='', user=''):
+def print_excel(request, temp_data, headers, excel_name='', user='', file_type=''):
     excel_headers = ''
     if temp_data['aaData']:
         excel_headers = temp_data['aaData'][0].keys()
@@ -713,27 +713,41 @@ def print_excel(request, temp_data, headers, excel_name='', user=''):
     for i in set(excel_headers) - set(headers):
         excel_headers.remove(i)
     excel_headers, temp_data['aaData'] = get_extra_data(excel_headers, temp_data['aaData'], user)
-    try:
-        wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
-    except:
-        wb, ws = get_work_sheet('skus', excel_headers)
-    data_count = 0
-    for data in temp_data['aaData']:
-        data_count += 1
-        column_count = 0
-        for key, value in data.iteritems():
-            if key in excel_headers:
-                ws.write(data_count, column_count, value)
-                column_count += 1
     if not excel_name:
         excel_name = request.POST.get('serialize_data', '')
     if excel_name:
         file_name = "%s.%s" % (user.id, excel_name.split('=')[-1])
-    path = 'static/excel_files/' + file_name + '.xls'
+    if not file_type:
+        file_type = 'xls'
+    path = ('static/excel_files/%s.%s') % (file_name, file_type)
     if not os.path.exists('static/excel_files/'):
         os.makedirs('static/excel_files/')
-    wb.save(path)
     path_to_file = '../' + path
+    if file_type == 'csv':
+        with open(path, 'w') as mycsvfile:
+            thedatawriter = csv.writer(mycsvfile, delimiter=',')
+            counter = 0
+            try:
+                thedatawriter.writerow(itemgetter(*excel_headers)(headers))
+            except:
+                thedatawriter.writerow(excel_headers)
+            for data in temp_data['aaData']:
+                thedatawriter.writerow(data.values())
+                counter += 1
+    else:
+        try:
+            wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
+        except:
+            wb, ws = get_work_sheet('skus', excel_headers)
+        data_count = 0
+        for data in temp_data['aaData']:
+            data_count += 1
+            column_count = 0
+            for key, value in data.iteritems():
+                if key in excel_headers:
+                    ws.write(data_count, column_count, value)
+                    column_count += 1
+        wb.save(path)
     return HttpResponse(path_to_file)
 
 def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag):
@@ -2429,9 +2443,13 @@ def get_size_names(requst, user = ""):
 def get_sellers_list(request, user=''):
     sellers = SellerMaster.objects.filter(user=user.id)
     seller_list = []
+    seller_supplier = {}
     for seller in sellers:
         seller_list.append({'id': seller.seller_id, 'name': seller.name})
-    return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES}))
+        if seller.supplier:
+            seller_supplier[seller.seller_id] = seller.supplier.id
+    return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES,\
+                                    'seller_supplier_map': seller_supplier}))
 
 def update_filled_capacity(locations, user_id):
     location_masters = LocationMaster.objects.filter(location__in=locations, zone__user=user_id)
@@ -2795,6 +2813,63 @@ def save_image_file_path(path, image_file, image_name):
     return image_url
 
 def folder_check(path):
+    ''' Check and Create New Directory '''
     if not os.path.exists(path):
         os.makedirs(path)
     return True
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_stock_check(request, user=''):
+    ''' Check and return sku level stock'''
+    search_params = {'sku__user': user.id}
+    if request.GET.get('sku_code', ''):
+        search_params['sku__sku_code'] = request.GET.get('sku_code')
+    if request.GET.get('location', ''):
+        location_master = LocationMaster.objects.filter(zone__user=user.id, location=request.GET['location'])
+        if not location_master:
+            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location'}))
+        search_params['location__location'] = request.GET.get('location')
+    if request.GET.get('pallet_code', ''):
+        search_params['pallet_detail__pallet_code'] = request.GET.get('pallet_code')
+        stock_detail = StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).\
+                            filter(location__location=request.GET.get('location', ''), sku__user=user.id,
+                                   sku__sku_code=search_params['sku__sku_code'],
+                                   pallet_detail__pallet_code=request.GET['pallet_code'])
+        if not stock_detail:
+            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location and Pallet code Combination'}))
+    stock_data = StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).\
+                                     filter(quantity__gt=0, **search_params)
+    load_unit_handle = ''
+    if stock_data:
+        load_unit_handle = stock_data[0].sku.load_unit_handle
+    zones_data = get_sku_stock_summary(stock_data, load_unit_handle, user)
+    return HttpResponse(json.dumps({'status': 1, 'data': zones_data}))
+
+def get_sku_stock_summary(stock_data, load_unit_handle, user):
+    zones_data = {}
+    pallet_switch = get_misc_value('pallet_switch', user.id)
+
+    for stock in stock_data:
+        res_qty = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id).\
+                                           aggregate(Sum('reserved'))['reserved__sum']
+
+        raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
+                                                 stock_id=stock.id).aggregate(Sum('reserved'))['reserved__sum']
+
+        if not res_qty:
+            res_qty = 0
+        if raw_reserved:
+            res_qty = float(res_qty) + float(raw_reserved)
+        location = stock.location.location
+        zone = stock.location.zone.zone
+        pallet_number = ''
+        if pallet_switch == 'true' and stock.pallet_detail:
+            pallet_number = stock.pallet_detail.pallet_code
+        cond = str((zone, location, pallet_number))
+        zones_data.setdefault(cond, {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0, 'reserved_quantity': 0})
+        zones_data[cond]['total_quantity'] += stock.quantity
+        zones_data[cond]['reserved_quantity'] += res_qty
+
+    return zones_data

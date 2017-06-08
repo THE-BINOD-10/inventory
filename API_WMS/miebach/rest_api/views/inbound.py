@@ -1796,7 +1796,7 @@ def update_seller_po(data, value, user, receipt_id=''):
         seller_received_list.append({'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': sell_quan, 'id': seller_po_summary.id})
     return seller_received_list
 
-def generate_grn(myDict, request, user):
+def generate_grn(myDict, request, user, is_confirm_receive=False):
     order_quantity_dict = {}
     all_data = {}
     seller_receipt_id = {}
@@ -1883,7 +1883,7 @@ def generate_grn(myDict, request, user):
         temp_dict = {'received_quantity': float(value), 'user': user.id, 'data': data, 'pallet_number': pallet_number,
                      'pallet_data': pallet_data}
 
-        if get_permission(request.user,'add_qualitycheck') and purchase_data['qc_check'] == 1:
+        if is_confirm_receive or (get_permission(request.user,'add_qualitycheck') and purchase_data['qc_check'] == 1):
             put_zone = 'QC_ZONE'
             qc_data = copy.deepcopy(QUALITY_CHECK_FIELDS)
             qc_data['purchase_order_id'] = data.id
@@ -4178,11 +4178,12 @@ def check_return_imei(request, user=''):
                 shipment_info = ShipmentInfo.objects.filter(order_id=order_imei[0].order_id, order__user=user.id)
                 if shipment_info:
                     invoice_number = shipment_info[0].invoice_number
-                return_data['data'] = {'sku_code': order_imei[0].order.sku.sku_code, 'invoice_number': invoice_number, 'order_id': order_id,
-                                       'sku_desc': order_imei[0].order.title, 'shipping_quantity': 1}
+                return_data['data'] = {'sku_code': order_imei[0].order.sku.sku_code, 'invoice_number': invoice_number,
+                                       'order_id': order_id, 'sku_desc': order_imei[0].order.title, 'shipping_quantity': 1}
                 order_return = OrderReturns.objects.filter(order_id=order_imei[0].order.id, sku__user=user.id)
                 if order_return:
-                    return_data['data'].update({'id': order_return[0].id, 'return_id': order_return[0].return_id})
+                    return_data['data'].update({'id': order_return[0].id, 'return_id': order_return[0].return_id,
+                                                'return_type': order_return[0].return_type})
                 log.info(return_data)
     except Exception as e:
         log.info("Check Return Imei failed for params " + str(request.GET.dict()) + " and error statement is " + str(e))
@@ -4212,7 +4213,7 @@ def confirm_receive_qc(request, user=''):
             myDict.setdefault('imei_number', [])
             imeis_list = [im.split('<<>>')[0] for im in (myDict['rejected'][ind]).split(',')] + myDict['accepted'][ind].split(',')
             myDict['imei_number'].append(','.join(imeis_list))
-        po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict = generate_grn(myDict, request, user)
+        po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict = generate_grn(myDict, request, user, is_confirm_receive=True)
         for i in range(0, len(myDict['id'])):
             quality_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i], po_location__location__zone__user=user.id,
                                                           status='qc_pending')

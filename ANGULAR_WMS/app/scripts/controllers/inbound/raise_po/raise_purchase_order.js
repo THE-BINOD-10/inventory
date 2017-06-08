@@ -115,6 +115,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 if (data.message) {
                   var seller_data = data.data.sellers;
                   vm.model_data.tax = data.data.tax;
+                  vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
                   vm.model_data["receipt_types"] = data.data.receipt_types;
                   angular.forEach(seller_data, function(seller_single){
                     vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
@@ -204,6 +205,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         if (data.message) {
           var seller_data = data.data.sellers;
           vm.model_data.tax = data.data.tax;
+           vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
           vm.model_data["receipt_types"] = data.data.receipt_types;
           angular.forEach(seller_data, function(seller_single){
               vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
@@ -478,7 +480,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       product.fields.order_quantity = 1;
       product.fields.price = "";
       product.fields.description = item.sku_desc;
-      if (typeof(vm.model_data.supplier_id) == "undefined" || vm.model_data.supplier_id.length == 0){
+
+      if(vm.model_data.receipt_type == 'Hosted Warehouse') {
+
+        vm.model_data.supplier_id = vm.model_data.seller_supplier_map[vm.model_data.seller_type.split(":")[0]];
+      }
+
+      if (!vm.model_data.supplier_id){
         return false;
       } else {
         var supplier = vm.model_data.supplier_id;

@@ -993,9 +993,9 @@ def rm_picklist_confirmation(request, user=''):
                 if not raw_loc.stock:
                     count = confirm_rm_no_stock(picklist, picking_count, count, raw_loc, request, user)
                     continue
-                location = LocationMaster.objects.filter(location=val['location'], zone__zone=val['zone'], zone__user=user.id)
+                location = LocationMaster.objects.filter(location=val['location'], zone__user=user.id)
                 if not location:
-                    return HttpResponse("Invalid Location and Zone combination")
+                    return HttpResponse("Invalid Location")
                 stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': user.id}
                 stock_detail = StockDetail.objects.filter(**stock_dict)
                 for stock in stock_detail:
@@ -1094,6 +1094,7 @@ def validate_jo_stock(all_data, user, job_code):
                 if raw_reserved:
                     reserved_quantity += float(raw_reserved)
                 diff = stock_quantity - reserved_quantity
+                diff = get_decimal_limit(user.id, diff)
                 if diff < float(data[1]):
                     if data[0] not in status:
                         status.append(data[0])
@@ -1126,6 +1127,7 @@ def save_jo_locations(all_data, user, job_code):
                         reserved_quantity += picklist_reserved
 
                     stock_quantity = float(stock.quantity) - reserved_quantity
+                    stock_quantity = get_decimal_limit(user.id, stock_quantity)
                     if stock_quantity <= 0:
                         continue
                     stock_total += stock_quantity
@@ -1162,12 +1164,12 @@ def save_jo_locations(all_data, user, job_code):
                     rm_locations_dict = copy.deepcopy(MATERIAL_PICK_LOCATIONS)
                     rm_locations_dict['material_picklist_id'] = material_picklist.id
                     rm_locations_dict['stock_id'] = stock.id
+                    stock_count = get_decimal_limit(user.id, stock_count)
                     rm_locations_dict['quantity'] = stock_count
                     rm_locations_dict['reserved'] = stock_count
                     rm_locations = RMLocation(**rm_locations_dict)
                     rm_locations.save()
-                    if not stock_diff:
-                        break
+
                 jo_material.status = 0
                 jo_material.save()
                 for order in job_order:
@@ -1212,15 +1214,14 @@ def validate_picklist(data, user):
         sku = raw_loc.material_picklist.jo_material.material_code
         for val in value:
             location = val['location']
-            zone = val['zone']
             if location == 'NO STOCK':
                 continue
-            loc_obj = LocationMaster.objects.filter(location=location, zone__zone=zone, zone__user=user)
+            loc_obj = LocationMaster.objects.filter(location=location,  zone__user=user)
             if not loc_obj:
                 if not loc_status:
-                    loc_status = 'Invalid Location and Zone combination (%s,%s)' % (zone, location)
+                    loc_status = 'Invalid Location' % (location)
                 else:
-                    loc_status += ', (%s,%s)' % (zone, location)
+                    loc_status += ', (%s)' % (location)
             if not val['picked_quantity']:
                 continue
             stock_dict = {'sku_id': sku.id, 'location__location': location, 'sku__user': user}
@@ -1438,7 +1439,7 @@ def save_receive_pallet(all_data,user, is_grn=False):
                 if is_grn and stages and stages[-1] == val[2]:
                     save_status_track_summary(prev_status, user, float(val[0]), processed_stage=val[2])
                 continue
-                
+
             if val[2]:
                 status_id = key
                 if status_type=='JO-PALLET':

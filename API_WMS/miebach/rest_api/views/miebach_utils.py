@@ -507,6 +507,7 @@ ORDER_DEF_EXCEL = OrderedDict(( ('order_id', 0), ('quantity', 3), ('title', 1), 
 EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 8, 'invoice_amount': 3, 'channel_name': 5, 'sku_code': 7, 'title': 6, 'status': 4,
                        'split_order_id': 1}
 
+# SKU Master Upload Templates
 SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('sku_group', 2), ('sku_type', 3), ('sku_category', 4), ('sku_class', 5),
                               ('sku_brand', 6), ('style_name', 7), ('sku_size', 8), ('size_type', 9), ('zone_id', 10), ('price', 11),
                               ('mrp', 12), ('sequence', 13), ('image_url', 14), ('threshold_quantity', 15), ('measurement_type', 16),
@@ -520,6 +521,11 @@ MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('sk
 
 ITEM_MASTER_EXCEL = OrderedDict(( ('wms_code', 1), ('sku_desc', 2), ('sku_category', 25), ('image_url', 18), ('sku_size', 14) ))
 
+SHOTANG_SKU_MASTER_EXCEL = OrderedDict(( ('wms_code', 2), ('sku_desc', 3), ('color', 4), ('sku_brand', 7), ('sku_category', 8) ))
+
+# End of SKU Master U[pload templates
+
+# Order File Upload Templates
 JABONG_EXCEL = {'order_id': 1, 'title': 7, 'invoice_amount': 14, 'marketplace': 'Jabong', 'sku_code': 5, 'quantity': 9}
 
 JABONG_EXCEL1 = {'order_id': 6, 'title': 37, 'invoice_amount': 33, 'marketplace': 'Jabong', 'sku_code': 2}
@@ -558,7 +564,7 @@ GENERIC_RETURN_EXCEL = OrderedDict((('sku_id', 2), ('order_id', 1), ('quantity',
 
 # ---  Shotang Returns headers --
 SHOTANG_RETURN_EXCEL = OrderedDict((('sku_id', 2), ('order_id', 1), ('quantity', 3), ('return_date', 4), ('seller_order_id', 0),
-                                    ('marketplace', 'Shotang')
+                                    ('return_type', 5), ('marketplace', 'Shotang')
                                   ))
 
 #MYNTRA_RETURN_EXCEL = OrderedDict((('sku_id', [5,7]), ('quantity', 8), ('reason', 13), ('marketplace', "MYNTRA")))
@@ -581,6 +587,13 @@ UNI_WARE_EXCEL = {'order_id': 12, 'channel_name': 2, 'sku_code': 1, 'quantity': 
 UNI_WARE_EXCEL1 = {'order_id': 0, 'email_id': 5, 'telephone': 20, 'customer_name': 13, 'address': [14, 15], 'city': 16, 'state': 17,
                    'pin_code': 19, 'title': 33, 'channel_name': 37, 'sku_code': 31, 'invoice_amount': 42, 'discount': 46}
 
+SHOTANG_ORDER_FILE_EXCEL = {'order_id': 1, 'customer_name': 6, 'customer_id': 5, 'telephone': 7, 'address': 8, 'sku_code': 2,
+                            'invoice_amount': 16, 'sor_id': 0, 'order_date': 3, 'quantity': 4, 'order_status': 11, 'seller': 9,
+                            'marketplace': 'Shotang', 'vat': {'tax': 14, 'quantity': 4, 'tot_tax': 15} }
+
+# End of Order File Upload Templates
+
+# Download Excel Report Mapping
 EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'get_sku_filter_data', 'location_wise': 'get_location_stock_data',
                         'goods_receipt': 'get_po_filter_data', 'receipt_summary': 'get_receipt_filter_data',
                         'sku_stock': 'print_sku_wise_data', 'sku_wise_purchases': 'sku_wise_purchase_data',
@@ -588,7 +601,10 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'inventory_adjust_report': 'get_adjust_filter_data', 'inventory_aging_report': 'get_aging_filter_data',
                         'stock_summary_report': 'get_stock_summary_data', 'daily_production_report': 'get_daily_production_data',
                         'order_summary_report': 'get_order_summary_data', 'seller_invoices_filter': 'get_seller_invoices_filter_data',
-                        'open_jo_report': 'get_openjo_details', 'grn_inventory_addition': 'get_grn_inventory_addition_data'}
+                        'open_jo_report': 'get_openjo_details', 'grn_inventory_addition': 'get_grn_inventory_addition_data',
+                        'sales_returns_addition': 'get_returns_addition_data'
+                       }
+# End of Download Excel Report Mapping
 
 SHIPMENT_STATUS = ['Dispatched', 'In Transit', 'Out for Delivery', 'Delivered']
 
@@ -639,6 +655,7 @@ PERMISSION_DICT = OrderedDict((
 
 ORDERS_TRACK_STATUS = {0: 'Resolved', 1: "Conflict", 2: "Delete"}
 
+# Easyops Integration Mapping Dictionaries
 EASYOPS_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'orders["channel"]',
                          'sku': 'order["easyopsSku"]',
                          'title': 'order["productTitle"]', 'quantity': 'order["quantity"]',
@@ -668,6 +685,7 @@ EASYOPS_CANCEL_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumbe
                                 'title': 'order["productTitle"]', 'quantity': 'order["quantity"]',
                                 'shipment_date': 'orders["orderDate"]',
                                 'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]'}
+# End of Easyops Integration Mapping Dictionaries
 
 ORDER_DETAIL_STATES = {0: 'Picklist generated', 1: 'Newly Created', 2: 'Dispatched', 3: 'Cancelled', 4: 'Returned'}
 
@@ -723,6 +741,8 @@ MIX_SKU_MAPPING = {'no mix': 'no_mix', 'mix within group': 'mix_group'}
 
 RETURNS_TYPE_MAPPING = {'return to origin(rto)': 'rto', 'customer initiated return': 'customer_return'}
 
+
+# Myntra Invoice Address based on username
 MYNTRA_BANGALORE_ADDRESS = 'Myntra Designs Pvt Ltd\nNumber 88/17-18 and 19, Khata number 44 and 45, Ward Number 7 ,\n\
                             Singasandra Village, Hongasandra panchayat,\nBegur Hobli, Bangalore - 560068\nKarnataka       TIN:29910754899'
 
@@ -736,10 +756,7 @@ MYNTRA_BULK_ADDRESS = 'MYNTRA DESIGNS PVT LTD\nKsquare Industrial Park, Warehous
 
 USER_MYNTRA_ADDRESS = {'campus_sutra': MYNTRA_BANGALORE_ADDRESS, 'adam_clothing': MYNTRA_MUMBAI_ADDRESS,
                        'adam_clothing1': MYNTRA_MUMBAI_ADDRESS, 'adam_clothing1:bulk': MYNTRA_BULK_ADDRESS}
-
-SHOTANG_ORDER_FILE_EXCEL = {'order_id': 1, 'customer_name': 6, 'customer_id': 5, 'telephone': 7, 'address': 8, 'sku_code': 2,
-                            'invoice_amount': 16, 'sor_id': 0, 'order_date': 3, 'quantity': 4, 'order_status': 11, 'seller': 9,
-                            'marketplace': 'Shotang', 'vat': {'tax': 14, 'quantity': 4, 'tot_tax': 15} }
+# End of Myntra Invoice Address based on username
 
 SELLER_ORDER_FIELDS = {'sor_id': '', 'quantity': 0, 'order_status': '', 'order_id': '', 'seller_id': '', 'status': 1, 'invoice_no': ''}
 
@@ -750,10 +767,13 @@ RECEIVE_OPTIONS = OrderedDict(( ('One step Receipt + Qc', 'receipt-qc'), ('Two s
 PERMISSION_IGNORE_LIST = ['session', 'webhookdata', 'swxmapping', 'userprofile', 'useraccesstokens', 'contenttype', 'user',
                           'permission','group','logentry', 'corsmodel']
 
+# Customer Invoices page headers based on user type
 MP_CUSTOMER_INVOICE_HEADERS = ['UOR ID', 'SOR ID', 'Seller ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time',
                                'Invoice Number']
 
 WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time']
+
+# End of Customer Invoices page headers based on user type
 
 SUPPLIER_EXCEL_FIELDS = OrderedDict(( ('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4), ('cst_number', 5),
                                       ('tin_number', 6), ('pan_number', 7), ('pincode', 8), ('city', 9), ('state', 10), ('country', 11)
@@ -1826,7 +1846,7 @@ def get_grn_inventory_addition_data(search_params, user, sub_user):
 
     search_parameters['seller_po__seller__user'] = user.id
     search_parameters['seller_po__open_po__sku_id__in'] = sku_master_ids
-    query_data = SellerPOSummary.objects.filter(**search_parameters)
+    query_data = SellerPOSummary.objects.filter(**search_parameters).exclude(location__zone__zone='DAMAGED_ZONE')
     model_data = query_data.values(*result_values).distinct().annotate(total_received=Sum('quantity'))
 
     temp_data['recordsTotal'] = model_data.count()
@@ -1847,11 +1867,78 @@ def get_grn_inventory_addition_data(search_params, user, sub_user):
         if not final_price:
             final_price = aft_unit_price
         invoice_total_amount = float(final_price) * float(data['total_received'])
-        temp_data['aaData'].append(OrderedDict(( ('Transaction ID', po_number + '/' + str(data['receipt_number'])),
-                                                 ('Product Code', data['purchase_order__open_po__sku__sku_code']),
+        sku_code = data['purchase_order__open_po__sku__sku_code']
+        temp_data['aaData'].append(OrderedDict(( ('Transaction ID', po_number + '-' + str(sku_code) + '/' + str(data['receipt_number'])),
+                                                 ('Product Code', sku_code),
                                                  ('Seller ID', data['seller_po__seller__seller_id']),
                                                  ('Quantity', data['total_received']),
-                                                 ('Price', invoice_total_amount), ('Type', 'Add'),
+                                                 ('Price', invoice_total_amount), ('Type', 'ADD'),
+                                             )))
+    return temp_data
+
+def get_returns_addition_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, get_dictionary_query
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+
+    search_parameters = {}
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    temp_data = copy.deepcopy( AJAX_DATA )
+    temp_data['draw'] = search_params.get('draw')
+    result_values = ['return_id', 'sku__sku_code', 'return_type']
+
+    query_filter = {}
+    if 'creation_date' in search_params and search_params['creation_date']:
+        search_parameters['creation_date__gte'] = search_params['creation_date']
+        to_date = datetime.datetime.combine(search_params['creation_date']  + datetime.timedelta(1), datetime.time())
+        search_parameters['creation_date__lte'] = to_date
+
+    if 'sku_code' in search_params and search_params['sku_code']:
+        search_parameters['sku__sku_code'] = search_params['sku_code']
+
+    if 'wms_code' in search_params and search_params['wms_code']:
+        search_parameters['sku__wms_code'] = search_params['wms_code']
+    if 'order_id' in search_params and search_params['order_id']:
+        order_id = re.findall('\d+', search_params['order_id'])
+        search_parameters['order__order_id'] = ''.join(order_id)
+    if 'marketplace' in search_params and search_params['marketplace']:
+        query_filter['marketplace'] = search_params['marketplace']
+        query_filter['order__marketplace'] = search_params['marketplace']
+
+    search_parameters['sku__user'] = user.id
+    search_parameters['sku_id__in'] = sku_master_ids
+    query_data = OrderReturns.objects.filter(get_dictionary_query(query_filter), quantity__gt=0, **search_parameters)
+    model_data = query_data.values(*result_values).distinct().annotate(total_received=Sum('quantity'))
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    order_returns = OrderReturns.objects.filter(sku__user=user.id)
+    for data in model_data:
+        sku_code = data['sku__sku_code']
+        return_id = data['return_id']
+        seller_id = ''
+        order_return = order_returns.filter(return_id=data['return_id'], sku__sku_code=data['sku__sku_code'])
+        invoice_amount = 0
+        date_str = order_return[0].return_date.strftime('%d/%m/%H/%M')
+        transaction_id = ('%s-%s-%s-%s') % (return_id, str(sku_code), str(order_return[0].return_type[:3]), date_str)
+        if order_return and order_return[0].seller_order:
+            seller_order = order_return[0].seller_order
+            seller_id = seller_order.seller.seller_id
+            order = order_return[0].seller_order.order
+            invoice_amount = (order.invoice_amount / order.quantity) * data['total_received']
+            transaction_id = ('%s-%s-%s') % (str(order.order_id), str(seller_order.sor_id),transaction_id)
+        elif order_return and order_return[0].order:
+            order = order_return[0].order
+            invoice_amount = (order.invoice_amount / order.quantity) * data['total_received']
+            transaction_id = ('%s-%s') % (str(order.order_id), transaction_id)
+        temp_data['aaData'].append(OrderedDict(( ('Transaction ID', transaction_id),
+                                                 ('Product Code', sku_code),
+                                                 ('Seller ID', seller_id),
+                                                 ('Quantity', data['total_received']),
+                                                 ('Price', invoice_amount), ('Type', 'ADD'),
                                              )))
     return temp_data
 

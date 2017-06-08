@@ -73,7 +73,7 @@
                 <select class="form-control zone" name="receipt_type" ng-model="showCase.model_data.receipt_type" ng-change="showCase.model_data.supplier_id = (showCase.model_data.receipt_type == 'Hosted Warehouse')? '': showCase.model_data.supplier_id;" ng-if="!showCase.update">
                   <option ng-repeat="value in showCase.model_data.receipt_types" value="{{value}}" ng-selected="value == showCase.model_data.receipt_type">{{value}}</option>
                 </select>
-                <input name="receipt_type" class="form-control" type="hidden" ng-model="showCase.model_data.receipt_type"
+                <input name="receipt_type" class="form-control" type="text" ng-model="showCase.model_data.receipt_type"
                        ng-readonly="showCase.update" ng-if="showCase.update">
               </div>
             </div>

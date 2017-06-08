@@ -117,8 +117,9 @@ def get_customer_master_mapping(reader, file_type):
     mapping_dict = {}
     if get_cell_data(0, 0, reader, file_type) == 'Customer Id' and get_cell_data(0, 1, reader, file_type) == 'Customer Name':
         mapping_dict = copy.deepcopy(CUSTOMER_EXCEL_MAPPING)
-    elif get_cell_data(0, 0, reader, file_type) == 'Customer ID' and get_cell_data(0, 1, reader, file_type) == 'Name':
+    elif get_cell_data(0, 0, reader, file_type) == 'customer_id' and get_cell_data(0, 1, reader, file_type) == 'phone':
         mapping_dict = copy.deepcopy(MARKETPLACE_CUSTOMER_EXCEL_MAPPING)
+
     return mapping_dict
 
 
@@ -142,12 +143,24 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     order_mapping = get_order_mapping(reader, file_type)
     if not order_mapping:
         return "Headers not matching"
+
     count = 0
+    exclude_rows = []
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
 
         count += 1
+        if 'seller' in order_mapping:
+            seller_id = get_cell_data(row_idx, order_mapping['seller'], reader, file_type)
+            seller_master = None
+            if seller_id:
+                if isinstance(seller_id, float):
+                    seller_id = int(seller_id)
+                seller_master = SellerMaster.objects.filter(seller_id=seller_id, user=user.id)
+            if not seller_master or not seller_id:
+                exclude_rows.append(row_idx)
+                continue
         cell_data = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
         title = ''
         if 'title' in order_mapping.keys():
@@ -200,6 +213,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
+        if row_idx in exclude_rows:
+            continue
         order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
         order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
         seller_order_dict = copy.deepcopy(SELLER_ORDER_FIELDS)
@@ -343,6 +358,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 seller_order_dict[key] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'seller':
                 seller_id = get_cell_data(row_idx, value, reader, file_type)
+                if isinstance(seller_id, float):
+                    seller_id = int(seller_id)
                 seller_master = SellerMaster.objects.filter(seller_id=seller_id, user=user.id)
                 if seller_master:
                     seller_order_dict['seller_id'] = seller_master[0].id
@@ -2297,17 +2314,23 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
     index_status = {}
     customer_ids = []
     mapping_dict = get_customer_master_mapping(reader, file_type)
+    if not mapping_dict:
+        return "Headers not Matching"
     number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code'}
     for row_idx in range(1, no_of_rows):
+        if not mapping_dict:
+            break
         customer_master = None
         for key, value in mapping_dict.iteritems():
             cell_data = get_cell_data(row_idx, mapping_dict[key], reader, file_type)
 
             if key == 'customer_id':
                 if cell_data:
-                    if not isinstance(cell_data, (int, float)):
+                    try:
+                        cell_data = int(cell_data)
+                    except:
                         index_status.setdefault(row_idx, set()).add('Customer ID Should be in number')
-                    else:
+                    if cell_data:
                         cell_data = int(cell_data)
                         customer_master_obj = CustomerMaster.objects.filter(customer_id=cell_data, user=user.id)
                         if customer_master_obj:
@@ -2321,7 +2344,9 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
 
             elif key in number_fields.keys():
                 if cell_data:
-                    if not isinstance(cell_data, (int, float)):
+                    try:
+                        cell_data = float(cell_data)
+                    except:
                         index_status.setdefault(row_idx, set()).add('%s Should be in number' % number_fields[key])
 
             elif key == 'price_type':
@@ -2347,6 +2372,8 @@ def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
     mapping_dict = get_customer_master_mapping(reader, file_type)
     number_fields = ['credit_period', 'phone_number', 'pincode']
     for row_idx in range(1, no_of_rows):
+        if not mapping_dict:
+            break
         customer_data = copy.deepcopy(CUSTOMER_DATA)
         customer_master = None
 
@@ -2363,6 +2390,7 @@ def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
             elif key == 'name':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
+                cell_data = str(re.sub(r'[^\x00-\x7F]+','', cell_data))
                 customer_data['name']  = cell_data
                 if customer_master:
                     customer_master.name = customer_data['name']
@@ -2411,11 +2439,11 @@ def customer_upload(request, user=''):
             no_of_rows = reader.nrows
             file_type = 'xls'
 
-            status = validate_customer_form(request, reader, user, no_of_rows, fname, file_type)
-            if status != 'Success':
-                return HttpResponse(status)
+        status = validate_customer_form(request, reader, user, no_of_rows, fname, file_type)
+        if status != 'Success':
+            return HttpResponse(status)
 
-            customer_excel_upload(request, reader, user, no_of_rows, fname, file_type)
+        customer_excel_upload(request, reader, user, no_of_rows, fname, file_type)
     except Exception as e:
         log.info('Customer Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Customer Upload Failed")

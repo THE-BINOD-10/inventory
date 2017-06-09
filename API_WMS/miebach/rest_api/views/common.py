@@ -629,6 +629,13 @@ def configurations(request, user=''):
     display_pos = ''
     if pos_switch == 'false':
         display_pos = 'display:none'
+
+    tax_details = MiscDetail.objects.filter(misc_type__istartswith='tax_', user=request.user.id)
+    tax_data = []
+    if tax_details:
+       for tax in tax_details:
+           tax_data.append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_value})
+
     return HttpResponse(json.dumps({'batch_switch': batch_switch, 'fifo_switch': fifo_switch, 'pos_switch': pos_switch,
                                                              'send_message': send_message, 'use_imei': use_imei, 'back_order': back_order,
                                                              'show_image': show_image, 'online_percentage': online_percentage,
@@ -654,7 +661,7 @@ def configurations(request, user=''):
                                                              'view_order_status': view_order_status, 'style_headers': style_headers,
                                                              'sku_sync': sku_sync, 'seller_margin': seller_margin,
                                                              'receive_process': receive_process, 'receive_options': RECEIVE_OPTIONS,
-                                                             'tally_config': tally_config}))
+                                                             'tally_config': tally_config, 'tax_data': tax_data}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):

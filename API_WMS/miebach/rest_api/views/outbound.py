@@ -3591,7 +3591,11 @@ def get_customer_master_id(request, user=''):
     customer_master = CustomerMaster.objects.filter(user=user.id).values_list('customer_id', flat=True).order_by('-customer_id')
     if customer_master:
         customer_id = customer_master[0] + 1
-    return HttpResponse(json.dumps({'customer_id': customer_id}))
+    data = MiscDetail.objects.filter(misc_type__istartswith='tax_', user=user.id)
+    tax_data = [];
+    for tax in data:
+        tax_data.append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_type})
+    return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': tax_data}))
 
 @login_required
 @csrf_exempt
@@ -3625,8 +3629,15 @@ def update_payment_status(request, user=''):
 def create_orders_data(request, user=''):
     tax_types = TAX_TYPES
     if user.username == 'dazzle_export':
-        tax_types = D_TAX_TYPES 
-    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types}))
+        tax_types = D_TAX_TYPES
+
+    data = MiscDetail.objects.filter(misc_type__istartswith='tax_', user=user.id)
+    tax_data = {'DEFAULT': 0}
+    for tax in data:
+        if int(tax.misc_value) > 0:
+            tax_data[tax.misc_type[4:]] = int(tax.misc_value)
+
+    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_data}))
 
 @csrf_exempt
 def get_order_category_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, user_dict={}):

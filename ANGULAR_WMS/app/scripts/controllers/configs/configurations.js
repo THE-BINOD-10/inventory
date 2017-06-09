@@ -13,7 +13,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'mail_alerts': 0, 'prefix': '', 'all_groups': '', 'mail_options': [{'id': 1,'name': 'Default'}],
                     'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '',
                     'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,
-                    'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': ''
+                    'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
+                    'tax_details':{},
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -22,7 +23,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      14: 'invoice_prefix', 15: 'float_switch', 16: 'automate_invoice', 17: 'show_mrp', 18: 'decimal_limit',
                      19: 'picklist_sort_by', 20: 'stock_sync', 21: 'sku_sync', 22: 'auto_generate_picklist',
                      23: 'detailed_invoice', 24: 'scan_picklist_option', 25: 'stock_display_warehouse', 26: 'view_order_status', 
-                     27: 'seller_margin', 28: 'style_headers', 29: 'receive_process', 30: 'tally_config'}
+                     27: 'seller_margin', 28: 'style_headers', 29: 'receive_process', 30: 'tally_config', 31: 'tax_details'}
   vm.empty = {};
   vm.message = "";
 
@@ -60,6 +61,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.service.apiCall("configurations/").then(function(data){
     if(data.message) {
       angular.copy(data.data, vm.model_data);
+      vm.model_data["tax_details"] = {'CST': {}};
       angular.forEach(vm.model_data, function(value, key) {
         if (value == "true") {
           vm.model_data[key] = Boolean(true);
@@ -298,4 +300,90 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     });
   };
 
+
+  vm.tax_add_show = false;
+
+  vm.saveTax = function(name, value) {
+
+    if(!name) {
+
+      Service.showNoty("Please Enter Name");
+      return false;
+    } else if(!value) {
+
+      Service.showNoty("Please Enter Value");
+      return false;
+    } else {
+
+      vm.switches("{'tax_"+name+"':'"+value+"'}", 31);
+      var found = false;
+      for(var i = 0; i < vm.model_data.tax_data.length; i++) {
+
+        if(vm.model_data.tax_data[i].tax_name == vm.model_data.tax_name) {
+
+          vm.model_data.tax_data[i].tax_name = vm.model_data.tax_name;
+          vm.model_data.tax_data[i].tax_value = vm.model_data.tax_value;
+          found = true;
+          break;
+        }
+      }
+      if(!found) {
+
+        vm.model_data.tax_data.push({tax_name: vm.model_data.tax_name, tax_value: vm.model_data.tax_value});
+      }
+      vm.tax_add_show = false;
+      vm.tax_selected = "";
+      vm.model_data.tax_name = "";
+      vm.model_data.tax_value = "";
+      vm.model_data.tax_new = true;
+    }
+  }
+
+  vm.model_data.tax_new = true;
+  vm.taxSelected = function(name) {
+
+    if (name) {
+
+      for(var i = 0; i < vm.model_data.tax_data.length; i++) {
+
+        if(vm.model_data.tax_data[i].tax_name == name) {
+
+          vm.model_data.tax_name = vm.model_data.tax_data[i].tax_name;
+          vm.model_data.tax_value = vm.model_data.tax_data[i].tax_value;
+          vm.model_data["tax_new"] = false;
+          vm.tax_add_show = true;
+          break;
+        }
+      }
+    } else {
+
+      vm.model_data["tax_new"] = true;
+      vm.tax_add_show = false;
+      vm.model_data.tax_name = "";
+      vm.model_data.tax_value = "";
+    }
+  }
+
+  vm.deleteTax = function(name, value) {
+
+      vm.service.apiCall("delete_tax/", "GET", {tax_name : name, tax_value: value}).then(function(data) {
+
+        console.log(data);
+      })
+
+      for(var i = 0; i < vm.model_data.tax_data.length; i++) {
+
+        if(vm.model_data.tax_data[i].tax_name == vm.model_data.tax_name) {
+
+          vm.model_data.tax_data.splice(i, 1);
+          break;
+        }
+      }
+
+      vm.tax_add_show = false;
+      vm.tax_selected = "";
+      vm.model_data.tax_name = "";
+      vm.model_data.tax_value = "";
+      vm.model_data.tax_new = true;
+  }
 }

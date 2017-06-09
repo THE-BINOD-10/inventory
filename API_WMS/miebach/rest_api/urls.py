@@ -304,6 +304,7 @@ urlpatterns += patterns('rest_api.views',
     url(r'^order_management_check/$', 'order_management_check'),
     url(r'^save_tally_data/$', 'save_tally_data'),
     url(r'^delete_tally_data/$', 'delete_tally_data'),
+    url(r'^delete_tax/$', 'delete_tax'),
 
     #manage users
     url(r'^add_user/$', 'add_user'),

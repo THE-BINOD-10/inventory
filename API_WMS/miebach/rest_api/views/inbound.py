@@ -715,7 +715,8 @@ def switches(request, user=''):
                     'style_headers': 'style_headers',
                     'seller_margin': 'seller_margin',
                     'receive_process': 'receive_process',
-                    'tally_config': 'tally_config'
+                    'tally_config': 'tally_config',
+                    'tax_details': 'tax_details'
                   }
 
     toggle_field, selection = "", ""
@@ -731,6 +732,10 @@ def switches(request, user=''):
             setattr(user_profile[0], 'prefix', selection)
             user_profile[0].save()
     else:
+        if toggle_field == 'tax_details':
+            tax_name = eval(selection)
+            toggle_field = tax_name.keys()[0]
+            selection = tax_name[toggle_field]
         data = MiscDetail.objects.filter(misc_type=toggle_field, user=user_id)
         if not data:
             misc_detail = MiscDetail(user=user_id, misc_type=toggle_field, misc_value=selection, creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
@@ -743,6 +748,22 @@ def switches(request, user=''):
 
     return HttpResponse('Success')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_tax(request, user=''):
+    tax_name = request.GET.get('tax_name', '')
+
+    if not tax_name:
+        return HttpResponse('Tax Name Not Found')
+
+    data = MiscDetail.objects.filter(misc_type='tax_'+tax_name, user=user.id)
+    if not data:
+        return HttpResponse('Tax Name Not Found')
+
+    data = data[0]
+    data.delete()
+    return HttpResponse('Success')
 
 @csrf_exempt
 @login_required

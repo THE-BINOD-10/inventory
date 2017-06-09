@@ -105,7 +105,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.service.apiCall("create_orders_data/").then(function(data){
 
       if(data.message) {
-          if (vm.tax_type == '') {
+          if (vm.tax_type == '' || (! data.data.taxes[vm.tax_type])) {
             vm.tax =  data.data.taxes['DEFAULT'];
           }
           else {

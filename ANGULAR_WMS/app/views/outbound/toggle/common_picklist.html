@@ -1,0 +1,126 @@
+<div id="page-pop">
+  <!-- Modal -->
+  <form name="form" role="form" ui-jq="validate" ui-options="pop.validationOpt">
+      <div class="modal-content model-custom">
+        <div ng-include="'views/common/loader.html'"></div>
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="pop.ok()"><span aria-hidden="true">×</span>
+          </button>
+          <h4 class="modal-title" id="myLargeModalLabel">Picklist</h4>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-11 col-sm-11 col-xs-10">
+              <p align="right">Merged Invoice</p>
+            </div>
+            <div class="col-md-1 col-sm-1 col-xs-2">
+              <label class="switch switch-sm square">
+                <div>
+                  <input type="hidden" value="{{pop.merge_invoice}}" name="merge_invoice">
+                  <input type="checkbox" ng-model="pop.merge_invoice">
+                  <span>
+                    <i class="handle"></i>
+                  </span>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="row" ng-if="pop.state_data.page == 'ViewOrders'">
+            <div class="col-md-12">
+              <h5>Picklist ID: <b>{{pop.model_data.picklist_id}}</b></h5>
+              <input type="hidden" value="{{pop.model_data.single_order}}" name="single_order">
+            </div>
+          </div>
+          <div class="row" ng-if="pop.state_data.page == 'PullConfirmation'">
+            <div class="col-md-3 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Picklist ID</label>
+                <input class="form-control" type="text" value="{{pop.model_data.picklist_id}}" disabled>
+                <input type="hidden" value="{{pop.model_data.single_order}}" name="single_order">
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.use_imei && pop.permissions.scan_picklist_option == 'scan_sku'">
+              <div class="form-group">
+                <label class="control-label">Scan SKU</label>
+                <textarea rows="2" class="form-control" cols="27" ng-model="pop.model_data.scan_sku" ng-keydown="pop.sku_scan($event, pop.model_data.scan_sku)" attr-name="sku"></textarea>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.use_imei && pop.permissions.scan_picklist_option == 'scan_sku_location'">
+              <div class="form-group">
+                <label class="control-label">Scan Location</label>
+                <textarea rows="2" class="form-control" cols="27" ng-model="pop.model_data.scan_location" ng-keydown="pop.check_location($event, pop.model_data.scan_location)" attr-name="location"></textarea>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.use_imei && pop.permissions.scan_picklist_option == 'scan_sku_location'">
+              <div class="form-group">
+                <label class="control-label">Scan SKU</label>
+                <textarea rows="2" class="form-control" cols="27" ng-model="pop.model_data.scan_sku" ng-keydown="pop.check_sku($event, pop.model_data.scan_sku)" attr-name="sku"></textarea>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.use_imei">
+              <p ng-if="pop.sug_sku">Suggested SKU: {{pop.sug_sku}}</p>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+              <hr>
+            </div>
+          </div>
+          <div class="row over-x">
+            <table class="table mw85"> 
+              <thead>
+                <tr>
+                  <th ng-if="pop.permissions.show_image" style="width: 50px;"> Image </th>
+                  <th ng-if="pop.model_data.order_status == 'open'">Order ID</th>
+                  <th> WMS Code </th>
+                  <th> Title </th>
+                  <!--<th> Zone </th>-->
+                  <th> Location </th>
+                  <th ng-if="pop.permissions.pallet_switch"> Pallet Code </th>
+                  <th> Reserved Quantity </th>
+                  <th> Picked Quantity </th>
+                  <th ng-if="pop.permissions.use_imei"> Serial Number </th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody ng-repeat="data in pop.model_data.data">
+                <tr class="field" ng-repeat="record in data.sub_data">
+                  <input ng-if="pop.model_data.order_status == 'batch_open'" type="hidden" name="order_id_{{data.id}}" value="">
+                  <input ng-if="pop.model_data.order_status == 'open'" type="hidden" name="order_id_{{data.id}}" value="">
+                  <input type="hidden" name="stock_id_{{data.id}}" value="{{data.stock_id}}">
+                  <input type="hidden" name="orig_loc_{{data.id}}" value="{{record.orig_location}}">
+                  <input type="hidden" name="orig_wms_{{data.id}}" value="{{data.wms_code}}">
+                  <input type="hidden" name="picklist_number" value="{{data.picklist_number}}">
+                  <td ng-if="pop.permissions.show_image"><img ng-src="{{service.check_image_url(data.image)}}" style="width: 30px;height: 50px;"></td>
+                  <td ng-if="pop.model_data.order_status == 'open'"><input ng-model="data.order_no"  class="form-control" type="text" readonly></td>
+                  <td><input name="wms_code_{{data.id}}" ng-model="data.wms_code"  class="form-control" type="text" readonly></td>
+                  <td><input name="title_{{data.id}}" ng-model="data.title" class="form-control" type="text" readonly></td>
+                  <!--<td><input name="zone_{{data.id}}" ng-model="record.zone" class="form-control" type="text"></td>-->
+                  <td><input name="location_{{data.id}}" ng-model="record.location" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'location', $event);"></td>
+                  <td ng-if="pop.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="record.pallet_code" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'pallet_code', $event);"></td>
+                  <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>
+                  <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" class="form-control" type="text" ng-change="pop.count_sku_quantity();pop.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
+                  <td ng-if="pop.permissions.use_imei"><textarea class="form-control" name="imei_{{data.id}}" rows="1" ng-model="record.scan" ng-keydown="pop.serial_scan($event,record.scan, data, record)"></textarea></td>
+                  <td style="width: 20px;padding-left: 10px;padding-top: 15px;"><i ng-click="pop.update_data($index, data, $last)" ng-class="pop.isLast($last)"></i></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="row col-md-12" ng-if="pop.state_data.page == 'PullConfirmation'">
+            <button type="button" class="btn btn-danger pull-right" ng-click="pop.cancel_picklist(pop.model_data.picklist_id)">Cancel Picklist</button>
+            <button type="button" class="btn btn-success pull-right mr10"
+                             ng-click="pop.update_picklist(pop.model_data.picklist_id)">Update Picklist</button>
+          </div>
+          <div class="row insert-status"><h4 align="center">{{pop.message}}</h4></div>
+        </div>
+        <div class="modal-footer">
+          <div class="">
+            <button type="button" class="btn pop pop-green pull-left col-md-3 col-sm-4 col-xs-12" ng-click="pop.print_excel(pop.model_data.picklist_id)">Print to Excel</button>
+            <div class="col-md-3 col-sm-1 col-xs-0"></div>
+            <button type="button" class="btn pop pop-normal col-md-3 col-sm-4 col-xs-12" ng-click="pop.print_pdf(pop.model_data.picklist_id)">Print Picklist</button>
+            <button type="button" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12" style="margin-left:0px;" ng-click="pop.picklist_confirmation()">Confirm</button>
+          </div>
+        </div>
+      </div>
+  </form>
+</div>

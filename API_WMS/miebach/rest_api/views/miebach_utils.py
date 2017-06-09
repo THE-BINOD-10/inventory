@@ -504,7 +504,7 @@ ORDER_DEF_EXCEL = OrderedDict(( ('order_id', 0), ('quantity', 3), ('title', 1), 
                                 ('telephone', 8)
                              ))
 
-EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 8, 'invoice_amount': 3, 'channel_name': 5, 'sku_code': 7, 'title': 6, 'status': 4,
+EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 9, 'invoice_amount': 3, 'channel_name': 5, 'sku_code': 8, 'title': 7, 'status': 4,
                        'split_order_id': 1}
 
 # SKU Master Upload Templates

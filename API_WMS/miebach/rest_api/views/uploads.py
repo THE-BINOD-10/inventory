@@ -731,12 +731,14 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
     if not sku_file_mapping:
         return 'Invalid File'
     for row_idx in range(1, no_of_rows):
+        sku_code = ''
         for key, value in sku_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, sku_file_mapping[key], reader, file_type)
 
             if key == 'wms_code':
                 data_set = wms_data
                 data_type = 'WMS'
+                sku_code = cell_data
                 #index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('WMS Code missing')
@@ -756,6 +758,10 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
             elif key == 'ean_number':
                 if not isinstance(cell_data, (int, float)) and cell_data:
                     index_status.setdefault(row_idx, set()).add('EAN must be integer')
+                elif cell_data:
+                    ean_status = check_ean_number(sku_code, cell_data, user)
+                    if ean_status:
+                        index_status.setdefault(row_idx, set()).add(ean_status)
 
             elif key == 'sku_size':
                 if cell_data:

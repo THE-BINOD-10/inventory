@@ -974,24 +974,36 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 @get_admin_user
 def sku_upload(request, user=''):
     fname = request.FILES['files']
-    if fname.name.split('.')[-1] != 'xls' and fname.name.split('.')[-1] != 'xlsx':
-        return HttpResponse('Invalid File Format')
-
-    try:
-        open_book = open_workbook(filename=None, file_contents=fname.read())
-        open_sheet = open_book.sheet_by_index(0)
-    except:
+    if (fname.name).split('.')[-1] == 'csv':
+        reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
+        no_of_rows = len(reader)
+        file_type = 'csv'
+    elif (fname.name).split('.')[-1] == 'xls' or (fname.name).split('.')[-1] == 'xlsx':
+        try:
+            data = fname.read()
+            if '<table' in data:
+                open_book, open_sheet = html_excel_data(data, fname)
+            else:
+                open_book = open_workbook(filename=None, file_contents=data)
+                open_sheet = open_book.sheet_by_index(0)
+        except:
+            return HttpResponse("Invalid File")
+        reader = open_sheet
+        no_of_rows = reader.nrows
+        file_type = 'xls'
+    else:
         return HttpResponse('Invalid File')
 
-    file_type = 'xls'
-    reader = open_sheet
-    no_of_rows = reader.nrows
+    try:
+        status = validate_sku_form(request, reader, user, no_of_rows, fname, file_type=file_type)
+        if status != 'Success':
+            return HttpResponse(status)
 
-    status = validate_sku_form(request, reader, user, no_of_rows, fname, file_type=file_type)
-    if status != 'Success':
-        return HttpResponse(status)
+        sku_excel_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
+    except Exception as e:
+        log.info('SKU Master Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("SKU Master Upload Failed")
 
-    sku_excel_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
 
     return HttpResponse('Success')
 

@@ -3634,8 +3634,8 @@ def create_orders_data(request, user=''):
     data = MiscDetail.objects.filter(misc_type__istartswith='tax_', user=user.id)
     tax_data = {'DEFAULT': 0}
     for tax in data:
-        if int(tax.misc_value) > 0:
-            tax_data[tax.misc_type[4:]] = int(tax.misc_value)
+        if float(tax.misc_value) > 0:
+            tax_data[tax.misc_type[4:]] = float(tax.misc_value)
 
     return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_data}))
 
@@ -4300,14 +4300,14 @@ def get_customer_cart_data(request, user=""):
 
 
     if cart_data:
-        tax_types = TAX_TYPES
+        tax_types = dict(MiscDetail.objects.filter(misc_type__icontains='tax', user=user.id).values_list('misc_type', 'misc_value'))
         if user.username == 'dazzle_export':
             tax_types = D_TAX_TYPES
         tax_type = CustomerUserMapping.objects.filter(user_id=request.user.id).values_list('customer__tax_type', flat = True)
         tax = 0
         if tax_type:
             tax = tax_type[0]
-            tax = tax_types[tax]
+            tax = tax_types.get('tax_' + tax, 0)
         for record in cart_data:
             json_record = record.json()
             #PriceMaster.objects.filter(price_type = CustomerMaster.objects.filter(id = CustomerUserMapping.objects.filter(user = request.user.id)[0].customer_id)[0].price_type, sku__id = record.sku_id)

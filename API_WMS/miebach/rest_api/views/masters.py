@@ -603,6 +603,10 @@ def update_sku(request,user=''):
             elif key == 'ean_number':
                 if not value:
                     value = 0
+                else:
+                    ean_status = check_ean_number(data.sku_code, value, user)
+                    if ean_status:
+                        return HttpResponse(ean_status)
             elif key == 'load_unit_handle':
                 value = load_unit_dict.get(value.lower(), 'unit')
             elif key == 'size_type':
@@ -1436,6 +1440,10 @@ def insert_sku(request,user=''):
                             value = 0
                     elif key == 'load_unit_handle':
                         value = load_unit_dict.get(value.lower(), 'unit')
+                    elif key == 'ean_number' and value:
+                        ean_status = check_ean_number(wms, value, user)
+                        if ean_status:
+                            return HttpResponse(ean_status)
                     if value == '':
                         continue
                     data_dict[key] = value

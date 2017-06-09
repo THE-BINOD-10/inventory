@@ -1,181 +1,119 @@
 'use strict';
 
-angular.module('urbanApp', ['datatables'])
-  .controller('OpenOrders',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$modal', ServerSideProcessingCtrl]);
+function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $modal) {
-    var vm = this;
+  var vm = this;
+  vm.state_data = items;
+  vm.service = Service;
+  vm.permissions = Session.roles.permissions;
 
-    vm.permissions = Session.roles.permissions;
-    vm.service = Service;
-    vm.merge_invoice = false;
-    vm.special_key = {status: 'open'};
-    vm.tb_data = {};
-    vm.dtOptions = DTOptionsBuilder.newOptions()
-       .withOption('ajax', {
-              url: Session.url+'results_data/',
-              type: 'POST',
-              data: {'datatable': 'OpenOrders', 'special_key':JSON.stringify(vm.special_key)},
-              xhrFields: {
-                withCredentials: true
-              },
-              complete: function(jqXHR, textStatus) {
-                $scope.$apply(function(){
-                  angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
-                })
-              }
-           })
-       .withDataProp('data')
-       .withOption('order', [1, 'desc'])
-       .withOption('processing', true)
-       .withOption('serverSide', true)
-       .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback);
+  vm.model_data = {};
+  vm.status_data = {message:"cancel", data:{}}
 
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn('picklist_id').withTitle('Picklist ID'),
-        DTColumnBuilder.newColumn('customer').withTitle('Customer / Marketplace').notSortable(),
-         DTColumnBuilder.newColumn('picklist_note').withTitle('Picklist Note'),
-        DTColumnBuilder.newColumn('reserved_quantity').withTitle('Reserved Quantity').notSortable(),
-        DTColumnBuilder.newColumn('shipment_date').withTitle('Shipment Date'),
-        DTColumnBuilder.newColumn('date').withTitle('Date'),
+  vm.getPoData = function(data){
 
-    ];
-
-    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
-            $scope.$apply(function() {
-
-  var data = {data_id: aData.DT_RowAttr["data-id"]};
-
-  var mod_data = {data: data};
-  mod_data['url'] = "view_picklist/";
-  mod_data['method'] = "GET";
-  mod_data['page'] = "PullConfirmation";
-
-  $scope.open = function (size) {
-
-    var modalInstance = $modal.open({
-      templateUrl: 'views/outbound/toggle/common_picklist.html',
-      controller: 'Picklist',
-      controllerAs: 'pop',
-      size: size,
-      backdrop: 'static',
-      keyboard: false,
-      resolve: {
-        items: function () {
-          return mod_data;
-        }
-      }
-    });
-
-    modalInstance.result.then(function (selectedItem) {
-       var data = selectedItem;
-       reloadData();
-       if (data.message == 'invoice') {
-
-         angular.copy(data.data, vm.pdf_data);
-         if (vm.pdf_data.detailed_invoice) {
-           $state.go('app.outbound.PullConfirmation.DetailGenerateInvoice');
-         } else {
-            $state.go('app.outbound.PullConfirmation.GenerateInvoice');
-         }
-       }
-
-    }, function () {
-      $log.info('Modal dismissed at: ' + new Date());
-    });
-  };
-  $scope.open('lg');
-                /*
-              vm.service.apiCall('view_picklist/', 'GET' , {data_id: aData.DT_RowAttr["data-id"]}).then(function(data){
-                if(data.message) {
-                  angular.copy(data.data, vm.model_data);
-                  for(var i=0; i<vm.model_data.data.length; i++){
+    Service.apiCall(data.url, data.method, data.data, true).then(function(data){
+      if(data.message) {
+         angular.copy(data.data, vm.model_data);
+         for(var i=0; i<vm.model_data.data.length; i++){
                     vm.model_data.data[i]['sub_data'] = [];
                     var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
-                    var temp = {zone: vm.model_data.data[i].zone,
-                                location: vm.model_data.data[i].location,
-                                orig_location: vm.model_data.data[i].location,
-                                picked_quantity: value, new: false}
                     if(Session.user_profile.user_type == "marketplace_user") {
-                      temp["picked_quantity"] = vm.model_data.data[i].picked_quantity;
+                      value = vm.model_data.data[i].picked_quantity;
                     }
-                    vm.model_data.data[i]['sub_data'].push(temp);
-                  }
-                  angular.copy(vm.model_data.sku_total_quantities ,vm.remain_quantity);
-                  vm.count_sku_quantity();
-                  $state.go('app.outbound.PullConfirmation.Open');
-                  $timeout(function () {
-                    $("textarea[attr-name='location']").focus();
-                  }, 1000);
-                }
-              });*/
-            });
-        });
-        return nRow;
-    } 
+                    vm.model_data.data[i]['sub_data'].push({zone: vm.model_data.data[i].zone,
+                                                         location: vm.model_data.data[i].location,
+                                                         orig_location: vm.model_data.data[i].location,
+                                                         picked_quantity: value, scan: "", pallet_code:  vm.model_data.data[i].pallet_code,
+                                                         capacity: vm.model_data.data[i].picked_quantity});
+         }
 
-    vm.dtInstance = {};
-    vm.reloadData = reloadData;
+         if(vm.state_data.page != "PullConfirmation") {
 
-    function reloadData () {
-        $('.custom-table').DataTable().draw();
-    };
+           view_orders();
+         } else {
+         pull_confirmation();
+         angular.copy(vm.model_data.sku_total_quantities ,vm.remain_quantity);
+         vm.count_sku_quantity();
+         vm.bt_disable = false;
+         Service.pop_msg(data.data.stock_status);
+         }
+       };
+    });
+  }
 
-    vm.excel = excel;
-    function excel() {
-      angular.copy(vm.dtColumns,colFilters.headers);
-      angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
-      colFilters.download_excel()
+  vm.ok = function (msg) {
+    if (msg) {
+      vm.status_data.message = msg
+    }
+    $modalInstance.close(vm.status_data);
+  };
+
+  vm.getPoData(vm.state_data);
+
+function view_orders() {
+
+  vm.cal_quantity = cal_quantity;
+  function cal_quantity(record, data) {
+
+    console.log(record);
+
+    if(!record.picked_quantity) {
+
+      return false;
     }
 
-    vm.model_data = {};
+    if (record.pallet_code && Number(record.picked_quantity) > record.capacity) {
 
-    vm.close = close;
-    function close() {
-      vm.scan_data = { suggested_sku: [""], suggest_sku: 0 , locations:[]};
-      vm.unique_combination = [];
-      vm.sug_loc = "";
-      vm.sug_sku = "";
-      vm.merge_invoice = false;
-      $state.go('app.outbound.PullConfirmation');
+      record.picked_quantity = record.capacity;
     }
 
-    vm.pdf_data = {};
-    vm.picklist_confirmation = picklist_confirmation;
-    function picklist_confirmation() {
-      var elem = angular.element($('form'));
-        elem = elem[0];
-        elem = $(elem).serializeArray();
-        vm.service.apiCall('picklist_confirmation/', 'POST', elem, true).then(function(data){
-          if(data.message) {
-            if(data.data == "Picklist Confirmed") {
-              reloadData();
-              vm.close();
-            } else if (data.data.status == 'invoice') {
-
-              reloadData();
-              angular.copy(data.data.data, vm.pdf_data);
-              if (vm.pdf_data.detailed_invoice) {
-                $state.go('app.outbound.PullConfirmation.DetailGenerateInvoice');
-              } else {
-                $state.go('app.outbound.PullConfirmation.GenerateInvoice');
-              }
-            } else {
-              pop_msg(data.data);
-            }
-          }
-        });
+    var total = 0;
+    for(var i=0; i < data.sub_data.length; i++) {
+        total = total + parseInt(data.sub_data[i].picked_quantity);
     }
+    if(data.reserved_quantity >= total){
+      console.log(record.picked_quantity)
+    } else {
+      var quantity = data.reserved_quantity-total;
+      if(quantity < 0) {
+        quantity = total - parseInt(record.picked_quantity);
+        quantity = data.reserved_quantity - quantity;
+        record.picked_quantity = quantity;
+      } else {
+        record.picked_quantity = quantity;
+      }
+    }
+  }
 
-    vm.serial_scan = function(event, scan, data, record) {
+  vm.update_data = function(index, data, last) {
+    console.log(data);
+    if (last) {
+      var total = 0;
+      for(var i=0; i < data.sub_data.length; i++) {
+        total = total + parseInt(data.sub_data[i].picked_quantity);
+      }
+      if(total < data.reserved_quantity) {
+        var clone = {};
+        angular.copy(data.sub_data[index], clone);
+        clone.picked_quantity = data.reserved_quantity - total;
+        clone.scan = "";
+        clone.pallet_code = "";
+        data.sub_data.push(clone);
+      }
+    } else {
+      data.sub_data.splice(index,1);
+    }
+  }
+
+}
+
+  vm.serial_scan = function(event, scan, data, record) {
       if ( event.keyCode == 13) {
         var id = data.id;
         var total = 0;
         for(var i=0; i < data.sub_data.length; i++) {
-          total = total + Number(data.sub_data[i].picked_quantity);
+          total = total + parseInt(data.sub_data[i].picked_quantity);
         }
         var scan_data = scan.split("\n");
         var length = scan_data.length;
@@ -185,9 +123,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
             if(data.message) {
               if(data.data == "") {
-                record.picked_quantity = Number(record.picked_quantity) + 1;
+                record.picked_quantity = parseInt(record.picked_quantity) + 1;
               } else {
-                pop_msg(data.data);
+                Service.pop_msg(data.data);
                 scan_data.splice(length-1,1);
                 record.scan = scan_data.join('\n');
                 record.scan = record.scan+"\n";
@@ -198,18 +136,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           scan_data.splice(length-1,1);
           record.scan = scan_data.join('\n');
           record.scan = record.scan+"\n";
-          pop_msg("picked already equal to reserved quantity");
+          Service.pop_msg("picked already equal to reserved quantity");
         }
       }
     }
-  
-  function pop_msg(msg) {
-    vm.message = msg;
-    $timeout(function () {
-        vm.message = "";
-    }, 2000);
-    reloadData();
-  }
+
+    vm.isLast = isLast;
+    function isLast(check) {
+
+      var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
+      return cssClass
+    }
 
   vm.print_excel = print_excel;
   function print_excel(id)  {
@@ -235,90 +172,58 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     })
   }
 
-  vm.cancel_picklist = function(pick_id) {
-    swal({
-      title: "Do you want to process these orders later!",
-      text: "Are you sure?",
-      type: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#DD6B55",
-      confirmButtonText: "Yes",
-      cancelButtonText: "No",
-      closeOnConfirm: true,
-      closeOnCancel: false
-    },
-    function(isConfirm){
-      if (isConfirm) {
-        vm.service.apiCall('picklist_delete/','GET',{key: 'process', picklist_id: pick_id}, true).then(function(data){
-          if (data.message) {
-            $state.go('app.outbound.PullConfirmation');
-            reloadData();
+  vm.pdf_data = {};
+    vm.picklist_confirmation = picklist_confirmation;
+    function picklist_confirmation() {
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      vm.service.apiCall('picklist_confirmation/', 'POST', elem, true).then(function(data){
+        if(data.message) {
+          if(data.data == "Picklist Confirmed") {
+            vm.ok("done");
+          } else if (data.data.status == 'invoice') {
+
+            vm.status_data.data = data.data.data;
+            vm.ok("invoice");
+          } else {
+            Service.pop_msg(data.data);
           }
-        });
-      }
-    else {
-      swal({
-          title: "Do you want to delete this Picklist!",
-          text: "Are you sure?",
-          type: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "#DD6B55",
-          confirmButtonText: "Yes",
-          cancelButtonText: "No",
-          closeOnConfirm: false,
-          closeOnCancel: true
-       },
-       function(isConfirm){
-         if (isConfirm) {
-           vm.service.apiCall('picklist_delete/','GET', {key: 'delete', picklist_id: pick_id}, true).then(function(data){
-                swal("Deleted!", "picklist is deleted", "success");
-           });
-           $state.go('app.outbound.PullConfirmation');
-           reloadData();
-         }
-         else {
-           $state.go('app.outbound.PullConfirmation');
-           reloadData();
-         }
-       });
+        }
+      });
     }
-   });
+
+function pull_confirmation() {
+
+  vm.sku_scan = function(event, field) {
+
+    var field = field;
+    vm.service.scan(event, field).then(function(data){
+      if(data) {
+        vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
+          if(data.message) {
+            field = data.data.sku_code;
+
+            if(vm.check_sku_match(field)) {
+              if(vm.model_data.sku_total_quantities[field] <= vm.remain_quantity[field]) {
+                alert("Reservered quantity equal to picked quantity");
+                vm.model_data.scan_sku = ""; 
+              } else {
+                vm.incr_qty();
+              }   
+            } else {
+              alert("Invalid SKU");
+              vm.model_data.scan_sku = ""; 
+            }   
+          }   
+        })  
+      }   
+    }); 
   }
 
-  vm.update_picklist = function(pick_id) {
 
-    vm.service.apiCall('update_picklist_loc/','GET',{picklist_id: pick_id}, true).then(function(data){
-      if (data.message) {
 
-        vm.service.apiCall('view_picklist/', 'GET' , {data_id: pick_id}, true).then(function(data){
-                if(data.message) {
-                  angular.copy(data.data, vm.model_data);
-                  for(var i=0; i<vm.model_data.data.length; i++){
-                    vm.model_data.data[i]['sub_data'] = [];
-                    var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
-                    var temp = {zone: vm.model_data.data[i].zone,
-                                location: vm.model_data.data[i].location,
-                                orig_location: vm.model_data.data[i].location,
-                                picked_quantity: value, new: false}
-                    if(Session.user_profile.user_type == "marketplace_user") {
-                      temp["picked_quantity"] = vm.model_data.data[i].picked_quantity;
-                    }
-                    vm.model_data.data[i]['sub_data'].push(temp);
-                  }
-                  angular.copy(vm.model_data.sku_total_quantities ,vm.remain_quantity);
-                  vm.count_sku_quantity();
-                }
-        });
-      }
-    });
-  }
-
-    vm.isLast = isLast;
-    function isLast(check) {
-
-      var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
-      return cssClass
-    }
+  //scan location and sku feature
 
   vm.update_data = update_data;
   function update_data(index, data, last) {
@@ -336,6 +241,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           var temp = data.reserved_quantity - total;
           clone.picked_quantity = (remain < temp)?remain:temp;
           //clone.picked_quantity = data.reserved_quantity - total;
+          clone.scan = "";
+          clone.pallet_code = "";
           data.sub_data.push(clone);
         }
       }
@@ -347,7 +254,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
   vm.cal_quantity = cal_quantity;
   function cal_quantity(record, data) {
+
     console.log(record);
+
+    if (record.pallet_code && Number(record.picked_quantity) > record.capacity) {
+
+      vm.remain_quantity[data.wms_code] = (vm.remain_quantity[data.wms_code] - Number(record.picked_quantity))  + record.capacity;
+      record.picked_quantity = record.capacity;
+    }
+
     var sku_qty = record.picked_quantity;
     var remain = vm.model_data.sku_total_quantities[data.wms_code] - vm.remain_quantity[data.wms_code]
     var total = 0;
@@ -371,7 +286,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.change_quantity(record, remain, sku_qty)
     }
     vm.count_sku_quantity();
-  } 
+  }
 
   vm.change_quantity = function(sku, remain, sku_qty){
     console.log(remain);
@@ -392,7 +307,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     var field = field;
     vm.service.scan(event, field).then(function(data){
       if(data) {
-        vm.service.scan(event, field).then(function(data){
           if(vm.check_match(field)) {
             console.log(field);
             $("textarea[attr-name='sku']").focus();
@@ -409,13 +323,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               } 
             })
           }
-        });
       }
     }) 
   }
 
   vm.current_data = [];
   vm.check_sku = function(event, field) {
+
+    if(vm.state_data.page != "PullConfirmation") {
+      return false;
+    }
 
     var field = field;
     vm.service.scan(event, field).then(function(data){
@@ -607,45 +524,173 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     })
     return total;
   }
+}
 
-  // Edit invoice
-    vm.invoice_edit = false;
-    vm.save_invoice_data = function(data) {
-
-      var send = $(data.$name+":visible").serializeArray();
-      vm.service.apiCall("edit_invoice/","POST",send).then(function(data){
-        if(data.message) {
-          vm.pdf_data.invoice_date =  vm.pdf_data.inv_date;
-          vm.invoice_edit = false;
-          vm.service.showNoty("Updated Successfully");
-        }
-      })
-      console.log("edit");
-    }
-
-  vm.sku_scan = function(event, field) {
-
-    var field = field;
-    vm.service.scan(event, field).then(function(data){
-      if(data) {
-        vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
-          if(data.message) {
-            field = data.data.sku_code;
-
-            if(vm.check_sku_match(field)) {
-              if(vm.model_data.sku_total_quantities[field] <= vm.remain_quantity[field]) {
-                alert("Reservered quantity equal to picked quantity");
-                vm.model_data.scan_sku = "";
-              } else {
-                vm.incr_qty();
-              }
-            } else {
-              alert("Invalid SKU");
-              vm.model_data.scan_sku = "";
-            }
+   vm.cancel_picklist = function(pick_id) {
+    swal({
+      title: "Do you want to process these orders later!",
+      text: "Are you sure?",
+      type: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#DD6B55",
+      confirmButtonText: "Yes",
+      cancelButtonText: "No",
+      closeOnConfirm: true,
+      closeOnCancel: false
+    },
+    function(isConfirm){
+      if (isConfirm) {
+        vm.service.apiCall('picklist_delete/','GET',{key: 'process', picklist_id: pick_id}, true).then(function(data){
+          if (data.message) {
+             vm.ok("done");
           }
-        })
+        });
+      }
+    else {
+      swal({
+          title: "Do you want to delete this Picklist!",
+          text: "Are you sure?",
+          type: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#DD6B55",
+          confirmButtonText: "Yes",
+          cancelButtonText: "No",
+          closeOnConfirm: false,
+          closeOnCancel: true
+       },
+       function(isConfirm){
+         if (isConfirm) {
+           vm.service.apiCall('picklist_delete/','GET', {key: 'delete', picklist_id: pick_id}, true).then(function(data){
+                swal("Deleted!", "picklist is deleted", "success");
+           });
+           vm.ok("done");
+         }
+         else {
+           vm.ok("done");
+         }
+       });
+    }
+   });
+  }
+
+  vm.update_picklist = function(pick_id) {
+
+    vm.service.apiCall('update_picklist_loc/','GET',{picklist_id: pick_id}, true).then(function(data){
+      if (data.message) {
+        vm.getPoData(vm.state_data);
       }
     });
   }
+
+
+  //pallet feature
+
+  vm.checkPallet = function(index, sku_data) {
+
+    var status = false;
+    for(var i = 0; i < sku_data.sub_data.length; i++) {
+
+      if(sku_data.sub_data[i].pallet_code.toLowerCase() == sku_data.sub_data[index].pallet_code.toLowerCase() && i != index) {
+
+        status = true;
+        break;
+      }
+    }
+    return status;
+  }
+
+  vm.checkCapacity = function(index, sku_data, from, element) {
+
+    console.log(vm.model_data);
+    var row_data = sku_data.sub_data[index];
+    element.preventDefault();
+    if (from == "location") {
+
+      if(!row_data.location) {
+
+        vm.service.showNoty("Please Fill Location");
+        row_data.picked_quantity = 0;
+        return false;
+      }
+    } else if (from == "pallet_code"){
+      if (!row_data.location) {
+
+        vm.service.showNoty("Please Fill Location");
+        row_data.picked_quantity = 0;
+        return false;
+      } else if (!row_data.pallet_code) {
+
+        vm.service.showNoty("Please Fill Pallet Code");
+        row_data.picked_quantity = 0;
+        return false;
+      }
+    }
+
+    if(vm.checkPallet(index, sku_data)) {
+
+      row_data.pallet_code = "";
+      vm.service.showNoty("Already Pallet Code Exist");
+      return false;
+    }
+
+    var send = {sku_code: sku_data.wms_code, location: row_data.location, pallet_code: row_data.pallet_code}
+
+    vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
+
+      if(data.message) {
+
+        if(data.data.status == 0) {
+
+          vm.service.showNoty(data.data.message);
+
+          if(data.data.message== "Invalid Location") {
+
+            row_data.location = "";
+            angular.element(element.target).focus();
+          } else if (data.data.message == "Invalid Location and Pallet code Combination") {
+
+            row_data.pallet_code = "";
+            angular.element(element.target).focus();
+          }
+          row_data.picked_quantity = 0;
+        } else {
+
+          var data = data.data.data;
+          data = Object.values(data)[0];
+          row_data["capacity"] = Number(data.total_quantity);
+
+          if(Number(row_data.picked_quantity) > Number(data.total_quantity)) {
+
+            row_data.picked_quantity = Number(data.total_quantity);
+          } else {
+
+            var total = 0;
+            row_data.picked_quantity = 0;
+            angular.forEach(sku_data.sub_data, function(record) {
+
+              total += Number(record.picked_quantity);
+            })
+
+            if (sku_data.reserved_quantity > total) {
+
+              row_data.picked_quantity = sku_data.reserved_quantity - total;
+            } else {
+
+              row_data.picked_quantity = 0;
+            }
+
+            if (row_data.picked_quantity > row_data.capacity) {
+
+              row_data.picked_quantity = row_data.capacity;
+            }
+          }
+        }
+      }
+    })
+  }
+
 }
+
+angular
+  .module('urbanApp')
+  .controller('Picklist', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', Picklist]);

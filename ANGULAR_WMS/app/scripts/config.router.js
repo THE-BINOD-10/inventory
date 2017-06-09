@@ -961,6 +961,7 @@ var app = angular.module('urbanApp')
                   serie: true,
                   files: [
                              'scripts/controllers/outbound/create_orders/create_orders.js',
+                             'scripts/controllers/outbound/pop_js/picklist.js',
                              'scripts/controllers/outbound/create_orders/create_stock_orders.js',
                              'scripts/controllers/outbound/view_orders/custom_orders.js'
                             ]
@@ -1055,8 +1056,12 @@ var app = angular.module('urbanApp')
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
-                  'scripts/controllers/outbound/pull_confirm/open_orders.js'
+                  'scripts/controllers/outbound/pop_js/picklist.js'
                 ]).then( function() {
+                 return $ocLazyLoad.load([
+                   'scripts/controllers/outbound/pull_confirm/open_orders.js'
+                 ])
+                }).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/outbound/pull_confirm/picked_orders.js'
                   ])

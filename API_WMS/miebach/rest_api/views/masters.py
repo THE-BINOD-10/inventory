@@ -109,7 +109,7 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                 master_data.extend(list(master_data3))
 
     else:
-        if search_params1: 
+        if search_params1:
             master_data = []
             ids = []
             for item in [search_params1, search_params2]:
@@ -367,14 +367,16 @@ def location_master(request, user=''):
     filter_params = {'user': user.id}
     distinct_loctype = filter_by_values(ZoneMaster, filter_params, ['zone'])
     new_loc = []
+    location_groups = LocationGroups.objects.filter(location__zone__user=user.id).values('location__location', 'group').distinct()
     for loc_type in distinct_loctype:
         filter_params = {'zone__zone': loc_type['zone'], 'zone__user': user.id}
         loc = filter_by_values(LocationMaster, filter_params, ['location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status',
                                'pallet_capacity', 'lock_status'])
         for loc_location in loc:
-            location_group = list(LocationGroups.objects.filter(location__zone__user=user.id, location__location=loc_location['location']).values_list('group', flat=True))
-            [x.encode('UTF8') for x in location_group]
-            loc_location['location_group'] = location_group
+            loc_group_dict = filter(lambda person: str(loc_location['location']) == str(person['location__location']), location_groups)
+            loc_groups = map(lambda d: d['group'], loc_group_dict)
+            loc_groups = [str(x).encode('UTF8') for x in loc_groups]
+            loc_location['location_group'] = loc_groups
         new_loc.append(loc)
 
     data = []
@@ -601,6 +603,10 @@ def update_sku(request,user=''):
             elif key == 'ean_number':
                 if not value:
                     value = 0
+                else:
+                    ean_status = check_ean_number(data.sku_code, value, user)
+                    if ean_status:
+                        return HttpResponse(ean_status)
             elif key == 'load_unit_handle':
                 value = load_unit_dict.get(value.lower(), 'unit')
             elif key == 'size_type':
@@ -611,7 +617,7 @@ def update_sku(request,user=''):
         data.save()
 
         update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=data)
-        get_user_sku_data(user)
+        #get_user_sku_data(user)
         insert_update_brands(user)
     except Exception as e:
         log.info('Update SKU Data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
@@ -1434,6 +1440,10 @@ def insert_sku(request,user=''):
                             value = 0
                     elif key == 'load_unit_handle':
                         value = load_unit_dict.get(value.lower(), 'unit')
+                    elif key == 'ean_number' and value:
+                        ean_status = check_ean_number(wms, value, user)
+                        if ean_status:
+                            return HttpResponse(ean_status)
                     if value == '':
                         continue
                     data_dict[key] = value
@@ -1451,7 +1461,7 @@ def insert_sku(request,user=''):
             update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=sku_master)
 
         insert_update_brands(user)
-        get_user_sku_data(user)
+        #get_user_sku_data(user)
 
         all_users = get_related_users(user.id)
         sync_sku_switch = get_misc_value('sku_sync', user.id)

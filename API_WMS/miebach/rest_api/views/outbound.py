@@ -850,6 +850,7 @@ def get_picklist_data(data_id,user_id):
             wms_code = order.sku_code
             customer_name = ''
             remarks = ''
+            load_unit_handle = ''
             if order.stock:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.order:
@@ -860,11 +861,13 @@ def get_picklist_data(data_id,user_id):
                 marketplace = order.order.marketplace
                 remarks = order.order.remarks
                 order_id = str(order.order.order_id)
+                load_unit_handle = order.order.sku.load_unit_handle
             else:
                 st_order = STOrder.objects.filter(picklist_id=order.id)
                 sku_code = ''
                 title = st_order[0].stock_transfer.sku.sku_desc
                 invoice = st_order[0].stock_transfer.invoice_amount
+                load_unit_handle = st_order[0].stock_transfer.sku.load_unit_handle
                 marketplace = ""
                 order_id = ''
 
@@ -879,7 +882,6 @@ def get_picklist_data(data_id,user_id):
             sequence = 0
             location = 'NO STOCK'
             image = ''
-            load_unit_handle = ''
             if order.order and order.order.sku:
                 image = order.order.sku.image_url
             if stock_id:
@@ -925,6 +927,7 @@ def get_picklist_data(data_id,user_id):
             stock_id = ''
             customer_name = ''
             remarks = ''
+            load_unit_handle = ''
             if order.order:
                 wms_code = order.order.sku.wms_code
                 if order.order_type == 'combo' and order.sku_code:
@@ -936,6 +939,7 @@ def get_picklist_data(data_id,user_id):
                 customer_name = order.order.customer_name
                 marketplace = order.order.marketplace
                 remarks = order.order.remarks
+                load_unit_handle = order.order.sku.load_unit_handle
             else:
                 wms_code = order.stock.sku.wms_code
                 invoice_amount = 0
@@ -943,6 +947,7 @@ def get_picklist_data(data_id,user_id):
                 sku_code = order.stock.sku.sku_code
                 title = order.stock.sku.sku_desc
                 marketplace = ""
+                load_unit_handle = order.stock.sku.load_unit_handle
             if order.stock_id:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.reserved_quantity == 0:
@@ -956,7 +961,6 @@ def get_picklist_data(data_id,user_id):
             sequence = 0
             location = 'NO STOCK'
             image = ''
-            load_unit_handle = ''
             if stock_id:
                 zone = stock_id.location.zone.zone
                 st_id = order.stock_id
@@ -964,7 +968,6 @@ def get_picklist_data(data_id,user_id):
                 location = stock_id.location.location
                 image = stock_id.sku.image_url
                 wms_code = stock_id.sku.wms_code
-                load_unit_handle = stock_id.sku.load_unit_handle
 
             stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks, reserved_instances)
             last_picked_locs = ''
@@ -2895,7 +2898,7 @@ def print_shipment(request, user=''):
     for i in range(0, len(data_dict['ship_id'])):
         for key, value in request.GET.iteritems():
             ship_id = data_dict[key][i]
-            order_shipment1 = OrderShipment.objects.filter(shipment_number=ship_id)
+            order_shipment1 = OrderShipment.objects.filter(shipment_number=ship_id, user=user.id)
             if order_shipment1:
                 order_shipment = order_shipment1[0]
             else:
@@ -3588,7 +3591,11 @@ def get_customer_master_id(request, user=''):
     customer_master = CustomerMaster.objects.filter(user=user.id).values_list('customer_id', flat=True).order_by('-customer_id')
     if customer_master:
         customer_id = customer_master[0] + 1
-    return HttpResponse(json.dumps({'customer_id': customer_id}))
+    data = MiscDetail.objects.filter(misc_type__istartswith='tax_', user=user.id)
+    tax_data = [];
+    for tax in data:
+        tax_data.append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_type})
+    return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': tax_data}))
 
 @login_required
 @csrf_exempt
@@ -3622,8 +3629,15 @@ def update_payment_status(request, user=''):
 def create_orders_data(request, user=''):
     tax_types = TAX_TYPES
     if user.username == 'dazzle_export':
-        tax_types = D_TAX_TYPES 
-    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types}))
+        tax_types = D_TAX_TYPES
+
+    data = MiscDetail.objects.filter(misc_type__istartswith='tax_', user=user.id)
+    tax_data = {'DEFAULT': 0}
+    for tax in data:
+        if float(tax.misc_value) > 0:
+            tax_data[tax.misc_type[4:]] = float(tax.misc_value)
+
+    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_data}))
 
 @csrf_exempt
 def get_order_category_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, user_dict={}):
@@ -4284,10 +4298,21 @@ def get_customer_cart_data(request, user=""):
     response = {'data': [], 'msg': 0}
     cart_data = CustomerCartData.objects.filter(user_id = user.id, customer_user_id = request.user.id)
 
+
     if cart_data:
+        tax_types = dict(MiscDetail.objects.filter(misc_type__icontains='tax', user=user.id).values_list('misc_type', 'misc_value'))
+        if user.username == 'dazzle_export':
+            tax_types = D_TAX_TYPES
+        tax_type = CustomerUserMapping.objects.filter(user_id=request.user.id).values_list('customer__tax_type', flat = True)
+        tax = 0
+        if tax_type:
+            tax = tax_type[0]
+            tax = tax_types.get('tax_' + tax, 0)
         for record in cart_data:
             json_record = record.json()
             #PriceMaster.objects.filter(price_type = CustomerMaster.objects.filter(id = CustomerUserMapping.objects.filter(user = request.user.id)[0].customer_id)[0].price_type, sku__id = record.sku_id)
+            if float(json_record['tax']) != float(tax):
+                json_record['tax'] = tax
             sku_id = record.sku_id
             cust_user_obj = CustomerUserMapping.objects.filter(user = request.user.id)
             if cust_user_obj:

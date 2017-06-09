@@ -38,7 +38,13 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     vm.model_data["telephone"] = parseInt(item.phone_number);
     vm.model_data["email_id"] = item.email;
     vm.model_data["address"] = item.address;
-    vm.model_data["tax_type"] = item.tax_type;
+    if(vm.create_order_data.taxes[item.tax_type]) {
+
+      vm.model_data["tax_type"] = item.tax_type;
+    } else {
+
+      vm.model_data["tax_type"] = 'DEFAULT';
+    }
     vm.add_customer = false;
     angular.copy(item, vm.selected)
     vm.change_sku_prices();
@@ -748,7 +754,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
       if(data.message) {
         vm.create_order_data = data.data;
-        vm.model_data.tax_type = 'VAT';
+        vm.model_data.tax_type = 'DEFAULT';
         vm.change_tax_type();
       }
     })

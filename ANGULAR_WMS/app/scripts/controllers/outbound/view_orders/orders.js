@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('Orders',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'Data', ServerSideProcessingCtrl]);
+  .controller('Orders',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'Data', '$modal', '$log', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, Data) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, Data, $modal, $log) {
     var vm = this;
     //$state.go($state.current, {}, {reload: true});
     vm.service = Service;
@@ -303,7 +303,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         } else if(vm.g_data.view == 'SKUView') {
 
           for(var i=0;i<vm.generate_data.length;i++) {
-            data[vm.generate_data[i].data_value]= vm.generate_data[i].total_quantity;
+            data[vm.generate_data[i].data_value]= vm.generate_data[i]['Total Quantity'];
           }
         } else if(vm.g_data.view == 'CustomerOrderView' || vm.g_data.view == 'CustomerCategoryView' || vm.g_data.view == 'SellerOrderView'){
           for(var i=0;i<vm.generate_data.length;i++) {
@@ -311,7 +311,48 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           }
         }
         data['filters'] = vm.dtInstance.DataTable.context[0].ajax.data['special_key'];
-        vm.service.apiCall(vm.g_data.generate_picklist_urls[vm.g_data.view], 'POST', data).then(function(data){
+
+        var mod_data = {data: data};
+        mod_data['url'] = vm.g_data.generate_picklist_urls[vm.g_data.view];
+        mod_data['method'] = "POST";
+        mod_data['page'] = "ViewOrders";
+
+  $scope.open = function (size) {
+
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/common_picklist.html',
+      controller: 'Picklist',
+      controllerAs: 'pop',
+      size: size,
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+       var data = selectedItem;
+       reloadData();
+       if (data.message == 'invoice') {
+
+         angular.copy(data.data, vm.pdf_data);
+         if (vm.pdf_data.detailed_invoice) {
+           $state.go('app.outbound.ViewOrders.DetailGenerateInvoice');
+         } else {
+            $state.go('app.outbound.ViewOrders.GenerateInvoice');
+         }
+       }
+
+    }, function () {
+      $log.info('Modal dismissed at: ' + new Date());
+    });
+  };
+  $scope.open('lg');
+        //$state.go('app.outbound.ViewOrders.CommonPicklist', {data: "kanna"});
+        /*vm.service.apiCall(vm.g_data.generate_picklist_urls[vm.g_data.view], 'POST', data).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
             for(var i=0; i<vm.model_data.data.length; i++){
@@ -330,7 +371,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             reloadData();
             pop_msg(data.data.stock_status);
           }
-        });
+        });*/
         vm.generate_data = [];
       } else {
 

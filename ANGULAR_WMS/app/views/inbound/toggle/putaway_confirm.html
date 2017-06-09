@@ -81,6 +81,7 @@
         <thead>
           <tr>
             <th>WMS CODE</th>
+            <th> Description </th>
             <th>Location</th>
             <th ng-if="showCase.permissions.pallet_switch">Pallet Number</th>
             <th>Original Quantity</th>
@@ -91,6 +92,7 @@
         <tbody ng-repeat="data in showCase.model_data.data">
           <tr class="receive-toggle" ng-repeat="sku in data.sub_data">
             <td>{{data.wms_code}}</td>
+            <td>{{data.sku_desc}}</td>
             <td>{{sku.loc}}</td>
             <td ng-if="showCase.permissions.pallet_switch">{{data.pallet_number}}</td>
             <td>{{data.original_quantity}}</td>

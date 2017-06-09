@@ -915,33 +915,11 @@ def get_id_cycle(request, user=''):
 def stock_summary_data(request, user=''):
     wms_code = request.GET['wms_code']
     stock_data = StockDetail.objects.exclude(receipt_number=0).filter(sku_id__wms_code=wms_code, sku__user = user.id)
-    zones_data = {}
     production_stages = []
-    pallet_switch = get_misc_value('pallet_switch', user.id)
     load_unit_handle = ""
     if stock_data:
         load_unit_handle = stock_data[0].sku.load_unit_handle
-
-    for stock in stock_data:
-        res_qty = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id).\
-                                           aggregate(Sum('reserved'))['reserved__sum']
-
-        raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
-                                                 stock_id=stock.id).aggregate(Sum('reserved'))['reserved__sum']
-
-        if not res_qty:
-            res_qty = 0
-        if raw_reserved:
-            res_qty = float(res_qty) + float(raw_reserved)
-        location = stock.location.location
-        zone = stock.location.zone.zone
-        pallet_number = ''
-        if pallet_switch == 'true' and stock.pallet_detail:
-            pallet_number = stock.pallet_detail.pallet_code
-        cond = str((zone, location, pallet_number))
-        zones_data.setdefault(cond, {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0, 'reserved_quantity': 0})
-        zones_data[cond]['total_quantity'] += res_qty
-        zones_data[cond]['reserved_quantity'] += stock.quantity
+    zones_data = get_sku_stock_summary(stock_data, load_unit_handle, user)
 
     job_order = JobOrder.objects.filter(product_code__user=user.id, product_code__wms_code=wms_code,
                                         status__in=['grn-generated', 'pick_confirm', 'partial_pick'])
@@ -949,16 +927,26 @@ def stock_summary_data(request, user=''):
     extra_headers =  list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     for job_code in job_codes:
         job_ids = job_order.filter(job_code=job_code).values_list('id', flat=True)
-        status_track = StatusTracking.objects.filter(status_type='JO', status_id__in=job_ids,status_value__in=extra_headers).\
-                                          values('status_value').distinct().annotate(total=Sum('quantity'))
+        pallet_mapping = PalletMapping.objects.filter(po_location__job_order__job_code=job_code, po_location__quantity__gt=0)
+        pallet_ids = pallet_mapping.values_list('id', flat=True)
+        status_track = StatusTracking.objects.filter(Q(status_type='JO', status_id__in=job_ids) | Q(status_type='JO-PALLET',
+                                                       status_id__in=pallet_ids),status_value__in=extra_headers).\
+                                          values('status_value', 'status_type').distinct().annotate(total=Sum('quantity'))
 
         tracking = dict(zip(map(lambda d: d.get('status_value', ''), status_track), map(lambda d: d.get('total', '0'), status_track)))
+        type_tracking = dict(zip(map(lambda d: d.get('status_value', ''), status_track),map(lambda d: d.get('status_type','JO'),status_track)))
         for head in extra_headers:
             quantity = tracking.get(head, 0)
-            if quantity:
+            if type_tracking.get(head, '') == 'JO-PALLET' and pallet_mapping:
+                for pallet in pallet_mapping:
+                    pallet_code = pallet.pallet_detail.pallet_code
+                    if quantity:
+                        production_stages.append({'job_code': job_code, 'stage_name': head, 'stage_quantity': tracking.get(head, 0),
+                                                  'pallet_code': pallet_code })
+            elif quantity:
                 production_stages.append({'job_code': job_code, 'stage_name': head, 'stage_quantity': tracking.get(head, 0) })
 
-    return HttpResponse(json.dumps({'zones_data': zones_data.values(), 'production_stages': production_stages, 
+    return HttpResponse(json.dumps({'zones_data': zones_data.values(), 'production_stages': production_stages,
                                     'load_unit_handle':load_unit_handle}))
 
 @csrf_exempt

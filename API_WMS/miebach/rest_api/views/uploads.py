@@ -117,8 +117,9 @@ def get_customer_master_mapping(reader, file_type):
     mapping_dict = {}
     if get_cell_data(0, 0, reader, file_type) == 'Customer Id' and get_cell_data(0, 1, reader, file_type) == 'Customer Name':
         mapping_dict = copy.deepcopy(CUSTOMER_EXCEL_MAPPING)
-    elif get_cell_data(0, 0, reader, file_type) == 'Customer ID' and get_cell_data(0, 1, reader, file_type) == 'Name':
+    elif get_cell_data(0, 0, reader, file_type) == 'customer_id' and get_cell_data(0, 1, reader, file_type) == 'phone':
         mapping_dict = copy.deepcopy(MARKETPLACE_CUSTOMER_EXCEL_MAPPING)
+
     return mapping_dict
 
 
@@ -142,12 +143,24 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     order_mapping = get_order_mapping(reader, file_type)
     if not order_mapping:
         return "Headers not matching"
+
     count = 0
+    exclude_rows = []
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
 
         count += 1
+        if 'seller' in order_mapping:
+            seller_id = get_cell_data(row_idx, order_mapping['seller'], reader, file_type)
+            seller_master = None
+            if seller_id:
+                if isinstance(seller_id, float):
+                    seller_id = int(seller_id)
+                seller_master = SellerMaster.objects.filter(seller_id=seller_id, user=user.id)
+            if not seller_master or not seller_id:
+                exclude_rows.append(row_idx)
+                continue
         cell_data = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
         title = ''
         if 'title' in order_mapping.keys():
@@ -200,6 +213,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
+        if row_idx in exclude_rows:
+            continue
         order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
         order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
         seller_order_dict = copy.deepcopy(SELLER_ORDER_FIELDS)
@@ -343,6 +358,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 seller_order_dict[key] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'seller':
                 seller_id = get_cell_data(row_idx, value, reader, file_type)
+                if isinstance(seller_id, float):
+                    seller_id = int(seller_id)
                 seller_master = SellerMaster.objects.filter(seller_id=seller_id, user=user.id)
                 if seller_master:
                     seller_order_dict['seller_id'] = seller_master[0].id
@@ -385,6 +402,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             sku_master=SKUMaster.objects.filter(sku_code=cell_data, user=user.id)
             if sku_master:
                 order_data['sku_id'] = sku_master[0].id
+                if not 'title' in order_mapping.keys():
+                    order_data['title'] = sku_master[0].sku_desc
             else:
                 market_mapping = ''
                 if cell_data:
@@ -393,6 +412,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     market_mapping = MarketplaceMapping.objects.filter(description=order_data['title'], sku__user=user.id, sku__status=1)
                 if market_mapping:
                     order_data['sku_id'] = market_mapping[0].sku_id
+                    if not 'title' in order_mapping.keys():
+                        order_data['title'] = market_mapping[0].sku.sku_desc
                 #else:
                 #    order_data['sku_id'] = SKUMaster.objects.get(sku_code='TEMP', user=user.id).id
                 #    order_data['sku_code'] = sku_code
@@ -710,12 +731,14 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
     if not sku_file_mapping:
         return 'Invalid File'
     for row_idx in range(1, no_of_rows):
+        sku_code = ''
         for key, value in sku_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, sku_file_mapping[key], reader, file_type)
 
             if key == 'wms_code':
                 data_set = wms_data
                 data_type = 'WMS'
+                sku_code = cell_data
                 #index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('WMS Code missing')
@@ -735,6 +758,10 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
             elif key == 'ean_number':
                 if not isinstance(cell_data, (int, float)) and cell_data:
                     index_status.setdefault(row_idx, set()).add('EAN must be integer')
+                elif cell_data:
+                    ean_status = check_ean_number(sku_code, cell_data, user)
+                    if ean_status:
+                        index_status.setdefault(row_idx, set()).add(ean_status)
 
             elif key == 'sku_size':
                 if cell_data:
@@ -805,6 +832,8 @@ def get_sku_file_mapping(reader, file_type, user=''):
             sku_file_mapping = copy.deepcopy(SKU_DEF_EXCEL)
     elif get_cell_data(0, 1, reader, file_type) == 'Product Code' and get_cell_data(0, 2, reader, file_type) == 'Name':
         sku_file_mapping = copy.deepcopy(ITEM_MASTER_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'product_id' and get_cell_data(0, 1, reader, file_type) == 'product_variant_id':
+        sku_file_mapping = copy.deepcopy(SHOTANG_SKU_MASTER_EXCEL)
 
     return sku_file_mapping
 
@@ -930,7 +959,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
         if _size_type:
             check_update_size_type(sku_data, _size_type)
 
-    get_user_sku_data(user)
+    #get_user_sku_data(user)
     insert_update_brands(user)
 
     all_users = get_related_users(user.id)
@@ -945,24 +974,36 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 @get_admin_user
 def sku_upload(request, user=''):
     fname = request.FILES['files']
-    if fname.name.split('.')[-1] != 'xls' and fname.name.split('.')[-1] != 'xlsx':
-        return HttpResponse('Invalid File Format')
-
-    try:
-        open_book = open_workbook(filename=None, file_contents=fname.read())
-        open_sheet = open_book.sheet_by_index(0)
-    except:
+    if (fname.name).split('.')[-1] == 'csv':
+        reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
+        no_of_rows = len(reader)
+        file_type = 'csv'
+    elif (fname.name).split('.')[-1] == 'xls' or (fname.name).split('.')[-1] == 'xlsx':
+        try:
+            data = fname.read()
+            if '<table' in data:
+                open_book, open_sheet = html_excel_data(data, fname)
+            else:
+                open_book = open_workbook(filename=None, file_contents=data)
+                open_sheet = open_book.sheet_by_index(0)
+        except:
+            return HttpResponse("Invalid File")
+        reader = open_sheet
+        no_of_rows = reader.nrows
+        file_type = 'xls'
+    else:
         return HttpResponse('Invalid File')
 
-    file_type = 'xls'
-    reader = open_sheet
-    no_of_rows = reader.nrows
+    try:
+        status = validate_sku_form(request, reader, user, no_of_rows, fname, file_type=file_type)
+        if status != 'Success':
+            return HttpResponse(status)
 
-    status = validate_sku_form(request, reader, user, no_of_rows, fname, file_type=file_type)
-    if status != 'Success':
-        return HttpResponse(status)
+        sku_excel_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
+    except Exception as e:
+        log.info('SKU Master Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("SKU Master Upload Failed")
 
-    sku_excel_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
 
     return HttpResponse('Success')
 
@@ -2291,17 +2332,23 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
     index_status = {}
     customer_ids = []
     mapping_dict = get_customer_master_mapping(reader, file_type)
+    if not mapping_dict:
+        return "Headers not Matching"
     number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code'}
     for row_idx in range(1, no_of_rows):
+        if not mapping_dict:
+            break
         customer_master = None
         for key, value in mapping_dict.iteritems():
             cell_data = get_cell_data(row_idx, mapping_dict[key], reader, file_type)
 
             if key == 'customer_id':
                 if cell_data:
-                    if not isinstance(cell_data, (int, float)):
+                    try:
+                        cell_data = int(cell_data)
+                    except:
                         index_status.setdefault(row_idx, set()).add('Customer ID Should be in number')
-                    else:
+                    if cell_data:
                         cell_data = int(cell_data)
                         customer_master_obj = CustomerMaster.objects.filter(customer_id=cell_data, user=user.id)
                         if customer_master_obj:
@@ -2315,7 +2362,9 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
 
             elif key in number_fields.keys():
                 if cell_data:
-                    if not isinstance(cell_data, (int, float)):
+                    try:
+                        cell_data = float(cell_data)
+                    except:
                         index_status.setdefault(row_idx, set()).add('%s Should be in number' % number_fields[key])
 
             elif key == 'price_type':
@@ -2341,6 +2390,8 @@ def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
     mapping_dict = get_customer_master_mapping(reader, file_type)
     number_fields = ['credit_period', 'phone_number', 'pincode']
     for row_idx in range(1, no_of_rows):
+        if not mapping_dict:
+            break
         customer_data = copy.deepcopy(CUSTOMER_DATA)
         customer_master = None
 
@@ -2357,6 +2408,7 @@ def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
             elif key == 'name':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
+                cell_data = str(re.sub(r'[^\x00-\x7F]+','', cell_data))
                 customer_data['name']  = cell_data
                 if customer_master:
                     customer_master.name = customer_data['name']
@@ -2405,11 +2457,11 @@ def customer_upload(request, user=''):
             no_of_rows = reader.nrows
             file_type = 'xls'
 
-            status = validate_customer_form(request, reader, user, no_of_rows, fname, file_type)
-            if status != 'Success':
-                return HttpResponse(status)
+        status = validate_customer_form(request, reader, user, no_of_rows, fname, file_type)
+        if status != 'Success':
+            return HttpResponse(status)
 
-            customer_excel_upload(request, reader, user, no_of_rows, fname, file_type)
+        customer_excel_upload(request, reader, user, no_of_rows, fname, file_type)
     except Exception as e:
         log.info('Customer Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Customer Upload Failed")
@@ -2489,8 +2541,8 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                                                               sku_id__sku_code=sku_code, user=user.id)
                     if not order_detail:
                         index_status.setdefault(row_idx, set()).add("Order ID doesn't exists")
-                    elif int(order_detail[0].status) == 4:
-                        index_status.setdefault(row_idx, set()).add("Order Processed already")
+                    #elif int(order_detail[0].status) == 4:
+                    #    index_status.setdefault(row_idx, set()).add("Order Processed already")
 
             elif key == 'quantity':
                 if not cell_data:
@@ -2602,7 +2654,10 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
                 if cell_data:
                     if isinstance(cell_data, str):
-                        order_data[key] = datetime.datetime.strptime(cell_data, "%d-%m-%Y %H:%M")
+                        try:
+                            order_data[key] = datetime.datetime.strptime(cell_data, "%d-%m-%Y %H:%M")
+                        except:
+                            order_data[key] = datetime.datetime.now()
                     else:
                         order_data[key] = xldate_as_tuple(cell_data, 0)
 

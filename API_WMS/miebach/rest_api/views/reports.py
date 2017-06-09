@@ -626,6 +626,7 @@ def print_po_reports(request, user=''):
 def excel_reports(request, user=''):
     excel_name = ''
     func_name = ''
+    file_type = 'xls'
     headers, search_params, filter_params = get_search_params(request)
     if '&' in request.POST['serialize_data']:
         form_data = request.POST['serialize_data'].split('&')
@@ -644,9 +645,10 @@ def excel_reports(request, user=''):
     report_data = func_name(search_params, user, request.user)
     if isinstance(report_data, tuple):
         report_data = report_data[0]
-    if temp[1] == 'grn_inventory_addition' and len(report_data['aaData']) > 0:
+    if temp[1] in ['grn_inventory_addition', 'sales_returns_addition'] and len(report_data['aaData']) > 0:
         headers = report_data['aaData'][0].keys()
-    excel_data = print_excel(request,report_data, headers, excel_name)
+        file_type = 'csv'
+    excel_data = print_excel(request,report_data, headers, excel_name, file_type=file_type)
     return excel_data
 
 @csrf_exempt

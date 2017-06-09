@@ -1,6 +1,6 @@
 <div id="page-pop" class="modal fade process-toggle in" id="po-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="display: block; padding-left: 13px;">
   <!-- Modal -->
-  <form id="confirm_raw_picklist">
+  <form id="confirm_raw_picklist" name="form" role="form">
     <div class="modal-dialog modal-lg model-custom">
       <div class="modal-content">
         <div ng-include="'views/common/loader.html'"></div>
@@ -33,7 +33,7 @@
                    <th ng-if="showCase.permissions.show_image">Image</th>
                    <th>WMS Code </th>
                    <th>Title</th>
-                   <th>Zone</th>
+                   <!--<th>Zone</th>-->
                    <th>Location</th>
                    <th ng-if="showCase.permissions.pallet_switch">Pallet Code</th>
                    <th>Reserved Quantity</th>
@@ -42,7 +42,7 @@
                    <th class="plus"></th>
                  </tr>
                </thead>
-               <tbody ng-repeat="data in showCase.model_data.data">   
+               <tbody ng-repeat="data in showCase.model_data.data">
                  <tr  ng-repeat="record in data.sub_data" class="field">
                    <input type="hidden" name="order_id_{{data.id}}"  value="{{data.id}}">
                    <input type="hidden" name="stock_id_{{data.id}}" value="{{data.stock_id}}">
@@ -50,9 +50,9 @@
                    <td ng-if="showCase.permissions.show_image"><img ng-src="{{showCase.service.check_image_url(data.image)}}" style="height: 35px;"></img></td>
                    <td><input type="text" name="wms_code_{{data.id}}" class="form-control" ng-readonly="showCase.update" value="{{data.wms_code}}"></td>
                    <td><input type="text" name="title_{{data.id}}" class="form-control" ng-readonly="showCase.update" value="{{data.title}}"></td>
-                   <td><input type="text" name="zone_{{data.id}}" class="form-control" ng-model="record.zone"></td>
-                   <td><input type="text" name="location_{{data.id}}" class="form-control" ng-model="record.location"></td>
-                   <td ng-if="showCase.permissions.pallet_switch"><input type="text" name="pallet_{{data.id}}" class="form-control" value="{{data.pallet_code}}" ng-readonly="showCase.update"></td>
+                   <!--<td><input type="text" name="zone_{{data.id}}" class="form-control" ng-model="record.zone" required ng-blur="showCase.checkCapacity($index, data, 'zone', $event);"></td>-->
+                   <td><input type="text" name="location_{{data.id}}" class="form-control" ng-model="record.location" required ng-blur="showCase.checkCapacity($index, data, 'location', $event);"></td>
+                   <td ng-if="showCase.permissions.pallet_switch"><input type="text" name="pallet_{{data.id}}" class="form-control" ng-model="record.pallet_code" ng-blur="showCase.checkCapacity($index, data, 'pallet_code', $event);" ng-show="record.pallet_visible"></td>
                    <td><input type="text" name="reserved_quantity_{{data.id}}" class="form-control" value="{{data.reserved_quantity}}" ng-readonly="showCase.update"></td>
                    <td><input type="text" name="picked_quantity_{{data.id}}" class="form-control" ng-model="record.picked_quantity" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
                    <td><input type="text" name="measurement_type_{{data.id}}" class="form-control"value="{{data.measurement_type}}" ng-readonly="showCase.update"></td>
@@ -66,7 +66,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn pop pop-normal" ng-disabled="showCase.confirm_disable" ng-click="showCase.print()">Print Picklist</button>
-          <button type="submit" class="btn pop pop-green" ng-disabled="showCase.confirm_disable" ng-click="showCase.submit()">Confirm</button>
+          <button type="submit" class="btn pop pop-green" ng-disabled="showCase.confirm_disable" ng-click="showCase.submit(form)">Confirm</button>
         </div>
       </div>
     </div>

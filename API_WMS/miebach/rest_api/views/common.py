@@ -2873,3 +2873,11 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
         zones_data[cond]['reserved_quantity'] += res_qty
 
     return zones_data
+
+def check_ean_number(sku_code, ean_number, user):
+    ''' Check ean number exists'''
+    status = ''
+    ean_check = SKUMaster.objects.filter(user=user.id, ean_number=ean_number).exclude(sku_code=sku_code).values_list('sku_code', flat=True)
+    if ean_check:
+        status = 'Ean Number is already mapped for sku codes ' + ', '.join(ean_check)
+    return status

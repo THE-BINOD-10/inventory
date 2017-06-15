@@ -2524,6 +2524,10 @@ def putaway_data(request, user=''):
                                             filter(rwo__vendor__user = user.id).values_list('purchase_order_id', flat=True)
             results = list(chain(results, stock_results, rw_results))
             po_loc_data = POLocation.objects.filter(location__zone__user=user.id, purchase_order_id__in=results)
+
+        old_loc = ""
+        if po_loc_data:
+            old_loc = po_loc_data[0].location_id
         if not value:
             continue
         count = value
@@ -2560,7 +2564,8 @@ def putaway_data(request, user=''):
                     pallet_detail = pallet_mapping[0].pallet_detail
                     setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
                 stock_data.save()
-                create_update_seller_stock(data, value, user, stock_data, exc_loc, use_value=True)
+                #create_update_seller_stock(data, value, user, stock_data, exc_loc, use_value=True)
+                create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
             else:
                 record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
                                'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
@@ -2572,7 +2577,8 @@ def putaway_data(request, user=''):
                     pallet_mapping[0].save()
                 stock_detail = StockDetail(**record_data)
                 stock_detail.save()
-                create_update_seller_stock(data, value, user, stock_detail, exc_loc)
+                create_update_seller_stock(data, value, user, stock_detail, old_loc)
+                #create_update_seller_stock(data, value, user, stock_detail, exc_loc)
             consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 
             if order_data['sku_code'] not in sku_codes:

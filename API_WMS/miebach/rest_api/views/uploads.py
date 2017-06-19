@@ -4,6 +4,7 @@ from django.http import HttpResponse
 from django.utils.encoding import smart_str
 import copy
 import json
+import time
 from itertools import chain
 from django.db.models import Q, F
 from collections import OrderedDict
@@ -252,6 +253,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     if order_code:
                         order_data['order_code'] = order_code
                 else:
+                    #order_data['order_id'] = int(str(time.time()).replace(".", ""))
+                    #order_data['order_id'] = time.time()* 1000000
                     order_data['order_id'] = get_order_id(user.id)
                     order_data['order_code'] = 'MN'
 

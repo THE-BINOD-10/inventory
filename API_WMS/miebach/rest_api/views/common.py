@@ -1602,9 +1602,10 @@ def search_wms_codes(request, user=''):
 
 def get_order_id(user_id):
     #order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).order_by('-order_id')
-    order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).aggregate(Max('order_id'))
+    #order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).aggregate(Max('order_id'))
 
-    order_id = int(order_detail_id['order_id__max']) + 1
+    #order_id = int(order_detail_id['order_id__max']) + 1
+    order_id = time.time()* 1000000
 
     return order_id
 

@@ -2889,3 +2889,21 @@ def check_ean_number(sku_code, ean_number, user):
     if ean_check:
         status = 'Ean Number is already mapped for sku codes ' + ', '.join(ean_check)
     return status
+
+def get_seller_reserved_stocks(dis_seller_ids, sell_stock_ids, user):
+    reserved_dict = OrderedDict()
+    raw_reserved_dict = OrderedDict()
+    for seller in dis_seller_ids:
+        pick_params = {'status': 1, 'picklist__order__user': user.id}
+        rm_params = {'status': 1, 'material_picklist__jo_material__material_code__user': user.id}
+        stock_id_dict = filter(lambda d: d['seller__seller_id'] == seller, sell_stock_ids)
+        if stock_id_dict:
+            stock_ids = map(lambda d: d['stock_id'], stock_id_dict)
+            pick_params['stock_id__in'] = stock_ids
+            rm_params['stock_id__in'] = stock_ids
+        reserved_dict[seller] = dict(PicklistLocation.objects.filter(**pick_params).\
+                                     values_list('stock__sku__wms_code').distinct().annotate(reserved=Sum('reserved')))
+        raw_reserved_dict[seller] = dict(RMLocation.objects.filter(**rm_params).\
+                                           values('material_picklist__jo_material__material_code__wms_code').distinct().\
+                                           annotate(rm_reserved=Sum('reserved')))
+    return reserved_dict, raw_reserved_dict

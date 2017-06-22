@@ -62,10 +62,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.empty_data = {}
   vm.model_data = {};
 
+  vm.title = "Purchase Order";
+
   vm.row_call = function(aData) {
 
     console.log(aData);
-    $http.get(Session.url+'print_po_reports/?data='+aData.DT_RowAttr["data-id"], {withCredential: true})
+
+    if(aData.receipt_type == "Hosted Warehouse") {
+
+      vm.title = "Stock transfer Note";
+    }
+
+    $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"], {withCredential: true})
       .success(function(data, status, headers, config) {
         console.log(data);
         var html = $(data);
@@ -110,6 +118,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   vm.close = close;
   function close() {
+    vm.title = "Purchase Order";
     $state.go('app.reports.GoodsReceiptNote');
   }
 

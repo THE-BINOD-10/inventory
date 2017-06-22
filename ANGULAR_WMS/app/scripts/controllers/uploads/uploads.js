@@ -13,7 +13,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "order_upload/",
                    dparam: "download-order-form",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_orderdetail"
                  }, {
                    title: "SKU Download/ Upload",
                    download: "Download SKU Form",
@@ -22,7 +23,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "sku_upload/",
                    dparam: "download-sku-file",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_skumaster"
                  }, {
                    title: "Inventory Download/ Upload",
                    download: "Download Inventory Form",
@@ -31,7 +33,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "inventory_upload/",
                    dparam: "download-file",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_inventoryadjustment"
                  }, {
                    title: "Supplier Download/ Upload",
                    download: "Download 	Supplier Form",
@@ -40,7 +43,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "supplier_upload/",
                    dparam: "download-supplier-file",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_inventoryadjustment"
                  }, {
                    title: "Supplier-SKU Download/ Upload",
                    download: "Download Supplier-SKU Form",
@@ -49,7 +53,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "supplier_sku_upload/",
                    dparam: "download-supplier-sku-file",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_skusupplier"
                  }, {
                    title: "Location Download/ Upload",
                    download: "Download Location Form",
@@ -58,7 +63,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "location_upload/",
                    dparam: "download-loc-file",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_locationmaster"
                  }, {
                    title: "Purchase Orders Download/ Upload",
                    download: "Download Purchase Form",
@@ -67,7 +73,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "purchase_order_upload/",
                    dparam: "download-purchase-order-form",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_openpo"
                  }, {
                    title: "Move Inventory Download/ Upload",
                    download: "Download Move Inventory Form",
@@ -76,7 +83,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "move_inventory_upload/",
                    dparam: "download-move-inventory-file",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_inventoryadjustment"
                  }, {
                    title: "Market Place - SKU Download/ Upload",
                    download: "Download Market SKU Form",
@@ -85,7 +93,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "marketplace_sku_upload/",
                    dparam: "download-marketplace-sku-file",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_skumaster"
                  }, {
                    title: "BOM - SKU Download/ Upload",
                    download: "Download BOM Form",
@@ -94,7 +103,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "bom_upload/",
                    dparam: "download-bom-file",
                    value: "",
-                   show: Session.roles.permissions.add_bommaster
+                   show: Session.roles.permissions.add_bommaster,
+                   perm: "add_bommaster"
                  }, {
                    title: "Combo SKU Download/ Upload",
                    download: "Download Combo SKU Form",
@@ -103,7 +113,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "combo_sku_upload/",
                    dparam: "download-combo-sku-file",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_skumaster"
                  }, {
                    title: "Inventory Adjustment Download/ Upload",
                    download: "Download Adjustment Form",
@@ -112,7 +123,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "inventory_adjust_upload/",
                    dparam: "download-inventory-adjust-file",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_inventoryadjustment"
                  }, {
                    title: "Vendor Download/ Upload",
                    download: "Download Vendor Form",
@@ -121,7 +133,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "vendor_upload/",
                    dparam: "download-vendor-file",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_vendormaster"
                  }, {
                    title: "Customer Download/ Upload",
                    download: "Download Customer Form",
@@ -130,7 +143,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "customer_upload/",
                    dparam: "download-customer-file",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_customermaster"
                  }, {
                    title: "Sales Returns Download/ Upload",
                    download: "Download Sales Returns Form",
@@ -139,7 +153,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "sales_returns_upload/",
                    dparam: "download-sales-returns",
                    value: "",
-                   show: true
+                   show: true,
+                   permi: "add_orderreturns"
                  }, {
                    title: "Pricing Master Download/ Upload",
                    download: "Download Pricing Master Form",
@@ -148,7 +163,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "pricing_master_upload/",
                    dparam: "download-pricing-master",
                    value: "",
-                   show: true
+                   show: "add_pricemaster"
                  }
                  ]
 

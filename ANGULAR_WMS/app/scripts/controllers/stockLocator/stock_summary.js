@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('StockSummaryCtrl',['$scope', '$http', '$state', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'colFilters' , 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('StockSummaryCtrl',['$scope', '$http', '$state', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'colFilters' , 'Service', 'Data', '$modal', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data) {
+function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data, $modal) {
     var vm = this;
     vm.service = Service;
     vm.g_data = Data.stock_summary;
@@ -130,5 +130,63 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       //});
     }
     vm.data_display = true;
+
+  vm.open = function (size) {
+
+    var mod_data = {columns: vm.dtColumns, instance: vm.dtInstance};
+    var modalInstance = $modal.open({
+      templateUrl: 'views/stockLocator/toggles/seller_stock_download.html',
+      controller: 'SellerStockDownload',
+      controllerAs: 'pop',
+      size: size,
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+       var data = selectedItem;
+
+    }, function () {
+      //$log.info('Modal dismissed at: ' + new Date());
+      console.log('Modal dismissed at: ' + new Date());
+    });
+  };
+  //$scope.open('sm');
+
+
   }
 
+
+function SellerStockDownload($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
+
+  var vm = this;
+  vm.state_data = items;
+  vm.service = Service;
+  vm.permissions = Session.roles.permissions;
+
+  vm.ok = function () {
+    $modalInstance.close("close");
+  };
+
+  vm.seller_data = {};
+  vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
+    if (data.message) {
+      vm.seller_data = data.data.sellers;
+    }
+  })
+
+  vm.download_excel = function() {
+
+    vm.service.print_excel({seller_id: vm.seller_id}, vm.state_data.instance, vm.state_data.columns, 'seller_stock_summary_replace', true)
+  }
+
+  }
+
+angular
+  .module('urbanApp')
+  .controller('SellerStockDownload', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', SellerStockDownload]);

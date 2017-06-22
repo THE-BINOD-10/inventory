@@ -262,6 +262,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
       var value = Number(a)*Number(b);
       value = String(value);
+      if(value.indexOf("e") != -1) {
+        return "0";
+      }
       value = value.replace(/[^0-9\.]/g, '')
       var findsDot = new RegExp(/\./g)
       var containsDot = value.match(findsDot)
@@ -270,6 +273,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         var limit = (Session.roles.permissions["decimal_limit"])?Number(Session.roles.permissions["decimal_limit"]):1;
         if(data[1].length >= limit) {
           value = data[0]+"."+data[1].slice(0,limit);
+          value = Number(value)
         }
       }
       return value;

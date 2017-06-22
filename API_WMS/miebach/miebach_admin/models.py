@@ -656,6 +656,7 @@ class OrderIMEIMapping(models.Model):
     order = models.ForeignKey(OrderDetail)
     po_imei = models.ForeignKey(POIMEIMapping, blank=True, null=True)
     imei_number =  models.CharField(max_length = 64, default = '')
+    status = models.IntegerField(max_length=1, default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

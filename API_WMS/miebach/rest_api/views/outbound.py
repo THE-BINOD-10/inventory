@@ -1334,6 +1334,8 @@ def create_order_summary(picklist, picked_count, pick_number, picks_all):
 
 def get_seller_pick_id(picklist, user):
     pick_number = 1
+    if not picklist.order:
+        return ''
     summary = SellerOrderSummary.objects.filter(Q(seller_order__order__order_id=picklist.order.order_id) |
                                                 Q(order__order_id=picklist.order.order_id),
                                                 picklist__order__user=user.id).\
@@ -3634,8 +3636,8 @@ def create_orders_data(request, user=''):
     data = MiscDetail.objects.filter(misc_type__istartswith='tax_', user=user.id)
     tax_data = {'DEFAULT': 0}
     for tax in data:
-        if int(tax.misc_value) > 0:
-            tax_data[tax.misc_type[4:]] = int(tax.misc_value)
+        if float(tax.misc_value) > 0:
+            tax_data[tax.misc_type[4:]] = float(tax.misc_value)
 
     return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_data}))
 
@@ -4300,14 +4302,14 @@ def get_customer_cart_data(request, user=""):
 
 
     if cart_data:
-        tax_types = TAX_TYPES
+        tax_types = dict(MiscDetail.objects.filter(misc_type__icontains='tax', user=user.id).values_list('misc_type', 'misc_value'))
         if user.username == 'dazzle_export':
             tax_types = D_TAX_TYPES
         tax_type = CustomerUserMapping.objects.filter(user_id=request.user.id).values_list('customer__tax_type', flat = True)
         tax = 0
         if tax_type:
             tax = tax_type[0]
-            tax = tax_types[tax]
+            tax = tax_types.get('tax_' + tax, 0)
         for record in cart_data:
             json_record = record.json()
             #PriceMaster.objects.filter(price_type = CustomerMaster.objects.filter(id = CustomerUserMapping.objects.filter(user = request.user.id)[0].customer_id)[0].price_type, sku__id = record.sku_id)
@@ -4881,11 +4883,15 @@ def update_picklist_loc(request, user = ""):
     if not picklist_no:
         return HttpResponse('PICKLIST ID missing')
 
-    filter_param = {'order__user' : user.id, 'reserved_quantity__gt' : 0, 'picklist_number' : picklist_no}
-    picklist_objs = Picklist.objects.filter(**filter_param)
+    filter_param = {'reserved_quantity__gt' : 0, 'picklist_number' : picklist_no}
+    picklist_objs = Picklist.objects.filter(Q(stock__sku__user=user.id) | Q(order__user=user.id), **filter_param)
     picklist_data = {}
     for item in picklist_objs:
-        _sku_code = item.order.sku.sku_code
+        _sku_code = ''
+        if item.order:
+            _sku_code = item.order.sku.sku_code
+        elif item.stock:
+            _sku_code = item.stock.sku.sku_code
         if item.sku_code:
             _sku_code = item.sku_code
 
@@ -4909,7 +4915,8 @@ def update_picklist_loc(request, user = ""):
             continue
         consumed_qty = 0
 
-        picklist_data['order_id'] = item.order.id
+        if item.order:
+            picklist_data['order_id'] = item.order.id
         picklist_data['sku_code'] = item.sku_code
         picklist_data['picklist_number'] = picklist_no
         picklist_data['reserved_quantity'] = 0
@@ -4946,7 +4953,10 @@ def picklist_location_suggestion(request, order, stock_detail, user, order_quant
             picklist_data['stock_id'] = stock.id
             picklist_data['reserved_quantity'] = stock_count
 
-        exist_pick = Picklist.objects.filter(stock_id=picklist_data.get('stock_id', 0), order_id=picklist_data['order_id'],
+        if not picklist_data.get('stock_id', 0) or picklist_data.get('order_id', 0):
+            return 0
+
+        exist_pick = Picklist.objects.filter(stock_id=picklist_data.get('stock_id', 0), order_id=picklist_data.get('order_id', 0),
                                              status__icontains='open')
         if not exist_pick:
             new_picklist = Picklist(**picklist_data)
@@ -4979,7 +4989,7 @@ def picklist_location_suggestion(request, order, stock_detail, user, order_quant
         consumed_qty += need_quantity
         if 'stock_id' in picklist_data.keys():
             del picklist_data['stock_id']
-        exist_pick = Picklist.objects.filter(stock_id=picklist_data.get('stock_id', 0), order_id=picklist_data['order_id'],
+        exist_pick = Picklist.objects.filter(stock_id=picklist_data.get('stock_id', 0), order_id=picklist_data.get('order_id', 0),
                                              status__icontains='open')
         if not exist_pick:
             new_picklist = Picklist(**picklist_data)

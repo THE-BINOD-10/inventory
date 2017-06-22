@@ -1094,7 +1094,7 @@ def validate_jo_stock(all_data, user, job_code):
                 if raw_reserved:
                     reserved_quantity += float(raw_reserved)
                 diff = stock_quantity - reserved_quantity
-                diff = get_decimal_limit(user.id, diff)
+                diff = get_decimal_limit(user, diff)
                 if diff < float(data[1]):
                     if data[0] not in status:
                         status.append(data[0])

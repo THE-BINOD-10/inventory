@@ -4,6 +4,7 @@ from django.http import HttpResponse
 from django.utils.encoding import smart_str
 import copy
 import json
+import time
 from itertools import chain
 from django.db.models import Q, F
 from collections import OrderedDict
@@ -139,6 +140,8 @@ def update_seller_order(seller_order_dict, order, user):
         seller_order.save()
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
+    log.info("order upload started")
+    st_time = datetime.datetime.now()
     index_status = {}
     order_mapping = get_order_mapping(reader, file_type)
     if not order_mapping:
@@ -146,24 +149,25 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
     count = 0
     exclude_rows = []
+    log.info("aaaaaaaa %s" %datetime.datetime.now())
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
 
         count += 1
-        if 'seller' in order_mapping:
+        if  order_mapping.has_key('seller'):
             seller_id = get_cell_data(row_idx, order_mapping['seller'], reader, file_type)
             seller_master = None
             if seller_id:
                 if isinstance(seller_id, float):
                     seller_id = int(seller_id)
-                seller_master = SellerMaster.objects.filter(seller_id=seller_id, user=user.id)
+                seller_master = SellerMaster.objects.filter( user=user.id, seller_id=seller_id)
             if not seller_master or not seller_id:
                 exclude_rows.append(row_idx)
                 continue
         cell_data = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
         title = ''
-        if 'title' in order_mapping.keys():
+        if order_mapping.has_key('title'):
             title = get_cell_data(row_idx, order_mapping['title'], reader, file_type)
 
         if type(cell_data) == float:
@@ -174,13 +178,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             sku_code = cell_data.upper()
 
         sku_codes = sku_code.split(',')
+        log.info("bbbbbb %s" %(datetime.datetime.now()))
         for sku_code in sku_codes:
             sku_id = check_and_return_mapping_id(sku_code, title, user)
             if not sku_id:
                 index_status.setdefault(count, set()).add('SKU Mapping Not Available')
-        #count += 1
 
-        if "shipment_check" in order_mapping:
+        if  order_mapping.has_key("shipment_check"):
             _shipping_date = get_cell_data(row_idx, order_mapping['shipment_date'], reader, file_type)
             if _shipping_date:
                 try:
@@ -210,6 +214,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     sku_ids = []
 
     user_profile = UserProfile.objects.get(user_id=user.id)
+    log.info("cccccccccc %s" %(datetime.datetime.now()))
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
@@ -222,11 +227,11 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             order_data['marketplace'] = order_mapping['marketplace']
         if order_mapping.get('status', '') and get_cell_data(row_idx, order_mapping['status'], reader, file_type) != 'New':
             continue
-
+        log.info("eeeeeee %s" %(datetime.datetime.now()))
         for key, value in order_mapping.iteritems():
             if key in ['marketplace', 'status', 'split_order_id', 'recreate', 'shipment_check'] or key not in order_mapping.keys():
                 continue
-            if key == 'order_id' and 'order_id' in order_mapping.keys():
+            if key == 'order_id' and order_mapping.has_key("order_id"):
                 order_id = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
                 if isinstance(order_id, float):
                     order_id = str(int(order_id))
@@ -248,6 +253,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     if order_code:
                         order_data['order_code'] = order_code
                 else:
+                    #order_data['order_id'] = int(str(time.time()).replace(".", ""))
+                    #order_data['order_id'] = time.time()* 1000000
                     order_data['order_id'] = get_order_id(user.id)
                     order_data['order_code'] = 'MN'
 
@@ -374,8 +381,9 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     invoice_amount_value = 0
                 order_data['vat_percentage'] = tax_percentage
                 order_summary_dict['vat'] = tax_percentage
-                order_summary_dict['tax_value'] = "%.2f" % ((tax_percentage*invoice_amount_value)/100)
-                invoice_amount_value = invoice_amount_value + ((tax_percentage*invoice_amount_value)/100)
+                _taxe = (tax_percentage*invoice_amount_value)/100
+                order_summary_dict['tax_value'] = "%.2f" % (_taxe)
+                invoice_amount_value = invoice_amount_value + _taxe
                 order_data['invoice_amount'] = invoice_amount_value
                 if not order_data['marketplace']:
                     order_data['marketplace'] = "Offline"
@@ -383,11 +391,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data[key] = get_cell_data(row_idx, value, reader, file_type)
 
         order_data['user'] = user.id
-        if not 'quantity' in order_data.keys():
+        log.info("hhhhh %s" %(datetime.datetime.now()))
+        if not order_data.has_key('quantity'):
             order_data['quantity'] = 1
 
         seller_order_dict['quantity'] = order_data['quantity']
 
+        log.info("iiiiii %s" %(datetime.datetime.now()))
         if type(sku_code) == float:
             cell_data = int(sku_code)
         else:
@@ -397,6 +407,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             order_data['order_id'] = get_order_id(user_id)
             order_data['order_code'] = 'MN'
 
+        log.info("jjjjjjjjj %s" %(datetime.datetime.now()))
         sku_codes = str(cell_data).split(',')
         for cell_data in sku_codes:
             sku_master=SKUMaster.objects.filter(sku_code=cell_data, user=user.id)
@@ -424,7 +435,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 if not seller_order_dict['seller_id'] or (not seller_order_dict.get('order_status','') in ['PROCESSED', 'DELIVERY_RESCHEDULED']):
                     order_create = False
             if not order_obj and order_create:
-                if not 'shipment_date' in order_mapping.keys():
+                if not order_mapping.has_key('shipment_date'):
                     order_data['shipment_date'] = datetime.datetime.now()
                 order_detail = OrderDetail(**order_data)
                 order_detail.save()
@@ -453,7 +464,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     update_seller_order(seller_order_dict, order_obj, user)
                     order_obj.save()
 
-
+            log.info("dddddd %s" %(datetime.datetime.now()))
     return 'success'
 
 @csrf_exempt
@@ -476,6 +487,7 @@ def order_upload(request, user=''):
                 open_sheet = open_book.sheet_by_index(0)
         except:
             return HttpResponse("Invalid File")
+
         reader = open_sheet
         no_of_rows = reader.nrows
         file_type = 'xls'
@@ -483,6 +495,8 @@ def order_upload(request, user=''):
     try:
         upload_status = order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Order Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Order Upload Failed")
 
@@ -974,24 +988,36 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 @get_admin_user
 def sku_upload(request, user=''):
     fname = request.FILES['files']
-    if fname.name.split('.')[-1] != 'xls' and fname.name.split('.')[-1] != 'xlsx':
-        return HttpResponse('Invalid File Format')
-
-    try:
-        open_book = open_workbook(filename=None, file_contents=fname.read())
-        open_sheet = open_book.sheet_by_index(0)
-    except:
+    if (fname.name).split('.')[-1] == 'csv':
+        reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
+        no_of_rows = len(reader)
+        file_type = 'csv'
+    elif (fname.name).split('.')[-1] == 'xls' or (fname.name).split('.')[-1] == 'xlsx':
+        try:
+            data = fname.read()
+            if '<table' in data:
+                open_book, open_sheet = html_excel_data(data, fname)
+            else:
+                open_book = open_workbook(filename=None, file_contents=data)
+                open_sheet = open_book.sheet_by_index(0)
+        except:
+            return HttpResponse("Invalid File")
+        reader = open_sheet
+        no_of_rows = reader.nrows
+        file_type = 'xls'
+    else:
         return HttpResponse('Invalid File')
 
-    file_type = 'xls'
-    reader = open_sheet
-    no_of_rows = reader.nrows
+    try:
+        status = validate_sku_form(request, reader, user, no_of_rows, fname, file_type=file_type)
+        if status != 'Success':
+            return HttpResponse(status)
 
-    status = validate_sku_form(request, reader, user, no_of_rows, fname, file_type=file_type)
-    if status != 'Success':
-        return HttpResponse(status)
+        sku_excel_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
+    except Exception as e:
+        log.info('SKU Master Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("SKU Master Upload Failed")
 
-    sku_excel_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
 
     return HttpResponse('Success')
 

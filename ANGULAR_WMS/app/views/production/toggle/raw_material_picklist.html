@@ -52,7 +52,7 @@
                    <td><input type="text" name="title_{{data.id}}" class="form-control" ng-readonly="showCase.update" value="{{data.title}}"></td>
                    <!--<td><input type="text" name="zone_{{data.id}}" class="form-control" ng-model="record.zone" required ng-blur="showCase.checkCapacity($index, data, 'zone', $event);"></td>-->
                    <td><input type="text" name="location_{{data.id}}" class="form-control" ng-model="record.location" required ng-blur="showCase.checkCapacity($index, data, 'location', $event);"></td>
-                   <td ng-if="showCase.permissions.pallet_switch"><input type="text" name="pallet_{{data.id}}" class="form-control" ng-model="record.pallet_code" ng-blur="showCase.checkCapacity($index, data, 'pallet_code', $event);" required ng-show="record.pallet_visible"></td>
+                   <td ng-if="showCase.permissions.pallet_switch"><input type="text" name="pallet_{{data.id}}" class="form-control" ng-model="record.pallet_code" ng-blur="showCase.checkCapacity($index, data, 'pallet_code', $event);" ng-show="record.pallet_visible"></td>
                    <td><input type="text" name="reserved_quantity_{{data.id}}" class="form-control" value="{{data.reserved_quantity}}" ng-readonly="showCase.update"></td>
                    <td><input type="text" name="picked_quantity_{{data.id}}" class="form-control" ng-model="record.picked_quantity" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
                    <td><input type="text" name="measurement_type_{{data.id}}" class="form-control"value="{{data.measurement_type}}" ng-readonly="showCase.update"></td>

@@ -30,6 +30,7 @@ from django.core.files.base import ContentFile
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Sum, Count
 import math
+from django.db.models import Max
 import re
 log = init_logger('logs/common.log')
 # Create your views here.
@@ -1600,11 +1601,11 @@ def search_wms_codes(request, user=''):
     return HttpResponse(json.dumps(wms_codes))
 
 def get_order_id(user_id):
-    order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).order_by('-order_id')
-    if order_detail_id:
-        order_id = int(order_detail_id[0].order_id) + 1
-    else:
-        order_id = 1001
+    #order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).order_by('-order_id')
+    #order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).aggregate(Max('order_id'))
+
+    #order_id = int(order_detail_id['order_id__max']) + 1
+    order_id = time.time()* 1000000
 
     return order_id
 

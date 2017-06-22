@@ -504,7 +504,7 @@ ORDER_DEF_EXCEL = OrderedDict(( ('order_id', 0), ('quantity', 3), ('title', 1), 
                                 ('telephone', 8)
                              ))
 
-EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 8, 'invoice_amount': 3, 'channel_name': 5, 'sku_code': 7, 'title': 6, 'status': 4,
+EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 9, 'invoice_amount': 3, 'channel_name': 5, 'sku_code': 8, 'title': 7, 'status': 4,
                        'split_order_id': 1}
 
 # SKU Master Upload Templates
@@ -1846,7 +1846,9 @@ def get_grn_inventory_addition_data(search_params, user, sub_user):
 
     search_parameters['seller_po__seller__user'] = user.id
     search_parameters['seller_po__open_po__sku_id__in'] = sku_master_ids
-    query_data = SellerPOSummary.objects.filter(**search_parameters).exclude(location__zone__zone='DAMAGED_ZONE')
+    damaged_ids = SellerStock.objects.filter(stock__location__zone__zone='DAMAGED_ZONE', seller__user=user.id, seller_po_summary__isnull=False).\
+                                      values_list('seller_po_summary_id', flat=True)
+    query_data = SellerPOSummary.objects.filter(**search_parameters).exclude(id__in=damaged_ids)
     model_data = query_data.values(*result_values).distinct().annotate(total_received=Sum('quantity'))
 
     temp_data['recordsTotal'] = model_data.count()

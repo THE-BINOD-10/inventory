@@ -259,15 +259,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.po_imei_scan = function(data1) {
 
-      if (vm.serial_numbers.indexOf(data1.imei_number) != -1){
-          Service.showNoty("Serial Number already Exist");
-          data1.imei_number = "";
-          $('textarea[name="scan_sku"]').trigger('focus').val('');
-        } else if (vm.fb.poData.serials.indexOf(data1.imei_number) != -1){
-          Service.showNoty("Serial Number already Exist");
-          data1.imei_number = "";
-          $('textarea[name="scan_sku"]').trigger('focus').val('');
-        } else {
+        //if (vm.serial_numbers.indexOf(data1.imei_number) != -1){
+        //  Service.showNoty("Serial Number already Exist");
+        //  data1.imei_number = "";
+        //  $('textarea[name="scan_sku"]').trigger('focus').val('');
+        //} else if (vm.fb.poData.serials.indexOf(data1.imei_number) != -1){
+        //  Service.showNoty("Serial Number already Exist");
+        //  data1.imei_number = "";
+        // $('textarea[name="scan_sku"]').trigger('focus').val('');
+        //} else {
           vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number}).then(function(data){
             if(data.message) {
               if (data.data == "") {
@@ -275,6 +275,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.serial_numbers.push(data1.imei_number);
                 data1["imei_list"].push(data1.imei_number);
                 fb.change_serial(data1, data1.imei_number);
+                vm.current_sku = "";
                 $('textarea[name="scan_sku"]').trigger('focus').val('');
               } else {
                 Service.showNoty(data.data);
@@ -282,7 +283,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               data1.imei_number = "";
             }
           });
-        }
+        //}
     }
 
     vm.qc_details = qc_details;
@@ -309,6 +310,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.imei_list.push(data1.imei_number);
             vm.accept_qc(data1, data1.imei_number);
             qc_details();
+            vm.current_sku = "";
           } else {
             Service.showNoty(data.data);
           }
@@ -322,7 +324,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       event.stopPropagation();
       if (event.keyCode == 13 && field.length > 0) {
 
-        if (!vm.enable_button) {
+        if (!vm.current_sku) {
 
           focus('focusSKU');
           Service.showNoty("Scan SKU first before scaning IMEI");
@@ -333,15 +335,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
           Service.showNoty("PO quanity already equal to Receive Quantity for with SKU Code");
         } else {
-          vm.service.apiCall('check_imei_exists/', 'GET',{imei: field}).then(function(data){
-            if(data.message) {
-              if (data.data == "") {
-                vm.imei_list.push(field);
-                vm.accept_qc(vm.model_data.data[vm.current_index], field);
-                focus('focusSKU');
-              } else {
-                Service.showNoty(data.data);
-              }
+
+          fb.check_imei(field).then(function(resp) {
+            if (resp.status) {
+              Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
+              vm.current_sku = "";
+              focus('focusSKU');
+            } else {
+              vm.service.apiCall('check_imei_exists/', 'GET',{imei: field}).then(function(data){
+                if(data.message) {
+                  if (data.data == "") {
+                    vm.imei_list.push(field);
+                    vm.accept_qc(vm.model_data.data[vm.current_index], field);
+                    vm.current_sku = "";
+                    focus('focusSKU');
+                  } else {
+                    Service.showNoty(data.data);
+                  }
+                }
+              })
             }
           })
           console.log(vm.current_index);
@@ -354,19 +366,35 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.check_imei_exists = function(event, data1, index) {
       event.stopPropagation();
       if (event.keyCode == 13 && data1.imei_number.length > 0) {
-        if(vm.imei_list.indexOf(data1.imei_number) > -1) {
+        //if(vm.imei_list.indexOf(data1.imei_number) > -1) {
 
-          Service.showNoty("IMEI Already Scanned");
+        //  Service.showNoty("IMEI Already Scanned");
+
+        if (vm.fb.poData.serials.indexOf(data1.imei_number) != -1){
+
+          Service.showNoty("Serial Number already Exist");
+          data1.imei_number = "";
+          $('textarea[name="scan_sku"]').trigger('focus').val('');
         } else {
-          if(vm.po_qc) {
-            vm.po_qc_imei_scan(data1, index)
-          } else {
-            vm.po_imei_scan(data1)
-          }
+
+          fb.check_imei(data1.imei_number).then(function(resp) {
+            if (resp.status) {
+              Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
+              data1.imei_number = "";
+              $('textarea[name="scan_sku"]').trigger('focus').val('');
+            } else {
+              if(vm.po_qc) {
+                vm.po_qc_imei_scan(data1, index)
+              } else {
+                vm.po_imei_scan(data1)
+              }
+            }
+          })
         }
       }
     }
 
+    vm.current_sku = "";
     vm.change_sku_scan = function(event, sku) {
 
       if (event.keyCode == 13 && sku.length > 0) {
@@ -380,6 +408,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               var data = vm.model_data.data[i][0];
               if(data.wms_code == sku) {
 
+                vm.current_sku = sku;
                 vm.enable_button = true;
                 vm.reason_show = false;
                 vm.current_index = i;
@@ -637,6 +666,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       fb.stop_listening(fb.poData);
       fb["poData"] = {serials: []};
       fb["generate"] = false;
+    }
+
+    fb["check_imei"] = function(imei) {
+      var d = $q.defer();
+      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/").once("value", function(snapshot){
+        if(snapshot.val()) {
+          var found = false;
+          var po_data = snapshot.val();
+          angular.forEach(po_data, function(po) {
+            if (typeof(po.serials) != "string") {
+              angular.forEach(po.serials, function(serial) {
+                if (imei == serial) {
+                  found = true;
+                  d.resolve({status: true, data: po});
+                }
+              })
+            }
+          })
+          d.resolve({status: found});
+        } else {
+          d.resolve({status: false});
+        }
+      });
+      return d.promise;
     }
   }
 
@@ -951,6 +1004,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       fb["generate"] = false;
       fb["add_new"] = false;
     }
+
+    fb["check_imei"] = function(imei) {
+      var d = $q.defer();
+      firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/").once("value", function(snapshot){
+        if(snapshot.val()) {
+          var found = false;
+          var po_data = snapshot.val();
+          angular.forEach(po_data, function(po) {
+            if (typeof(po.serials) != "string") {
+              angular.forEach(po.serials, function(serial) {
+                if (imei == serial) {
+                  found = true;
+                  d.resolve({status: true, data: po});
+                }
+              })
+            }
+          })
+          d.resolve({status: found});
+        } else {
+          d.resolve({status: false});
+        }
+      });
+      return d.promise;
+    }
   }
 
   if(vm.po_qc) {
@@ -1009,6 +1086,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if ( event.keyCode == 13 && field.length > 0) {
         vm.enable_button = true;
         vm.reason_show = false;
+        vm.current_sku = "";
         var data = {imei: field, order_id: vm.model_data.order_id};
         if(vm.imei_list.indexOf(field) != -1) {
           vm.status_move_imei(field);

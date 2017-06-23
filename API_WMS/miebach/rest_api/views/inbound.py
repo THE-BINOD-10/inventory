@@ -1828,9 +1828,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     order_quantity_dict = {}
     all_data = {}
     seller_receipt_id = {}
-    pallet_number = ''
     po_data = []
-    pallet_data = ''
     status_msg = ''
     data_dict = ''
     for i in range(len(myDict['id'])):
@@ -1887,6 +1885,8 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
                         status_msg += ',' + myDict['wms_code'][i]
                     continue
 
+        pallet_number = ''
+        pallet_data = ''
         if 'pallet_number' in myDict.keys() and get_misc_value('pallet_switch', user.id) == 'true':
             if myDict['pallet_number'][i]:
                 pallet_number = myDict['pallet_number'][i]
@@ -2328,7 +2328,8 @@ def get_received_orders(request, user=''):
                     if all_data[cond] == [0, '', 0, '', []]:
                         all_data[cond] = [all_data[cond][0] + float(location.quantity), order_data['wms_code'],
                                           float(location.quantity), location.location.fill_sequence, [{'orig_id': location.id,
-                                          'orig_quantity': location.quantity}], order_data['unit'], order_data['sku_desc']]
+                                          'orig_quantity': location.quantity}], order_data['unit'], order_data['sku_desc'],
+                                          order_data['load_unit_handle']]
                     else:
                         if all_data[cond][2] < float(location.quantity):
                             all_data[cond][2] = float(location.quantity)
@@ -2349,7 +2350,7 @@ def get_received_orders(request, user=''):
         for key, value in all_data.iteritems():
             data[key[0]] = {'wms_code': value[1], 'location': key[1], 'original_quantity': value[0], 'quantity': value[0],
                             'fill_sequence': value[3], 'id': '', 'pallet_number': key[0], 'pallet_group_data': value[4],
-                            'unit': value[5], 'load_unit_handle': order_data['load_unit_handle'],
+                            'unit': value[5], 'load_unit_handle': value[7],
                             'sub_data': [{'loc': key[1], 'quantity': value[0]}], 'sku_desc': value[6]}
 
     data_list = data.values()

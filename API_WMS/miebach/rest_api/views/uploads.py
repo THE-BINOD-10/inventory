@@ -895,7 +895,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 try:
-                    cell_data = str(re.sub(r'[^\x00-\x7F]+','', cell_data))
+                    cell_data = (str(re.sub(r'[^\x00-\x7F]+','', cell_data))).replace('\n', '')
                 except:
                     cell_data = ''
                 if sku_data and cell_data:
@@ -2334,7 +2334,7 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
     mapping_dict = get_customer_master_mapping(reader, file_type)
     if not mapping_dict:
         return "Headers not Matching"
-    number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code'}
+    number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code', 'phone': 'Phone Number'}
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:
             break
@@ -2388,7 +2388,7 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
 
 def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
     mapping_dict = get_customer_master_mapping(reader, file_type)
-    number_fields = ['credit_period', 'phone_number', 'pincode']
+    number_fields = ['credit_period', 'phone_number', 'pincode', 'phone']
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:
             break
@@ -2413,13 +2413,29 @@ def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
                 if customer_master:
                     customer_master.name = customer_data['name']
             elif key in number_fields:
-                if isinstance(cell_data, (int, float)):
+                try:
                     cell_data = int(cell_data)
-                    customer_data[key] = cell_data
+                except:
+                    print "error"
+                if isinstance(cell_data, (int, float)):
                     if customer_master:
-                        setattr(customer_master, key, cell_data)
+                        if key == 'phone':
+                            setattr(customer_master, 'phone_number', cell_data)
+                        else:
+                            setattr(customer_master, key, cell_data)
+                    else:
+                        if key == 'phone':
+                            customer_data['phone_number'] = cell_data
+                        else:
+                            customer_data[key] = cell_data
             else:
-                customer_data[key] = cell_data
+                if key == 'tin':
+                    if customer_master:
+                        setattr(customer_master, 'tin_number', cell_data)
+                    else:
+                        customer_data['tin_number'] = cell_data
+                else:
+                    customer_data[key] = cell_data
                 if cell_data and customer_master:
                    setattr(customer_master, key, cell_data)
 
@@ -2463,6 +2479,8 @@ def customer_upload(request, user=''):
 
         customer_excel_upload(request, reader, user, no_of_rows, fname, file_type)
     except Exception as e:
+        import traceback
+        log.info(traceback.format_exc())
         log.info('Customer Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Customer Upload Failed")
 

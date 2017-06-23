@@ -1622,9 +1622,6 @@ def get_order_summary_data(search_params, user, sub_user):
     dispatched = OrderDetail.objects.filter(status=2,user= user.id).values_list('order_id', flat=True).distinct()
     reschedule_cancelled = OrderDetail.objects.filter(status=5,user= user.id).values_list('order_id', flat=True).distinct()
 
-
-    dispatched = OrderDetail.objects.filter(status=2,user= user.id).values_list('order_id', flat=True).distinct()
-
     _status = ""
     if status_search:
        #['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked'] 

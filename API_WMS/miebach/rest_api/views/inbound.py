@@ -2537,6 +2537,7 @@ def putaway_data(request, user=''):
         old_loc = ""
         if po_loc_data:
             old_loc = po_loc_data[0].location_id
+
         if not value:
             continue
         count = value

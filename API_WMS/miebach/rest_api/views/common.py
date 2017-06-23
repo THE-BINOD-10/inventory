@@ -22,6 +22,7 @@ from sync_sku import *
 import csv
 import hashlib
 import os
+import time
 from generate_reports import *
 from num2words import num2words
 import datetime

@@ -168,7 +168,7 @@ CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 1), ('credit
                                        ('pincode', 11), ('address', 12), ('price_type', 13)
                                     ))
 
-MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 2), ('pincode', 3), ('city', 4), ('phone_number', 1)
+MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('phone', 1), ('name', 2), ('address', 3), ('pincode', 4), ('city', 5), ('tin', 6)
                                                 ))
 
 SALES_RETURN_HEADERS = ['Return ID', 'Return Date', 'SKU Code', 'Product Description', 'Market Place', 'Quantity']
@@ -1622,6 +1622,8 @@ def get_order_summary_data(search_params, user, sub_user):
     dispatched = OrderDetail.objects.filter(status=2,user= user.id).values_list('order_id', flat=True).distinct()
     reschedule_cancelled = OrderDetail.objects.filter(status=5,user= user.id).values_list('order_id', flat=True).distinct()
 
+
+    dispatched = OrderDetail.objects.filter(status=2,user= user.id).values_list('order_id', flat=True).distinct()
 
     _status = ""
     if status_search:

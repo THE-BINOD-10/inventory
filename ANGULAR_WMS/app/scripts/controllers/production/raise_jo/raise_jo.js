@@ -118,7 +118,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
     vm.update = true;
 
     vm.change_quantity = function (data) {
-      console.log(data)
+
+      var qty = data.product_description;
+      angular.forEach(data.data, function(material){
+        var temp = Number(material.material_quantity) * Number(data.product_description);
+        temp = String(temp);
+        if(temp.indexOf("e") != -1) {
+          temp = "0";
+        } else {
+          material.temp_qty = vm.service.decimal(temp, 1);
+        }
+      })
     }
 
     vm.update_data = function(data, index, last, first) {

@@ -203,7 +203,7 @@ class OrderDetail(models.Model):
     class Meta:
         db_table = 'ORDER_DETAIL'
         unique_together = ('order_id','sku','order_code')
-        index_together = ('order_id','sku','order_code')
+        index_together = (('order_id','sku','order_code'), ('user', 'order_code'))
 
     def __unicode__(self):
         return str(self.sku)
@@ -656,6 +656,7 @@ class OrderIMEIMapping(models.Model):
     order = models.ForeignKey(OrderDetail)
     po_imei = models.ForeignKey(POIMEIMapping, blank=True, null=True)
     imei_number =  models.CharField(max_length = 64, default = '')
+    status = models.IntegerField(max_length=1, default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

@@ -331,7 +331,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.update_raise_po = function() {
-      
+
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
@@ -403,6 +403,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               vm.service.pop_msg(data.data);
               vm.service.refresh(vm.dtInstance);
               if(data.data.search("<div") != -1) {
+                if (vm.model_data.receipt_type == 'Hosted Warehouse') {
+                  vm.title = "Stock transfer Note";
+                }
                 vm.html = $(data.data)[0];
                 var html = $(vm.html).closest("form").clone();
                 angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));

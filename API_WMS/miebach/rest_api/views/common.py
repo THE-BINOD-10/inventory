@@ -31,6 +31,7 @@ from django.core.files.base import ContentFile
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Sum, Count
 import math
+from django.db.models import Max
 import re
 log = init_logger('logs/common.log')
 # Create your views here.
@@ -1601,14 +1602,17 @@ def search_wms_codes(request, user=''):
     return HttpResponse(json.dumps(wms_codes))
 
 def get_order_id(user_id):
-    """
-    order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).order_by('-order_id')
+    order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).order_by('-creation_date')
     if order_detail_id:
         order_id = int(order_detail_id[0].order_id) + 1
     else:
         order_id = 1001
-    """
-    order_id = time.time()* 1000000
+
+    #order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).aggregate(Max('order_id'))
+
+    #order_id = int(order_detail_id['order_id__max']) + 1
+    #order_id = time.time()* 1000000
+
     return order_id
 
 def check_and_update_stock(wms_codes, user):
@@ -2891,3 +2895,21 @@ def check_ean_number(sku_code, ean_number, user):
     if ean_check:
         status = 'Ean Number is already mapped for sku codes ' + ', '.join(ean_check)
     return status
+
+def get_seller_reserved_stocks(dis_seller_ids, sell_stock_ids, user):
+    reserved_dict = OrderedDict()
+    raw_reserved_dict = OrderedDict()
+    for seller in dis_seller_ids:
+        pick_params = {'status': 1, 'picklist__order__user': user.id}
+        rm_params = {'status': 1, 'material_picklist__jo_material__material_code__user': user.id}
+        stock_id_dict = filter(lambda d: d['seller__seller_id'] == seller, sell_stock_ids)
+        if stock_id_dict:
+            stock_ids = map(lambda d: d['stock_id'], stock_id_dict)
+            pick_params['stock_id__in'] = stock_ids
+            rm_params['stock_id__in'] = stock_ids
+        reserved_dict[seller] = dict(PicklistLocation.objects.filter(**pick_params).\
+                                     values_list('stock__sku__wms_code').distinct().annotate(reserved=Sum('reserved')))
+        raw_reserved_dict[seller] = dict(RMLocation.objects.filter(**rm_params).\
+                                           values('material_picklist__jo_material__material_code__wms_code').distinct().\
+                                           annotate(rm_reserved=Sum('reserved')))
+    return reserved_dict, raw_reserved_dict

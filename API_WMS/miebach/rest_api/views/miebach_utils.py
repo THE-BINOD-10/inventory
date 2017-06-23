@@ -602,7 +602,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'stock_summary_report': 'get_stock_summary_data', 'daily_production_report': 'get_daily_production_data',
                         'order_summary_report': 'get_order_summary_data', 'seller_invoices_filter': 'get_seller_invoices_filter_data',
                         'open_jo_report': 'get_openjo_details', 'grn_inventory_addition': 'get_grn_inventory_addition_data',
-                        'sales_returns_addition': 'get_returns_addition_data'
+                        'sales_returns_addition': 'get_returns_addition_data',
+                        'seller_stock_summary_replace': 'get_seller_stock_summary_replace'
                        }
 # End of Download Excel Report Mapping
 
@@ -687,7 +688,8 @@ EASYOPS_CANCEL_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumbe
                                 'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]'}
 # End of Easyops Integration Mapping Dictionaries
 
-ORDER_DETAIL_STATES = {0: 'Picklist generated', 1: 'Newly Created', 2: 'Dispatched', 3: 'Cancelled', 4: 'Returned'}
+ORDER_DETAIL_STATES = {0: 'Picklist generated', 1: 'Newly Created', 2: 'Dispatched', 3: 'Cancelled', 4: 'Returned',
+                       5: 'Delivery Reschedule Cancelled'}
 
 PAYMENT_MODES = ['Credit Card', 'Debit Card', 'Cash', 'NEFT', 'RTGS', 'IMPS', 'Online Transfer', 'Cash Remittance', 'Cheque']
 
@@ -1034,7 +1036,7 @@ def get_dispatch_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    search_parameters['status__contains'] = 'picked'
+    search_parameters['status__in'] = ['picked', 'batch_picked', 'dispatched']
     search_parameters['stock__gt'] = 0
     search_parameters['order__user'] = user.id
     search_parameters['stock__sku_id__in'] = sku_master_ids
@@ -1170,21 +1172,21 @@ def get_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc', 'purchase_order__open_po__sku__sku_class',
                'purchase_order__open_po__sku__style_name', 'purchase_order__open_po__sku__sku_brand',
                'purchase_order__open_po__sku__sku_category', 'total_received', 'purchase_order__open_po__price', 'id',
-               'purchase_order__open_po__tax', 'id', 'seller_po__margin_percent', 'id', 'id', 'id']
+               'purchase_order__open_po__tax', 'id', 'seller_po__margin_percent', 'id', 'id', 'id', 'seller_po__receipt_type']
         model_name = SellerPOSummary
         field_mapping = {'from_date': 'purchase_order__creation_date', 'to_date': 'purchase_order__creation_date',
                          'order_id': 'purchase_order__order_id', 'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
                          'user': 'purchase_order__open_po__sku__user', 'sku_id__in': 'purchase_order__open_po__sku_id__in',
                          'prefix': 'purchase_order__prefix', 'supplier_id': 'purchase_order__open_po__supplier_id',
-                         'supplier_name': 'purchase_order__open_po__supplier__name'}
+                         'supplier_name': 'purchase_order__open_po__supplier__name', 'receipt_type': 'seller_po__receipt_type'}
         result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                          'purchase_order__open_po__sku__sku_class', 'purchase_order__open_po__sku__style_name',
                          'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category',
                          'purchase_order__received_quantity', 'purchase_order__open_po__price', 'purchase_order__open_po__tax',
-                         'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price']
+                         'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id', 'seller_po__receipt_type']
         excl_status = {'purchase_order__status': ''}
-        rec_quan = 'purchase_order__received_quantity'
+        rec_quan = 'quantity'
     else:
         lis = ['order_id', 'open_po__supplier_id', 'open_po__supplier__name', 'total_received']
         unsorted_dict = {}
@@ -1248,7 +1250,8 @@ def get_po_filter_data(search_params, user, sub_user):
             temp_data['aaData'].append(OrderedDict(( ('PO Number', po_number), ('Supplier ID', data[field_mapping['supplier_id']]),
                                                      ('Supplier Name', data[field_mapping['supplier_name']]),
                                                      ('Total Quantity', data['total_received']),
-                                                     ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]})
+                                                     ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),
+                                                     ('key', 'po_id'), ('receipt_type', 'Purchase Order')
                                                   )))
         else:
             amount = float(data['total_received'] * data['purchase_order__open_po__price'])
@@ -1277,7 +1280,9 @@ def get_po_filter_data(search_params, user, sub_user):
                                                      ('Tax', data['purchase_order__open_po__tax']), ('Post-Tax Received Value', post_amount),
                                                      ('Margin %', data['seller_po__margin_percent']), ('Margin', margin_price),
                                                      ('Invoiced Unit Rate', final_price),
-                                                     ('Invoiced Total Amount',invoice_total_amount)
+                                                     ('Invoiced Total Amount',invoice_total_amount),
+                                                     ('DT_RowAttr', {'data-id': data['id']}), ('key', 'po_summary_id'),
+                                                     ('receipt_type', data['seller_po__receipt_type'])
                                                  )))
     if stop_index and custom_search:
         if temp_data['aaData']:
@@ -1615,7 +1620,7 @@ def get_order_summary_data(search_params, user, sub_user):
     order_ids = OrderDetail.objects.filter(status=1,user= user.id).values_list('order_id', flat=True).distinct()
     partial_generated = Picklist.objects.filter(order__user= user.id, order__order_id__in=order_ids).values_list('order__order_id', flat=True).distinct()
     dispatched = OrderDetail.objects.filter(status=2,user= user.id).values_list('order_id', flat=True).distinct()
-
+    reschedule_cancelled = OrderDetail.objects.filter(status=5,user= user.id).values_list('order_id', flat=True).distinct()
 
     _status = ""
     if status_search:
@@ -1682,6 +1687,8 @@ def get_order_summary_data(search_params, user, sub_user):
                 status = ORDER_SUMMARY_REPORT_STATUS[4]
             if data.order_id in dispatched:
                 status = ORDER_DETAIL_STATES.get(2, '')
+            if data.order_id in reschedule_cancelled:
+                status = ORDER_DETAIL_STATES.get(5, '')
         else:
             status = _status
 
@@ -1945,6 +1952,57 @@ def get_returns_addition_data(search_params, user, sub_user):
                                                  ('Seller ID', seller_id),
                                                  ('Quantity', data['total_received']),
                                                  ('Price', invoice_amount), ('Type', 'ADD'),
+                                             )))
+    return temp_data
+
+def get_seller_stock_summary_replace(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort, get_seller_reserved_stocks
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+
+    search_parameters = {}
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    temp_data = copy.deepcopy( AJAX_DATA )
+    temp_data['draw'] = search_params.get('draw')
+
+    if 'seller_id' in search_params:
+        search_parameters['seller__seller_id'] = search_params['seller_id']
+
+
+    search_parameters['seller__user'] = user.id
+    search_parameters['stock__sku_id__in'] = sku_master_ids
+    query_data = SellerStock.objects.filter(**search_parameters).exclude(stock__location__zone__zone='DAMAGED_ZONE')
+    model_data = query_data.values('seller__seller_id', 'stock__sku__sku_code').distinct().annotate(total_received=Sum('quantity'))
+
+    dis_seller_ids = query_data.values_list('seller__seller_id', flat=True).distinct()
+    sell_stock_ids = query_data.values('seller__seller_id', 'stock_id')
+    reserved_dict, raw_reserved_dict = get_seller_reserved_stocks(dis_seller_ids, sell_stock_ids, user)
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in model_data:
+        reserved = 0
+        current_time = get_local_date(user, datetime.datetime.now(), send_date=True)
+        date_time = current_time.strftime('%Y%m%d_%H%M')
+        if data['seller__seller_id'] in reserved_dict.keys():
+            if data['stock__sku__sku_code'] in reserved_dict[data['seller__seller_id']].keys():
+                reserved = reserved_dict[data['seller__seller_id']][data['stock__sku__sku_code']]
+        if data['seller__seller_id'] in raw_reserved_dict.keys():
+            if data['stock__sku__sku_code'] in raw_reserved_dict[data['seller__seller_id']].keys():
+                reserved += raw_reserved_dict[data['seller__seller_id']][data['stock__sku__sku_code']]
+        quantity = data['total_received'] - reserved
+        if quantity < 0:
+            quantity = 0
+        sku_code = str(data['stock__sku__sku_code'])
+        transaction_id = 'REPLACE_%s_%s_%s' % (str(data['seller__seller_id']), sku_code, date_time)
+        temp_data['aaData'].append(OrderedDict(( ('Transaction ID', transaction_id),
+                                                 ('Product Code', sku_code),
+                                                 ('Seller ID', data['seller__seller_id']),
+                                                 ('Quantity', quantity),
+                                                 ('Price', 0), ('Type', 'REPLACE'),
                                              )))
     return temp_data
 

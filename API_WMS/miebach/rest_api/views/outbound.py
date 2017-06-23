@@ -4655,9 +4655,15 @@ def generate_customer_invoice(request, user=''):
                 order = seller_summary[0].seller_order.order
             else:
                 order = seller_summary[0].order
-
-            buyer_address = order.customer_name + '\n' + order.address + "\nCall: " \
+            order_d = CustomerMaster.objects.filter(customer_id=order.customer_id,user=user.id)
+            if order_d:
+                order_d = order_d[0]
+                buyer_address = order_d.name + '\n' + order_d.address + "\nCall: " \
+                                + order_d.phone_number + "\nEmail: " + order_d.email_id +"\nTin: "+order_d.tin_number
+            else:
+                buyer_address = order.customer_name + '\n' + order.address + "\nCall: " \
                                 + order.telephone + "\nEmail: " + order.email_id
+
             invoice_date = seller_summary.order_by('-creation_date')[0].creation_date
         invoice_date = get_local_date(user, invoice_date, send_date='true')
         inv_month_year = invoice_date.strftime("%m-%y")
@@ -4667,10 +4673,14 @@ def generate_customer_invoice(request, user=''):
         invoice_no = invoice_data['invoice_no']
         if is_marketplace:
             invoice_no = user_profile.prefix + '/' + str(inv_month_year) + '/' + 'A-' + str(order.order_id)
+            invoice_data['order_id'] = sor_id
         if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
+
     except Exception as e:
+        import traceback
+        log.info(traceback.format_exc())
         log.info('Create customer invoice failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
         return HttpResponse(json.dumps({'message': 'failed'}))
     return HttpResponse(json.dumps(invoice_data, cls=DjangoJSONEncoder))

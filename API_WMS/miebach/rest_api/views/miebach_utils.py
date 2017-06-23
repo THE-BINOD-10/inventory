@@ -168,7 +168,7 @@ CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 1), ('credit
                                        ('pincode', 11), ('address', 12), ('price_type', 13)
                                     ))
 
-MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 2), ('pincode', 3), ('city', 4), ('phone_number', 1)
+MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('phone', 1), ('name', 2), ('address', 3), ('pincode', 4), ('city', 5), ('tin', 6)
                                                 ))
 
 SALES_RETURN_HEADERS = ['Return ID', 'Return Date', 'SKU Code', 'Product Description', 'Market Place', 'Quantity']
@@ -1615,6 +1615,8 @@ def get_order_summary_data(search_params, user, sub_user):
     order_ids = OrderDetail.objects.filter(status=1,user= user.id).values_list('order_id', flat=True).distinct()
     partial_generated = Picklist.objects.filter(order__user= user.id, order__order_id__in=order_ids).values_list('order__order_id', flat=True).distinct()
 
+    dispatched = OrderDetail.objects.filter(status=2,user= user.id).values_list('order_id', flat=True).distinct()
+
     _status = ""
     if status_search:
        #['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked'] 
@@ -1659,7 +1661,7 @@ def get_order_summary_data(search_params, user, sub_user):
     if stop_index:
         orders = orders[start_index:stop_index]
 
-
+    status =''
     for data in orders:
         date = get_local_date(user, data.creation_date).split(' ')
         order_id = str(data.order_code) + str(data.order_id)
@@ -1678,6 +1680,9 @@ def get_order_summary_data(search_params, user, sub_user):
                 status = ORDER_SUMMARY_REPORT_STATUS[3]
             if data.order_id in partial_generated:
                 status = ORDER_SUMMARY_REPORT_STATUS[4]
+            if data.order_id in dispatched:
+                status = ORDER_DETAIL_STATES.get(2, '')
+
         else:
             status = _status
 

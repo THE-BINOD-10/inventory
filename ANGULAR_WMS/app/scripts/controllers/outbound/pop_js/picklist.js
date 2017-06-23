@@ -32,12 +32,12 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
 
            view_orders();
          } else {
-         pull_confirmation();
-         angular.copy(vm.model_data.sku_total_quantities ,vm.remain_quantity);
-         vm.count_sku_quantity();
+           pull_confirmation();
+           angular.copy(vm.model_data.sku_total_quantities ,vm.remain_quantity);
+           vm.count_sku_quantity();
+         }
          vm.bt_disable = false;
          Service.pop_msg(data.data.stock_status);
-         }
        };
     });
   }

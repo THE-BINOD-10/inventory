@@ -1,10 +1,10 @@
-<div class="page-layout">
+<div class="page-layout" style="background:#f0f0f0">
   <div class='layout-header'>
     <div class="pull-left" ng-include="'views/common/title.html'"></div>
   </div>
   <div class="layout-body">
     <div ng-controller="Uploads">
-      <div class="col-md-4" ng-repeat="upload in uploads" ng-if="upload.show">
+      <div class="col-md-4" ng-repeat="upload in uploads" ng-show="show_tab(upload.perm)">
         <div class="panel" style="margin-bottom: 20px;">
           <div class="panel-heading border">
             {{upload.title}}

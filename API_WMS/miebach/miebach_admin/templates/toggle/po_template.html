@@ -5,7 +5,7 @@
         <table style="font-size:12px;width:480px">
           <tbody>
             <tr>
-              <td rowspan="3" style="text-align:left;width:380px;"><h4>Purchase Order</h4></td>
+              <td rowspan="3" style="text-align:left;width:380px;"><h4>{{title}}</h4></td>
               {% if company_name %}
               <td style="text-align:center;">{{company_name }}</td>
               {% endif %}
@@ -40,7 +40,7 @@
             </div>
           <div style="float: right;">
             <p><b>Order ID:</b> {{ order_id }}</p>
-            <p><b>PO Reference:</b> {{ po_reference }}</p>
+            <p><b>{% if receipt_type == 'Hosted Warehouse'%} STN Reference: {% else %} PO Reference: {% endif %}</b> {{ po_reference }}</p>
             <p><b>Date:</b> {{ order_date }}</p>
           </div>
           <br/> <br/>

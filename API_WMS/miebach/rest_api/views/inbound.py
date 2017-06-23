@@ -914,6 +914,12 @@ def confirm_po(request, user=''):
     po_reference = '%s%s_%s' % (order.prefix, str(order_date).split(' ')[0].replace('-', ''), order_id)
 
     profile = UserProfile.objects.get(user=request.user.id)
+
+    title = 'Purchase Order'
+    receipt_type = request.GET.get('receipt_type', '')
+    if receipt_type == 'Hosted Warehouse':
+        title = 'Stock Transfer Note'
+
     if ean_flag:
         table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount', 'Remarks')
     else:
@@ -921,7 +927,7 @@ def confirm_po(request, user=''):
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'company_name': profile.company_name,
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
-                 'vendor_telephone': vendor_telephone, 'total_qty': total_qty}
+                 'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type, 'title': title}
     t = loader.get_template('templates/toggle/po_download.html')
     c = Context(data_dict)
     rendered = t.render(c)
@@ -2241,9 +2247,12 @@ def save_return_imeis(user, returns, status, imei_numbers):
             dam_imei = imei.split('<<>>')
             imei = dam_imei[0]
             reason = dam_imei[1]
-        order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=imei, order__sku__user=user.id)
+        order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=imei, order__sku__user=user.id, status=1)
         if not order_imei:
             continue
+        elif order_imei:
+            order_imei[0].status = 0
+            order_imei[0].save()
         returns_imei = ReturnsIMEIMapping.objects.filter(order_return__sku__user=user.id, order_imei_id=order_imei[0].id)
         if not returns_imei:
             ReturnsIMEIMapping.objects.create(order_imei_id=order_imei[0].id, status=status, reason=reason,
@@ -2528,6 +2537,7 @@ def putaway_data(request, user=''):
         old_loc = ""
         if po_loc_data:
             old_loc = po_loc_data[0].location_id
+
         if not value:
             continue
         count = value
@@ -3396,17 +3406,23 @@ def confirm_add_po(request, sales_data = '', user=''):
 
     profile = UserProfile.objects.get(user=request.user.id)
 
+    title = 'Purchase Order'
+    receipt_type = request.GET.get('receipt_type', '')
+    if receipt_type == 'Hosted Warehouse':
+        title = 'Stock Transfer Note'
+
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'user_name': request.user.username,
                  'total_qty': total_qty, 'company_name': profile.company_name, 'location': profile.location, 'w_address': profile.address,
                  'company_name': profile.company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
-                 'vendor_telephone': vendor_telephone}
+                 'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title}
 
     t = loader.get_template('templates/toggle/po_download.html')
     c = Context(data_dict)
     rendered = t.render(c)
     send_message = 'false'
     data = MiscDetail.objects.filter(user=user.id, misc_type='send_message')
+
     if data:
         send_message = data[0].misc_value
     if send_message == 'true':
@@ -3455,7 +3471,7 @@ def confirm_po1(request, user=''):
     po_data = []
     total = 0
     total_qty = 0
-    status_dict = {'Self Receipt': 'SR', 'Vendor Receipt': 'VR'}
+    status_dict = {'Self Receipt': 'SR', 'Vendor Receipt': 'VR', 'Hosted Warehouse': 'HW'}
     myDict = dict(request.GET.iterlists())
     ean_flag = False
     for key, value in myDict.iteritems():

@@ -4,6 +4,7 @@ from django.http import HttpResponse
 from django.utils.encoding import smart_str
 import copy
 import json
+import time
 from itertools import chain
 from django.db.models import Q, F
 from collections import OrderedDict
@@ -138,6 +139,62 @@ def update_seller_order(seller_order_dict, order, user):
         seller_order.status = 1
         seller_order.save()
 
+@fn_timer
+def check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict, order_summary_dict, sku_ids,
+                         sku_masters_dict, all_sku_decs, user):
+    sku_codes = str(cell_data).split(',')
+    for cell_data in sku_codes:
+        if isinstance(cell_data, float):
+            cell_data = str(int(cell_data))
+        order_data['sku_id'] = sku_masters_dict[cell_data]
+        #sku_master=SKUMaster.objects.filter(sku_code=cell_data, user=user.id)
+        #if sku_master:
+        #    order_data['sku_id'] = sku_master[0].id
+        if not 'title' in order_mapping.keys():
+            order_data['title'] = all_sku_decs[cell_data]
+
+        order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], sku_id=order_data['sku_id'], user=user.id)
+        order_create = True
+        if user_profile.user_type == 'marketplace_user':
+            if not seller_order_dict['seller_id'] or (not seller_order_dict.get('order_status','') in ['PROCESSED', 'DELIVERY_RESCHEDULED']):
+                order_create = False
+            elif seller_order_dict['seller_id'] and seller_order_dict.get('order_status','') == 'DELIVERY_RESCHEDULED':
+                seller_order_ins = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order__order_id=order_data['order_id'],
+                                                              order__sku_id=order_data['sku_id'],
+                                                              seller__user=user.id, order_status='PROCESSED')
+                if not seller_order_ins:
+                    order_create = False
+        if not order_obj and order_create:
+            if not order_mapping.has_key('shipment_date'):
+                order_data['shipment_date'] = datetime.datetime.now()
+            order_detail = OrderDetail(**order_data)
+            order_detail.save()
+            check_create_seller_order(seller_order_dict, order_detail, user)
+            if order_data['sku_id'] not in sku_ids:
+                sku_ids.append(order_data['sku_id'])
+
+            order_summary_dict['order_id'] = order_detail.id
+            time_slot = get_local_date(user, datetime.datetime.now())
+            order_summary_dict['shipment_time_slot'] = " ".join(time_slot.split(" ")[-2:])
+            order_summary = CustomerOrderSummary(**order_summary_dict)
+            order_summary.save()
+
+        elif order_data['sku_id'] in sku_ids and order_create:
+            order_obj = order_obj[0]
+            order_obj.quantity = order_obj.quantity + order_data['quantity']
+            order_obj.save()
+            check_create_seller_order(seller_order_dict, order_obj, user)
+        elif order_obj and order_create and seller_order_dict.get('seller_id', '') and \
+             seller_order_dict.get('order_status') == 'DELIVERY_RESCHEDULED':
+            order_obj = order_obj[0]
+            if int(order_obj.status) in [2, 4, 5]:
+                order_obj.status = 1
+                update_seller_order(seller_order_dict, order_obj, user)
+                order_obj.save()
+
+        log.info("Order Saving Ended %s" %(datetime.datetime.now()))
+    return sku_ids
+
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
     log.info("order upload started")
     st_time = datetime.datetime.now()
@@ -148,13 +205,14 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
     count = 0
     exclude_rows = []
-    log.info("aaaaaaaa %s" %datetime.datetime.now())
+    sku_masters_dict = {}
+    log.info("Validation Started %s" %datetime.datetime.now())
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
 
         count += 1
-        if  order_mapping.has_key('seller'):
+        if order_mapping.has_key('seller'):
             seller_id = get_cell_data(row_idx, order_mapping['seller'], reader, file_type)
             seller_master = None
             if seller_id:
@@ -164,6 +222,11 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             if not seller_master or not seller_id:
                 exclude_rows.append(row_idx)
                 continue
+        if order_mapping.has_key('order_id'):
+            cell_data = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
+            if not cell_data:
+                index_status.setdefault(count, set()).add('Order Id should not be empty')
+
         cell_data = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
         title = ''
         if order_mapping.has_key('title'):
@@ -177,11 +240,12 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             sku_code = cell_data.upper()
 
         sku_codes = sku_code.split(',')
-        log.info("bbbbbb %s" %(datetime.datetime.now()))
         for sku_code in sku_codes:
             sku_id = check_and_return_mapping_id(sku_code, title, user)
             if not sku_id:
                 index_status.setdefault(count, set()).add('SKU Mapping Not Available')
+            elif not sku_masters_dict.has_key(sku_code):
+                sku_masters_dict[sku_code] = sku_id
 
         if  order_mapping.has_key("shipment_check"):
             _shipping_date = get_cell_data(row_idx, order_mapping['shipment_date'], reader, file_type)
@@ -213,7 +277,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     sku_ids = []
 
     user_profile = UserProfile.objects.get(user_id=user.id)
-    log.info("cccccccccc %s" %(datetime.datetime.now()))
+    log.info("Validation Ended %s" %(datetime.datetime.now()))
+    all_sku_decs = dict(SKUMaster.objects.filter(user=user.id).values_list('sku_code', 'sku_desc'))
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
@@ -226,7 +291,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             order_data['marketplace'] = order_mapping['marketplace']
         if order_mapping.get('status', '') and get_cell_data(row_idx, order_mapping['status'], reader, file_type) != 'New':
             continue
-        log.info("eeeeeee %s" %(datetime.datetime.now()))
+        log.info("Order data Processing Started %s" %(datetime.datetime.now()))
         for key, value in order_mapping.iteritems():
             if key in ['marketplace', 'status', 'split_order_id', 'recreate', 'shipment_check'] or key not in order_mapping.keys():
                 continue
@@ -252,6 +317,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     if order_code:
                         order_data['order_code'] = order_code
                 else:
+                    #order_data['order_id'] = int(str(time.time()).replace(".", ""))
+                    #order_data['order_id'] = time.time()* 1000000
                     order_data['order_id'] = get_order_id(user.id)
                     order_data['order_code'] = 'MN'
 
@@ -388,13 +455,12 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data[key] = get_cell_data(row_idx, value, reader, file_type)
 
         order_data['user'] = user.id
-        log.info("hhhhh %s" %(datetime.datetime.now()))
+        log.info("Order data processing ended%s" %(datetime.datetime.now()))
         if not order_data.has_key('quantity'):
             order_data['quantity'] = 1
 
         seller_order_dict['quantity'] = order_data['quantity']
 
-        log.info("iiiiii %s" %(datetime.datetime.now()))
         if type(sku_code) == float:
             cell_data = int(sku_code)
         else:
@@ -404,64 +470,9 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             order_data['order_id'] = get_order_id(user_id)
             order_data['order_code'] = 'MN'
 
-        log.info("jjjjjjjjj %s" %(datetime.datetime.now()))
-        sku_codes = str(cell_data).split(',')
-        for cell_data in sku_codes:
-            sku_master=SKUMaster.objects.filter(sku_code=cell_data, user=user.id)
-            if sku_master:
-                order_data['sku_id'] = sku_master[0].id
-                if not 'title' in order_mapping.keys():
-                    order_data['title'] = sku_master[0].sku_desc
-            else:
-                market_mapping = ''
-                if cell_data:
-                    market_mapping = MarketplaceMapping.objects.filter(marketplace_code=cell_data, sku__user=user.id, sku__status=1)
-                if not market_mapping and order_data['title']:
-                    market_mapping = MarketplaceMapping.objects.filter(description=order_data['title'], sku__user=user.id, sku__status=1)
-                if market_mapping:
-                    order_data['sku_id'] = market_mapping[0].sku_id
-                    if not 'title' in order_mapping.keys():
-                        order_data['title'] = market_mapping[0].sku.sku_desc
-                #else:
-                #    order_data['sku_id'] = SKUMaster.objects.get(sku_code='TEMP', user=user.id).id
-                #    order_data['sku_code'] = sku_code
-
-            order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], sku=order_data['sku_id'], user=user.id)
-            order_create = True
-            if user_profile.user_type == 'marketplace_user':
-                if not seller_order_dict['seller_id'] or (not seller_order_dict.get('order_status','') in ['PROCESSED', 'DELIVERY_RESCHEDULED']):
-                    order_create = False
-            if not order_obj and order_create:
-                if not order_mapping.has_key('shipment_date'):
-                    order_data['shipment_date'] = datetime.datetime.now()
-                order_detail = OrderDetail(**order_data)
-                order_detail.save()
-                check_create_seller_order(seller_order_dict, order_detail, user)
-                if order_data['sku_id'] not in sku_ids:
-                    sku_ids.append(order_data['sku_id'])
-                #if order_summary_dict.get('vat', '') or order_summary_dict.get('tax_value', '') or order_summary_dict.get('mrp', '') or\
-                #                         order_summary_dict.get('discount', ''):
-
-                order_summary_dict['order_id'] = order_detail.id
-                time_slot = get_local_date(user, datetime.datetime.now())
-                order_summary_dict['shipment_time_slot'] = " ".join(time_slot.split(" ")[-2:])
-                order_summary = CustomerOrderSummary(**order_summary_dict)
-                order_summary.save()
-
-            elif order_data['sku_id'] in sku_ids and order_create:
-                order_obj = order_obj[0]
-                order_obj.quantity = order_obj.quantity + order_data['quantity']
-                order_obj.save()
-                check_create_seller_order(seller_order_dict, order_obj, user)
-            elif order_obj and order_create and seller_order_dict.get('seller_id', '') and \
-                 seller_order_dict.get('order_status') == 'DELIVERY_RESCHEDULED':
-                order_obj = order_obj[0]
-                if int(order_obj.status) in [2, 4]:
-                    order_obj.status = 1
-                    update_seller_order(seller_order_dict, order_obj, user)
-                    order_obj.save()
-
-            log.info("dddddd %s" %(datetime.datetime.now()))
+        log.info("Order Saving Started %s" %(datetime.datetime.now()))
+        sku_ids = check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict, order_summary_dict, sku_ids,
+                                       sku_masters_dict, all_sku_decs, user)
     return 'success'
 
 @csrf_exempt
@@ -906,7 +917,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 try:
-                    cell_data = str(re.sub(r'[^\x00-\x7F]+','', cell_data))
+                    cell_data = (str(re.sub(r'[^\x00-\x7F]+','', cell_data))).replace('\n', '')
                 except:
                     cell_data = ''
                 if sku_data and cell_data:

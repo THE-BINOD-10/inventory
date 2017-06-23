@@ -597,29 +597,48 @@ def sku_category_list(request, user=''):
 @login_required
 @get_admin_user
 def print_po_reports(request, user=''):
-    data_id = int(request.GET['data'])
-    results = PurchaseOrder.objects.filter(order_id = data_id, open_po__sku__user = user.id)
-    po_data = []
-    total = 0
-    for data in results:
-        po_data.append([data.open_po.sku.wms_code, data.open_po.sku.sku_desc, data.received_quantity, data.open_po.price])
-        total += data.open_po.order_quantity * data.open_po.price
+    receipt_type = ''
+    for key, data_id in request.GET.iteritems():
+        data_id = int(data_id)
+        po_data = []
+        if key == 'po_id':
+            results = PurchaseOrder.objects.filter(order_id = data_id, open_po__sku__user = user.id)
+        else:
+            results = SellerPOSummary.objects.filter(id=data_id, purchase_order__open_po__sku__user=user.id)
+        total = 0
+        for data in results:
+            if key == 'po_id':
+                po_data.append([data.open_po.sku.wms_code, data.open_po.sku.sku_desc, data.received_quantity, data.open_po.price])
+                total += data.received_quantity * data.open_po.price
+            else:
+                po_order = data.purchase_order
+                po_data.append([po_order.open_po.sku.wms_code, po_order.open_po.sku.sku_desc,
+                                data.quantity, po_order.open_po.price])
+                total += data.quantity * po_order.open_po.price
+            receipt_type = data.seller_po.receipt_type
 
-    if results:
-        address = results[0].open_po.supplier.address
-        address = '\n'.join(address.split(','))
-        telephone = results[0].open_po.supplier.phone_number
-        name = results[0].open_po.supplier.name
-        order_id = results[0].order_id
-        po_reference = '%s%s_%s' %(results[0].prefix, str(results[0].creation_date).split(' ')[0].replace('-', ''), results[0].order_id)
-        order_date = str(results[0].open_po.creation_date).split('+')[0]
-        user_profile = UserProfile.objects.get(user_id=user.id)
-        w_address = user_profile.address
-    table_headers = ('WMS CODE', 'Description', 'Received Quantity', 'Unit Price')
+        if results:
+            purchase_order = results[0]
+            if not key == 'po_id':
+                purchase_order = results[0].purchase_order
+            address = purchase_order.open_po.supplier.address
+            address = '\n'.join(address.split(','))
+            telephone = purchase_order.open_po.supplier.phone_number
+            name = purchase_order.open_po.supplier.name
+            order_id = purchase_order.order_id
+            po_reference = '%s%s_%s' %(purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''), purchase_order.order_id)
+            order_date = str(purchase_order.open_po.creation_date).split('+')[0]
+            user_profile = UserProfile.objects.get(user_id=user.id)
+            w_address = user_profile.address
+        table_headers = ('WMS CODE', 'Description', 'Received Quantity', 'Unit Price')
+
+    title = 'Purchase Order'
+    if receipt_type == 'Hosted Warehouse':
+        title = 'Stock Transfer Note'
     return render(request, 'templates/toggle/po_template.html', {'table_headers': table_headers, 'data': po_data, 'address': address,
                            'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
                            'po_reference': po_reference, 'w_address': w_address, 'company_name': user_profile.company_name,
-                           'display': 'display-none' })
+                           'display': 'display-none', 'receipt_type': receipt_type, 'title': title})
 
 @csrf_exempt
 @get_admin_user
@@ -645,7 +664,7 @@ def excel_reports(request, user=''):
     report_data = func_name(search_params, user, request.user)
     if isinstance(report_data, tuple):
         report_data = report_data[0]
-    if temp[1] in ['grn_inventory_addition', 'sales_returns_addition'] and len(report_data['aaData']) > 0:
+    if temp[1] in ['grn_inventory_addition', 'sales_returns_addition', 'seller_stock_summary_replace'] and len(report_data['aaData']) > 0:
         headers = report_data['aaData'][0].keys()
         file_type = 'csv'
     excel_data = print_excel(request,report_data, headers, excel_name, file_type=file_type)

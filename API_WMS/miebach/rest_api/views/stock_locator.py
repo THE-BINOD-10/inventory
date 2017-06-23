@@ -1076,7 +1076,9 @@ def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order
     all_seller_stock = SellerStock.objects.filter(seller__user=user.id)
     dis_seller_ids = all_seller_stock.values_list('seller__seller_id', flat=True).distinct()
     sell_stock_ids = all_seller_stock.values('seller__seller_id', 'stock_id')
-    reserved_dict = OrderedDict()
+
+    reserved_dict, raw_reserved_dict = get_seller_reserved_stocks(dis_seller_ids, sell_stock_ids, user)
+    '''reserved_dict = OrderedDict()
     raw_reserved_dict = OrderedDict()
     for seller in dis_seller_ids:
         pick_params = {'status': 1, 'picklist__order__user': user.id}
@@ -1090,7 +1092,7 @@ def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order
                                      values_list('stock__sku__wms_code').distinct().annotate(reserved=Sum('reserved')))
         raw_reserved_dict[seller] = dict(RMLocation.objects.filter(**rm_params).\
                                            values('material_picklist__jo_material__material_code__wms_code').distinct().\
-                                           annotate(rm_reserved=Sum('reserved')))
+                                           annotate(rm_reserved=Sum('reserved')))'''
 
     temp_data['totalQuantity']  = 0
     temp_data['totalReservedQuantity']  = 0

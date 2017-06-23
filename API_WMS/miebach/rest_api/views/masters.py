@@ -1923,7 +1923,7 @@ def generate_barcode_dict(pdf_format, myDict, user):
     return constructed_url
 
 def barcode_service(key, data_to_send, format_name=''):
-    url = 'http://vinodh1251-001-site1.atempurl.com/Webservices/BarcodeServices.asmx/GetBarCode'
+    url = 'http://sandhani-001-site1.htempurl.com/Webservices/BarcodeServices.asmx/GetBarCode'
     if data_to_send:
         if format_name == 'format3':
             payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Adam', 'argBarcodeFormate' : key }

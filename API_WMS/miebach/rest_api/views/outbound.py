@@ -4027,9 +4027,14 @@ def update_order_data(request, user = ""):
     order_code = ''.join(re.findall('\D+', complete_id))
     older_objs = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id)
     old_cust_obj = ""
+    order_creation_date = datetime.datetime.now()
 
     if older_objs:
-        old_cust_obj = CustomerOrderSummary.objects.filter(order = older_objs[0].id)
+        older_order = older_objs[0]
+        old_cust_obj = CustomerOrderSummary.objects.filter(order = older_order.id)
+        order_creation_date = older_order.creation_date
+    else:
+        return HttpResponse("Order Creation Failed")
 
     for i in range(0, len(myDict['item_code'])):
         s_date = datetime.datetime.strptime(myDict['shipment_date'][0], '%d %b, %Y %H:%M %p')
@@ -4037,14 +4042,19 @@ def update_order_data(request, user = ""):
             continue
         sku_id = SKUMaster.objects.get(sku_code = myDict['item_code'][i], user = user.id)
 
-        default_dict = {'title': myDict['product_title'][i], 'quantity': myDict['quantity'][i], 'invoice_amount': myDict['invoice_amount'][i], 'user': user.id, 'customer_id': myDict['customer_id'][0], 'customer_name': myDict['customer_name'][0], 'telephone': myDict['phone'][0], "email_id": myDict['email'][0], 'address': myDict['address'][0], "shipment_date" : s_date, 'status': 1, "marketplace" : myDict['market_place'][0],
-         'remarks': myDict['remarks'][i]}
+        default_dict = {'title': myDict['product_title'][i], 'quantity': myDict['quantity'][i], 'invoice_amount': myDict['invoice_amount'][i],
+                        'user': user.id, 'customer_id': older_order.customer_id, 'customer_name': older_order.customer_name,
+                        'telephone': older_order.telephone, 'email_id': older_order.email_id, 'address': older_order.address,
+                        'shipment_date' : older_order.shipment_date, 'status': 1, "marketplace" : older_order.marketplace,
+                        'remarks': myDict['remarks'][i], 'original_order_id': older_order.original_order_id}
 
         order_obj, created = OrderDetail.objects.update_or_create(
             order_id = order_id, order_code = order_code, sku = sku_id, defaults = default_dict
             )
 
         if created:
+            order_obj.creation_date = order_creation_date
+            order_obj.save()
             if old_cust_obj:
                 CustomerOrderSummary.objects.create(order = order_obj, discount = old_cust_obj[0].discount, vat = old_cust_obj[0].vat, tax_value = old_cust_obj[0].tax_value, order_taken_by = old_cust_obj[0].order_taken_by, mrp  = old_cust_obj[0].mrp, tax_type = old_cust_obj[0].tax_type, status = old_cust_obj[0].status, central_remarks = old_cust_obj[0].central_remarks)
             else:

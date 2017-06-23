@@ -212,7 +212,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             break
 
         count += 1
-        if  order_mapping.has_key('seller'):
+        if order_mapping.has_key('seller'):
             seller_id = get_cell_data(row_idx, order_mapping['seller'], reader, file_type)
             seller_master = None
             if seller_id:
@@ -222,6 +222,11 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             if not seller_master or not seller_id:
                 exclude_rows.append(row_idx)
                 continue
+        if order_mapping.has_key('order_id'):
+            cell_data = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
+            if not cell_data:
+                index_status.setdefault(count, set()).add('Order Id should not be empty')
+
         cell_data = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
         title = ''
         if order_mapping.has_key('title'):

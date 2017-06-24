@@ -34,7 +34,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-file",
                    value: "",
                    show: true,
-                   perm: "add_inventoryadjustment"
+                   perm: "add_stockdetail"
                  }, {
                    title: "Supplier Download/ Upload",
                    download: "Download 	Supplier Form",
@@ -44,7 +44,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-supplier-file",
                    value: "",
                    show: true,
-                   perm: "add_inventoryadjustment"
+                   perm: "add_suppliermaster"
                  }, {
                    title: "Supplier-SKU Download/ Upload",
                    download: "Download Supplier-SKU Form",

@@ -141,15 +141,12 @@ def update_seller_order(seller_order_dict, order, user):
 
 @fn_timer
 def check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict, order_summary_dict, sku_ids,
-                         sku_masters_dict, all_sku_decs, user):
+                         sku_masters_dict, all_sku_decs, exist_created_orders, user):
     sku_codes = str(cell_data).split(',')
     for cell_data in sku_codes:
         if isinstance(cell_data, float):
             cell_data = str(int(cell_data))
         order_data['sku_id'] = sku_masters_dict[cell_data]
-        #sku_master=SKUMaster.objects.filter(sku_code=cell_data, user=user.id)
-        #if sku_master:
-        #    order_data['sku_id'] = sku_master[0].id
         if not 'title' in order_mapping.keys():
             order_data['title'] = all_sku_decs[cell_data]
 
@@ -168,7 +165,13 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
             if not order_mapping.has_key('shipment_date'):
                 order_data['shipment_date'] = datetime.datetime.now()
             order_detail = OrderDetail(**order_data)
+            order_creation_date = datetime.datetime.now()
+            exist_order_ins = list(exist_created_orders.filter(order_id=order_data['order_id'], order_code=order_data.get('order_code', '')))
             order_detail.save()
+            if exist_order_ins:
+                order_detail.creation_date = exist_order_ins[0].creation_date
+                order_detail.shipment_date = exist_order_ins[0].shipment_date
+                order_detail.save()
             check_create_seller_order(seller_order_dict, order_detail, user)
             if order_data['sku_id'] not in sku_ids:
                 sku_ids.append(order_data['sku_id'])
@@ -207,6 +210,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     exclude_rows = []
     sku_masters_dict = {}
     log.info("Validation Started %s" %datetime.datetime.now())
+    exist_created_orders = OrderDetail.objects.filter(user=user.id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO'])
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
@@ -472,7 +476,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
         log.info("Order Saving Started %s" %(datetime.datetime.now()))
         sku_ids = check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict, order_summary_dict, sku_ids,
-                                       sku_masters_dict, all_sku_decs, user)
+                                       sku_masters_dict, all_sku_decs, exist_created_orders, user)
     return 'success'
 
 @csrf_exempt

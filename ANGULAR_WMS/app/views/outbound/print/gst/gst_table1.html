@@ -1,0 +1,109 @@
+    <thead>
+      <tr class="rm-padding">
+        <th><center>SKU Code</center></th>
+        <th><center>HSN</center></th>
+        <th><center>Description</center></th>
+        <th><center>Unit Rate</center></th>
+        <!--<th ng-if="permissions.show_mrp">MRP</center></th>-->
+        <th><center>Qty</center></th>
+        <th><center>Base Price</center></th>
+        <th><center>Disc</center></th>
+        <th><center>Taxable Value</center></th>
+        <th><center>CGST</center></th>
+        <th><center>SGST</center></th>
+        <th><center>IGST</center></th>
+        <th><center>Total</center></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="rm-padding rm-brdr text-right" ng-repeat="record in showCase.pdf_data.data">
+        <td style="text-align: left;">{{record.sku_code}}</td>
+        <td style="text-align: left;">{{record.hsn_code}}</td>
+        <td style="text-align: left;">{{record.title}}</td>
+        <td>{{record.unit_price | number:2}}</td>
+        <td>{{record.quantity}}</td>
+        <td>{{record.base_price | number:2}}</td>
+        <!--<td ng-if="permissions.show_mrp">{{record.mrp_price | number:2}}</td>-->
+        <td class="text-right">{{record.discount}}<br><span class="hide" style="font-size:9px;font-weight: 100">@0%</span></td>
+        <td> {{record.amt | number:2}} </td>
+        <td class="text-right">{{record.taxes.cgst_amt}}<br><span style="font-size:9px;font-weight: 100">@{{record.taxes.cgst_tax}}%</span></td>
+        <td class="text-right">{{record.taxes.sgst_amt}}<br><span style="font-size:9px;font-weight: 100">@{{record.taxes.sgst_tax}}%</span></td>
+        <td class="text-right">{{record.taxes.igst_amt}}<br><span style="font-size:9px;font-weight: 100">@{{record.taxes.igst_tax}}%</span></td>
+        <td>{{record.invoice_amount | number:2}}</td>
+      </tr>
+      <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14);font-weight: bold;" class="rm-padding text-right">
+       <td colspan="3" style="text-align:left"><b>Total: </b></td>
+       <td></td>
+       <td>{{showCase.pdf_data.total_quantity}}</td>
+       <!--<td ng-if="permissions.show_mrp"></td>-->
+       <td></td>
+       <td></td>
+       <td>100.00</td>
+       <td>100.00</td>
+       <td>100.00</td>
+       <td>{{showCase.pdf_data.total_tax | number:2}}</td>
+       <td>{{showCase.pdf_data.total_invoice | number:2}}</td>
+      </tr>
+      <tr class="rm-padding" style="font-weight: bold;">
+        <td colspan='12'>
+          <div class="row" ng-repeat="charge in showCase.pdf_data.order_charges" ng-if="showCase.pdf_data.order_charges">
+            <div class="col-xs-6 text-right fs12">
+              {{charge.charge_name}}
+            </div>
+            <div class="col-xs-6 text-right">
+              {{charge.charge_amount | number:2}}
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-xs-6 text-right fs12">
+              Taxable Amount
+            </div>
+            <div class="col-xs-6 text-right fs12">
+              Rs {{showCase.pdf_data.total_taxable_amt | number:2}}
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-xs-6 text-right fs12">
+              Total Tax *
+            </div>
+            <div class="col-xs-6 text-right fs12">
+              Rs {{showCase.pdf_data.total_tax | number:2}}
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-xs-6 text-right fs12">
+              Invoice Total
+            </div>
+            <div class="col-xs-6 text-right fs12">
+              Rs {{showCase.pdf_data.total_invoice_amount | number:2}}
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-xs-6 text-right fs12">
+              Invoice Total (After rounding)
+            </div>
+            <div class="col-xs-6 text-right fs12">
+              Rs {{showCase.pdf_data.rounded_invoice_amount}}
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-xs-6 text-right fs12">
+              Invoice Total(In Words)
+            </div>
+            <div class="col-xs-6 text-right">
+              <span style="text-transform:uppercase"> {{showCase.pdf_data.price_in_words}}</span>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr class="rm-padding">
+        <td colspan='12' style="text-align:left;">
+          <b class="pull-left">Dispatched Via:</b>
+          <b class="pull-right">{{company_name}}</b><br>
+          <span>DECLARATION:</span><br>
+          <span>We declare that this invoice hows actual price of the goods described inclusive of taxes and that all particulars are true and correct.</span>
+        </td>
+      </tr>
+    </tfoot>

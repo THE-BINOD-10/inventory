@@ -54,7 +54,7 @@
                 </tr>
               </tbody>
             </table>
-            <table class="table table-bordered bl br md-table">
+            <!--<table class="table table-bordered bl br md-table">
               <thead>
                 <tr class="rm-padding">
                   <th class="w50">
@@ -121,7 +121,9 @@
                   </td>
                 </tr>
               </tfoot>
-            </table>
+            </table>-->
+            <table ng-include="'views/outbound/print/table1.html'" ng-if="(!(showCase.pdf_data.detailed_invoice))" class="table table-bordered bl br"></table>
+            <table ng-include="'views/outbound/print/table2.html'" ng-if="showCase.pdf_data.detailed_invoice" class="table table-bordered bl br"></table> 
           </div>
          </div>
         </div>

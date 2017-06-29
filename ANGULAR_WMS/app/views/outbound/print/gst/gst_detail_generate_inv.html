@@ -101,54 +101,45 @@
                   <th>
                     <center>SKU Description</center>
                   </th>
-                  <th class="w50">
-                    <center>Qty</center>
-                  </th>
-                  <th ng-if="permissions.show_mrp">
-                    <center>MRP(&#8377;)</center>
-                  </th>
-                  <th>
-                    <center>Rate</center>
-                  </th>
-                  <th class="w50">
-                    <center>Disc</center>
-                  </th>
-                  <th class="w50">
-                    <center>{{(showCase.pdf_data.tax_type)?showCase.pdf_data.tax_type: 'Tax'}}(%)</center>
-                  </th>
-                  <th>
-                    <center>Amt</center>
-                  </th>
-                  <th>
-                    <center>Tax</center>
-                  </th>
-                  <th>
-                    <center>Total</center>
-                  </th>
+                  <th style="width:70px"><center>HSN</center></th>
+                  <th><center>Unit Rate</center></th>
+                  <th><center>Qty</center></th>
+                  <th><center>Base Price</center></th>
+                  <th><center>Disc</center></th>
+                  <th><center>Taxable Value</center></th>
+                  <th><center>CGST</center></th>
+                  <th><center>SGST</center></th>
+                  <th><center>IGST</center></th>
+                  <th><center>Total</center></th>
                 </tr>
               </thead>
               <tbody>
-                <tr class="rm-padding rm-brdr" ng-repeat="record in showCase.pdf_data.data" style="padding-bottom:0px;">
-                  <td style="text-align: left;">
+                <tr class="rm-padding rm-brdr text-right" ng-repeat="record in showCase.pdf_data.data" style="padding-bottom:0px;">
+                  <td style="text-align: left;" colspan="2">
                     <b>{{record.category}}</b><br>
-                    <span ng-repeat="(main_class, record1) in record.styles">
-                      <span>{{main_class}}: </span>
-                        <span ng-repeat="sku_size in record1.display_sizes">{{sku_size}}-{{record1.sku_size[sku_size]}}
-                          <span ng-if="!($last)">,</span>
-                          <span ng-if="($last)"><br></span>
-                        </span>
-                    </span>
+                    <table style="width: 100%;margin-bottom: 0px;border: 0px;"><tbody>
+                      <tr ng-repeat="(main_class, record1) in record.styles">
+                        <td style="border:0px !important;">{{main_class}}:
+                          <span ng-repeat="sku_size in record1.display_sizes">{{sku_size}}-{{record1.sku_size[sku_size]}}
+                            <span ng-if="!($last)">,</span>
+                            <span ng-if="($last)"><br></span>
+                          </span>
+                        </td><td style="border:0px !important;text-align:right;width:65px;border-left:1px solid grey;">{{record.hsn_code}}</td>
+                      </tr>
+                    </tbody></table>
                   </td>
-                  <td><b>{{record.quantity}}</b></td>
-                  <td ng-if="permissions.show_mrp">{{record.mrp_price | number:2}}</td>
+                  <!--<td>{{record.hsn}}</td>-->
                   <td>{{record.price | number:2}}</td>
+                  <td><b>{{record.quantity}}</b></td>
+                  <td>{{record.invoice_amount}}</td>
                   <td>{{record.discount}}</td>
-                  <td>{{record.vat}}</td>
-                  <td>{{record.invoice_amount - record.tax | number:2}}</td>
+                  <td>{{record.invoice_amount}}</td>
+                  <td>{{record.tax | number:2}}</td>
+                  <td>{{record.tax | number:2}}</td>
                   <td>{{record.tax | number:2}}</td>
                   <td><b>{{record.invoice_amount | number:2}}</b></td>
                 </tr>
-                <tr ng-if="user.userName == 'sagar_fab'" style="height:{{showCase.p}}px;">
+                <!--<tr ng-if="user.userName == 'sagar_fab'" style="height:{{showCase.p}}px;">
                   <td></td>
                   <td></td>
                   <td ng-if="permissions.show_mrp"></td>
@@ -158,12 +149,14 @@
                   <td></td>
                   <td></td>
                   <td></td>
-                </tr>
+                </tr>-->
                 <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14)" class="rm-padding">
                   <td style="text-align:left"><b>Total: </b>
                   </td>
+                  <td></td>
+                  <td></td>
                   <td>{{showCase.pdf_data.total_quantity}}</td>
-                  <td ng-if="permissions.show_mrp"></td>
+                  <td></td>
                   <td></td>
                   <td></td>
                   <td></td>
@@ -172,7 +165,7 @@
                   <td>{{showCase.pdf_data.total_invoice | number:2}}</td>
                 </tr>
                 <tr class="rm-padding" ng-if="showCase.pdf_data.order_charges">
-                  <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+                  <td colspan='11' style="text-align:left;">
                     <div class="row">
                       <div class="col-xs-6">
                       </div>
@@ -188,17 +181,17 @@
                   </td>
                 </tr>
                 <tr class="rm-padding">
-                  <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+                  <td colspan='11' style="text-align:left;">
                     <b>Total amount (After rounding): &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{showCase.pdf_data.rounded_invoice_amount}}</span></b>
                   </td>
                 </tr>
                 <tr class="rm-padding">
-                  <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+                  <td colspan='11' style="text-align:left;">
                     <b>Amount in words: &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{showCase.pdf_data.price_in_words}}</span></b>
                   </td>
                 </tr>
                 <tr class="rm-padding" ng-if="user.userName == 'sagar_fab'">
-                  <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+                  <td colspan='11' style="text-align:left;">
                     <div class="row col-md-12">
                       <span><b>Bank details :</b></span>
                       <address class="no-margin" style="margin:0px;padding:0px">
@@ -212,7 +205,7 @@
                   </td>
                 </tr>
                 <tr class="rm-padding" ng-if="user.userName == 'sagar_fab' || user.userName == 'adam_clothing'">
-                  <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+                  <td colspan='11' style="text-align:left;">
                     <div class="row">
                       <div class="col-xs-6 fs12">
                         <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
@@ -231,7 +224,7 @@
               </tbody>
               <tfoot>
                 <tr class="rm-padding">
-                  <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+                  <td colspan='11' style="text-align:left;">
                     <b class="pull-left">Dispatched Via:</b>
                     <b class="pull-right">{{showCase.pdf_data.company_name}}</b><br>
                     <span>DECLARATION:</span><br>

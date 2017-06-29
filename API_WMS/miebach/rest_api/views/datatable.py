@@ -20,7 +20,9 @@ from retailone import *
 @fn_timer
 def sku_excel_download(search_params, temp_data, headers, user, request):
     sku_master, sku_master_ids = get_sku_master(user,request.user)
-    headers = SKU_MASTER_EXCEL_HEADERS
+    user_profile = UserProfile.objects.get(user=user.id)
+    headers = USER_SKU_EXCEL[user_profile.user_type]
+    excel_mapping = USER_SKU_EXCEL_MAPPING[user_profile.user_type]
     status_dict = {'1': 'Active', '0': 'Inactive'}
     #marketplace_list = Marketplaces.objects.filter(user=user.id).values_list('name').distinct()
     marketplace_list = MarketplaceMapping.objects.filter(sku__user=user.id).values_list('sku_type', flat=True).distinct()
@@ -57,28 +59,44 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
     excel_headers = headers
     wb, ws = get_work_sheet('skus', excel_headers)
     data_count = 0
+    rev_load_units = dict(zip(LOAD_UNIT_HANDLE_DICT.values(), LOAD_UNIT_HANDLE_DICT.keys()))
+    sku_fields = dict(SKUFields.objects.filter(sku__user=user.id, field_type='size_type').values_list('sku_id', 'field_value'))
     for data in sku_master:
         data_count += 1
         zone = ''
         if data.zone:
             zone = data.zone.zone
-        ws.write(data_count, 0, data.wms_code)
-        ws.write(data_count, 1, data.sku_desc)
-        ws.write(data_count, 2, data.sku_type)
-        ws.write(data_count, 3, data.sku_category)
-        ws.write(data_count, 4, data.sku_brand)
-        ws.write(data_count, 5, data.sku_class)
-        ws.write(data_count, 6, data.style_name)
-        ws.write(data_count, 7, data.sku_size)
-        ws.write(data_count, 8, data.sku_group)
-        ws.write(data_count, 9, data.color)
-        ws.write(data_count, 10, zone)
-        ws.write(data_count, 11, data.price)
-        ws.write(data_count, 12, data.mrp)
-        ws.write(data_count, 13, data.measurement_type)
-        ws.write(data_count, 14, data.sequence)
-        ws.write(data_count, 15, data.sale_through)
-        ws.write(data_count, 16, status_dict[str(int(data.status))])
+        ws.write(data_count, excel_mapping['wms_code'], data.wms_code)
+        ws.write(data_count, excel_mapping['sku_desc'], data.sku_desc)
+        ws.write(data_count, excel_mapping['sku_group'], data.sku_group)
+        ws.write(data_count, excel_mapping['sku_type'], data.sku_type)
+        ws.write(data_count, excel_mapping['sku_category'], data.sku_category)
+        ws.write(data_count, excel_mapping['sku_class'], data.sku_class)
+        ws.write(data_count, excel_mapping['sku_brand'], data.sku_brand)
+        ws.write(data_count, excel_mapping['style_name'], data.style_name)
+        if excel_mapping.has_key('sku_size'):
+            ws.write(data_count, excel_mapping['sku_size'], data.sku_size)
+        if excel_mapping.has_key('size_type'):
+            ws.write(data_count, excel_mapping['size_type'], sku_fields.get(data.id, ''))
+        if excel_mapping.has_key('mix_sku'):
+            ws.write(data_count, excel_mapping['mix_sku'], MIX_SKU_ATTRIBUTES.get(data.mix_sku, ''))
+        ws.write(data_count, excel_mapping['zone_id'], zone)
+        ws.write(data_count, excel_mapping['price'], data.price)
+        ws.write(data_count, excel_mapping['mrp'], data.mrp)
+        ws.write(data_count, excel_mapping['sequence'], data.sequence)
+        ws.write(data_count, excel_mapping['image_url'], data.image_url)
+        ws.write(data_count, excel_mapping['threshold_quantity'], data.threshold_quantity)
+        ws.write(data_count, excel_mapping['measurement_type'], data.measurement_type)
+        ws.write(data_count, excel_mapping['sale_through'], data.sale_through)
+        ws.write(data_count, excel_mapping['color'], data.color)
+        ean_number = ''
+        if data.ean_number:
+            ean_number = data.ean_number
+        ws.write(data_count, excel_mapping['ean_number'], ean_number)
+        if excel_mapping.has_key('load_unit_handle'):
+            ws.write(data_count, excel_mapping['load_unit_handle'], rev_load_units.get(data.load_unit_handle, '').capitalize())
+        ws.write(data_count, excel_mapping['hsn_code'], data.hsn_code)
+        ws.write(data_count, excel_mapping['status'], status_dict[str(int(data.status))])
         market_map = master_data.filter(sku_id=data.id).values('sku_id', 'sku_type').distinct()
         for dat in market_map:
             #map_dat = market_map.values('marketplace_code', 'description')
@@ -95,7 +113,9 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
 
     #return "daya pata karo"
     file_name = "%s.%s" % (user.id, 'SKU Master')
-    path = 'static/excel_files/' + file_name + '.xls'
+    folder_path = 'static/excel_files/'
+    folder_check(folder_path)
+    path = folder_path + file_name + '.xls'
     wb.save(path)
     path_to_file = '../' + path
     return path_to_file

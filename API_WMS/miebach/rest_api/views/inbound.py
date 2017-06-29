@@ -2001,6 +2001,8 @@ def confirm_grn(request, confirm_returns = '', user=''):
         else:
             return HttpResponse(status_msg)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Generate GRN Failed")
 
@@ -2166,6 +2168,8 @@ def create_default_zones(user, zone, location, sequence):
                                                         creation_date=datetime.datetime.now())
         log.info('%s created for user %s' % (zone, user.username))
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info(e)
         return []
     return [locations]
@@ -3601,6 +3605,8 @@ def save_qc_serials(key, scan_data, user, qc_id=''):
                     qc_serial = QCSerialMapping(**qc_serial_dict)
                     qc_serial.save()
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Save QC Serial failed for ' + str(scan_data) + ' error statement is ' + str(e))
 
 def get_return_seller_id(returns_id, user):
@@ -4035,6 +4041,10 @@ def generate_seller_invoice(request, user=''):
     all_data = OrderedDict()
     seller_po_ids = []
     sell_ids = {}
+    is_gst_invoice = False
+    gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
+    taxes_dict = {}
+    total_taxable_amt = 0
     for data_id in seller_summary_dat:
         splitted_data = data_id.split(':')
         sell_ids.setdefault('purchase_order__order_id__in', [])
@@ -4052,6 +4062,8 @@ def generate_seller_invoice(request, user=''):
         invoice_date = datetime.datetime.now()
 
     invoice_date = get_local_date(user, invoice_date, send_date='true')
+    if datetime.datetime.strptime('2017-06-01', '%Y-%m-%d').date() <= invoice_date.date():
+        is_gst_invoice = True
     inv_month_year = invoice_date.strftime("%m-%y")
     invoice_date = invoice_date.strftime("%d %b %Y")
     company_name = user_profile.company_name
@@ -4081,25 +4093,48 @@ def generate_seller_invoice(request, user=''):
             mrp_price = seller_po_summary.seller_po.unit_price
             if vat:
                 mrp_price = (mrp_price * 100)/(100+vat)
-        invoice_amount = float(mrp_price) * float(quantity)
-        tax = float(float(invoice_amount)/100) * vat
-        total_amount = invoice_amount + tax - discount
+        amt = float(mrp_price) * float(quantity)
+
+        base_price = "%.2f" % amt
+        if is_gst_invoice:
+            cgst_tax = 2
+            sgst_tax = 3
+            igst_tax = 0
+            cgst_amt = cgst_tax * (float(amt)/100)
+            sgst_amt = sgst_tax * (float(amt)/100)
+            igst_amt = igst_tax * (float(amt)/100)
+            tax = cgst_amt + sgst_amt + igst_amt
+            taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
+                          'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt, 'igst_amt': '%.2f' % igst_amt}
+        else:
+            tax = float(float(amt)/100) * vat
+
+        invoice_amount = amt + tax - discount
 
         total_tax += float(tax)
         total_mrp += float(mrp_price)
 
         unit_price = mrp_price
         unit_price = "%.2f" % unit_price
-        total_invoice += total_amount
+
+        #Adding Totals for Invoice
+        total_invoice += invoice_amount
         total_quantity += quantity
+        total_taxable_amt += amt
+
         cond = (open_po.sku.sku_code)
+
+        hsn_code = ''
+        if open_po.sku.hsn_code:
+            hsn_code = str(open_po.sku.hsn_code)
         all_data.setdefault(cond, {'order_id': po_number, 'sku_code': open_po.sku.sku_code, 'title': open_po.sku.sku_desc,
-                                   'invoice_amount': 0, 'quantity': 0, 'tax': 0, 'unit_price': unit_price, 'amount': 0,
+                                   'invoice_amount': 0, 'quantity': 0, 'tax': 0, 'unit_price': unit_price, 'amt': 0,
                                    'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': open_po.sku.sku_class,
-                                   'sku_category': open_po.sku.sku_category, 'sku_size': open_po.sku.sku_size})
+                                   'sku_category': open_po.sku.sku_category, 'sku_size': open_po.sku.sku_size, 'hsn_code': hsn_code,
+                                   'taxes': taxes_dict, 'base_price': base_price})
         all_data[cond]['quantity'] += quantity
         all_data[cond]['invoice_amount'] += invoice_amount
-        all_data[cond]['amount'] += total_amount
+        all_data[cond]['amt'] += amt
         all_data[cond]['tax'] += tax
 
 
@@ -4119,7 +4154,8 @@ def generate_seller_invoice(request, user=''):
                     'order_no': po_number, 'total_tax': "%.2f" % total_tax, 'total_mrp': total_mrp,
                     'invoice_no': invoice_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(total_invoice),
                     'total_invoice_amount': "%.2f" % total_invoice, 'seller_address': seller_address,
-                    'buyer_address': buyer_address}
+                    'buyer_address': buyer_address, 'is_gst_invoice': is_gst_invoice, 'gstin_no': gstin_no,
+                    'total_taxable_amt': "%.2f" % total_taxable_amt, 'rounded_invoice_amount': round(total_invoice)}
 
     return HttpResponse(json.dumps(invoice_data))
 
@@ -4171,6 +4207,8 @@ def check_imei_qc(request, user=''):
                                           ('SKU Brand', sku.sku_brand), ('SKU Category', sku.sku_category), ('SKU Class', sku.sku_class),
                                           ('Color', sku.color) ))
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info(e)
         return HttpResponse("Internal Server Error")
     return HttpResponse(json.dumps({'data_dict': qc_data, 'sku_data': sku_data, 'image': image,
@@ -4208,6 +4246,8 @@ def check_return_imei(request, user=''):
                                                 'return_type': order_return[0].return_type})
                 log.info(return_data)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info("Check Return Imei failed for params " + str(request.GET.dict()) + " and error statement is " + str(e))
 
     return HttpResponse(json.dumps(return_data))
@@ -4291,6 +4331,8 @@ def confirm_receive_qc(request, user=''):
         else:
             return HttpResponse(status_msg)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Generate GRN Failed")
 

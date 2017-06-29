@@ -623,7 +623,7 @@ var app = angular.module('urbanApp')
         })
           .state('app.inbound.SellerInvoice.Invoice', {
             url: '/Invoice',
-            templateUrl: 'views/inbound/print/seller_invoice.html'
+            templateUrl: 'views/inbound/print/seller_inv.html'
           })
 
       // Production routes
@@ -1089,7 +1089,19 @@ var app = angular.module('urbanApp')
           .state('app.outbound.PullConfirmation.GenerateInvoice', {
             url: '/Invoice',
             permission: 'add_picklistlocation',
-            templateUrl: 'views/outbound/print/generate_invoice.html'
+            templateUrl: 'views/outbound/print/generate_inv.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  {
+                    insertBefore: '#load_styles_before',
+                    files: [
+                                'styles/custom/page.css'
+                           ]
+                  }
+                ]);
+              }]
+            }
           })
           .state('app.outbound.PullConfirmation.barcode', {
             url: '/Barcode',
@@ -1098,7 +1110,7 @@ var app = angular.module('urbanApp')
           .state('app.outbound.PullConfirmation.DetailGenerateInvoice', {
             url: '/DetailInvoice',
             permission: 'add_picklist',
-            templateUrl: 'views/outbound/print/detail_generate_inv.html'
+            templateUrl: 'views/outbound/print/d_generate_inv.html'
           })
         .state('app.outbound.ShipmentInfo', {
           url: '/ShipmentInfo',
@@ -1180,15 +1192,28 @@ var app = angular.module('urbanApp')
         })
          .state('app.outbound.CustomerInvoices.InvoiceM', {
             url: '/InvoiceM',
-            templateUrl: 'views/outbound/print/customer_invoice.html'
+            templateUrl: 'views/outbound/print/customer_inv.html'
          })
          .state('app.outbound.CustomerInvoices.InvoiceN', {
             url: '/InvoiceN',
-            templateUrl: 'views/outbound/print/generate_invoice.html'
+            permission: 'add_picklistlocation',
+            templateUrl: 'views/outbound/print/generate_inv.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  {
+                    insertBefore: '#load_styles_before',
+                    files: [
+                                'styles/custom/page.css'
+                           ]
+                  }
+                ]);  
+              }]   
+            }
           })
           .state('app.outbound.CustomerInvoices.InvoiceD', {
             url: '/InvoiceD',
-            templateUrl: 'views/outbound/print/detail_generate_inv.html'
+            templateUrl: 'views/outbound/print/d_generate_inv.html'
           })
       // Upload route
       .state('app.uploads', {

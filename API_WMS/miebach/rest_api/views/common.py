@@ -1699,6 +1699,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     marketplace = ''
     total_quantity = 0
     total_amt = 0
+    total_taxable_amt = 0
     total_invoice = 0
     total_tax = 0
     total_mrp = 0
@@ -1707,6 +1708,8 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     order_no = ''
     _total_tax = 0
     purchase_type = ''
+    is_gst_invoice = False
+    gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
     invoice_date = datetime.datetime.now()
     if order_ids:
         order_ids = order_ids.split(',')
@@ -1715,7 +1718,10 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
         picklist_obj = picklist
         if picklist:
             invoice_date = picklist[0].updation_date
+        invoice_date = get_local_date(user, invoice_date, send_date='true')
 
+        if datetime.datetime.strptime('2017-06-01', '%Y-%m-%d').date() <= invoice_date.date():
+            is_gst_invoice = True
         for dat in order_data:
             order_id = dat.original_order_id
             order_no = str(dat.order_id)
@@ -1751,6 +1757,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             vat = 5.5
             discount = 0
             mrp_price = dat.sku.mrp
+            taxes_dict = {}
             order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=dat.id)
             tax_type = ''
             if order_summary:
@@ -1761,12 +1768,6 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                 tax_type = order_summary[0].tax_type
                 if order_summary[0].invoice_date:
                     invoice_date = order_summary[0].invoice_date
-            #else:
-            #    tax = float(float(dat.invoice_amount)/100) * vat
-
-            #total_invoice += float(dat.invoice_amount)
-            #total_quantity += int(dat.quantity)
-            #total_quantity =picklist_obj.filter(order__sku__sku_code=dat.sku.sku_code).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
             total_tax += float(tax)
             total_mrp += float(mrp_price)
 
@@ -1790,27 +1791,39 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             if dat.unit_price > 0:
                 unit_price = dat.unit_price
             else:
-                unit_price = ((float(dat.invoice_amount)/ float(dat.quantity))) - discount - (tax/float(dat.quantity))
+                unit_price = ((float(dat.invoice_amount)/ float(dat.quantity))) - (tax/float(dat.quantity))
 
-            amt = unit_price * quantity
-            #invoice_amount = (float(dat.invoice_amount)/ float(dat.quantity)) * quantity
+            amt = (unit_price * quantity) - discount
+            base_price = "%.2f" % (unit_price * quantity)
+            if is_gst_invoice:
+                cgst_tax = 0
+                sgst_tax = 0
+                igst_tax = 0
+                cgst_amt = cgst_tax * (float(amt)/100)
+                sgst_amt = sgst_tax * (float(amt)/100)
+                igst_amt = igst_tax * (float(amt)/100)
+                _tax = cgst_amt + sgst_amt + igst_amt
+                taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
+                              'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt, 'igst_amt': '%.2f' % igst_amt}
+            else:
+                _tax = (amt * (vat / 100))
+
             unit_price = "%.2f" % unit_price
-            #total_invoice += amt
             total_quantity += quantity
-            #_tax = (tax/float(dat.quantity) * quantity)
-            _tax = (amt * (vat / 100))
             _total_tax += _tax
             invoice_amount = _tax + amt
             total_invoice += _tax + amt
+            total_taxable_amt += amt
 
+            hsn_code = ''
+            if dat.sku.hsn_code:
+                hsn_code = str(dat.sku.hsn_code)
             data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
                          'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
                          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
-                         'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt})
-            #print data
-            #print total_invoice
+                         'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
+                         'base_price': base_price, 'hsn_code': hsn_code})
 
-    invoice_date = get_local_date(user, invoice_date, send_date='true')
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
     order_charges = {}
@@ -1824,7 +1837,6 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             total_invoice_amount = float(total_charge_amount) + total_invoice
 
     total_amt = "%.2f" % (float(total_invoice) - float(_total_tax))
-    #print total_invoice
     dispatch_through = "By Road"
     _total_invoice = round(total_invoice)
     _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
@@ -1835,8 +1847,9 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                     'invoice_no': _invoice_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(_total_invoice),
                     'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount, 'consignee': consignee,
                     'dispatch_through': dispatch_through, 'inv_date': inv_date, 'tax_type': tax_type,
-                    'rounded_invoice_amount': _total_invoice, 'purchase_type': purchase_type}
-    #print invoice_data
+                    'rounded_invoice_amount': _total_invoice, 'purchase_type': purchase_type, 'is_gst_invoice': is_gst_invoice,
+                    'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt}
+
     return invoice_data
 
 def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
@@ -2638,6 +2651,8 @@ def get_tally_data(request, user = ""):
         log.info('Tally data for ' + user.username + ' is ' + str(res))
         res['status'] = 1
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         res = {'status': 0, 'data': {}}
         log.info('Get Tally Data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
 
@@ -2724,6 +2739,8 @@ def save_tally_data(request, user = ""):
                                                             tax_percentage = val['vat_percentage'], creation_date=datetime.datetime.now())
         res = {'status': 1, 'message': 'Updated Successfully'}
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         res = {'status': 0, 'message': 'Updating Failed'}
         log.info('Save Tally Data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
     return HttpResponse(json.dumps(res))
@@ -2743,6 +2760,8 @@ def delete_tally_data(request, user = ""):
                 VatLedgerMapping.objects.filter(id=value, user_id=user.id).delete()
         res = {'status': 1, 'message': 'Deleted Successfully'}
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         res = {'status': 0, 'message': 'Deletion Failed'}
         log.info('Delete Tally Data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
     return HttpResponse(json.dumps(res))

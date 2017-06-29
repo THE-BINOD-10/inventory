@@ -185,7 +185,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     $('td:not(td:first)', nRow).unbind('click');
     $('td:not(td:first)', nRow).bind('click', function() {
-      if ((vm.g_data.view == 'CustomerOrderView') || (vm.g_data.view == 'OrderView')) {
+      if ((vm.g_data.view == 'CustomerOrderView') || (vm.g_data.view == 'OrderView') || (vm.g_data.view == 'SellerOrderView')) {
 
         $scope.$apply(function() {
 
@@ -193,7 +193,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           $state.go('app.outbound.ViewOrders.OrderDetails');
 
          //vm.market_place = aData['Market Place'];
-          vm.service.apiCall("get_view_order_details/", "GET", {id: $(aData[""]).attr('name'),order_id: aData["Order ID"]}).then(function(data){
+          var data = {};
+          var url = "get_view_order_details/";
+          if ((vm.g_data.view == 'CustomerOrderView') || (vm.g_data.view == 'OrderView')) {
+            data = {id: $(aData[""]).attr('name'),order_id: aData["Order ID"]}
+          } else if (vm.g_data.view == 'SellerOrderView') {
+            data = {id: $(aData[""]).attr('name'), sor_id: aData['SOR ID'], uor_id: aData['UOR ID']}
+            url = "get_seller_order_details/"
+          }
+          vm.service.apiCall(url, "GET", data).then(function(data){
 
             var all_order_details = data.data.data_dict[0].ord_data;
             vm.ord_status = data.data.data_dict[0].status;
@@ -207,10 +215,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             } else {
               vm.input_status = true;
             }
+
+            if(vm.g_data.view == 'SellerOrderView') {
+              vm.model_data["sor_id"] = aData['SOR ID'];
+            }
             vm.order_input_status = false;
 
             vm.model_data["central_remarks"]= data.data.data_dict[0].central_remarks;
             vm.model_data["all_status"] = data.data.data_dict[0].all_status;
+            vm.model_data["seller_data"] = data.data.data_dict[0].seller_details;
             angular.forEach(all_order_details, function(value, key){
 
 	          vm.customer_id = value.cust_id;
@@ -246,7 +259,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 	            vm.img_url = vm.service.check_image_url(img_url)
 	          }*/
               console.log(vm.model_data);
-              vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity, 
+              vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
               invoice_amount: vm.invoice_amount, image_url: vm.img_url, remarks: vm.remarks, default_status: true})
 	        });
 	      });

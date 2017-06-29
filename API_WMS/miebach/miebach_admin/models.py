@@ -79,6 +79,7 @@ class SKUMaster(models.Model):
     color = models.CharField(max_length=64, default='')
     ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default = 0)
     load_unit_handle = models.CharField(max_length=32, default='unit', db_index=True)
+    hsn_code = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default = 0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -246,6 +247,7 @@ class OpenPO(models.Model):
     supplier_code = models.CharField(max_length=32, default='')
     order_type = models.CharField(max_length=32, default='SR')
     remarks = models.CharField(max_length=256, default='')
+    tax_type = models.CharField(max_length=32, default='')
     tax = models.FloatField(default=0)
     status = models.CharField(max_length=32)
     measurement_unit = models.CharField(max_length=32, default = '')
@@ -866,6 +868,22 @@ class SellerMaster(models.Model):
         db_table = 'SELLER_MASTER'
         unique_together = ('user', 'seller_id')
         index_together = ('user', 'seller_id')
+
+    def json(self):
+        return {
+            'id': self.id,
+            'seller_id': self.seller_id,
+            'name': self.name,
+            'email_id': self.email_id,
+            'phone_number': self.phone_number,
+            'address': self.address,
+            'vat_number': self.vat_number,
+            'tin_number': self.tin_number,
+            'price_type': self.price_type,
+            'margin': self.margin,
+            'supplier': self.supplier.id,
+            'status': self.status
+          }
 
 class CustomerSKU(models.Model):
     id = BigAutoField(primary_key=True)

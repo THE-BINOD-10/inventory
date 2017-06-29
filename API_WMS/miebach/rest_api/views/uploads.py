@@ -483,6 +483,8 @@ def order_upload(request, user=''):
     try:
         upload_status = order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Order Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Order Upload Failed")
 
@@ -562,13 +564,11 @@ def sku_form(request, user=''):
     user_profile = UserProfile.objects.get(user_id=user.id)
 
     wb, ws = get_work_sheet('skus', USER_SKU_EXCEL[user_profile.user_type])
-    data = SKUMaster.objects.filter(wms_code='', user = user.id)
     for data_count, record in enumerate(data):
         if record.wms_code:
             continue
 
         data_count += 1
-        ws.write(data_count, 0, record.wms_code)
 
     return xls_to_response(wb, '%s.sku_form.xls' % str(user.id))
 
@@ -762,6 +762,13 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
                     ean_status = check_ean_number(sku_code, cell_data, user)
                     if ean_status:
                         index_status.setdefault(row_idx, set()).add(ean_status)
+
+            elif key == 'hsn_code':
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('HSN Code must be integer')
+                    elif len(str(int(cell_data))) == 8:
+                        index_status.setdefault(row_idx, set()).add('HSN Code should be 8 digit')
 
             elif key == 'sku_size':
                 if cell_data:
@@ -1001,6 +1008,8 @@ def sku_upload(request, user=''):
 
         sku_excel_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('SKU Master Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("SKU Master Upload Failed")
 
@@ -2463,6 +2472,8 @@ def customer_upload(request, user=''):
 
         customer_excel_upload(request, reader, user, no_of_rows, fname, file_type)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Customer Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Customer Upload Failed")
 

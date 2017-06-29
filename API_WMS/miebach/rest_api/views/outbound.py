@@ -3197,6 +3197,11 @@ def generate_order_invoice(request, user=''):
     #    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
     #c = Context(invoice_data)
     #rendered = t.render(c)
+    import base64
+    image = ""
+    with open("static/images/companies/trans_logo.jpg", "rb") as image_file:
+      image = base64.b64encode(image_file.read())
+    invoice_data["image"] = image
     return HttpResponse(json.dumps(invoice_data))
 
 @csrf_exempt
@@ -3350,6 +3355,102 @@ def get_stock_transfer_details(request, user=''):
 
 @csrf_exempt
 @get_admin_user
+def get_seller_order_details(request, user=''):
+    sor_id = request.GET.get('sor_id', '')
+    uor_id = request.GET.get('uor_id', '')
+    if not sor_id and uor_id:
+        return HttpResponse("Fail")
+
+    order_code = ''.join(re.findall('\D+', uor_id))
+    order_id = ''.join(re.findall('\d+', uor_id))
+    seller_data = SellerOrder.objects.filter(Q(order__order_id = order_id, order__order_code = order_code) | \
+                                             Q(order__original_order_id=order_id), order__user=user.id, sor_id = sor_id)
+    order_details = seller_data
+    seller_details = seller_data[0].seller.json()
+    row_id = order_details[0].id
+
+    custom_data = OrderJson.objects.filter(order_id=row_id)
+    status_obj = ''
+    central_remarks = ''
+    customer_order_summary = CustomerOrderSummary.objects.filter(order_id = row_id)
+    if customer_order_summary:
+        status_obj = customer_order_summary[0].status
+        central_remarks =  customer_order_summary[0].central_remarks
+
+    data_dict = []
+    cus_data = []
+    order_details_data = []
+    sku_id_list = []
+    attr_list = []
+    if custom_data:
+        attr_list = json.loads(custom_data[0].json_data)
+        if isinstance(attr_list, dict):
+            attr_list = attr_list.get('attribute_data', '')
+        else:
+            attr_list = []
+    for attr in attr_list:
+        tuple_data = (attr['attribute_name'],attr['attribute_value'])
+        cus_data.append(tuple_data)
+    for one_order in order_details:
+        quantity = one_order.quantity
+        one_order = one_order.order
+        order_id = one_order.order_id
+        _order_id = order_id
+        order_code = one_order.order_code
+        market_place = one_order.marketplace
+        order_id = order_code + str(order_id)
+        original_order_id = one_order.original_order_id
+        if original_order_id:
+            order_id = original_order_id
+        customer_id = one_order.customer_id
+        customer_name = one_order.customer_name
+        shipment_date = get_local_date(request.user, one_order.shipment_date)
+        phone = one_order.telephone
+        email = one_order.email_id
+        address = one_order.address
+        city = one_order.city
+        state = one_order.state
+        pin = one_order.pin_code
+        sku_id = one_order.sku_id
+        sku_id_list.append(sku_id)
+        product_title = one_order.title
+        invoice_amount = one_order.invoice_amount
+        remarks = one_order.remarks
+        sku_code = one_order.sku.sku_code
+        sku_type = one_order.sku.sku_type
+        field_type = 'product_attribute'
+        vend_dict = {'printing_vendor' : "", 'embroidery_vendor' : "", 'production_unit' : ""}
+        sku_extra_data = {}
+        if str(order_code) == 'CO':
+            vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']
+            for item in vendor_list:
+                var = ""
+                map_obj = OrderMapping.objects.filter(order__order_id = _order_id, order__user = user.id, mapping_type = item)
+                if map_obj:
+                    var_id = map_obj[0].mapping_id
+                    vend_obj = VendorMaster.objects.filter(id = var_id)
+                    if vend_obj:
+                        var = vend_obj[0].name
+                        vend_dict[item] = var
+
+            order_json = OrderJson.objects.filter(order_id=one_order.id)
+            if order_json:
+                sku_extra_data = eval(order_json[0].json_data)
+
+        order_details_data.append({'product_title':product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
+                      'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone,'email': email, 'address': address, 'city': city, 
+                      'state': state, 'pin': pin, 'shipment_date': str(shipment_date),'item_code': sku_code, 'order_id': order_id,
+                      'image_url': one_order.sku.image_url, 'market_place': one_order.marketplace,
+                      'order_id_code': one_order.order_code + str(one_order.order_id), 'print_vendor' : vend_dict['printing_vendor'],
+                      'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
+                      'sku_extra_data': sku_extra_data})
+    data_dict.append({'cus_data': cus_data,'status': status_obj, 'ord_data': order_details_data,
+                      'central_remarks': central_remarks, 'seller_details': seller_details})
+
+    return HttpResponse(json.dumps({'data_dict': data_dict}))
+
+@csrf_exempt
+@get_admin_user
 def get_view_order_details(request, user=''):
 
 
@@ -3361,11 +3462,23 @@ def get_view_order_details(request, user=''):
 
 
     data_dict = []
-    main_id = request.GET['order_id']
-    row_id = request.GET['id']
-    order_code = ''.join(re.findall('\D+', main_id))
-    order_id = ''.join(re.findall('\d+', main_id))
-    order_details = OrderDetail.objects.filter(Q(order_id = order_id, order_code = order_code) | Q(original_order_id=main_id), user=user.id)
+    main_id = request.GET.get('order_id','')
+    row_id = request.GET.get('id', '')
+    sor_id = request.GET.get('sor_id', '')
+    if sor_id:
+        order_id = request.GET.get('uor_id', '')
+        order_code = ''.join(re.findall('\D+', order_id))
+        order_id = ''.join(re.findall('\d+', order_id))
+        #seller_data = SellerOrder.objects.filter(sor_id = seller, order__order_id = float(order_id[2:]), order__user=user.id)
+        seller_data = SellerOrder.objects.filter(Q(order__order_id = order_id, order__order_code = order_code) | \
+                                                 Q(order__original_order_id=order_id), order__user=user.id, sor_id = sor_id)
+        order_details= seller_data[0].order
+        row_id = order_details.id
+        order_details = [order_details]
+    else:
+        order_code = ''.join(re.findall('\D+', main_id))
+        order_id = ''.join(re.findall('\d+', main_id))
+        order_details = OrderDetail.objects.filter(Q(order_id = order_id, order_code = order_code) | Q(original_order_id=main_id), user=user.id)
     custom_data = OrderJson.objects.filter(order_id=row_id)
     status_obj = ''
     central_remarks = ''

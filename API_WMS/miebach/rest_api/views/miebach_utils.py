@@ -35,7 +35,7 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sku_desc': '', 'sku_group': '', 'sku_type': '', 'mix_sku': '',
             'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'color': '', 'mrp': 0,
             'status': 1, 'online_percentage': 0, 'qc_check': 0, 'sku_brand': '', 'sku_size': '', 'style_name': '', 'price': 0,
-             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None}
+             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(), 'st_po_id': '', 'sku_id': '', 'status': 1}
 OPEN_ST_FIELDS = {'warehouse_id': '', 'order_quantity': 0, 'price': 0, 'sku_id': '', 'status': 1, 'creation_date': datetime.datetime.now()}
@@ -290,14 +290,15 @@ SALES_RETURN_REPORT = {('sales_return_form','salesreturnTable','Sales Return Rep
 
 LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequence', 'SKU Group']
 
-SKU_HEADERS = ['WMS Code','SKU Description', 'SKU Group', 'SKU Type', 'SKU Category', 'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size',
-               'Size Type', 'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url', 'Threshold Quantity', 'Measurment Type',
-               'Sale Through', 'Color', 'EAN Number', 'Load Unit Handling(Options: Enable, Disable)', 'Status']
+SKU_HEADERS = ['WMS Code','SKU Description', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category', 'SKU Class', 'SKU Brand',
+               'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url', 'Threshold Quantity',
+               'Measurment Type', 'Sale Through', 'Color', 'EAN Number', 'Load Unit Handling(Options: Enable, Disable)', 'HSN Code',
+               'Status']
 
 MARKET_USER_SKU_HEADERS = ['WMS Code','SKU Description', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category', 'SKU Class',
                            'SKU Brand', 'Style Name', 'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Put Zone',
                            'Price', 'MRP Price', 'Sequence', 'Image Url','Threshold Quantity', 'Measurment Type', 'Sale Through',
-                           'Color', 'EAN Number', 'Status']
+                           'Color', 'EAN Number', 'HSN Code', 'Status']
 
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity', 'Return Date(YYYY-MM-DD)']
 
@@ -348,9 +349,6 @@ SKU_MASTER_HEADERS = OrderedDict([('WMS SKU Code', 'wms_code'), ('Product Descri
 
 PRICING_MASTER_HEADER = OrderedDict([('SKU Code', 'sku__sku_code'), ('SKU Description', 'sku__sku_desc'), ('Selling Price Type', 'price_type'), ('Price', 'price'), ('Discount', 'discount')])
 
-SKU_MASTER_EXCEL_HEADERS = ['WMS SKU Code', 'Product Description', 'SKU Type', 'SKU Category', 'SKU Brand', 'SKU Class', 'Style Name',
-                            'SKU Size', 'SKU Group', 'Color', 'Zone', 'Price', 'MRP Price', 'Measurement Type', 'Sequence',
-                            'Sale Through', 'Status']
 
 SIZE_MASTER_HEADERS = OrderedDict([('Size Name', 'size_name'), ('Sizes', 'size_value')])
 
@@ -511,12 +509,15 @@ EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 9, 'invoice_amount': 3, 'chann
 SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('sku_group', 2), ('sku_type', 3), ('sku_category', 4), ('sku_class', 5),
                               ('sku_brand', 6), ('style_name', 7), ('sku_size', 8), ('size_type', 9), ('zone_id', 10), ('price', 11),
                               ('mrp', 12), ('sequence', 13), ('image_url', 14), ('threshold_quantity', 15), ('measurement_type', 16),
-                              ('sale_through', 17), ('color', 18), ('ean_number', 19), ('load_unit_handle', 20), ('status', 21)
+                              ('sale_through', 17), ('color', 18), ('ean_number', 19), ('load_unit_handle', 20), ('hsn_code', 21),
+                              ('status', 22)
                            ))
+
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('sku_group', 2), ('sku_type', 3), ('sku_category', 4),
                                           ('sku_class', 5), ('sku_brand', 6), ('style_name', 7), ('mix_sku', 8), ('zone_id', 9),
                                           ('price', 10), ('mrp', 11), ('sequence', 12), ('image_url', 13), ('threshold_quantity', 14),
-                                          ('measurement_type', 15), ('sale_through', 16), ('color', 17), ('ean_number', 18), ('status', 19)
+                                          ('measurement_type', 15), ('sale_through', 16), ('color', 17), ('ean_number', 18),
+                                          ('hsn_code', 19), ('status', 20)
                            ))
 
 ITEM_MASTER_EXCEL = OrderedDict(( ('wms_code', 1), ('sku_desc', 2), ('sku_category', 25), ('image_url', 18), ('sku_size', 14) ))
@@ -786,6 +787,14 @@ PO_RECEIPT_TYPES = ['Purchase Order', 'Buy & Sell', 'Hosted Warehouse']
 PO_ORDER_TYPES = {'SR': 'Self Receipt', 'VR': 'Vendor Receipt', 'HW': 'Hosted Warehouse', 'BS': 'Buy & Sell'}
 
 LOAD_UNIT_HANDLE_DICT = {'enable': 'pallet', 'disable': 'unit'}
+
+MIX_SKU_ATTRIBUTES = {'no_mix': 'No Mix', 'mix_group': 'Mix within Group'}
+
+#Username and GST Tin Mapping
+
+GSTIN_USER_MAPPING = {'sagar_fab': '1564898789562'}
+
+#End of Username and GST Tin Mapping
 
 def fn_timer(function):
     @wraps(function)

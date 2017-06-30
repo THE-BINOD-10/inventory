@@ -87,8 +87,11 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> Product Group</label>
-                <input type="text" name="product_group" class="form-control" ng-model="showCase.model_data.sku_data.product_group" maxlength="60">
+                <label class="control-label"> Product Type</label>
+                <select class="form-control" name="product_type" ng-model="showCase.model_data.sku_data.product_type">
+                  <option value ="" ng-selected="showCase.model_data.sku_data.product_type == ''"> Default </option>
+                  <option ng-repeat = "type in showCase.model_data.product_types" value="{{type}}" ng-selected="showCase.model_data.sku_data.product_type == type">{{type}}</option>
+                </select>
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -155,6 +158,12 @@
                 </select>
               </div>
             </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> HSN Code </label>
+                <input type="text" name="hsn_code" class="form-control" ng-model="showCase.model_data.sku_data.hsn_code" decimal-number>
+              </div>
+            </div>
           </div>
           <div class="row">
             <div class="col-md-12"><hr></div>
@@ -163,7 +172,7 @@
             <table class="table mw40">
               <thead>
                 <tr>
-                  <th><b>Market Place </b></th>
+                  <th><b> Market Place </b></th>
                   <th><b> SKU </b></th>
                   <th><b> Description </b></th>
                   <th class="plus"></td>

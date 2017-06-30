@@ -68,7 +68,7 @@
           <div class="form-group">
             <label class="control-label">Tax Type</label>
             <select class="form-control" name="tax_type" ng-model="showCase.model_data.tax_type" ng-change="showCase.change_tax_type();">
-              <option ng-repeat="(type,value) in showCase.create_order_data.taxes" ng-selected="showCase.model_data.tax_type == type" value="{{(type == 'DEFAULT')? '': type;}}">{{type}}</option>
+              <option ng-repeat="tax in showCase.create_order_data.taxes" ng-selected="showCase.model_data.tax_type == tax.tax_value" value="{{tax.tax_value}}">{{tax.tax_name}}</option>
             </select>
           </div>
         </div>
@@ -79,11 +79,6 @@
           </div>
         </div>
       </div>
-              <!--<div class="row">
-                <div class="col-md-12">
-                  <button type="button" class="btn btn-primary" style="margin: auto;display: block;" ng-show="showCase.add_customer" ng-click="showCase.create_customer()"> Create Customer </button>
-                 </div>
-              </div>-->
     </div>
     <div class="form-group clearfix" style="padding: 0px 10px;">
       <hr>
@@ -131,7 +126,9 @@
               <th>Quantity</th>
               <th ng-show="showCase.fields.indexOf('Unit Price') == -1">Unit Price</th>
               <th ng-show="showCase.fields.indexOf('Amount') == -1">Amount</th>
-              <th ng-show="showCase.fields.indexOf('Tax') == -1">Tax(%)</th>
+              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'">SGST(%)</th>
+              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'">CGST(%)</th>
+              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'inter_state'">IGST(%)</th>
               <th ng-show="showCase.fields.indexOf('Total Amount') == -1">Total Amount</th>
               <th ng-show="showCase.fields.indexOf('Remarks') == -1">Remarks</th>
               <th class="plus"></th>
@@ -152,13 +149,19 @@
                 <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="data.invoice_amount = showCase.service.multi(data.quantity, data.price);showCase.cal_percentage(data)"> </div>
               </td>
               <td ng-show="showCase.fields.indexOf('Unit Price') == -1">
-                <input type="text" class="form-control" ng-model="data.price" ng-change="showCase.change_unit_price(data)" decimal-number>
+                <input type="text" name="unit_price" class="form-control" ng-model="data.price" ng-change="showCase.change_unit_price(data)" decimal-number>
               </td>
 	      <td ng-show="showCase.fields.indexOf('Amount') == -1">
 	        <input type="text" class="form-control" ng-model="data.invoice_amount"  ng-change="showCase.cal_percentage(data)" name="invoice_amount" decimal-number>
 	      </td>
-              <td ng-show="showCase.fields.indexOf('Tax') == -1">
-                <input type="text" name="tax" class="form-control" ng-model="data.tax" decimal-number ng-change="showCase.cal_percentage(data)">
+              <td ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'">
+                <input type="text" name="sgst_tax" class="form-control" ng-model="data.sgst_tax" decimal-number ng-change="showCase.cal_percentage(data)" readonly>
+              </td>
+              <td ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'">
+                <input type="text" name="cgst_tax" class="form-control" ng-model="data.cgst_tax" decimal-number ng-change="showCase.cal_percentage(data)" readonly>
+              </td>
+              <td ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'inter_state'">
+                <input type="text" name="igst_tax" class="form-control" ng-model="data.igst_tax" decimal-number ng-change="showCase.cal_percentage(data)" readonly>
               </td>
               <td ng-show="showCase.fields.indexOf('Total Amount') == -1">
                 <input type="text" name="total_amount" class="form-control" ng-model="data.total_amount" ng-change="showCase.cal_total()" decimal-number>

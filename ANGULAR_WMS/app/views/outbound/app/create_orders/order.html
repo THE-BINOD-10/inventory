@@ -115,8 +115,12 @@ input[type="date"]:valid::before {
             <input type="hidden" name="sku_id" class="form-control" value="{{data.sku_id}}">
             <input type="hidden" name="invoice_amount" class="form-control" value="{{data.invoice_amount}}">
             <input type="hidden" name="total_amount" class="form-control" value="{{data.total_amount}}">
-            <input type="hidden" name="tax" class="form-control" value="{{data.tax}}">
+            <!--<input type="hidden" name="tax" class="form-control" value="{{data.tax}}">-->
             <input type="hidden" name="remarks" class="form-control" value="{{data.remarks}}">
+            <input type="hidden" name="unit_price" value="{{data.price}}">
+            <input type="hidden" name="sgst_tax" class="form-control" value="{{data.sgst_tax}}">
+            <input type="hidden" name="cgst_tax" class="form-control" value="{{data.cgst_tax}}">
+            <input type="hidden" name="igst_tax" value="{{data.igst_tax}}">
             <div class="col-md-6 col-sm-6 col-xs-7">
               <h4 align="left"><b>{{data.sku_id}}</b></h4>
               <p align="left">{{data.sku_desc}}</p>

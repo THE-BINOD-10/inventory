@@ -61,7 +61,7 @@ class SKUMaster(models.Model):
     sku_brand = models.CharField(max_length=64, default='')
     style_name = models.CharField(max_length=64, default='')
     sku_size = models.CharField(max_length=64, default='')
-    product_group = models.CharField(max_length=64, default='')
+    product_type = models.CharField(max_length=64, default='')
     zone = models.ForeignKey(ZoneMaster, null=True, blank=True, default = None)
     threshold_quantity = models.FloatField(default=0)
     online_percentage = models.PositiveIntegerField()
@@ -79,6 +79,7 @@ class SKUMaster(models.Model):
     color = models.CharField(max_length=64, default='')
     ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default = 0)
     load_unit_handle = models.CharField(max_length=32, default='unit', db_index=True)
+    hsn_code = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default = 0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -246,6 +247,7 @@ class OpenPO(models.Model):
     supplier_code = models.CharField(max_length=32, default='')
     order_type = models.CharField(max_length=32, default='SR')
     remarks = models.CharField(max_length=256, default='')
+    tax_type = models.CharField(max_length=32, default='')
     tax = models.FloatField(default=0)
     status = models.CharField(max_length=32)
     measurement_unit = models.CharField(max_length=32, default = '')
@@ -868,6 +870,22 @@ class SellerMaster(models.Model):
         unique_together = ('user', 'seller_id')
         index_together = ('user', 'seller_id')
 
+    def json(self):
+        return {
+            'id': self.id,
+            'seller_id': self.seller_id,
+            'name': self.name,
+            'email_id': self.email_id,
+            'phone_number': self.phone_number,
+            'address': self.address,
+            'vat_number': self.vat_number,
+            'tin_number': self.tin_number,
+            'price_type': self.price_type,
+            'margin': self.margin,
+            'supplier': self.supplier.id,
+            'status': self.status
+          }
+
 class CustomerSKU(models.Model):
     id = BigAutoField(primary_key=True)
     customer_name = models.ForeignKey(CustomerMaster)
@@ -983,6 +1001,10 @@ class CustomerOrderSummary(models.Model):
     dispatch_through = models.CharField(max_length=24, default='')
     invoice_date = models.DateTimeField(null=True, blank=True)
     central_remarks = models.CharField(max_length=256, default='')
+    inter_state = models.IntegerField(default=0)
+    cgst_tax = models.FloatField(default=0)
+    sgst_tax = models.FloatField(default=0)
+    igst_tax = models.FloatField(default=0)
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
@@ -998,7 +1020,7 @@ class CategoryDiscount(models.Model):
         db_table = 'SKU_CATEGORY_DISCOUNT'
         unique_together = ('user', 'category')
 
-class TaxMaster(models.Model):
+'''class TaxMaster(models.Model):
     city = models.CharField(max_length=64, default='')
     state = models.CharField(max_length=64, default='')
     tax_type = models.CharField(max_length=64, default='')
@@ -1007,7 +1029,7 @@ class TaxMaster(models.Model):
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'TAX_MASTER'
+        db_table = 'TAX_MASTER'''
 
 class SalesPersons(models.Model):
     user = models.OneToOneField(User)
@@ -1679,6 +1701,10 @@ class CustomerCartData(models.Model):
     sku = models.ForeignKey(SKUMaster)
     quantity = models.FloatField(default=1)
     tax = models.FloatField(default=0)
+    inter_state = models.IntegerField(default=0)
+    cgst_tax = models.FloatField(default=0)
+    sgst_tax = models.FloatField(default=0)
+    igst_tax = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1695,7 +1721,40 @@ class CustomerCartData(models.Model):
             'invoice_amount': invoice_amount,
             'tax': self.tax,
             'total_amount': ((invoice_amount * self.tax)/100) + invoice_amount,
-            'image_url': self.sku.image_url
+            'image_url': self.sku.image_url,
+            'cgst_tax': self.cgst_tax,
+            'sgst_tax': self.sgst_tax,
+            'igst_tax': self.igst_tax,
+        }
+
+class TaxMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, null=True, blank=True, default = None)
+    product_type = models.CharField(max_length=64,default='')
+    inter_state = models.IntegerField(default=0)
+    cgst_tax = models.FloatField(default=0)
+    sgst_tax = models.FloatField(default=0)
+    igst_tax = models.FloatField(default=0)
+    min_amt = models.FloatField(default=0)
+    max_amt = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TAX_MASTER'
+        unique_together = ('user', 'product_type', 'inter_state', 'cgst_tax', 'sgst_tax', 'igst_tax')
+        index_together = ('user', 'product_type', 'inter_state')
+
+    def json(self):
+        return {
+            'product_type': self.product_type,
+            'inter_state': self.inter_state,
+            'cgst_tax': self.cgst_tax,
+            'sgst_tax': self.sgst_tax,
+            'igst_tax': self.igst_tax,
+            'min_amt': self.min_amt,
+            'max_amt': self.max_amt,
+            'user_id': self.user.id
         }
 
 import django

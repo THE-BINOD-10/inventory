@@ -101,7 +101,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     })
   }
   vm.tax = 0
-  vm.get_create_order_data = function(){
+  /*vm.get_create_order_data = function(){
     vm.service.apiCall("create_orders_data/").then(function(data){
 
       if(data.message) {
@@ -114,7 +114,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       }
     })
   }
-  vm.get_create_order_data();
+  vm.get_create_order_data();*/
 
 }
 

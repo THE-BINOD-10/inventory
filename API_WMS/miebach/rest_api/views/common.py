@@ -1708,6 +1708,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     order_no = ''
     _total_tax = 0
     purchase_type = ''
+    total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0}
     is_gst_invoice = False
     gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
     invoice_date = datetime.datetime.now()
@@ -1754,8 +1755,9 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
 
                     marketplace = USER_MYNTRA_ADDRESS.get(username, 'Myntra')
             tax = 0
-            vat = 5.5
+            vat = 0
             discount = 0
+            cgst_tax, sgst_tax, igst_tax = 0,0,0
             mrp_price = dat.sku.mrp
             taxes_dict = {}
             order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=dat.id)
@@ -1766,6 +1768,9 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                 mrp_price = order_summary[0].mrp
                 discount = order_summary[0].discount
                 tax_type = order_summary[0].tax_type
+                cgst_tax = order_summary[0].cgst_tax
+                sgst_tax = order_summary[0].sgst_tax
+                igst_tax = order_summary[0].igst_tax
                 if order_summary[0].invoice_date:
                     invoice_date = order_summary[0].invoice_date
             total_tax += float(tax)
@@ -1796,15 +1801,15 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             amt = (unit_price * quantity) - discount
             base_price = "%.2f" % (unit_price * quantity)
             if is_gst_invoice:
-                cgst_tax = 0
-                sgst_tax = 0
-                igst_tax = 0
                 cgst_amt = cgst_tax * (float(amt)/100)
                 sgst_amt = sgst_tax * (float(amt)/100)
                 igst_amt = igst_tax * (float(amt)/100)
                 _tax = cgst_amt + sgst_amt + igst_amt
                 taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
                               'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt, 'igst_amt': '%.2f' % igst_amt}
+                total_taxes['cgst_amt'] += cgst_amt
+                total_taxes['sgst_amt'] += sgst_amt
+                total_taxes['igst_amt'] += igst_amt
             else:
                 _tax = (amt * (vat / 100))
 
@@ -1848,7 +1853,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                     'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount, 'consignee': consignee,
                     'dispatch_through': dispatch_through, 'inv_date': inv_date, 'tax_type': tax_type,
                     'rounded_invoice_amount': _total_invoice, 'purchase_type': purchase_type, 'is_gst_invoice': is_gst_invoice,
-                    'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt}
+                    'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes}
 
     return invoice_data
 
@@ -2138,32 +2143,50 @@ def search_wms_data(request, user=''):
 def get_customer_sku_prices(request, user = ""):
     cust_id = request.POST.get('cust_id', '')
     sku_codes = request.POST.get('sku_codes', '')
+    tax_type = request.POST.get('tax_type', '')
 
-    sku_codes = sku_codes.split(",")
-    result_data = []
-    price_type = ""
-    if cust_id:
-        price_type = CustomerMaster.objects.filter(customer_id = cust_id, user = user.id)
+    log.info('Get Customer SKU Prices data for ' + user.username + ' is ' + str(request.POST.dict()))
 
-    for sku_code in sku_codes:
-        if not sku_code:
-            continue
-        data = SKUMaster.objects.filter(sku_code = sku_code, user = user.id)
-        if data:
-            data = data[0]
-        else:
-            return "sku_doesn't exist"
-        price = data.price
-        discount = 0
+    inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+    try:
+        sku_codes = sku_codes.split(",")
+        result_data = []
+        price_type = ""
 
-        if price_type:
-            price_type = price_type[0].price_type
-            price_master_objs = PriceMaster.objects.filter(price_type = price_type, sku__sku_code = sku_code, sku__user = user.id)
-            if price_master_objs:
-                price = price_master_objs[0].price
-                discount = price_master_objs[0].discount
-        result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount})
+        inter_state = inter_state_dict.get(tax_type, 2)
+        if cust_id:
+            price_type = CustomerMaster.objects.filter(customer_id = cust_id, user = user.id)
 
+        for sku_code in sku_codes:
+            if not sku_code:
+                continue
+            data = SKUMaster.objects.filter(sku_code = sku_code, user = user.id)
+            if data:
+                data = data[0]
+            else:
+                return "sku_doesn't exist"
+            tax_masters = TaxMaster.objects.filter(user_id=user.id, product_type=data.product_type, inter_state=inter_state)
+            taxes_data = []
+            for tax_master in tax_masters:
+                taxes_data.append(tax_master.json())
+
+            price = data.price
+            discount = 0
+
+            if price_type:
+                price_type = price_type[0].price_type
+                price_master_objs = PriceMaster.objects.filter(price_type = price_type, sku__sku_code = sku_code, sku__user = user.id)
+                if price_master_objs:
+                    price = price_master_objs[0].price
+                    discount = price_master_objs[0].discount
+            result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
+                                'taxes': taxes_data})
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('Get Customer SKU Prices Data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
     return HttpResponse(json.dumps(result_data))
 
 
@@ -2598,7 +2621,7 @@ def get_tally_data(request, user = ""):
 
     try:
         result_data = {}
-        tab_col_dict = {'SupplierMaster': 'supplier_type', 'CustomerMaster': 'customer_type', 'SKUMaster' : 'product_group'}
+        tab_col_dict = {'SupplierMaster': 'supplier_type', 'CustomerMaster': 'customer_type', 'SKUMaster' : 'product_type'}
 
         for table_name, col_name in tab_col_dict.iteritems():
             log.info("%s ---- %s" %(table_name, col_name))
@@ -2778,7 +2801,7 @@ def get_categories_list(request, user = ""):
         filter_params['name'] = name
         if not brand == 'ALL':
             filter_params['brand'] = brand
-        categories_list = ProductProperties.objects.filter(**filter_params).values_list('category', flat=True)
+        categories_list = ProductProperties.objects.filter(**filter_params).values_list('category', flat=True).distinct()
     else:
         if brand:
             filter_params['sku_brand__in'] = brand.split('<<>>')
@@ -2789,7 +2812,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='
     data = []
     from rest_api.views.outbound import get_style_variants
     get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size',
-                      'style_name', 'sale_through']
+                      'style_name', 'sale_through', 'product_type']
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku__sku_class').distinct().\
                                      annotate(in_stock=Sum('quantity'))
     reserved_quantities = PicklistLocation.objects.filter(stock__sku__user=user.id, status=1).values('stock__sku__sku_class').distinct().\

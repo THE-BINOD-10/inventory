@@ -68,6 +68,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
             zone = data.zone.zone
         ws.write(data_count, excel_mapping['wms_code'], data.wms_code)
         ws.write(data_count, excel_mapping['sku_desc'], data.sku_desc)
+        ws.write(data_count, excel_mapping['product_type'], data.product_type)
         ws.write(data_count, excel_mapping['sku_group'], data.sku_group)
         ws.write(data_count, excel_mapping['sku_type'], data.sku_type)
         ws.write(data_count, excel_mapping['sku_category'], data.sku_category)

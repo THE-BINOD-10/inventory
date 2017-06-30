@@ -1032,7 +1032,7 @@ var app = angular.module('urbanApp')
           .state('app.outbound.ViewOrders.GenerateInvoice', {
             url: '/Invoice',
             permission: 'add_picklist',
-            templateUrl: 'views/outbound/print/generate_invoice.html'
+            templateUrl: 'views/outbound/print/generate_inv.html'
           })
           .state('app.outbound.ViewOrders.DetailGenerateInvoice', {
             url: '/DetailInvoice',

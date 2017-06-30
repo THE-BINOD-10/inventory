@@ -276,7 +276,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                                                  ('price_type', price_type), ('cst_number', data.cst_number),
                                                  ('pan_number', data.pan_number), ('customer_type', data.customer_type),
                                                  ('pincode', data.pincode), ('city', data.city), ('state', data.state),
-                                                 ('country', data.country),('tax_type', data.tax_type),
+                                                 ('country', data.country),('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
                                                  ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
                                              )))
 
@@ -435,7 +435,7 @@ def get_sku_data(request,user=''):
     sku_data['sku_brand'] = data.sku_brand
     sku_data['style_name'] = data.style_name
     sku_data['sku_size'] = data.sku_size
-    sku_data['product_group'] = data.product_group
+    sku_data['product_type'] = data.product_type
     sku_data['zone'] = zone_name
     sku_data['threshold_quantity'] = data.threshold_quantity
     sku_data['online_percentage'] = data.online_percentage
@@ -460,8 +460,10 @@ def get_sku_data(request,user=''):
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
+    product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
     return  HttpResponse(json.dumps({'sku_data': sku_data,'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
-                                     'market_data':market_data, 'combo_data': combo_data, 'sizes_list': sizes_list}, cls=DjangoJSONEncoder))
+                                     'market_data':market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
+                                     'product_types': product_types}, cls=DjangoJSONEncoder))
 
 @csrf_exempt
 def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -1402,11 +1404,13 @@ def get_zones_list(request, user=''):
     all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
     size_names = SizeMaster.objects.filter(user=user.id)
+    product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
     sizes_list = []
     for sizes in size_names:
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
-    return HttpResponse(json.dumps({'zones': zones_list, 'sku_groups': all_groups, 'market_places': market_places, 'sizes_list': sizes_list}))
+    return HttpResponse(json.dumps({'zones': zones_list, 'sku_groups': all_groups, 'market_places': market_places, 'sizes_list': sizes_list,
+                                    'product_types': product_types}))
 
 @csrf_exempt
 @login_required

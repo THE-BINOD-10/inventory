@@ -452,6 +452,8 @@ def generate_picklist(request, user=''):
             else:
                 stock_status, picklist_number = picklist_generation([order_data], request, picklist_number, user, sku_combos, sku_stocks, status = 'open', remarks=remarks)
         except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
             log.info('Generate Picklist order view failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
             stock_status = ['Internal Server Error']
         if stock_status:
@@ -786,6 +788,8 @@ def batch_generate_picklist(request, user=''):
             if stock_status:
                 out_of_stock = out_of_stock + stock_status
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Generate Picklist SKU View failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse(json.dumps({'message': 'Picklist Generation Failed'}))
 
@@ -1551,6 +1555,8 @@ def picklist_confirmation(request, user=''):
                 invoice_data['order_id'] = invoice_data['order_id']
                 return HttpResponse(json.dumps({'data': invoice_data, 'status': 'invoice'}))
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Picklist Confirmation failed for %s and params are %s and error statement is %s' % (str(user.username), str(data), str(e)))
         return HttpResponse('Picklist Confirmation Failed')
 
@@ -2198,6 +2204,7 @@ def insert_order_data(request, user=''):
     user_type = request.POST.get('user_type', '')
     created_order_id = ''
     ex_image_url = {}
+    inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     if valid_status:
         return HttpResponse(valid_status)
 
@@ -2262,24 +2269,38 @@ def insert_order_data(request, user=''):
                     if not value:
                         value = 0
                     order_data[key] = value
-                elif key == 'tax':
+                elif key == 'unit_price':
+                    value = myDict[key][i]
+                    if not value:
+                        value = 0
+                    order_data[key] = value
+                elif key in ['cgst_tax', 'sgst_tax', 'igst_tax']:
+                    value = myDict[key][i]
                     try:
                         invoice = float(myDict['invoice_amount'][i])
                     except:
                         invoice = 0
-                    if invoice and value:
-                        _tax = myDict[key][i]
-                        order_data['unit_price'] = invoice/ order_data['quantity']
-                        amount = float(invoice)
-                        tax_value = (amount/100) * float(_tax)
-                        vat = _tax
-                        order_summary_dict['issue_type'] = 'order'
-                        order_summary_dict['vat'] = vat
-                        order_summary_dict['tax_value'] = "%.2f" % tax_value
+                    if not value:
+                        value = 0
+                    order_summary_dict[key] = value
+                    '''elif key == 'tax':
+                        try:
+                            invoice = float(myDict['invoice_amount'][i])
+                        except:
+                            invoice = 0
+                        if invoice and value:
+                            _tax = myDict[key][i]
+                            order_data['unit_price'] = invoice/ order_data['quantity']
+                            amount = float(invoice)
+                            tax_value = (amount/100) * float(_tax)
+                            vat = _tax
+                            order_summary_dict['issue_type'] = 'order'
+                            order_summary_dict['vat'] = vat
+                            order_summary_dict['tax_value'] = "%.2f" % tax_value'''
+                elif key == 'tax_type':
+                    order_summary_dict['inter_state'] = inter_state_dict.get(value, 2)
                 elif key == 'order_taken_by':
                     order_summary_dict['order_taken_by'] = value
-                elif key == 'tax_type':
-                    order_summary_dict['tax_type'] = value
                 elif key == 'shipment_time_slot':
                     order_summary_dict['shipment_time_slot'] = value
                 else:
@@ -2309,20 +2330,13 @@ def insert_order_data(request, user=''):
                 order_detail = OrderDetail(**order_data)
                 order_detail.save()
 
-                #for item in vendor_items:
-                #    var = ""
-                #    var = SKUFields.objects.filter(sku_id = order_detail.sku_id, field_type = item, sku__user = order_detail.user)
-                #    if var:
-                #        OrderMapping.objects.create(mapping_id = var[0].field_id, mapping_type = item, order_id = order_detail.id)
-
                 order_objs.append(order_detail)
                 order_sku.update({order_detail.sku : order_data['quantity']})
                 created_order_id = order_detail.order_code + str(order_detail.order_id)
-                if order_summary_dict.get('vat', '') or order_summary_dict.get('tax_value', ) or order_summary_dict.get('order_taken_by', '') or \
-                    order_summary_dict.get('tax_type', ''):
-                    order_summary_dict['order_id'] = order_detail.id
-                    order_summary = CustomerOrderSummary(**order_summary_dict)
-                    order_summary.save()
+
+                order_summary_dict['order_id'] = order_detail.id
+                order_summary = CustomerOrderSummary(**order_summary_dict)
+                order_summary.save()
 
                 extra_data = request.POST.get('extra_data', '')
                 if custom_order == 'true' and extra_data:
@@ -2339,6 +2353,8 @@ def insert_order_data(request, user=''):
                                                 charge_amount=myDict['charge_amount'][i], creation_date=datetime.datetime.now())
                     other_charge_amounts += float(myDict['charge_amount'][i])
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Create order failed for %s and params are %s and error statement is %s' % (str(user.username), str(myDict), str(e)))
         return HttpResponse("Order Creation Failed")
 
@@ -2363,6 +2379,8 @@ def insert_order_data(request, user=''):
             if telephone:
                 order_creation_message(items, telephone, (order_detail.order_code) + str(order_detail.order_id), other_charges=other_charge_amounts)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Create order mail sending failed for %s and params are %s and error statement is %s' % (str(user.username), str(myDict), str(e)))
 
     auto_picklist_signal = get_misc_value('auto_generate_picklist', user.id)
@@ -2761,6 +2779,8 @@ def insert_shipment_info(request, user=''):
     try:
         order_shipment = create_shipment(request, user)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Create shipment failed for params ' + str(request.POST.dict()) + ' error statement is ' +str(e))
         return HttpResponse('Create shipment Failed')
     try:
@@ -2835,6 +2855,8 @@ def insert_shipment_info(request, user=''):
                         setattr(pick_order, 'status', 'dispatched')
                         pick_order.save()
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Shipment info saving is failed for params ' + str(request.POST.dict()) + ' error statement is ' +str(e))
 
     return HttpResponse('Shipment Created Successfully')
@@ -2943,6 +2965,8 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                                            total_received=Sum('received_quantity'))
     reserved_quantities = PicklistLocation.objects.filter(stock__sku__user=user.id, status=1).values('stock__sku_id').distinct().\
                                        annotate(in_reserved=Sum('reserved'))
+    tax_master = TaxMaster.objects.filter(user_id=user.id)
+    rev_inter_states = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
 
     stocks = map(lambda d: d['sku_id'], stock_objs)
     intransit_skus = map(lambda d: d['open_po__sku_id'], purchase_orders)
@@ -2971,16 +2995,19 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
         sku_master[ind]['physical_stock'] = stock_quantity
         sku_master[ind]['intransit_quantity'] = intransit_quantity
         sku_master[ind]['style_quantity'] = total_quantity
+        sku_master[ind]['taxes'] = []
         customer_data = []
         if customer_id:
-            """customer_sku = CustomerSKU.objects.filter(sku__user=user.id, customer_name__customer_id=customer_id, sku__wms_code=sku['wms_code'])
-            if customer_sku:
-                sku_master[ind]['price'] = customer_sku[0].price"""
             customer_user = CustomerUserMapping.objects.filter(user = customer_id)[0].customer.customer_id
             customer_data = CustomerMaster.objects.filter(customer_id=customer_user, user = user.id)
         elif customer_data_id:
             customer_data = CustomerMaster.objects.filter(customer_id=customer_data_id, user = user.id)
         if customer_data:
+            if customer_data[0].tax_type:
+                taxes = list(tax_master.filter(product_type=sku['product_type'],
+                                                  inter_state=rev_inter_states.get(customer_data[0].tax_type, 2)).\
+                                           values('product_type', 'inter_state', 'cgst_tax', 'sgst_tax', 'igst_tax', 'min_amt', 'max_amt'))
+            sku_master[ind]['taxes'] = taxes
             if customer_data[0].price_type:
                 price_data = PriceMaster.objects.filter(sku__user=user.id ,sku__sku_code = sku['wms_code'],\
                                                         price_type = customer_data[0].price_type)
@@ -3064,7 +3091,7 @@ def get_sku_catalogs(request, user=''):
 @get_admin_user
 def get_sku_variants(request, user=''):
     filter_params = {'user': user.id}
-    get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size', 'style_name']
+    get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size', 'style_name',                  'product_type']
     sku_class = request.GET.get('sku_class', '')
     customer_id = request.GET.get('customer_id', '')
     customer_data_id = request.GET.get('customer_data_id', '')
@@ -3116,6 +3143,7 @@ def modify_invoice_data(invoice_data, user):
                 styles =  {}
                 sub_total = 0
                 amt = 0
+                taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0}
                 for single_entry in group2:
                     if not single_entry['sku_class'] in styles:
                         styles[single_entry['sku_class']] = copy.deepcopy(styles_att)
@@ -3130,51 +3158,14 @@ def modify_invoice_data(invoice_data, user):
                     main_class = single_entry['sku_class']
                     vat = single_entry['vat']
                     amt += single_entry['amt']
+                    taxes['cgst_tax'] = single_entry['taxes']['cgst_tax']
+                    taxes['sgst_tax'] = single_entry['taxes']['sgst_tax']
+                    taxes['igst_tax'] = single_entry['taxes']['igst_tax']
+                    taxes['cgst_amt'] += float(single_entry['taxes']['cgst_amt'])
+                    taxes['sgst_amt'] += float(single_entry['taxes']['sgst_amt'])
+                    taxes['igst_amt'] += float(single_entry['taxes']['igst_amt'])
                 total = amount - tax
-                new_data.append({'price': price, 'sku_class': sku_list, 'discount': discount, 'invoice_amount': invoice_amount,'quantity': quantity, 'tax': tax, 'amount': amount, 'category': category, 'vat': vat, 'styles': styles, 'amt': amt})
-                """
-                new_data[category][price]['sku_class'] = sku_list
-                new_data[category][price]['discount'] = discount
-                new_data[category][price]['invoice_amount'] = invoice_amount
-                new_data[category][price]['quantity'] = quantity
-                new_data[category][price]['tax'] = tax
-                new_data[category][price]['amount'] = amount
-                """
-
-        """
-        for data in invoice_data['data']:
-            class_name = data['sku_class']
-            category = data['sku_category']
-            if category in new_data.keys():
-                #new_data[category]['data'].append(data)
-                new_data[category]['discount'] += float(data['discount'])
-                new_data[category]['invoice_amount'] += float(data['invoice_amount'])
-                new_data[category]['quantity'] += data['quantity']
-                new_data[category]['tax'] += float(data['tax'])
-                new_data[category]['amt'] = new_data[category]['invoice_amount'] - float(data['tax'])
-                if not class_name in new_data[category]['styles'].keys():
-                    new_data[category]['styles'][class_name] = []
-                new_data[category]['styles'][class_name].append(data)
-            else:
-                style_data = {'data': [], 'discount': float(data['discount']), 'invoice_amount':  float(data['invoice_amount']),
-                              'mrp_price': float(data['mrp_price']), 'quantity': data['quantity'], 'tax': float(data['tax']),
-                              'unit_price': float(data['unit_price']), 'vat': float(data['vat']), 'class': True,
-                              'amt': float(data['invoice_amount'])-float(data['tax']), 'styles': {data['sku_class']: [data]}}
-                if not class_name:
-                    class_name = data['sku_code']
-                    category = data['sku_category']
-                    if category in new_data.keys():
-                        new_data[category]['discount'] += float(data['discount'])
-                        new_data[category]['invoice_amount'] += float(data['invoice_amount'])
-                        new_data[category]['quantity'] += data['quantity']
-                        new_data[category]['tax'] += float(data['tax'])
-                        new_data[category]['amt'] = float(data['invoice_amount']) - float(data['tax'])
-                        new_data[category]['styles'][class_name] = [data]
-                        continue
-                    style_data['class'] = False
-                new_data[category] = style_data
-                #new_data[category]['data'].append(data)
-        """
+                new_data.append({'price': price, 'sku_class': sku_list, 'discount': discount, 'invoice_amount': invoice_amount,'quantity': quantity, 'tax': tax, 'amount': amount, 'category': category, 'vat': vat, 'styles': styles, 'amt': amt, 'taxes': taxes})
         invoice_data['data'] = new_data
     return invoice_data
 
@@ -3199,8 +3190,8 @@ def generate_order_invoice(request, user=''):
     #rendered = t.render(c)
     import base64
     image = ""
-    with open("static/images/companies/trans_logo.jpg", "rb") as image_file:
-      image = base64.b64encode(image_file.read())
+    #with open("static/images/companies/trans_logo.jpg", "rb") as image_file:
+    #  image = base64.b64encode(image_file.read())
     invoice_data["image"] = image
     return HttpResponse(json.dumps(invoice_data))
 
@@ -3706,11 +3697,7 @@ def get_customer_master_id(request, user=''):
     customer_master = CustomerMaster.objects.filter(user=user.id).values_list('customer_id', flat=True).order_by('-customer_id')
     if customer_master:
         customer_id = customer_master[0] + 1
-    data = MiscDetail.objects.filter(misc_type__istartswith='tax_', user=user.id)
-    tax_data = [];
-    for tax in data:
-        tax_data.append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_type})
-    return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': tax_data}))
+    return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': TAX_VALUES}))
 
 @login_required
 @csrf_exempt
@@ -3742,17 +3729,10 @@ def update_payment_status(request, user=''):
 @csrf_exempt
 @get_admin_user
 def create_orders_data(request, user=''):
-    tax_types = TAX_TYPES
-    if user.username == 'dazzle_export':
-        tax_types = D_TAX_TYPES
+    tax_types = copy.deepcopy(TAX_VALUES)
+    tax_types.append({'tax_name': 'DEFAULT', 'tax_value': ''})
 
-    data = MiscDetail.objects.filter(misc_type__istartswith='tax_', user=user.id)
-    tax_data = {'DEFAULT': 0}
-    for tax in data:
-        if float(tax.misc_value) > 0:
-            tax_data[tax.misc_type[4:]] = float(tax.misc_value)
-
-    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_data}))
+    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types}))
 
 @csrf_exempt
 def get_order_category_view_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}, user_dict={}):
@@ -4088,6 +4068,8 @@ def order_category_generate_picklist(request, user=''):
                 if stock_status:
                     out_of_stock = out_of_stock + stock_status
         except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
             log.info('Generate Picklist order view failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
 
 
@@ -4270,6 +4252,7 @@ def order_delete(request, user=""):
     """ This code will delete the order selected"""
 
     st_time = datetime.datetime.now()
+    log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
     log.info("deletion of order process started")
     complete_id = request.GET.get("order_id", "")
 
@@ -4284,6 +4267,8 @@ def order_delete(request, user=""):
             order_detail = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id)
         order_detail.delete()
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info(e)
 
     end_time = datetime.datetime.now()
@@ -4405,6 +4390,28 @@ def generate_pdf_file(request, user=""):
     os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
     return HttpResponse("../static/pdf_files/"+ str(request.user.id) +"_dispatch_invoice.pdf")
 
+def get_tax_value(user, record, product_type, tax_type):
+
+    inter_state = False
+    if tax_type == 'inter_state' or tax_type == 'Inter State':
+        inter_state = True
+    amt = record['price']
+    tax_data = TaxMaster.objects.filter(user_id=user.id, product_type=product_type, inter_state=inter_state, min_amt__lte = amt, max_amt__gte = amt)
+    if tax_data:
+        tax_data = tax_data[0]
+        if inter_state:
+            record['igst_tax'] = tax_data.igst_tax
+            record['cgst_tax'] = 0
+            record['sgst_tax'] = 0
+            return tax_data.igst_tax
+        else:
+            record['igst_tax'] = 0
+            record['cgst_tax'] = tax_data.cgst_tax
+            record['sgst_tax'] = tax_data.sgst_tax
+            return tax_data.sgst_tax + tax_data.cgst_tax
+    else:
+        return 0
+
 @login_required
 @get_admin_user
 def get_customer_cart_data(request, user=""):
@@ -4415,19 +4422,26 @@ def get_customer_cart_data(request, user=""):
 
 
     if cart_data:
-        tax_types = dict(MiscDetail.objects.filter(misc_type__icontains='tax', user=user.id).values_list('misc_type', 'misc_value'))
-        if user.username == 'dazzle_export':
-            tax_types = D_TAX_TYPES
+        #tax_types = copy.deepcopy(TAX_VALUES)
+        #tax_types.append({'tax_name': 'DEFAULT', 'tax_value': ''})
+        #tax_types = dict(MiscDetail.objects.filter(misc_type__icontains='tax', user=user.id).values_list('misc_type', 'misc_value'))
         tax_type = CustomerUserMapping.objects.filter(user_id=request.user.id).values_list('customer__tax_type', flat = True)
         tax = 0
         if tax_type:
-            tax = tax_type[0]
-            tax = tax_types.get('tax_' + tax, 0)
+            tax_type = tax_type[0]
+            #tax = tax_types.get('tax_' + tax, 0)
         for record in cart_data:
             json_record = record.json()
-            #PriceMaster.objects.filter(price_type = CustomerMaster.objects.filter(id = CustomerUserMapping.objects.filter(user = request.user.id)[0].customer_id)[0].price_type, sku__id = record.sku_id)
-            if float(json_record['tax']) != float(tax):
-                json_record['tax'] = tax
+            #if float(json_record['tax']) != float(tax):
+            #    json_record['tax'] = tax
+            product_type = SKUMaster.objects.filter(user=user.id, sku_code=json_record['sku_id'])
+            product_type = product_type[0].product_type
+            if not tax_type:
+                json_record['tax'] = 0
+            elif not product_type:
+                json_record['tax'] = 0
+            else:
+                json_record['tax'] = get_tax_value(user, json_record, product_type, tax_type)
             sku_id = record.sku_id
             cust_user_obj = CustomerUserMapping.objects.filter(user = request.user.id)
             if cust_user_obj:
@@ -4441,8 +4455,8 @@ def get_customer_cart_data(request, user=""):
                     if price_master_obj:
                         price_master_obj = price_master_obj[0]
                         json_record['price'] = price_master_obj.price
-                        json_record['invoice_amount'] = json_record['quantity'] * json_record['price']
-                        json_record['total_amount']= ((json_record['invoice_amount'] * json_record['tax'])/100) + json_record['invoice_amount']
+                    json_record['invoice_amount'] = json_record['quantity'] * json_record['price']
+                    json_record['total_amount']= ((json_record['invoice_amount'] * json_record['tax'])/100) + json_record['invoice_amount']
 
             response['data'].append(json_record)
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
@@ -4514,6 +4528,8 @@ def delete_customer_cart_data(request, user=""):
             cart_data.delete()
             response["msg"] = "Deleted Successfully"
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Deleting customer cart data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
 
@@ -4784,6 +4800,8 @@ def generate_customer_invoice(request, user=''):
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Create customer invoice failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
         return HttpResponse(json.dumps({'message': 'failed'}))
     return HttpResponse(json.dumps(invoice_data, cls=DjangoJSONEncoder))
@@ -4981,6 +4999,8 @@ def seller_generate_picklist(request, user=''):
                 if order_count_len == 1:
                     single_order = str(order_count[0])
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Seller Order level Generate Picklist failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse(json.dumps({'stock_status': 'Generate Picklist Failed'}))
 

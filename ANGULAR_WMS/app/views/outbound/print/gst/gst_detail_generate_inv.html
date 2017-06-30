@@ -131,12 +131,12 @@
                   <!--<td>{{record.hsn}}</td>-->
                   <td>{{record.price | number:2}}</td>
                   <td><b>{{record.quantity}}</b></td>
-                  <td>{{record.invoice_amount}}</td>
+                  <td>{{record.base_price}}</td>
                   <td>{{record.discount}}</td>
-                  <td>{{record.invoice_amount}}</td>
-                  <td>{{record.tax | number:2}}</td>
-                  <td>{{record.tax | number:2}}</td>
-                  <td>{{record.tax | number:2}}</td>
+                  <td>{{record.amt}}</td>
+                  <td class="text-right">{{record.taxes.cgst_amt}}<br><span style="font-size:9px;font-weight: 100">@{{record.taxes.cgst_tax}}%</span></td>
+                  <td class="text-right">{{record.taxes.sgst_amt}}<br><span style="font-size:9px;font-weight: 100">@{{record.taxes.sgst_tax}}%</span></td>
+                  <td class="text-right">{{record.taxes.igst_amt}}<br><span style="font-size:9px;font-weight: 100">@{{record.taxes.igst_tax}}%</span></td>
                   <td><b>{{record.invoice_amount | number:2}}</b></td>
                 </tr>
                 <!--<tr ng-if="user.userName == 'sagar_fab'" style="height:{{showCase.p}}px;">
@@ -158,10 +158,10 @@
                   <td>{{showCase.pdf_data.total_quantity}}</td>
                   <td></td>
                   <td></td>
-                  <td></td>
-                  <td></td>
-                  <td>{{showCase.pdf_data.total_invoice - showCase.pdf_data.total_tax | number:2}}</td>
-                  <td>{{showCase.pdf_data.total_tax | number:2}}</td>
+                  <td>{{showCase.pdf_data.total_total_taxable_amt | number:2}}</td>
+                  <td>{{showCase.pdf_data.total_taxes.cgst_amt | number:2}}</td>
+                  <td>{{showCase.pdf_data.total_taxes.sgst_amt | number:2}}</td>
+                  <td>{{showCase.pdf_data.total_taxes.igst_amt | number:2}}</td>
                   <td>{{showCase.pdf_data.total_invoice | number:2}}</td>
                 </tr>
                 <tr class="rm-padding" ng-if="showCase.pdf_data.order_charges">

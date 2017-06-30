@@ -38,10 +38,10 @@
        <!--<td ng-if="permissions.show_mrp"></td>-->
        <td></td>
        <td></td>
-       <td>100.00</td>
-       <td>100.00</td>
-       <td>100.00</td>
-       <td>{{showCase.pdf_data.total_tax | number:2}}</td>
+       <td>{{showCase.pdf_data.total_taxable_amt | number:2}}</td>
+       <td>{{showCase.pdf_data.total_taxes.cgst_amt | number:2}}</td>
+       <td>{{showCase.pdf_data.total_taxes.sgst_amt | number:2}}</td>
+       <td>{{showCase.pdf_data.total_taxes.igst_amt | number:2}}</td>
        <td>{{showCase.pdf_data.total_invoice | number:2}}</td>
       </tr>
       <tr class="rm-padding" style="font-weight: bold;">

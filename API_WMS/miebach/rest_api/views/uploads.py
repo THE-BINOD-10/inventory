@@ -296,6 +296,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         if order_mapping.get('status', '') and get_cell_data(row_idx, order_mapping['status'], reader, file_type) != 'New':
             continue
         log.info("Order data Processing Started %s" %(datetime.datetime.now()))
+        order_amount = 0
         for key, value in order_mapping.iteritems():
             if key in ['marketplace', 'status', 'split_order_id', 'recreate', 'shipment_check'] or key not in order_mapping.keys():
                 continue
@@ -405,6 +406,11 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     order_data[key] = int(pin_code)
             elif key == 'mrp':
                 order_summary_dict['mrp'] = get_cell_data(row_idx, value, reader, file_type)
+            elif key == 'customer_id':
+                cell_data = get_cell_data(row_idx, value, reader, file_type)
+                if not cell_data:
+                    cell_data = 0
+                order_data[key] = cell_data
             elif key == 'discount':
                 discount = get_cell_data(row_idx, value, reader, file_type)
                 if discount:
@@ -416,6 +422,26 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                         order_data['quantity'] = len(cell_data.split(value[1]))
                     except:
                         order_data['quantity'] = 1
+            elif key == 'amount':
+                cell_data = get_cell_data(row_idx, value, reader, file_type)
+                if not cell_data:
+                    cell_data = 0
+                order_amount = cell_data
+                order_data['invoice_amount'] = cell_data
+                order_data['unit_price'] = cell_data/order_data['quantity']
+            elif key in ['cgst_tax', 'sgst_tax', 'igst_tax']:
+                cell_data = get_cell_data(row_idx, value, reader, file_type)
+                if not cell_data:
+                    cell_data = 0
+                order_summary_dict[key] = cell_data
+                order_data['invoice_amount'] += (float(order_amount)/100) * float(cell_data)
+            elif key == 'amount_discount':
+                cell_data = get_cell_data(row_idx, value, reader, file_type)
+                if not cell_data:
+                    cell_data = 0
+                order_amount -= cell_data
+                order_summary_dict['discount'] = cell_data
+                order_data['invoice_amount'] -= float(cell_data)
             elif key == 'sor_id':
                 cell_data = get_cell_data(row_idx, value, reader, file_type)
                 if isinstance(cell_data, float):
@@ -588,13 +614,6 @@ def sku_form(request, user=''):
     user_profile = UserProfile.objects.get(user_id=user.id)
 
     wb, ws = get_work_sheet('skus', USER_SKU_EXCEL[user_profile.user_type])
-    data = SKUMaster.objects.filter(wms_code='', user = user.id)
-    for data_count, record in enumerate(data):
-        if record.wms_code:
-            continue
-
-        data_count += 1
-        ws.write(data_count, 0, record.wms_code)
 
     return xls_to_response(wb, '%s.sku_form.xls' % str(user.id))
 
@@ -754,6 +773,7 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
     index_status = {}
 
     sku_file_mapping = get_sku_file_mapping(reader, file_type, user=user.id)
+    product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
     if not sku_file_mapping:
         return 'Invalid File'
     for row_idx in range(1, no_of_rows):
@@ -788,6 +808,18 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
                     ean_status = check_ean_number(sku_code, cell_data, user)
                     if ean_status:
                         index_status.setdefault(row_idx, set()).add(ean_status)
+
+            elif key == 'hsn_code':
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('HSN Code must be integer')
+                    elif not len(str(int(cell_data))) == 8:
+                        index_status.setdefault(row_idx, set()).add('HSN Code should be 8 digit')
+
+            elif key == 'product_type':
+                if cell_data:
+                    if cell_data not in product_types:
+                        index_status.setdefault(row_idx, set()).add('Product Type should match with Tax master product type')
 
             elif key == 'sku_size':
                 if cell_data:
@@ -1027,6 +1059,8 @@ def sku_upload(request, user=''):
 
         sku_excel_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('SKU Master Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("SKU Master Upload Failed")
 
@@ -1125,7 +1159,7 @@ def inventory_excel_upload(request, open_sheet, user):
             if col_idx == 2 and cell_data:
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
-                cell_data = str(cell_data)
+                cell_data = str(xcode(cell_data))
                 inventory_data['sku_id'] = check_and_return_mapping_id(cell_data, '', user)
 
                 if cell_data not in sku_codes:
@@ -2398,6 +2432,10 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
                     price_types = list(PriceMaster.objects.filter(sku__user=user.id).values_list('price_type', flat=True).distinct())
                     if not cell_data in price_types:
                         index_status.setdefault(row_idx, set()).add('Invalid Selling Price Type')
+            elif key == 'tax_type':
+                if cell_data:
+                    if not cell_data in TAX_TYPE_ATTRIBUTES.values():
+                        index_status.setdefault(row_idx, set()).add('Invalid Tax Type')
 
     if not index_status:
         return 'Success'
@@ -2415,6 +2453,7 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
 def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
     mapping_dict = get_customer_master_mapping(reader, file_type)
     number_fields = ['credit_period', 'phone_number', 'pincode', 'phone']
+    rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:
             break
@@ -2436,8 +2475,14 @@ def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
                     cell_data = str(int(cell_data))
                 cell_data = str(re.sub(r'[^\x00-\x7F]+','', cell_data))
                 customer_data['name']  = cell_data
-                if customer_master:
+                if customer_master and cell_data:
                     customer_master.name = customer_data['name']
+            elif key == 'tax_type':
+                if cell_data:
+                    cell_data = rev_tax_types.get(cell_data, '')
+                customer_data['tax_type']  = cell_data
+                if customer_master and cell_data:
+                    customer_master.tax_type = customer_data['tax_type']
             elif key in number_fields:
                 try:
                     cell_data = int(cell_data)
@@ -2507,7 +2552,7 @@ def customer_upload(request, user=''):
         customer_excel_upload(request, reader, user, no_of_rows, fname, file_type)
     except Exception as e:
         import traceback
-        log.info(traceback.format_exc())
+        log.debug(traceback.format_exc())
         log.info('Customer Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Customer Upload Failed")
 
@@ -2566,7 +2611,7 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
             if key == 'sku_id':
                 if isinstance(cell_data, float):
                     cell_data = str(int(cell_data))
-                sku_code = cell_data
+                sku_code = str(xcode(cell_data))
                 if cell_data:
                     sku_id = check_and_return_mapping_id(sku_code, '', user)
                     if not sku_id:
@@ -2669,6 +2714,7 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                     sku_code = get_cell_data(row_idx, order_mapping[key], reader, file_type)
                     if isinstance(sku_code, float):
                         sku_code = str(int(sku_code))
+                    sku_code = str(xcode(sku_code))
                 sku_id = check_and_return_mapping_id(sku_code, '', user)
                 order_data['sku_id'] = sku_id
             elif key == 'order_id':
@@ -2843,6 +2889,7 @@ def validate_pricing_form(request, reader, user, no_of_rows, fname, file_type='x
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
+                    cell_data = str(xcode(cell_data))
                     data = SKUMaster.objects.filter(user=user.id, wms_code=cell_data)
                     if not data:
                         index_status.setdefault(row_idx, set()).add('Invalid SKU Code')

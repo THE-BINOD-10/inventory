@@ -127,6 +127,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.groups = data.groups;
                   vm.model_data.sizes_list =  data.sizes_list;
                   vm.model_data.combo_data = data.combo_data;
+                  vm.model_data.product_types = data.product_types;
                   var index = vm.model_data.zones.indexOf(vm.model_data.sku_data.zone);
                   vm.model_data.sku_data.zone = vm.model_data.zones[index];
                   
@@ -271,6 +272,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(data.message) {
         data = data.data;
         vm.model_data.zones = data.zones;
+        vm.model_data.product_types = data.product_types;
+        vm.model_data.sku_data.product_type = '';
         vm.model_data.sku_data.zone = vm.model_data.zones[0];
         vm.model_data.groups = data.sku_groups;
         vm.model_data.sku_data.sku_group = '';

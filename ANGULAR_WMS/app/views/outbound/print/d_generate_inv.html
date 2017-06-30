@@ -1,0 +1,2 @@
+<div ng-if="!showCase.pdf_data.is_gst_invoice" ng-include="'views/outbound/print/detail_generate_inv.html'"></div>
+<div ng-if="showCase.pdf_data.is_gst_invoice" ng-include="'views/outbound/print/gst/gst_detail_generate_inv.html'"></div>

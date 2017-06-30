@@ -239,6 +239,8 @@ def get_stock_summary_size(start_index, stop_index, temp_data, search_term, orde
         temp_data['aaData'].extend(data_list)
 
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info(e)
 
     end_time = datetime.datetime.now()
@@ -319,6 +321,8 @@ def get_stock_summary_size_excel(filter_params, temp_data, headers, user, reques
 
         workbook.close()
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info(e)
 
     end_time = datetime.datetime.now()
@@ -1241,5 +1245,7 @@ def change_imei_status(request, user=''):
             qc_serial.save()
             resp = {'status': 1, 'message': 'Updated Successfully'}
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Change Imei status failed for %s and params are %s and error statement is %s' % (str(user.username), str(request_data.dict()), str(e)))
     return HttpResponse(json.dumps(resp))

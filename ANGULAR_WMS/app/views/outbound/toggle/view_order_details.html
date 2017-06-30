@@ -6,10 +6,11 @@
         <h4>
           <span class="go-back" ng-click="showCase.back_button()">
           <i class="fa fa-arrow-left fa-1x" aria-hidden="true"></i>
-	  View Orders</span>
+	      View Orders</span>
           <span> / </span>
           <span>Order Details</span>
-	  <span><b>&nbsp;#{{showCase.order_id}}</b></span>
+	      <span><b>&nbsp;#{{showCase.order_id}}</b></span>
+          <span class="pull-right" ng-if="showCase.model_data.sor_id">SOR ID: {{showCase.model_data.sor_id}}</span>
         </h4>
       </div>
     </div>
@@ -91,6 +92,52 @@
         </div>
         <div class="col-xs-6">
           <p>{{showCase.pin}}</p>
+        </div>
+      </div>
+    </div>
+    <div class="row" ng-if="showCase.model_data.seller_data.seller_id"><hr></div>
+    <div class="row" ng-if="showCase.model_data.seller_data.seller_id">
+      <h5><b>SELLER DETAILS</b></h5>
+      <div class="col-md-5">
+        <div class="row">
+          <div class="col-xs-2">
+            <b>ID:</b>
+          </div>
+          <div class="col-xs-6">
+            <p>{{showCase.model_data.seller_data.seller_id}}</p>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-xs-2">
+            <b>NAME:</b>
+          </div>
+          <div class="col-xs-6">
+            <p>{{showCase.model_data.seller_data.name}}</p>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-xs-2">
+            <b>PHONE:</b>
+          </div>
+          <div class="col-xs-6">
+            <p>{{showCase.model_data.seller_data.phone_number}}</p>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-xs-2">
+            <b>EMAIL:</b>
+          </div>
+          <div class="col-xs-6">
+            <p>{{showCase.model_data.seller_data.email_id}}</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-5">
+        <div class="col-xs-2">
+          <b>ADDRESS:</b>
+        </div>
+        <div class="col-xs-6">
+          <p>{{showCase.model_data.seller_data.address}}</p>
         </div>
       </div>
     </div>

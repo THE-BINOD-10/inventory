@@ -108,7 +108,7 @@
                 <label class="control-label"> Tax Type </label>
                 <select class="form-control"  ng-model="showCase.model_data.tax_type" name="tax_type">
                   <option value=""> None </option>
-                  <option ng-repeat="one in showCase.all_taxes" value="{{one.tax_name}}" ng-selected="one.tax_name == showCase.model_data.tax_type">{{one.tax_name}}</option>
+                  <option ng-repeat="one in showCase.all_taxes" value="{{one.tax_value}}" ng-selected="one.tax_name == showCase.model_data.tax_type">{{one.tax_name}}</option>
                 </select>
               </div>
             </div>

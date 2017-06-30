@@ -276,7 +276,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                                                  ('price_type', price_type), ('cst_number', data.cst_number),
                                                  ('pan_number', data.pan_number), ('customer_type', data.customer_type),
                                                  ('pincode', data.pincode), ('city', data.city), ('state', data.state),
-                                                 ('country', data.country),('tax_type', data.tax_type),
+                                                 ('country', data.country),('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
                                                  ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
                                              )))
 
@@ -435,7 +435,7 @@ def get_sku_data(request,user=''):
     sku_data['sku_brand'] = data.sku_brand
     sku_data['style_name'] = data.style_name
     sku_data['sku_size'] = data.sku_size
-    sku_data['product_group'] = data.product_group
+    sku_data['product_type'] = data.product_type
     sku_data['zone'] = zone_name
     sku_data['threshold_quantity'] = data.threshold_quantity
     sku_data['online_percentage'] = data.online_percentage
@@ -449,6 +449,7 @@ def get_sku_data(request,user=''):
     sku_data['ean_number'] = data.ean_number
     sku_data['color'] = data.color
     sku_data['load_unit_handle'] = load_unit_dict.get(data.load_unit_handle, 'unit')
+    sku_data['hsn_code'] = data.hsn_code
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -459,8 +460,10 @@ def get_sku_data(request,user=''):
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
+    product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
     return  HttpResponse(json.dumps({'sku_data': sku_data,'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
-                                     'market_data':market_data, 'combo_data': combo_data, 'sizes_list': sizes_list}, cls=DjangoJSONEncoder))
+                                     'market_data':market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
+                                     'product_types': product_types}, cls=DjangoJSONEncoder))
 
 @csrf_exempt
 def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -620,6 +623,8 @@ def update_sku(request,user=''):
         #get_user_sku_data(user)
         insert_update_brands(user)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Update SKU Data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse('Update SKU Failed')
 
@@ -693,6 +698,8 @@ def update_supplier_values(request, user=''):
 
         data.save()
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Update Supplier Values failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse('Update Supplier Failed')
     return HttpResponse('Updated Successfully')
@@ -736,6 +743,8 @@ def insert_supplier(request, user=''):
             status_msg = 'New Supplier Added'
 
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Add New Supplier failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         status_msg = 'Add Supplier Failed'
     return HttpResponse(status_msg)
@@ -861,6 +870,8 @@ def update_customer_values(request,user=''):
             if password or name_ch:
                 update_customer_password(data, password, user)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Update Customer Values failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse('Update Customer Data Failed')
     return HttpResponse('Updated Successfully')
@@ -914,6 +925,8 @@ def insert_customer(request, user=''):
                     return HttpResponse('Username already exists')
                 status_msg = create_update_user(customer_master, password, username)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Add New Customer failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
 
     return HttpResponse(status_msg)
@@ -1391,11 +1404,13 @@ def get_zones_list(request, user=''):
     all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
     size_names = SizeMaster.objects.filter(user=user.id)
+    product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
     sizes_list = []
     for sizes in size_names:
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
-    return HttpResponse(json.dumps({'zones': zones_list, 'sku_groups': all_groups, 'market_places': market_places, 'sizes_list': sizes_list}))
+    return HttpResponse(json.dumps({'zones': zones_list, 'sku_groups': all_groups, 'market_places': market_places, 'sizes_list': sizes_list,
+                                    'product_types': product_types}))
 
 @csrf_exempt
 @login_required
@@ -1468,6 +1483,8 @@ def insert_sku(request,user=''):
         if all_users and sync_sku_switch == 'true':
             create_sku([sku_master], all_users)
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Insert New SKU failed for %s and params are %s and error statement is %s' % (str(user.username),\
                                                                                                str(request.POST.dict()), str(e)))
         status_msg = 'Insert SKU Falied'
@@ -1750,52 +1767,10 @@ def create_custom_sku(request, user=''):
                                        'vendors_list': ven_list})
         return HttpResponse(json.dumps({'message': 'Success', 'data': sku_codes_list}))
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Create Custom SKU failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
-    '''for i in range(0, len(data_dict['sku_size'])):
-        sku_size = data_dict['sku_size'][i]
-        quantity = data_dict['quantity'][i]
-        if sku_size and not (sku_size in sku_sizes) and quantity and float(quantity) > 0:
-            sku_sizes.append({'sku_size': sku_size, 'quantity': quantity})
-
-    group_sku = ''
-    saved_file_path = ''
-    for sku_size in sku_sizes:
-        size_name = sku_size['sku_size']
-        sku_code, sku_serial = get_custom_sku_code(user, sku_size=size_name, group_sku=group_sku)
-        if '-' in sku_code:
-            group_sku = sku_code.split('-')[0]
-
-        sku_master = SKUMaster.objects.create(user=user.id, sku_code=sku_code, wms_code=sku_code, sku_desc='Custom SKU ' + sku_serial, status=1,
-                                              creation_date=datetime.datetime.now(), online_percentage=100, sku_type='CS', price=unit_price)
-
-        if image_file:
-            saved_file_path = save_image_file(image_file, sku_master, user, saved_file_path=saved_file_path, file_name=sku_master.sku_code)
-        sku_codes_list.append({'sku_code': sku_master.sku_code, 'quantity': sku_size['quantity']})
-        for i in range(0, len(data_dict['field_name'])):
-            attribute_name = data_dict['field_name'][i]
-            attribute_value = data_dict['field_value'][i]
-            product_attribute = ProductAttributes.objects.filter(product_property_id=product_property.id, attribute_name=attribute_name)
-            if not (attribute_value or product_attribute):
-                continue
-            product_attribute = product_attribute[0]
-            sku_fields = SKUFields.objects.filter(sku_id=sku_master.id, field_id=product_attribute.id, field_type='product_attribute')
-            if not sku_fields:
-                sku_columns = SKUMaster._meta.get_all_field_names()
-                if property_type in sku_columns:
-                    setattr(sku_master, property_type, property_name)
-                    sku_master.save()
-                SKUFields.objects.create(sku_id=sku_master.id, field_id=product_attribute.id, field_type='product_attribute',
-                                         creation_date=datetime.datetime.now(), field_value=attribute_value)
-        for key, value in ven_list.iteritems():
-            ex_obj = SKUFields.objects.filter(sku_id = sku_master.id, field_type = key)
-            if ex_obj:
-                ex_obj = ex_obj[0]
-                ex_obj.field_id = value.id
-                ex_obj.field_value = value.name
-                ex_obj.save()
-            else:
-                SKUFields.objects.create(sku_id=sku_master.id, field_id= value.id, field_type= key, field_value=value.name)
-    return HttpResponse(json.dumps({'message': 'SKU Created Successfully', 'data': sku_codes_list}))'''
+        return HttpResponse(json.dumps({'message': 'Failed', 'data': []}))
 
 @csrf_exempt
 def get_size_master_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
@@ -2122,6 +2097,8 @@ def update_seller_values(request,user=''):
 
         data.save()
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Update Seller Values failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
     return HttpResponse('Updated Successfully')
 
@@ -2168,6 +2145,8 @@ def insert_seller_margin(request, user=''):
         seller_margin = SellerMarginMapping(**data_dict)
         seller_margin.save()
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Insert Seller SKU Margin failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Insert Seller SKU Margin Failed")
 
@@ -2213,6 +2192,8 @@ def update_seller_margin(request, user=''):
             data.margin = request.POST.get('margin', 0)
             data.save()
     except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
         log.info('Update Seller Margin Values failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse('Update Seller Margin Failed')
     return HttpResponse('Updated Successfully')

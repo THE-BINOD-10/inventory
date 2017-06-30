@@ -79,7 +79,7 @@ def create_sku(all_skus, all_users):
                 defaults={'sku_desc' : sku.sku_desc, 'sku_group' : sku.sku_group, 'sku_type' : sku.sku_type,
                 'sku_category' : sku.sku_category, 'sku_class' : sku.sku_class, 'sku_brand' : sku.sku_brand,
                 'style_name' : sku.style_name, 'sku_size' : sku.sku_size, 'sku_size' : sku.sku_size,
-                'product_group' : sku.product_group, 'zone' : sku.zone, 'threshold_quantity' : sku.threshold_quantity,
+                'product_type' : sku.product_type, 'zone' : sku.zone, 'threshold_quantity' : sku.threshold_quantity,
                 'online_percentage' : sku.online_percentage, 'discount_percentage' : sku.discount_percentage,
                 'price' : sku.price, 'mrp' : sku.mrp, 'image_url' : sku.image_url, 'qc_check' : sku.qc_check,
                 'sequence' : sku.sequence, 'status' : sku.status, 'relation_type' : sku.relation_type,

@@ -11,7 +11,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.model_data = {}
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
                             customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: "",
-                            tax_type: "VAT"};
+                            tax_type: ""};
 
   angular.copy(empty_data, vm.model_data);
   vm.isLast = isLast;
@@ -38,12 +38,12 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     vm.model_data["telephone"] = parseInt(item.phone_number);
     vm.model_data["email_id"] = item.email;
     vm.model_data["address"] = item.address;
-    if(vm.create_order_data.taxes[item.tax_type]) {
+    if(item.tax_type) {
 
       vm.model_data["tax_type"] = item.tax_type;
     } else {
 
-      vm.model_data["tax_type"] = 'DEFAULT';
+      vm.model_data["tax_type"] = '';
     }
     vm.add_customer = false;
     angular.copy(item, vm.selected)
@@ -436,12 +436,16 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         vm.model_data.data = [];
       }
     }
-    angular.forEach(data, function(record){
+    angular.forEach(data, function(record, index){
 
       var temp = {sku_id: record.sku_code, description: record.description, quantity: Number(record.quantity), invoice_amount: "", price: Number(sizes.unit_price), tax: vm.tax, total_amount: '', extra: record, remarks: record.remarks};
       temp.invoice_amount = temp.quantity*temp.price;
       temp.total_amount = ((temp.invoice_amount/100)*temp.tax)+temp.invoice_amount;
       vm.model_data.data.push(temp);
+      if(data.length-1 == index) {
+
+        vm.change_tax_type();
+      }
     });
 
     vm.cal_total();
@@ -540,7 +544,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   vm.add_to_cart = function() {
     if(vm.style_total_quantity > 0) {
-      angular.forEach(vm.style_data, function(data){
+      angular.forEach(vm.style_data, function(data, index){
 
         if (data['quantity']) {
           vm.check_item(data.wms_code).then(function(stat){
@@ -568,6 +572,12 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
             }
             vm.cal_total();
           });
+        }
+        if(vm.style_data.length-1 == index){
+
+          $timeout(function() {
+            vm.change_tax_type();
+          }, 1000);
         }
       });
       vm.service.showNoty("Succesfully Added to Cart");
@@ -623,11 +633,15 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
       })
     }
   }
-  vm.cal_percentage = function(data) {
+  vm.cal_percentage = function(data, no_total) {
 
+    vm.get_tax_value(data);
     var per = Number(data.tax);
     data.total_amount = ((Number(data.invoice_amount)/100)*per)+Number(data.invoice_amount);
-    vm.cal_total();
+
+    if(!no_total) {
+      vm.cal_total();
+    }
   }
 
   vm.change_unit_price = function(data) {
@@ -754,7 +768,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
       if(data.message) {
         vm.create_order_data = data.data;
-        vm.model_data.tax_type = 'DEFAULT';
+        vm.model_data.tax_type = '';
         vm.change_tax_type();
       }
     })
@@ -765,14 +779,33 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
     var tax_name = vm.model_data.tax_type;
     if(!(vm.model_data.tax_type)) {
-        tax_name = 'DEFAULT';
+      tax_name = 'DEFAULT';
+      angular.forEach(vm.model_data.data, function(record) {
+        if(record.sku_id) {
+          record.tax = 0;
+          record.sgst = 0;
+          record.cgst = 0;
+          record.igst = 0;
+          record.taxes = [];
+          vm.cal_percentage(record, false);
+        }
+      })
+    } else {
+
+      angular.forEach(vm.model_data.data, function(record) {
+
+        if(record.sku_id) {
+          vm.get_customer_sku_prices(record.sku_id).then(function(data){
+            if(data.length > 0) {
+              console.log(data);
+              record.taxes = data[0].taxes;
+              vm.cal_percentage(record, false);
+            }
+          })
+        }
+      })
     }
-    vm.tax = vm.create_order_data.taxes[tax_name];
-    angular.forEach(vm.model_data.data, function(record) {
-      record.tax = vm.create_order_data.taxes[tax_name];
-      vm.cal_percentage(record)
-    })
-    vm.cal_total();
+    //vm.cal_total();
   }
 
   vm.field_perm = {};
@@ -790,6 +823,34 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     vm.fields = vm.fields.split(",")
   }
 
+  vm.get_tax_value = function(data) {
+
+    var tax = 0;
+    for(var i = 0; i < data.taxes.length; i++) {
+
+      if(data.price <= data.taxes[i].max_amt && data.price >= data.taxes[i].min_amt) {
+
+        if(vm.model_data.tax_type == "intra_state") {
+
+          tax = data.taxes[i].sgst_tax + data.taxes[i].cgst_tax;
+          data.sgst_tax = data.taxes[i].sgst_tax;
+          data.cgst_tax = data.taxes[i].cgst_tax;
+          data.igst_tax = 0;
+        } else if (vm.model_data.tax_type == "inter_state") {
+
+          data.sgst_tax = 0;
+          data.cgst_tax = 0;
+          data.igst_tax = data.taxes[i].igst_tax;
+          tax = data.taxes[i].igst_tax;
+        }
+        break;
+      }
+    }
+
+    data.tax = tax;
+    return tax;
+  }
+
   vm.get_sku_data = function(record, item) {
 
     record.sku_id = item.wms_code;
@@ -803,6 +864,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         if(!(record.quantity)) {
           record.quantity = 1
         }
+        record["taxes"] = data.taxes;
         record.invoice_amount = Number(record.price)*Number(record.quantity)
         vm.cal_percentage(record);
       }
@@ -812,7 +874,8 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.get_customer_sku_prices = function(sku) {
 
     var d = $q.defer();
-    vm.service.apiCall("get_customer_sku_prices/", "POST", {sku_codes: sku, cust_id: vm.model_data.customer_id}).then(function(data) {
+    var data = {sku_codes: sku, cust_id: vm.model_data.customer_id, tax_type: vm.model_data.tax_type}
+    vm.service.apiCall("get_customer_sku_prices/", "POST", data).then(function(data) {
 
       if(data.message) {
         d.resolve(data.data);

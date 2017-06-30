@@ -4085,7 +4085,7 @@ def generate_seller_invoice(request, user=''):
         invoice_date = datetime.datetime.now()
 
     invoice_date = get_local_date(user, invoice_date, send_date='true')
-    if datetime.datetime.strptime('2017-06-01', '%Y-%m-%d').date() <= invoice_date.date():
+    if datetime.datetime.strptime('2017-07-01', '%Y-%m-%d').date() <= invoice_date.date():
         is_gst_invoice = True
     inv_month_year = invoice_date.strftime("%m-%y")
     invoice_date = invoice_date.strftime("%d %b %Y")

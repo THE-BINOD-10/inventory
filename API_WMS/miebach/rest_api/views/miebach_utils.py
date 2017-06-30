@@ -801,7 +801,7 @@ SUMMARY_INTER_STATE_STATUS = {0: 'intra_state', 1: 'inter_state', '2': 'default'
 
 #Username and GST Tin Mapping
 
-GSTIN_USER_MAPPING = {'sagar_fab': '1564898789562'}
+GSTIN_USER_MAPPING = {'sagar_fab': '1564898789562', 'adam_clothing1': '2788OFB3466F1ZB', 'adam_abstract': '2788OFB3466F1ZB'}
 
 #End of Username and GST Tin Mapping
 

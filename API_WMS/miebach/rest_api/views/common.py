@@ -1728,7 +1728,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             invoice_date = picklist[0].updation_date
         invoice_date = get_local_date(user, invoice_date, send_date='true')
 
-        if datetime.datetime.strptime('2017-06-01', '%Y-%m-%d').date() <= invoice_date.date():
+        if datetime.datetime.strptime('2017-07-01', '%Y-%m-%d').date() <= invoice_date.date():
             is_gst_invoice = True
         for dat in order_data:
             order_id = dat.original_order_id

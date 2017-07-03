@@ -7,11 +7,12 @@
           <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
          <h4 class="modal-title">Invoice</h4>
         </div>
-        <div class="modal-body print print-invoice" style="overflow: hidden">
-          <div class="row col-md-12">
+        <div class="modal-body" style="overflow: hidden">
+         <div class="print print-invoice">
+          <div class="row col-md-12 no-padding">
             <h4 style="margin-bottom:2px" align="center">Tax Invoice</h4>
           </div>
-          <div class="row col-md-12" style="margin-top: 0px;">
+          <div class="row col-md-12 no-padding" style="margin-top: 0px;">
             <table class="table table-bordered bl br mb0" style="margin-bottom:0px">
               <tbody>
                 <tr class="rm-padding">
@@ -103,9 +104,10 @@
                 </tr>
               </tbody>
             </table>
-            <table ng-include="'views/outbound/print/gst/gst_table1.html'" ng-if="(!(showCase.pdf_data.detailed_invoice))" class="table table-bordered bl br"></table>
+            <table ng-include="'views/outbound/print/gst/gst_table1.html'" ng-if="(!(showCase.pdf_data.detailed_invoice))" class="table table-bordered bl br cal-table"></table>
             <table ng-include="'views/outbound/print/table2.html'" ng-if="showCase.pdf_data.detailed_invoice" class="table table-bordered bl br"></table>
           </div>
+         </div>
         </div>
         <div class="row">
           <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.generate_pdf_file(showCase.pdf_data)">

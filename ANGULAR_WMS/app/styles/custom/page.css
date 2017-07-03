@@ -30,11 +30,11 @@
 }
 .print-invoice .rm-padding th {
   font-size: 11px !important;
-  padding: 5px 5px !important;
+  padding: 4px 2px !important;
 }
 .print-invoice .rm-padding td {
   font-size: 11px !important;
-  padding: 5px 5px !important;
+  padding: 4px 2px !important;
 }
 .print-invoice .detail_invoice .w50 {
   width: 50px;
@@ -69,4 +69,8 @@
 .print-invoice .row {
   margin-left: 0px !important;
   margin-right: 0px !important;
+}
+.print-invoice .tax-percentage {
+  font-size: 9px;
+  font-weight: 100;
 }

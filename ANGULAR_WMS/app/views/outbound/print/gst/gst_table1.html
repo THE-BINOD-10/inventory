@@ -20,15 +20,15 @@
         <td style="text-align: left;">{{record.sku_code}}</td>
         <td style="text-align: left;">{{record.hsn_code}}</td>
         <td style="text-align: left;">{{record.title}}</td>
-        <td>{{record.unit_price | number:2}}</td>
+        <td>{{record.unit_price}}</td>
         <td>{{record.quantity}}</td>
         <td>{{record.base_price | number:2}}</td>
         <!--<td ng-if="permissions.show_mrp">{{record.mrp_price | number:2}}</td>-->
-        <td class="text-right">{{record.discount}}<br><span class="hide" style="font-size:9px;font-weight: 100">@0%</span></td>
+        <td class="text-right">{{record.discount}}<br><span class="tax-percentage hide">@0%</span></td>
         <td> {{record.amt | number:2}} </td>
-        <td class="text-right">{{record.taxes.cgst_amt}}<br><span style="font-size:9px;font-weight: 100">@{{record.taxes.cgst_tax}}%</span></td>
-        <td class="text-right">{{record.taxes.sgst_amt}}<br><span style="font-size:9px;font-weight: 100">@{{record.taxes.sgst_tax}}%</span></td>
-        <td class="text-right">{{record.taxes.igst_amt}}<br><span style="font-size:9px;font-weight: 100">@{{record.taxes.igst_tax}}%</span></td>
+        <td class="text-right">{{record.taxes.cgst_amt | number:2}}<br><span class="tax-percentage">{{record.taxes.cgst_tax}}%</span></td>
+        <td class="text-right">{{record.taxes.sgst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.sgst_tax}}%</span></td>
+        <td class="text-right">{{record.taxes.igst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.igst_tax}}%</span></td>
         <td>{{record.invoice_amount | number:2}}</td>
       </tr>
       <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14);font-weight: bold;" class="rm-padding text-right">

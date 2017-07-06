@@ -556,7 +556,7 @@ LIMEROAD_EXCEL = {'order_id': 0, 'invoice_amount': 8, 'marketplace': 'Lime Road'
                       'address': 12, 'telephone': 11,  'shipment_date': 1}
 
 MYNTRA_EXCEL = {'invoice_amount': 14, 'marketplace': 'Myntra', 'sku_code': 2, 'quantity': 9, 'title': 7, 'original_order_id': 1, 'order_id': 1,
-                'vat': [14, 11], 'mrp': 12, 'discount': 13}
+                'vat': [14, 11], 'mrp': 12, 'discount': 13, 'unit_price': 11}
 
 UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code': 1, 'recreate': True}
 
@@ -658,6 +658,15 @@ PERMISSION_DICT = OrderedDict((
 
 ORDERS_TRACK_STATUS = {0: 'Resolved', 1: "Conflict", 2: "Delete"}
 
+SHOTANG_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'orders["channel"]',
+                         'sku': 'order["Sku"]',
+                         'title': 'order["productTitle"]', 'quantity': 'order["quantity"]',
+                         'shipment_date': 'orders["orderDate"]', 'channel_sku': 'order["channelSku"]',
+                         'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]', 'seller_id': 'order["seller_id"]',
+                         'sor_id': 'order["sor_id"]', 'cgst_tax': 'order.get("cgst_tax", "0")', 'sgst_tax': 'order.get("sgst_tax", "0")',
+                         'igst_tax': 'order.get("igst_tax", "0")', 'order_status': 'orders.get("currentStatus", "")'
+                        }
+
 # Easyops Integration Mapping Dictionaries
 EASYOPS_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'orders["channel"]',
                          'sku': 'order["easyopsSku"]',
@@ -758,8 +767,19 @@ MYNTRA_BULK_ADDRESS = 'MYNTRA DESIGNS PVT LTD\nKsquare Industrial Park, Warehous
                          Before Padgha Toll naka Nashik-Mumbai Highway \nNear Pushkar Mela Hotel Rahul Narkhede,\n\
                          Padgha-Bhiwandi\nTin# 27590747736'
 
-USER_MYNTRA_ADDRESS = {'campus_sutra': MYNTRA_BANGALORE_ADDRESS, 'adam_clothing': MYNTRA_MUMBAI_ADDRESS,
-                       'adam_clothing1': MYNTRA_MUMBAI_ADDRESS, 'adam_clothing1:bulk': MYNTRA_BULK_ADDRESS}
+JABONG_ADDRESS = 'Jabong Marketplace Mahindra Logistics Limited\nBlock No. H2 Sai Dhara Warehousing & Logistics Park,\n\
+                  Opp. Indian Oil Petrol Pump\nNear Shangrila Resort\nMumbai-Nasik Highway,\nBhiwandi,\nMaharashtra,421302'
+
+USER_CHANNEL_ADDRESS = {'campus_sutra:myntra': MYNTRA_BANGALORE_ADDRESS, 'adam_clothing:myntra': MYNTRA_MUMBAI_ADDRESS,
+                        'adam_clothing1:myntra': MYNTRA_MUMBAI_ADDRESS, 'adam_clothing1:myntra:bulk': MYNTRA_BULK_ADDRESS,
+                        'adam_clothing1:jabong': JABONG_ADDRESS
+                       }
+
+MYNTRA_BULK_ADDRESS = 'MYNTRA DESIGNS PVT LTD\nKsquare Industrial Park, Warehouse 4\n\
+                         Before Padgha Toll naka Nashik-Mumbai Highway \nNear Pushkar Mela Hotel Rahul Narkhede,\n\
+                         Padgha-Bhiwandi\nTin# 27590747736'
+
+
 # End of Myntra Invoice Address based on username
 
 SELLER_ORDER_FIELDS = {'sor_id': '', 'quantity': 0, 'order_status': '', 'order_id': '', 'seller_id': '', 'status': 1, 'invoice_no': ''}
@@ -802,7 +822,8 @@ SUMMARY_INTER_STATE_STATUS = {0: 'intra_state', 1: 'inter_state', '2': 'default'
 #Username and GST Tin Mapping
 
 GSTIN_USER_MAPPING = {'sagar_fab': '29ABEFS4899J1ZA', 'adam_clothing1': '2788OFB3466F1ZB', 'adam_abstract': '2788OFB3466F1ZB',
-                      'dazzle_export': '26AHQPP2057B1ZB', 'legends_overseas': '27AAGFL3290D1ZF'}
+                      'dazzle_export': '26AHQPP2057B1ZB', 'legends_overseas': '27AAGFL3290D1ZF', 'TranceHomeLinen': '29ADOPS6189BIZX',
+                      'demo': 'ABC12345678'}
 
 #End of Username and GST Tin Mapping
 

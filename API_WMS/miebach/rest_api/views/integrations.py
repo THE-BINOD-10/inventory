@@ -1,5 +1,6 @@
 from miebach_admin.models import *
 from common import *
+from uploads import *
 from dateutil import parser
 import traceback
 import ConfigParser
@@ -11,7 +12,15 @@ LOAD_CONFIG.read('rest_api/views/configuration.cfg')
 def update_orders(orders, user='', company_name=''):
     order_mapping = eval(LOAD_CONFIG.get(company_name, 'order_mapping_dict', ''))
     NOW = datetime.datetime.now()
+
+    insert_status = {'Orders Inserted': 0, 'Seller Master does not exists': 0, 'SOR ID not found': 0, 'Order Status not Matched': 0,
+                     'Order Exists already': 0, 'Invalid SKU Codes': 0}
+
     try:
+        seller_masters = SellerMaster.objects.filter(user=user.id)
+        user_profile = UserProfile.objects.get(user_id=user.id)
+        seller_master_dict = {}
+        sku_ids = []
         if not orders:
             orders = {}
         orders = orders.get(order_mapping['items'], [])
@@ -38,7 +47,34 @@ def update_orders(orders, user='', company_name=''):
 
             if not order_items:
                 print "order_items doesn't exists" + original_order_id
+
             for order in order_items:
+                if order_mapping.get('seller_id', ''):
+                    seller_id = eval(order_mapping['seller_id'])
+                    seller_master = seller_masters.filter(seller_id=seller_id)
+                    order_status = eval(order_mapping['order_status'])
+                    if not seller_master:
+                        insert_status['Seller Master does not exists'] += 1
+                        continue
+                    if not eval(order_mapping['sor_id']):
+                        insert_status['SOR ID not found'] += 1
+                        continue
+                    if not order_status == 'PROCESSED':
+                        insert_status['Order Status not Matched'] += 1
+                        continue
+                    seller_master_dict[seller_id] = seller_master[0].id
+                    seller_order = SellerOrder.objects.filter(Q(order__original_order_id=original_order_id)|Q(order__order_id=order_id,
+                                                 order__order_code=order_code),sor_id=eval(order_mapping['sor_id']), seller__user=user.id)
+                    if seller_order:
+                        insert_status['Order Exists already'] += 1
+                        continue
+                try:
+                    shipment_date = eval(order_mapping['shipment_date'])
+                    shipment_date = datetime.datetime.fromtimestamp(shipment_date)
+                except:
+                    shipment_date = NOW
+                order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
+                seller_order_dict = copy.deepcopy(SELLER_ORDER_FIELDS)
                 sku_code = eval(order_mapping['sku'])
                 sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
                 if sku_master:
@@ -51,6 +87,7 @@ def update_orders(orders, user='', company_name=''):
                     #filter_params['sku_id'] = sku_master[0].id
                     #filter_params1['sku_id'] = sku_master[0].id
                     reason = ''
+                    insert_status['Invalid SKU Codes'] += 1
                     channel_sku = eval(order_mapping['channel_sku'])
                     if sku_code:
                         reason = "SKU Mapping doesn't exists"
@@ -61,52 +98,77 @@ def update_orders(orders, user='', company_name=''):
                     if not orders_track:
                         OrdersTrack.objects.create(order_id=original_order_id, sku_code=sku_code, status=1, user=user.id,
                                             marketplace = channel_name, title = eval(order_mapping['title']), company_name = company_name,
-                                    channel_sku= channel_sku, shipment_date = eval(order_mapping['shipment_date']),
+                                    channel_sku= channel_sku, shipment_date = shipment_date,
                                                 quantity = eval(order_mapping['quantity']),
                                                reason = reason, creation_date = NOW)
                     continue
 
                 order_det = OrderDetail.objects.filter(**filter_params)
                 order_det1 = OrderDetail.objects.filter(**filter_params1)
+                invoice_amount = float(data.get('total_price', 0))
+
+                if 'unit_price' in order_mapping:
+                    invoice_amount = float(eval(order_mapping['unit_price']) * eval(order_mapping['quantity']))
+                    order_details['unit_price'] = eval(order_mapping['unit_price'])
+                if order_mapping.has_key('cgst_tax'):
+                    order_summary_dict['cgst_tax'] = eval(order_mapping['cgst_tax'])
+                    order_summary_dict['sgst_tax'] = eval(order_mapping['sgst_tax'])
+                    order_summary_dict['igst_tax'] = eval(order_mapping['igst_tax'])
+                    order_summary_dict['inter_state'] = 0
+                    if order_summary_dict['igst_tax']:
+                        order_summary_dict['inter_state'] = 1
+                    tot_invoice = (float(invoice_amount)/100) * (float(order_summary_dict['cgst_tax']) + float(order_summary_dict['sgst_tax'])\
+                                                                  + float(order_summary_dict['igst_tax']))
+                    invoice_amount += float(tot_invoice)
+
                 if not order_det:
                     order_det = order_det1
 
-                if order_det and len(str(eval(order_mapping['id']))) < 10 and isinstance(eval(order_mapping['id']), int):
+
+                order_create = True
+                if (order_det and filter_params['sku_id'] in sku_ids) or (order_det and seller_id in seller_master_dict.keys()):
                     order_det = order_det[0]
-                    swx_mapping = SWXMapping.objects.filter(local_id = order_det.id, swx_type='order', app_host=company_name)
-                    if swx_mapping:
-                        for mapping in swx_mapping:
-                            mapping.swx_id = eval(order_mapping['id'])
-                            mapping.updation_date = NOW
-                            mapping.save()
+                    order_det.quantity += eval(order_mapping['quantity'])
+                    order_det.invoice_amount += invoice_amount
+                    order_det.save()
+                    if order_det and seller_id in seller_master_dict.keys():
+                        order_create = False
                     else:
-                        mapping = SWXMapping(local_id=order_det.id, swx_id=eval(order_mapping['id']), swx_type='order',
-                                             creation_date=NOW,updation_date=NOW, app_host=company_name)
-                        mapping.save()
-                    continue
+                        insert_status['Order Exists already'] += 1
+                        continue
 
-                if order_det:
-                    continue
+                if order_create:
+                    order_details['original_order_id'] = original_order_id
+                    order_details['order_id'] = order_id
+                    order_details['order_code'] = order_code
 
-                order_details['original_order_id'] = original_order_id
-                order_details['order_id'] = order_id
-                order_details['order_code'] = order_code
+                    order_details['sku_id'] = sku_master[0].id
+                    order_details['title'] = eval(order_mapping['title'])
+                    order_details['user'] = user.id
+                    order_details['quantity'] = eval(order_mapping['quantity'])
+                    order_details['shipment_date'] = shipment_date
+                    order_details['marketplace'] = channel_name
+                    order_details['invoice_amount'] = float(invoice_amount)
 
-                order_details['sku_id'] = sku_master[0].id
-                order_details['title'] = eval(order_mapping['title'])
-                order_details['user'] = user.id
-                order_details['quantity'] = eval(order_mapping['quantity'])
-                order_details['shipment_date'] = NOW
-                if not order_details['shipment_date']:
-                    order_details['shipment_date'] = eval(order_mapping['shipment_date'])
-                order_details['marketplace'] = channel_name
-                invoice_amount = data.get('total_price', 0)
-                if 'unit_price' in order_mapping:
-                    invoice_amount = eval(order_mapping['unit_price']) * order_details['quantity']
-                order_details['invoice_amount'] = invoice_amount
+                    order_detail = OrderDetail(**order_details)
+                    order_detail.save()
 
-                order_detail = OrderDetail(**order_details)
-                order_detail.save()
+                    if order_mapping.has_key('cgst_tax'):
+                        order_summary_dict['order_id'] = order_detail.id
+                        customerorder = CustomerOrderSummary(**order_summary_dict)
+                        customerorder.save()
+                else:
+                    order_detail = order_det
+
+                if order_mapping.has_key('sor_id'):
+                    seller_order_dict['seller_id'] = seller_master_dict[seller_id]
+                    seller_order_dict['sor_id'] = eval(order_mapping['sor_id'])
+                    seller_order_dict['order_status'] = eval(order_mapping['order_status'])
+                    seller_order_dict['order_id'] = order_detail.id
+                    seller_order_dict['quantity'] = eval(order_mapping['quantity'])
+
+                check_create_seller_order(seller_order_dict, order_detail, user)
+                insert_status['Orders Inserted'] += 1
 
                 order_issue_objs = OrdersTrack.objects.filter(user = user.id, order_id = original_order_id, sku_code = sku_code).exclude(mapped_sku_code = "", channel_sku = "")
 
@@ -118,14 +180,11 @@ def update_orders(orders, user='', company_name=''):
                     order_issue_objs.mapped_sku_code = sku_code
                     order_issue_objs.status = 0
                     order_issue_objs.save()
+        return insert_status
 
-                swx_mapping = SWXMapping.objects.filter(local_id = order_detail.id, swx_type='order', app_host=company_name)
-                if not swx_mapping and len(str(eval(order_mapping['id']))) < 10 and isinstance(eval(order_mapping['id']), int):
-                    mapping = SWXMapping(local_id=order_detail.id, swx_id=eval(order_mapping['id']), swx_type='order', creation_date=NOW,
-                                         updation_date=NOW, app_host=company_name)
-                    mapping.save()
     except:
         traceback.print_exc()
+        return insert_status
 
 def update_shipped(orders, user='', company_name=''):
     order_mapping = eval(LOAD_CONFIG.get(company_name, 'shipped_mapping_dict', ''))

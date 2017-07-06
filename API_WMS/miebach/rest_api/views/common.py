@@ -6,6 +6,7 @@ from django.http import HttpResponse
 import json
 from django.contrib.auth import authenticate, login, logout as wms_logout
 from miebach_admin.custom_decorators import login_required, get_admin_user
+from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 from miebach_admin.models import *
 from miebach_utils import *
@@ -65,9 +66,10 @@ def get_user_permissions(request, user):
     permissions = Permission.objects.all()
     user_perms = []
     ignore_list = PERMISSION_IGNORE_LIST
+    change_permissions = ['inventoryadjustment']
     for permission in permissions:
         temp = permission.codename.split('_')[-1]
-        if not temp in user_perms and not temp in ignore_list and 'add' in permission.codename:
+        if not temp in user_perms and not temp in ignore_list and ('add' in permission.codename or 'change' in permission.codename):
             user_perms.append(permission.codename)
     for perm in user_perms:
         roles[perm] = get_permission(request.user, perm)
@@ -1041,28 +1043,56 @@ def auto_po(wms_codes, user):
 
 @csrf_exempt
 def rewrite_excel_file(f_name, index_status, open_sheet):
-    wb = Workbook()
-    ws = wb.add_sheet(open_sheet.name)
+    #wb = Workbook()
+    #ws = wb.add_sheet(open_sheet.name)
+    wb1, ws1 = get_work_sheet(open_sheet.name, [], f_name)
+
+    if 'xlsx' in f_name:
+        header_style = wb1.add_format({'bold': True})
+    else:
+        header_style = easyxf('font: bold on')
+
     for row_idx in range(0, open_sheet.nrows):
         if row_idx == 0:
             for col_idx in range(0, open_sheet.ncols):
-                ws.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value, easyxf('font: bold on'))
-            ws.write(row_idx, col_idx + 1, 'Status', easyxf('font: bold on'))
+                ws1.write(row_idx, col_idx, str(open_sheet.cell(row_idx, col_idx).value), header_style)
+            ws1.write(row_idx, col_idx + 1, 'Status', header_style)
 
         else:
             for col_idx in range(0, open_sheet.ncols):
-                ws.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
+                #print row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value
+                if col_idx == 4 and 'xlsx' in f_name:
+                    date_format = wb1.add_format({'num_format': 'yyyy-mm-dd'})
+                    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value, date_format)
+                else:
+                    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
 
             index_data = index_status.get(row_idx, '')
             if index_data:
                 index_data = ', '.join(index_data)
-            ws.write(row_idx, col_idx + 1, index_data)
+                ws1.write(row_idx, col_idx + 1, index_data)
 
-    wb.save(f_name)
+    if 'xlsx' in f_name:
+        wb1.close()
+        return f_name
+    else:
+        path = 'static/temp_files/'
+        folder_check(path)
+        wb1.save(path + f_name)
+        return path + f_name
+
+def read_and_send_excel(file_name):
+    with open(file_name, 'r') as excel:
+        data = excel.read()
+    response = HttpResponse(data, content_type='application/vnd.ms-excel')
+    response['Content-Disposition'] = 'attachment; filename=%s' % smart_str(file_name.replace('static/temp_files/', ''))
+    return response
 
 @csrf_exempt
 def rewrite_csv_file(f_name, index_status, reader):
-    with open(f_name, 'w') as mycsvfile:
+    path = 'static/temp_files/'
+    folder_check(path)
+    with open(path + f_name, 'w') as mycsvfile:
         thedatawriter = csv.writer(mycsvfile, delimiter=',')
         counter = 0
         for row in reader:
@@ -1072,6 +1102,7 @@ def rewrite_csv_file(f_name, index_status, reader):
                 row.append(', '.join(index_status.get(counter, [])))
             thedatawriter.writerow(row)
             counter += 1
+    return path + f_name
 
 @csrf_exempt
 def write_error_file(f_name, index_status, open_sheet, headers_data, work_sheet):
@@ -1753,14 +1784,12 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                                 + customer_details[0]['phone_number'] + "\nEmail: " + customer_details[0]['email_id']
             if not marketplace:
                 marketplace = dat.marketplace
-                if marketplace.lower() == 'myntra':
-                    if 'bays' in (dat.original_order_id).lower():
-                        username = user.username + ':bulk'
-                        purchase_type = 'SMART_JIT'
-                    else:
-                        username = user.username
+                username = user.username + ':' + marketplace.lower()
+                if 'bays' in (dat.original_order_id).lower():
+                    username = username + ':bulk'
+                    purchase_type = 'SMART_JIT'
 
-                    marketplace = USER_MYNTRA_ADDRESS.get(username, 'Myntra')
+                marketplace = USER_CHANNEL_ADDRESS.get(username, marketplace)
             tax = 0
             vat = 0
             discount = 0
@@ -1808,15 +1837,15 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             amt = (unit_price * quantity) - discount
             base_price = "%.2f" % (unit_price * quantity)
             if is_gst_invoice:
-                cgst_amt = cgst_tax * (float(amt)/100)
-                sgst_amt = sgst_tax * (float(amt)/100)
-                igst_amt = igst_tax * (float(amt)/100)
-                _tax = cgst_amt + sgst_amt + igst_amt
+                cgst_amt = float(cgst_tax) * (float(amt)/100)
+                sgst_amt = float(sgst_tax) * (float(amt)/100)
+                igst_amt = float(igst_tax) * (float(amt)/100)
                 taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
                               'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt, 'igst_amt': '%.2f' % igst_amt}
-                total_taxes['cgst_amt'] += cgst_amt
-                total_taxes['sgst_amt'] += sgst_amt
-                total_taxes['igst_amt'] += igst_amt
+                total_taxes['cgst_amt'] += float(taxes_dict['cgst_amt'])
+                total_taxes['sgst_amt'] += float(taxes_dict['sgst_amt'])
+                total_taxes['igst_amt'] += float(taxes_dict['igst_amt'])
+                _tax = float(taxes_dict['cgst_amt']) + float(taxes_dict['sgst_amt']) + float(taxes_dict['igst_amt'])
             else:
                 _tax = (amt * (vat / 100))
 

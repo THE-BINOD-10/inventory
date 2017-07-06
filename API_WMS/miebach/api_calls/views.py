@@ -12,10 +12,13 @@ from operator import itemgetter
 from itertools import chain
 from django.db.models import Sum, Count
 from rest_api.views.common import get_local_date
+from rest_api.views.integrations import *
 import json
 import datetime
 from django.db.models import Q, F
 from django.core.serializers.json import DjangoJSONEncoder
+from rest_api.views.utils import *
+log = init_logger('logs/integrations.log')
 # Create your views here.
 
 NOW = datetime.datetime.now()
@@ -69,7 +72,7 @@ def authenticate_user(request):
     if not username or not passwd:
         return return_response(data)
 
-    user = authenticate(username=username, password='Hdrn^Miebach@10162015')
+    user = authenticate(username=username, password=passwd)
     if not user:
         user = authenticate(username=username, password=passwd)
     '''
@@ -949,3 +952,19 @@ def get_user_skus(request):
 
     data['message'] = 'success'
     return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder))
+
+@csrf_exempt
+def update_orders_data(request):
+    orders = json.loads(request.body)
+    log.info('Request params for ' + request.user.username + ' is ' + str(orders))
+    try:
+        status = update_orders(orders, user=request.user, company_name='shotang')
+        log.info(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.body), str(e)))
+        status = {'message': 'Internal Server Error'}
+    return HttpResponse(json.dumps(status))
+
+

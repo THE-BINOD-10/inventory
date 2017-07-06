@@ -154,7 +154,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-sales-returns",
                    value: "",
                    show: true,
-                   permi: "add_orderreturns"
+                   perm: "add_orderreturns"
                  }, {
                    title: "Pricing Master Download/ Upload",
                    download: "Download Pricing Master Form",

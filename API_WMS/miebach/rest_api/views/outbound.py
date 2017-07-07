@@ -1418,9 +1418,6 @@ def picklist_confirmation(request, user=''):
                 for picklist in picklist_batch:
                     if count == 0:
                         continue
-                    if not picklist.stock:
-                        seller_pick_number = confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, user_profile, seller_pick_number, float(val['picked_quantity']))
-                        continue
 
                     if val['wms_code'] == 'TEMP' and val.get('wmscode', ''):
                         if picklist.order:
@@ -1438,6 +1435,8 @@ def picklist_confirmation(request, user=''):
                         if val['location'] == 'NO STOCK':
                             seller_pick_number = confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, user_profile, seller_pick_number, float(val['picked_quantity']))
                             continue
+                        else:
+                            update_exist_picklists(picklist.picklist_number, request, user, sku_code=val['wms_code'], location=val['location'])
                     if float(picklist.reserved_quantity) > float(val['picked_quantity']):
                         picking_count = float(val['picked_quantity'])
                     else:
@@ -5066,7 +5065,6 @@ def seller_generate_picklist(request, user=''):
                            'picklist_id': picklist_number + 1,'stock_status': stock_status, 'show_image': show_image,
                            'use_imei': use_imei, 'order_status': order_status, 'user': request.user.id}))
 
-
 def update_exist_picklists(picklist_no, request, user, sku_code='', location=''):
     filter_param = {'reserved_quantity__gt' : 0, 'picklist_number' : picklist_no}
     if not sku_code:
@@ -5075,7 +5073,6 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='')
         picklist_objs = Picklist.objects.filter(Q(stock__sku__user=user.id) | Q(order__user=user.id), Q(stock__sku__sku_code=sku_code) |
                                                 Q(order__sku__sku_code=sku_code) | Q(sku_code=sku_code),**filter_param)
     picklist_data = {}
-    new_picklist_objs = []
     for item in picklist_objs:
         _sku_code = ''
         if item.order:
@@ -5118,13 +5115,12 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='')
         picklist_data['order_type'] = item.order_type
         picklist_data['status'] = item.status
 
-        consumed_qty, new_picklist_objs = picklist_location_suggestion(request, item.order, stock_objs, user, needed_quantity, picklist_data, new_picklist_objs=new_picklist_objs)
+        consumed_qty = picklist_location_suggestion(request, item.order, stock_objs, user, needed_quantity, picklist_data)
 
         item.reserved_quantity -= consumed_qty
         item.save()
         if item.reserved_quantity == 0 and not item.picked_quantity:
             item.delete()
-    return new_picklist_objs
 
 
 @csrf_exempt

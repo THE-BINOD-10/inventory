@@ -71,6 +71,7 @@ def get_user_permissions(request, user):
         temp = permission.codename.split('_')[-1]
         if not temp in user_perms and not temp in ignore_list and ('add' in permission.codename or 'change' in permission.codename):
             user_perms.append(permission.codename)
+
     for perm in user_perms:
         roles[perm] = get_permission(request.user, perm)
         if roles[perm]:
@@ -320,6 +321,7 @@ data_datatable = {#masters
                   'DiscountMaster':'get_discount_results', 'CustomSKUMaster': 'get_custom_sku_properties',\
                   'SizeMaster': 'get_size_master_data', 'PricingMaster': 'get_price_master_results', \
                   'SellerMaster': 'get_seller_master', 'SellerMarginMapping': 'get_seller_margin_mapping',\
+                  'TaxMaster': 'get_tax_master',\
                   #inbound
                   'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po',\
                   'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data',\
@@ -1040,6 +1042,7 @@ def auto_po(wms_codes, user):
                 if po_suggestions['order_quantity'] > 0:
                     po = OpenPO(**po_suggestions)
                     po.save()
+
 
 @csrf_exempt
 def rewrite_excel_file(f_name, index_status, open_sheet):
@@ -1881,6 +1884,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     dispatch_through = "By Road"
     _total_invoice = round(total_invoice)
     _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
+
     invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'marketplace': marketplace, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
@@ -2071,34 +2075,6 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         start, stop = 0, len(product_styles)
 
     data = get_styles_data(user, product_styles, sku_master, start, stop, customer_id=customer_id, customer_data_id=customer_data_id, is_file=is_file)
-    '''stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku__sku_class').distinct().\
-                                     annotate(in_stock=Sum('quantity'))
-    reserved_quantities = PicklistLocation.objects.filter(stock__sku__user=user.id, status=1).values('stock__sku__sku_class').distinct().\
-                                       annotate(in_reserved=Sum('reserved'))
-    stock_skus = map(lambda d: d['sku__sku_class'], stock_objs)
-    stock_quans = map(lambda d: d['in_stock'], stock_objs)
-    reserved_skus = map(lambda d: d['stock__sku__sku_class'], reserved_quantities)
-    reserved_quans = map(lambda d: d['in_reserved'], reserved_quantities)
-    for product in product_styles[start: stop]:
-        sku_object = sku_master.filter(user=user.id, sku_class=product)
-        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id').\
-                                       order_by('-image_url')
-        total_quantity = 0
-        if product in stock_skus:
-            total_quantity = stock_quans[stock_skus.index(product)]
-        if product in reserved_skus:
-            total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
-        if sku_styles:
-            sku_variants = list(sku_object.values(*get_values))
-            sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity, customer_data_id=customer_data_id)
-            sku_styles[0]['variants'] = sku_variants
-            sku_styles[0]['style_quantity'] = total_quantity
-
-            sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'], user)
-
-            data.append(sku_styles[0])
-        if not is_file and len(data) >= 20:
-            break'''
     return data, start, stop
 
 def get_user_sku_data(user):

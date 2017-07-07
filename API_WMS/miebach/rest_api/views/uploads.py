@@ -2667,7 +2667,6 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
             f_name = file_path
         return f_name
 
-
 def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 
     from inbound import save_return_locations

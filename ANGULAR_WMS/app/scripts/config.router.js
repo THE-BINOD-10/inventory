@@ -458,6 +458,19 @@ var app = angular.module('urbanApp')
              url: '/Mapping',
              templateUrl: 'views/masters/toggles/margin_mapping_update.html'
            })
+        .state('app.masters.TaxMaster', {
+          url: '/TaxMaster',
+          permission: 'add_taxmaster',
+          templateUrl: 'views/masters/tax_master.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/tax_master.js');
+                    }]
+          },
+          data: {
+            title: 'Tax Master',
+          }
+        })
 
       // Inbound routes
       .state('app.inbound', {
@@ -861,7 +874,7 @@ var app = angular.module('urbanApp')
           })
         .state('app.stockLocator.MoveInventory', {
           url: '/MoveInventory',
-          permission: 'add_inventoryadjustment',
+          permission: 'change_inventoryadjustment',
           templateUrl: 'views/stockLocator/move_inventory.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -874,12 +887,12 @@ var app = angular.module('urbanApp')
         })
           .state('app.stockLocator.MoveInventory.Inventory', {
             url: '/Inventory',
-            permission: 'add_inventoryadjustment',
+            permission: 'update_inventoryadjustment',
             templateUrl: 'views/stockLocator/toggles/mv_inventory_tg.html'
           })
           .state('app.stockLocator.MoveInventory.IMEI', {
             url: '/IMEI',
-            permission: 'add_inventoryadjustment',
+            permission: 'update_inventoryadjustment',
             templateUrl: 'views/stockLocator/toggles/imei.html'
           })
         .state('app.stockLocator.InventoryAdjustment', {
@@ -1037,7 +1050,7 @@ var app = angular.module('urbanApp')
           .state('app.outbound.ViewOrders.DetailGenerateInvoice', {
             url: '/DetailInvoice',
             permission: 'add_picklist',
-            templateUrl: 'views/outbound/print/detail_generate_inv.html'
+            templateUrl: 'views/outbound/print/d_generate_inv.html'
           })
           .state('app.outbound.ViewOrders.ST', {
             url: '/ST?data',

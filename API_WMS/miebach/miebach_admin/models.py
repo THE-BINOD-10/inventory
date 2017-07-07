@@ -1751,6 +1751,7 @@ class TaxMaster(models.Model):
 
     def json(self):
         return {
+            'id': self.id,
             'product_type': self.product_type,
             'inter_state': self.inter_state,
             'cgst_tax': self.cgst_tax,

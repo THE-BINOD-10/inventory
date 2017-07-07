@@ -84,7 +84,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-move-inventory-file",
                    value: "",
                    show: true,
-                   perm: "add_inventoryadjustment"
+                   perm: "change_inventoryadjustment"
                  }, {
                    title: "Market Place - SKU Download/ Upload",
                    download: "Download Market SKU Form",

@@ -4,9 +4,9 @@
   angular.module("auth").service("Session", function ($rootScope, $q) {
 
     var that = this;
-    that.host = 'https://api.stockone.in/';
+    //that.host = 'https://api.stockone.in/';
     //that.host = 'http://dev.stockone.in/';
-    //that.host = 'http://176.9.181.43:7654/';
+    that.host = 'http://176.9.181.43:7656/';
     that.url = that.host+'rest_api/';
 
     function resetSession () {
@@ -61,7 +61,7 @@
     };
 
     var deferredStatus = null;
-    var special = ["add_shipmentinfo", "add_qualitycheck", "pos_switch", "production_switch", "setup_status", "tally_config"];
+    var special = ["add_shipmentinfo", "add_qualitycheck", "pos_switch", "production_switch", "setup_status", "tally_config", "change_inventoryadjustment"];
     this.check_permission = function(data) {
 
       //deferredStatus = $q.defer();

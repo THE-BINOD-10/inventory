@@ -1429,6 +1429,7 @@ def picklist_confirmation(request, user=''):
                             val['wms_code'] = val['wmscode']
                         elif map_status == 'Invalid WMS Code':
                             return HttpResponse(map_status)
+                    status = ''
                     if not val['location'] == 'NO STOCK':
                         pic_check_data, status = validate_location_stock(val, all_locations, all_skus, user)
                     if status:

@@ -458,6 +458,19 @@ var app = angular.module('urbanApp')
              url: '/Mapping',
              templateUrl: 'views/masters/toggles/margin_mapping_update.html'
            })
+        .state('app.masters.TaxMaster', {
+          url: '/TaxMaster',
+          permission: 'add_taxmaster',
+          templateUrl: 'views/masters/tax_master.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/tax_master.js');
+                    }]
+          },
+          data: {
+            title: 'Tax Master',
+          }
+        })
 
       // Inbound routes
       .state('app.inbound', {
@@ -861,7 +874,7 @@ var app = angular.module('urbanApp')
           })
         .state('app.stockLocator.MoveInventory', {
           url: '/MoveInventory',
-          permission: 'update_inventoryadjustment',
+          permission: 'change_inventoryadjustment',
           templateUrl: 'views/stockLocator/move_inventory.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {

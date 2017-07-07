@@ -1741,11 +1741,12 @@ class TaxMaster(models.Model):
 
     class Meta:
         db_table = 'TAX_MASTER'
-        unique_together = ('user', 'product_type', 'inter_state', 'cgst_tax', 'sgst_tax', 'igst_tax')
+        #unique_together = ('user', 'product_type', 'inter_state', 'cgst_tax', 'sgst_tax', 'igst_tax')
         index_together = ('user', 'product_type', 'inter_state')
 
     def json(self):
         return {
+            'id': self.id,
             'product_type': self.product_type,
             'inter_state': self.inter_state,
             'cgst_tax': self.cgst_tax,

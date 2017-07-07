@@ -607,6 +607,7 @@ def print_po_reports(request, user=''):
             results = SellerPOSummary.objects.filter(id=data_id, purchase_order__open_po__sku__user=user.id)
         total = 0
         for data in results:
+            receipt_type = ''
             if key == 'po_id':
                 po_data.append([data.open_po.sku.wms_code, data.open_po.sku.sku_desc, data.received_quantity, data.open_po.price])
                 total += data.received_quantity * data.open_po.price
@@ -615,7 +616,7 @@ def print_po_reports(request, user=''):
                 po_data.append([po_order.open_po.sku.wms_code, po_order.open_po.sku.sku_desc,
                                 data.quantity, po_order.open_po.price])
                 total += data.quantity * po_order.open_po.price
-            receipt_type = data.seller_po.receipt_type
+                receipt_type = data.seller_po.receipt_type
 
         if results:
             purchase_order = results[0]

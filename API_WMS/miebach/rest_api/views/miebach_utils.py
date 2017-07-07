@@ -2044,3 +2044,26 @@ def get_seller_stock_summary_replace(search_params, user, sub_user):
                                              )))
     return temp_data
 
+
+from oauth2_provider.decorators import protected_resource
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse, JsonResponse
+
+@csrf_exempt
+@protected_resource()
+def test_sam(request):
+    return JsonResponse({'data': 'Data', 'status': 'Success'})
+
+@csrf_exempt
+def demo_fun(request):
+    status = {'code': '', 'status': ''}
+    try:
+        obj = test_sam(request)
+        status.update({'code': obj.status_code, 'status': obj.reason_phrase})
+    except:
+        print "Error Message"
+
+    return JsonResponse(status)
+
+
+

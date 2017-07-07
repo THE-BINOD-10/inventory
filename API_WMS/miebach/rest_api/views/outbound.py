@@ -1168,8 +1168,7 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt 
                  'headers': headers, 'query_contact': user_data.phone_number, 'company_name': user_data.company_name}
 
     t = loader.get_template('templates/dispatch_mail.html')
-    c = Context(data_dict)
-    rendered = t.render(c)
+    rendered = t.render(data_dict)
 
     if misc_detail:
         email = picklist.order.email_id
@@ -1221,8 +1220,7 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
                 t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
             else:
                 t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
-            c = Context(nv_data)
-            rendered = t.render(c)
+            rendered = t.render(nv_data)
             file_name = str(user.id) + '_' + 'dispatch_invoice.html'
             pdf_file = '%s_%s.pdf' % (str(user.id), "dispatch_invoice")
             file_ = open(file_name, "w+b")
@@ -1335,6 +1333,16 @@ def get_seller_pick_id(picklist, user):
         pick_number = int(summary[0].pick_number) + 1
     return pick_number
 
+def update_no_stock_to_location(request, user, picklist, val, picks_all, picklist_batch):
+    new_update_ids = []
+    for picklist in picklist_batch:
+        if not picklist.stock:
+            pc_upd_ids = update_exist_picklists(picklist.picklist_number, request, user, sku_code=val['wms_code'], location=val['location'])
+            new_update_ids = list(chain(new_update_ids, pc_upd_ids))
+    if new_update_ids:
+        picklist_batch = picks_all.filter(id__in=new_update_ids)
+    return picklist_batch
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1405,6 +1413,8 @@ def picklist_confirmation(request, user=''):
 
                 if picklist_order_id:
                     picklist_batch = list(set([picklist]))
+                if not val['location'] == 'NO STOCK':
+                    picklist_batch = update_no_stock_to_location(request, user, picklist, val, picks_all, picklist_batch)
                 for picklist in picklist_batch:
                     if count == 0:
                         continue
@@ -1419,6 +1429,7 @@ def picklist_confirmation(request, user=''):
                             val['wms_code'] = val['wmscode']
                         elif map_status == 'Invalid WMS Code':
                             return HttpResponse(map_status)
+                    status = ''
                     if not val['location'] == 'NO STOCK':
                         pic_check_data, status = validate_location_stock(val, all_locations, all_skus, user)
                     if status:
@@ -1427,8 +1438,6 @@ def picklist_confirmation(request, user=''):
                         if val['location'] == 'NO STOCK':
                             seller_pick_number = confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, user_profile, seller_pick_number, float(val['picked_quantity']))
                             continue
-                        else:
-                            update_exist_picklists(picklist.picklist_number, request, user, sku_code=val['wms_code'], location=val['location'])
                     if float(picklist.reserved_quantity) > float(val['picked_quantity']):
                         picking_count = float(val['picked_quantity'])
                     else:
@@ -2366,8 +2375,7 @@ def insert_order_data(request, user=''):
                                          'headers': headers, 'company_name':company_name, 'user': user}
 
             t = loader.get_template('templates/order_confirmation.html')
-            c = Context(data_dict)
-            rendered = t.render(c)
+            rendered = t.render(data_dict)
 
             email = order_data['email_id']
             if email:
@@ -4402,7 +4410,7 @@ def generate_pdf_file(request, user=""):
     #    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
     #c = Context(nv_data)
     #rendered = t.render(c)
-    c= Context({'name': 'kanna'})
+    c= {'name': 'kanna'}
     top = loader.get_template('../miebach_admin/templates/toggle/invoice/top.html')
     top = top.render(c)
     nv_data = nv_data.encode('utf-8')
@@ -5067,6 +5075,7 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='')
         picklist_objs = Picklist.objects.filter(Q(stock__sku__user=user.id) | Q(order__user=user.id), Q(stock__sku__sku_code=sku_code) |
                                                 Q(order__sku__sku_code=sku_code) | Q(sku_code=sku_code),**filter_param)
     picklist_data = {}
+    new_picklist_objs = []
     for item in picklist_objs:
         _sku_code = ''
         if item.order:
@@ -5109,12 +5118,13 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='')
         picklist_data['order_type'] = item.order_type
         picklist_data['status'] = item.status
 
-        consumed_qty = picklist_location_suggestion(request, item.order, stock_objs, user, needed_quantity, picklist_data)
+        consumed_qty, new_picklist_objs = picklist_location_suggestion(request, item.order, stock_objs, user, needed_quantity, picklist_data, new_picklist_objs=new_picklist_objs)
 
         item.reserved_quantity -= consumed_qty
         item.save()
         if item.reserved_quantity == 0 and not item.picked_quantity:
             item.delete()
+    return new_picklist_objs
 
 
 @csrf_exempt
@@ -5126,58 +5136,10 @@ def update_picklist_loc(request, user = ""):
         return HttpResponse('PICKLIST ID missing')
 
     update_exist_picklists(picklist_no, request, user)
-    '''filter_param = {'reserved_quantity__gt' : 0, 'picklist_number' : picklist_no}
-    picklist_objs = Picklist.objects.filter(Q(stock__sku__user=user.id) | Q(order__user=user.id), **filter_param)
-    picklist_data = {}
-    for item in picklist_objs:
-        _sku_code = ''
-        if item.order:
-            _sku_code = item.order.sku.sku_code
-        elif item.stock:
-            _sku_code = item.stock.sku.sku_code
-        if item.sku_code:
-            _sku_code = item.sku_code
-
-        stock_objs = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0, sku__sku_code = _sku_code).order_by('location__pick_sequence')
-
-        picklist_data['stock_id'] = 0
-        stock_quan = 0
-        if item.stock_id:
-            picklist_data['stock_id'] = item.stock_id
-            current_stock_objs = stock_objs.filter(id = item.stock_id)
-            if current_stock_objs:
-                current_stock_obj = current_stock_objs[0]
-                stock_quan = current_stock_obj.quantity
-                if current_stock_obj.quantity >= item.reserved_quantity:
-                    continue
-
-        needed_quantity = item.reserved_quantity
-        if stock_quan:
-            needed_quantity = needed_quantity - stock_quan
-        if not needed_quantity:
-            continue
-        consumed_qty = 0
-
-        if item.order:
-            picklist_data['order_id'] = item.order.id
-        picklist_data['sku_code'] = item.sku_code
-        picklist_data['picklist_number'] = picklist_no
-        picklist_data['reserved_quantity'] = 0
-        picklist_data['picked_quantity'] = 0
-        picklist_data['remarks'] = item.remarks
-        picklist_data['order_type'] = item.order_type
-        picklist_data['status'] = item.status
-
-        consumed_qty = picklist_location_suggestion(request, item.order, stock_objs, user, needed_quantity, picklist_data)
-
-        item.reserved_quantity -= consumed_qty
-        item.save()
-        if item.reserved_quantity == 0 and not item.picked_quantity:
-            item.delete()'''
     return HttpResponse('Success')
 
 
-def picklist_location_suggestion(request, order, stock_detail, user, order_quantity, picklist_data):
+def picklist_location_suggestion(request, order, stock_detail, user, order_quantity, picklist_data, new_picklist_objs=[]):
     already_reserved = False
     stock_diff = 0
     consumed_qty = 0
@@ -5208,6 +5170,7 @@ def picklist_location_suggestion(request, order, stock_detail, user, order_quant
             new_picklist = exist_pick[0]
             new_picklist.reserved_quantity += stock_count
             new_picklist.save()
+        new_picklist_objs.append(new_picklist.id)
         seller_order = ""
         if seller_order:
             create_seller_summary_details(seller_order, new_picklist)
@@ -5227,7 +5190,7 @@ def picklist_location_suggestion(request, order, stock_detail, user, order_quant
         if not stock_diff:
             setattr(order, 'status', 0)
             break
-    if need_quantity >= 0:
+    if need_quantity > 0:
         picklist_data['reserved_quantity'] = need_quantity
         consumed_qty += need_quantity
         if 'stock_id' in picklist_data.keys():
@@ -5241,8 +5204,9 @@ def picklist_location_suggestion(request, order, stock_detail, user, order_quant
             new_picklist = exist_pick[0]
             new_picklist.reserved_quantity += stock_count
             new_picklist.save()
+        new_picklist_objs.append(new_picklist.id)
 
-    return consumed_qty
+    return consumed_qty, new_picklist_objs
 
 @csrf_exempt
 @login_required

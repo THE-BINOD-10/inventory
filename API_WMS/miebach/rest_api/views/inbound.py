@@ -929,8 +929,7 @@ def confirm_po(request, user=''):
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type, 'title': title}
     t = loader.get_template('templates/toggle/po_download.html')
-    c = Context(data_dict)
-    rendered = t.render(c)
+    rendered = t.render(data_dict)
     send_message = 'false'
     data = MiscDetail.objects.filter(user=user.id, misc_type='send_message')
     if data:
@@ -1995,8 +1994,7 @@ def confirm_grn(request, confirm_returns = '', user=''):
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/po_download.html')
-                c = Context(report_data_dict)
-                rendered = t.render(c)
+                rendered = t.render(report_data_dict)
                 send_message = get_misc_value('send_message', user.id)
                 write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
             return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,
@@ -3423,8 +3421,7 @@ def confirm_add_po(request, sales_data = '', user=''):
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title}
 
     t = loader.get_template('templates/toggle/po_download.html')
-    c = Context(data_dict)
-    rendered = t.render(c)
+    rendered = t.render(data_dict)
     send_message = 'false'
     data = MiscDetail.objects.filter(user=user.id, misc_type='send_message')
 
@@ -3552,8 +3549,7 @@ def confirm_po1(request, user=''):
             data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total, 'company_name': profile.company_name, 'location': profile.location, 'po_reference': po_reference, 'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone}
 
             t = loader.get_template('templates/toggle/po_download.html')
-            c = Context(data_dict)
-            rendered = t.render(c)
+            rendered = t.render(data_dict)
             send_message = 'false'
             misc_data = MiscDetail.objects.filter(user=request.user.id, misc_type='send_message')
             if misc_data:
@@ -4342,8 +4338,7 @@ def confirm_receive_qc(request, user=''):
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/po_download.html')
-                c = Context(report_data_dict)
-                rendered = t.render(c)
+                rendered = t.render(report_data_dict)
                 send_message = get_misc_value('send_message', user.id)
                 write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
             return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,

@@ -856,8 +856,7 @@ def insert_rwo_po(rw_order, request, user):
                  'location': profile.location, 'w_address': profile.address, 'company_name': profile.company_name}
 
     t = loader.get_template('templates/toggle/po_download.html')
-    c = Context(data_dict)
-    rendered = t.render(c)
+    rendered = t.render(data_dict)
     send_message = 'false'
     data = MiscDetail.objects.filter(user=user.id, misc_type='send_message')
     if data:
@@ -2212,8 +2211,7 @@ def confirm_back_order(request, user=''):
                          'vendor_telephone': vendor_telephone, 'customization': customization, 'customer_name': customer_name}
 
         t = loader.get_template('templates/toggle/po_download.html')
-        c = Context(data_dictionary)
-        rendered = t.render(c)
+        rendered = t.render(data_dictionary)
         send_message = 'false'
         data = MiscDetail.objects.filter(user=user.id, misc_type='send_message')
         if data:
@@ -2230,7 +2228,7 @@ def confirm_back_order(request, user=''):
         all_invoice_data.append(data_dictionary)
     #t1 = loader.get_template('templates/toggle/po_template_order.html')
     t1 = loader.get_template('templates/print/po_multi_form.html')
-    c1 = Context({'total_data':all_invoice_data})
+    c1 = {'total_data':all_invoice_data}
     rendered1 = t1.render(c1)
 
     return HttpResponse(rendered1)

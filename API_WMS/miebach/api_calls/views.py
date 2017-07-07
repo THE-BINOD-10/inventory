@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.contrib import auth
 from django.views.decorators.csrf import csrf_exempt
 from miebach_admin.models import *
+from miebach_admin.custom_decorators import login_required
 from collections import OrderedDict
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from dateutil.relativedelta import relativedelta
@@ -923,6 +924,7 @@ def get_skus(request):
     return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder))
 
 @csrf_exempt
+@login_required
 def get_user_skus(request):
     if request.user.is_anonymous():
         return HttpResponse(json.dumps({'message': 'fail'}))
@@ -954,6 +956,7 @@ def get_user_skus(request):
     return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder))
 
 @csrf_exempt
+@login_required
 def update_orders_data(request):
     orders = json.loads(request.body)
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
@@ -963,7 +966,7 @@ def update_orders_data(request):
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.body), str(e)))
+        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'message': 'Internal Server Error'}
     return HttpResponse(json.dumps(status))
 

@@ -551,42 +551,6 @@ def order_upload(request, user=''):
     return HttpResponse('Success')
 
 @csrf_exempt
-def rewrite_excel_file(f_name, index_status, open_sheet):
-    #wb = Workbook()
-    #ws = wb.add_sheet(open_sheet.name)
-    wb1, ws1 = get_work_sheet(open_sheet.name, [], f_name)
-
-    if 'xlsx' in f_name:
-        header_style = wb1.add_format({'bold': True})
-    else:
-        header_style = easyxf('font: bold on')
-
-    for row_idx in range(0, open_sheet.nrows):
-        if row_idx == 0:
-            for col_idx in range(0, open_sheet.ncols):
-                ws1.write(row_idx, col_idx, str(open_sheet.cell(row_idx, col_idx).value), header_style)
-            ws1.write(row_idx, col_idx + 1, 'Status', header_style)
-
-        else:
-            for col_idx in range(0, open_sheet.ncols):
-                #print row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value
-                if col_idx == 4 and 'xlsx' in f_name:
-                    date_format = wb1.add_format({'num_format': 'yyyy-mm-dd'})
-                    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value, date_format)
-                else:
-                    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
-
-            index_data = index_status.get(row_idx, '')
-            if index_data:
-                index_data = ', '.join(index_data)
-                ws1.write(row_idx, col_idx + 1, index_data)
-
-    if 'xlsx' in f_name:
-        wb1.close()
-    else:
-        wb1.save(f_name)
-
-@csrf_exempt
 @get_admin_user
 def order_form(request, user=''):
     order_file = request.GET['download-order-form']
@@ -1911,8 +1875,7 @@ def purchase_upload_mail(request, data_to_send):
                             'user_name': request.user.username, 'total_qty': total_qty, 'company_name': profile.company_name,
                             'location': profile.location, 'w_address': profile.address, 'vendor_name': vendor_name,
                             'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone, 'customization': customization }
-        c = Context(data_dictionary)
-        rendered = t.render(c)
+        rendered = t.render(data_dictionary)
         write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0])
 
 @csrf_exempt

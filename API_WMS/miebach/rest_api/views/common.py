@@ -1749,7 +1749,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     order_no = ''
     _total_tax = 0
     purchase_type = ''
-    total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0}
+    total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0}
     is_gst_invoice = False
     gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
     invoice_date = datetime.datetime.now()
@@ -1796,7 +1796,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             tax = 0
             vat = 0
             discount = 0
-            cgst_tax, sgst_tax, igst_tax = 0,0,0
+            cgst_tax, sgst_tax, igst_tax, utgst_tax = 0,0,0, 0
             mrp_price = dat.sku.mrp
             taxes_dict = {}
             order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=dat.id)
@@ -1810,6 +1810,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                 cgst_tax = order_summary[0].cgst_tax
                 sgst_tax = order_summary[0].sgst_tax
                 igst_tax = order_summary[0].igst_tax
+                utgst_tax = order_summary[0].utgst_tax
                 if order_summary[0].invoice_date:
                     invoice_date = order_summary[0].invoice_date
             total_tax += float(tax)
@@ -1843,12 +1844,16 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                 cgst_amt = float(cgst_tax) * (float(amt)/100)
                 sgst_amt = float(sgst_tax) * (float(amt)/100)
                 igst_amt = float(igst_tax) * (float(amt)/100)
-                taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
-                              'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt, 'igst_amt': '%.2f' % igst_amt}
+                utgst_amt = float(utgst_tax) * (float(amt)/100)
+                taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
+                              'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt, 'igst_amt': '%.2f' % igst_amt,
+                              'utgst_amt': '%.2f' % utgst_amt}
                 total_taxes['cgst_amt'] += float(taxes_dict['cgst_amt'])
                 total_taxes['sgst_amt'] += float(taxes_dict['sgst_amt'])
                 total_taxes['igst_amt'] += float(taxes_dict['igst_amt'])
-                _tax = float(taxes_dict['cgst_amt']) + float(taxes_dict['sgst_amt']) + float(taxes_dict['igst_amt'])
+                total_taxes['utgst_amt'] += float(taxes_dict['utgst_amt'])
+                _tax = float(taxes_dict['cgst_amt']) + float(taxes_dict['sgst_amt']) + float(taxes_dict['igst_amt']) +\
+                       float(taxes_dict['utgst_amt'])
             else:
                 _tax = (amt * (vat / 100))
 
@@ -2010,7 +2015,9 @@ def resize_image(url, user):
             url = "/"+path+folder+"/"+new_file_name
             return url
         except:
-            print 'Issue for ' + url
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Issue for ' + url)
             return url
     else:
         return url

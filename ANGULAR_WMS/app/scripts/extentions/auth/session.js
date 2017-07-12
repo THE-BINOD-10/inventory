@@ -61,7 +61,7 @@
     };
 
     var deferredStatus = null;
-    var special = ["add_shipmentinfo", "add_qualitycheck", "pos_switch", "production_switch", "setup_status", "tally_config"];
+    var special = ["add_shipmentinfo", "add_qualitycheck", "pos_switch", "production_switch", "setup_status", "tally_config", "change_inventoryadjustment"];
     this.check_permission = function(data) {
 
       //deferredStatus = $q.defer();

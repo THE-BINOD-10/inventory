@@ -22,7 +22,7 @@ SECRET_KEY = '+vd3a4(t9482@n$q(*2d#qsaqmd2ttgi)2sfn558(lo_a12nf8'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-TEMPLATE_DEBUG = True
+#TEMPLATE_DEBUG = True
 
 MAINTENANCE_MODE = False
 
@@ -32,7 +32,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = (
-    'grappelli',
+    #'grappelli',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,14 +44,30 @@ INSTALLED_APPS = (
     'maintenancemode',
     'api_calls',
     'rest_api',
+    'oauth2_provider',
 )
 
-INSTALLED_APPS = ("longerusername",) + INSTALLED_APPS
-
+#INSTALLED_APPS = ("longerusername",) + INSTALLED_APPS
+'''
+AUTHENTICATION_BACKENDS = (
+'oauth2_provider.backends.OAuth2Backend',
+)
+'''
 MIDDLEWARE_CLASSES = (
+    'oauth2_provider.middleware.OAuth2TokenMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+)
+'''
+MIDDLEWARE_CLASSES = [ 
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -59,12 +75,9 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-)
-
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.core.context_processors.request',
-    'django.contrib.auth.context_processors.auth',
-)
+    'corsheaders.middleware.CorsMiddleware',
+]
+'''
 
 ROOT_URLCONF = 'miebach.urls'
 
@@ -84,12 +97,26 @@ DATABASES = {
         'TEST_MIRROR': 'default',
     }
 }
-
+TEMPLATES = [
+{
+    'BACKEND': 'django.template.backends.django.DjangoTemplates',
+    'DIRS': [os.path.join(BASE_DIR, 'miebach_admin')],
+    'APP_DIRS': True,
+    'OPTIONS': {
+        'context_processors': [
+            'django.template.context_processors.debug',
+            'django.template.context_processors.request',
+            'django.contrib.auth.context_processors.auth',
+            'django.contrib.messages.context_processors.messages',
+        ],
+    },
+}]
+'''
 TEMPLATE_DIRS = (
     os.path.join(BASE_DIR, 'miebach_admin'),
     os.path.join(BASE_DIR, 'static', 'css'),
 )
-
+'''
 #STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 STATICFILES_DIRS = (
@@ -186,3 +213,5 @@ LOGGING = {
         },
     }
 }
+
+AUTHORIZATION_CODE_EXPIRE_SECONDS=600

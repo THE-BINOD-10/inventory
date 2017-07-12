@@ -274,7 +274,7 @@ body {
   }
 }
 
-#page-pop {
+#page-pop, .page-pop {
 
   overflow-y: auto;
   display: block;
@@ -339,7 +339,7 @@ body {
       /*width: 97%;
       margin: 10px;*/
       tbody > tr > td > input{
-        width: 90%;
+        /*width: 90%;*/
       }
     }
     .dropdown-menu > .active > a:hover, .dropdown-menu > .active > a:focus
@@ -1133,4 +1133,25 @@ pre {
     color: grey;
     opacity: 0.85;
     -webkit-font-smoothing: antialiased;
+}
+
+.modal-size {
+
+  width: 99%;
+  padding: 10px;
+  padding-left: 220px
+}
+
+.w10 {
+
+  width:100px;
+}
+
+.full-modal {
+
+  .modal-dialog {
+    width: 100%;
+    padding: 10px;
+    padding-left: 220px;
+  }
 }

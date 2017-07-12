@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ProductionBackOrdersCtrl',['$scope', '$http', '$state', '$q', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'limitToFilter', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('ProductionBackOrdersCtrl',['$scope', '$http', '$state', '$q', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'limitToFilter', 'colFilters', 'Service', 'Data', '$modal', '$log', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, limitToFilter, colFilters, Service, Data) {
+function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, limitToFilter, colFilters, Service, Data, $modal, $log) {
     var vm = this;
     vm.g_data = Data.back_orders_list;
     vm.apply_filters = colFilters;
@@ -189,14 +189,36 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
           //data[temp['WMS Code']+":"+"Order_det"] = temp['order_id'];
         }
       });
-      vm.bt_disable = true;
+      var send_data  = {data: data, filter: vm.filter}
+      var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/common_backorder_po.html',
+      controller: 'BackorderPOPOP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      windowClass: 'full-modal',
+      resolve: {
+        items: function () {
+          return send_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      var data = selectedItem;
+      reloadData();
+    }, function () {
+       $log.info('Modal dismissed at: ' + new Date());
+    }); 
+      /*vm.bt_disable = true;
       Service.apiCall("generate_rm_po_data/", "POST", data).then(function(data){
         if(data.message) { 
 
           angular.copy(data.data, vm.model_data)
           $state.go("app.production.BackOrders.PO");
         };
-      });
+      });*/
     }
 
 

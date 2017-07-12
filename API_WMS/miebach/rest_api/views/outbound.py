@@ -1326,7 +1326,8 @@ def update_no_stock_to_location(request, user, picklist, val, picks_all, picklis
     new_update_ids = []
     for picklist in picklist_batch:
         if not picklist.stock:
-            pc_upd_ids = update_exist_picklists(picklist.picklist_number, request, user, sku_code=val['wms_code'], location=val['location'])
+            pc_upd_ids = update_exist_picklists(picklist.picklist_number, request, user, sku_code=val['wms_code'], location=val['location'],\
+                                               picklist_obj=picklist)
             new_update_ids = list(chain(new_update_ids, pc_upd_ids))
     if new_update_ids:
         picklist_batch = picks_all.filter(id__in=new_update_ids)
@@ -1424,8 +1425,6 @@ def picklist_confirmation(request, user=''):
                         if val['location'] == 'NO STOCK':
                             seller_pick_number = confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, user_profile, seller_pick_number, float(val['picked_quantity']))
                             continue
-                        else:
-                            update_exist_picklists(picklist.picklist_number, request, user, sku_code=val['wms_code'], location=val['location'])
                     if float(picklist.reserved_quantity) > float(val['picked_quantity']):
                         picking_count = float(val['picked_quantity'])
                     else:
@@ -3695,7 +3694,10 @@ def get_customer_master_id(request, user=''):
     customer_master = CustomerMaster.objects.filter(user=user.id).values_list('customer_id', flat=True).order_by('-customer_id')
     if customer_master:
         customer_id = customer_master[0] + 1
-    return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': TAX_VALUES}))
+    price_types = list(PriceMaster.objects.exclude(price_type ="").filter(sku__user = user.id).values_list('price_type', flat = True).\
+                       distinct())
+
+    return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': TAX_VALUES, 'price_types': price_types}))
 
 @login_required
 @csrf_exempt
@@ -5073,14 +5075,17 @@ def seller_generate_picklist(request, user=''):
                            'picklist_id': picklist_number + 1,'stock_status': stock_status, 'show_image': show_image,
                            'use_imei': use_imei, 'order_status': order_status, 'user': request.user.id}))
 
-def update_exist_picklists(picklist_no, request, user, sku_code='', location=''):
+def update_exist_picklists(picklist_no, request, user, sku_code='', location='', picklist_obj=None):
     filter_param = {'reserved_quantity__gt' : 0, 'picklist_number' : picklist_no}
-    if not sku_code:
+    if picklist_obj:
+        picklist_objs = [picklist_obj]
+    elif not sku_code:
         picklist_objs = Picklist.objects.filter(Q(stock__sku__user=user.id) | Q(order__user=user.id), **filter_param)
     else:
         picklist_objs = Picklist.objects.filter(Q(stock__sku__user=user.id) | Q(order__user=user.id), Q(stock__sku__sku_code=sku_code) |
                                                 Q(order__sku__sku_code=sku_code) | Q(sku_code=sku_code),**filter_param)
     picklist_data = {}
+    new_pc_locs_list = []
     for item in picklist_objs:
         _sku_code = ''
         if item.order:
@@ -5123,12 +5128,15 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='')
         picklist_data['order_type'] = item.order_type
         picklist_data['status'] = item.status
 
-        consumed_qty = picklist_location_suggestion(request, item.order, stock_objs, user, needed_quantity, picklist_data)
+        consumed_qty, new_pc_locs = picklist_location_suggestion(request, item.order, stock_objs, user, needed_quantity, picklist_data)
+        if new_pc_locs:
+            new_pc_locs_list = list(chain(new_pc_locs_list, new_pc_locs))
 
-        item.reserved_quantity -= consumed_qty
+        item.reserved_quantity -= float(consumed_qty)
         item.save()
         if item.reserved_quantity == 0 and not item.picked_quantity:
             item.delete()
+    return new_pc_locs_list
 
 
 @csrf_exempt
@@ -5163,7 +5171,7 @@ def picklist_location_suggestion(request, order, stock_detail, user, order_quant
             picklist_data['reserved_quantity'] = stock_count
 
         if not (picklist_data.get('stock_id', 0) and picklist_data.get('order_id', 0)):
-            return 0
+            return 0, []
 
         exist_pick = Picklist.objects.filter(stock_id=picklist_data.get('stock_id', 0), order_id=picklist_data.get('order_id', 0),
                                              status__icontains='open')

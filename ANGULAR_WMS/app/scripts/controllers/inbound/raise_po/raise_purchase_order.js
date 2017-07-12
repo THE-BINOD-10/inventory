@@ -95,21 +95,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
               }
 
-              angular.forEach(vm.model_data.data, function(one_row){
+              /*angular.forEach(vm.model_data.data, function(one_row){
                vm.model_data.total_price = vm.model_data.total_price + (one_row.fields.order_quantity * one_row.fields.price);
               });
 
-              vm.model_data.sub_total = ((vm.model_data.total_price / 100) * vm.model_data.tax) + vm.model_data.total_price;
-
-              vm.get_total = function(price, index) {
-                vm.model_data.data[index].fields.row_price = Number(vm.model_data.data[index].fields.order_quantity) * Number(vm.model_data.data[index].fields.price);
-                vm.model_data.total_price = 0;
-
-                angular.forEach(vm.model_data.data, function(one_row){
-                  vm.model_data.total_price = Number(vm.model_data.total_price) + (Number(one_row.fields.order_quantity) * Number(one_row.fields.price));
-                });
-                vm.model_data.sub_total = ((vm.model_data.total_price / 100) * vm.model_data.tax) + vm.model_data.total_price;
-              }
+              vm.model_data.sub_total = ((vm.model_data.total_price / 100) * vm.model_data.tax) + vm.model_data.total_price;*/
+              vm.getTotals();
 
               vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
                 if (data.message) {
@@ -169,7 +160,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                       "sub_total": "",
                       "data": [
                         {'fields':{"supplier_Code":"", "ean_number":"", "order_quantity":"", 'price':'', "measurement_unit":"", 
-                                   "dedicated_seller": "", "row_price": 0, 'sku': {"price":"", 'wms_code': ""}}}
+                                   "dedicated_seller": "", "row_price": 0, 'sku': {"price":"", 'wms_code': ""},
+                                   "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "", "tax": ""}}
                       ]
                      };
 
@@ -230,24 +222,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       });
 
     }
-    vm.get_total = function(price, index) {
-      vm.model_data.data[index].fields.row_price = (Number(vm.model_data.data[index].fields.order_quantity) * Number(vm.model_data.data[index].fields.price));
-      vm.model_data.total_price = 0;
 
-      angular.forEach(vm.model_data.data, function(one_row){
-        vm.model_data.total_price = vm.model_data.total_price + Number(one_row.fields.row_price);
-      });
-
-      vm.model_data.sub_total = ((vm.model_data.total_price / 100) * vm.model_data.tax) + vm.model_data.total_price;
-    }
- 
     vm.update_data = function (index) {
 
       if (index == vm.model_data.data.length-1) {
         if (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) {
-          vm.model_data.data.push({"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":"", 
-                                   "measurement_unit": "", "fields": {"dedicated_seller": vm.selected_seller, "order_quantity": "",
-                                                                      "row_price": 0}});
+          vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":"", 
+                                   "measurement_unit": "", "dedicated_seller": vm.selected_seller, "order_quantity": "","row_price": 0,
+                                   "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "", "tax": ""
+                                   }});
         }
       } else {
         if(vm.model_data.data[index].seller_po_id){
@@ -257,6 +240,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.delete_data('id', vm.model_data.data[index].pk, index);
         }
         vm.model_data.data.splice(index,1);
+        vm.getTotals();
       }
     }
 
@@ -483,6 +467,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       product.fields.order_quantity = 1;
       product.fields.price = "";
       product.fields.description = item.sku_desc;
+      product.fields.sgst_tax = "";
+      product.fields.cgst_tax = "";
+      product.fields.igst_tax = "";
+      product.fields.utgst_tax = "";
+      product.fields.tax = "";
+      vm.getTotals();
 
       if(vm.model_data.receipt_type == 'Hosted Warehouse') {
 
@@ -500,13 +490,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             product.fields.ean_number = data.ean_number;
 
             vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
-            vm.model_data.total_price = 0;
-
-            angular.forEach(vm.model_data.data, function(one_row){
-              vm.model_data.total_price = vm.model_data.total_price + (one_row.fields.order_quantity * one_row.fields.price);
-            });
+            vm.getTotals();
           }
-          vm.model_data.sub_total = ((vm.model_data.total_price / 100) * vm.model_data.tax) + vm.model_data.total_price;
         });
       }
     }
@@ -564,6 +549,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.print_grn = function() {
 
       vm.service.print_data(vm.html, "Purchase Order");
+    }
+
+    vm.taxChange = function(data) {
+
+      data.fields.tax = Number(data.fields.cgst_tax) + Number(data.fields.sgst_tax) + Number(data.fields.igst_tax) + Number(data.fields.utgst_tax);
+      vm.getTotals(vm.model_data);
+    }
+
+    vm.getTotals = function(data) {
+
+      vm.model_data.total_price = 0;
+      vm.model_data.sub_total = 0;
+      angular.forEach(vm.model_data.data, function(sku_data){
+        var temp = sku_data.fields.order_quantity * sku_data.fields.price;
+        if (!sku_data.fields.tax) {
+          sku_data.fields.tax = Number(sku_data.fields.cgst_tax) + Number(sku_data.fields.sgst_tax) + Number(sku_data.fields.igst_tax) + Number(sku_data.fields.utgst_tax);
+        }
+        vm.model_data.total_price = vm.model_data.total_price + temp;
+        vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
+      })
     }
   }
 

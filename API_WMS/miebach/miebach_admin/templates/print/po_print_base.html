@@ -25,9 +25,9 @@
   <br/> <br/>
 </div>
 <div style="clear:both;">
-  <table class="table borderless">
+  <table class="table bordered">
     <thead>
-      <tr>
+      <tr class="rm-padding">
         {% for table_header in data.table_headers %}
         <th>{{ table_header }}</th>
         {% endfor %}
@@ -35,31 +35,23 @@
     </thead>
     <tbody>
       {% for dat in data.data %}
-      <tr>
+      <tr class="rm-padding">
         {% for d in dat %}
         <td>{{ d }}</td>
         {% endfor %}
       </tr>
       {% endfor %}
-    </tbody>
-  </table>
-  <table class='table borderless'>
-    <tbody>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td>Total Order Quantity</td>
-        <td>{{ data.total_qty }}</td>
-        <td> Total Amount</td>
-        <td>{{ data.total }}</td>
+      <tr class="rm-padding">
+        <td colspan="11">
+          <div class="row">
+            <div class="col-md-4 col-sm-4 col-xs-6 pull-right">
+              Total Amount : <b>{{ data.total }}</b>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6 pull-right">
+              Total Order Quantity : <b>{{ data.total_qty }}</b>
+            </div>
+          </div>
+        </td>
       </tr>
     </tbody>
   </table>

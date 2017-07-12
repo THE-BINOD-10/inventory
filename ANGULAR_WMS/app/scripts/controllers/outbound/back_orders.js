@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('OutboundBackOrdersCtrl',['$scope', '$http', '$state', '$q', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'limitToFilter', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('OutboundBackOrdersCtrl',['$scope', '$http', '$state', '$q', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'limitToFilter', 'colFilters', 'Service', '$modal', '$log', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, limitToFilter, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, limitToFilter, colFilters, Service, $modal, $log) {
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
@@ -201,7 +201,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
           data[temp['WMS Code']+":"+$(temp[""]).attr("name")] = temp['Procurement Quantity'];
         }
       });
-      vm.process = true
+      var send_data  = {data: data}
+      var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/common_backorder_po.html',
+      controller: 'BackorderPOPOP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      windowClass: 'full-modal',
+      resolve: {
+        items: function () {
+          return send_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      var data = selectedItem;
+      reloadData();
+    }, function () {
+       $log.info('Modal dismissed at: ' + new Date());
+    });
+      /*vm.process = true
       Service.apiCall("generate_po_data/", "POST", data).then(function(data){
         if(data.message) { 
 
@@ -209,7 +231,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
           $state.go("app.outbound.BackOrders.PO");
         };
         vm.process = false;
-      });
+      });*/
     }
 
     vm.backorder_jo = function() {

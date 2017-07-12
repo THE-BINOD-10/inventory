@@ -1831,8 +1831,17 @@ def update_seller_po(data, value, user, receipt_id=''):
                 except:
                     margin_percent = 0
                 price = float(data.open_po.price)
-                if data.open_po.tax:
-                    price = price + ((price/100)*float(data.open_po.tax))
+                tax = 0
+                if data.open_po.cgst_tax:
+                    tax += float(data.open_po.cgst_tax)
+                if data.open_po.sgst_tax:
+                    tax += float(data.open_po.sgst_tax)
+                if data.open_po.igst_tax:
+                    tax += float(data.open_po.igst_tax)
+                if data.open_po.utgst_tax:
+                    tax += float(data.open_po.utgst_tax)
+                if tax:
+                    price = price + ((price/100)*float(tax))
                 unit_price = float(price)/(1-(margin_percent/100))
                 sell_po.unit_price = float(("%."+ str(2) +"f") % (unit_price))
                 sell_po.margin_percent = margin_percent

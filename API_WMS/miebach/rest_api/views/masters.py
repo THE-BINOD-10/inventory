@@ -2260,37 +2260,44 @@ def add_or_update_tax(request, user=''):
     if not tax_data:
         return HttpResponse('Missing Required Fields')
 
-    tax_data = simplejson.loads(str(tax_data))
+    log.info('Add or Update Tax request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        tax_data = simplejson.loads(str(tax_data))
 
-    if not tax_data['product_type']:
-        return HttpResponse('Missing Required Fields')
+        if not tax_data['product_type']:
+            return HttpResponse('Missing Required Fields')
 
-    product_type = tax_data['product_type']
-    if not tax_data['update']:
-        taxes = TaxMaster.objects.filter(user = user.id, product_type__exact=product_type)
-        if taxes:
-            return HttpResponse('Product Type Already Exist')
-    columns = ['sgst_tax', 'cgst_tax', 'igst_tax', 'min_amt', 'max_amt']
-    for data in tax_data['data']:
+        product_type = tax_data['product_type']
+        if not tax_data['update']:
+            taxes = TaxMaster.objects.filter(user = user.id, product_type__exact=product_type)
+            if taxes:
+                return HttpResponse('Product Type Already Exist')
+        columns = ['sgst_tax', 'cgst_tax', 'igst_tax', 'min_amt', 'max_amt']
+        for data in tax_data['data']:
 
-        data_dict = {'user_id': user.id}
-        if data.get('id', ''):
-            tax_master = get_or_none(TaxMaster, {'id': data['id'], 'user_id': user.id})
-            for key in columns:
-                if not data[key]:
-                    setattr(tax_master, key, float(data[key]))
-            tax_master.save()
-        else:
-            if not data['min_amt'] or not data['max_amt']:
-                continue
-            for key in columns:
-                if data[key]:
-                    data_dict[key] =  float(data[key])
-            data_dict['inter_state'] = 0
-            if data['tax_type'] == 'inter_state':
-                data_dict['inter_state'] = 1
-            data_dict['product_type'] = product_type
-            tax_master = TaxMaster(**data_dict)
-            tax_master.save()
+            data_dict = {'user_id': user.id}
+            if data.get('id', ''):
+                tax_master = get_or_none(TaxMaster, {'id': data['id'], 'user_id': user.id})
+                for key in columns:
+                    if data[key]:
+                        setattr(tax_master, key, float(data[key]))
+                tax_master.save()
+            else:
+                if not data['min_amt'] or not data['max_amt']:
+                    continue
+                for key in columns:
+                    if data[key]:
+                        data_dict[key] =  float(data[key])
+                data_dict['inter_state'] = 0
+                if data['tax_type'] == 'inter_state':
+                    data_dict['inter_state'] = 1
+                data_dict['product_type'] = product_type
+                tax_master = TaxMaster(**data_dict)
+                tax_master.save()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Add or Update Tax failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Add or Update failed")
 
     return HttpResponse("success")

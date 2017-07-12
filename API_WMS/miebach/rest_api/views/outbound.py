@@ -551,28 +551,6 @@ def get_stock_count(request, order, stock, stock_diff, user, order_quantity, pre
 
     return stock_count, stock_diff
 
-def picklist_headers(request, user):
-    show_image = 'false'
-    use_imei = 'false'
-    headers = list(PROCESSING_HEADER)
-
-    data1 = MiscDetail.objects.filter(user=user, misc_type='show_image')
-    if data1:
-        show_image = data1[0].misc_value
-    if show_image == 'true':
-        headers.insert(0, 'Image')
-
-    imei_data = MiscDetail.objects.filter(user=user, misc_type='use_imei')
-    if imei_data:
-        use_imei = imei_data[0].misc_value
-    if use_imei == 'true':
-        headers.insert(-1, 'Serial Number')
-
-    if get_misc_value('pallet_switch', user) == 'true':
-        headers.insert(headers.index('Location') + 1, 'Pallet Code')
-
-    return headers, show_image, use_imei
-
 def create_seller_summary_details(seller_order, picklist):
     if not seller_order or not picklist:
         return False
@@ -3019,6 +2997,7 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
         elif customer_data_id:
             customer_data = CustomerMaster.objects.filter(customer_id=customer_data_id, user = user.id)
         if customer_data:
+            taxes = {}
             if customer_data[0].tax_type:
                 taxes = list(tax_master.filter(product_type=sku['product_type'],
                                                   inter_state=rev_inter_states.get(customer_data[0].tax_type, 2)).\
@@ -4243,50 +4222,57 @@ def picklist_delete(request, user=""):
     picklist_objs = Picklist.objects.filter(picklist_number = picklist_id, status__in = ["open", "batch_open"], order_id__user = user.id)
     order_ids = picklist_objs.values_list('order_id', flat=True)
     order_objs = OrderDetail.objects.filter(id__in = order_ids, user=user.id)
-    if key == "process":
-        for order in order_objs:
-            if picklist_objs.filter(order_type='combo', order_id = order.id):
-                is_picked = picklist_objs.filter(picked_quantity__gt=0, order_id = order.id)
-                remaining_qty = order.quantity
-                if is_picked:
-                    return HttpResponse("Partial Picked Picklist not allowed to cancel")
-            else:
-                remaining_qty = picklist_objs.filter(order_id = order).aggregate(Sum('reserved_quantity'))
+    log.info('Cancel Picklist request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        if key == "process":
+            for order in order_objs:
+                if picklist_objs.filter(order_type='combo', order_id = order.id):
+                    is_picked = picklist_objs.filter(picked_quantity__gt=0, order_id = order.id)
+                    remaining_qty = order.quantity
+                    if is_picked:
+                        return HttpResponse("Partial Picked Picklist not allowed to cancel")
+                else:
+                    remaining_qty = picklist_objs.filter(order_id = order).aggregate(Sum('reserved_quantity'))
 
-            order.status, order.quantity = 1, remaining_qty['reserved_quantity__sum']
-            order.save()
-            seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id=order.id)
-            if seller_orders:
-                seller_orders.update(status=1)
-        picklist_objs.delete()
-        end_time = datetime.datetime.now()
-        duration = end_time - st_time
-        log.info("process completed")
-        log.info("total time -- %s" %(duration))
-        return HttpResponse("Picklist is saved for later use")
-
-    elif key == "delete":
-        #order_objs.delete()
-        if order_objs:
-            order_detail_ids = order_objs.values_list('id', flat=True)
-            seller_orders = list(SellerOrder.objects.filter(order_id__in=order_detail_ids, order_status='DELIVERY_RESCHEDULED').\
-                                                values_list('order_id', flat=True))
-            order_detail_ids = list(order_detail_ids)
-            if seller_orders:
-                OrderDetail.objects.filter(id__in=seller_orders).update(status=5)
-                SellerOrder.objects.filter(order_id__in=seller_orders).update(status=0, order_status='PROCESSED')
-                order_detail_ids = list(set(order_detail_ids) - set(seller_orders))
-            if order_detail_ids:
-                OrderDetail.objects.filter(id__in=order_detail_ids).delete()
+                order.status, order.quantity = 1, remaining_qty['reserved_quantity__sum']
+                order.save()
+                seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id=order.id)
+                if seller_orders:
+                    seller_orders.update(status=1)
             picklist_objs.delete()
-        end_time = datetime.datetime.now()
-        duration = end_time - st_time
-        log.info("process completed")
-        log.info("total time -- %s" %(duration))
-        return HttpResponse("Picklist is deleted")
+            end_time = datetime.datetime.now()
+            duration = end_time - st_time
+            log.info("process completed")
+            log.info("total time -- %s" %(duration))
+            return HttpResponse("Picklist is saved for later use")
 
-    else:
-        log.info("Invalid key")
+        elif key == "delete":
+            #order_objs.delete()
+            if order_objs:
+                order_detail_ids = order_objs.values_list('id', flat=True)
+                seller_orders = list(SellerOrder.objects.filter(order_id__in=order_detail_ids, order_status='DELIVERY_RESCHEDULED').\
+                                                    values_list('order_id', flat=True))
+                order_detail_ids = list(order_detail_ids)
+                if seller_orders:
+                    OrderDetail.objects.filter(id__in=seller_orders).update(status=5)
+                    SellerOrder.objects.filter(order_id__in=seller_orders).update(status=0, order_status='PROCESSED')
+                    order_detail_ids = list(set(order_detail_ids) - set(seller_orders))
+                if order_detail_ids:
+                    OrderDetail.objects.filter(id__in=order_detail_ids).delete()
+                picklist_objs.delete()
+            end_time = datetime.datetime.now()
+            duration = end_time - st_time
+            log.info("process completed")
+            log.info("total time -- %s" %(duration))
+            return HttpResponse("Picklist is deleted")
+
+        else:
+            log.info("Invalid key")
+            return HttpResponse("Something is wrong there, please check")
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Cancel Picklist failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
         return HttpResponse("Something is wrong there, please check")
 
 

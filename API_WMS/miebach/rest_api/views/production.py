@@ -2030,15 +2030,16 @@ def get_rm_back_order_data(start_index, stop_index, temp_data, search_term, orde
                                 'Stock Quantity': get_decimal_limit(user.id, stock_quantity), 'order_id':"" ,
                                 'Transit Quantity': get_decimal_limit(user.id, transit_quantity),
                                 'Procurement Quantity': get_decimal_limit(user.id, procured_quantity), 'DT_RowClass': 'results'})
+
     if search_term:
         master_data = filter(lambda person: search_term in person['WMS Code'] or search_term in str(person['Ordered Quantity']) or\
                search_term in str(person['Stock Quantity']) or search_term in str(person['Transit Quantity']) or \
                search_term in str(person[' Procurement Quantity']), master_data)
     elif order_term:
         if order_term == 'asc':
-            master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_RM_TABLE[col_num-1]])
+            master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_RM_TABLE[col_num]])
         else:
-            master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_RM_TABLE[col_num-1]], reverse=True)
+            master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_RM_TABLE[col_num]], reverse=True)
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     temp_data['aaData'] = master_data[start_index:stop_index]

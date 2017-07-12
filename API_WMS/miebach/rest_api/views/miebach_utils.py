@@ -455,40 +455,47 @@ PICKLIST_EXCEL = OrderedDict(( ('WMS Code', 'wms_code'), ('Title', 'title'), ('Z
                                ('Last Picked Location', 'last_picked_locs')
                             ))
 
-SHOPCLUES_EXCEL = {'order_id': 1, 'quantity': 5, 'title': 3, 'invoice_amount': 20, 'address': 11, 'customer_name': 10,
-                   'marketplace': 'Shopclues', 'sku_code': 15}
+#Campus Sutra
+SHOPCLUES_EXCEL = {'original_order_id': 0, 'order_id': 0, 'quantity': 14, 'title': 7, 'invoice_amount': 46, 'address': 10,
+                   'customer_name': 9, 'marketplace': 'Shopclues', 'sku_code': 19}
 
-SHOPCLUES_EXCEL1 = {'order_id': 0, 'quantity': 13, 'title': 6, 'invoice_amount': 45, 'address': 9, 'customer_name': 8,
-                    'marketplace': 'Shopclues', 'sku_code': 48}
+#SHOPCLUES_EXCEL1 = {'order_id': 0, 'quantity': 13, 'title': 6, 'invoice_amount': 45, 'address': 9, 'customer_name': 8,
+#                    'marketplace': 'Shopclues', 'sku_code': 48}
 
 VOONIK_EXCEL = {'order_id': 0, 'sku_code': 1, 'invoice_amount': 4, 'marketplace': 'Voonik'}
 
-FLIPKART_EXCEL = {'order_id': 6, 'quantity': 14, 'title': 2, 'invoice_amount': 17, 'address': 22, 'customer_name': 21,
-                  'marketplace': 'Flipkart', 'sku_code': 8}
+#FLIPKART_EXCEL = {'order_id': 6, 'quantity': 14, 'title': 2, 'invoice_amount': 17, 'address': 22, 'customer_name': 21,
+#                  'marketplace': 'Flipkart', 'sku_code': 8}
 
-FLIPKART_EXCEL1 = {'order_id': 6, 'quantity': 14, 'title': 2, 'invoice_amount': 16, 'address': 21, 'customer_name': 20,
-                  'marketplace': 'Flipkart', 'sku_code': 8}
+#FLIPKART_EXCEL1 = {'order_id': 6, 'quantity': 14, 'title': 2, 'invoice_amount': 16, 'address': 21, 'customer_name': 20,
+#                  'marketplace': 'Flipkart', 'sku_code': 8}
 
-FLIPKART_EXCEL2 = {'order_id': 2, 'quantity': 15, 'title': 8, 'invoice_amount': 12, 'address': 19, 'customer_name': 18,
-                   'marketplace': 'Flipkart', 'sku_code': 7}
+#Trance Home
+FLIPKART_EXCEL2 = {'original_order_id': 3, 'order_id': 3, 'quantity': 17, 'title': 9, 'invoice_amount': 14, 'address': 21, 'customer_name': 19,
+                   'marketplace': 'Flipkart', 'sku_code': 8}
 
-FLIPKART_EXCEL3 = {'order_id': 2, 'quantity': 17, 'title': 15, 'invoice_amount': 7, 'address': 21, 'customer_name': 20,
+#Campus Sutra
+FLIPKART_EXCEL3 = {'original_order_id': 2,'order_id': 2, 'quantity': 17, 'title': 15, 'invoice_amount': 5, 'address': 21, 'customer_name': 20,
                    'marketplace': 'Flipkart', 'sku_code': 14}
 
-FLIPKART_EXCEL4 = {'order_id': 2, 'quantity': 19, 'title': 17, 'invoice_amount': 7, 'address': 23, 'customer_name': 22,
+FLIPKART_EXCEL4 = {'original_order_id': 2, 'order_id': 2, 'quantity': 19, 'title': 17, 'invoice_amount': 7, 'address': 23, 'customer_name': 22,
                    'marketplace': 'Flipkart', 'sku_code': 16}
 
-PAYTM_EXCEL1 = {'order_id': 0, 'quantity': 21, 'title': 12, 'invoice_amount': 20, 'address': 7, 'customer_name': 3, 'marketplace': 'Paytm',
-               'sku_code': 14}
+#Campus Sutra
+PAYTM_EXCEL = {'original_order_id': 0, 'order_id': 0, 'quantity': 9, 'title': 5, 'unit_price': 8, 'address': 12, 'customer_name': 10,
+               'marketplace': 'Paytm', 'sku_code': 3}
 
-PAYTM_EXCEL2 = {'order_id': 13, 'quantity': 10, 'title': 1, 'invoice_amount': 9, 'address': 22, 'customer_name': 18, 'marketplace': 'Paytm',
-                'sku_code': 3}
+FYND_EXCEL = {'original_order_id': 1, 'order_id': 1, 'title': 4, 'unit_price': 7, 'address': 16, 'customer_name': 14,
+               'marketplace': 'Fynd', 'sku_code': 9}
 
-FLIPKART_FA_EXCEL = {'order_id': 1, 'quantity': 13, 'title': 8, 'invoice_amount': 9, 'address': 20, 'customer_name': 29,
+#PAYTM_EXCEL2 = {'order_id': 13, 'quantity': 10, 'title': 1, 'invoice_amount': 9, 'address': 22, 'customer_name': 18, 'marketplace': 'Paytm',
+#                'sku_code': 3}
+
+FLIPKART_FA_EXCEL = {'original_order_id': 1, 'order_id': 1, 'quantity': 13, 'title': 8, 'invoice_amount': 9, 'address': 20, 'customer_name': 29,
                      'marketplace': 'Flipkart FA', 'sku_code': 7}
 
-SNAPDEAL_EXCEL = {'order_id': 3, 'title': 1, 'invoice_amount': 13, 'customer_name': 8, 'marketplace': 'Snapdeal', 'sku_code': 4,
-                  'shipment_date': 17}
+SNAPDEAL_EXCEL = {'original_order_id': 3, 'order_id': 3, 'title': 1, 'invoice_amount': 13, 'customer_name': 8, 'marketplace': 'Snapdeal',
+                  'sku_code': 4, 'shipment_date': 17}
 
 SNAPDEAL_EXCEL1 = {'order_id': 3, 'title': 2, 'invoice_amount': 14, 'customer_name': 9, 'marketplace': 'Snapdeal', 'sku_code': 5,
                   'shipment_date': 8}
@@ -529,21 +536,17 @@ SHOTANG_SKU_MASTER_EXCEL = OrderedDict(( ('wms_code', 2), ('sku_desc', 3), ('col
 # End of SKU Master U[pload templates
 
 # Order File Upload Templates
-JABONG_EXCEL = {'order_id': 1, 'title': 7, 'invoice_amount': 14, 'marketplace': 'Jabong', 'sku_code': 5, 'quantity': 9}
-
-JABONG_EXCEL1 = {'order_id': 6, 'title': 37, 'invoice_amount': 33, 'marketplace': 'Jabong', 'sku_code': 2}
-
 INDIA_TIMES_EXCEL = {'order_id': 2, 'invoice_amount': 16, 'address': 8, 'customer_name': 7,
                      'marketplace': 'Indiatimes', 'sku_code': 15, 'telephone': 12}
 
 HOMESHOP18_EXCEL = {'order_id': 0, 'invoice_amount': 10, 'address': 18, 'customer_name': 4, 'marketplace': 'HomeShop18',
                     'title': 6, 'sku_code': 8, 'quantity': 9, 'telephone': 22}
 
-AMAZON_EXCEL = {'order_id': 1, 'invoice_amount': 25, 'address': [17,18,19], 'customer_name': 8, 'marketplace': 'Amazon',
+AMAZON_EXCEL = {'order_id': 1, 'address': [17,18,19], 'customer_name': 8, 'marketplace': 'Amazon',
                 'title': 11, 'sku_code': 10, 'quantity': 12, 'telephone': 9, 'email_id': 7}
 
-AMAZON_EXCEL1 = {'order_id': 1, 'invoice_amount': 11, 'address': [17,18,19], 'customer_name': 16, 'marketplace': 'Amazon',
-                        'title': 8, 'sku_code': 7, 'quantity': 9, 'telephone': 6, 'email_id': 4}
+#AMAZON_EXCEL1 = {'order_id': 1, 'invoice_amount': 11, 'address': [17,18,19], 'customer_name': 16, 'marketplace': 'Amazon',
+#                        'title': 8, 'sku_code': 7, 'quantity': 9, 'telephone': 6, 'email_id': 4}
 
 ASKMEBAZZAR_EXCEL = {'order_id': 0, 'invoice_amount': 14, 'address': 27, 'customer_name': 9, 'marketplace': 'Ask Me Bazzar',
                     'title': 30, 'sku_code': 29, 'quantity': 12, 'telephone': 10}
@@ -553,12 +556,21 @@ FLIPKART_FA_EXCEL1 = {'order_id': 16, 'invoice_amount': 15, 'marketplace': 'Flip
 CAMPUS_SUTRA_EXCEL = {'order_id': 2, 'invoice_amount': 14, 'marketplace': 'Campus Sutra', 'sku_code': 6, 'quantity': 13, 'customer_name': 3,
                       'address': 5, 'telephone': 10, 'email_id': 7, 'shipment_date': 1}
 
-LIMEROAD_EXCEL = {'order_id': 0, 'invoice_amount': 8, 'marketplace': 'Lime Road', 'sku_code': 3, 'quantity': 9, 'customer_name': 10,
-                      'address': 12, 'telephone': 11,  'shipment_date': 1}
+#Campus Sutra
+LIMEROAD_EXCEL = {'original_order_id': 0, 'order_id': 0, 'unit_price': 20, 'marketplace': 'Lime Road', 'sku_code': 14,
+                  'quantity': 21, 'customer_name': 3, 'address': 7, 'telephone': 6,  'shipment_date': 23}
 
-MYNTRA_EXCEL = {'invoice_amount': 14, 'marketplace': 'Myntra', 'sku_code': 2, 'quantity': 9, 'title': 7, 'original_order_id': 1, 'order_id': 1,
+#Adam clothing and Campus Sutra
+MYNTRA_EXCEL = {'invoice_amount': 19, 'marketplace': 'Myntra', 'sku_code': 2, 'quantity': 10, 'title': 8, 'original_order_id': 1,
+                'order_id': 1, 'mrp': 13, 'discount': 14, 'unit_price': 12, 'cgst_amt': 16, 'sgst_amt': 18, 'igst_amt': 15,
+                'utgst_amt': 17}
+
+#Adam clothing
+JABONG_EXCEL = {'invoice_amount': 14, 'marketplace': 'Jabong', 'sku_code': 2, 'quantity': 9, 'title': 7, 'original_order_id': 1, 'order_id': 1,
                 'vat': [14, 11], 'mrp': 12, 'discount': 13, 'unit_price': 11}
 
+
+#Adam clothing
 UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code': 1, 'recreate': True}
 
 # ---  Returns Default headers --
@@ -577,6 +589,7 @@ MYNTRA_RETURN_EXCEL = OrderedDict((('sku_id', [5,7]), ('quantity', 8), ('reason'
 UNIWEAR_RETURN_EXCEL = OrderedDict((('sku_id', 4), ('channel', 14),('reason', 12),
                                         ('return_id', 5),  ('return_date', 8)))
 
+#Adam clothing
 MYNTRA_BULK_PO_EXCEL = OrderedDict(( ('order_id', 0), ('original_order_id', 0), ('sku_code', 1), ('title', 3),
                                      ('marketplace', 'Myntra'), ('mrp', 7), ('quantity', 6), ('invoice_amount', [6, 12]),
                                      ('vat', {'tax': 10, 'quantity': 6, 'tax_value': 11}),

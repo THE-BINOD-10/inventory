@@ -1,6 +1,6 @@
 <div id="page-pop" class="modal fade in over-x">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
-    <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-dialog model-custom modal-lgi modal-size">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
@@ -87,11 +87,15 @@
                 <thead>
                   <tr>
                     <th>WMS Code*</th>
-                    <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Supplier Code</th>
+                    <th class="w10" ng-if="!(user.user_profile.user_type == 'marketplace_user')">Supplier Code</th>
                     <th ng-if="user.user_profile.user_type == 'marketplace_user'">Description</th>
-                    <th>Quantity*</th>
+                    <th class="w10">Quantity*</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Measurement</th>
-                    <th>Price</th>
+                    <th>Unit Price</th>
+                    <th class="w10">SGST(%)</th>
+                    <th class="w10">CGST(%)</th>
+                    <th class="w10">IGST(%)</th>
+                    <th class="w10">UTGST(%)</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Remarks</th>
                     <th ng-if="user.user_profile.user_type == 'marketplace_user'">Dedicated Seller</th>
                     <th class="plus"></th>
@@ -100,10 +104,9 @@
                 <tbody>
                   <tr ng-repeat="product in showCase.model_data.data">
                     <td>
-                      <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item) : null" ng-readonly="showCase.default_status">
+                      <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item) : null" ng-readonly="product.pk > 0">
                       <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="showCase.update">
                       <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="showCase.update">
-                      <!--<input type="text" autocomplete="off" ng-readonly="(product.pk > 0)" name="wms_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-model="product.fields.sku.wms_code" ng-blur="showCase.check_sku_list(product.$$hashKey, product.fields.sku.wms_code, $index);" typeahead-on-select="showCase.get_sku_details(product)">-->
                     </td>
                     <td ng-if="user.user_profile.user_type == 'marketplace_user'">
                       <input type="text" ng-model="product.fields.description" name="description" class="form-control" 
@@ -115,14 +118,26 @@
                     <td>
                       <input id="quant1" ng-model="product.fields.order_quantity" type="text" name="order_quantity" class="form-control" 
                              ng-class="service.get_decimal_perm()" ng-readonly="showCase.default_status"
-                             ng-keyup="showCase.get_total(product.fields.order_quantity, $index)">
+                             ng-keyup="showCase.getTotals()">
                     </td>
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                       <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control" readonly>
                     </td>
                     <td>
                       <input type="text" ng-model="product.fields.price" name="price" class="form-control" decimal-number 
-                             ng-readonly="showCase.default_status" ng-keyup="showCase.get_total(product.fields.price, $index)">
+                             ng-readonly="showCase.default_status" ng-keyup="showCase.getTotals()">
+                    </td>
+                    <td>
+                      <input type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce>
+                    </td>
+                    <td>
+                      <input type="text" ng-model="product.fields.cgst_tax" name="cgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce>
+                    </td>
+                    <td>
+                      <input type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce>
+                    </td>
+                    <td>
+                      <input type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce>
                     </td>
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                       <input type="text" ng-model="product.fields.remarks" name="remarks" class="form-control" 
@@ -139,14 +154,10 @@
             </div>
           </div>
         <div class="row" style="padding-bottom:0px;">
-          <div class="col-md-3 col-sm-6">
+          <div class="col-md-6 col-sm-6">
           </div>
           <div class="col-md-3 col-sm-3 col-xs-12">
             <p>Total Price: <b style="font-size:26px">{{showCase.model_data.total_price}}</b></p>
-          </div>
-          <div class="col-md-3 col-sm-3 col-xs-12">
-            <p>Tax: <b style="font-size:26px">{{showCase.model_data.tax}}</b></p>
-            <input type="hidden" name="tax" value="{{showCase.model_data.tax}}">
           </div>
           <div class="col-md-3 col-sm-3 col-xs-12">
             <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total}}</b></p>

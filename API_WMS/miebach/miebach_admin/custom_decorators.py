@@ -6,6 +6,7 @@ from datetime import datetime
 from models import UserProfile, UserAccessTokens, AdminGroups, CustomerUserMapping
 from django.contrib.auth.models import User,Permission,Group
 from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required as django_login_required
 import re
 import json
 
@@ -57,7 +58,19 @@ def login_required(f):
         """ this check the session if userid key exist, if not it will redirect to login page """
         response_data = {'data': {}, 'message': 'Fail'}
         if not request.user.is_authenticated():
-            return HttpResponse(json.dumps(response_data))
+            if django_login_required(request):
+                from oauth2_provider.models import AccessToken
+                from datetime import datetime
+                from django.utils import timezone
+                now_aware = timezone.now()
+                objs = AccessToken.objects.filter(token=request.META.get('HTTP_AUTHORIZATION',''))
+                if objs and objs[0].expires > now_aware:
+                    request.user = objs[0].application.user
+                    return f(request, *args, **kwargs)
+                else:
+                    return HttpResponse(json.dumps(response_data))
+            else:
+                return HttpResponse(json.dumps(response_data))
 
         return f(request, *args, **kwargs)
 

@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('CustomOrders',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('CustomOrders',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', '$modal', '$log', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data, $modal, $log) {
 
   var vm = this;
   vm.service = Service;
@@ -315,7 +315,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         data.push({name: 'id', value: $(temp[""]).attr("name")})
       }
     }
-    $state.go("app.outbound.ViewOrders.PO", {data: JSON.stringify(data)});
+    var send_data  = {data: data}
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/common_backorder_po.html',
+      controller: 'BackorderPOPOP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      windowClass: 'full-modal',
+      resolve: {
+        items: function () {
+          return send_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      var data = selectedItem;
+      reloadData();
+    }, function () {
+       $log.info('Modal dismissed at: ' + new Date());
+    });
+    //$state.go("app.outbound.ViewOrders.PO", {data: JSON.stringify(data)});
   }
 
   vm.raise_jo = function() {

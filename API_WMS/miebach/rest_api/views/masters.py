@@ -15,6 +15,7 @@ from django.core import serializers
 import os
 from sync_sku import *
 from requests import post
+import simplejson
 log = init_logger('logs/masters.log')
 
 # Create your views here.
@@ -2197,3 +2198,106 @@ def update_seller_margin(request, user=''):
         log.info('Update Seller Margin Values failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse('Update Seller Margin Failed')
     return HttpResponse('Updated Successfully')
+
+@csrf_exempt
+def get_tax_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters = {}):
+    objs = TaxMaster.objects.filter(user = user.id)
+    lis = ['product_type', 'creation_date']
+    order_data = TAX_MASTER_HEADER.values()[col_num]
+    search_params = get_filtered_params(filters, lis)
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        master_data = objs.filter(Q(product_type__icontains=search_term) | Q(creation_date__icontains=search_term),\
+                                  **search_params).values('product_type').distinct().order_by(order_data)
+    else:
+        master_data = objs.filter( **search_params).values('product_type').distinct().order_by(order_data)
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for data in master_data[start_index:stop_index]:
+        date = objs.filter(product_type = data['product_type'])
+        temp_data['aaData'].append(OrderedDict(( ('Product Type', data['product_type']), ('Creation Date', get_local_date(user, date[0].creation_date))
+                                              )))
+
+@get_admin_user
+def get_tax_data(request,user=''):
+    """ Get Tax Details """
+
+    response = {'status': 0, 'msg': ''}
+    product_type = request.GET.get('product_type', '')
+    if not product_type:
+        response['msg'] = 'fail'
+        return HttpResponse(response)
+
+    taxes = TaxMaster.objects.filter(user = user.id, product_type__exact=product_type)
+    if not taxes:
+        response['msg'] = 'Product Type Not Found'
+        return HttpResponse(response)
+
+    resp = {'data': []}
+    resp['product_type'] = taxes[0].product_type
+    for tax in taxes:
+        temp = tax.json()
+        tax_type = 'inter_state'
+        if not temp['inter_state']:
+            tax_type = 'intra_state'
+        temp['tax_type'] = tax_type
+        resp['data'].append(temp)
+
+    response['status'] = 1
+    response['data'] = resp
+
+    return HttpResponse(json.dumps(response))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def add_or_update_tax(request, user=''):
+    """ Add or Update Tax Data"""
+
+    response = {'status': 0, 'msg': ''}
+    tax_data = request.POST.get('data', '')
+    if not tax_data:
+        return HttpResponse('Missing Required Fields')
+
+    log.info('Add or Update Tax request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        tax_data = simplejson.loads(str(tax_data))
+
+        if not tax_data['product_type']:
+            return HttpResponse('Missing Required Fields')
+
+        product_type = tax_data['product_type']
+        if not tax_data['update']:
+            taxes = TaxMaster.objects.filter(user = user.id, product_type__exact=product_type)
+            if taxes:
+                return HttpResponse('Product Type Already Exist')
+        columns = ['sgst_tax', 'cgst_tax', 'igst_tax', 'min_amt', 'max_amt']
+        for data in tax_data['data']:
+
+            data_dict = {'user_id': user.id}
+            if data.get('id', ''):
+                tax_master = get_or_none(TaxMaster, {'id': data['id'], 'user_id': user.id})
+                for key in columns:
+                    if data[key]:
+                        setattr(tax_master, key, float(data[key]))
+                tax_master.save()
+            else:
+                if not data['min_amt'] or not data['max_amt']:
+                    continue
+                for key in columns:
+                    if data[key]:
+                        data_dict[key] =  float(data[key])
+                data_dict['inter_state'] = 0
+                if data['tax_type'] == 'inter_state':
+                    data_dict['inter_state'] = 1
+                data_dict['product_type'] = product_type
+                tax_master = TaxMaster(**data_dict)
+                tax_master.save()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Add or Update Tax failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Add or Update failed")
+
+    return HttpResponse("success")

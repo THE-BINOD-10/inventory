@@ -1,0 +1,76 @@
+<div id="page-pop">
+  <form name="form" role="from">
+  <div class="modal-content model-custom">
+    <div ng-include="'views/common/loader.html'"></div>
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="pop.ok()">
+        <span aria-hidden="true">×</span>
+      </button>
+      <h4 class="modal-title" id="myLargeModalLabel">{{pop.model_data.title}}</h4>
+    </div>
+    <div class="modal-body">
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group">
+            <label class="control-label"> Product Type </label>
+            <input type="text" class="form-control" name="product_type" ng-model="pop.model_data.product_type" required ng-readonly="pop.model_data.update">
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-12"><hr></div>
+      </div>
+      <div class="row">
+        <div class="col-md-12">
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="min-width: 140px;">Tax Type</th>
+                <th>Min Amount</th>
+                <th>Max Amount</th>
+                <th>SGST</th>
+                <th>CGST</th>
+                <th>IGST</th>
+                <th class="plus"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="product in pop.model_data.data">
+                <td>
+                   <select class="form-control" ng-model="product.tax_type" name="tax_type" ng-disabled="!product.new_tax" ng-change="pop.taxTypeChange(product)">
+                     <option ng-repeat="tax in pop.taxes" value="{{tax.tax_value}}"  ng-selected="product.tax_type == tax.tax_value">{{tax.tax_name}}</option>
+                   </select>
+                </td>
+                <td>
+                   <input type="text" ng-model="product.min_amt" name="min_amt" class="form-control" decimal-number ng-blur="pop.checkRange(product.min_amt, $index, pop.model_data.data, 'min_amt')" required>
+                </td>
+                <td>
+                   <input type="text" ng-model="product.max_amt" name="max_amt" class="form-control" decimal-number ng-blur="pop.checkRange(product.max_amt, $index, pop.model_data.data, 'max_amt')" required>
+                </td>
+                <td>
+                   <input type="text" ng-model="product.sgst_tax" name="sgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-readonly="product.tax_type != 'intra_state'" percentage-min-value="0">
+                </td>
+                <td>
+                   <input type="text" ng-model="product.cgst_tax" name="cgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-readonly="product.tax_type != 'intra_state'" percentage-min-value="0">
+                </td>
+                <td>
+                   <input type="text" ng-model="product.igst_tax" name="igst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-readonly="product.tax_type != 'inter_state'" percentage-min-value="0">
+                </td>
+                <td><i ng-if="!product.id" ng-click="pop.update_data($index)" class="fa fa-minus-square-o"></i></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="row">
+        <center>
+          <button type="button" class="btn mt10 mr10" ng-click="pop.add()">Add New</button>
+        </center>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="submit" class="btn pop pop-green" ng-click="pop.submit(form)">Save</button>
+    </div>
+  </div>
+  </form>
+</div>

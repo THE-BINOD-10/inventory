@@ -19,7 +19,7 @@
         </table>
       </div>
       <div class="modal-body">
-        <div class="form-group clearfix">
+        <div class="form-group clearfix print-invoice">
           <div>
             <div style="float: left;">
             {% if not vendor_name %}
@@ -46,9 +46,9 @@
           <br/> <br/>
         </div>
         <div style="clear:both;">
-          <table class="table borderless">
+          <table class="table borderless table-bordered">
             <thead>
-              <tr>
+              <tr class="rm-padding">
                 {% for table_header in table_headers %}
                 <th>{{ table_header }}</th>
                 {% endfor %}
@@ -56,31 +56,23 @@
             </thead>
             <tbody>
               {% for dat in data %}
-              <tr>
+              <tr class="rm-padding">
                 {% for d in dat %}
                 <td>{{ d }}</td>
                 {% endfor %}
               </tr>
               {% endfor %}
-            </tbody>
-          </table>
-          <table class='table borderless'>
-            <tbody>
-              <tr>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>Total Order Quantity</td>
-                <td>{{ total_qty }}</td>
-                <td> Total Amount</td>
-                <td>{{ total }}</td>
+              <tr class="rm-padding">
+                <td colspan="12">
+                  <div class="row">
+                    <div class="col-md-4 col-sm-4 col-xs-6 pull-right">
+                      Total Amount : <b>{{ total }}</b>
+                    </div>
+                    <div class="col-md-4 col-sm-4 col-xs-6 pull-right">
+                      Total Order Quantity : <b>{{ total_qty }}</b>
+                    </div>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>

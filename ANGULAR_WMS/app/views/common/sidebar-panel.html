@@ -104,6 +104,11 @@
             <span>Pricing Master</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_taxmaster')">
+          <a ui-sref="app.masters.TaxMaster">
+            <span>Tax Master</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
           <a ui-sref="app.masters.SellerMaster">
             <span>Seller Master</span>
@@ -217,7 +222,7 @@
             <span>Cycle Count</span>
           </a>
         </li>
-        <li ng-show="show_tab('add_inventoryadjustment')" ui-sref-active="active">
+        <li ng-show="show_tab('change_inventoryadjustment')" ui-sref-active="active">
           <a ui-sref="app.stockLocator.MoveInventory">
             <span>Move Inventory</span>
           </a>

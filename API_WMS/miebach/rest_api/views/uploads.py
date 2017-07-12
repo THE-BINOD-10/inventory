@@ -23,7 +23,7 @@ def error_file_download(error_file):
     with open(error_file, 'r') as excel:
         data = excel.read()
     response = HttpResponse(data, content_type='application/vnd.ms-excel')
-    response['Content-Disposition'] = 'attachment; filename=%s' % smart_str(error_file)
+    response['Content-Disposition'] = 'attachment; filename=%s' % smart_str(error_file.replace('static/temp_files/', ''))
     return response
 
 def get_cell_data(row_idx, col_idx, reader='', file_type='xls'):
@@ -32,23 +32,105 @@ def get_cell_data(row_idx, col_idx, reader='', file_type='xls'):
             cell_data = reader[row_idx][col_idx]
         else:
             cell_data = reader.cell(row_idx, col_idx).value
+        if not isinstance(cell_data, (int, float)):
+            cell_data = str(xcode(cell_data))
+            cell_data = str(re.sub(r'[^\x00-\x7F]+',' ', cell_data))
     except:
         cell_data = ''
     return cell_data
+
+'''def check_and_get_marketplace(reader, file_type, no_of_rows, no_of_cols):
+    marketplace = ''
+    if get_cell_data(0, 0, reader, file_type) == 'Order No.':
+        marketplace = 'Shopclues'
+    elif get_cell_data(0, 0, reader, file_type) == 'Ordered On' and get_cell_data(0, 1, reader, file_type) in ['Shipment Id', 'Shipment ID']:
+        marketplace = 'Flipkart'
+    elif get_cell_data(0, 0, reader, file_type) == 'Order Id' and get_cell_data(0, 3, reader, file_type) == 'Vendor Code':
+        marketplace = 'Paytm'
+    elif get_cell_data(0, 0, reader, file_type) == 'Courier':
+        marketplace = 'Snapdeal'
+    elif get_cell_data(0, 0, reader, file_type) == 'order-id' and get_cell_data(0, 0, reader, file_type) == 'purchase-date':
+        marketplace = 'Amazon'
+    elif get_cell_data(0, 0, reader, file_type) == 'order_id' and get_cell_data(0, 2, reader, file_type) == 'creation time':
+        marketplace = 'Limeroad'
+    return marketplace
+
+
+def get_order_mapping1(reader, file_type, no_of_rows, no_of_cols):
+    order_mapping = {}
+    if get_cell_data(0, 0, reader, file_type) == 'Sr. No' and get_cell_data(0, 3, reader, file_type) == 'HSN Code':
+        order_mapping = copy.deepcopy(MYNTRA_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'Sr. No' and get_cell_data(0, 3, reader, file_type) == 'Supp. Color':
+        order_mapping = copy.deepcopy(JABONG_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'SOR ID' and get_cell_data(0, 1, reader, file_type) == 'UOR ID':
+        order_mapping = copy.deepcopy(SHOTANG_ORDER_FILE_EXCEL)
+    elif get_cell_data(0, 2, reader, file_type) == 'VENDOR ARTICLE NUMBER' and get_cell_data(0, 3, reader, file_type) == 'VENDOR ARTICLE NAME':
+        order_mapping = copy.deepcopy(MYNTRA_BULK_PO_EXCEL)
+    if order_mapping:
+        return order_mapping
+    order_excel = {}
+    order_map = OrderedDict()
+    mapping_order = OrderedDict(( ('order_id', 0), ('title', 1), ('sku_code', 2), ('quantity', 3), ('shipment_date', 4), ('channel_name', 5),
+                                  ('shipment_check', 6), ('customer_id', 7), ('customer_name', 8), ('email_id', 9), ('telephone', 10),
+                                  ('address', 11), ('state', 12), ('city', 13), ('pin_code', 14), ('invoice_amount', 15), ('amount', 16),
+                                  ('amount_discount', 17), ('cgst_tax', 18), ('sgst_tax', 19), ('igst_tax', 20) ))
+
+    for col_idx in range(0, no_of_cols):
+        cell_data = get_cell_data(0, col_idx, reader, file_type)
+        if cell_data in ['SKU Code', 'SKU', 'sku', 'product-name', 'Merchant SKU', 'item.sku', 'Vendor Code', 'Seller SKUs']:
+            order_excel['sku_code'] = col_idx
+        elif cell_data in ['Order Id', 'Reference Code', 'order-id', 'order_id', 'Order No.', 'Display Order #']:
+            order_excel['original_order_id'] = col_idx
+            order_excel['order_id'] = col_idx
+        elif cell_data in ['Product', 'Product Details', 'item_name', 'Product Name']:
+            order_excel['title'] = col_idx
+        elif cell_data in ['qty', 'Qty', 'Quantity', 'quantity-to-ship', 'Item Count', 'quantity-purchased']:
+            order_excel['quantity'] = col_idx
+        elif cell_data in ['Customer Name', 'Ship to name', 'Buyer Name', 'customer_firstname']:
+            order_excel['customer_name'] = col_idx
+        elif cell_data in ['Selling Price Per Item', 'item_price', 'Price']:
+            order_excel['unit_price'] = col_idx
+        elif cell_data in ['Invoice Amount', 'InvoiceValue', 'Order Price']:
+            order_excel['invoice_amount'] = col_idx
+        elif cell_data in ['Address', 'Address Line 1', 'address', 'ship-address-1', 'Shipping Address']:
+            order_excel['address'] = col_idx
+        elif cell_data in ['CGST', 'Central Goods and Service Tax']:
+            order_excel['cgst_tax'] = col_idx
+        elif cell_data in ['SGST', 'State Goods and Service Tax']:
+            order_excel['sgst_tax'] = col_idx
+        elif cell_data in ['IGST', 'Integrated Goods and Service Tax']:
+            order_excel['igst_tax'] = col_idx
+        elif cell_data in ['Channel']:
+            order_excel['channel_name'] = col_idx
+        elif cell_data in ['Customer Email']:
+            order_excel['email_id'] = col_idx
+        elif cell_data in ['Customer Mobile']:
+            order_excel['telephone'] = col_idx
+        elif cell_data in ['Address City']:
+            order_excel['city'] = col_idx
+        elif cell_data in ['Address State']:
+            order_excel['state'] = col_idx
+        elif cell_data in ['Address Pincode']:
+            order_excel['pin_code'] = col_idx
+
+    if not order_excel.has_key('channel_name'):
+        order_excel['marketplace'] = check_and_get_marketplace(reader, file_type, no_of_rows, no_of_cols)
+    order_excel1 = OrderedDict(sorted(order_excel.items(), key=lambda pair: mapping_order.get(pair[0], '')))
+    return order_excel1'''
 
 def get_order_mapping(reader, file_type):
 
     order_mapping = {}
     if get_cell_data(0, 2, reader, file_type) == 'Channel' and get_cell_data(0, 6, reader, file_type) == 'Fulfillment TAT':
         order_mapping = copy.deepcopy(UNI_COMMERCE_EXCEL)
-    elif get_cell_data(0, 1, reader, file_type) == 'Order No':
+    elif get_cell_data(0, 0, reader, file_type) == 'Order No.' and get_cell_data(0, 1, reader, file_type) == 'Time left for manifest':
         order_mapping = copy.deepcopy(SHOPCLUES_EXCEL)
-    elif get_cell_data(0, 4, reader, file_type) == 'Priority Level':
-        order_mapping = copy.deepcopy(SHOPCLUES_EXCEL1)
-    elif get_cell_data(0, 1, reader, file_type) == 'FSN' and get_cell_data(0, 16, reader, file_type) == 'Invoice No.':
-        order_mapping = copy.deepcopy(FLIPKART_EXCEL)
-    elif get_cell_data(0, 1, reader, file_type) == 'FSN' and get_cell_data(0, 16, reader, file_type) != 'Invoice No.':
-        order_mapping = copy.deepcopy(FLIPKART_EXCEL1)
+    #elif get_cell_data(0, 4, reader, file_type) == 'Priority Level':
+    #    order_mapping = copy.deepcopy(SHOPCLUES_EXCEL1)
+    #elif get_cell_data(0, 1, reader, file_type) == 'FSN' and get_cell_data(0, 16, reader, file_type) == 'Invoice No.':
+    #    order_mapping = copy.deepcopy(FLIPKART_EXCEL)
+    #elif get_cell_data(0, 1, reader, file_type) == 'FSN' and get_cell_data(0, 16, reader, file_type) != 'Invoice No.':
+    #    order_mapping = copy.deepcopy(FLIPKART_EXCEL1)
     elif get_cell_data(0, 1, reader, file_type) == 'Shipment ID' and get_cell_data(0, 2, reader, file_type) == 'ORDER ITEM ID':
         order_mapping = copy.deepcopy(FLIPKART_EXCEL2)
     elif get_cell_data(0, 1, reader, file_type) == 'Shipment Id' and get_cell_data(0, 2, reader, file_type) == 'Order Item Id'\
@@ -57,23 +139,20 @@ def get_order_mapping(reader, file_type):
     elif get_cell_data(0, 1, reader, file_type) == 'Shipment Id' and get_cell_data(0, 2, reader, file_type) == 'Order Item Id'\
          and get_cell_data(0, 16, reader, file_type) == 'SKU Code':
         order_mapping = copy.deepcopy(FLIPKART_EXCEL4)
-    elif get_cell_data(0, 3, reader, file_type) == 'customer_firstname':
-        order_mapping = copy.deepcopy(PAYTM_EXCEL1)
-    elif get_cell_data(0, 1, reader, file_type) == 'item_name':
-        order_mapping = copy.deepcopy(PAYTM_EXCEL2)
+    elif get_cell_data(0, 1, reader, file_type) == 'Date Time' and get_cell_data(0, 3, reader, file_type) == 'Vendor Code':
+        order_mapping = copy.deepcopy(PAYTM_EXCEL)
+    #elif get_cell_data(0, 1, reader, file_type) == 'item_name':
+    #    order_mapping = copy.deepcopy(PAYTM_EXCEL2)
     elif get_cell_data(0, 1, reader, file_type) == 'Order Item ID':
         order_mapping = copy.deepcopy(FLIPKART_FA_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'Sr. No' and get_cell_data(0, 1, reader, file_type) == 'PO No':
+    elif get_cell_data(0, 0, reader, file_type) == 'Sr. No' and get_cell_data(0, 3, reader, file_type) == 'HSN Code':
         order_mapping = copy.deepcopy(MYNTRA_EXCEL)
-    elif get_cell_data(0, 1, reader, file_type) == 'PO No' and get_cell_data(0, 3, reader, file_type) == 'Supp. Color':
+    elif get_cell_data(0, 0, reader, file_type) == 'Sr. No' and get_cell_data(0, 3, reader, file_type) == 'Supp. Color':
         order_mapping = copy.deepcopy(JABONG_EXCEL)
-    elif get_cell_data(0, 3, reader, file_type) == 'Jabong SKU':
-        order_mapping = copy.deepcopy(JABONG_EXCEL1)
     elif get_cell_data(0, 0, reader, file_type) == 'Product Name' and get_cell_data(0, 1, reader, file_type) == 'FSN':
         order_mapping = copy.deepcopy(FLIPKART_FA_EXCEL1)
     elif get_cell_data(0, 0, reader, file_type) == 'Shipping' and get_cell_data(0, 1, reader, file_type) == 'Date':
         order_mapping = copy.deepcopy(CAMPUS_SUTRA_EXCEL)
-    #Xls and Xlsx Reading
     elif get_cell_data(0, 0, reader, file_type) == 'Order ID' and not get_cell_data(0, 1, reader, file_type) == 'UOR ID':
         order_mapping = copy.deepcopy(ORDER_DEF_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Courier':
@@ -90,13 +169,13 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(HOMESHOP18_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Voonik Order Number':
         order_mapping = copy.deepcopy(VOONIK_EXCEL)
-    elif get_cell_data(0, 2, reader, file_type) == 'purchase-date' and get_cell_data(0, 4, reader, file_type) == 'payments-date':
+    elif get_cell_data(0, 2, reader, file_type) == 'purchase-date' and get_cell_data(0, 3, reader, file_type) == 'payments-date':
         order_mapping = copy.deepcopy(AMAZON_EXCEL)
-    elif get_cell_data(0, 2, reader, file_type) == 'purchase-date' and get_cell_data(0, 4, reader, file_type) == 'buyer-email':
-        order_mapping = copy.deepcopy(AMAZON_EXCEL1)
+    #elif get_cell_data(0, 2, reader, file_type) == 'purchase-date' and get_cell_data(0, 4, reader, file_type) == 'buyer-email':
+    #    order_mapping = copy.deepcopy(AMAZON_EXCEL1)
     elif get_cell_data(0, 1, reader, file_type) == 'AMB Order No':
         order_mapping = copy.deepcopy(ASKMEBAZZAR_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'Order Id' and get_cell_data(0, 1, reader, file_type) == 'Date Time':
+    elif get_cell_data(0, 3, reader, file_type) == 'customer_firstname' and get_cell_data(0, 4, reader, file_type) == 'customer_lastname':
         order_mapping = copy.deepcopy(LIMEROAD_EXCEL)
     elif get_cell_data(0, 1, reader, file_type) == 'Uniware Created At' and get_cell_data(0, 0, reader, file_type) == 'Order #':
         order_mapping = copy.deepcopy(UNI_COMMERCE_EXCEL1)
@@ -110,6 +189,8 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(SHOTANG_ORDER_FILE_EXCEL)
     elif get_cell_data(0, 2, reader, file_type) == 'VENDOR ARTICLE NUMBER' and get_cell_data(0, 3, reader, file_type) == 'VENDOR ARTICLE NAME':
         order_mapping = copy.deepcopy(MYNTRA_BULK_PO_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'bag_id' and get_cell_data(0, 2, reader, file_type) == 'order_date':
+        order_mapping = copy.deepcopy(FYND_EXCEL)
 
     return order_mapping
 
@@ -139,6 +220,48 @@ def update_seller_order(seller_order_dict, order, user):
         seller_order.status = 1
         seller_order.save()
 
+def myntra_order_tax_calc(key, value, order_mapping, order_summary_dict, row_idx, reader, file_type):
+    cell_data = ''
+    if isinstance(value, dict):
+        vat = float(get_cell_data(row_idx, value['tax'], reader, file_type))
+        quantity = float(get_cell_data(row_idx, value['quantity'], reader, file_type))
+        order_summary_dict['issue_type'] = 'order'
+        order_summary_dict['cgst_tax'] = vat/2
+        order_summary_dict['sgst_tax'] = vat/2
+        order_summary_dict['inter_state'] = 0
+    elif isinstance(value, list):
+        quantity = 1
+        sku_length = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
+        if 'quantity' in order_mapping.keys():
+            quantity = float(get_cell_data(row_idx, order_mapping['quantity'], reader, file_type))
+        elif ',' in sku_length:
+            quantity = len(sku_length.split(','))
+        amount = float(get_cell_data(row_idx, value[0], reader, file_type))/quantity
+        rate = float(get_cell_data(row_idx, value[1], reader, file_type))
+        tax_value_item = (amount - rate)
+        tax_value = tax_value_item * quantity
+        vat = "%.2f" % (float(tax_value_item * 100) / rate)
+        order_summary_dict['issue_type'] = 'order'
+        order_summary_dict['cgst_tax'] = float(vat)/2
+        order_summary_dict['sgst_tax'] = float(vat)/2
+        order_summary_dict['inter_state'] = 0
+    else:
+        quantity = 1
+        sku_length = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
+        if 'quantity' in order_mapping.keys():
+            quantity = float(get_cell_data(row_idx, order_mapping['quantity'], reader, file_type))
+        elif ',' in sku_length:
+            quantity = len(sku_length.split(','))
+        rate = float(get_cell_data(row_idx, order_mapping['unit_price'], reader, file_type))
+        tax_amt = float(get_cell_data(row_idx, value, reader, file_type))/quantity
+        tax_percent = tax_amt/(rate/100)
+        if not order_summary_dict.get('issue_type', ''):
+            order_summary_dict['issue_type'] = 'order'
+        order_summary_dict[key.replace('amt', 'tax')] = float('%.1f' % tax_percent)
+        if order_summary_dict.get('igst_tax', 0) or order_summary_dict.get('utgst_tax', 0):
+            order_summary_dict['inter_state'] = 1
+    return order_mapping, order_summary_dict
+
 @fn_timer
 def check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict, order_summary_dict, sku_ids,
                          sku_masters_dict, all_sku_decs, exist_created_orders, user):
@@ -148,7 +271,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
             cell_data = str(int(cell_data))
         order_data['sku_id'] = sku_masters_dict[cell_data]
         if not 'title' in order_mapping.keys():
-            order_data['title'] = all_sku_decs[cell_data]
+            order_data['title'] = all_sku_decs.get(cell_data, '')
 
         order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], sku_id=order_data['sku_id'], user=user.id)
         order_create = True
@@ -198,10 +321,11 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
         log.info("Order Saving Ended %s" %(datetime.datetime.now()))
     return sku_ids
 
-def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
+def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("order upload started")
     st_time = datetime.datetime.now()
     index_status = {}
+    #order_mapping = get_order_mapping1(reader, file_type, no_of_rows, no_of_cols)
     order_mapping = get_order_mapping(reader, file_type)
     if not order_mapping:
         return "Headers not matching"
@@ -270,12 +394,16 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
-        rewrite_csv_file(f_name, index_status, reader)
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
         return f_name
 
     elif index_status and file_type == 'xls':
         f_name = fname.name.replace(' ', '_')
-        rewrite_excel_file(f_name, index_status, reader)
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
         return f_name
 
     sku_ids = []
@@ -350,33 +478,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
             elif key == 'item_name':
                 order_data['invoice_amount'] += int(get_cell_data(row_idx, 11, reader, file_type))
-            elif key == 'vat':
-                cell_data = ''
-                if isinstance(value, list):
-                    quantity = 1
-                    sku_length = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
-                    if 'quantity' in order_mapping.keys():
-                        quantity = float(get_cell_data(row_idx, order_mapping['quantity'], reader, file_type))
-                    elif ',' in sku_length:
-                        quantity = len(sku_length.split(','))
-                    amount = float(get_cell_data(row_idx, value[0], reader, file_type))/quantity
-                    rate = float(get_cell_data(row_idx, value[1], reader, file_type))
-                    tax_value_item = (amount - rate)
-                    tax_value = tax_value_item * quantity
-                    vat = "%.2f" % (float(tax_value_item * 100) / rate)
-                    order_summary_dict['issue_type'] = 'order'
-                    order_summary_dict['vat'] = vat
-                    order_summary_dict['tax_value'] = "%.2f" % tax_value
-                elif isinstance(value, dict):
-                    vat = float(get_cell_data(row_idx, value['tax'], reader, file_type))
-                    quantity = float(get_cell_data(row_idx, value['quantity'], reader, file_type))
-                    order_summary_dict['issue_type'] = 'order'
-                    order_summary_dict['vat'] = vat
-                    if not value.get('tot_tax', ''):
-                        tax_value = float(get_cell_data(row_idx, value['tax_value'], reader, file_type))
-                        order_summary_dict['tax_value'] = "%.2f" % (tax_value * quantity)
-                    else:
-                        order_summary_dict['tax_value'] = "%.2f" % (float(get_cell_data(row_idx, value['tot_tax'], reader, file_type)))
+            elif key in ['vat', 'cgst_amt', 'sgst_amt', 'igst_amt', 'utgst_amt']:
+                order_mapping, order_summary_dict = myntra_order_tax_calc(key, value, order_mapping, order_summary_dict, row_idx, reader, file_type)
             elif key == 'address':
                 if isinstance(value, (list)):
                     cell_data = ''
@@ -431,7 +534,9 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data['unit_price'] = cell_data/order_data['quantity']
             elif key in ['cgst_tax', 'sgst_tax', 'igst_tax']:
                 cell_data = get_cell_data(row_idx, value, reader, file_type)
-                if not cell_data:
+                try:
+                    cell_data = float(cell_data)
+                except:
                     cell_data = 0
                 order_summary_dict[key] = cell_data
                 order_data['invoice_amount'] += (float(order_amount)/100) * float(cell_data)
@@ -475,9 +580,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     invoice_amount_value = 0
                 order_data['vat_percentage'] = tax_percentage
                 order_summary_dict['vat'] = tax_percentage
-                _taxe = (tax_percentage*invoice_amount_value)/100
-                order_summary_dict['tax_value'] = "%.2f" % (_taxe)
-                invoice_amount_value = invoice_amount_value + _taxe
+                order_summary_dict['tax_value'] = "%.2f" % ((tax_percentage*invoice_amount_value)/100)
+                invoice_amount_value = invoice_amount_value + ((tax_percentage*invoice_amount_value)/100)
                 order_data['invoice_amount'] = invoice_amount_value
                 if not order_data['marketplace']:
                     order_data['marketplace'] = "Offline"
@@ -485,6 +589,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data[key] = get_cell_data(row_idx, value, reader, file_type)
 
         order_data['user'] = user.id
+        if user.username in ['adam_clothing1', 'adam_abstract'] and 'BOM' in str(order_data['original_order_id']):
+            order_data['marketplace'] = 'Jabong'
         log.info("Order data processing ended%s" %(datetime.datetime.now()))
         if not order_data.has_key('quantity'):
             order_data['quantity'] = 1
@@ -514,6 +620,9 @@ def order_upload(request, user=''):
         reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
         no_of_rows = len(reader)
         file_type = 'csv'
+        no_of_cols = 0
+        if reader:
+            no_of_cols = len(reader[0])
 
     elif (fname.name).split('.')[-1] == 'xls' or (fname.name).split('.')[-1] == 'xlsx':
         try:
@@ -529,9 +638,10 @@ def order_upload(request, user=''):
         reader = open_sheet
         no_of_rows = reader.nrows
         file_type = 'xls'
+        no_of_cols = open_sheet.ncols
 
     try:
-        upload_status = order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
+        upload_status = order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type=file_type, no_of_cols=no_of_cols)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -544,54 +654,15 @@ def order_upload(request, user=''):
     return HttpResponse('Success')
 
 @csrf_exempt
-def rewrite_excel_file(f_name, index_status, open_sheet):
-    #wb = Workbook()
-    #ws = wb.add_sheet(open_sheet.name)
-    wb1, ws1 = get_work_sheet(open_sheet.name, [], f_name)
-
-    if 'xlsx' in f_name:
-        header_style = wb1.add_format({'bold': True})
-    else:
-        header_style = easyxf('font: bold on')
-
-    for row_idx in range(0, open_sheet.nrows):
-        if row_idx == 0:
-            for col_idx in range(0, open_sheet.ncols):
-                ws1.write(row_idx, col_idx, str(open_sheet.cell(row_idx, col_idx).value), header_style)
-            ws1.write(row_idx, col_idx + 1, 'Status', header_style)
-
-        else:
-            for col_idx in range(0, open_sheet.ncols):
-                #print row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value
-                if col_idx == 4 and 'xlsx' in f_name:
-                    date_format = wb1.add_format({'num_format': 'yyyy-mm-dd'})
-                    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value, date_format)
-                else:
-                    ws1.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
-
-            index_data = index_status.get(row_idx, '')
-            if index_data:
-                index_data = ', '.join(index_data)
-                ws1.write(row_idx, col_idx + 1, index_data)
-
-    if 'xlsx' in f_name:
-        wb1.close()
-    else:
-        wb1.save(f_name)
-
-@csrf_exempt
 @get_admin_user
 def order_form(request, user=''):
     order_file = request.GET['download-order-form']
     if order_file:
-        with open(order_file, 'r') as excel:
-            data = excel.read()
-        response = HttpResponse(data, content_type='application/vnd.ms-excel')
-        response['Content-Disposition'] = 'attachment; filename=%s' % smart_str(order_file)
+        response = read_and_send_excel(order_file)
         return response
 
     wb = Workbook()
-    ws = wb.add_sheet('supplier')
+    ws = wb.add_sheet('order')
     header_style = easyxf('font: bold on')
 
     for count, header in enumerate(ORDER_HEADERS):
@@ -675,10 +746,7 @@ def location_form(request, user=''):
 def purchase_order_form(request, user=''):
     order_file = request.GET['download-purchase-order-form']
     if order_file:
-        with open(order_file, 'r') as excel:
-            data = excel.read()
-        response = HttpResponse(data, content_type='application/vnd.ms-excel')
-        response['Content-Disposition'] = 'attachment; filename=%s' % smart_str(order_file)
+        response = read_and_send_excel(order_file)
         return response
     wb = Workbook()
     ws = wb.add_sheet('supplier')
@@ -870,13 +938,18 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
     if not index_status:
         return 'Success'
 
-    if index_status and file_type == 'xls':
+    if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
-        rewrite_excel_file(f_name, index_status, reader)
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
         return f_name
-    elif index_status and file_type == 'csv':
+
+    elif index_status and file_type == 'xls':
         f_name = fname.name.replace(' ', '_')
-        rewrite_csv_file(f_name, index_status, reader)
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
         return f_name
 
 
@@ -1905,8 +1978,7 @@ def purchase_upload_mail(request, data_to_send):
                             'user_name': request.user.username, 'total_qty': total_qty, 'company_name': profile.company_name,
                             'location': profile.location, 'w_address': profile.address, 'vendor_name': vendor_name,
                             'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone, 'customization': customization }
-        c = Context(data_dictionary)
-        rendered = t.render(c)
+        rendered = t.render(data_dictionary)
         write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0])
 
 @csrf_exempt
@@ -2442,12 +2514,16 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
 
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
-        rewrite_csv_file(f_name, index_status, reader)
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
         return f_name
 
     elif index_status and file_type == 'xls':
         f_name = fname.name.replace(' ', '_')
-        rewrite_excel_file(f_name, index_status, reader)
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
         return f_name
 
 def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
@@ -2680,15 +2756,19 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
     if not index_status:
         return 'Success'
 
-    if index_status and file_type == 'xls':
+    if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
-        rewrite_excel_file(f_name, index_status, reader)
-        return f_name
-    elif index_status and file_type == 'csv':
-        f_name = fname.name.replace(' ', '_')
-        rewrite_csv_file(f_name, index_status, reader)
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
         return f_name
 
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
 
 def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 
@@ -2911,13 +2991,18 @@ def validate_pricing_form(request, reader, user, no_of_rows, fname, file_type='x
     if not index_status:
         return 'Success'
 
-    if index_status and file_type == 'xls':
+    if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
-        rewrite_excel_file(f_name, index_status, reader)
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
         return f_name
-    elif index_status and file_type == 'csv':
+
+    elif index_status and file_type == 'xls':
         f_name = fname.name.replace(' ', '_')
-        rewrite_csv_file(f_name, index_status, reader)
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
         return f_name
 
 

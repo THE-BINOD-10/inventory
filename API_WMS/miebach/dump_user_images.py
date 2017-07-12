@@ -16,6 +16,8 @@ def dump_user_images(source_user, dest_user, sku_codes=[]):
     dest_skus = SKUMaster.objects.filter(user=dest_user)
     if not os.path.exists(path + folder):
         os.makedirs(path + folder)
+    if not os.path.exists(path + str(source_user)):
+        return
     src_files = os.listdir(path + str(source_user))
     for file_name in src_files:
         full_file_name = os.path.join(path + str(source_user), file_name)

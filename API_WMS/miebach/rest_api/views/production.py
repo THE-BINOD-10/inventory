@@ -856,8 +856,7 @@ def insert_rwo_po(rw_order, request, user):
                  'location': profile.location, 'w_address': profile.address, 'company_name': profile.company_name}
 
     t = loader.get_template('templates/toggle/po_download.html')
-    c = Context(data_dict)
-    rendered = t.render(c)
+    rendered = t.render(data_dict)
     send_message = 'false'
     data = MiscDetail.objects.filter(user=user.id, misc_type='send_message')
     if data:
@@ -1943,9 +1942,6 @@ def get_rm_back_order_data_alt(start_index, stop_index, temp_data, search_term, 
                search_term in str(person['Stock Quantity']) or search_term in str(person['Transit Quantity']) or \
                search_term in str(person['Procurement Quantity']), master_data)
     if order_term:
-        print col_num-1
-        print BACK_ORDER_RM_TABLE
-        print BACK_ORDER_RM_TABLE[col_num-1]
         if order_term == 'asc':
             master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_RM_TABLE[col_num-1]])
         else:
@@ -2031,15 +2027,17 @@ def get_rm_back_order_data(start_index, stop_index, temp_data, search_term, orde
                                 'Stock Quantity': get_decimal_limit(user.id, stock_quantity), 'order_id':"" ,
                                 'Transit Quantity': get_decimal_limit(user.id, transit_quantity),
                                 'Procurement Quantity': get_decimal_limit(user.id, procured_quantity), 'DT_RowClass': 'results'})
+
+    back_order_headers = ['WMS Code', 'WMS Code', 'Ordered Quantity', 'Stock Quantity', 'Transit Quantity', 'Procurement Quantity']
     if search_term:
         master_data = filter(lambda person: search_term in person['WMS Code'] or search_term in str(person['Ordered Quantity']) or\
                search_term in str(person['Stock Quantity']) or search_term in str(person['Transit Quantity']) or \
                search_term in str(person[' Procurement Quantity']), master_data)
     elif order_term:
         if order_term == 'asc':
-            master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_RM_TABLE[col_num-1]])
+            master_data = sorted(master_data, key = lambda x: x[back_order_headers[col_num]])
         else:
-            master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_RM_TABLE[col_num-1]], reverse=True)
+            master_data = sorted(master_data, key = lambda x: x[back_order_headers[col_num]], reverse=True)
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     temp_data['aaData'] = master_data[start_index:stop_index]
@@ -2089,8 +2087,17 @@ def confirm_back_order(request, user=''):
         job_order_id = ''
         if 'job_order_id' in request.POST.keys() and data_dict['job_order_id'][i]:
             job_order_id = data_dict['job_order_id'][i]
+        sgst_tax = cgst_tax = igst_tax = utgst_tax = 0
+        if 'sgst_tax' in request.POST.keys() and data_dict['sgst_tax'][i]:
+            sgst_tax = float(data_dict['sgst_tax'][i])
+        if 'cgst_tax' in request.POST.keys() and data_dict['cgst_tax'][i]:
+            cgst_tax = float(data_dict['cgst_tax'][i])
+        if 'igst_tax' in request.POST.keys() and data_dict['igst_tax'][i]:
+            igst_tax = float(data_dict['igst_tax'][i])
+        if 'utgst_tax' in request.POST.keys() and data_dict['utgst_tax'][i]:
+            utgst_tax = float(data_dict['utgst_tax'][i])
         all_data[cond].append(( data_dict['wms_code'][i], data_dict['quantity'][i], data_dict['title'][i], data_dict['price'][i],
-                                data_dict['remarks'][i], order_id, job_order_id))
+                                data_dict['remarks'][i], order_id, job_order_id, sgst_tax, cgst_tax, igst_tax, utgst_tax))
 
 
     all_invoices = []
@@ -2120,6 +2127,10 @@ def confirm_back_order(request, user=''):
             open_po_dict['price'] = price
             open_po_dict['status'] = 0
             open_po_dict['remarks'] = val[4]
+            open_po_dict['sgst_tax'] = val[7]
+            open_po_dict['cgst_tax'] = val[8]
+            open_po_dict['igst_tax'] = val[9]
+            open_po_dict['utgst_tax'] = val[10]
             if data_dict.get('vendor_id', '') and data_dict['vendor_id'][0]:
                 vendor_master = VendorMaster.objects.filter(vendor_id=data_dict['vendor_id'][0], user=user.id)
                 open_po_dict['vendor_id'] = vendor_master[0].id
@@ -2176,7 +2187,11 @@ def confirm_back_order(request, user=''):
                 supplier_code = supplier_mapping[0].supplier_code
 
             amount = float(purchase_order.open_po.order_quantity) * float(purchase_order.open_po.price)
-            total += amount
+            tax = purchase_order.open_po.sgst_tax + purchase_order.open_po.cgst_tax + purchase_order.open_po.igst_tax + purchase_order.open_po.utgst_tax
+            if not tax:
+                total += amount
+            else:
+                total += amount + ((amount/100) * float(tax))
             supplier = purchase_order.open_po.supplier
             total_qty += purchase_order.open_po.order_quantity
             wms_code = purchase_order.open_po.sku.wms_code
@@ -2198,10 +2213,11 @@ def confirm_back_order(request, user=''):
 
 
             po_reference = '%s%s_%s' % (purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''), order_id)
-            table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Unit Price', 'Amount', 'Remarks')
+            table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Unit Price', 'Amount', 'SGST', 'CGST', 'IGST', 'UTGST', 'Remarks')
 
             po_data.append(( wms_code, supplier_code, purchase_order.open_po.sku.sku_desc, purchase_order.open_po.order_quantity,
-                             purchase_order.open_po.price, amount, purchase_order.open_po.remarks))
+                             purchase_order.open_po.price, amount, purchase_order.open_po.sgst_tax, purchase_order.open_po.cgst_tax,
+                             purchase_order.open_po.igst_tax, purchase_order.open_po.utgst_tax, purchase_order.open_po.remarks))
 
             profile = UserProfile.objects.get(user=request.user.id)
             data_dictionary = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
@@ -2212,8 +2228,7 @@ def confirm_back_order(request, user=''):
                          'vendor_telephone': vendor_telephone, 'customization': customization, 'customer_name': customer_name}
 
         t = loader.get_template('templates/toggle/po_download.html')
-        c = Context(data_dictionary)
-        rendered = t.render(c)
+        rendered = t.render(data_dictionary)
         send_message = 'false'
         data = MiscDetail.objects.filter(user=user.id, misc_type='send_message')
         if data:
@@ -2230,7 +2245,7 @@ def confirm_back_order(request, user=''):
         all_invoice_data.append(data_dictionary)
     #t1 = loader.get_template('templates/toggle/po_template_order.html')
     t1 = loader.get_template('templates/print/po_multi_form.html')
-    c1 = Context({'total_data':all_invoice_data})
+    c1 = {'total_data':all_invoice_data}
     rendered1 = t1.render(c1)
 
     return HttpResponse(rendered1)

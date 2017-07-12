@@ -565,13 +565,15 @@ def generated_po_data(request, user=''):
                 ser_data.append({'fields': {'sku': {'wms_code': rec.sku.sku_code}, 'description': rec.sku.sku_desc,
                                  'order_quantity': sell_po.seller_quantity,
                                  'price': rec.price, 'supplier_code': rec.supplier_code, 'measurement_unit': rec.measurement_unit,
-                                 'remarks': rec.remarks, 'dedicated_seller': str(sell_po.seller.seller_id) + ':' + sell_po.seller.name},
+                                 'remarks': rec.remarks, 'dedicated_seller': str(sell_po.seller.seller_id) + ':' + sell_po.seller.name,
+                                 'sgst_tax': rec.sgst_tax, 'cgst_tax': rec.cgst_tax, 'igst_tax': rec.igst_tax, 'utgst_tax': rec.utgst_tax},
                                  'pk': rec.id, 'seller_po_id': sell_po.id})
         else:
             ser_data.append({'fields': {'sku': {'wms_code': rec.sku.sku_code}, 'description': rec.sku.sku_desc,
                              'order_quantity': rec.order_quantity,
                              'price': rec.price, 'supplier_code': rec.supplier_code, 'measurement_unit': rec.measurement_unit,
-                             'remarks': rec.remarks, 'dedicated_seller': ''}, 'pk': rec.id})
+                             'remarks': rec.remarks, 'dedicated_seller': '', 'sgst_tax': rec.sgst_tax, 'cgst_tax': rec.cgst_tax,
+                             'igst_tax': rec.igst_tax, 'utgst_tax': rec.utgst_tax}, 'pk': rec.id})
     vendor_id = ''
     if record[0].vendor:
         vendor_id = record[0].vendor.vendor_id
@@ -630,6 +632,10 @@ def modify_po_update(request, user=''):
             setattr(record, 'order_quantity', value['order_quantity'] )
             setattr(record, 'price', value['price'] )
             setattr(record, 'remarks', value['remarks'])
+            setattr(record, 'sgst_tax', value['sgst_tax'])
+            setattr(record, 'cgst_tax', value['cgst_tax'])
+            setattr(record, 'igst_tax', value['igst_tax'])
+            setattr(record, 'utgst_tax', value['utgst_tax'])
             record.save()
             if value['sellers']:
                 for k, val in value['sellers'].iteritems():
@@ -668,7 +674,10 @@ def modify_po_update(request, user=''):
         po_suggestions['price'] = float(value['price'])
         po_suggestions['status'] = 'Manual'
         po_suggestions['remarks'] = value['remarks']
-        po_suggestions['tax'] = value['tax']
+        po_suggestions['sgst_tax'] = value['sgst_tax']
+        po_suggestions['cgst_tax'] = value['cgst_tax']
+        po_suggestions['igst_tax'] = value['igst_tax']
+        po_suggestions['utgst_tax'] = value['utgst_tax']
 
         data = OpenPO(**po_suggestions)
         data.save()
@@ -799,6 +808,10 @@ def confirm_po(request, user=''):
             setattr(purchase_order, 'po_name', value['po_name'])
             setattr(purchase_order, 'supplier_code', value['supplier_code'])
             setattr(purchase_order, 'remarks', value['remarks'])
+            setattr(purchase_order, 'sgst_tax', value['sgst_tax'])
+            setattr(purchase_order, 'cgst_tax', value['cgst_tax'])
+            setattr(purchase_order, 'igst_tax', value['igst_tax'])
+            setattr(purchase_order, 'utgst_tax', value['utgst_tax'])
             if myDict.get('vendor_id', ''):
                 vendor_master = VendorMaster.objects.get(vendor_id=value['vendor_id'], user=user.id)
                 setattr(purchase_order, 'vendor_id', vendor_master.id)
@@ -840,7 +853,10 @@ def confirm_po(request, user=''):
             po_suggestions['status'] = 'Manual'
             po_suggestions['remarks'] = value['remarks']
             po_suggestions['measurement_unit'] = "UNITS"
-            po_suggestions['tax'] = value['tax']
+            po_suggestions['sgst_tax'] = value['sgst_tax']
+            po_suggestions['cgst_tax'] = value['cgst_tax']
+            po_suggestions['igst_tax'] = value['igst_tax']
+            po_suggestions['utgst_tax'] = value['utgst_tax']
             if value['measurement_unit']:
                 if value['measurement_unit'] != "":
                     po_suggestions['measurement_unit'] = value['measurement_unit']
@@ -873,7 +889,7 @@ def confirm_po(request, user=''):
         order.save()
 
         amount = float(purchase_order.order_quantity) * float(purchase_order.price)
-        tax = value['tax']
+        tax = value['sgst_tax'] + value['cgst_tax'] + value['igst_tax'] + value['utgst_tax']
         if not tax:
             total += amount
         else:
@@ -887,9 +903,9 @@ def confirm_po(request, user=''):
             wms_code = purchase_order.sku.wms_code
 
         if ean_flag:
-            po_data.append(( wms_code, purchase_order.sku.ean_number, value['supplier_code'], purchase_order.sku.sku_desc, purchase_order.order_quantity, value['measurement_unit'], purchase_order.price, amount, purchase_order.remarks))
+            po_data.append(( wms_code, purchase_order.sku.ean_number, value['supplier_code'], purchase_order.sku.sku_desc, purchase_order.order_quantity, value['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.igst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
         else:
-            po_data.append(( wms_code, value['supplier_code'], purchase_order.sku.sku_desc, purchase_order.order_quantity, value['measurement_unit'], purchase_order.price, amount, purchase_order.remarks))
+            po_data.append(( wms_code, value['supplier_code'], purchase_order.sku.sku_desc, purchase_order.order_quantity, value['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.igst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
 
         suggestion = OpenPO.objects.get(id=sup_id, sku__user=user.id)
         setattr(suggestion, 'status', 0)
@@ -921,16 +937,17 @@ def confirm_po(request, user=''):
         title = 'Stock Transfer Note'
 
     if ean_flag:
-        table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount', 'Remarks')
+        table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
+                         'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
     else:
-        table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount', 'Remarks')
+        table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
+                         'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'company_name': profile.company_name,
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type, 'title': title}
     t = loader.get_template('templates/toggle/po_download.html')
-    c = Context(data_dict)
-    rendered = t.render(c)
+    rendered = t.render(data_dict)
     send_message = 'false'
     data = MiscDetail.objects.filter(user=user.id, misc_type='send_message')
     if data:
@@ -1037,9 +1054,12 @@ def get_raisepo_group_data(user, myDict):
         receipt_type = ''
         data_id = ''
         seller_po_id = ''
-        tax = 0
         supplier_id = ''
         order_type = 'SR'
+        sgst_tax = 0
+        cgst_tax = 0
+        igst_tax = 0
+        utgst_tax = 0
         if 'remarks' in myDict.keys():
             remarks = myDict['remarks'][i]
         if 'supplier_code' in myDict.keys():
@@ -1061,10 +1081,18 @@ def get_raisepo_group_data(user, myDict):
             data_id = myDict['data-id'][i]
         if 'seller_po_id' in myDict.keys():
             seller_po_id = myDict['seller_po_id'][i]
-        if 'tax' in myDict.keys():
-            tax = myDict['tax'][0]
-            if not tax:
-                tax = 0
+        if 'sgst_tax' in myDict.keys():
+            if myDict['sgst_tax'][i]:
+                sgst_tax = float(myDict['sgst_tax'][i])
+        if 'cgst_tax' in myDict.keys():
+            if myDict['cgst_tax'][i]:
+                cgst_tax = float(myDict['cgst_tax'][i])
+        if 'igst_tax' in myDict.keys():
+            if myDict['igst_tax'][i]:
+                igst_tax = float(myDict['igst_tax'][i])
+        if 'utgst_tax' in myDict.keys():
+            if myDict['utgst_tax'][i]:
+                utgst_tax = float(myDict['utgst_tax'][i])
 
         if receipt_type:
             order_types = dict(zip(PO_ORDER_TYPES.values(), PO_ORDER_TYPES.keys()))
@@ -1079,8 +1107,9 @@ def get_raisepo_group_data(user, myDict):
         all_data.setdefault(cond, {'order_quantity': 0, 'price': price, 'supplier_id': myDict['supplier_id'][0],
                                    'supplier_code': supplier_code, 'po_name': po_name, 'receipt_type': receipt_type,
                                    'remarks': remarks, 'measurement_unit': measurement_unit,
-                                   'vendor_id': vendor_id, 'ship_to': ship_to, 'sellers': {}, 'data_id': data_id, 'tax': tax,
-                                   'order_type': order_type})
+                                   'vendor_id': vendor_id, 'ship_to': ship_to, 'sellers': {}, 'data_id': data_id,
+                                   'order_type': order_type, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
+                                   'utgst_tax': utgst_tax})
         all_data[cond]['order_quantity'] += float(myDict['order_quantity'][i])
         if 'dedicated_seller' in myDict:
             seller = myDict['dedicated_seller'][i]
@@ -1145,7 +1174,10 @@ def add_po(request, user=''):
             po_suggestions['status'] = 'Manual'
             po_suggestions['po_name'] = value['po_name']
             po_suggestions['remarks'] = value['remarks']
-            po_suggestions['tax'] = value['tax']
+            po_suggestions['sgst_tax'] = value['sgst_tax']
+            po_suggestions['cgst_tax'] = value['cgst_tax']
+            po_suggestions['igst_tax'] = value['igst_tax']
+            po_suggestions['utgst_tax'] = value['utgst_tax']
             po_suggestions['order_type'] = value['order_type']
             if value.get('vendor_id', ''):
                 vendor_master = VendorMaster.objects.get(vendor_id=value['vendor_id'], user=user.id)
@@ -1799,8 +1831,17 @@ def update_seller_po(data, value, user, receipt_id=''):
                 except:
                     margin_percent = 0
                 price = float(data.open_po.price)
-                if data.open_po.tax:
-                    price = price + ((price/100)*float(data.open_po.tax))
+                tax = 0
+                if data.open_po.cgst_tax:
+                    tax += float(data.open_po.cgst_tax)
+                if data.open_po.sgst_tax:
+                    tax += float(data.open_po.sgst_tax)
+                if data.open_po.igst_tax:
+                    tax += float(data.open_po.igst_tax)
+                if data.open_po.utgst_tax:
+                    tax += float(data.open_po.utgst_tax)
+                if tax:
+                    price = price + ((price/100)*float(tax))
                 unit_price = float(price)/(1-(margin_percent/100))
                 sell_po.unit_price = float(("%."+ str(2) +"f") % (unit_price))
                 sell_po.margin_percent = margin_percent
@@ -1995,8 +2036,7 @@ def confirm_grn(request, confirm_returns = '', user=''):
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/po_download.html')
-                c = Context(report_data_dict)
-                rendered = t.render(c)
+                rendered = t.render(report_data_dict)
                 send_message = get_misc_value('send_message', user.id)
                 write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
             return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,
@@ -3329,7 +3369,10 @@ def confirm_add_po(request, sales_data = '', user=''):
         po_suggestions['status'] = 'Manual'
         po_suggestions['remarks'] = value['remarks']
         po_suggestions['measurement_unit'] = "UNITS"
-        po_suggestions['tax'] = value['tax']
+        po_suggestions['sgst_tax'] = value['sgst_tax']
+        po_suggestions['cgst_tax'] = value['cgst_tax']
+        po_suggestions['igst_tax'] = value['igst_tax']
+        po_suggestions['utgst_tax'] = value['utgst_tax']
         if value['measurement_unit']:
             if value['measurement_unit'] != "":
                 po_suggestions['measurement_unit'] = value['measurement_unit']
@@ -3363,7 +3406,7 @@ def confirm_add_po(request, sales_data = '', user=''):
                                         creation_date=datetime.datetime.now(), status=1, receipt_type=value['receipt_type'])
 
         amount = float(purchase_order.order_quantity) * float(purchase_order.price)
-        tax = value['tax']
+        tax = value['sgst_tax'] + value['cgst_tax'] + value['igst_tax'] + value['utgst_tax']
         if not tax:
             total += amount
         else:
@@ -3376,10 +3419,10 @@ def confirm_add_po(request, sales_data = '', user=''):
 
         if ean_flag:
             po_data.append(( wms_code, ean_number, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, po_suggestions['measurement_unit'],
-                             purchase_order.price, amount, purchase_order.remarks))
+                             purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.igst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
         else:
             po_data.append(( wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, po_suggestions['measurement_unit'], purchase_order.price, amount,
-                             purchase_order.remarks))
+                             purchase_order.sgst_tax, purchase_order.igst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
         suggestion = OpenPO.objects.get(id = sup_id,sku__user=user.id)
         setattr(suggestion, 'status', 0)
         suggestion.save()
@@ -3405,9 +3448,11 @@ def confirm_add_po(request, sales_data = '', user=''):
     order_date = get_local_date(request.user, order.creation_date)
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     if ean_flag:
-        table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount', 'Remarks')
+        table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
+                         'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
     else:
-        table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount', 'Remarks')
+        table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
+                         'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
 
     profile = UserProfile.objects.get(user=request.user.id)
 
@@ -3423,8 +3468,7 @@ def confirm_add_po(request, sales_data = '', user=''):
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title}
 
     t = loader.get_template('templates/toggle/po_download.html')
-    c = Context(data_dict)
-    rendered = t.render(c)
+    rendered = t.render(data_dict)
     send_message = 'false'
     data = MiscDetail.objects.filter(user=user.id, misc_type='send_message')
 
@@ -3500,7 +3544,7 @@ def confirm_po1(request, user=''):
                 order.save()
 
                 amount = float(purchase_order.order_quantity) * float(purchase_order.price)
-                tax = purchase_order.tax
+                tax = purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.utgst_tax
                 if not tax:
                     total += amount
                 else:
@@ -3518,9 +3562,9 @@ def confirm_po1(request, user=''):
                     supplier_code = sku_supplier[0].supplier_code
 
                 if ean_flag:
-                    po_data.append(( wms_code, purchase_order.sku.ean_number, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, purchase_order.sku.measurement_type, purchase_order.price, amount, purchase_order.remarks))
+                    po_data.append(( wms_code, purchase_order.sku.ean_number, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, purchase_order.sku.measurement_type, purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.igst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
                 else:
-                    po_data.append(( wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, purchase_order.sku.measurement_type, purchase_order.price, amount, purchase_order.remarks))
+                    po_data.append(( wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, purchase_order.sku.measurement_type, purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.igst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
 
                 suggestion = OpenPO.objects.get(id=data_id, sku__user=user.id)
                 setattr(suggestion, 'status', 0)
@@ -3546,14 +3590,15 @@ def confirm_po1(request, user=''):
             #table_headers = ('WMS CODE', 'Supplier Name', 'Description', 'Quantity', 'Unit Price', 'Amount')
 
             if ean_flag:
-                table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount', 'Remarks')
+                table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
+                                 'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
             else:
-                table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount', 'Remarks')
+                table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
+                                 'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
             data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total, 'company_name': profile.company_name, 'location': profile.location, 'po_reference': po_reference, 'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone}
 
             t = loader.get_template('templates/toggle/po_download.html')
-            c = Context(data_dict)
-            rendered = t.render(c)
+            rendered = t.render(data_dict)
             send_message = 'false'
             misc_data = MiscDetail.objects.filter(user=request.user.id, misc_type='send_message')
             if misc_data:
@@ -4342,8 +4387,7 @@ def confirm_receive_qc(request, user=''):
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/po_download.html')
-                c = Context(report_data_dict)
-                rendered = t.render(c)
+                rendered = t.render(report_data_dict)
                 send_message = get_misc_value('send_message', user.id)
                 write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
             return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,

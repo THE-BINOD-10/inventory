@@ -4,7 +4,7 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from longerusername import MAX_USERNAME_LENGTH
+#from longerusername import MAX_USERNAME_LENGTH
 # Create your models here.
 
 class ZoneMaster(models.Model):
@@ -248,7 +248,11 @@ class OpenPO(models.Model):
     order_type = models.CharField(max_length=32, default='SR')
     remarks = models.CharField(max_length=256, default='')
     tax_type = models.CharField(max_length=32, default='')
-    tax = models.FloatField(default=0)
+    #tax = models.FloatField(default=0)
+    sgst_tax = models.FloatField(default=0)
+    cgst_tax = models.FloatField(default=0)
+    igst_tax = models.FloatField(default=0)
+    utgst_tax = models.FloatField(default=0)
     status = models.CharField(max_length=32)
     measurement_unit = models.CharField(max_length=32, default = '')
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -317,7 +321,7 @@ class PalletDetail(models.Model):
     user = models.PositiveIntegerField()
     pallet_code = models.CharField(max_length = 64)
     quantity = models.FloatField(default=0)
-    status = models.IntegerField(max_length=1, default=1)
+    status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -328,7 +332,7 @@ class PalletMapping(models.Model):
     id = BigAutoField(primary_key = True)
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     po_location = models.ForeignKey(POLocation, blank=True, null=True)
-    status = models.IntegerField(max_length=1,default=1)
+    status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -524,7 +528,7 @@ class SKUStock(models.Model):
     total_quantity = models.FloatField(default=0)
     online_quantity = models.FloatField(default=0)
     offline_quantity = models.FloatField(default=0)
-    status = models.IntegerField(max_length=1, default=0)
+    status = models.IntegerField(default=0)
 
     class Meta:
         db_table = 'SKU_STOCK'
@@ -548,7 +552,7 @@ class CustomerMaster(models.Model):
     credit_period = models.PositiveIntegerField(default=0)
     price_type = models.CharField(max_length=32, default='')
     tax_type = models.CharField(max_length=32, default='')
-    status = models.IntegerField(max_length=1, default=1)
+    status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     customer_type = models.CharField(max_length=64, default='')
@@ -573,7 +577,7 @@ class UserProfile(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.OneToOneField(User)
     phone_number = models.CharField(max_length=32, default='')
-    birth_date = models.DateTimeField(auto_now_add=True, default=date.today)
+    birth_date = models.DateTimeField(auto_now=True)
     is_active = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -658,7 +662,7 @@ class OrderIMEIMapping(models.Model):
     order = models.ForeignKey(OrderDetail)
     po_imei = models.ForeignKey(POIMEIMapping, blank=True, null=True)
     imei_number =  models.CharField(max_length = 64, default = '')
-    status = models.IntegerField(max_length=1, default=1)
+    status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -670,7 +674,7 @@ class CancelledLocation(models.Model):
     picklist = models.ForeignKey(Picklist, blank=True, null=True)
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
     quantity = models.FloatField(default=0)
-    status = models.IntegerField(max_length=1, default=0)
+    status = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -747,7 +751,7 @@ class JOMaterial(models.Model):
     job_order = models.ForeignKey(JobOrder)
     material_code = models.ForeignKey(SKUMaster)
     material_quantity = models.FloatField(default = 0)
-    status = models.IntegerField(max_length=1, default=1)
+    status = models.IntegerField(default=1)
     unit_measurement_type = models.CharField(max_length=32, default = '')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -772,7 +776,7 @@ class RMLocation(models.Model):
     stock = models.ForeignKey(StockDetail, blank=True, null=True)
     reserved = models.FloatField(default=0)
     quantity = models.FloatField(default = 0)
-    status = models.IntegerField(max_length=1, default=1)
+    status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -861,7 +865,7 @@ class SellerMaster(models.Model):
     price_type = models.CharField(max_length=32, default='')
     margin = models.CharField(max_length=256, default=0)
     supplier = models.ForeignKey(SupplierMaster, null=True, blank=True, default = None)
-    status = models.IntegerField(max_length=1, default=1)
+    status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1005,6 +1009,7 @@ class CustomerOrderSummary(models.Model):
     cgst_tax = models.FloatField(default=0)
     sgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
+    utgst_tax = models.FloatField(default=0)
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
@@ -1705,6 +1710,7 @@ class CustomerCartData(models.Model):
     cgst_tax = models.FloatField(default=0)
     sgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
+    utgst_tax = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1725,6 +1731,7 @@ class CustomerCartData(models.Model):
             'cgst_tax': self.cgst_tax,
             'sgst_tax': self.sgst_tax,
             'igst_tax': self.igst_tax,
+            'utgst_tax': self.utgst_tax
         }
 
 class TaxMaster(models.Model):
@@ -1735,6 +1742,7 @@ class TaxMaster(models.Model):
     cgst_tax = models.FloatField(default=0)
     sgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
+    utgst_tax = models.FloatField(default=0)
     min_amt = models.FloatField(default=0)
     max_amt = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -1742,16 +1750,18 @@ class TaxMaster(models.Model):
 
     class Meta:
         db_table = 'TAX_MASTER'
-        unique_together = ('user', 'product_type', 'inter_state', 'cgst_tax', 'sgst_tax', 'igst_tax')
+        #unique_together = ('user', 'product_type', 'inter_state', 'cgst_tax', 'sgst_tax', 'igst_tax')
         index_together = ('user', 'product_type', 'inter_state')
 
     def json(self):
         return {
+            'id': self.id,
             'product_type': self.product_type,
             'inter_state': self.inter_state,
             'cgst_tax': self.cgst_tax,
             'sgst_tax': self.sgst_tax,
             'igst_tax': self.igst_tax,
+            'utgst_tax': self.utgst_tax,
             'min_amt': self.min_amt,
             'max_amt': self.max_amt,
             'user_id': self.user.id
@@ -1762,6 +1772,7 @@ from django.core.validators import MaxLengthValidator
 from django.utils.translation import ugettext as _
 from django.db.models.signals import class_prepared
 from django.conf import settings
+'''
 def longer_username_signal(sender, *args, **kwargs):
     if (sender.__name__ == "User" and
         sender.__module__ == "django.contrib.auth.models"):
@@ -1786,7 +1797,7 @@ from django.contrib.auth.models import User
 
 if User._meta.get_field("first_name").max_length != MAX_USERNAME_LENGTH():
     patch_user_model(User)
-
+'''
 
 
 

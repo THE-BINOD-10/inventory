@@ -1,31 +1,39 @@
 'use strict';
 
-function BackorderPOPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams) {
+function BackorderPOPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
 
   var vm = this;
   vm.state_data = "";
   vm.service = Service;
 
-  if($stateParams.data){
-     vm.state_data = $stateParams.data;
+  if(items){
+     vm.state_data = items;
   }
 
-  vm.pop_data = {};
+  var url_get = "generate_po_data/";
+  if ($state.current.name == "app.production.BackOrders") {
+
+    url_get = "generate_rm_po_data/";
+  } else if ($state.current.name != "app.outbound.BackOrders") {
+
+    url_get = "generate_order_po_data/";
+  }
+
+  vm.model_data = {};
 
   vm.getPoData = function(data){
 
-    data = JSON.parse(data);
-    Service.apiCall("generate_order_po_data/", "POST", data, true).then(function(data){
+    Service.apiCall(url_get, "POST", data, true).then(function(data){
       if(data.message) {
-        angular.copy(data.data, vm.pop_data)
-        $state.go("app.outbound.ViewOrders.PO");
+        angular.copy(data.data, vm.model_data)
+        vm.model_data.filter = vm.state_data.filter
       };
     });
   }
 
-  if(vm.state_data) {
+  if(vm.state_data.data) {
 
-    vm.getPoData(vm.state_data);
+    vm.getPoData(vm.state_data.data);
   }
 
   vm.print_enable = false;
@@ -40,8 +48,6 @@ function BackorderPOPOP($scope, $http, $state, $timeout, Session, colFilters, Se
                 vm.html = $(data.data)[0];
                 var html = $(vm.html).closest("form").clone();
                 angular.element(".modal-body").html($(html));
-                //angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
-                //angular.element(".modal-body").html($(html));
                 vm.print_enable = true;
            } else {
              vm.service.pop_msg(data.data);
@@ -54,8 +60,12 @@ function BackorderPOPOP($scope, $http, $state, $timeout, Session, colFilters, Se
 
     vm.service.print_data(vm.html, "Purchase Order");
   }
+
+  vm.ok = function (msg) {
+    $modalInstance.close(vm.status_data);
+  };
 }
 
 angular
   .module('urbanApp')
-  .controller('BackorderPOPOP', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', BackorderPOPOP]);
+  .controller('BackorderPOPOP', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', BackorderPOPOP]);

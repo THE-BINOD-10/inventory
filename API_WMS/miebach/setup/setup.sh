@@ -10,8 +10,8 @@
 sudo python get-pip.py
 sudo apt-get install python-virtualenv
 virtualenv MIEBACH
-source MIEBACH/bin/activate
-pip install -r requirements.pip
+#source MIEBACH/bin/activate
+#pip install -r requirements.pip
 
 # Configuring crontab for users dump
 # gcc lockrun.c -o lockrun

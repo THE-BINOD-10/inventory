@@ -841,6 +841,9 @@ GSTIN_USER_MAPPING = {'sagar_fab': '29ABEFS4899J1ZA', 'adam_clothing1': '2788OFB
 
 #End of Username and GST Tin Mapping
 
+#Company logo names
+COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg'}
+
 def fn_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):

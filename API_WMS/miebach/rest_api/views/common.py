@@ -42,6 +42,17 @@ def process_date(value):
     value = datetime.date(int(value[2]), int(value[0]), int(value[1]))
     return value
 
+def get_company_logo(user):
+    import base64
+    try:
+        logo_name = COMPANY_LOGO_PATHS.get(user.username, '')
+        logo_path = 'static/images/companies/' + logo_name
+        with open(logo_path, "rb") as image_file:
+            image = base64.b64encode(image_file.read())
+    except:
+        image = ""
+    return image
+
 def get_decimal_limit(user_id, value):
     decimal_limit = 0
     if get_misc_value('float_switch', user_id) == 'true':
@@ -1890,6 +1901,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     _total_invoice = round(total_invoice)
     _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
 
+    image = get_company_logo(user)
     invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'marketplace': marketplace, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
@@ -1898,7 +1910,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                     'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount, 'consignee': consignee,
                     'dispatch_through': dispatch_through, 'inv_date': inv_date, 'tax_type': tax_type,
                     'rounded_invoice_amount': _total_invoice, 'purchase_type': purchase_type, 'is_gst_invoice': is_gst_invoice,
-                    'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes}
+                    'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes, 'image': image}
 
     return invoice_data
 

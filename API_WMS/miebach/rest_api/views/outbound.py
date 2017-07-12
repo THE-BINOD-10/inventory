@@ -3179,7 +3179,6 @@ def generate_order_invoice(request, user=''):
     order_ids = request.GET.get('order_ids', '')
     invoice_data = get_invoice_data(order_ids, user)
     invoice_data = modify_invoice_data(invoice_data, user)
-    #ord_ids = OrderDetail.objects.filter(user = user.id, order_id__in = order_ids).values_list('id', flat = True)
     ord_ids = order_ids.split(",")
     invoice_data = add_consignee_data(invoice_data, ord_ids, user)
 
@@ -3190,11 +3189,6 @@ def generate_order_invoice(request, user=''):
     #    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
     #c = Context(invoice_data)
     #rendered = t.render(c)
-    import base64
-    image = ""
-    #with open("static/images/companies/trans_logo.jpg", "rb") as image_file:
-    #  image = base64.b64encode(image_file.read())
-    invoice_data["image"] = image
     return HttpResponse(json.dumps(invoice_data))
 
 @csrf_exempt

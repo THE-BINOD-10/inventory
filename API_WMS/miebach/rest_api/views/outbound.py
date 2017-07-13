@@ -63,7 +63,7 @@ def get_batch_data(start_index, stop_index, temp_data, search_term, order_term, 
         if sku_code == 'TEMP':
             sku_code = dat['sku_code']
 
-        check_values = dat['sku__sku_code'] + '<>' + sku_code
+        check_values = dat['sku__sku_code'] + '<>' + sku_code + '<>' + dat['title']
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (check_values, dat['total'])
 
         temp_data['aaData'].append(OrderedDict(( ('data_value', check_values), ('SKU Code', sku_code), ('Title', dat['title']),
@@ -747,8 +747,8 @@ def batch_generate_picklist(request, user=''):
                 continue
 
             key = key.split('<>')
-            sku_code, marketplace_sku_code = key
-            order_filter = {'sku__sku_code': sku_code, 'quantity__gt': 0 }
+            sku_code, marketplace_sku_code, title = key
+            order_filter = {'sku__sku_code': sku_code, 'quantity__gt': 0 , 'title': title}
 
             if sku_code != marketplace_sku_code:
                 order_filter['sku_code'] = marketplace_sku_code
@@ -2626,6 +2626,7 @@ def get_back_order_data(start_index, stop_index, temp_data, search_term, order_t
     reserveds = map(lambda d: d['stock__sku_id'], reserved_objs)
     order_quantities = map(lambda d: d['sku_id'], order_quantity_objs)
 
+    table_headers = [ 'WMS Code', 'WMS Code', 'Product Description', 'Ordered Quantity', 'Stock Quantity', 'Transit Quantity', 'Procurement Quantity']
     for order in order_detail:
         temp = {}
         production_quantity = 0
@@ -2658,21 +2659,27 @@ def get_back_order_data(start_index, stop_index, temp_data, search_term, order_t
         procured_quantity = order_quantity - stock_quantity - transit_quantity - production_quantity
         if procured_quantity > 0:
             checkbox = "<input type='checkbox' id='back-checked' name='%s'>" % order['sku__sku_desc']
-            temp  = {'': checkbox, 'WMS Code': order['sku__wms_code'], 'Ordered Quantity': order_quantity,
-                                'Stock Quantity': stock_quantity, 'Transit Quantity': transit_quantity,
-                                'Procurement Quantity': procured_quantity, 'DT_RowClass': 'results',}
+            temp  = OrderedDict(( ('', checkbox), ('WMS Code', order['sku__wms_code']), ('Product Description', order['sku__sku_desc']),
+                                  ('Ordered Quantity', order_quantity), ('Stock Quantity', stock_quantity),
+                                  ('Transit Quantity', transit_quantity), ('Procurement Quantity', procured_quantity),
+                                  ('DT_RowClass', 'results')
+                               ))
             if is_production == 'true':
                 temp['In Production Quantity'] = production_quantity
+                if not 'In Production Quantity' in table_headers:
+                    table_headers.insert(6, 'In Production Quantity')
             master_data.append(temp)
     if search_term:
-        master_data = filter(lambda person: search_term in person['WMS Code'] or search_term in str(person['Ordered Quantity']) or\
-               search_term in str(person['Stock Quantity']) or search_term in str(person['Transit Quantity']) or \
-               search_term in str(person['Procurement Quantity']), master_data)
+        master_data = filter(lambda person: search_term in person['WMS Code'] or\
+                                   str(search_term).lower() in str(person['Product Description']).lower() or \
+                                   search_term in str(person['Ordered Quantity']) or\
+                                   search_term in str(person['Stock Quantity']) or search_term in str(person['Transit Quantity']) or \
+                                   search_term in str(person['Procurement Quantity']), master_data)
     elif order_term:
         if order_term == 'asc':
-            master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_TABLE[col_num-1]])
+            master_data = sorted(master_data, key = lambda x: x[table_headers[col_num]])
         else:
-            master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_TABLE[col_num-1]], reverse=True)
+            master_data = sorted(master_data, key = lambda x: x[table_headers[col_num]], reverse=True)
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     temp_data['aaData'] = master_data[start_index:stop_index]

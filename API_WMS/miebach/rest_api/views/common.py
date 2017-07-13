@@ -231,7 +231,7 @@ def create_user(request):
         user = User.objects.filter(username=username, email=email)
         status = "User already exists"
         if not user:
-            user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name)
+            user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name,last_login=datetime.datetime.now())
             user.save()
             hash_code = hashlib.md5(b'%s:%s' % (user.id, email)).hexdigest()
             if user:
@@ -509,6 +509,7 @@ def add_user(request, user=''):
     for key,value in request.GET.iteritems():
         if not key == 're_password':
             user_dict[key] = value
+    user_dict['last_login'] = datetime.datetime.now()
     user_exists = User.objects.filter(username=user_dict['username'])
     if not user_exists:
         new_user = User.objects.create_user(**user_dict)
@@ -2305,7 +2306,8 @@ def create_update_user(data, password, username):
         if user:
             status = "User already exists"
         else:
-            user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name)
+            user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name,
+                                            last_login=datetime.datetime.now())
             user.save()
             hash_code = hashlib.md5(b'%s:%s' % (user.id, email)).hexdigest()
             if user:

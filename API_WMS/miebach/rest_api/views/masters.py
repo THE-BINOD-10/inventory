@@ -838,7 +838,7 @@ def update_customer_values(request,user=''):
     log.info('Update Customer Values request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         data_id = request.POST['customer_id']
-        username = request.POST['username']
+        username = request.POST.get('username', '')
         data = get_or_none(CustomerMaster, {'customer_id': data_id, 'user': user.id})
         create_login = request.POST.get('create_login', '')
         login_created = request.POST.get('login_created', '')
@@ -903,7 +903,7 @@ def insert_customer(request, user=''):
         if not data:
             data_dict = copy.deepcopy(CUSTOMER_DATA)
             for key, value in request.POST.iteritems():
-                if key in ['create_login', 'password', 'login_created', 'username']:
+                if key in ['create_login', 'password', 'login_created', 'username', 'data-id', 'login-created']:
                     continue
                 if key == 'status':
                     if value == 'Active':

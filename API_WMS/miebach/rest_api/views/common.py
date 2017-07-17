@@ -46,7 +46,7 @@ def get_company_logo(user):
     import base64
     try:
         logo_name = COMPANY_LOGO_PATHS.get(user.username, '')
-        logo_path = 'static/images/companies/' + logo_name
+        logo_path = 'static/company_logos/' + logo_name
         with open(logo_path, "rb") as image_file:
             image = base64.b64encode(image_file.read())
     except:
@@ -2926,6 +2926,8 @@ def get_sku_stock_check(request, user=''):
     load_unit_handle = ''
     if stock_data:
         load_unit_handle = stock_data[0].sku.load_unit_handle
+    else:
+        return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     zones_data = get_sku_stock_summary(stock_data, load_unit_handle, user)
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data}))
 
@@ -2981,3 +2983,32 @@ def get_seller_reserved_stocks(dis_seller_ids, sell_stock_ids, user):
                                            values('material_picklist__jo_material__material_code__wms_code').distinct().\
                                            annotate(rm_reserved=Sum('reserved')))
     return reserved_dict, raw_reserved_dict
+
+def get_sku_available_dict(user, sku_code='', location='', available=False):
+    reserved_dict = OrderedDict()
+    raw_reserved_dict = OrderedDict()
+    pick_params = {'status': 1, 'picklist__order__user': user.id}
+    rm_params = {'status': 1, 'material_picklist__jo_material__material_code__user': user.id}
+    stock_params = {}
+    if sku_code:
+        stock_params['sku__sku_code'] = sku_code
+        pick_params['stock__sku__sku_code'] = sku_code
+        rm_params['stock__sku__sku_code'] = sku_code
+    if location:
+        stock_params['location__location'] = location
+        pick_params['stock__location__location'] = location
+        rm_params['stock__location__location'] = location
+    all_stocks = dict(StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).\
+                                          filter(quantity__gt=0, **stock_params).values_list('sku__wms_code').distinct().\
+                                          annotate(reserved=Sum('quantity')))
+    pick_params = {'status': 1, 'picklist__order__user': user.id}
+    rm_params = {'status': 1, 'material_picklist__jo_material__material_code__user': user.id}
+    reserved_dict = dict(PicklistLocation.objects.filter(**pick_params).\
+                                 values_list('stock__sku__wms_code').distinct().annotate(reserved=Sum('reserved')))
+    raw_reserved_dict = dict(RMLocation.objects.filter(**rm_params).\
+                                        values('material_picklist__jo_material__material_code__wms_code').distinct().\
+                                           annotate(rm_reserved=Sum('reserved')))
+    if available:
+        avail_stock = all_stocks.get(sku_code, 0) - pick_params.get(sku_code, 0) - rm_params.get(sku_code, 0)
+        return avail_stock
+    return all_stocks, reserved_dict, raw_reserved_dict

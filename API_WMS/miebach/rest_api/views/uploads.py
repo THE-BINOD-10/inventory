@@ -273,7 +273,8 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
         if not 'title' in order_mapping.keys():
             order_data['title'] = all_sku_decs.get(cell_data, '')
 
-        order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], sku_id=order_data['sku_id'], user=user.id)
+        order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], order_code = order_data.get('order_code', ''),
+                                               sku_id=order_data['sku_id'], user=user.id)
         order_create = True
         if user_profile.user_type == 'marketplace_user':
             if not seller_order_dict['seller_id'] or (not seller_order_dict.get('order_status','') in ['PROCESSED', 'DELIVERY_RESCHEDULED']):

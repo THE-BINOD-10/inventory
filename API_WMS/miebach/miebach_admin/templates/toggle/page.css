@@ -80,3 +80,11 @@
 .print-invoice .table-bordered > tbody > tr > td:last-child {
   border-right: 1px;
 }
+.pre-custom {
+  border: 0px;
+  background: #fff;
+  padding: 0px 5px;
+  white-space: pre-line;
+  margin-bottom: 0px;
+  font-family: "Source Sans Pro", sans-serif;
+}

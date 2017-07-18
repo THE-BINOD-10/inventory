@@ -127,10 +127,10 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(SHOPCLUES_EXCEL)
     #elif get_cell_data(0, 4, reader, file_type) == 'Priority Level':
     #    order_mapping = copy.deepcopy(SHOPCLUES_EXCEL1)
-    #elif get_cell_data(0, 1, reader, file_type) == 'FSN' and get_cell_data(0, 16, reader, file_type) == 'Invoice No.':
-    #    order_mapping = copy.deepcopy(FLIPKART_EXCEL)
-    #elif get_cell_data(0, 1, reader, file_type) == 'FSN' and get_cell_data(0, 16, reader, file_type) != 'Invoice No.':
-    #    order_mapping = copy.deepcopy(FLIPKART_EXCEL1)
+    elif get_cell_data(0, 1, reader, file_type) == 'FSN' and get_cell_data(0, 16, reader, file_type) == 'Invoice No.':
+        order_mapping = copy.deepcopy(FLIPKART_EXCEL)
+    elif get_cell_data(0, 1, reader, file_type) == 'FSN' and get_cell_data(0, 16, reader, file_type) != 'Invoice No.':
+        order_mapping = copy.deepcopy(FLIPKART_EXCEL1)
     elif get_cell_data(0, 1, reader, file_type) == 'Shipment ID' and get_cell_data(0, 2, reader, file_type) == 'ORDER ITEM ID':
         order_mapping = copy.deepcopy(FLIPKART_EXCEL2)
     elif get_cell_data(0, 1, reader, file_type) == 'Shipment Id' and get_cell_data(0, 2, reader, file_type) == 'Order Item Id'\
@@ -657,6 +657,7 @@ def order_upload(request, user=''):
 @csrf_exempt
 @get_admin_user
 def order_form(request, user=''):
+    print request.GET['download-order-form']
     order_file = request.GET['download-order-form']
     if order_file:
         response = read_and_send_excel(order_file)

@@ -903,9 +903,9 @@ def confirm_po(request, user=''):
             wms_code = purchase_order.sku.wms_code
 
         if ean_flag:
-            po_data.append(( wms_code, purchase_order.sku.ean_number, value['supplier_code'], purchase_order.sku.sku_desc, purchase_order.order_quantity, value['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.igst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
+            po_data.append(( wms_code, purchase_order.sku.ean_number, value['supplier_code'], purchase_order.sku.sku_desc, purchase_order.order_quantity, value['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
         else:
-            po_data.append(( wms_code, value['supplier_code'], purchase_order.sku.sku_desc, purchase_order.order_quantity, value['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.igst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
+            po_data.append(( wms_code, value['supplier_code'], purchase_order.sku.sku_desc, purchase_order.order_quantity, value['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
 
         suggestion = OpenPO.objects.get(id=sup_id, sku__user=user.id)
         setattr(suggestion, 'status', 0)
@@ -3418,11 +3418,9 @@ def confirm_add_po(request, sales_data = '', user=''):
             wms_code = purchase_order.sku.wms_code
 
         if ean_flag:
-            po_data.append(( wms_code, ean_number, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, po_suggestions['measurement_unit'],
-                             purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.igst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
+            po_data.append(( wms_code, ean_number, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, po_suggestions['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
         else:
-            po_data.append(( wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, po_suggestions['measurement_unit'], purchase_order.price, amount,
-                             purchase_order.sgst_tax, purchase_order.igst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
+            po_data.append(( wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, po_suggestions['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
         suggestion = OpenPO.objects.get(id = sup_id,sku__user=user.id)
         setattr(suggestion, 'status', 0)
         suggestion.save()
@@ -3562,9 +3560,9 @@ def confirm_po1(request, user=''):
                     supplier_code = sku_supplier[0].supplier_code
 
                 if ean_flag:
-                    po_data.append(( wms_code, purchase_order.sku.ean_number, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, purchase_order.sku.measurement_type, purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.igst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
+                    po_data.append(( wms_code, purchase_order.sku.ean_number, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, purchase_order.sku.measurement_type, purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
                 else:
-                    po_data.append(( wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, purchase_order.sku.measurement_type, purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.igst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
+                    po_data.append(( wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, purchase_order.sku.measurement_type, purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
 
                 suggestion = OpenPO.objects.get(id=data_id, sku__user=user.id)
                 setattr(suggestion, 'status', 0)

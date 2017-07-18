@@ -25,6 +25,9 @@ SKU_GROUP_FIELDS = {'group': '', 'user': ''}
 
 ADJUST_INVENTORY_EXCEL_HEADERS = ['WMS Code', 'Location', 'Physical Quantity', 'Reason']
 
+DECLARATIONS = {'default': 'We declare that this invoice hows actual price of the goods described inclusive of taxes and that all particulars are true and correct.',
+                'TranceHomeLinen': 'Certify that the particulars given above are true and correct and the amount indicated represents the price actually charged and that there is no flow of additional consideration directly or indirectly.\n Subject to Banglore Jurisdication'}
+
 PERMISSION_KEYS =['add_qualitycheck', 'add_skustock', 'add_shipmentinfo', 'add_openpo', 'add_orderreturns', 'add_openpo', 'add_purchaseorder',
                   'add_joborder', 'add_materialpicklist', 'add_polocation', 'add_stockdetail', 'add_cyclecount', 'add_inventoryadjustment',
                   'add_orderdetail', 'add_picklist']
@@ -464,11 +467,11 @@ SHOPCLUES_EXCEL = {'original_order_id': 0, 'order_id': 0, 'quantity': 14, 'title
 
 VOONIK_EXCEL = {'order_id': 0, 'sku_code': 1, 'invoice_amount': 4, 'marketplace': 'Voonik'}
 
-#FLIPKART_EXCEL = {'order_id': 6, 'quantity': 14, 'title': 2, 'invoice_amount': 17, 'address': 22, 'customer_name': 21,
-#                  'marketplace': 'Flipkart', 'sku_code': 8}
+FLIPKART_EXCEL = {'order_id': 6, 'quantity': 14, 'title': 2, 'invoice_amount': 17, 'address': 22, 'customer_name': 21,
+                  'marketplace': 'Flipkart', 'sku_code': 8}
 
-#FLIPKART_EXCEL1 = {'order_id': 6, 'quantity': 14, 'title': 2, 'invoice_amount': 16, 'address': 21, 'customer_name': 20,
-#                  'marketplace': 'Flipkart', 'sku_code': 8}
+FLIPKART_EXCEL1 = {'order_id': 6, 'quantity': 14, 'title': 2, 'invoice_amount': 16, 'address': 21, 'customer_name': 20,
+                  'marketplace': 'Flipkart', 'sku_code': 8}
 
 #Trance Home
 FLIPKART_EXCEL2 = {'original_order_id': 3, 'order_id': 3, 'quantity': 17, 'title': 9, 'invoice_amount': 14, 'address': 21, 'customer_name': 19,
@@ -672,14 +675,31 @@ PERMISSION_DICT = OrderedDict((
 
 ORDERS_TRACK_STATUS = {0: 'Resolved', 1: "Conflict", 2: "Delete"}
 
-SHOTANG_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'orders["channel"]',
-                         'sku': 'order["Sku"]',
+# Shotang Integration Mapping Dictionaries
+
+ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems',
+                            'channel': 'orders["channel"]', 'sku': 'order["Sku"]',
                          'title': 'order["productTitle"]', 'quantity': 'order["quantity"]',
                          'shipment_date': 'orders["orderDate"]', 'channel_sku': 'order["channelSku"]',
                          'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]', 'seller_id': 'order["seller_id"]',
                          'sor_id': 'order["sor_id"]', 'cgst_tax': 'order.get("cgst_tax", "0")', 'sgst_tax': 'order.get("sgst_tax", "0")',
                          'igst_tax': 'order.get("igst_tax", "0")', 'order_status': 'orders.get("currentStatus", "")'
                         }
+
+SKU_MASTER_API_MAPPING = OrderedDict(( ('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_desc'), ('sku_brand', 'sku_brand'),
+                          ('sku_category', 'sku_category'), ('price', 'price'), ('mrp', 'mrp'), ('product_type', 'product_type'),
+                          ('sku_class', 'sku_class'), ('style_name', 'style_name'), ('status', 'Active'), ('hsn_code', 'hsn_code'),
+                          ('ean_number', 'ean_number'), ('threshold_quantity', 'threshold_quantity'), ('color', 'color'),
+                          ('measurement_type', 'measurement_type'), ('sku_size', 'sku_size'), ('size_type', 'size_type'),
+                          ('mix_sku', 'mix_sku'), ('child_skus', 'child_skus') ))
+
+CUSTOMER_MASTER_API_MAPPING = OrderedDict(( ('customers', 'customers'), ('customer_id', 'customer_id'), ('name', 'name'),
+                                            ('address', 'address'), ('city', 'city'), ('state', 'state'), ('country', 'country'),
+                                            ('pincode', 'pincode'), ('phone_number', 'phone_number'), ('email_id', 'email_id'),
+                                            ('status', 'status'), ('last_name', 'last_name'), ('credit_period', 'credit_period'),
+                                            ('tin_number', 'tin_number'), ('price_type', 'price_type'), ('tax_type', 'tax_type'),
+                                            ('pan_number', 'pan_number')
+                                         ))
 
 # Easyops Integration Mapping Dictionaries
 EASYOPS_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'orders["channel"]',

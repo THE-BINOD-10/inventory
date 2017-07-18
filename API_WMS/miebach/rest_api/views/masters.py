@@ -270,8 +270,11 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
         price_types = list(PriceMaster.objects.exclude(price_type ="").filter(sku__user = data.user).values_list('price_type', flat = True).distinct())
 
         price_type = data.price_type
+        phone_number = ''
+        if data.phone_number and data.phone_number != '0':
+            phone_number = data.phone_number
         temp_data['aaData'].append(OrderedDict(( ('customer_id', data.customer_id), ('name', data.name), ('address', data.address),
-                                                 ('phone_number', data.phone_number), ('email_id', data.email_id), ('status', status),
+                                                 ('phone_number', phone_number), ('email_id', data.email_id), ('status', status),
                                                  ('tin_number', data.tin_number), ('credit_period', data.credit_period),
                                                  ('login_created', login_created), ('username', user_name), ('price_type_list', price_types),
                                                  ('price_type', price_type), ('cst_number', data.cst_number),
@@ -409,7 +412,7 @@ def get_sku_data(request,user=''):
     load_unit_dict = {'unit': 0, 'pallet': 1}
 
     zone_name = ''
-    if data.zone_id:
+    if data.zone:
         zone_name = data.zone.zone
 
     zone_list = []

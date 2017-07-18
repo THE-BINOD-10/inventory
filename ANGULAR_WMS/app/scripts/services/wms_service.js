@@ -842,12 +842,19 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       })
   }
 
-  vm.build_colums = function(data)  {
+  vm.build_colums = function(data, not_sort)  {
 
+    if (!not_sort) {
+      not_sort = [];
+    }
     var columns = [];
     angular.forEach(data, function(item) {
 
-      columns.push(DTColumnBuilder.newColumn(item).withTitle(item))
+      if(not_sort.indexOf(item) > -1) {
+        columns.push(DTColumnBuilder.newColumn(item).withTitle(item).notSortable());
+      } else {
+        columns.push(DTColumnBuilder.newColumn(item).withTitle(item));
+      }
     })
     return columns;
   }

@@ -4786,13 +4786,25 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
     if search_term:
         if 'date_only' in lis:
             lis1 = copy.deepcopy(lis)
-            lis1 = map(lambda x:x if x!= 'date_only' else field_mapping['date_only'],lis1)
+            lis1 = map(lambda x:x if x not in ['date_only', 'seller_order__order__order_id', 'order__order_id'] else field_mapping['date_only'],lis1)
         search_term = search_term.replace('(', '\(').replace(')', '\)')
         search_query = build_search_term_query(lis1, search_term)
         order_id_search = ''.join(re.findall('\d+', search_term))
-        master_data = SellerOrderSummary.objects.filter(search_query, **user_filter).values(*result_values).distinct().\
-                                                annotate(total_quantity=Sum('quantity'),
-                                                total_order=Sum(field_mapping['order_quantity_field']))
+        order_code_search = ''.join(re.findall('\D+', search_term))
+        if not is_marketplace:
+            master_data = SellerOrderSummary.objects.filter(Q(order__order_id__icontains=order_id_search,
+                                                              order__order_code__icontains=order_code_search) |
+                                                            Q(order__original_order_id__icontains=search_term) | search_query, **user_filter).\
+                                                     values(*result_values).distinct().\
+                                                   annotate(total_quantity=Sum('quantity'),
+                                                   total_order=Sum(field_mapping['order_quantity_field']))
+        else:
+            master_data = SellerOrderSummary.objects.filter( Q(seller_order__order__order_id__icontains=order_id_search,
+                                                               seller_order__order__order_code__icontains=order_code_search) |
+                                                             Q(seller_order__order__original_order_id__icontains=search_term) |
+                                                              search_query, **user_filter).values(*result_values).distinct().\
+                                                   annotate(total_quantity=Sum('quantity'),
+                                                   total_order=Sum(field_mapping['order_quantity_field']))
 
     elif order_term:
         if order_term == 'asc' and (col_num or col_num == 0):
@@ -4939,7 +4951,7 @@ def generate_customer_invoice(request, user=''):
         invoice_data['buyer_address'] = buyer_address
         invoice_no = invoice_data['invoice_no']
         if is_marketplace:
-            invoice_no = user_profile.prefix + '/' + str(inv_month_year) + '/' + 'A-' + str(order.order_id)
+            #invoice_no = user_profile.prefix + '/' + str(inv_month_year) + '/' + 'A-' + str(order.order_id)
             invoice_data['order_id'] = sor_id
         if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))

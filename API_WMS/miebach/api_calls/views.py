@@ -958,10 +958,13 @@ def get_user_skus(request):
 @csrf_exempt
 @login_required
 def update_orders_data(request):
-    orders = json.loads(request.body)
+    try:
+        orders = json.loads(request.body)
+    except:
+        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
     try:
-        status = update_orders(orders, user=request.user, company_name='shotang')
+        status = update_orders(orders, user=request.user, company_name='mieone')
         log.info(status)
     except Exception as e:
         import traceback
@@ -970,4 +973,38 @@ def update_orders_data(request):
         status = {'message': 'Internal Server Error'}
     return HttpResponse(json.dumps(status))
 
+@csrf_exempt
+@login_required
+def update_skus_data(request):
+    try:
+        skus = json.loads(request.body)
+    except:
+        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+    log.info('Request params for ' + request.user.username + ' is ' + str(skus))
+    try:
+        status = update_skus(skus, user=request.user, company_name='mieone')
+        log.info(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update SKUS data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        status = {'message': 'Internal Server Error'}
+    return HttpResponse(json.dumps(status))
 
+@csrf_exempt
+@login_required
+def update_customers_data(request):
+    try:
+        customers = json.loads(request.body)
+    except:
+        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+    log.info('Request params for ' + request.user.username + ' is ' + str(customers))
+    try:
+        status = update_customers(customers, user=request.user, company_name='mieone')
+        log.info(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update Customers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        status = {'message': 'Internal Server Error'}
+    return HttpResponse(json.dumps(status))

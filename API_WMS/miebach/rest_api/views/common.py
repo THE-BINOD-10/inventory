@@ -46,7 +46,7 @@ def get_company_logo(user):
     import base64
     try:
         logo_name = COMPANY_LOGO_PATHS.get(user.username, '')
-        logo_path = 'static/images/companies/' + logo_name
+        logo_path = 'static/company_logos/' + logo_name
         with open(logo_path, "rb") as image_file:
             image = base64.b64encode(image_file.read())
     except:
@@ -231,7 +231,7 @@ def create_user(request):
         user = User.objects.filter(username=username, email=email)
         status = "User already exists"
         if not user:
-            user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name)
+            user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name,last_login=datetime.datetime.now())
             user.save()
             hash_code = hashlib.md5(b'%s:%s' % (user.id, email)).hexdigest()
             if user:
@@ -509,6 +509,7 @@ def add_user(request, user=''):
     for key,value in request.GET.iteritems():
         if not key == 're_password':
             user_dict[key] = value
+    user_dict['last_login'] = datetime.datetime.now()
     user_exists = User.objects.filter(username=user_dict['username'])
     if not user_exists:
         new_user = User.objects.create_user(**user_dict)
@@ -1059,6 +1060,7 @@ def auto_po(wms_codes, user):
 def rewrite_excel_file(f_name, index_status, open_sheet):
     #wb = Workbook()
     #ws = wb.add_sheet(open_sheet.name)
+    f_name = f_name.replace('+', '')
     wb1, ws1 = get_work_sheet(open_sheet.name, [], f_name)
 
     if 'xlsx' in f_name:
@@ -1106,6 +1108,7 @@ def read_and_send_excel(file_name):
 def rewrite_csv_file(f_name, index_status, reader):
     path = 'static/temp_files/'
     folder_check(path)
+    f_name = f_name.replace('+', '')
     with open(path + f_name, 'w') as mycsvfile:
         thedatawriter = csv.writer(mycsvfile, delimiter=',')
         counter = 0
@@ -1124,6 +1127,7 @@ def write_error_file(f_name, index_status, open_sheet, headers_data, work_sheet)
     headers.append('Status')
     wb, ws = get_work_sheet(work_sheet, headers)
 
+    f_name = f_name.replace('+', '')
     for row_idx in range(1, open_sheet.nrows):
         for col_idx in range(0, len(headers_data)):
             ws.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
@@ -1736,11 +1740,25 @@ def check_and_update_order(user, order_id):
         except:
             continue
 
-def get_invoice_number(user):
-    invoice_number = 1
-    invoice_detail = InvoiceDetail.objects.filter(user.id).order_by('-invoice_number')
-    if invoice_detail:
-        invoice_number = int(invoice_detail[0].invoice_number) + 1
+def get_financial_year(date):
+    # It will return financial period
+
+    date = date.date()
+    year_of_date=date.year
+    financial_year_start_date = datetime.datetime.strptime(str(year_of_date)+"-04-01","%Y-%m-%d").date()
+    if date<financial_year_start_date:
+        return str(financial_year_start_date.year-1)[2:] +'-' + str(financial_year_start_date.year)[2:]
+    else:
+        return str(financial_year_start_date.year)[2:] + '-' + str(financial_year_start_date.year+1)[2:]
+
+def get_invoice_number(user, order_no, invoice_date):
+    invoice_number = ""
+    if user.user_type == 'marketplace_user':
+        invoice_number = user.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
+    elif user.user.username == 'TranceHomeLinen':
+        invoice_number = user.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(order_no)
+    else:
+        invoice_number = 'TI/%s/%s' %(invoice_date.strftime('%m%y'), order_no)
     return invoice_number
 
 def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
@@ -1764,6 +1782,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     is_gst_invoice = False
     gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
     invoice_date = datetime.datetime.now()
+    hsn_summary = {}
     if order_ids:
         order_ids = order_ids.split(',')
         order_data = OrderDetail.objects.filter(id__in=order_ids)
@@ -1883,7 +1902,24 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
                          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
                          'base_price': base_price, 'hsn_code': hsn_code})
+            if is_gst_invoice:
+                summary_key = str(hsn_code) + "@" + str(cgst_tax + sgst_tax + igst_tax + utgst_tax)
+                if hsn_summary.get(summary_key, ''):
+                    hsn_summary[summary_key]['taxable'] += float(base_price)
+                    hsn_summary[summary_key]['sgst_amt'] += float(sgst_amt)
+                    hsn_summary[summary_key]['cgst_amt'] += float(cgst_amt)
+                    hsn_summary[summary_key]['igst_amt'] += float(igst_amt)
+                    hsn_summary[summary_key]['utgst_amt'] += float(utgst_amt)
+                else:
+                    hsn_summary[summary_key] = {}
+                    hsn_summary[summary_key]['taxable'] = float(base_price)
+                    hsn_summary[summary_key]['sgst_amt'] = float(sgst_amt)
+                    hsn_summary[summary_key]['cgst_amt'] = float(cgst_amt)
+                    hsn_summary[summary_key]['igst_amt'] = float(igst_amt)
+                    hsn_summary[summary_key]['utgst_amt'] = float(utgst_amt)
 
+
+    _invoice_no = get_invoice_number(user_profile, order_no, invoice_date)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
     order_charges = {}
@@ -1898,10 +1934,13 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
 
     total_amt = "%.2f" % (float(total_invoice) - float(_total_tax))
     dispatch_through = "By Road"
-    _total_invoice = round(total_invoice)
-    _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
+    _total_invoice = round(total_invoice_amount)
+    #_invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
 
     image = get_company_logo(user)
+    declaration = DECLARATIONS.get(user.username, '')
+    if not declaration:
+        declaration = DECLARATIONS['default']
     invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'marketplace': marketplace, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
@@ -1910,7 +1949,8 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                     'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount, 'consignee': consignee,
                     'dispatch_through': dispatch_through, 'inv_date': inv_date, 'tax_type': tax_type,
                     'rounded_invoice_amount': _total_invoice, 'purchase_type': purchase_type, 'is_gst_invoice': is_gst_invoice,
-                    'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes, 'image': image}
+                    'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes, 'image': image,
+                    'total_tax_words': number_in_words(_total_tax), 'declaration': declaration, 'hsn_summary': hsn_summary}
 
     return invoice_data
 
@@ -2305,7 +2345,8 @@ def create_update_user(data, password, username):
         if user:
             status = "User already exists"
         else:
-            user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name)
+            user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name,
+                                            last_login=datetime.datetime.now())
             user.save()
             hash_code = hashlib.md5(b'%s:%s' % (user.id, email)).hexdigest()
             if user:
@@ -2924,6 +2965,8 @@ def get_sku_stock_check(request, user=''):
     load_unit_handle = ''
     if stock_data:
         load_unit_handle = stock_data[0].sku.load_unit_handle
+    else:
+        return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     zones_data = get_sku_stock_summary(stock_data, load_unit_handle, user)
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data}))
 
@@ -2979,3 +3022,32 @@ def get_seller_reserved_stocks(dis_seller_ids, sell_stock_ids, user):
                                            values('material_picklist__jo_material__material_code__wms_code').distinct().\
                                            annotate(rm_reserved=Sum('reserved')))
     return reserved_dict, raw_reserved_dict
+
+def get_sku_available_dict(user, sku_code='', location='', available=False):
+    reserved_dict = OrderedDict()
+    raw_reserved_dict = OrderedDict()
+    pick_params = {'status': 1, 'picklist__order__user': user.id}
+    rm_params = {'status': 1, 'material_picklist__jo_material__material_code__user': user.id}
+    stock_params = {}
+    if sku_code:
+        stock_params['sku__sku_code'] = sku_code
+        pick_params['stock__sku__sku_code'] = sku_code
+        rm_params['stock__sku__sku_code'] = sku_code
+    if location:
+        stock_params['location__location'] = location
+        pick_params['stock__location__location'] = location
+        rm_params['stock__location__location'] = location
+    all_stocks = dict(StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).\
+                                          filter(quantity__gt=0, **stock_params).values_list('sku__wms_code').distinct().\
+                                          annotate(reserved=Sum('quantity')))
+    pick_params = {'status': 1, 'picklist__order__user': user.id}
+    rm_params = {'status': 1, 'material_picklist__jo_material__material_code__user': user.id}
+    reserved_dict = dict(PicklistLocation.objects.filter(**pick_params).\
+                                 values_list('stock__sku__wms_code').distinct().annotate(reserved=Sum('reserved')))
+    raw_reserved_dict = dict(RMLocation.objects.filter(**rm_params).\
+                                        values('material_picklist__jo_material__material_code__wms_code').distinct().\
+                                           annotate(rm_reserved=Sum('reserved')))
+    if available:
+        avail_stock = all_stocks.get(sku_code, 0) - pick_params.get(sku_code, 0) - rm_params.get(sku_code, 0)
+        return avail_stock
+    return all_stocks, reserved_dict, raw_reserved_dict

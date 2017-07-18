@@ -127,10 +127,10 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(SHOPCLUES_EXCEL)
     #elif get_cell_data(0, 4, reader, file_type) == 'Priority Level':
     #    order_mapping = copy.deepcopy(SHOPCLUES_EXCEL1)
-    #elif get_cell_data(0, 1, reader, file_type) == 'FSN' and get_cell_data(0, 16, reader, file_type) == 'Invoice No.':
-    #    order_mapping = copy.deepcopy(FLIPKART_EXCEL)
-    #elif get_cell_data(0, 1, reader, file_type) == 'FSN' and get_cell_data(0, 16, reader, file_type) != 'Invoice No.':
-    #    order_mapping = copy.deepcopy(FLIPKART_EXCEL1)
+    elif get_cell_data(0, 1, reader, file_type) == 'FSN' and get_cell_data(0, 16, reader, file_type) == 'Invoice No.':
+        order_mapping = copy.deepcopy(FLIPKART_EXCEL)
+    elif get_cell_data(0, 1, reader, file_type) == 'FSN' and get_cell_data(0, 16, reader, file_type) != 'Invoice No.':
+        order_mapping = copy.deepcopy(FLIPKART_EXCEL1)
     elif get_cell_data(0, 1, reader, file_type) == 'Shipment ID' and get_cell_data(0, 2, reader, file_type) == 'ORDER ITEM ID':
         order_mapping = copy.deepcopy(FLIPKART_EXCEL2)
     elif get_cell_data(0, 1, reader, file_type) == 'Shipment Id' and get_cell_data(0, 2, reader, file_type) == 'Order Item Id'\
@@ -273,7 +273,8 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
         if not 'title' in order_mapping.keys():
             order_data['title'] = all_sku_decs.get(cell_data, '')
 
-        order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], sku_id=order_data['sku_id'], user=user.id)
+        order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], order_code = order_data.get('order_code', ''),
+                                               sku_id=order_data['sku_id'], user=user.id)
         order_create = True
         if user_profile.user_type == 'marketplace_user':
             if not seller_order_dict['seller_id'] or (not seller_order_dict.get('order_status','') in ['PROCESSED', 'DELIVERY_RESCHEDULED']):
@@ -656,6 +657,7 @@ def order_upload(request, user=''):
 @csrf_exempt
 @get_admin_user
 def order_form(request, user=''):
+    print request.GET['download-order-form']
     order_file = request.GET['download-order-form']
     if order_file:
         response = read_and_send_excel(order_file)

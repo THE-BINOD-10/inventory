@@ -1,6 +1,6 @@
 'use strict';
 
-function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Data) {
+function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Data, SweetAlert) {
 
   $scope.msg = "start";
   var vm = this;
@@ -8,10 +8,13 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.service = Service;
   vm.g_data = Data.create_orders
   vm.company_name = Session.user_profile.company_name;
+  vm.permissions = Session.roles.permissions;
   vm.model_data = {}
-  var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
-                            customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: "",
-                            tax_type: ""};
+  var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: "",
+                            location: "", serials: [], serial: "", capacity: 0
+                          }],
+                    customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: "",
+                    tax_type: "", blind_order: false};
 
   angular.copy(empty_data, vm.model_data);
   vm.isLast = isLast;
@@ -24,10 +27,14 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.update_data = update_data;
   function update_data(index, data, last) {
     console.log(data);
+    if (last && (!vm.model_data.data[index].sku_id)) {
+      return false;
+    }
     if (last) {
       vm.model_data.data.push({sku_id: "", quantity: "", invoice_amount: "", price: "", tax: vm.tax, total_amount: "", unit_price: ""});
     } else {
       vm.model_data.data.splice(index,1);
+      vm.cal_total();
     }
   }
 
@@ -74,8 +81,18 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.bt_disable = false;
   vm.insert_order_data = function(form) {
     if (form.$valid && vm.model_data.shipment_date && vm.model_data.shipment_time_slot) {
+      if(vm.model_data.blind_order) {
+      for(var i = 0; i < vm.model_data.data.length; i++) {
+
+        if (vm.model_data.data[i].sku_id && (!vm.model_data.data[i].location)) {
+
+          colFilters.showNoty("Please locations");
+          return false;
+          break;
+        }
+      }
+      }
       vm.bt_disable = true;
-      console.log(form);
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
@@ -549,6 +566,9 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         if (data['quantity']) {
           vm.check_item(data.wms_code).then(function(stat){
             console.log(stat)
+            if(vm.model_data.blind_order && vm.permissions.use_imei) {
+              data.quantity = 0;
+            }
             if(stat == "true") {
               if(vm.model_data.data[0]["sku_id"] == "") {
                 vm.model_data.data[0].sku_id = data.wms_code;
@@ -564,11 +584,13 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
                 vm.model_data.data.push(temp)
               }
             } else {
-               var temp = Number(vm.model_data.data[Number(stat)].quantity);
-               vm.model_data.data[Number(stat)].quantity = temp+Number(data.quantity);
-               vm.model_data.data[Number(stat)].invoice_amount = Number(data.price)*vm.model_data.data[Number(stat)].quantity;
-               var invoice = vm.model_data.data[Number(stat)].invoice_amount;
-               vm.model_data.data[Number(stat)].total_amount = ((invoice/100)*vm.tax)+invoice;
+              if(!(vm.model_data.blind_order && vm.permissions.use_imei)) {
+                var temp = Number(vm.model_data.data[Number(stat)].quantity);
+                vm.model_data.data[Number(stat)].quantity = temp+Number(data.quantity);
+                vm.model_data.data[Number(stat)].invoice_amount = Number(data.price)*vm.model_data.data[Number(stat)].quantity;
+                var invoice = vm.model_data.data[Number(stat)].invoice_amount;
+                vm.model_data.data[Number(stat)].total_amount = ((invoice/100)*vm.tax)+invoice;
+              }
             }
             vm.cal_total();
           });
@@ -851,8 +873,27 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     return tax;
   }
 
-  vm.get_sku_data = function(record, item) {
+  function check_exist(sku_data, index) {
 
+    for(var i = 0; i < vm.model_data.data.length; i++) {
+
+      if((vm.model_data.data[i].sku_id == sku_data.sku_id) && (index != i)) {
+
+        sku_data.sku_id = "";
+        vm.service.showNoty("It is already exist in index");
+        return false;
+      }
+    }
+    return true;
+  }
+
+  vm.get_sku_data = function(record, item, index) {
+
+    record.sku_id = item.wms_code;
+    if(!vm.model_data.blind_order && !(check_exist(record, index))){
+      return false;
+    }
+    angular.copy(empty_data.data[0], record);
     record.sku_id = item.wms_code;
     record["description"] = item.sku_desc;
 
@@ -861,8 +902,10 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         data = data[0]
         record["price"] = data.price;
         record["description"] = data.sku_desc;
-        if(!(record.quantity)) {
-          record.quantity = 1
+        if (! vm.model_data.blind_order) {
+          if(!(record.quantity)) {
+            record.quantity = 1
+          }
         }
         record["taxes"] = data.taxes;
         record.invoice_amount = Number(record.price)*Number(record.quantity)
@@ -1097,8 +1140,187 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
       vm.service.showNoty("Style Already Added");
     }
   }
+
+  vm.change_blind_order = function() {
+
+    if(!vm.model_data.blind_order && vm.permissions.use_imei) {
+      SweetAlert.swal({
+        title: '',
+        text: 'You Will Lose Serial Data',
+        type: 'success',
+        showCancelButton: true,
+        confirmButtonColor: '#33cc66',
+        confirmButtonText: 'Ok',
+        closeOnConfirm: true,
+      },
+      function (status) {
+        if(status) {
+
+          if (!vm.model_data.blind_order && vm.permissions.use_imei) {
+            angular.forEach(vm.model_data.data, function(data){
+              data["capacity"] = 0;
+              data["serials"] = 0;
+              data["location"] = "";
+            })
+          } else if(vm.model_data.blind_order && vm.permissions.use_imei) {
+            angular.forEach(vm.model_data.data, function(data){
+              data["capacity"] = 0;
+              data["serials"] = 0;
+              data["location"] = "";
+              data.quantity = 0;
+            })
+          }
+        } else {
+          vm.model_data.blind_order = true;
+        }
+      });
+    }
+  }
+
+  vm.checkSKULoc = function(index, data) {
+
+    var status = false;
+    for(var i = 0; i < data.length; i++) {
+
+      if(data[i].sku_id == data[index].sku_id && data[i].location.toLowerCase() == data[index].location.toLowerCase() && i != index) {
+
+        status = true;
+        break;
+      }
+    }
+    return status;
+  }
+
+  vm.checkCapacity = function(index, sku_data, from, element) {
+
+    if(!sku_data.location) {
+
+      return false;
+    } else if(sku_data["orig_location"] == sku_data.location) {
+
+      return false;
+    } else {
+
+      sku_data["orig_location"] = sku_data.location;
+    }
+
+    if (! sku_data.sku_id ) {
+
+      return false;
+    }
+    element.preventDefault();
+
+    if(vm.checkSKULoc(index, vm.model_data.data)) {
+
+      sku_data.location = "";
+      sku_data.quantity = 0;
+      sku_data.invoice_amount = 0;
+      vm.service.showNoty("SKU Code And Location Combination Already Exist");
+      angular.element(element.target).focus();
+      vm.cal_percentage(sku_data);
+      return false;
+    } else {
+
+    var send = {sku_code: sku_data.sku_id, location: sku_data.location}
+
+    vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
+
+      if(data.message) {
+
+        if(data.data.status == 0) {
+
+          vm.service.showNoty(data.data.message);
+
+          sku_data.location = "";
+          angular.element(element.target).focus();
+          sku_data.quantity = 0;
+          sku_data.serials = [];
+          sku_data["orig_location"] = "";
+          sku_data.invoice_amount = 0;
+        } else {
+
+          var data = data.data.data;
+          data = Object.values(data)[0];
+          sku_data["capacity"] = data.total_quantity - data.reserved_quantity;
+          if(vm.permissions.use_imei) {
+            sku_data.quantity = 0;
+          } else {
+
+            if (sku_data.capacity < Number(sku_data.quantity)) {
+              sku_data.quantity = sku_data.capacity;
+            }
+          }
+          sku_data.invoice_amount = Number(sku_data.quantity) * Number(sku_data.price);
+          sku_data.serials = [];
+        }
+        vm.cal_percentage(sku_data);
+      }
+    })
+    }
+  }
+
+  vm.change_quantity = function(data) {
+
+    if(vm.model_data.blind_order) {
+
+      if (! data.location) {
+
+        data.quantity = 0;
+        vm.service.showNoty("Please Enter Locaton First");
+      } else if(Number(data.quantity) > Number(data["capacity"])) {
+
+        data.quantity = data["capacity"];
+        vm.service.showNoty("Location capacity "+data["capacity"]);
+      }
+    }
+    data.invoice_amount = vm.service.multi(data.quantity, data.price);
+    vm.cal_percentage(data);
+  }
+
+  vm.checkAndAdd = function(scan) {
+
+    var status = false;
+    for(var i = 0; i < vm.model_data.data.length; i++) {
+
+      if(vm.model_data.data[i].serials.indexOf(scan) > -1){
+        status = true;
+        break;
+      }
+    }
+    return status;
+  }
+
+  vm.serial_scan = function(event, scan, sku_data) {
+    if ( event.keyCode == 13 && scan) {
+      event.preventDefault();
+      sku_data.serial = "";
+      if(!sku_data.sku_id) {
+        vm.service.showNoty("Please Select SKU Code First");
+      } else if(!sku_data.location) {
+        vm.service.showNoty("Please Select Location First");
+      } else {
+        var elem = {serial: scan};
+        vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
+          if(data.message) {
+            if(data.data == "") {
+              if(vm.checkAndAdd(scan)) {
+                vm.service.showNoty("Already Scanned")
+              } else {
+                sku_data.serials.push(scan);
+                sku_data.quantity = sku_data.serials.length;
+                sku_data.invoice_amount = vm.service.multi(sku_data.quantity, sku_data.price);
+                vm.cal_percentage(sku_data);
+              }
+            } else {
+              vm.service.showNoty(data.data);
+            }
+          }
+        });
+      }
+    }
+  }
 }
 
 angular
   .module('urbanApp')
-  .controller('CreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Data', CreateOrders]);
+  .controller('CreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Data', 'SweetAlert', CreateOrders]);

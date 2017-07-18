@@ -75,19 +75,17 @@
                   <td style="width: 60%;text-align:left">
                     <address class="no-margin">
                       <strong>Buyer</strong><br>
-                      <div ng-if = "showCase.pdf_data.marketplace == 'Offline'" style="font-size: 10px !important;">
+                      <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'" style="font-size: 10px !important;">
                         <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].name">
                         &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].name}}</p>
                         <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].address">
                         &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].address}}</p>
                         <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].tin_number">
-                         &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].tin_number}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].customer_id">
-                        &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].customer_id}}</p>
+                         &nbsp;&nbsp;&nbsp;&nbsp;<b>GSTIN No: </b>{{showCase.pdf_data.customer_details[0].tin_number}}</p>
                         <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].email_id">
                         &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].email_id}}</p>
                       </div>
-                      <div ng-if = "showCase.pdf_data.marketplace != 'Offline'">
+                      <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'">
                         {{showCase.pdf_data.marketplace}}<br>
                       </div>
                     </address>

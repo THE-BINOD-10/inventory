@@ -72,7 +72,7 @@
                   <strong>
                     <span>Bill To,</span>
                   </strong><br>
-                  {% if marketplace == 'Offline' %}
+                  {% if marketplace|lower == 'offline' %}
                   <div>
                     {% if customer_details.0.name == '' %}
                     <p style="margin-bottom:0px">{{marketplace}}</p>
@@ -87,11 +87,7 @@
                     {% endif %}
                     {% if customer_details.0.tin_number %}
                     <p style="margin-bottom:0px" class="cust_details">
-                    &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.tin_number}}</p>
-                    {% endif %}
-                    {% if customer_details.0.customer_id %}
-                    <p style="margin-bottom:0px" class="cust_details">
-                    &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.customer_id}}</p>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
                     {% endif %}
                     {% if customer_details.0.email_id %}
                     <p style="margin-bottom:0px" class="cust_details">
@@ -100,7 +96,7 @@
                   </div>
                   {% endif %}
                   <div>
-                    {% if marketplace != 'Offline' %}
+                    {% if marketplace|lower != 'offline' %}
                       {{marketplace}}<br>
                     {%endif %}
                   </div>
@@ -111,7 +107,7 @@
                    <strong>
                     <span>ship To,</span>
                   </strong><br>
-                  {% if marketplace == 'Offline' %}
+                  {% if marketplace|lower == 'offline' %}
                   <div>
                     {% if customer_details.0.name == '' %}
                     <p style="margin-bottom:0px">{{marketplace}}</p>
@@ -126,11 +122,7 @@
                     {% endif %}
                     {% if customer_details.0.tin_number %}
                     <p style="margin-bottom:0px" class="cust_details">
-                    &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.tin_number}}</p>
-                    {% endif %}
-                    {% if customer_details.0.customer_id %}
-                    <p style="margin-bottom:0px" class="cust_details">
-                    &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.customer_id}}</p>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
                     {% endif %}
                     {% if customer_details.0.email_id %}
                     <p style="margin-bottom:0px" class="cust_details">
@@ -139,7 +131,7 @@
                   </div>
                   {% endif %}
                   <div>
-                    {% if marketplace != 'Offline' %}
+                    {% if marketplace|lower != 'offline' %}
                       {{marketplace}}<br>
                     {%endif %}
                   </div>
@@ -186,13 +178,35 @@
           <td>{{record.invoice_amount}}</td>
         </tr>
         {% endfor %}
+        <tr class="rm-padding" style="border-top: 1px solid rgba(128, 128, 128, 0.14)">
+          <td></td>
+          <td></td><td></td><td></td><td></td>
+          <td colspan='2'><b>Summary</b></td>
+          <td><b>TAXABLE</b></td>
+          <td><b>CGST</b></td>
+          <td><b>SGST</b></td>
+          <td><b>IGST</b></td>
+          <td></td>
+        </tr>
+        {% for hsn,data in hsn_summary.items %}
+        <tr class="rm-padding rm-brdr text-right">
+          <td></td>
+          <td></td><td></td><td></td><td></td>
+          <td colspan='2' class="text-left">{{hsn}}</td>
+          <td>{{data.taxable}}</td>
+          <td>{{data.cgst_amt}}</td>
+          <td>{{data.sgst_amt}}</td>
+          <td> {{data.igst_amt}}</td>
+          <td></td>
+        </tr>
+        {% endfor %}
         <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14);font-weight: bold;" class="rm-padding text-right">
           <td colspan="3" style="text-align:left"><b>Total: </b></td>
           <td></td>
           <td>{{showCase.pdf_data.total_quantity}}</td>
           <td></td>
           <td></td>
-          <td>{{total_taxes.total_taxable_amt}}</td>
+          <td>{{total_taxable_amt}}</td>
           <td>{{total_taxes.cgst_amt}}</td>
           <td>{{total_taxes.sgst_amt}}</td>
           <td>{{total_taxes.igst_amt}}</td>
@@ -230,6 +244,14 @@
             </div>
             <div class="row">
               <div class="col-xs-6 text-right fs12">
+                Total Tax(In Words)
+              </div>
+              <div class="col-xs-6 text-right fs12">
+                {{total_tax_wors}}
+              </div>
+            </div> 
+            <div class="row">
+              <div class="col-xs-6 text-right fs12">
                 Invoice Total
               </div>
               <div class="col-xs-6 text-right fs12">
@@ -257,11 +279,14 @@
       </tbody>
       <tfoot>
         <tr class="rm-padding">
-          <td colspan='12' style="text-align:left;">
-            <b class="pull-left">Dispatched Via:</b>
-            <b class="pull-right">{{company_name}}</b><br>
-            <span>DECLARATION:</span><br>
-            <span>We declare that this invoice hows actual price of the goods described inclusive of taxes and that all particulars are true and correct.</span>
+          <td colspan='7' style="text-align:left;" class="fs12">
+            <span><b>DECLARATION:</b></span><br>
+            <pre class="pre-custom fs10">{{declaration}}</pre>
+          </td>
+          <td colspan='5' class="fs12">
+            <p><b>{{company_name}}</b></p>
+            </br></br>
+            <p style="text-align:center;margin-bottom:0px">Authorised Signatory</p>
           </td>
         </tr>
       </tfoot>

@@ -1,5 +1,6 @@
 from miebach_admin.models import *
 from common import *
+from masters import *
 from uploads import *
 from dateutil import parser
 import traceback
@@ -320,3 +321,207 @@ def update_cancelled(orders, user='', company_name=''):
                         order_det.save()
     except:
         traceback.print_exc()
+
+def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, parent_sku=None):
+    sku_master = None
+    sku_code = sku_data.get(sku_mapping['sku_code'], '')
+    if not sku_code:
+        insert_status['SKU Code should not be empty'].append(sku_data.get(sku_mapping['sku_desc'], ''))
+        return sku_master, insert_status
+    sku_ins = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
+    if sku_ins:
+        sku_master = sku_ins[0]
+    sku_master_dict = {'user': user.id, 'creation_date': datetime.datetime.now()}
+    exclude_list = ['skus', 'child_skus']
+    number_fields = ['threshold_quantity', 'ean_number', 'hsn_code', 'price', 'mrp', 'status', 'sku_size']
+    sku_size = ''
+    size_type = ''
+    for key, val in sku_mapping.iteritems():
+        if key in exclude_list:
+            continue
+        value = sku_data.get(key, '')
+        if key in number_fields:
+            try:
+                value = float(value)
+            except:
+                value = 0
+        elif key == 'size_type':
+            sku_size = sku_data.get('sku_size', '')
+            if sku_size and not value:
+                insert_status['Size Type empty'].append(sku_code)
+                continue
+            elif sku_size and value:
+                size_master = SizeMaster.objects.filter(user=user.id, size_name=value)
+                if not size_master:
+                    insert_status['Size Type Invalid'].append(sku_code)
+                else:
+                    sizes = size_master[0].size_value.split("<<>>")
+                    if sku_size not in sizes:
+                        insert_status['Size type and Size not matching'].append(sku_code)
+                    else:
+                        size_type = value
+            continue
+        elif key == 'mix_sku':
+            if not value:
+                continue
+            if not str(value).lower() in MIX_SKU_MAPPING.keys():
+                insert_status['Invalid Mix SKU Attribute'].append(sku_code)
+                continue
+            else:
+                value = MIX_SKU_MAPPING[value.lower()]
+        sku_master_dict[key] = value
+        if sku_master:
+            setattr(sku_master, key, value)
+
+    if sku_code in sum(insert_status.values(), []):
+        return sku_master, insert_status
+    if sku_master:
+        sku_master.save()
+        insert_status['SKUS updated'].append(sku_code)
+    else:
+        sku_master_dict['wms_code'] = sku_master_dict['sku_code']
+        if sku_master_dict.has_key('sku_type'):
+            sku_master_dict['sku_type'] = 'FG'
+        sku_master = SKUMaster(**sku_master_dict)
+        sku_master.save()
+        insert_status['New SKUS Created'].append(sku_code)
+    if sku_size and size_type:
+        check_update_size_type(sku_master, size_type)
+        sku_master.size_type = sku_size
+        sku_master.save()
+    if sku_master and parent_sku:
+        sku_relation = SKURelation.objects.filter(member_sku_id=sku_master.id, parent_sku_id=parent_sku.id)
+        if not sku_relation:
+            parent_sku.relation_type = 'combo'
+            parent_sku.save()
+            SKURelation.objects.create(member_sku_id=sku_master.id, parent_sku_id=parent_sku.id, relation_type='combo',
+                                       creation_date=datetime.datetime.now())
+            insert_status['Child SKUS Created'].append(sku_code)
+
+    return sku_master, insert_status
+
+
+def update_skus(skus, user='', company_name=''):
+    sku_mapping = eval(LOAD_CONFIG.get(company_name, 'sku_mapping_dict', ''))
+    NOW = datetime.datetime.now()
+
+    insert_status = {'New SKUS Created': [], 'SKUS updated': [], 'Child SKUS Created': [], 'Size Type empty': [], 'Size Type Invalid': [],
+                     'Size Type Invalid': [], 'Size type and Size not matching': [], 'Invalid Mix SKU Attribute': [],
+                     'SKU Code should not be empty': []}
+
+    try:
+        user_profile = UserProfile.objects.get(user_id=user.id)
+        sku_ids = []
+        all_sku_masters = []
+        if not skus:
+            skus = {}
+        skus = skus.get(sku_mapping['skus'], [])
+        for sku_data in skus:
+            sku_master, insert_status = sku_master_insert_update(sku_data, user, sku_mapping, insert_status)
+            all_sku_masters.append(sku_master)
+            if sku_data.has_key('child_skus'):
+                for child_data in sku_data['child_skus']:
+                    sku_master1, insert_status = sku_master_insert_update(child_data, user, sku_mapping, insert_status, parent_sku=sku_master)
+                    all_sku_masters.append(sku_master1)
+
+        insert_update_brands(user)
+
+        all_users = get_related_users(user.id)
+        sync_sku_switch = get_misc_value('sku_sync', user.id)
+        if all_users and sync_sku_switch == 'true' and all_sku_masters:
+            create_sku(all_sku_masters, all_users)
+        final_status = {}
+        for key, value in insert_status.iteritems():
+            if not value:
+                continue
+            final_status[key] = ','.join(value)
+        return final_status
+
+    except:
+        traceback.print_exc()
+        return insert_status
+
+def update_customers(customers, user='', company_name=''):
+    customer_mapping = eval(LOAD_CONFIG.get(company_name, 'customer_mapping_dict', ''))
+    NOW = datetime.datetime.now()
+
+    insert_status = {'Newly Created customer ids': [], 'Data updated for customer ids': [],
+                     'Customer ID should not be empty for customer names': [],
+                     'Invalid Tax types for customer ids': [], 'Invalid Price types for customer ids': [],
+                     'Customer ID should be number for customer names': []}
+
+    try:
+        user_profile = UserProfile.objects.get(user_id=user.id)
+        customer_ids = []
+        if not customers:
+            customers = {}
+        customers = customers.get(customer_mapping['customers'], [])
+        price_types = list(PriceMaster.objects.filter(sku__user=user.id).values_list('price_type', flat=True).distinct())
+        for customer_data in customers:
+            customer_master = None
+            customer_id = customer_data.get(customer_mapping['customer_id'], '')
+            if not customer_id:
+                insert_status['Customer ID should not be empty for customer names'].append(str(customer_data.get(customer_mapping['name'], '')))
+                continue
+            elif not isinstance(customer_id, int):
+                insert_status['Customer ID should be number for customer names'].append(str(customer_data.get(customer_mapping['name'], '')))
+                continue
+            customer_ins = CustomerMaster.objects.filter(user=user.id, customer_id=customer_id)
+            if customer_ins:
+                customer_master = customer_ins[0]
+            customer_master_dict = {'user': user.id, 'creation_date': datetime.datetime.now()}
+            exclude_list = ['customers']
+            number_fields = {'credit_period': 'Credit Period', 'status': 'Status', 'customer_id': 'Customer ID', 'pincode': 'Pin Code',
+                             'phone_number': 'Phone Number'}
+            for key, val in customer_mapping.iteritems():
+                if key in exclude_list:
+                    continue
+                value = customer_data.get(key, '')
+                if key in number_fields.keys():
+                    if not value:
+                        value = 0
+                    try:
+                        value = int(value)
+                    except:
+                        if insert_status.has_key(number_fields[key] + " should be number for Customer ids"):
+                            insert_status[number_fields[key] + " should be number for Customer ids"].append(str(customer_id))
+                        else:
+                            insert_status[number_fields[key] + " should be number for Customer ids"] = [str(customer_id)]
+                elif key == 'tax_type':
+                    if not value:
+                        continue
+                    if not value in TAX_TYPE_ATTRIBUTES.values():
+                        insert_status['Invalid Tax types for customer ids'].append(str(customer_id))
+                        continue
+                    rev_taxes = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
+                    value = rev_taxes.get(value, '')
+                elif key == 'price_type':
+                    if not value:
+                        continue
+                    if not value in price_types:
+                        insert_status['Invalid Price types for customer ids'].append(str(customer_id))
+                customer_master_dict[key] = value
+                if customer_master:
+                    setattr(customer_master, key, value)
+
+            if str(customer_id) in sum(insert_status.values(), []):
+                continue
+            if customer_master:
+                customer_master.save()
+                insert_status['Data updated for customer ids'].append(str(customer_id))
+            else:
+                customer_master = CustomerMaster(**customer_master_dict)
+                customer_master.save()
+                insert_status['Newly Created customer ids'].append(str(customer_id))
+
+        final_status = {}
+        for key, value in insert_status.iteritems():
+            if not value:
+                continue
+            final_status[key] = ','.join(value)
+        return final_status
+
+    except:
+        traceback.print_exc()
+        return insert_status
+

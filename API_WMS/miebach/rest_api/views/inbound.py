@@ -725,7 +725,9 @@ def switches(request, user=''):
                     'seller_margin': 'seller_margin',
                     'receive_process': 'receive_process',
                     'tally_config': 'tally_config',
-                    'tax_details': 'tax_details'
+                    'tax_details': 'tax_details',
+                    'hsn_summary': 'hsn_summary',
+                    'display_customer_sku': 'display_customer_sku'
                   }
 
     toggle_field, selection = "", ""

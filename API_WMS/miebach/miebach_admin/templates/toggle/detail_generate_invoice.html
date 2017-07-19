@@ -77,16 +77,16 @@
                   {{marketplace}}</br>
                 {% endif %}
                 {% if customer_details.0.name %}
-                   &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.name}}</br>
+                   {{customer_details.0.name}}</br>
                 {% endif %}
                 {% if customer_details.0.address %}
-                   &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.address}}</br>
+                <pre class="fs10 pre-custom" style="padding:0px">{{customer_details.0.address}}</pre>
                 {% endif %}
                 {% if customer_details.0.tin_number %}
-                   &nbsp;&nbsp;&nbsp;&nbsp;<b>GSTIN No: </b>{{customer_details.0.tin_number}}</br>
+                   <b>GSTIN No: </b>{{customer_details.0.tin_number}}</br>
                 {% endif %}
                 {% if customer_details.0.email_id %}
-                   &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.email_id}}</br>
+                   {{customer_details.0.email_id}}</br>
                 {%endif %}
               {%endif %}
               {% if marketplace|lower != 'offline' %}

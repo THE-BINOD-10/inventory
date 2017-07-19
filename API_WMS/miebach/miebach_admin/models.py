@@ -892,16 +892,17 @@ class SellerMaster(models.Model):
 
 class CustomerSKU(models.Model):
     id = BigAutoField(primary_key=True)
-    customer_name = models.ForeignKey(CustomerMaster)
+    customer = models.ForeignKey(CustomerMaster, null=True, blank=True)
     sku = models.ForeignKey(SKUMaster)
     price = models.FloatField(default=0)
     discount = models.FloatField(default=0)
+    customer_sku_code = models.CharField(max_length=120, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'CUSTOMER_SKU'
-        unique_together = ('customer_name', 'sku')
+        unique_together = ('customer', 'sku')
 
 class SKUGroups(models.Model):
     id = BigAutoField(primary_key=True)

@@ -31,7 +31,7 @@
         <td class="text-right">{{record.taxes.igst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.igst_tax}}%</span></td>
         <td>{{record.invoice_amount | number:2}}</td>
       </tr>
-      <tr class="rm-padding" style="border-top: 1px solid rgba(128, 128, 128, 0.14)">
+      <tr class="rm-padding" style="border-top: 1px solid rgba(128, 128, 128, 0.14)" ng-if="permissions.hsn_summary">
         <td></td>
         <td></td><td></td><td></td><td></td>
         <td colspan='2'><b>Summary</b></td>
@@ -41,7 +41,7 @@
         <td><b>IGST</b></td>
         <td></td>
       </tr>
-      <tr class="rm-padding rm-brdr text-right" ng-repeat="(hsn, data) in showCase.pdf_data.hsn_summary">
+      <tr class="rm-padding rm-brdr text-right" ng-repeat="(hsn, data) in showCase.pdf_data.hsn_summary" ng-if="permissions.hsn_summary">
         <td></td>
         <td></td><td></td><td></td><td></td>
         <td colspan='2' class="text-left">{{hsn}}</td>

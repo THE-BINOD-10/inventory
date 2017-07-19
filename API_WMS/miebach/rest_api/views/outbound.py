@@ -16,8 +16,6 @@ from common import *
 from miebach_utils import *
 from operator import itemgetter
 from django.db.models import Sum
-from django.db.models.functions import Cast
-from django.db.models.fields import DateField
 from itertools import groupby
 import datetime
 import shutil

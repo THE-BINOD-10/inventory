@@ -33,6 +33,8 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Sum, Count
 import math
 from django.db.models import Max
+from django.db.models.functions import Cast
+from django.db.models.fields import DateField
 import re
 log = init_logger('logs/common.log')
 # Create your views here.
@@ -65,7 +67,7 @@ def number_in_words(value):
     value = (num2words(int(round(value)), lang='en_IN')).capitalize()
     return value
 
-
+@fn_timer
 def get_user_permissions(request, user):
     roles = {}
     label_perms = []
@@ -73,20 +75,19 @@ def get_user_permissions(request, user):
     if 'order_headers' not in map(lambda d: d['misc_type'], configuration):
         configuration.append({'misc_type': 'order_headers', 'misc_value': ''})
     config = dict(zip(map(operator.itemgetter('misc_type'), configuration), map(operator.itemgetter('misc_value'), configuration)))
-    user_perms = PERMISSION_KEYS
-    permissions = Permission.objects.all()
+
+    permissions = Permission.objects.exclude(codename__icontains='delete_').values('codename')
     user_perms = []
     ignore_list = PERMISSION_IGNORE_LIST
-    change_permissions = ['inventoryadjustment']
+    all_groups = user.groups.all()
     for permission in permissions:
-        temp = permission.codename.split('_')[-1]
-        if not temp in user_perms and not temp in ignore_list and ('add' in permission.codename or 'change' in permission.codename):
-            user_perms.append(permission.codename)
+        temp = permission['codename']
+        if not temp in user_perms and not temp in ignore_list:
+            user_perms.append(temp)
+            roles[temp] = get_permission(request.user, temp, groups=all_groups)
+            if roles[temp]:
+                label_perms.append(temp)
 
-    for perm in user_perms:
-        roles[perm] = get_permission(request.user, perm)
-        if roles[perm]:
-            label_perms.append(perm.replace('add_', ''))
     roles.update(config)
     return {'permissions': roles, 'label_perms': label_perms}
 
@@ -401,9 +402,10 @@ def permissionpage(request,cond=''):
     else:
         return (request.user.is_staff or request.user.is_superuser)
 
-def get_permission(user, codename):
+def get_permission(user, codename, groups=None):
     in_group = False
-    groups = user.groups.all()
+    if not groups:
+        groups = user.groups.all()
     for grp in groups:
         in_group = codename in grp.permissions.values_list('codename', flat=True)
         if in_group:
@@ -1333,9 +1335,15 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
     data_dict['status'] = 0
     data_dict['creation_date'] = now
     data_dict['updation_date'] = now
-    #cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
-    dat = CycleCount(**data_dict)
-    dat.save()
+    cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
+    if cycle_obj:
+        cycle_obj = cycle_obj[0]
+        cycle_obj.seen_quantity += quantity
+        cycle_obj.save()
+        dat = cycle_obj
+    else:
+        dat = CycleCount(**data_dict)
+        dat.save()
 
     data = copy.deepcopy(INVENTORY_FIELDS)
     data['cycle_id'] = dat.id
@@ -1345,8 +1353,14 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
     data['creation_date'] = now
     data['updation_date'] = now
 
-    dat = InventoryAdjustment(**data)
-    dat.save()
+    inv_obj = InventoryAdjustment.objects.filter(cycle__cycle=dat.cycle, adjusted_location=location[0].id, cycle__sku__user=user.id)
+    if inv_obj:
+        inv_obj = inv_obj[0]
+        inv_obj.adjusted_quantity = quantity
+        inv_obj.save()
+    else:
+        dat = InventoryAdjustment(**data)
+        dat.save()
 
     return 'Added Successfully'
 
@@ -1387,8 +1401,9 @@ def add_group_data(request, user=''):
         else:
             for i in sub_perms:
                 reversed_perms[i[1]] = i[0]
+
     for permission in permissions:
-        temp = permission.codename.split('_')[-1]
+        temp = permission.codename
         if not temp in perms_list and not temp in ignore_list:
             if temp in reversed_perms.keys() and reversed_perms[temp] not in perms_list:
                 perms_list.append(reversed_perms[temp])
@@ -1404,11 +1419,11 @@ def add_group(request, user=''):
     brands_list = ''
     group = ''
     permission_dict = copy.deepcopy(PERMISSION_DICT)
-    reversed_perms = {} 
+    reversed_perms = {}
     for key, value in permission_dict.iteritems():
         sub_perms = permission_dict[key]
         for i in sub_perms:
-            reversed_perms[i[1]] = i[0] 
+            reversed_perms[i[1]] = i[0]
     #reversed_perms = OrderedDict(( ([(value, key) for key, value in permission_dict.iteritems()]) ))
     selected = request.POST.get('perm_selected')
     stages = request.POST.get('stage_selected')
@@ -1454,17 +1469,15 @@ def add_group(request, user=''):
                 if len(sub_perms) == 2:
                     if sub_perms[0] == perm:
                         permi = sub_perms[1]
-                        permissions = Permission.objects.filter(codename__icontains=permi)
+                        permissions = Permission.objects.filter(codename=permi)
                         for permission in permissions:
                             group.permissions.add(permission)
                 else:
-                    for i in sub_perms:
-                        if i[0] == perm:
-                            permi = i[1]
-                            #perm = permission_dict.get(perm, '')
-                            permissions = Permission.objects.filter(codename__icontains=permi)
-                            for permission in permissions:
-                                group.permissions.add(permission)
+                    sub_perms = dict(sub_perms)
+                    if sub_perms.has_key(perm):
+                        permissions = Permission.objects.filter(codename=sub_perms[perm])
+                        for permission in permissions:
+                            group.permissions.add(permission)
         user.groups.add(group)
     return HttpResponse('Updated Successfully')
 
@@ -2327,7 +2340,7 @@ def get_group_data(request, user=''):
     permissions = group.permissions.values_list('codename', flat=True)
     perms = []
     for perm in permissions:
-        temp = perm.split('_')[-1]
+        temp = perm
         if temp in reversed_perms.keys() and (reversed_perms[temp] not in perms):
             perms.append(reversed_perms[temp])
     return HttpResponse(json.dumps({'group_name': group_name, 'data': {'brands': brands, 'stages': stages, 'permissions': perms}}))

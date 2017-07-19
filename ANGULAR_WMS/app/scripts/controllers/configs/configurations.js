@@ -28,15 +28,157 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
 
   vm.check_box_data = [
     {
+      name: "Tally Enable/Disable",
+      model_name: "tally_config",
+      param_no: 30,
+      class_name: "fa fa-th",
+      display: true
+    },
+    {
+      name: "Send [PO] Messages and Email",
+      model_name: "send_message",
+      param_no: 1,
+      class_name: "fa fa-envelope-o",
+      display: true
+    },
+    {
+      name: "Auto Generate Picklist",
+      model_name: "auto_generate_picklist",
+      param_no: 22,
+      class_name: "fa fa-envelope-o",
+      display: true
+    },
+    {
+      name: "Batch Processing Required",
+      model_name: "batch_switch",
+      param_no: 2,
+      class_name: "fa fa-th",
+      display: true
+    },
+    {
+      name: "First In First Out Required",
+      model_name: "fifo_switch",
+      param_no: 3,
+      class_name: "glyphicon glyphicon-sort",
+      display: true
+    },
+    {
       name: "Display HSN Summary In Invoice",
       model_name: "hsn_summary",
       param_no: 32,
+      class_name: "glyphicon glyphicon-sort",
       display: true
     },
     {
       name: "Display Customer SKU In Invoice",
       model_name: "display_customer_sku",
       param_no: 33,
+      class_name: "glyphicon glyphicon-sort",
+      display: true
+    },
+    {
+      name: "Detail Invoice",
+      model_name: "detailed_invoice",
+      param_no: 23,
+      class_name: "fa fa-rupee",
+      display: true
+    },
+    {
+      name: "Show MRP In Invoice",
+      model_name: "show_mrp",
+      param_no: 17,
+      class_name: "fa fa-rupee",
+      display: true
+    },
+    {
+      name: "Show Images in Picklist",
+      model_name: "show_image",
+      param_no: 4,
+      class_name: "fa fa-file-image-o",
+      display: true
+    },
+    {
+      name: "Enable/Disable Cross Stock",
+      model_name: "back_order",
+      param_no: 5,
+      class_name: "fa fa-exchange",
+      display: true
+    },
+    {
+      name: "Use Serial Numbers for SKUs",
+      model_name: "use_imei",
+      param_no: 6,
+      class_name: "fa fa-list-ol",
+      display: true
+    },
+    {
+      name: "Pallet Enable/Disable",
+      model_name: "pallet_switch",
+      param_no: 7,
+      class_name: "fa fa-archive",
+      display: true
+    },
+    {
+      name: "Production Enable/Disable",
+      model_name: "production_switch",
+      param_no: 8,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "POS Enable/Disable",
+      model_name: "pos_switch",
+      param_no: 9,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Auto PO Enable/Disable",
+      model_name: "auto_po_switch",
+      param_no: 10,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Generate Picklist for out of stock orders",
+      model_name: "no_stock_switch",
+      param_no: 11,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Decimal Quantity",
+      model_name: "float_switch",
+      param_no: 15,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Automatic Invoice Generation",
+      model_name: "automate_invoice",
+      param_no: 16,
+      class_name: "fa fa-envelope",
+      display: true
+    },
+    {
+      name: "Picklist Sort By Order Sequence",
+      model_name: "picklist_sort_by",
+      param_no: 19,
+      class_name: "fa fa-envelope",
+      display: true
+    },
+    {
+      name: "Sync WMS Stock Count",
+      model_name: "stock_sync",
+      param_no: 20,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
+      name: "Sync SKU b/n Users",
+      model_name: "sku_sync",
+      param_no: 21,
+      class_name: "fa fa-refresh",
       display: true
     }]
 

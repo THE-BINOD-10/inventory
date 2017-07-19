@@ -33,6 +33,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           })
           .withOption('processing', true)
           .withOption('serverSide', true)
+          .withOption('order', [5, 'desc'])
           .withOption('createdRow', function(row, data, dataIndex) {
              $compile(angular.element(row).contents())($scope);
           })

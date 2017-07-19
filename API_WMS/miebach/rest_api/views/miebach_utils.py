@@ -645,32 +645,43 @@ SIZES_LIST = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'FREE SIZE']
 SKU_FIELD_TYPES = [{'field_name': 'sku_category', 'field_value': 'SKU Category'}, {'field_name': 'sku_brand', 'field_value': 'SKU Brand'},
                    {'field_name': 'sku_group', 'field_value': 'SKU Group'}]
 
+
 PERMISSION_DICT = OrderedDict((
                                # Masters
-                               ("MASTERS_LABEL", (("SKU Master", "skumaster"), ("Location Master", "locationmaster"), 
-                               ("Supplier Master", "suppliermaster"),("Supplier SKU Mapping", "skusupplier"), 
-                               ("Customer Master", "customermaster"),("Customer SKU Master", "customersku"), ("BOM Master", "bommaster"), 
-                               ("Vendor Master", "vendormaster"),("Discount Master", "categorydiscount"), 
-                               ("Custom SKU Template", "productproperties"),("Size Master", "sizemaster"))),
+                               ("MASTERS_LABEL", (("SKU Master", "add_skumaster"), ("Location Master", "add_locationmaster"),
+                               ("Supplier Master", "add_suppliermaster"),("Supplier SKU Mapping", "add_skusupplier"),
+                               ("Customer Master", "add_customermaster"),("Customer SKU Master", "add_customersku"),
+                               ("BOM Master", "add_bommaster"),
+                               ("Vendor Master", "add_vendormaster"),("Discount Master", "add_categorydiscount"),
+                               ("Custom SKU Template", "add_productproperties"),("Size Master", "add_sizemaster"))),
+
                                # Inbound
-                               ("INBOUND_LABEL", (("Raise PO", "openpo"), ("Receive PO", "purchaseorder"), ("Quality Check", "qualitycheck"),
-                               ("Putaway Confirmation", "polocation"), ("Sales Returns", "orderreturns"),
-                               ("Returns Putaway", "returnslocation"))),
+                               ("INBOUND_LABEL", (("Raise PO", "add_openpo"), ("Receive PO", "add_purchaseorder"),
+                               ("Quality Check", "add_qualitycheck"),
+                               ("Putaway Confirmation", "add_polocation"), ("Sales Returns", "add_orderreturns"),
+                               ("Returns Putaway", "add_returnslocation"))),
+
                                # Production
-                               ("PRODUCTION_LABEL", (("Raise Job order", "jomaterial"), ("RM Picklist", "materialpicklist"), 
-                               ("Receive Job Order", "joborder"),("Job Order Putaway", "rmlocation"))),
+                               ("PRODUCTION_LABEL", (("Raise Job order", "add_jomaterial"), ("RM Picklist", "add_materialpicklist"),
+                               ("Receive Job Order", "add_joborder"),("Job Order Putaway", "add_rmlocation"))),
+
                                # Stock Locator
-                               ("STOCK_LABEL",(("Stock Detail", "stockdetail"), ("Vendor Stock", "vendorstock"), ("Cycle Count", "cyclecount"),
-                               ("Inventory Adjustment", "inventoryadjustment"),("Stock Summary", "skustock"))),
+                               ("STOCK_LABEL",(("Stock Detail", "add_stockdetail"), ("Vendor Stock", "add_vendorstock"),
+                               ("Cycle Count", "add_cyclecount"), ("Move Inventory", "change_inventoryadjustment"),
+                               ("Inventory Adjustment", "add_inventoryadjustment"),("Stock Summary", "add_skustock"))),
+
                                # Outbound
-                               ("OUTBOUND_LABEL",(("Create Orders", "orderdetail"), ("View Orders", "picklist"), 
-                               ("Pull Confirmation", "picklistlocation"))),
+                               ("OUTBOUND_LABEL",(("Create Orders", "add_orderdetail"), ("View Orders", "add_picklist"),
+                               ("Pull Confirmation", "add_picklistlocation"))),
+
                                # Shipment Info
-                               ("SHIPMENT_LABEL",(("Shipment Info", "shipmentinfo"))),
+                               ("SHIPMENT_LABEL",(("Shipment Info", "add_shipmentinfo"))),
+
                                # Others
-                               ("OTHERS_LABEL", (("Raise Stock Transfer", "openst"), ("Create Stock Transfer", "stocktransfer"))),
+                               ("OTHERS_LABEL", (("Raise Stock Transfer", "add_openst"), ("Create Stock Transfer", "add_stocktransfer"))),
+
                                # Payment
-                               ("PAYMENT_LABEL", (("PAYMENTS","paymentsummary")))
+                               ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary")))
                              ))
 
 ORDERS_TRACK_STATUS = {0: 'Resolved', 1: "Conflict", 2: "Delete"}

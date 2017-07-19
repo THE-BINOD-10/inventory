@@ -2425,12 +2425,11 @@ def inventory_adjust_upload(request, user=''):
     len1 = len(ADJUST_INVENTORY_EXCEL_HEADERS)
     cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     if not cycle_count:
-        cycle_id = 0
+        cycle_id = 1
     else:
-        cycle_id = cycle_count[0].cycle
+        cycle_id = cycle_count[0].cycle + 1
 
     for row_idx in range(1, open_sheet.nrows):
-        cycle_id += 1
         #location_data = ''
         for col_idx in range(len1):
             cell_data = open_sheet.cell(row_idx, col_idx).value

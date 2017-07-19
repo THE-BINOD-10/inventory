@@ -442,9 +442,9 @@ REPORTS_DATA = {'SKU List': 'sku_list', 'Location Wise SKU': 'location_wise_stoc
 SKU_CUSTOMER_FIELDS = ( (('Customer ID *', 'customer_id',60), ('Customer Name *', 'customer_name',256)),
                         (('SKU Code *','sku_code'), ('Price *', 'price'), ) )
 
-CUSTOMER_SKU_DATA = {'customer_name_id': '', 'sku_id': '', 'price': ''}
+CUSTOMER_SKU_DATA = {'customer_id': '', 'sku_id': '', 'price': 0, 'customer_sku_code': ''}
 
-CUSTOMER_SKU_MAPPING_HEADERS = OrderedDict([('Customer ID','customer_name__customer_id'),('Customer Name','customer_name__name'),
+CUSTOMER_SKU_MAPPING_HEADERS = OrderedDict([('Customer ID','customer__customer_id'),('Customer Name','customer__name'),
                                             ('SKU Code','sku__sku_code'),('Price','price')])
 
 

@@ -14,7 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '',
                     'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
-                    'tax_details':{},
+                    'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -22,8 +22,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      10: 'auto_po_switch', 11: 'no_stock_switch', 12:'online_percentage', 13: 'mail_alerts',
                      14: 'invoice_prefix', 15: 'float_switch', 16: 'automate_invoice', 17: 'show_mrp', 18: 'decimal_limit',
                      19: 'picklist_sort_by', 20: 'stock_sync', 21: 'sku_sync', 22: 'auto_generate_picklist',
-                     23: 'detailed_invoice', 24: 'scan_picklist_option', 25: 'stock_display_warehouse', 26: 'view_order_status', 
-                     27: 'seller_margin', 28: 'style_headers', 29: 'receive_process', 30: 'tally_config', 31: 'tax_details'}
+                     23: 'detailed_invoice', 24: 'scan_picklist_option', 25: 'stock_display_warehouse', 26: 'view_order_status',
+                     27: 'seller_margin', 28: 'style_headers', 29: 'receive_process', 30: 'tally_config', 31: 'tax_details',
+                     32: 'hsn_summary', 33: 'display_customer_sku'}
+
+  vm.check_box_data = [
+    {
+      name: "Display HSN Summary In Invoice",
+      model_name: "hsn_summary",
+      param_no: 32,
+      display: true
+    },
+    {
+      name: "Display Customer SKU In Invoice",
+      model_name: "display_customer_sku",
+      param_no: 33,
+      display: true
+    }]
+
   vm.empty = {};
   vm.message = "";
 
@@ -386,4 +402,5 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.model_data.tax_value = "";
       vm.model_data.tax_new = true;
   }
+
 }

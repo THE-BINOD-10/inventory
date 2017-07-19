@@ -314,14 +314,15 @@ def get_customer_sku_mapping(start_index, stop_index, temp_data, search_term, or
     if order_term:
         master_data = CustomerSKU.objects.filter(sku__user=user.id, **search_params).order_by(order_data)
     if search_term:
-        master_data = CustomerSKU.objects.filter(Q(customer_name__customer_id=search_term) | Q(customer_name__name__icontains=search_term) | Q(sku__sku_code__icontains=search_term) | Q(price__icontains=search_term), sku__user=user.id, **search_params)
+        master_data = CustomerSKU.objects.filter(Q(customer__customer_id=search_term) | Q(customer__name__icontains=search_term) | Q(sku__sku_code__icontains=search_term) | Q(price__icontains=search_term), sku__user=user.id, **search_params)
 
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
-        temp_data['aaData'].append(OrderedDict(( ('DT_RowId', data.id), ('customer_id', data.customer_name.customer_id),
-                                                 ('customer_name', data.customer_name.name),
-                                                 ('sku_code', data.sku.sku_code), ('price', data.price), ('DT_RowClass', 'results') )))
+        temp_data['aaData'].append(OrderedDict(( ('DT_RowId', data.id), ('customer_id', data.customer.customer_id),
+                                                 ('customer_name', data.customer.name),
+                                                 ('sku_code', data.sku.sku_code), ('customer_sku_code', data.customer_sku_code),
+                                                 ('DT_RowClass', 'results') )))
 
 @csrf_exempt
 def get_vendor_master_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -943,13 +944,13 @@ def update_customer_sku_mapping(request , user=""):
     data_id = request.POST['data-id']
     cust_name = request.POST['customer_name']
     cust_sku = request.POST['sku_code']
-    cust_price = request.POST['price']
+    cust_sku_code = request.POST.get('customer_sku_code', '')
     customer_id = request.POST['customer_id']
     data = CustomerSKU.objects.filter(id = data_id)
     if not data:
         return HttpResponse("This Customer SKU Mapping doesn't exists")
     sku_data = SKUMaster.objects.filter(sku_code = cust_sku, user = user.id)
-    cust_sku = CustomerSKU.objects.filter(customer_name__customer_id=customer_id, customer_name__name = cust_name, sku__sku_code = cust_sku, sku__user=user.id).exclude(id=data_id)
+    cust_sku = CustomerSKU.objects.filter(customer__customer_id=customer_id, customer__name = cust_name, sku__sku_code = cust_sku, sku__user=user.id).exclude(id=data_id)
     if not sku_data:
         return HttpResponse("Given SKU Code doesn't exists")
     elif cust_sku:
@@ -957,9 +958,8 @@ def update_customer_sku_mapping(request , user=""):
     else:
         data = data[0]
         data.sku_id = sku_data[0].id
-        data.price = cust_price
+        data.customer_sku_code = cust_sku_code
         data.save()
-        
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt
@@ -971,7 +971,7 @@ def insert_customer_sku(request, user=''):
         return HttpResponse('Given Customer ID / Name not correct.')
     ID = str(customer_id.split(":")[0])
     name = str(customer_id.split(":")[1][1:])
-    customer_sku_data = filter_or_none(CustomerSKU, {'customer_name__customer_id': ID, 'sku__sku_code': request.POST['sku_code'], 'sku__user': user.id})
+    customer_sku_data = filter_or_none(CustomerSKU, {'customer__customer_id': ID, 'sku__sku_code': request.POST['sku_code'], 'sku__user': user.id})
     if customer_sku_data:
         return HttpResponse('Customer SKU Mapping already exists.')
     status_msg = 'Supplier Exists'
@@ -986,10 +986,12 @@ def insert_customer_sku(request, user=''):
     for key, value in request.POST.iteritems():
         if key == 'customer_id':
             value = customer_data[0].id
-            key = "customer_name_id"
-        if key == 'sku_code':
+        elif key == 'sku_code':
             value = customer_sku[0].id
             key = "sku_id"
+        elif key == 'price':
+            if not value:
+                value = 0
         data_dict[key] = value
 
     customer = CustomerSKU(**data_dict)

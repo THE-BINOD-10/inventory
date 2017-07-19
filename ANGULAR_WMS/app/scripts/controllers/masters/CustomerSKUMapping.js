@@ -31,7 +31,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('customer_id').withTitle('Customer ID'),
         DTColumnBuilder.newColumn('customer_name').withTitle('Customer Name'),
         DTColumnBuilder.newColumn('sku_code').withTitle('SKU Code'),
-        DTColumnBuilder.newColumn('price').withTitle('Price')
+        DTColumnBuilder.newColumn('customer_sku_code').withTitle('Customer SKU Code')
     ];
 
     vm.dtInstance = {};

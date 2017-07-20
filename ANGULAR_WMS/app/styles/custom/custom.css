@@ -568,75 +568,96 @@ body {
 .reports .dataTables_filter {
   display: none;
 }
-#page-pop {
+#page-pop,
+.page-pop {
   overflow-y: auto;
   display: block;
 }
-#page-pop .modal-content {
+#page-pop .modal-content,
+.page-pop .modal-content {
   border: 1px solid transparent;
 }
-#page-pop .modal-content label.error {
+#page-pop .modal-content label.error,
+.page-pop .modal-content label.error {
   display: none !important;
 }
-#page-pop .modal-header {
+#page-pop .modal-header,
+.page-pop .modal-header {
   background: #f0f0f0;
   border-bottom: 1px solid transparent;
 }
-#page-pop .modal-header h4 {
+#page-pop .modal-header h4,
+.page-pop .modal-header h4 {
   text-transform: uppercase;
 }
-#page-pop .modal-header button {
+#page-pop .modal-header button,
+.page-pop .modal-header button {
   position: absolute;
   right: 20px;
   top: 10px;
   font-size: 36px;
 }
-#page-pop .modal-footer {
+#page-pop .modal-footer,
+.page-pop .modal-footer {
   padding: 0px;
   background: #f0f0f0;
   border-top: 1px solid transparent;
 }
-#page-pop .modal-footer .pop {
+#page-pop .modal-footer .pop,
+.page-pop .modal-footer .pop {
   padding: 16px 30px;
   font-size: 18px;
   text-transform: uppercase;
 }
-#page-pop .modal-footer .pop-green {
+#page-pop .modal-footer .pop-green,
+.page-pop .modal-footer .pop-green {
   background: #33cc66;
   border: #33cc66;
   color: #fff;
 }
-#page-pop .modal-footer .pop-normal {
+#page-pop .modal-footer .pop-normal,
+.page-pop .modal-footer .pop-normal {
   background: transparent;
   border: transparent;
   color: #666666;
 }
-#page-pop .modal-footer .pop-red {
+#page-pop .modal-footer .pop-red,
+.page-pop .modal-footer .pop-red {
   background: #d96557;
   border: #d96557;
   color: #fff;
 }
-#page-pop .modal-body {
+#page-pop .modal-body,
+.page-pop .modal-body {
   background: #fff;
   padding: 0px;
   margin: 15px;
 }
-#page-pop .modal-body .control-img {
+#page-pop .modal-body .control-img,
+.page-pop .modal-body .control-img {
   padding: 5px 0px;
 }
-#page-pop .modal-body .control-img img {
+#page-pop .modal-body .control-img img,
+.page-pop .modal-body .control-img img {
   height: 20px;
 }
-#page-pop .modal-body table {
+#page-pop .modal-body table,
+.page-pop .modal-body table {
   /*width: 97%;
       margin: 10px;*/
+
 }
-#page-pop .modal-body table tbody > tr > td > input {
-  width: 90%;
+#page-pop .modal-body table tbody > tr > td > input,
+.page-pop .modal-body table tbody > tr > td > input {
+  /*width: 90%;*/
+
 }
 #page-pop .modal-body .dropdown-menu > .active > a:hover,
+.page-pop .modal-body .dropdown-menu > .active > a:hover,
 #page-pop .modal-body .dropdown-menu > .active > a:focus,
-#page-pop .modal-body .dropdown-menu > .active > a {
+.page-pop .modal-body .dropdown-menu > .active > a:focus,
+#page-pop .modal-body .dropdown-menu > .active > a,
+.page-pop .modal-body .dropdown-menu > .active > a {
   background-color: #33cc66 !important;
 }
 .minus {
@@ -986,6 +1007,7 @@ rm-blur:active {
   padding: 5px 0;
   padding: 3px;
   /* Position the tooltip */
+
   position: absolute;
   z-index: 1;
   top: -5px;
@@ -1053,6 +1075,7 @@ rm-blur:active {
     }
   }
   */
+
 }
 .tracking .panel-group .panel-body {
   background: #f0f0f0;
@@ -1181,4 +1204,64 @@ pre {
   display: block;
   width: 150px;
   background: #fff;
+}
+.slick-prev {
+  position: absolute;
+  display: block;
+  line-height: 0;
+  font-size: 0;
+  cursor: pointer;
+  background: transparent;
+  color: transparent;
+  top: 50%;
+  margin-top: -10px;
+  padding: 0;
+  border: none;
+  left: -25px;
+}
+.slick-prev:before {
+  content: '\2039';
+  font-size: 40px;
+  line-height: 1;
+  color: grey;
+  opacity: 0.85;
+  -webkit-font-smoothing: antialiased;
+}
+.slick-next {
+  position: absolute;
+  display: block;
+  line-height: 0;
+  font-size: 0;
+  cursor: pointer;
+  background: transparent;
+  color: transparent;
+  top: 50%;
+  margin-top: -10px;
+  padding: 0;
+  border: none;
+  right: -25px;
+}
+.slick-next:before {
+  content: '\203A';
+  font-size: 40px;
+  line-height: 1;
+  color: grey;
+  opacity: 0.85;
+  -webkit-font-smoothing: antialiased;
+}
+.modal-size {
+  width: 99%;
+  padding: 10px;
+  padding-left: 220px;
+}
+.w10 {
+  width: 100px;
+}
+.w12 {
+  width: 120px;
+}
+.full-modal .modal-dialog {
+  width: 100%;
+  padding: 10px;
+  padding-left: 220px;
 }

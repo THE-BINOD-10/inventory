@@ -164,6 +164,45 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         for(var i=0;i<vm.generate_data.length;i++) {
           data[vm.generate_data[i]["data_value"]]= vm.generate_data[i]['Total Quantity'];
         }
+
+        var mod_data = {data: data};
+        mod_data['url'] = 'order_category_generate_picklist/';
+        mod_data['method'] = "POST";
+        mod_data['page'] = "ViewOrders";
+
+        $scope.open = function (size) {
+
+          var modalInstance = $modal.open({
+            templateUrl: 'views/outbound/toggle/common_picklist.html',
+            controller: 'Picklist',
+            controllerAs: 'pop',
+            size: size,
+            backdrop: 'static',
+            keyboard: false,
+            resolve: {
+              items: function () {
+                return mod_data;
+              }
+            }
+          });
+
+          modalInstance.result.then(function (selectedItem) {
+            var data = selectedItem;
+            reloadData();
+            if (data.message == 'invoice') {
+              angular.copy(data.data, vm.pdf_data);
+              if (vm.pdf_data.detailed_invoice) {
+                $state.go('app.outbound.ViewOrders.DetailGenerateInvoice');
+              } else {
+                $state.go('app.outbound.ViewOrders.GenerateInvoice');
+              }
+            }
+          }, function () {
+          $log.info('Modal dismissed at: ' + new Date());
+          });
+        };
+        $scope.open('lg');
+        /*
         vm.service.apiCall('order_category_generate_picklist/', 'POST', data).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
@@ -179,7 +218,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.pop_msg(vm.model_data.stock_status);
             vm.reloadData();
           }
-        });
+        });*/
         vm.generate_data = [];
       }
     }

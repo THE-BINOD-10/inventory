@@ -25,6 +25,9 @@ SKU_GROUP_FIELDS = {'group': '', 'user': ''}
 
 ADJUST_INVENTORY_EXCEL_HEADERS = ['WMS Code', 'Location', 'Physical Quantity', 'Reason']
 
+DECLARATIONS = {'default': 'We declare that this invoice hows actual price of the goods described inclusive of taxes and that all particulars are true and correct.',
+                'TranceHomeLinen': 'Certify that the particulars given above are true and correct and the amount indicated represents the price actually charged and that there is no flow of additional consideration directly or indirectly.\n Subject to Banglore Jurisdication'}
+
 PERMISSION_KEYS =['add_qualitycheck', 'add_skustock', 'add_shipmentinfo', 'add_openpo', 'add_orderreturns', 'add_openpo', 'add_purchaseorder',
                   'add_joborder', 'add_materialpicklist', 'add_polocation', 'add_stockdetail', 'add_cyclecount', 'add_inventoryadjustment',
                   'add_orderdetail', 'add_picklist']
@@ -439,9 +442,9 @@ REPORTS_DATA = {'SKU List': 'sku_list', 'Location Wise SKU': 'location_wise_stoc
 SKU_CUSTOMER_FIELDS = ( (('Customer ID *', 'customer_id',60), ('Customer Name *', 'customer_name',256)),
                         (('SKU Code *','sku_code'), ('Price *', 'price'), ) )
 
-CUSTOMER_SKU_DATA = {'customer_name_id': '', 'sku_id': '', 'price': ''}
+CUSTOMER_SKU_DATA = {'customer_id': '', 'sku_id': '', 'price': 0, 'customer_sku_code': ''}
 
-CUSTOMER_SKU_MAPPING_HEADERS = OrderedDict([('Customer ID','customer_name__customer_id'),('Customer Name','customer_name__name'),
+CUSTOMER_SKU_MAPPING_HEADERS = OrderedDict([('Customer ID','customer__customer_id'),('Customer Name','customer__name'),
                                             ('SKU Code','sku__sku_code'),('Price','price')])
 
 
@@ -464,11 +467,11 @@ SHOPCLUES_EXCEL = {'original_order_id': 0, 'order_id': 0, 'quantity': 14, 'title
 
 VOONIK_EXCEL = {'order_id': 0, 'sku_code': 1, 'invoice_amount': 4, 'marketplace': 'Voonik'}
 
-#FLIPKART_EXCEL = {'order_id': 6, 'quantity': 14, 'title': 2, 'invoice_amount': 17, 'address': 22, 'customer_name': 21,
-#                  'marketplace': 'Flipkart', 'sku_code': 8}
+FLIPKART_EXCEL = {'order_id': 6, 'quantity': 14, 'title': 2, 'invoice_amount': 17, 'address': 22, 'customer_name': 21,
+                  'marketplace': 'Flipkart', 'sku_code': 8}
 
-#FLIPKART_EXCEL1 = {'order_id': 6, 'quantity': 14, 'title': 2, 'invoice_amount': 16, 'address': 21, 'customer_name': 20,
-#                  'marketplace': 'Flipkart', 'sku_code': 8}
+FLIPKART_EXCEL1 = {'order_id': 6, 'quantity': 14, 'title': 2, 'invoice_amount': 16, 'address': 21, 'customer_name': 20,
+                  'marketplace': 'Flipkart', 'sku_code': 8}
 
 #Trance Home
 FLIPKART_EXCEL2 = {'original_order_id': 3, 'order_id': 3, 'quantity': 17, 'title': 9, 'invoice_amount': 14, 'address': 21, 'customer_name': 19,
@@ -642,44 +645,72 @@ SIZES_LIST = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'FREE SIZE']
 SKU_FIELD_TYPES = [{'field_name': 'sku_category', 'field_value': 'SKU Category'}, {'field_name': 'sku_brand', 'field_value': 'SKU Brand'},
                    {'field_name': 'sku_group', 'field_value': 'SKU Group'}]
 
+
 PERMISSION_DICT = OrderedDict((
                                # Masters
-                               ("MASTERS_LABEL", (("SKU Master", "skumaster"), ("Location Master", "locationmaster"), 
-                               ("Supplier Master", "suppliermaster"),("Supplier SKU Mapping", "skusupplier"), 
-                               ("Customer Master", "customermaster"),("Customer SKU Master", "customersku"), ("BOM Master", "bommaster"), 
-                               ("Vendor Master", "vendormaster"),("Discount Master", "categorydiscount"), 
-                               ("Custom SKU Template", "productproperties"),("Size Master", "sizemaster"))),
+                               ("MASTERS_LABEL", (("SKU Master", "add_skumaster"), ("Location Master", "add_locationmaster"),
+                               ("Supplier Master", "add_suppliermaster"),("Supplier SKU Mapping", "add_skusupplier"),
+                               ("Customer Master", "add_customermaster"),("Customer SKU Master", "add_customersku"),
+                               ("BOM Master", "add_bommaster"),
+                               ("Vendor Master", "add_vendormaster"),("Discount Master", "add_categorydiscount"),
+                               ("Custom SKU Template", "add_productproperties"),("Size Master", "add_sizemaster"))),
+
                                # Inbound
-                               ("INBOUND_LABEL", (("Raise PO", "openpo"), ("Receive PO", "purchaseorder"), ("Quality Check", "qualitycheck"),
-                               ("Putaway Confirmation", "polocation"), ("Sales Returns", "orderreturns"),
-                               ("Returns Putaway", "returnslocation"))),
+                               ("INBOUND_LABEL", (("Raise PO", "add_openpo"), ("Receive PO", "add_purchaseorder"),
+                               ("Quality Check", "add_qualitycheck"),
+                               ("Putaway Confirmation", "add_polocation"), ("Sales Returns", "add_orderreturns"),
+                               ("Returns Putaway", "add_returnslocation"))),
+
                                # Production
-                               ("PRODUCTION_LABEL", (("Raise Job order", "jomaterial"), ("RM Picklist", "materialpicklist"), 
-                               ("Receive Job Order", "joborder"),("Job Order Putaway", "rmlocation"))),
+                               ("PRODUCTION_LABEL", (("Raise Job order", "add_jomaterial"), ("RM Picklist", "add_materialpicklist"),
+                               ("Receive Job Order", "add_joborder"),("Job Order Putaway", "add_rmlocation"))),
+
                                # Stock Locator
-                               ("STOCK_LABEL",(("Stock Detail", "stockdetail"), ("Vendor Stock", "vendorstock"), ("Cycle Count", "cyclecount"),
-                               ("Inventory Adjustment", "inventoryadjustment"),("Stock Summary", "skustock"))),
+                               ("STOCK_LABEL",(("Stock Detail", "add_stockdetail"), ("Vendor Stock", "add_vendorstock"),
+                               ("Cycle Count", "add_cyclecount"), ("Move Inventory", "change_inventoryadjustment"),
+                               ("Inventory Adjustment", "add_inventoryadjustment"),("Stock Summary", "add_skustock"))),
+
                                # Outbound
-                               ("OUTBOUND_LABEL",(("Create Orders", "orderdetail"), ("View Orders", "picklist"), 
-                               ("Pull Confirmation", "picklistlocation"))),
+                               ("OUTBOUND_LABEL",(("Create Orders", "add_orderdetail"), ("View Orders", "add_picklist"),
+                               ("Pull Confirmation", "add_picklistlocation"))),
+
                                # Shipment Info
-                               ("SHIPMENT_LABEL",(("Shipment Info", "shipmentinfo"))),
+                               ("SHIPMENT_LABEL",(("Shipment Info", "add_shipmentinfo"))),
+
                                # Others
-                               ("OTHERS_LABEL", (("Raise Stock Transfer", "openst"), ("Create Stock Transfer", "stocktransfer"))),
+                               ("OTHERS_LABEL", (("Raise Stock Transfer", "add_openst"), ("Create Stock Transfer", "add_stocktransfer"))),
+
                                # Payment
-                               ("PAYMENT_LABEL", (("PAYMENTS","paymentsummary")))
+                               ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary")))
                              ))
 
 ORDERS_TRACK_STATUS = {0: 'Resolved', 1: "Conflict", 2: "Delete"}
 
-SHOTANG_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'orders["channel"]',
-                         'sku': 'order["Sku"]',
+# Shotang Integration Mapping Dictionaries
+
+ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems',
+                            'channel': 'orders["channel"]', 'sku': 'order["Sku"]',
                          'title': 'order["productTitle"]', 'quantity': 'order["quantity"]',
                          'shipment_date': 'orders["orderDate"]', 'channel_sku': 'order["channelSku"]',
                          'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]', 'seller_id': 'order["seller_id"]',
                          'sor_id': 'order["sor_id"]', 'cgst_tax': 'order.get("cgst_tax", "0")', 'sgst_tax': 'order.get("sgst_tax", "0")',
                          'igst_tax': 'order.get("igst_tax", "0")', 'order_status': 'orders.get("currentStatus", "")'
                         }
+
+SKU_MASTER_API_MAPPING = OrderedDict(( ('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_desc'), ('sku_brand', 'sku_brand'),
+                          ('sku_category', 'sku_category'), ('price', 'price'), ('mrp', 'mrp'), ('product_type', 'product_type'),
+                          ('sku_class', 'sku_class'), ('style_name', 'style_name'), ('status', 'Active'), ('hsn_code', 'hsn_code'),
+                          ('ean_number', 'ean_number'), ('threshold_quantity', 'threshold_quantity'), ('color', 'color'),
+                          ('measurement_type', 'measurement_type'), ('sku_size', 'sku_size'), ('size_type', 'size_type'),
+                          ('mix_sku', 'mix_sku'), ('child_skus', 'child_skus') ))
+
+CUSTOMER_MASTER_API_MAPPING = OrderedDict(( ('customers', 'customers'), ('customer_id', 'customer_id'), ('name', 'name'),
+                                            ('address', 'address'), ('city', 'city'), ('state', 'state'), ('country', 'country'),
+                                            ('pincode', 'pincode'), ('phone_number', 'phone_number'), ('email_id', 'email_id'),
+                                            ('status', 'status'), ('last_name', 'last_name'), ('credit_period', 'credit_period'),
+                                            ('tin_number', 'tin_number'), ('price_type', 'price_type'), ('tax_type', 'tax_type'),
+                                            ('pan_number', 'pan_number')
+                                         ))
 
 # Easyops Integration Mapping Dictionaries
 EASYOPS_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'orders["channel"]',
@@ -840,6 +871,9 @@ GSTIN_USER_MAPPING = {'sagar_fab': '29ABEFS4899J1ZA', 'adam_clothing1': '2788OFB
                       'demo': 'ABC12345678'}
 
 #End of Username and GST Tin Mapping
+
+#Company logo names
+COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg'}
 
 def fn_timer(function):
     @wraps(function)

@@ -90,6 +90,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
         vm.model_data["customer_id"] = data.data.customer_id;
         vm.all_taxes = data.data.tax_data;
+        vm.model_data["price_type_list"] = data.data.price_types;
       }
     });
   }
@@ -105,10 +106,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.customer = function(url) {
     var send = {}
-    angular.copy(vm.model_data, send)
-    if(send.login_created) {
-        send.create_login = false;
-    }
+    //angular.copy(vm.model_data, send)
+    //if(send.login_created) {
+    //    send.create_login = false;
+    //}
+    var send = $("form").serializeArray()
     var data = $.param(send);
     vm.service.apiCall(url, 'POST', send, true).then(function(data){
       if(data.message) {

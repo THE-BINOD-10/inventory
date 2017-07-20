@@ -31,7 +31,7 @@
                 <th>SGST</th>
                 <th>CGST</th>
                 <th>IGST</th>
-                <!--<th class="plus"></th>-->
+                <th class="plus"></th>
               </tr>
             </thead>
             <tbody>
@@ -42,21 +42,21 @@
                    </select>
                 </td>
                 <td>
-                   <input type="text" ng-model="product.min_amt" name="min_amt" class="form-control" decimal-number ng-blur="pop.checkRange(product.min_amt, $index, pop.model_data.data, 'min_amt')">
+                   <input type="text" ng-model="product.min_amt" name="min_amt" class="form-control" decimal-number ng-blur="pop.checkRange(product.min_amt, $index, pop.model_data.data, 'min_amt')" required>
                 </td>
                 <td>
-                   <input type="text" ng-model="product.max_amt" name="max_amt" class="form-control" decimal-number ng-blur="pop.checkRange(product.max_amt, $index, pop.model_data.data, 'max_amt')">
+                   <input type="text" ng-model="product.max_amt" name="max_amt" class="form-control" decimal-number ng-blur="pop.checkRange(product.max_amt, $index, pop.model_data.data, 'max_amt')" required>
                 </td>
                 <td>
-                   <input type="text" ng-model="product.sgst_tax" name="sgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-readonly="product.tax_type != 'intra_state'">
+                   <input type="text" ng-model="product.sgst_tax" name="sgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-readonly="product.tax_type != 'intra_state'" percentage-min-value="0">
                 </td>
                 <td>
-                   <input type="text" ng-model="product.cgst_tax" name="cgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-readonly="product.tax_type != 'intra_state'">
+                   <input type="text" ng-model="product.cgst_tax" name="cgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-readonly="product.tax_type != 'intra_state'" percentage-min-value="0">
                 </td>
                 <td>
-                   <input type="text" ng-model="product.igst_tax" name="igst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-readonly="product.tax_type != 'inter_state'">
+                   <input type="text" ng-model="product.igst_tax" name="igst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-readonly="product.tax_type != 'inter_state'" percentage-min-value="0">
                 </td>
-                <!--<td><i ng-click="pop.update_data($index)" class="fa fa-minus-square-o"></i></td>-->
+                <td><i ng-if="!product.id" ng-click="pop.update_data($index)" class="fa fa-minus-square-o"></i></td>
               </tr>
             </tbody>
           </table>

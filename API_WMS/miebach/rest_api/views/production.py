@@ -1942,9 +1942,6 @@ def get_rm_back_order_data_alt(start_index, stop_index, temp_data, search_term, 
                search_term in str(person['Stock Quantity']) or search_term in str(person['Transit Quantity']) or \
                search_term in str(person['Procurement Quantity']), master_data)
     if order_term:
-        print col_num-1
-        print BACK_ORDER_RM_TABLE
-        print BACK_ORDER_RM_TABLE[col_num-1]
         if order_term == 'asc':
             master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_RM_TABLE[col_num-1]])
         else:
@@ -2031,15 +2028,16 @@ def get_rm_back_order_data(start_index, stop_index, temp_data, search_term, orde
                                 'Transit Quantity': get_decimal_limit(user.id, transit_quantity),
                                 'Procurement Quantity': get_decimal_limit(user.id, procured_quantity), 'DT_RowClass': 'results'})
 
+    back_order_headers = ['WMS Code', 'WMS Code', 'Ordered Quantity', 'Stock Quantity', 'Transit Quantity', 'Procurement Quantity']
     if search_term:
         master_data = filter(lambda person: search_term in person['WMS Code'] or search_term in str(person['Ordered Quantity']) or\
                search_term in str(person['Stock Quantity']) or search_term in str(person['Transit Quantity']) or \
                search_term in str(person[' Procurement Quantity']), master_data)
     elif order_term:
         if order_term == 'asc':
-            master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_RM_TABLE[col_num]])
+            master_data = sorted(master_data, key = lambda x: x[back_order_headers[col_num]])
         else:
-            master_data = sorted(master_data, key = lambda x: x[BACK_ORDER_RM_TABLE[col_num]], reverse=True)
+            master_data = sorted(master_data, key = lambda x: x[back_order_headers[col_num]], reverse=True)
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     temp_data['aaData'] = master_data[start_index:stop_index]

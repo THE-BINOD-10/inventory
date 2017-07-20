@@ -15,6 +15,16 @@
             </div>
           </label>
           <span class="pull-right" align="right">CUSTOM ORDER</span>
+          <label class="switch switch-sm square pull-right ml10 mr20">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.blind_order" ng-change="showCase.change_blind_order()">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+          <span class="pull-right" align="right">DIRECT DISPATCH</span>
+          <input name="direct_dispatch" type="hidden" value="{{showCase.model_data.blind_order}}">
           <input name="custom_order" type="hidden" value="{{showCase.custom_order}}">
         </div>
         <div class="col-md-3 col-sm-3 col-xs-12">
@@ -121,14 +131,17 @@
         <table class="table" ng-class="showCase.min_width">
           <thead>
             <tr>
-              <th>SKU Code/WMS Code *</th>
+              <th>SKU Code *</th>
               <th> Description </th>
-              <th>Quantity</th>
+              <th ng-if="showCase.model_data.blind_order" class="w10">Location</th>
+              <th ng-if="showCase.model_data.blind_order && showCase.permissions.use_imei">Serial Scan</th>
+              <!--<th class="w10">Selected Quantity</th>-->
+              <th class="w10">Quantity</th>
               <th ng-show="showCase.fields.indexOf('Unit Price') == -1">Unit Price</th>
               <th ng-show="showCase.fields.indexOf('Amount') == -1">Amount</th>
-              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'">SGST(%)</th>
-              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'">CGST(%)</th>
-              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'inter_state'">IGST(%)</th>
+              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'" class="w10">SGST(%)</th>
+              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'" class="w10">CGST(%)</th>
+              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'inter_state'" class="w10">IGST(%)</th>
               <th ng-show="showCase.fields.indexOf('Total Amount') == -1">Total Amount</th>
               <th ng-show="showCase.fields.indexOf('Remarks') == -1">Remarks</th>
               <th class="plus"></th>
@@ -139,14 +152,21 @@
               <td>
                 <input type="hidden" name="extra_data" value="{{data.extra}}">
 
-                <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search WMS Code" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" typeahead-on-select="showCase.get_sku_data(data, $item)">
+                <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search WMS Code" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="data.sku_id" typeahead-on-select="showCase.get_sku_data(data, $item, $index)">
                 <!--ng-blur="showCase.service.checkSearchValue(data.sku_id,'search_wms_codes?', $event);showCase.get_invoice(data)">-->
               </td>
               <td>
                 <input type="text" class="form-control" ng-model="data.description" name="description">
               </td>
+              <td ng-if="showCase.model_data.blind_order">
+                <input type="text" class="form-control" ng-model="data.location" name="location" ng-blur="showCase.checkCapacity($index, data, 'location', $event)" ng-required="data.sku_id.length > 0">
+              </td>
+              <td ng-if="showCase.model_data.blind_order && showCase.permissions.use_imei">
+                <input type="text" class="form-control" ng-model="data.serial" ng-keydown="showCase.serial_scan($event, data.serial, data)" ng-readonly="!data.location">
+                <input name="serials" type="hidden" value="{{data.serials.join(',')}}">
+              </td>
               <td>
-                <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="data.invoice_amount = showCase.service.multi(data.quantity, data.price);showCase.cal_percentage(data)"> </div>
+                <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.change_quantity(data)" ng-readonly="showCase.model_data.blind_order && showCase.permissions.use_imei"> </div>
               </td>
               <td ng-show="showCase.fields.indexOf('Unit Price') == -1">
                 <input type="text" name="unit_price" class="form-control" ng-model="data.price" ng-change="showCase.change_unit_price(data)" decimal-number>

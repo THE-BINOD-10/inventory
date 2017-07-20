@@ -159,7 +159,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               fb.remove_po(fb.poData["id"]);
             }
           } else {
-            pop_msg(data)
+            pop_msg(data.data)
           }
         }
       });

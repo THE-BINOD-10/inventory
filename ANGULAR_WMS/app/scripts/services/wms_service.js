@@ -896,67 +896,6 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
             document.getElementById("downloadpdf").click();
 
             $("#downloadpdf").remove();
-
-            /*var data_to_send = data.data.barcodes;
-
-            var key = data.data.key;
-
-            $.ajax({
-
-                type: "POST",
-
-                dataType: 'JSON',
-
-                async: false,
-
-                contentType: "application/json; charset=utf-8",
-
-                crossDomain: true,
-
-                xhrFields: {
-
-                    withCredentials: false
-
-                },
-
-                  url :'http://vinodh1251-001-site1.atempurl.com/Webservices/BarcodeServices.asmx/GetBarCode',
-
-                data: "{argJsonData:'" + JSON.stringify(data_to_send) + "',argCompany : '" + 'Brilhante' + "',argBarcodeFormate : '" + key + "'}",
-
-                success: function (result) {
-
-                    if (result === 'Internal Error') {
-
-                        alert('Internal Error');
-
-                    }
-
-                    else {
-
-                        var downloadpdf = $('<a id="downloadpdf" target="_blank" href="data:application/pdf;base64,' + result.d + '" >');
-
-                        $('body').append(downloadpdf);
-
-
-                        document.getElementById("downloadpdf").click();
-
-                        $("#downloadpdf").remove();
-
-                    }
-
-                },
-
-                error: function (xmlHttpRequest, textStatus, errorThrown) {
-
-                    console.log(xmlHttpRequest.responseText);
-
-                    console.log(textStatus);
-
-                    console.log(errorThrown);
-
-                }
-
-            });*/
         }
       });
     }

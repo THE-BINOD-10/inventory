@@ -221,6 +221,23 @@ class OrderCharges(models.Model):
     class Meta:
         db_table = 'ORDER_CHARGES'
 
+class OrderLabels(models.Model):
+    id = BigAutoField(primary_key=True)
+    order = models.ForeignKey(OrderDetail, blank=True, null=True)
+    label = models.CharField(max_length=128, default='')
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_LABELS'
+        unique_together = ('order', 'label')
+        index_together = ('order', 'label')
+
+    def __unicode__(self):
+        return str(self.label)
+
+
 class SKUQuantity(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster)

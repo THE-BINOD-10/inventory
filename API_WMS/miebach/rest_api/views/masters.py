@@ -1195,6 +1195,7 @@ def add_warehouse_user(request, user=''):
         status = "Passwords doesn't match"
     user_exists = User.objects.filter(username=user_dict['username'])
     if not user_exists and not status:
+        user_dict['last_login'] = datetime.datetime.now()
         new_user = User.objects.create_user(**user_dict)
         new_user.is_staff = True
         new_user.save()

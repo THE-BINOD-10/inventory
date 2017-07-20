@@ -1,6 +1,6 @@
 'use strict';
 
-function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
+function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, $modal, items) {
 
   var vm = this;
   vm.state_data = items;
@@ -689,8 +689,29 @@ function pull_confirmation() {
     })
   }
 
+  vm.print_barcodes = function(picklist_id) {
+
+    var mod_data = {id: picklist_id}
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/barcodes.html',
+      controller: 'Barcodes',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      console.log(selectedItem);
+    });
+  }
 }
 
 angular
   .module('urbanApp')
-  .controller('Picklist', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', Picklist]);
+  .controller('Picklist', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', '$modal', 'items', Picklist]);

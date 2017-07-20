@@ -837,6 +837,16 @@ def pricing_master_form(request, user=''):
     return xls_to_response(wb, '%s.pricing_master_form.xls' % str(user.id))
 
 @csrf_exempt
+@get_admin_user
+def order_label_mapping_form(request, user=''):
+    returns_file = request.GET['download-pricing-master']
+    if returns_file:
+        return error_file_download(returns_file)
+
+    wb, ws = get_work_sheet('Prices', PRICING_MASTER_HEADERS)
+    return xls_to_response(wb, '%s.pricing_master_form.xls' % str(user.id))
+
+@csrf_exempt
 def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls'):
     sku_data = []
     wms_data = []
@@ -2952,7 +2962,6 @@ def pricing_excel_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
     return 'success'
 
-
 @csrf_exempt
 def validate_pricing_form(request, reader, user, no_of_rows, fname, file_type='xls'):
     sku_data = []
@@ -3030,6 +3039,96 @@ def pricing_master_upload(request, user=''):
         return HttpResponse(status)
 
     pricing_excel_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
+
+    return HttpResponse('Success')
+
+@csrf_exempt
+def validate_order_label_form(request, reader, user, no_of_rows, fname, file_type='xls'):
+    sku_data = []
+    wms_data = []
+    index_status = {}
+
+    label_mapping = copy.deepcopy(ORDER_LABEL_EXCEL_MAPPING)
+    if not label_mapping:
+        return 'Invalid File'
+
+    order_label_objs = []
+    all_order_objs = OrderDetail.objects.filter(user=user.id)
+    for row_idx in range(1, no_of_rows):
+        label_mapping_dict = {}
+        search_params = {'user': user.id}
+        for key, value in label_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, label_mapping[key], reader, file_type)
+
+            if key == 'sku_code':
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    cell_data = str(xcode(cell_data))
+                    sku_code_id = check_and_return_mapping_id(cell_data, '', user)
+                    if not sku_code_id:
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                    else:
+                        search_params['sku_id'] = sku_code_id
+                else:
+                    index_status.setdefault(row_idx, set()).add('SKU Code missing')
+            elif key == 'order_id':
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    cell_data = str(xcode(cell_data))
+                    order_objs = get_order_detail_objs(order_id, user, search_params=search_params, all_order_objs=all_order_objs)
+                    if not order_objs:
+                        index_status.setdefault(row_idx, set()).add('Invalid Order ID')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Order ID missing')
+
+            elif key == 'price':
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Invalid Price')
+
+    if not index_status:
+        return 'Success'
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def order_label_mapping_upload(request, user=''):
+    fname = request.FILES['files']
+    if fname.name.split('.')[-1] != 'xls' and fname.name.split('.')[-1] != 'xlsx':
+        return HttpResponse('Invalid File Format')
+
+    try:
+        open_book = open_workbook(filename=None, file_contents=fname.read())
+        open_sheet = open_book.sheet_by_index(0)
+    except:
+        return HttpResponse('Invalid File')
+
+    file_type = 'xls'
+    reader = open_sheet
+    no_of_rows = reader.nrows
+
+    status,  = validate_order_label_form(request, reader, user, no_of_rows, fname, file_type=file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+
+    order_label_excel_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
 
     return HttpResponse('Success')
 

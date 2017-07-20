@@ -296,6 +296,8 @@ urlpatterns += [
     url(r'customer_upload/$',customer_upload),
     url(r'^pricing_master_form/$',pricing_master_form),
     url(r'^pricing_master_upload/$',pricing_master_upload),
+    url(r'^order_label_mapping_form/$', order_label_mapping_form),
+    url(r'^order_label_mapping_upload/$', order_label_mapping_upload),
 
     #configurations
     url(r'^configurations/$',configurations),

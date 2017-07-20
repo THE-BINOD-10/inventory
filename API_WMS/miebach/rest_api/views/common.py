@@ -3076,3 +3076,14 @@ def get_sku_available_dict(user, sku_code='', location='', available=False):
         avail_stock = all_stocks.get(sku_code, 0) - pick_params.get(sku_code, 0) - rm_params.get(sku_code, 0)
         return avail_stock
     return all_stocks, reserved_dict, raw_reserved_dict
+
+def get_order_detail_objs(order_id, user, search_params={},all_order_objs = []):
+    if not search_params.has_key('user'):
+        search_params['user'] = user.id
+    if not all_order_objs:
+        all_order_objs = OrderDetail.objects.filter(user=user.id)
+    order_id_search = ''.join(re.findall('\d+', order_id))
+    order_code_search = ''.join(re.findall('\D+', order_id))
+    order_detail_objs = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) |
+                                                         Q(original_order_id=order_id_val), **search_params)
+    return order_detail_objs

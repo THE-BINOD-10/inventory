@@ -884,6 +884,8 @@ def get_picklist_data(data_id,user_id):
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['invoice_amount'] += invoice
+                if batch_data[match_condition]['marketplace'].find(marketplace) == -1:
+                    batch_data[match_condition]['marketplace'] += ","+marketplace
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
             else:

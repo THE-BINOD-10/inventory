@@ -72,27 +72,24 @@
           <td style="width: 60%;text-align:left">
             <address class="no-margin">
               <strong>Buyer</strong><br>
-              {% if marketplace == 'Offline' %}
+              {% if marketplace|lower == 'offline' %}
                 {% if customer_details.0.name == '' %}
                   {{marketplace}}</br>
                 {% endif %}
                 {% if customer_details.0.name %}
-                   &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.name}}</br>
+                   {{customer_details.0.name}}</br>
                 {% endif %}
                 {% if customer_details.0.address %}
-                   &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.address}}</br>
+                <pre class="fs10 pre-custom" style="padding:0px">{{customer_details.0.address}}</pre>
                 {% endif %}
                 {% if customer_details.0.tin_number %}
-                   &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.tin_number}}</br>
-                {% endif %}
-                {% if customer_details.0.customer_id %}
-                   &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.customer_id}}</br>
+                   <b>GSTIN No: </b>{{customer_details.0.tin_number}}</br>
                 {% endif %}
                 {% if customer_details.0.email_id %}
-                   &nbsp;&nbsp;&nbsp;&nbsp;{{customer_details.0.email_id}}</br>
+                   {{customer_details.0.email_id}}</br>
                 {%endif %}
               {%endif %}
-              {% if marketplace != 'Offline' %}
+              {% if marketplace|lower != 'offline' %}
                           {{marketplace}}<br>
               {%endif %}
             </address>

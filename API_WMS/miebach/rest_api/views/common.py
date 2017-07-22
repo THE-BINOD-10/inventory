@@ -33,6 +33,8 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Sum, Count
 import math
 from django.db.models import Max
+from django.db.models.functions import Cast
+from django.db.models.fields import DateField
 import re
 log = init_logger('logs/common.log')
 # Create your views here.
@@ -46,7 +48,7 @@ def get_company_logo(user):
     import base64
     try:
         logo_name = COMPANY_LOGO_PATHS.get(user.username, '')
-        logo_path = 'static/images/companies/' + logo_name
+        logo_path = 'static/company_logos/' + logo_name
         with open(logo_path, "rb") as image_file:
             image = base64.b64encode(image_file.read())
     except:
@@ -65,7 +67,7 @@ def number_in_words(value):
     value = (num2words(int(round(value)), lang='en_IN')).capitalize()
     return value
 
-
+@fn_timer
 def get_user_permissions(request, user):
     roles = {}
     label_perms = []
@@ -73,20 +75,19 @@ def get_user_permissions(request, user):
     if 'order_headers' not in map(lambda d: d['misc_type'], configuration):
         configuration.append({'misc_type': 'order_headers', 'misc_value': ''})
     config = dict(zip(map(operator.itemgetter('misc_type'), configuration), map(operator.itemgetter('misc_value'), configuration)))
-    user_perms = PERMISSION_KEYS
-    permissions = Permission.objects.all()
+
+    permissions = Permission.objects.exclude(codename__icontains='delete_').values('codename')
     user_perms = []
     ignore_list = PERMISSION_IGNORE_LIST
-    change_permissions = ['inventoryadjustment']
+    all_groups = user.groups.all()
     for permission in permissions:
-        temp = permission.codename.split('_')[-1]
-        if not temp in user_perms and not temp in ignore_list and ('add' in permission.codename or 'change' in permission.codename):
-            user_perms.append(permission.codename)
+        temp = permission['codename']
+        if not temp in user_perms and not temp in ignore_list:
+            user_perms.append(temp)
+            roles[temp] = get_permission(request.user, temp, groups=all_groups)
+            if roles[temp]:
+                label_perms.append(temp)
 
-    for perm in user_perms:
-        roles[perm] = get_permission(request.user, perm)
-        if roles[perm]:
-            label_perms.append(perm.replace('add_', ''))
     roles.update(config)
     return {'permissions': roles, 'label_perms': label_perms}
 
@@ -231,7 +232,7 @@ def create_user(request):
         user = User.objects.filter(username=username, email=email)
         status = "User already exists"
         if not user:
-            user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name)
+            user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name,last_login=datetime.datetime.now())
             user.save()
             hash_code = hashlib.md5(b'%s:%s' % (user.id, email)).hexdigest()
             if user:
@@ -401,9 +402,10 @@ def permissionpage(request,cond=''):
     else:
         return (request.user.is_staff or request.user.is_superuser)
 
-def get_permission(user, codename):
+def get_permission(user, codename, groups=None):
     in_group = False
-    groups = user.groups.all()
+    if not groups:
+        groups = user.groups.all()
     for grp in groups:
         in_group = codename in grp.permissions.values_list('codename', flat=True)
         if in_group:
@@ -509,6 +511,7 @@ def add_user(request, user=''):
     for key,value in request.GET.iteritems():
         if not key == 're_password':
             user_dict[key] = value
+    user_dict['last_login'] = datetime.datetime.now()
     user_exists = User.objects.filter(username=user_dict['username'])
     if not user_exists:
         new_user = User.objects.create_user(**user_dict)
@@ -577,6 +580,8 @@ def configurations(request, user=''):
     seller_margin = get_misc_value('seller_margin', user.id)
     receive_process = get_misc_value('receive_process', user.id)
     tally_config = get_misc_value('tally_config', user.id)
+    hsn_summary = get_misc_value('hsn_summary', user.id)
+    display_customer_sku = get_misc_value('display_customer_sku', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
@@ -678,7 +683,8 @@ def configurations(request, user=''):
                                                              'view_order_status': view_order_status, 'style_headers': style_headers,
                                                              'sku_sync': sku_sync, 'seller_margin': seller_margin,
                                                              'receive_process': receive_process, 'receive_options': RECEIVE_OPTIONS,
-                                                             'tally_config': tally_config, 'tax_data': tax_data}))
+                                                             'tally_config': tally_config, 'tax_data': tax_data, 'hsn_summary': hsn_summary,
+                                                             'display_customer_sku': display_customer_sku}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -1059,6 +1065,7 @@ def auto_po(wms_codes, user):
 def rewrite_excel_file(f_name, index_status, open_sheet):
     #wb = Workbook()
     #ws = wb.add_sheet(open_sheet.name)
+    f_name = f_name.replace('+', '')
     wb1, ws1 = get_work_sheet(open_sheet.name, [], f_name)
 
     if 'xlsx' in f_name:
@@ -1106,6 +1113,7 @@ def read_and_send_excel(file_name):
 def rewrite_csv_file(f_name, index_status, reader):
     path = 'static/temp_files/'
     folder_check(path)
+    f_name = f_name.replace('+', '')
     with open(path + f_name, 'w') as mycsvfile:
         thedatawriter = csv.writer(mycsvfile, delimiter=',')
         counter = 0
@@ -1124,6 +1132,7 @@ def write_error_file(f_name, index_status, open_sheet, headers_data, work_sheet)
     headers.append('Status')
     wb, ws = get_work_sheet(work_sheet, headers)
 
+    f_name = f_name.replace('+', '')
     for row_idx in range(1, open_sheet.nrows):
         for col_idx in range(0, len(headers_data)):
             ws.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
@@ -1326,9 +1335,15 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
     data_dict['status'] = 0
     data_dict['creation_date'] = now
     data_dict['updation_date'] = now
-    #cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
-    dat = CycleCount(**data_dict)
-    dat.save()
+    cycle_obj = CycleCount.objects.filter(cycle=cycle_id, sku_id=sku_id, location_id=data_dict['location_id'])
+    if cycle_obj:
+        cycle_obj = cycle_obj[0]
+        cycle_obj.seen_quantity += quantity
+        cycle_obj.save()
+        dat = cycle_obj
+    else:
+        dat = CycleCount(**data_dict)
+        dat.save()
 
     data = copy.deepcopy(INVENTORY_FIELDS)
     data['cycle_id'] = dat.id
@@ -1338,8 +1353,14 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
     data['creation_date'] = now
     data['updation_date'] = now
 
-    dat = InventoryAdjustment(**data)
-    dat.save()
+    inv_obj = InventoryAdjustment.objects.filter(cycle__cycle=dat.cycle, adjusted_location=location[0].id, cycle__sku__user=user.id)
+    if inv_obj:
+        inv_obj = inv_obj[0]
+        inv_obj.adjusted_quantity = quantity
+        inv_obj.save()
+    else:
+        dat = InventoryAdjustment(**data)
+        dat.save()
 
     return 'Added Successfully'
 
@@ -1380,8 +1401,9 @@ def add_group_data(request, user=''):
         else:
             for i in sub_perms:
                 reversed_perms[i[1]] = i[0]
+
     for permission in permissions:
-        temp = permission.codename.split('_')[-1]
+        temp = permission.codename
         if not temp in perms_list and not temp in ignore_list:
             if temp in reversed_perms.keys() and reversed_perms[temp] not in perms_list:
                 perms_list.append(reversed_perms[temp])
@@ -1397,11 +1419,11 @@ def add_group(request, user=''):
     brands_list = ''
     group = ''
     permission_dict = copy.deepcopy(PERMISSION_DICT)
-    reversed_perms = {} 
+    reversed_perms = {}
     for key, value in permission_dict.iteritems():
         sub_perms = permission_dict[key]
         for i in sub_perms:
-            reversed_perms[i[1]] = i[0] 
+            reversed_perms[i[1]] = i[0]
     #reversed_perms = OrderedDict(( ([(value, key) for key, value in permission_dict.iteritems()]) ))
     selected = request.POST.get('perm_selected')
     stages = request.POST.get('stage_selected')
@@ -1447,17 +1469,15 @@ def add_group(request, user=''):
                 if len(sub_perms) == 2:
                     if sub_perms[0] == perm:
                         permi = sub_perms[1]
-                        permissions = Permission.objects.filter(codename__icontains=permi)
+                        permissions = Permission.objects.filter(codename=permi)
                         for permission in permissions:
                             group.permissions.add(permission)
                 else:
-                    for i in sub_perms:
-                        if i[0] == perm:
-                            permi = i[1]
-                            #perm = permission_dict.get(perm, '')
-                            permissions = Permission.objects.filter(codename__icontains=permi)
-                            for permission in permissions:
-                                group.permissions.add(permission)
+                    sub_perms = dict(sub_perms)
+                    if sub_perms.has_key(perm):
+                        permissions = Permission.objects.filter(codename=sub_perms[perm])
+                        for permission in permissions:
+                            group.permissions.add(permission)
         user.groups.add(group)
     return HttpResponse('Updated Successfully')
 
@@ -1736,11 +1756,25 @@ def check_and_update_order(user, order_id):
         except:
             continue
 
-def get_invoice_number(user):
-    invoice_number = 1
-    invoice_detail = InvoiceDetail.objects.filter(user.id).order_by('-invoice_number')
-    if invoice_detail:
-        invoice_number = int(invoice_detail[0].invoice_number) + 1
+def get_financial_year(date):
+    # It will return financial period
+
+    date = date.date()
+    year_of_date=date.year
+    financial_year_start_date = datetime.datetime.strptime(str(year_of_date)+"-04-01","%Y-%m-%d").date()
+    if date<financial_year_start_date:
+        return str(financial_year_start_date.year-1)[2:] +'-' + str(financial_year_start_date.year)[2:]
+    else:
+        return str(financial_year_start_date.year)[2:] + '-' + str(financial_year_start_date.year+1)[2:]
+
+def get_invoice_number(user, order_no, invoice_date):
+    invoice_number = ""
+    if user.user_type == 'marketplace_user':
+        invoice_number = user.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
+    elif user.user.username == 'TranceHomeLinen':
+        invoice_number = user.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(order_no)
+    else:
+        invoice_number = 'TI/%s/%s' %(invoice_date.strftime('%m%y'), order_no)
     return invoice_number
 
 def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
@@ -1764,6 +1798,11 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     is_gst_invoice = False
     gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
     invoice_date = datetime.datetime.now()
+    hsn_summary = {}
+    display_customer_sku = get_misc_value('display_customer_sku', user.id)
+    if display_customer_sku == 'true':
+        customer_sku_codes = CustomerSKU.objects.filter(sku__user=user.id).exclude(customer_sku_code='').values('sku__sku_code',
+                                                        'customer__customer_id', 'customer_sku_code')
     if order_ids:
         order_ids = order_ids.split(',')
         order_data = OrderDetail.objects.filter(id__in=order_ids)
@@ -1788,9 +1827,8 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             if not order_date:
                 order_date = get_local_date(user, dat.creation_date, send_date='true')
                 order_date = order_date.strftime("%d %b %Y")
-            if dat.customer_id and dat.customer_name and not customer_details:
-                customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id,
-                                                                      name=dat.customer_name).\
+            if dat.customer_id and not customer_details:
+                customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id).\
                                                           values('customer_id', 'name', 'email_id', 'tin_number', 'address',
                                                                  'credit_period', 'phone_number'))
                 if customer_details:
@@ -1851,6 +1889,11 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
 
             amt = (unit_price * quantity) - discount
             base_price = "%.2f" % (unit_price * quantity)
+
+            hsn_code = ''
+            if dat.sku.hsn_code:
+                hsn_code = str(dat.sku.hsn_code)
+
             if is_gst_invoice:
                 cgst_amt = float(cgst_tax) * (float(amt)/100)
                 sgst_amt = float(sgst_tax) * (float(amt)/100)
@@ -1865,6 +1908,20 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                 total_taxes['utgst_amt'] += float(taxes_dict['utgst_amt'])
                 _tax = float(taxes_dict['cgst_amt']) + float(taxes_dict['sgst_amt']) + float(taxes_dict['igst_amt']) +\
                        float(taxes_dict['utgst_amt'])
+                summary_key = str(hsn_code) + "@" + str(cgst_tax + sgst_tax + igst_tax + utgst_tax)
+                if hsn_summary.get(summary_key, ''):
+                    hsn_summary[summary_key]['taxable'] += float(base_price)
+                    hsn_summary[summary_key]['sgst_amt'] += float(sgst_amt)
+                    hsn_summary[summary_key]['cgst_amt'] += float(cgst_amt)
+                    hsn_summary[summary_key]['igst_amt'] += float(igst_amt)
+                    hsn_summary[summary_key]['utgst_amt'] += float(utgst_amt)
+                else:
+                    hsn_summary[summary_key] = {}
+                    hsn_summary[summary_key]['taxable'] = float(base_price)
+                    hsn_summary[summary_key]['sgst_amt'] = float(sgst_amt)
+                    hsn_summary[summary_key]['cgst_amt'] = float(cgst_amt)
+                    hsn_summary[summary_key]['igst_amt'] = float(igst_amt)
+                    hsn_summary[summary_key]['utgst_amt'] = float(utgst_amt)
             else:
                 _tax = (amt * (vat / 100))
 
@@ -1875,15 +1932,19 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             total_invoice += _tax + amt
             total_taxable_amt += amt
 
-            hsn_code = ''
-            if dat.sku.hsn_code:
-                hsn_code = str(dat.sku.hsn_code)
-            data.append({'order_id': order_id, 'sku_code': dat.sku.sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
+            sku_code = dat.sku.sku_code
+            if display_customer_sku == 'true':
+                customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,sku__sku_code=sku_code)
+                if customer_sku_code_ins:
+                    sku_code = customer_sku_code_ins[0]['customer_sku_code']
+            data.append({'order_id': order_id, 'sku_code': sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
                          'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
                          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
                          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
                          'base_price': base_price, 'hsn_code': hsn_code})
 
+
+    _invoice_no = get_invoice_number(user_profile, order_no, invoice_date)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
     order_charges = {}
@@ -1898,10 +1959,13 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
 
     total_amt = "%.2f" % (float(total_invoice) - float(_total_tax))
     dispatch_through = "By Road"
-    _total_invoice = round(total_invoice)
-    _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
+    _total_invoice = round(total_invoice_amount)
+    #_invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
 
     image = get_company_logo(user)
+    declaration = DECLARATIONS.get(user.username, '')
+    if not declaration:
+        declaration = DECLARATIONS['default']
     invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'marketplace': marketplace, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
@@ -1910,7 +1974,8 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                     'order_charges': order_charges, 'total_invoice_amount': "%.2f" % total_invoice_amount, 'consignee': consignee,
                     'dispatch_through': dispatch_through, 'inv_date': inv_date, 'tax_type': tax_type,
                     'rounded_invoice_amount': _total_invoice, 'purchase_type': purchase_type, 'is_gst_invoice': is_gst_invoice,
-                    'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes, 'image': image}
+                    'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes, 'image': image,
+                    'total_tax_words': number_in_words(_total_tax), 'declaration': declaration, 'hsn_summary': hsn_summary}
 
     return invoice_data
 
@@ -2015,8 +2080,8 @@ def resize_image(url, user):
         if not os.path.exists(path + folder):
             os.makedirs(path + folder)
 
-        if os.path.exists(path+folder+"/"+new_file_name):
-            return "/"+path+folder+"/"+new_file_name;
+        #if os.path.exists(path+folder+"/"+new_file_name):
+        #    return "/"+path+folder+"/"+new_file_name;
 
         try:
             from PIL import Image
@@ -2275,7 +2340,7 @@ def get_group_data(request, user=''):
     permissions = group.permissions.values_list('codename', flat=True)
     perms = []
     for perm in permissions:
-        temp = perm.split('_')[-1]
+        temp = perm
         if temp in reversed_perms.keys() and (reversed_perms[temp] not in perms):
             perms.append(reversed_perms[temp])
     return HttpResponse(json.dumps({'group_name': group_name, 'data': {'brands': brands, 'stages': stages, 'permissions': perms}}))
@@ -2305,7 +2370,8 @@ def create_update_user(data, password, username):
         if user:
             status = "User already exists"
         else:
-            user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name)
+            user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name,
+                                            last_login=datetime.datetime.now())
             user.save()
             hash_code = hashlib.md5(b'%s:%s' % (user.id, email)).hexdigest()
             if user:
@@ -2924,6 +2990,8 @@ def get_sku_stock_check(request, user=''):
     load_unit_handle = ''
     if stock_data:
         load_unit_handle = stock_data[0].sku.load_unit_handle
+    else:
+        return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     zones_data = get_sku_stock_summary(stock_data, load_unit_handle, user)
     return HttpResponse(json.dumps({'status': 1, 'data': zones_data}))
 
@@ -2979,3 +3047,32 @@ def get_seller_reserved_stocks(dis_seller_ids, sell_stock_ids, user):
                                            values('material_picklist__jo_material__material_code__wms_code').distinct().\
                                            annotate(rm_reserved=Sum('reserved')))
     return reserved_dict, raw_reserved_dict
+
+def get_sku_available_dict(user, sku_code='', location='', available=False):
+    reserved_dict = OrderedDict()
+    raw_reserved_dict = OrderedDict()
+    pick_params = {'status': 1, 'picklist__order__user': user.id}
+    rm_params = {'status': 1, 'material_picklist__jo_material__material_code__user': user.id}
+    stock_params = {}
+    if sku_code:
+        stock_params['sku__sku_code'] = sku_code
+        pick_params['stock__sku__sku_code'] = sku_code
+        rm_params['stock__sku__sku_code'] = sku_code
+    if location:
+        stock_params['location__location'] = location
+        pick_params['stock__location__location'] = location
+        rm_params['stock__location__location'] = location
+    all_stocks = dict(StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).\
+                                          filter(quantity__gt=0, **stock_params).values_list('sku__wms_code').distinct().\
+                                          annotate(reserved=Sum('quantity')))
+    pick_params = {'status': 1, 'picklist__order__user': user.id}
+    rm_params = {'status': 1, 'material_picklist__jo_material__material_code__user': user.id}
+    reserved_dict = dict(PicklistLocation.objects.filter(**pick_params).\
+                                 values_list('stock__sku__wms_code').distinct().annotate(reserved=Sum('reserved')))
+    raw_reserved_dict = dict(RMLocation.objects.filter(**rm_params).\
+                                        values('material_picklist__jo_material__material_code__wms_code').distinct().\
+                                           annotate(rm_reserved=Sum('reserved')))
+    if available:
+        avail_stock = all_stocks.get(sku_code, 0) - pick_params.get(sku_code, 0) - rm_params.get(sku_code, 0)
+        return avail_stock
+    return all_stocks, reserved_dict, raw_reserved_dict

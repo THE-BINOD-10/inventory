@@ -99,7 +99,7 @@ function ServerSideProcessingCtrl($scope, $state, $http, $compile, Session, DTOp
     function generate_cycle() {
       vm.bt_disable = true;
       for(var key in vm.selected){
-        if(vm.selected[key]) {	
+        if(vm.selected[key]) {
           vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[Number(key)]["_aData"]);
         }
       }
@@ -115,7 +115,7 @@ function ServerSideProcessingCtrl($scope, $state, $http, $compile, Session, DTOp
           if(data.message) {
             angular.copy(data.data, vm.model_data);
             $state.go('app.stockLocator.CycleCount.Generate')
-            reloadData();
+            vm.reloadData();
           }
         });
         console.log(vm.generate_data);
@@ -145,6 +145,7 @@ function ServerSideProcessingCtrl($scope, $state, $http, $compile, Session, DTOp
           if(data.message) {
             angular.copy(data.data, vm.model_data);
             $state.go('app.stockLocator.CycleCount.Generate');
+            vm.reloadData();
           }
         });
       }

@@ -289,7 +289,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.Customer-SKUMapping', {
           url: '/Customer-SKUMapping',
-          permission: 'add_customersku&pos_switch',
+          permission: 'add_customersku',
           templateUrl: 'views/masters/customer_sku_mapping_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -375,7 +375,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.CustomSKUMaster', {
           url: '/CustomSKUMaster',
-          permission: 'productproperties',
+          permission: 'add_productproperties',
           templateUrl: 'views/masters/custom_sku_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -499,17 +499,14 @@ var app = angular.module('urbanApp')
         })
           .state('app.inbound.RaisePo.PurchaseOrder', {
           url: '/PurchaseOrder',
-          permission: 'add_openpo',
           templateUrl: 'views/inbound/toggle/raise_purchase.html'
           })
           .state('app.inbound.RaisePo.StockTransfer', {
           url: '/StockTransfer',
-          permission: 'add_openpo',
           templateUrl: 'views/inbound/toggle/raise_stock.html'
           })
           .state('app.inbound.RaisePo.PurchaseOrderPrint', {
           url: '/PurchaseOrderPrint',
-          permission: 'add_openpo',
           telmplateUrl: 'views/inbound/print/po_print.html'
           })
           .state('app.inbound.RaisePo.barcode', {
@@ -533,12 +530,10 @@ var app = angular.module('urbanApp')
         })
           .state('app.inbound.RevceivePo.GRN', {
           url: '/GRN',
-          permission: 'add_purchaseorder',
           templateUrl: 'views/inbound/toggle/generate_grn.html'
           })
           .state('app.inbound.RevceivePo.Vendor', {
           url: '/Vendor',
-          permission: 'add_purchaseorder',
           templateUrl: 'views/inbound/toggle/recieve_vendor.html'
           })
           .state('app.inbound.RevceivePo.barcode', {
@@ -564,12 +559,10 @@ var app = angular.module('urbanApp')
         })
           .state('app.inbound.QualityCheck.qc', {
             url: '/QC',
-            permission: 'add_qualitycheck',
             templateUrl: 'views/inbound/toggle/qc.html'
           })
           .state('app.inbound.QualityCheck.qc_detail', {
             url: '/QC_Detail',
-            permission: 'add_qualitycheck',
             templateUrl: 'views/inbound/toggle/qc_detail.html'
           })
         .state('app.inbound.PutAwayConfirmation', {
@@ -597,7 +590,6 @@ var app = angular.module('urbanApp')
         })
           .state('app.inbound.PutAwayConfirmation.confirmation', {
             url: '/Confirmation',
-            permission: 'add_polocation',
             templateUrl: 'views/inbound/toggle/putaway_confirm.html'
           })
         .state('app.inbound.SalesReturns', {
@@ -615,7 +607,6 @@ var app = angular.module('urbanApp')
         })
           .state('app.inbound.SalesReturns.ScanReturns', {
             url: '/ScanReturns',
-            permission: 'add_orderreturns',
             templateUrl: 'views/inbound/toggle/scan_returns.html'
           })
           .state('app.inbound.SalesReturns.barcode', {
@@ -666,17 +657,14 @@ var app = angular.module('urbanApp')
         })
           .state('app.production.RaiseJO.JO', {
             url: '/JO',
-            permission: 'add_jomaterial&production_switch',
             templateUrl: 'views/production/toggle/update_jo.html'
           })
           .state('app.production.RaiseJO.RWO', {
             url: '/RWO',
-            permission: 'add_jomaterial&production_switch',
             templateUrl: 'views/production/toggle/update_rwo.html'
           })
           .state('app.production.RaiseJO.JobOrderPrint', {
             url: '/JobOrderPrint',
-            permission: 'add_jomaterial&production_switch',
             templateUrl: 'views/production/print/job_order_print.html'
           })
         .state('app.production.RMPicklist', {
@@ -700,12 +688,10 @@ var app = angular.module('urbanApp')
         })
           .state('app.production.RMPicklist.ConfirmedJO', {
             url: '/ConfirmedJO',
-            permission: 'add_materialpicklist&production_switch',
             templateUrl: 'views/production/toggle/confirmed_jo.html'
           })
           .state('app.production.RMPicklist.RawMaterialPicklist', {
             url: '/RawMaterialPicklist',
-            permission: 'add_materialpicklist&production_switch',
             templateUrl: 'views/production/toggle/raw_material_picklist.html'
           })
         .state('app.production.ReveiveJO', {
@@ -723,12 +709,10 @@ var app = angular.module('urbanApp')
         })
           .state('app.production.ReveiveJO.ReceiveJobOrder', {
             url: '/ReceiveJobOrder',
-            permission: 'add_joborder&production_switch',
             templateUrl: 'views/production/toggle/receive_job_order.html'
           })
           .state('app.production.ReveiveJO.Print', {
             url: '/Print',
-            permission: 'add_joborder&production_switch',
             templateUrl: 'views/production/print/job_order_sheet.html'
           })
         .state('app.production.JobOrderPutaway', {
@@ -746,7 +730,6 @@ var app = angular.module('urbanApp')
         })
           .state('app.production.JobOrderPutaway.JOPutaway', {
             url: '/JOPutaway',
-            permission: 'add_rmlocation&production_switch',
             templateUrl: 'views/production/toggle/job_order_putaway.html'
           })
         .state('app.production.BackOrders', {
@@ -767,7 +750,6 @@ var app = angular.module('urbanApp')
           })
           .state('app.outbound.BackOrders.ST', {
             url: '/ST',
-            permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -864,12 +846,10 @@ var app = angular.module('urbanApp')
         })
           .state('app.stockLocator.CycleCount.Generate', {
             url: '/Generate',
-            permission: 'add_cyclecount',
             templateUrl: 'views/stockLocator/toggles/cycle_tg.html'
           })
           .state('app.stockLocator.CycleCount.ConfirmCycle', {
             url: '/ConfirmCycle',
-            permission: 'add_cyclecount',
             templateUrl: 'views/stockLocator/toggles/cycle_tg.html'
           })
         .state('app.stockLocator.MoveInventory', {
@@ -887,12 +867,10 @@ var app = angular.module('urbanApp')
         })
           .state('app.stockLocator.MoveInventory.Inventory', {
             url: '/Inventory',
-            permission: 'update_inventoryadjustment',
             templateUrl: 'views/stockLocator/toggles/mv_inventory_tg.html'
           })
           .state('app.stockLocator.MoveInventory.IMEI', {
             url: '/IMEI',
-            permission: 'update_inventoryadjustment',
             templateUrl: 'views/stockLocator/toggles/imei.html'
           })
         .state('app.stockLocator.InventoryAdjustment', {
@@ -910,7 +888,6 @@ var app = angular.module('urbanApp')
         })
           .state('app.stockLocator.InventoryAdjustment.Adjustment', {
             url: '/Adjustment',
-            permission: 'add_inventoryadjustment',
             templateUrl: 'views/stockLocator/toggles/inventory_adj_tg.html'
           })
         .state('app.stockLocator.SellerStock', {
@@ -995,27 +972,22 @@ var app = angular.module('urbanApp')
         })
           .state('app.outbound.ViewOrders.Picklist', {
             url: '/Picklist',
-            permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/batch_tg.html'
           })
           .state('app.outbound.ViewOrders.Transfer', {
             url: '/Transfer',
-            permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/transfer_tg.html'
           })
           .state('app.outbound.ViewOrders.CreateOrder', {
             url: '/CreateOrder',
-            permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/create_order.html'
           })
           .state('app.outbound.ViewOrders.CreateTransfer', {
             url: '/CreateTransfer',
-            permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/create_stock_transfer.html'
           })
           .state('app.outbound.ViewOrders.JO', {
             url: '/RaiseJO?data',
-            permission: 'add_picklist&batch_switch',
             templateUrl: 'views/outbound/toggle/back/backorder_jo.html',
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -1025,7 +997,6 @@ var app = angular.module('urbanApp')
           })
           .state('app.outbound.ViewOrders.PO', {
             url: '/RaisePO?data',
-            permission: 'add_picklist&batch_switch',
             templateUrl: 'views/outbound/toggle/back/backorder_po.html',
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -1035,27 +1006,22 @@ var app = angular.module('urbanApp')
           })
           .state('app.outbound.ViewOrders.OrderDetails', {
             url: '/OrderDetails',
-            permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/view_order_details.html'
           })
           .state('app.outbound.ViewOrders.CustomOrderDetails', {
             url: '/CustomOrderDetails',
-            permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/custom_order_detail.html'
           })
           .state('app.outbound.ViewOrders.GenerateInvoice', {
             url: '/Invoice',
-            permission: 'add_picklist',
             templateUrl: 'views/outbound/print/generate_inv.html'
           })
           .state('app.outbound.ViewOrders.DetailGenerateInvoice', {
             url: '/DetailInvoice',
-            permission: 'add_picklist',
             templateUrl: 'views/outbound/print/d_generate_inv.html'
           })
           .state('app.outbound.ViewOrders.ST', {
             url: '/ST?data',
-            permission: 'add_picklist',
             templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -1092,17 +1058,14 @@ var app = angular.module('urbanApp')
         })
           .state('app.outbound.PullConfirmation.Open', {
             url: '/Open',
-            permission: 'add_picklistlocation',
             templateUrl: 'views/outbound/toggle/open_tg.html'
           })
           .state('app.outbound.PullConfirmation.Picked', {
             url: '/Picked',
-            permission: 'add_picklistlocation',
             templateUrl: 'views/outbound/toggle/picked_tg.html'
           })
           .state('app.outbound.PullConfirmation.GenerateInvoice', {
             url: '/Invoice',
-            permission: 'add_picklistlocation',
             templateUrl: 'views/outbound/print/generate_inv.html',
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -1123,7 +1086,6 @@ var app = angular.module('urbanApp')
           })
           .state('app.outbound.PullConfirmation.DetailGenerateInvoice', {
             url: '/DetailInvoice',
-            permission: 'add_picklist',
             templateUrl: 'views/outbound/print/d_generate_inv.html'
           })
         .state('app.outbound.ShipmentInfo', {
@@ -1147,12 +1109,10 @@ var app = angular.module('urbanApp')
         })
           .state('app.outbound.ShipmentInfo.Shipment', {
             url: '/Shipment',
-            permission: 'add_shipmentinfo',
             templateUrl: 'views/outbound/toggle/ship_tg.html'
           })
           .state('app.outbound.ShipmentInfo.ConfirmShipment', {
             url: '/ConfirmShipment',
-            permission: 'add_shipmentinfo',
             templateUrl: 'views/outbound/toggle/confirm_ship_tg.html'
           })
         .state('app.outbound.BackOrders', {
@@ -1210,7 +1170,6 @@ var app = angular.module('urbanApp')
          })
          .state('app.outbound.CustomerInvoices.InvoiceN', {
             url: '/InvoiceN',
-            permission: 'add_picklistlocation',
             templateUrl: 'views/outbound/print/generate_inv.html',
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {

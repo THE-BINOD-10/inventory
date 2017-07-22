@@ -270,8 +270,11 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
         price_types = list(PriceMaster.objects.exclude(price_type ="").filter(sku__user = data.user).values_list('price_type', flat = True).distinct())
 
         price_type = data.price_type
+        phone_number = ''
+        if data.phone_number and data.phone_number != '0':
+            phone_number = data.phone_number
         temp_data['aaData'].append(OrderedDict(( ('customer_id', data.customer_id), ('name', data.name), ('address', data.address),
-                                                 ('phone_number', data.phone_number), ('email_id', data.email_id), ('status', status),
+                                                 ('phone_number', phone_number), ('email_id', data.email_id), ('status', status),
                                                  ('tin_number', data.tin_number), ('credit_period', data.credit_period),
                                                  ('login_created', login_created), ('username', user_name), ('price_type_list', price_types),
                                                  ('price_type', price_type), ('cst_number', data.cst_number),
@@ -311,14 +314,15 @@ def get_customer_sku_mapping(start_index, stop_index, temp_data, search_term, or
     if order_term:
         master_data = CustomerSKU.objects.filter(sku__user=user.id, **search_params).order_by(order_data)
     if search_term:
-        master_data = CustomerSKU.objects.filter(Q(customer_name__customer_id=search_term) | Q(customer_name__name__icontains=search_term) | Q(sku__sku_code__icontains=search_term) | Q(price__icontains=search_term), sku__user=user.id, **search_params)
+        master_data = CustomerSKU.objects.filter(Q(customer__customer_id=search_term) | Q(customer__name__icontains=search_term) | Q(sku__sku_code__icontains=search_term) | Q(price__icontains=search_term), sku__user=user.id, **search_params)
 
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
-        temp_data['aaData'].append(OrderedDict(( ('DT_RowId', data.id), ('customer_id', data.customer_name.customer_id),
-                                                 ('customer_name', data.customer_name.name),
-                                                 ('sku_code', data.sku.sku_code), ('price', data.price), ('DT_RowClass', 'results') )))
+        temp_data['aaData'].append(OrderedDict(( ('DT_RowId', data.id), ('customer_id', data.customer.customer_id),
+                                                 ('customer_name', data.customer.name),
+                                                 ('sku_code', data.sku.sku_code), ('customer_sku_code', data.customer_sku_code),
+                                                 ('DT_RowClass', 'results') )))
 
 @csrf_exempt
 def get_vendor_master_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -409,7 +413,7 @@ def get_sku_data(request,user=''):
     load_unit_dict = {'unit': 0, 'pallet': 1}
 
     zone_name = ''
-    if data.zone_id:
+    if data.zone:
         zone_name = data.zone.zone
 
     zone_list = []
@@ -838,7 +842,7 @@ def update_customer_values(request,user=''):
     log.info('Update Customer Values request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         data_id = request.POST['customer_id']
-        username = request.POST['username']
+        username = request.POST.get('username', '')
         data = get_or_none(CustomerMaster, {'customer_id': data_id, 'user': user.id})
         create_login = request.POST.get('create_login', '')
         login_created = request.POST.get('login_created', '')
@@ -903,7 +907,7 @@ def insert_customer(request, user=''):
         if not data:
             data_dict = copy.deepcopy(CUSTOMER_DATA)
             for key, value in request.POST.iteritems():
-                if key in ['create_login', 'password', 'login_created', 'username']:
+                if key in ['create_login', 'password', 'login_created', 'username', 'data-id', 'login-created']:
                     continue
                 if key == 'status':
                     if value == 'Active':
@@ -940,13 +944,13 @@ def update_customer_sku_mapping(request , user=""):
     data_id = request.POST['data-id']
     cust_name = request.POST['customer_name']
     cust_sku = request.POST['sku_code']
-    cust_price = request.POST['price']
+    cust_sku_code = request.POST.get('customer_sku_code', '')
     customer_id = request.POST['customer_id']
     data = CustomerSKU.objects.filter(id = data_id)
     if not data:
         return HttpResponse("This Customer SKU Mapping doesn't exists")
     sku_data = SKUMaster.objects.filter(sku_code = cust_sku, user = user.id)
-    cust_sku = CustomerSKU.objects.filter(customer_name__customer_id=customer_id, customer_name__name = cust_name, sku__sku_code = cust_sku, sku__user=user.id).exclude(id=data_id)
+    cust_sku = CustomerSKU.objects.filter(customer__customer_id=customer_id, customer__name = cust_name, sku__sku_code = cust_sku, sku__user=user.id).exclude(id=data_id)
     if not sku_data:
         return HttpResponse("Given SKU Code doesn't exists")
     elif cust_sku:
@@ -954,9 +958,8 @@ def update_customer_sku_mapping(request , user=""):
     else:
         data = data[0]
         data.sku_id = sku_data[0].id
-        data.price = cust_price
+        data.customer_sku_code = cust_sku_code
         data.save()
-        
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt
@@ -968,7 +971,7 @@ def insert_customer_sku(request, user=''):
         return HttpResponse('Given Customer ID / Name not correct.')
     ID = str(customer_id.split(":")[0])
     name = str(customer_id.split(":")[1][1:])
-    customer_sku_data = filter_or_none(CustomerSKU, {'customer_name__customer_id': ID, 'sku__sku_code': request.POST['sku_code'], 'sku__user': user.id})
+    customer_sku_data = filter_or_none(CustomerSKU, {'customer__customer_id': ID, 'sku__sku_code': request.POST['sku_code'], 'sku__user': user.id})
     if customer_sku_data:
         return HttpResponse('Customer SKU Mapping already exists.')
     status_msg = 'Supplier Exists'
@@ -983,10 +986,12 @@ def insert_customer_sku(request, user=''):
     for key, value in request.POST.iteritems():
         if key == 'customer_id':
             value = customer_data[0].id
-            key = "customer_name_id"
-        if key == 'sku_code':
+        elif key == 'sku_code':
             value = customer_sku[0].id
             key = "sku_id"
+        elif key == 'price':
+            if not value:
+                value = 0
         data_dict[key] = value
 
     customer = CustomerSKU(**data_dict)
@@ -1179,6 +1184,7 @@ def update_warehouse_user(request, user=''):
 @get_admin_user
 def add_warehouse_user(request, user=''):
     status = ''
+    exist_user_profile = UserProfile.objects.get(user_id=user.id)
     user_dict = copy.deepcopy(ADD_USER_DICT)
     user_profile_dict = copy.deepcopy(ADD_WAREHOUSE_DICT)
     for key,value in request.POST.iteritems():
@@ -1190,6 +1196,7 @@ def add_warehouse_user(request, user=''):
         status = "Passwords doesn't match"
     user_exists = User.objects.filter(username=user_dict['username'])
     if not user_exists and not status:
+        user_dict['last_login'] = datetime.datetime.now()
         new_user = User.objects.create_user(**user_dict)
         new_user.is_staff = True
         new_user.save()
@@ -1200,8 +1207,10 @@ def add_warehouse_user(request, user=''):
             user_profile_dict['pin_code'] = 0
         if not user_profile_dict.get('phone_number', 0):
             user_profile_dict['phone_number'] = 0
+        user_profile_dict['user_type'] = exist_user_profile.user_type
         user_profile = UserProfile(**user_profile_dict)
         user_profile.save()
+        add_user_type_permissions(user_profile)
         group,created = Group.objects.get_or_create(name=new_user.username)
         admin_dict = {'group_id': group.id, 'user_id': new_user.id}
         admin_group  = AdminGroups(**admin_dict)

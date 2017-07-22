@@ -58,20 +58,17 @@
                         <span ng-if="user.userName != 'campus_sutra'">Bill To,</span>
                         <span ng-if="user.userName == 'campus_sutra'">CONSIGNEE,</span>
                       </strong><br>
-                      <div ng-if = "showCase.pdf_data.marketplace == 'Offline'">
+                      <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'">
                         <p style="margin-bottom:0px" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
                         <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].name">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].name}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].address">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].address}}</p>
+                           {{showCase.pdf_data.customer_details[0].name}}</p>
+                        <pre class="fs10 pre-custom" style="padding:0px" ng-if="showCase.pdf_data.customer_details[0].address">{{showCase.pdf_data.customer_details[0].address}}</pre>
                         <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].tin_number">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].tin_number}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].customer_id">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].customer_id}}</p>
+                           <b>GSTIN No: </b>{{showCase.pdf_data.customer_details[0].tin_number}}</p>
                         <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].email_id">
-                          &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].email_id}}</p>
+                          {{showCase.pdf_data.customer_details[0].email_id}}</p>
                       </div>
-                      <div ng-if = "showCase.pdf_data.marketplace != 'Offline'">
+                      <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'">
                         {{showCase.pdf_data.marketplace}}<br>
                       </div>
                     </address>
@@ -81,20 +78,17 @@
                       <strong>
                         <span>Ship To,</span>
                       </strong><br>
-                      <div ng-if = "showCase.pdf_data.marketplace == 'Offline'">
+                      <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'">
                         <p style="margin-bottom:0px" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
                         <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].name">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].name}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].address">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].address}}</p>
+                          {{showCase.pdf_data.customer_details[0].name}}</p>
+                        <pre class="fs10 pre-custom" style="padding:0px" ng-if="showCase.pdf_data.customer_details[0].address">{{showCase.pdf_data.customer_details[0].address}}</pre>
                         <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].tin_number">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].tin_number}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].customer_id">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].customer_id}}</p>
+                           <b>GSTIN No: </b>{{showCase.pdf_data.customer_details[0].tin_number}}</p>
                         <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].email_id">
-                          &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].email_id}}</p>
+                           {{showCase.pdf_data.customer_details[0].email_id}}</p>
                       </div>
-                      <div ng-if = "showCase.pdf_data.marketplace != 'Offline'">
+                      <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'">
                         {{showCase.pdf_data.marketplace}}<br>
                       </div>
                     </address>

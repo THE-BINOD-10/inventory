@@ -64,11 +64,11 @@
             <span>Customer Master</span>
           </a>
         </li>
-        <!--<li ui-sref-active="active" ng-show="show_tab('add_customersku') && show_tab('pos_switch')">
+        <li ui-sref-active="active" ng-show="show_tab('add_customersku')">
           <a ui-sref="app.masters.Customer-SKUMapping">
             <span>Customer-SKU Mapping</span>
           </a>
-        </li>-->
+        </li>
         <li ui-sref-active="active" ng-show="show_tab('add_bommaster') && show_tab('production_switch')">
           <a ui-sref="app.masters.BOMMaster">
             <span>BOM Master</span>
@@ -232,7 +232,7 @@
             <span>Inventory Adjustment</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('add_add_usergroups')">
           <a ui-sref="app.stockLocator.WarehousesStock">
             <span>Warehouse's Stock</span>
           </a>

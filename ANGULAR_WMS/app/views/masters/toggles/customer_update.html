@@ -22,6 +22,8 @@
               </label>
             </div>
           </div>
+          <input ng-if="showCase.model_data.create_login && !(showCase.model_data.login_created)" type="hidden" name="create_login" value="{{showCase.model_data.create_login}}">
+          <input type="hidden" name="data-id" value="{{showCase.model_data.data-id}}">
           <div class="row">
             <div class="col-md-4">
               <div class="form-group">
@@ -40,7 +42,7 @@
             </div>
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label"> TIN Number </label>
+                <label class="control-label"> GSTIN Number </label>
                 <input type="text" name="tin_number" class="form-control" ng-model="showCase.model_data.tin_number" maxlength="256">
               </div>
             </div>
@@ -60,12 +62,6 @@
                    <label class="control-label"> CST </label>
                    <input type="text" name="cst_number" class="form-control" ng-model="showCase.model_data.cst_number" maxlength="64">
                  </div>
-            </div>
-            <div class="col-md-4">
-               <div class="form-group">
-                 <label class="control-label"> TIN </label>
-                 <input type="text" name="tin_number" class="form-control" ng-model="showCase.model_data.tin_number" maxlength="64">
-               </div>
             </div>
             <div class="col-md-4">
                <div class="form-group">
@@ -115,7 +111,7 @@
             <div class="col-md-4" ng-if="show_tab('add_pricemaster')">
               <div class="form-group">
                 <label class="control-label"> Price Type </label>
-                <select class="form-control" ng-model="showCase.model_data.price_type" name="status">
+                <select class="form-control" name="price_type" ng-model="showCase.model_data.price_type" name="status">
                   <option ng-selected="showCase.model_data.price_type == ''" value="">None</option>
                   <option ng-repeat="status in showCase.model_data.price_type_list" ng-selected="showCase.model_data.price_type == status" value="{{status}}">{{status}}</option>
                 </select>
@@ -156,13 +152,13 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> username </label>
-                <input type="text" name="name" class="form-control" ng-model="showCase.model_data.username" maxlength="256" ng-readonly="showCase.model_data.login_created" ng-required="!(showCase.model_data.login_created)">
+                <input type="text" name="username" class="form-control" ng-model="showCase.model_data.username" maxlength="256" ng-readonly="showCase.model_data.login_created" ng-required="!(showCase.model_data.login_created)">
               </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Password </label>
-                <input type="password" name="name" class="form-control" ng-model="showCase.model_data.password" maxlength="256" ng-required="!(showCase.model_data.login_created)">
+                <input type="password" name="password" class="form-control" ng-model="showCase.model_data.password" maxlength="256" ng-required="!(showCase.model_data.login_created)">
               </div>
             </div>
           </div>

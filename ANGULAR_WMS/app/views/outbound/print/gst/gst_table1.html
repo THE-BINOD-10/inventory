@@ -31,6 +31,26 @@
         <td class="text-right">{{record.taxes.igst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.igst_tax}}%</span></td>
         <td>{{record.invoice_amount | number:2}}</td>
       </tr>
+      <tr class="rm-padding" style="border-top: 1px solid rgba(128, 128, 128, 0.14)" ng-if="permissions.hsn_summary">
+        <td></td>
+        <td></td><td></td><td></td><td></td>
+        <td colspan='2'><b>Summary</b></td>
+        <td><b>TAXABLE</b></td>
+        <td><b>CGST</b></td>
+        <td><b>SGST</b></td>
+        <td><b>IGST</b></td>
+        <td></td>
+      </tr>
+      <tr class="rm-padding rm-brdr text-right" ng-repeat="(hsn, data) in showCase.pdf_data.hsn_summary" ng-if="permissions.hsn_summary">
+        <td></td>
+        <td></td><td></td><td></td><td></td>
+        <td colspan='2' class="text-left">{{hsn}}</td>
+        <td>{{data.taxable}}</td>
+        <td>{{data.cgst_amt}}</td>
+        <td>{{data.sgst_amt}}</td>
+        <td>{{data.igst_amt}}</td>
+        <td></td>
+      </tr>
       <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14);font-weight: bold;" class="rm-padding text-right">
        <td colspan="3" style="text-align:left"><b>Total: </b></td>
        <td></td>
@@ -72,6 +92,14 @@
           </div>
           <div class="row">
             <div class="col-xs-6 text-right fs12">
+              Total Tax(In Words)
+            </div>
+            <div class="col-xs-6 text-right fs12">
+              {{showCase.pdf_data.total_tax_words}}
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-xs-6 text-right fs12">
               Invoice Total
             </div>
             <div class="col-xs-6 text-right fs12">
@@ -99,11 +127,14 @@
     </tbody>
     <tfoot>
       <tr class="rm-padding">
-        <td colspan='12' style="text-align:left;">
-          <b class="pull-left">Dispatched Via:</b>
-          <b class="pull-right">{{company_name}}</b><br>
-          <span>DECLARATION:</span><br>
-          <span>We declare that this invoice hows actual price of the goods described inclusive of taxes and that all particulars are true and correct.</span>
+        <td colspan='7' style="text-align:left;" class="fs12">
+          <span><b>DECLARATION:</b></span><br>
+          <pre class="pre-custom fs10">{{showCase.pdf_data.declaration}}</pre>
+        </td>
+        <td colspan='5' class="fs12">
+          <p><b>{{showCase.pdf_data.company_name}}</b></p>
+          </br></br>
+          <p style="text-align:center;margin-bottom:0px">Authorised Signatory</p>
         </td>
       </tr>
     </tfoot>

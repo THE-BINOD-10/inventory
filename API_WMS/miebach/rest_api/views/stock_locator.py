@@ -669,29 +669,29 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
 @csrf_exempt
 def get_cycle_confirmed(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters=''):
     sku_master, sku_master_ids = get_sku_master(user,request.user)
-    lis = ['cycle', 'creation_date']
+    lis = ['cycle', 'date_only']
     if search_term:
-        cycle_data = CycleCount.objects.filter(sku_id__in=sku_master_ids).filter(Q(cycle__icontains=search_term) | Q(creation_date__regex=search_term),
+        cycle_data = CycleCount.objects.filter(sku_id__in=sku_master_ids).filter(Q(cycle__icontains=search_term) |
+                                               Q(creation_date__regex=search_term),
                                                sku__user=user.id,status=1).order_by(lis[col_num]).values('cycle').distinct()
     elif order_term:
         order_data = lis[col_num]
         if order_term == 'desc':
             order_data = '-%s' % order_data
-        cycle_data = CycleCount.objects.filter(status='1',sku__user=user.id, sku_id__in=sku_master_ids).order_by(order_data).values('cycle').distinct()
+        cycle_data = CycleCount.objects.filter(status='1',sku__user=user.id, sku_id__in=sku_master_ids).values('cycle').distinct().\
+                                        annotate(date_only=Cast('creation_date', DateField())).order_by(order_data)
     else:
         cycle_data = CycleCount.objects.filter(status='1',sku__user=user.id, sku_id__in=sku_master_ids).values('cycle').distinct()
-    data = []
 
-    for count in cycle_data:
-        record = CycleCount.objects.filter(cycle=count['cycle'],sku__user=user.id)
-        data.append(record[0])
 
-    temp_data['recordsTotal'] = len(data)
-    temp_data['recordsFiltered'] = len(data)
+    temp_data['recordsTotal'] = cycle_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
-    for item in data[start_index:stop_index]:
-        temp_data['aaData'].append(OrderedDict(( ('Cycle Count ID', item.cycle), ('Date', get_local_date(request.user, item.creation_date)),
-                                                 ('DT_RowClass', 'results'), ('DT_RowId', item.cycle) )))
+    all_cycle_counts = CycleCount.objects.filter(sku__user=user.id, status=1).values('cycle', 'creation_date')
+    for item in cycle_data[start_index:stop_index]:
+        creation_date = all_cycle_counts.filter(cycle=item['cycle'])[0]['creation_date']
+        temp_data['aaData'].append(OrderedDict(( ('Cycle Count ID', item['cycle']), ('Date', get_local_date(request.user, creation_date)),
+                                                 ('DT_RowClass', 'results'), ('DT_RowId', item['cycle']) )))
 
 def get_move_inventory(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, status):
     cycle_count = CycleCount.objects.filter(status='checked', sku__user=user.id)
@@ -791,8 +791,8 @@ def get_cycle_count(start_index, stop_index, temp_data, search_term, order_term,
     order_data = lis[col_num]
     search_parameters = get_filtered_params(filters, lis)
     for key, value in search_parameters.iteritems():
-        if key.replace('__icontains', '') in lis[:3]:
-            key = key.replace('contains', 'exact')
+        #if key.replace('__icontains', '') in lis[:3]:
+            #key = key.replace('contains', 'exact')
         search_params[key] = value
 
     search_params['sku_id__in'] = sku_master_ids
@@ -834,13 +834,13 @@ def confirm_cycle_count(request, user=''):
         search_params['status'] = 1
         search_params['quantity__gt'] = 0
         if myDict['wms_code'][i]:
-            search_params['sku_id__wms_code'] = myDict['wms_code'][i]
+            search_params['sku_id__wms_code__icontains'] = myDict['wms_code'][i]
         if myDict['zone'][i]:
-            search_params['location__zone__zone'] = myDict['zone'][i]
+            search_params['location__zone__zone__icontains'] = myDict['zone'][i]
         if myDict['location'][i]:
-            search_params['location_id__location'] = myDict['location'][i]
+            search_params['location_id__location__icontains'] = myDict['location'][i]
         if myDict['quantity'][i]:
-            search_params['total'] = myDict['quantity'][i]
+            search_params['total__contains'] = myDict['quantity'][i]
 
         if search_params:
             stock_values = StockDetail.objects.values('sku_id', 'location_id', 'location__zone_id').distinct().annotate(total=Sum('quantity')).filter(**search_params)

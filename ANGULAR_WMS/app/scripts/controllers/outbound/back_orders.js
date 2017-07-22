@@ -48,6 +48,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
                 return '<input class="data-select" type="checkbox" ng-model="showCase.selected[' + meta.row + ']" ng-change="showCase.toggleOne(showCase.selected)">';
             }).notSortable(),
         DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
+        DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('Ordered Quantity').withTitle('Ordered Quantity'),
         DTColumnBuilder.newColumn('Stock Quantity').withTitle('Stock Quantity'),
         DTColumnBuilder.newColumn('Transit Quantity').withTitle('Transit Quantity'),
@@ -64,11 +65,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
                 return '<input class="data-select" type="checkbox" ng-model="showCase.selected[' + meta.row + ']" ng-change="showCase.toggleOne(showCase.selected)">';
             }).notSortable(),
         DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
+        DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('Ordered Quantity').withTitle('Ordered Quantity'),
         DTColumnBuilder.newColumn('Stock Quantity').withTitle('Stock Quantity'),
         DTColumnBuilder.newColumn('Transit Quantity').withTitle('Transit Quantity'),
         DTColumnBuilder.newColumn('Procurement Quantity').withTitle('Procurement Quantity')
-      ]; 
+      ];
     }
 
     vm.selectedRows = {};
@@ -359,6 +361,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
   vm.print_grn = function() {
 
     vm.service.print_data(vm.html, "Purchase Order");
+  }
+
+  vm.download_excel = function() {
+
+    console.log("download")
   }
 
   }

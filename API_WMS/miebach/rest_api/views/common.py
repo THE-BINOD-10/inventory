@@ -1910,18 +1910,18 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                        float(taxes_dict['utgst_amt'])
                 summary_key = str(hsn_code) + "@" + str(cgst_tax + sgst_tax + igst_tax + utgst_tax)
                 if hsn_summary.get(summary_key, ''):
-                    hsn_summary[summary_key]['taxable'] += float(base_price)
-                    hsn_summary[summary_key]['sgst_amt'] += float(sgst_amt)
-                    hsn_summary[summary_key]['cgst_amt'] += float(cgst_amt)
-                    hsn_summary[summary_key]['igst_amt'] += float(igst_amt)
-                    hsn_summary[summary_key]['utgst_amt'] += float(utgst_amt)
+                    hsn_summary[summary_key]['taxable'] += float("%.2f" % float(base_price))
+                    hsn_summary[summary_key]['sgst_amt'] += float("%.2f" % float(sgst_amt))
+                    hsn_summary[summary_key]['cgst_amt'] += float("%.2f" % float(cgst_amt))
+                    hsn_summary[summary_key]['igst_amt'] += float("%.2f" % float(igst_amt))
+                    hsn_summary[summary_key]['utgst_amt'] += float("%.2f" % float(utgst_amt))
                 else:
                     hsn_summary[summary_key] = {}
-                    hsn_summary[summary_key]['taxable'] = float(base_price)
-                    hsn_summary[summary_key]['sgst_amt'] = float(sgst_amt)
-                    hsn_summary[summary_key]['cgst_amt'] = float(cgst_amt)
-                    hsn_summary[summary_key]['igst_amt'] = float(igst_amt)
-                    hsn_summary[summary_key]['utgst_amt'] = float(utgst_amt)
+                    hsn_summary[summary_key]['taxable'] = float("%.2f" % float(base_price))
+                    hsn_summary[summary_key]['sgst_amt'] = float("%.2f" % float(sgst_amt))
+                    hsn_summary[summary_key]['cgst_amt'] = float("%.2f" % float(cgst_amt))
+                    hsn_summary[summary_key]['igst_amt'] = float("%.2f" % float(igst_amt))
+                    hsn_summary[summary_key]['utgst_amt'] = float("%.2f" % float(utgst_amt))
             else:
                 _tax = (amt * (vat / 100))
 

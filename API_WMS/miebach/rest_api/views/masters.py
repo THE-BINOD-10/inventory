@@ -1184,6 +1184,7 @@ def update_warehouse_user(request, user=''):
 @get_admin_user
 def add_warehouse_user(request, user=''):
     status = ''
+    exist_user_profile = UserProfile.objects.get(user_id=user.id)
     user_dict = copy.deepcopy(ADD_USER_DICT)
     user_profile_dict = copy.deepcopy(ADD_WAREHOUSE_DICT)
     for key,value in request.POST.iteritems():
@@ -1195,6 +1196,7 @@ def add_warehouse_user(request, user=''):
         status = "Passwords doesn't match"
     user_exists = User.objects.filter(username=user_dict['username'])
     if not user_exists and not status:
+        user_dict['last_login'] = datetime.datetime.now()
         new_user = User.objects.create_user(**user_dict)
         new_user.is_staff = True
         new_user.save()
@@ -1205,8 +1207,10 @@ def add_warehouse_user(request, user=''):
             user_profile_dict['pin_code'] = 0
         if not user_profile_dict.get('phone_number', 0):
             user_profile_dict['phone_number'] = 0
+        user_profile_dict['user_type'] = exist_user_profile.user_type
         user_profile = UserProfile(**user_profile_dict)
         user_profile.save()
+        add_user_type_permissions(user_profile)
         group,created = Group.objects.get_or_create(name=new_user.username)
         admin_dict = {'group_id': group.id, 'user_id': new_user.id}
         admin_group  = AdminGroups(**admin_dict)

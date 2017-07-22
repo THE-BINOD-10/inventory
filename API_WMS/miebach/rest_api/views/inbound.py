@@ -1833,17 +1833,8 @@ def update_seller_po(data, value, user, receipt_id=''):
                 except:
                     margin_percent = 0
                 price = float(data.open_po.price)
-                tax = 0
-                if data.open_po.cgst_tax:
-                    tax += float(data.open_po.cgst_tax)
-                if data.open_po.sgst_tax:
-                    tax += float(data.open_po.sgst_tax)
-                if data.open_po.igst_tax:
-                    tax += float(data.open_po.igst_tax)
-                if data.open_po.utgst_tax:
-                    tax += float(data.open_po.utgst_tax)
-                if tax:
-                    price = price + ((price/100)*float(tax))
+                tax = data.open_po.cgst_tax + data.open_po.sgst_tax + data.open_po.igst_tax + data.open_po.utgst_tax
+                price = price + ((price/100)*float(tax))
                 unit_price = float(price)/(1-(margin_percent/100))
                 sell_po.unit_price = float(("%."+ str(2) +"f") % (unit_price))
                 sell_po.margin_percent = margin_percent
@@ -4098,6 +4089,7 @@ def generate_seller_invoice(request, user=''):
     order_no = ''
     seller_address = []
     buyer_address = []
+    total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0}
     data_dict = dict(request.GET.iterlists())
     seller_summary_dat = data_dict.get('seller_summary_id', '')
     if data_dict.get('po_number', ''):
@@ -4109,7 +4101,6 @@ def generate_seller_invoice(request, user=''):
     all_data = OrderedDict()
     seller_po_ids = []
     sell_ids = {}
-    is_gst_invoice = False
     gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
     taxes_dict = {}
     total_taxable_amt = 0
@@ -4130,8 +4121,6 @@ def generate_seller_invoice(request, user=''):
         invoice_date = datetime.datetime.now()
 
     invoice_date = get_local_date(user, invoice_date, send_date='true')
-    if datetime.datetime.strptime('2017-07-01', '%Y-%m-%d').date() <= invoice_date.date():
-        is_gst_invoice = True
     inv_month_year = invoice_date.strftime("%m-%y")
     invoice_date = invoice_date.strftime("%d %b %Y")
     company_name = user_profile.company_name
@@ -4152,31 +4141,30 @@ def generate_seller_invoice(request, user=''):
         if not buyer_address:
             buyer_address = seller.name + '\n' + seller.address + "\nCall: " \
                                 + seller.phone_number + "\nEmail: " + seller.email_id
-        tax = 0
-        vat = seller_po_summary.seller_po.open_po.tax
         discount = 0
         quantity = seller_po_summary.quantity
         mrp_price = seller_po_summary.seller_po.open_po.price
         if seller_po_summary.seller_po.unit_price:
             mrp_price = seller_po_summary.seller_po.unit_price
-            if vat:
-                mrp_price = (mrp_price * 100)/(100+vat)
         amt = float(mrp_price) * float(quantity)
 
         base_price = "%.2f" % amt
-        if is_gst_invoice:
-            cgst_tax = 2
-            sgst_tax = 3
-            igst_tax = 0
-            cgst_amt = cgst_tax * (float(amt)/100)
-            sgst_amt = sgst_tax * (float(amt)/100)
-            igst_amt = igst_tax * (float(amt)/100)
-            tax = cgst_amt + sgst_amt + igst_amt
-            taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
-                          'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt, 'igst_amt': '%.2f' % igst_amt}
-        else:
-            tax = float(float(amt)/100) * vat
-
+        cgst_tax = seller_po_summary.seller_po.open_po.cgst_tax
+        sgst_tax = seller_po_summary.seller_po.open_po.sgst_tax
+        igst_tax = seller_po_summary.seller_po.open_po.igst_tax
+        utgst_tax = seller_po_summary.seller_po.open_po.utgst_tax
+        cgst_amt = cgst_tax * (float(amt)/100)
+        sgst_amt = sgst_tax * (float(amt)/100)
+        igst_amt = igst_tax * (float(amt)/100)
+        utgst_amt = utgst_tax * (float(amt)/100)
+        total_taxes['cgst_amt'] += cgst_amt
+        total_taxes['sgst_amt'] += sgst_amt
+        total_taxes['igst_amt'] += igst_amt
+        total_taxes['utgst_amt'] += utgst_amt
+        tax = cgst_amt + sgst_amt + igst_amt + utgst_amt
+        taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
+                      'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt, 'igst_amt': '%.2f' % igst_amt,
+                      'utgst_amt': utgst_amt}
         invoice_amount = amt + tax - discount
 
         total_tax += float(tax)
@@ -4197,7 +4185,7 @@ def generate_seller_invoice(request, user=''):
             hsn_code = str(open_po.sku.hsn_code)
         all_data.setdefault(cond, {'order_id': po_number, 'sku_code': open_po.sku.sku_code, 'title': open_po.sku.sku_desc,
                                    'invoice_amount': 0, 'quantity': 0, 'tax': 0, 'unit_price': unit_price, 'amt': 0,
-                                   'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': open_po.sku.sku_class,
+                                   'mrp_price': mrp_price, 'discount': discount, 'sku_class': open_po.sku.sku_class,
                                    'sku_category': open_po.sku.sku_category, 'sku_size': open_po.sku.sku_size, 'hsn_code': hsn_code,
                                    'taxes': taxes_dict, 'base_price': base_price})
         all_data[cond]['quantity'] += quantity
@@ -4222,8 +4210,9 @@ def generate_seller_invoice(request, user=''):
                     'order_no': po_number, 'total_tax': "%.2f" % total_tax, 'total_mrp': total_mrp,
                     'invoice_no': invoice_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(total_invoice),
                     'total_invoice_amount': "%.2f" % total_invoice, 'seller_address': seller_address,
-                    'buyer_address': buyer_address, 'is_gst_invoice': is_gst_invoice, 'gstin_no': gstin_no,
-                    'total_taxable_amt': "%.2f" % total_taxable_amt, 'rounded_invoice_amount': round(total_invoice)}
+                    'buyer_address': buyer_address, 'gstin_no': gstin_no,
+                    'total_taxable_amt': "%.2f" % total_taxable_amt, 'rounded_invoice_amount': round(total_invoice),
+                    'total_taxes': total_taxes}
 
     return HttpResponse(json.dumps(invoice_data))
 

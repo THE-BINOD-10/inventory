@@ -2080,8 +2080,8 @@ def resize_image(url, user):
         if not os.path.exists(path + folder):
             os.makedirs(path + folder)
 
-        if os.path.exists(path+folder+"/"+new_file_name):
-            return "/"+path+folder+"/"+new_file_name;
+        #if os.path.exists(path+folder+"/"+new_file_name):
+        #    return "/"+path+folder+"/"+new_file_name;
 
         try:
             from PIL import Image

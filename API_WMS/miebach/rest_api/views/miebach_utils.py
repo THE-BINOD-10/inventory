@@ -668,7 +668,8 @@ PERMISSION_DICT = OrderedDict((
                                # Stock Locator
                                ("STOCK_LABEL",(("Stock Detail", "add_stockdetail"), ("Vendor Stock", "add_vendorstock"),
                                ("Cycle Count", "add_cyclecount"), ("Move Inventory", "change_inventoryadjustment"),
-                               ("Inventory Adjustment", "add_inventoryadjustment"),("Stock Summary", "add_skustock"))),
+                               ("Inventory Adjustment", "add_inventoryadjustment"),("Stock Summary", "add_skustock"),
+                               ("Warehouse Stock", "add_usergroups"))),
 
                                # Outbound
                                ("OUTBOUND_LABEL",(("Create Orders", "add_orderdetail"), ("View Orders", "add_picklist"),
@@ -868,7 +869,7 @@ SUMMARY_INTER_STATE_STATUS = {0: 'intra_state', 1: 'inter_state', '2': 'default'
 
 GSTIN_USER_MAPPING = {'sagar_fab': '29ABEFS4899J1ZA', 'adam_clothing1': '2788OFB3466F1ZB', 'adam_abstract': '2788OFB3466F1ZB',
                       'dazzle_export': '26AHQPP2057B1ZB', 'legends_overseas': '27AAGFL3290D1ZF', 'TranceHomeLinen': '29ADOPS6189BIZX',
-                      'demo': 'ABC12345678'}
+                      'demo': 'ABC12345678', 'sjpmg': '07BDBPS8474F1Z7', 'tshirt_inc': '36AAHFT9169L1ZC'}
 
 #End of Username and GST Tin Mapping
 

@@ -1257,6 +1257,9 @@ pre {
 .w10 {
   width: 100px;
 }
+.w12 {
+  width: 120px;
+}
 .full-modal .modal-dialog {
   width: 100%;
   padding: 10px;

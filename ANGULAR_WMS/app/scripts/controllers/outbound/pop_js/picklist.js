@@ -606,7 +606,10 @@ function pull_confirmation() {
     element.preventDefault();
     if (from == "location") {
 
-      if(!row_data.location) {
+      if(row_data.location == 'NO STOCK') {
+
+        return false;
+      } else if(!row_data.location) {
 
         vm.service.showNoty("Please Fill Location");
         row_data.picked_quantity = 0;

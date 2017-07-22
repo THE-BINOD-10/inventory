@@ -1066,9 +1066,12 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 
             elif key == 'sku_size':
                 try:
-                    data_dict['sku_size'] = str(int(cell_data))
+                    cell_data = str(int(cell_data))
                 except:
-                    data_dict['sku_size'] = cell_data
+                    cell_data = str(xcode(cell_data))
+                if sku_data and cell_data:
+                    setattr(sku_data, key, cell_data)
+                data_dict[key] = cell_data
                 _size_type = get_cell_data(row_idx, sku_file_mapping['size_type'], reader, file_type)
 
             elif key == 'size_type':
@@ -1815,8 +1818,6 @@ def validate_purchase_order(open_sheet, user):
                 if cell_data !='':
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Price should be a number')
-                else:
-                    index_status.setdefault(row_idx, set()).add('Missing Price')
 
     if not index_status:
         return 'Success'
@@ -1872,6 +1873,10 @@ def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
             elif col_idx == 4:
                 order_data['order_quantity'] = int(cell_data)
             elif col_idx == 5:
+                try:
+                    cell_data = float(cell_data)
+                except:
+                    cell_data = 0
                 order_data['price'] = cell_data
             elif col_idx == 1:
                 if cell_data and '-' in str(cell_data):

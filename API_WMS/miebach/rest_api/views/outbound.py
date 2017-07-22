@@ -2254,9 +2254,10 @@ def insert_order_data(request, user=''):
 
                     if custom_order == 'true':
                         _sku_mas = sku_master
-                        if "Custom" in _sku_mas.sku_desc:
-                             _sku_mas.sku_desc = myDict['description'][i]
-                             _sku_mas.save()
+                        if "Custom" in _sku_mas['sku_desc']:
+                            _sku_mas = SKUMaster.objects.get(id=sku_master['id'])
+                            _sku_mas.sku_desc = myDict['description'][i]
+                            _sku_mas.save()
 
                     order_data['sku_id'] = sku_master['id']
                     order_data['title'] = sku_master['sku_desc']

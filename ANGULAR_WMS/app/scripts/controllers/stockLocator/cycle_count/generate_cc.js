@@ -99,7 +99,7 @@ function ServerSideProcessingCtrl($scope, $state, $http, $compile, Session, DTOp
     function generate_cycle() {
       vm.bt_disable = true;
       for(var key in vm.selected){
-        if(vm.selected[key]) {	
+        if(vm.selected[key]) {
           vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[Number(key)]["_aData"]);
         }
       }

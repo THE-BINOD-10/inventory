@@ -952,7 +952,6 @@ var app = angular.module('urbanApp')
                   files: [
                              'scripts/controllers/outbound/create_orders/create_orders.js',
                              'scripts/controllers/outbound/pop_js/picklist.js',
-                             'scripts/controllers/outbound/pop_js/barcodes.js',
                              'scripts/controllers/outbound/pop_js/common_backorder_po.js',
                              'scripts/controllers/outbound/create_orders/create_stock_orders.js',
                              'scripts/controllers/outbound/view_orders/custom_orders.js'

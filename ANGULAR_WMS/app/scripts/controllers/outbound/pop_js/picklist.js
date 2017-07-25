@@ -25,17 +25,19 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
                                                          location: vm.model_data.data[i].location,
                                                          orig_location: vm.model_data.data[i].location,
                                                          picked_quantity: value, scan: "", pallet_code:  vm.model_data.data[i].pallet_code,
-                                                         capacity: vm.model_data.data[i].picked_quantity});
+                                                         capacity: vm.model_data.data[i].picked_quantity,
+                                                         labels: [], last_pallet_code:vm.model_data.data[i].pallet_code,
+                                                         last_location: vm.model_data.data[i].location});
          }
 
-         if(vm.state_data.page != "PullConfirmation") {
+         //if(vm.state_data.page != "PullConfirmation") {
 
-           view_orders();
-         } else {
+         //  view_orders();
+         //} else {
            pull_confirmation();
            angular.copy(vm.model_data.sku_total_quantities ,vm.remain_quantity);
            vm.count_sku_quantity();
-         }
+         //}
          vm.bt_disable = false;
          Service.pop_msg(data.data.stock_status);
        };
@@ -51,6 +53,19 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
 
   vm.getPoData(vm.state_data);
 
+  vm.check_sku_match = function(field){
+
+    var exist = false;
+    angular.forEach(vm.model_data.data, function(record){
+
+      if(record.wms_code == field) {
+        exist = true;
+        return exist;
+      }
+    });
+    return exist;
+  }
+/*
 function view_orders() {
 
   vm.cal_quantity = cal_quantity;
@@ -107,7 +122,7 @@ function view_orders() {
   }
 
 }
-
+*/
   vm.serial_scan = function(event, scan, data, record) {
       if ( event.keyCode == 13) {
         var id = data.id;
@@ -193,6 +208,7 @@ function view_orders() {
       });
     }
 
+
 function pull_confirmation() {
 
   vm.sku_scan = function(event, field) {
@@ -243,6 +259,12 @@ function pull_confirmation() {
           //clone.picked_quantity = data.reserved_quantity - total;
           clone.scan = "";
           clone.pallet_code = "";
+          clone.location = "";
+          if (vm.permissions.scan_picklist_option == 'scan_label') {
+            clone.labels = [];
+            clone.picked_quantity = 0;
+            clone.capacity = 0;
+          }
           data.sub_data.push(clone);
         }
       }
@@ -330,9 +352,9 @@ function pull_confirmation() {
   vm.current_data = [];
   vm.check_sku = function(event, field) {
 
-    if(vm.state_data.page != "PullConfirmation") {
+    /*if(vm.state_data.page != "PullConfirmation") {
       return false;
-    }
+    }*/
 
     var field = field;
     vm.service.scan(event, field).then(function(data){
@@ -425,19 +447,6 @@ function pull_confirmation() {
       //})
     }
     return status;
-  }
-
-  vm.check_sku_match = function(field){
-
-    var exist = false;
-    angular.forEach(vm.model_data.data, function(record){
-
-      if(record.wms_code == field) {
-        exist = true;
-        return exist;
-      }
-    });
-    return exist;
   }
 
   vm.check_comb = function() {
@@ -602,8 +611,19 @@ function pull_confirmation() {
   vm.checkCapacity = function(index, sku_data, from, element) {
 
     console.log(vm.model_data);
-    var row_data = sku_data.sub_data[index];
     element.preventDefault();
+    var row_data = sku_data.sub_data[index];
+    if (row_data.last_location == row_data.location && row_data.last_pallet_code == row_data.pallet_code) {
+       return false;
+    } else {
+      row_data.last_location = row_data.location;
+      row_data.last_pallet_code = row_data.pallet_code;
+      if(row_data.labels.length > 0) {
+        row_data.labels = [];
+        row_data.picked_quantity = 0;
+        vm.service.showNoty("Labels cleared")
+      }
+    }
     if (from == "location") {
 
       if(row_data.location == 'NO STOCK') {
@@ -626,14 +646,12 @@ function pull_confirmation() {
         vm.service.showNoty("Please Fill Pallet Code");
         row_data.picked_quantity = 0;
         return false;
+      } else if(vm.checkPallet(index, sku_data) && row_data.pallet_code) {
+
+        row_data.pallet_code = "";
+        vm.service.showNoty("Already Pallet Code Exist");
+        return false;
       }
-    }
-
-    if(vm.checkPallet(index, sku_data)) {
-
-      row_data.pallet_code = "";
-      vm.service.showNoty("Already Pallet Code Exist");
-      return false;
     }
 
     var send = {sku_code: sku_data.wms_code, location: row_data.location, pallet_code: row_data.pallet_code}
@@ -656,6 +674,7 @@ function pull_confirmation() {
             angular.element(element.target).focus();
           }
           row_data.picked_quantity = 0;
+          row_data.labels = [];
         } else {
 
           var data = data.data.data;
@@ -667,24 +686,28 @@ function pull_confirmation() {
             row_data.picked_quantity = Number(data.total_quantity);
           } else {
 
-            var total = 0;
-            row_data.picked_quantity = 0;
-            angular.forEach(sku_data.sub_data, function(record) {
-
-              total += Number(record.picked_quantity);
-            })
-
-            if (sku_data.reserved_quantity > total) {
-
-              row_data.picked_quantity = sku_data.reserved_quantity - total;
-            } else {
-
+            if (vm.permissions.scan_picklist_option == 'scan_sku_location' || vm.permissions.scan_picklist_option == 'scan_sku') {
+              var total = 0;
               row_data.picked_quantity = 0;
-            }
+              angular.forEach(sku_data.sub_data, function(record) {
 
-            if (row_data.picked_quantity > row_data.capacity) {
+                total += Number(record.picked_quantity);
+              })
 
-              row_data.picked_quantity = row_data.capacity;
+              if (sku_data.reserved_quantity > total) {
+
+                row_data.picked_quantity = sku_data.reserved_quantity - total;
+              } else {
+
+                row_data.picked_quantity = 0;
+              }
+
+              if (row_data.picked_quantity > row_data.capacity) {
+
+                row_data.picked_quantity = row_data.capacity;
+              }
+            } else {
+              row_data.picked_quantity = 0;
             }
           }
         }
@@ -713,8 +736,130 @@ function pull_confirmation() {
       console.log(selectedItem);
     });
   }
+
+  vm.label_scan = function(event, field) {
+
+    var field = field;
+    vm.service.scan(event, field).then(function(data){
+      if(data) {
+        vm.model_data.scan_label = "";
+        var send = {label: field, picklist_number: vm.model_data.picklist_id};
+        vm.service.apiCall('check_labels/', 'GET', send).then(function(data){
+          if(data.message) {
+            if (data.data.message != "Success") {
+              vm.service.showNoty(data.data.message);
+              return false;
+            }
+            var sku_code = data.data.data.sku_code;
+            var order_id = data.data.data.order_id;
+
+            if(vm.count_sku_quantity[sku_code] >= vm.model_data.sku_total_quantities[sku_code]) {
+              vm.service.showNoty("Picked Quantity Already Equal to Reserved Quantity");
+              return false;
+            }
+            var p1 = null;
+            var p2 = null;
+            for(var i=0; i<vm.model_data.data.length; i++) {
+              for(var j=0; j<vm.model_data.data[i].sub_data.length; j++) {
+                var temp = vm.model_data.data[i];
+                var temp_sub = vm.model_data.data[i].sub_data[j];
+                if(temp_sub.labels.indexOf(field) > -1) {
+                  vm.service.showNoty("Label Already Scanned");
+                  return false;
+                }
+                if (p1 != null) {
+                  continue;
+                }
+                if(vm.model_data.order_status == 'open') {
+                  if(temp.wms_code == sku_code && temp.order_no == order_id) {
+                    if(temp_sub.capacity <= Number(temp_sub.picked_quantity)) {
+                      p1 = null; p2 = null;
+                    } else if(Number(temp.reserved_quantity) > Number(temp_sub.picked_quantity)) {
+                      p1 = i; p2 = j;
+                    }
+                  }
+                } else {
+                  if(temp.wms_code == sku_code) {
+                    if(temp_sub.capacity <= Number(temp_sub.picked_quantity)) {
+                      p1 = null; p2 = null;
+                    } else if(Number(temp.reserved_quantity) > Number(temp_sub.picked_quantity)) {
+                      p1 = i; p2 = j;
+                    }
+                  }
+                }
+              }
+            }
+            if (p1 != null) {
+              vm.model_data.data[p1].sub_data[p2].labels.push(field);
+              vm.model_data.data[p1].sub_data[p2].picked_quantity = Number(vm.model_data.data[p1].sub_data[p2].picked_quantity) + 1;
+              vm.count_sku_quantity();
+            }
+          }
+        })
+      }
+    });
+  }
 }
 
 angular
   .module('urbanApp')
   .controller('Picklist', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', '$modal', 'items', Picklist]);
+
+
+function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
+
+  var vm = this;
+  vm.service = Service;
+
+  var url_get = "get_order_labels/";
+  vm.model_data = {};
+
+  vm.getPoData = function(data){
+
+    var send = {picklist_number: data.id}
+    Service.apiCall(url_get, "GET", send, true).then(function(data){
+      if(data.message) {
+        angular.copy(data.data.data, vm.model_data.barcodes)
+        if (data.data.data.length == 0) {
+
+          Service.showNoty("No labels are there")
+        }
+      };
+    });
+  }
+
+  vm.getPoData(items);
+
+  vm.barcode_title = 'Barcode Generation';
+
+  vm.model_data['format_types'] = ['format1', 'format2', 'format3']
+
+  var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
+
+  vm.model_data['barcodes'] = [{'sku_code':'', 'quantity':''}];
+
+  vm.ok = function (msg) {
+    $modalInstance.close(vm.status_data);
+  };
+
+  vm.generate_barcodes = function(form) {
+    if(form.$valid) {
+      var elem = $("form[name='barcodes']").serializeArray();
+      vm.service.apiCall('generate_barcodes/', 'POST', elem, true).then(function(data){
+        if(data.message) {
+          console.log(data);
+          var href_url = data.data;
+
+          var downloadpdf = $('<a id="downloadpdf" target="_blank" href='+href_url+' >');
+          $('body').append(downloadpdf);
+          document.getElementById("downloadpdf").click();
+          $("#downloadpdf").remove();
+        }
+      })
+    }
+  }
+}
+
+angular
+  .module('urbanApp')
+  .controller('Barcodes', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', Barcodes]);

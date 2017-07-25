@@ -1184,6 +1184,7 @@ def update_warehouse_user(request, user=''):
 @get_admin_user
 def add_warehouse_user(request, user=''):
     status = ''
+    exist_user_profile = UserProfile.objects.get(user_id=user.id)
     user_dict = copy.deepcopy(ADD_USER_DICT)
     user_profile_dict = copy.deepcopy(ADD_WAREHOUSE_DICT)
     for key,value in request.POST.iteritems():
@@ -1206,8 +1207,10 @@ def add_warehouse_user(request, user=''):
             user_profile_dict['pin_code'] = 0
         if not user_profile_dict.get('phone_number', 0):
             user_profile_dict['phone_number'] = 0
+        user_profile_dict['user_type'] = exist_user_profile.user_type
         user_profile = UserProfile(**user_profile_dict)
         user_profile.save()
+        add_user_type_permissions(user_profile)
         group,created = Group.objects.get_or_create(name=new_user.username)
         admin_dict = {'group_id': group.id, 'user_id': new_user.id}
         admin_group  = AdminGroups(**admin_dict)
@@ -1862,7 +1865,12 @@ def generate_barcode_dict(pdf_format, myDict, user):
     barcode_pdf_dict = {}
     barcodes_list = []
     user_prf = UserProfile.objects.filter(user_id=user.id)[0]
-    for sku, quant in zip(myDict['wms_code'], myDict['quantity']):
+    for ind in range(0, len(myDict['wms_code'])):
+        sku = myDict['wms_code'][ind]
+        quant = myDict['quantity'][ind]
+        label = ''
+        if myDict.has_key('label'):
+            label = myDict['label'][ind]
         if sku and quant:
             if sku.isdigit():
                 sku_data = SKUMaster.objects.filter(Q(ean_number = sku) | Q(wms_code = sku), user=user.id)[0]
@@ -1870,6 +1878,8 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 sku_data = SKUMaster.objects.filter(sku_code = sku, user=user.id)[0]
             single = copy.deepcopy(BARCODE_DICT[pdf_format])
             single['SKUCode'] = sku
+            if label:
+                single['SKUCode'] = label
             single['Size'] = str(sku_data.sku_size).replace("'",'')
             single['SKUPrintQty'] = quant
             single['Brand'] = sku_data.sku_brand.replace("'",'')
@@ -1906,6 +1916,7 @@ def generate_barcode_dict(pdf_format, myDict, user):
 
 def barcode_service(key, data_to_send, format_name=''):
     url = 'http://sandhani-001-site1.htempurl.com/Webservices/BarcodeServices.asmx/GetBarCode'
+    payload = ''
     if data_to_send:
         if format_name == 'format3':
             payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Adam', 'argBarcodeFormate' : key }

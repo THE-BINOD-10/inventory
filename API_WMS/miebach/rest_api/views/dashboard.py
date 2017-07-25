@@ -158,7 +158,7 @@ def dashboard(request, user=''):
     pie_picking = {'Picked':0, 'In-progres':0, 'Picklist not generated':0}
 
     results_dict = {'Picklist not generated': (OrderDetail, {'user': user_id, 'status': 1, 'quantity__gt': 0 }),
-                    'In-progres': (Picklist, {'status__contains': 'open', 'order__user': user_id}),
+                    'In-progres': (Picklist, {'status__contains': 'open', 'order__user': user_id, 'reserved_quantity__gt': 0}),
                     'Picked': (Picklist, {'status__icontains': 'picked', 'order__user': user_id, 'updation_date__range': today_range})}
     get_quantity(pie_picking, results_dict, True)
 

@@ -727,7 +727,8 @@ def switches(request, user=''):
                     'tally_config': 'tally_config',
                     'tax_details': 'tax_details',
                     'hsn_summary': 'hsn_summary',
-                    'display_customer_sku': 'display_customer_sku'
+                    'display_customer_sku': 'display_customer_sku',
+                    'label_generation': 'label_generation'
                   }
 
     toggle_field, selection = "", ""
@@ -1373,7 +1374,7 @@ def get_purchaseorder_locations(put_zone, temp_dict):
     location_masters = LocationMaster.objects.filter(zone__user=user).exclude(lock_status__in=['Inbound', 'Inbound and Outbound'])
     exclude_zones_list = ['QC_ZONE', 'DAMAGED_ZONE', 'RTO_ZONE']
     if put_zone in exclude_zones_list:
-        location = location_masters.filter(zone__zone=put_zone)
+        location = location_masters.filter(zone__zone=put_zone, zone__user=user)
         if location:
             return location
     if data:
@@ -3704,7 +3705,7 @@ def returns_putaway_data(request, user=''):
             continue
         returns_data = returns_data[0]
         if location and zone and quantity:
-            location_id = LocationMaster.objects.filter(location=location, zone__zone=zone)
+            location_id = LocationMaster.objects.filter(location=location, zone__zone=zone, zone__user=user.id)
             if not location_id:
                 status = "Zone, location match doesn't exists"
         else:

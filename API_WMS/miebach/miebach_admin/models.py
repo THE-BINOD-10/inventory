@@ -25,6 +25,20 @@ class ZoneMaster(models.Model):
     def natural_key(self):
         return {'id': self.id, 'user': self.user, 'zone': self.zone}
 
+class ZoneMarketplaceMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    zone = models.ForeignKey(ZoneMaster, null=True, blank=True, default = None) 
+    marketplace = models.CharField(max_length=64)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ZONE_MARKETPLACE_MAPPING'
+        unique_together = ('zone', 'marketplace')
+
+    def __unicode__(self):
+        return str(self.zone)
 
 class VendorMaster(models.Model):
     user = models.PositiveIntegerField()
@@ -225,6 +239,7 @@ class OrderLabels(models.Model):
     id = BigAutoField(primary_key=True)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     label = models.CharField(max_length=128, default='')
+    picklist_number = models.PositiveIntegerField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

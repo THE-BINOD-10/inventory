@@ -435,7 +435,7 @@ MAIL_REPORTS = { 'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wis
 
 MAIL_REPORTS_DATA = {'Raise PO': 'raise_po', 'Receive PO': 'receive_po', 'Orders': 'order', 'Dispatch': 'dispatch', 'Internal Mail' : 'internal_mail'}
 
-PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_location'}
+PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_location', 'Scan Serial': 'scan_serial', 'Scan Label': 'scan_label'}
 
 REPORTS_DATA = {'SKU List': 'sku_list', 'Location Wise SKU': 'location_wise_stock', 'Receipt Summary': 'receipt_note', 'Dispatch Summary': 'dispatch_summary', 'SKU Wise Stock': 'sku_wise'}
 
@@ -872,6 +872,14 @@ GSTIN_USER_MAPPING = {'sagar_fab': '29ABEFS4899J1ZA', 'adam_clothing1': '2788OFB
                       'demo': 'ABC12345678', 'sjpmg': '07BDBPS8474F1Z7', 'tshirt_inc': '36AAHFT9169L1ZC'}
 
 #End of Username and GST Tin Mapping
+
+#ORDER LABEL MAPPING EXCEL (Campus Sutra)
+
+ORDER_LABEL_EXCEL_HEADERS = ['Order ID', 'SKU Code', 'Label']
+
+MYNTRA_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 2), ('order_id', 0), ('label', 1) ))
+
+ORDER_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 1), ('order_id', 0), ('label', 2) ))
 
 #Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg'}

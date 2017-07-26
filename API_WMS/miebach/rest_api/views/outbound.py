@@ -26,7 +26,7 @@ log = init_logger('logs/outbound.log')
 def get_batch_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_dict={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
-    lis = ['id', 'sku__sku_code', 'title', 'total']
+    lis = ['sku__sku_code', 'sku__sku_code', 'title', 'total']
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
 
     if user_dict.get('market_places', ''):
@@ -488,7 +488,8 @@ def generate_picklist(request, user=''):
                 single_order = str(order_count[0])
 
     return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,
-                                    'order_status': order_status, 'single_order': single_order}))
+                                    'order_status': order_status, 'single_order': single_order,
+                                    'sku_total_quantities': sku_total_quantities}))
 
 
 def get_picklist_number(user):
@@ -741,6 +742,7 @@ def batch_generate_picklist(request, user=''):
             stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by('location_id__pick_sequence')
             stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
         sku_stocks = stock_detail1 | stock_detail2
+
         for key, value in request.POST.iteritems():
             if key in PICKLIST_SKIP_LIST or key in ['filters']:
                 continue
@@ -1021,7 +1023,7 @@ def get_picklist_data(data_id,user_id):
         return data, sku_total_quantities
 
 
-def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, user_profile, seller_pick_number, p_quantity=0):
+def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, user_profile, seller_pick_number, val= {}, p_quantity=0):
     if float(picklist.reserved_quantity) - p_quantity >= 0:
         picklist.reserved_quantity = float(picklist.reserved_quantity) - p_quantity
         picklist.picked_quantity = float(picklist.picked_quantity) + p_quantity
@@ -1034,6 +1036,8 @@ def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, me
 
     if picklist.order:
         check_and_update_order(picklist.order.user, picklist.order.original_order_id)
+    if 'labels' in val.keys() and val['labels'] and picklist.order:
+        update_order_labels(picklist, val)
     if float(picklist.reserved_quantity) <= 0:
         picklist.status = pi_status
     picklist.save()
@@ -1334,6 +1338,19 @@ def update_no_stock_to_location(request, user, picklist, val, picks_all, picklis
         picklist_batch = picks_all.filter(id__in=new_update_ids)
     return picklist_batch
 
+def update_order_labels(picklist, val):
+    if ',' in val['labels']:
+        label_codes = list(set(val['labels'].split(',')))
+    else:
+        label_codes = list(set(val['labels'].split('\r\n')))
+    for label in label_codes:
+        order_labels = OrderLabels.objects.filter(order__user=picklist.order.user, label=label)
+        for order_label in order_labels:
+            order_label.status = 0
+            order_label.save()
+            log.info('Order Label ' + str(label) + ' is mapped to ' + str(picklist.order.order_id))
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1424,7 +1441,7 @@ def picklist_confirmation(request, user=''):
                         continue
                     if not picklist.stock:
                         if val['location'] == 'NO STOCK':
-                            seller_pick_number = confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, user_profile, seller_pick_number, float(val['picked_quantity']))
+                            seller_pick_number = confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, merge_flag, user_profile, seller_pick_number, val=val,p_quantity=float(val['picked_quantity']))
                             continue
                     if float(picklist.reserved_quantity) > float(val['picked_quantity']):
                         picking_count = float(val['picked_quantity'])
@@ -1436,6 +1453,8 @@ def picklist_confirmation(request, user=''):
 
                     if 'imei' in val.keys() and val['imei'] and picklist.order:
                         insert_order_serial(picklist, val)
+                    if 'labels' in val.keys() and val['labels'] and picklist.order:
+                        update_order_labels(picklist, val)
                     reserved_quantity1 = picklist.reserved_quantity
                     tot_quan = 0
                     for stock in total_stock:
@@ -2415,6 +2434,8 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').\
                                      filter(sku__user=user.id, quantity__gt=0)
     picklist_number = get_picklist_number(user)
+    mod_locations = []
+
     for order_id, orders in dispatch_orders.iteritems():
         order = orders['order_instance']
         for data in orders.get('data', []):
@@ -2435,6 +2456,9 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
                 if stock.quantity < 0:
                     stock.quantity = 0
                 stock.save()
+
+                mod_locations.append(stock.location.location)
+
                 new_picklist = Picklist.objects.create(picklist_number=picklist_number,reserved_quantity=0,picked_quantity=needed_quantity,
                                                        remarks='Direct-Dispatch Orders', status='picked', creation_date=creation_date,
                                                        order_id=order.id,stock_id=stock.id)
@@ -2448,6 +2472,10 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
                     break
             order.status = 0
             order.save()
+
+    if mod_locations:
+        update_filled_capacity(list(set(mod_locations)), user.id)
+
     return 'Order Created and Dispatched Successfully'
 
 
@@ -4315,6 +4343,7 @@ def picklist_delete(request, user=""):
                 seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id=order.id)
                 if seller_orders:
                     seller_orders.update(status=1)
+            OrderLabels.objects.filter(order_id__in=order_ids, picklist_number=picklist_id).update(picklist_number=0)
             picklist_objs.delete()
             end_time = datetime.datetime.now()
             duration = end_time - st_time
@@ -5372,3 +5401,38 @@ def get_custom_template_styles(request, user=''):
     product_styles = list(OrderedDict.fromkeys(product_styles))
     data = get_styles_data(user, product_styles, sku_master, start, stop, customer_id='', customer_data_id='', is_file='')
     return HttpResponse(json.dumps({'data': data}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_order_labels(request, user=''):
+    picklist_number = request.GET.get('picklist_number', 0)
+    if not picklist_number:
+        return HttpResponse(json.dumps({'message': 'Please send picklist number', 'data': []}))
+    picklists = Picklist.objects.filter(Q(stock__sku__user=user.id) | Q(order__user=user.id), picklist_number=picklist_number,
+                                        reserved_quantity__gt=0)
+
+    data = []
+    for picklist in picklists:
+        if not picklist.order:
+            continue
+        labels = OrderLabels.objects.filter(order_id=picklist.order_id, status=1).exclude(picklist_number=picklist_number)
+        label_count = 0
+        mapped_labels = OrderLabels.objects.filter(picklist_number=picklist_number, status=1, order_id=picklist.order_id)
+        for map_label in mapped_labels:
+            data.append({'label': map_label.label, 'wms_code': map_label.order.sku.sku_code, 'quantity': 1})
+            label_count += 1
+            if int(picklist.reserved_quantity) == int(label_count):
+                break
+
+        for label in labels:
+            if int(picklist.reserved_quantity) == int(label_count):
+                break
+            label.picklist_number = picklist.picklist_number
+            label.save()
+            data.append({'label': label.label, 'wms_code': label.order.sku.sku_code, 'quantity': 1})
+            label_count += 1
+
+    return HttpResponse(json.dumps({'message': 'Success', 'data': data}))
+
+

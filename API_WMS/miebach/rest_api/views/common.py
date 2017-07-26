@@ -582,6 +582,7 @@ def configurations(request, user=''):
     tally_config = get_misc_value('tally_config', user.id)
     hsn_summary = get_misc_value('hsn_summary', user.id)
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
+    label_generation = get_misc_value('label_generation', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
@@ -684,7 +685,7 @@ def configurations(request, user=''):
                                                              'sku_sync': sku_sync, 'seller_margin': seller_margin,
                                                              'receive_process': receive_process, 'receive_options': RECEIVE_OPTIONS,
                                                              'tally_config': tally_config, 'tax_data': tax_data, 'hsn_summary': hsn_summary,
-                                                             'display_customer_sku': display_customer_sku}))
+                                                             'display_customer_sku': display_customer_sku, 'label_generation': label_generation}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -3076,3 +3077,40 @@ def get_sku_available_dict(user, sku_code='', location='', available=False):
         avail_stock = all_stocks.get(sku_code, 0) - pick_params.get(sku_code, 0) - rm_params.get(sku_code, 0)
         return avail_stock
     return all_stocks, reserved_dict, raw_reserved_dict
+
+def get_order_detail_objs(order_id, user, search_params={},all_order_objs = []):
+    if not search_params.has_key('user'):
+        search_params['user'] = user.id
+    if not all_order_objs:
+        all_order_objs = OrderDetail.objects.filter(user=user.id)
+    order_id_search = ''.join(re.findall('\d+', order_id))
+    order_code_search = ''.join(re.findall('\D+', order_id))
+    order_detail_objs = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) |
+                                                         Q(original_order_id=order_id), **search_params)
+    return order_detail_objs
+
+@csrf_exempt
+@get_admin_user
+def check_labels(request, user=''):
+    status = {}
+    label = request.GET.get('label', '')
+    filter_params = {'order__user': user.id}
+    if not label:
+        status = {'message': 'Please send label', 'data': {}}
+    if not status:
+        filter_params['label'] = label
+        picklist_number = request.GET.get('picklist_number', '')
+        if picklist_number:
+            filter_params['picklist_number'] = picklist_number
+        order_labels = OrderLabels.objects.filter(**filter_params)
+        data = {}
+        if order_labels:
+            order_label = order_labels[0]
+            if int(order_label.status) == 1:
+                data = {'label': order_label.label, 'sku_code': order_label.order.sku.sku_code, 'order_id': order_label.order.order_id}
+                status = {'message': 'Success', 'data': data}
+            else:
+                status = {'message': 'Label already processed', 'data': data}
+        else:
+            status = {'message': 'Invalid Label', 'data': {}}
+    return HttpResponse(json.dumps(status, cls=DjangoJSONEncoder))

@@ -1865,7 +1865,12 @@ def generate_barcode_dict(pdf_format, myDict, user):
     barcode_pdf_dict = {}
     barcodes_list = []
     user_prf = UserProfile.objects.filter(user_id=user.id)[0]
-    for sku, quant in zip(myDict['wms_code'], myDict['quantity']):
+    for ind in range(0, len(myDict['wms_code'])):
+        sku = myDict['wms_code'][ind]
+        quant = myDict['quantity'][ind]
+        label = ''
+        if myDict.has_key('label'):
+            label = myDict['label'][ind]
         if sku and quant:
             if sku.isdigit():
                 sku_data = SKUMaster.objects.filter(Q(ean_number = sku) | Q(wms_code = sku), user=user.id)[0]
@@ -1873,6 +1878,8 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 sku_data = SKUMaster.objects.filter(sku_code = sku, user=user.id)[0]
             single = copy.deepcopy(BARCODE_DICT[pdf_format])
             single['SKUCode'] = sku
+            if label:
+                single['SKUCode'] = label
             single['Size'] = str(sku_data.sku_size).replace("'",'')
             single['SKUPrintQty'] = quant
             single['Brand'] = sku_data.sku_brand.replace("'",'')
@@ -1909,6 +1916,7 @@ def generate_barcode_dict(pdf_format, myDict, user):
 
 def barcode_service(key, data_to_send, format_name=''):
     url = 'http://sandhani-001-site1.htempurl.com/Webservices/BarcodeServices.asmx/GetBarCode'
+    payload = ''
     if data_to_send:
         if format_name == 'format3':
             payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Adam', 'argBarcodeFormate' : key }

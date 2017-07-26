@@ -727,7 +727,8 @@ def switches(request, user=''):
                     'tally_config': 'tally_config',
                     'tax_details': 'tax_details',
                     'hsn_summary': 'hsn_summary',
-                    'display_customer_sku': 'display_customer_sku'
+                    'display_customer_sku': 'display_customer_sku',
+                    'label_generation': 'label_generation'
                   }
 
     toggle_field, selection = "", ""

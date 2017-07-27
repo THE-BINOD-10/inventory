@@ -798,6 +798,17 @@ def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag):
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity,total_amount)
     send_sms(phone_no, data)
 
+def grn_message(po_data, phone_no, user_name, f_name, order_date):
+    data = 'Dear Supplier,\n%s received the goods against PO NO. %s on dated %s' %(user_name, f_name, order_date)
+    total_quantity = 0
+    total_amount = 0
+    for po in po_data:
+        data += '\nD.NO: %s, Qty: %s' % (po[0], po[4])
+        total_quantity += int(po[4])
+        total_amount += int(po[5])
+    data += '\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
+    send_sms(phone_no, data)
+
 def order_creation_message(items, telephone, order_id, other_charges = 0):
     data = 'Your order with ID %s has been successfully placed for ' % order_id
     total_quantity = 0

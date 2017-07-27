@@ -508,6 +508,7 @@ def get_sku_stock(request, sku, sku_stocks, user, val_dict, sku_id_stocks=''):
         order_by = 'receipt_date'
     else:
         order_by ='location_id__pick_sequence'
+
     stock_detail = sku_stocks.filter(**data_dict).order_by(order_by)
 
     stock_count = 0
@@ -560,6 +561,11 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
     stock_status = []
     if not status:
         status = 'batch_open'
+    is_marketplace_model = False
+    all_zone_mappings = []
+    if get_misc_value('marketplace_model', user.id) == 'true':
+        all_zone_mappings = ZoneMarketplaceMapping.objects.filter(zone__user=user.id, status=1)
+        is_marketplace_model = True
     for order in order_data:
         picklist_data = copy.deepcopy(PICKLIST_FIELDS)
         #order_quantity = float(order.quantity)
@@ -578,7 +584,6 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
             order_by = 'receipt_date'
         else:
             order_by = 'location_id__pick_sequence'
-
 
         sku_id_stocks = sku_stocks.values('id', 'sku_id').annotate(total=Sum('quantity')).order_by(order_by)
         val_dict = {}
@@ -654,6 +659,17 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
                     continue
 
             stock_diff = 0
+
+            # Marketplace model suggestions based on Zone Marketplace mapping
+            if is_marketplace_model:
+                zone_map_ids = all_zone_mappings.filter(marketplace=order.marketplace).values_list('zone_id', flat=True)
+                rem_zone_map_ids = all_zone_mappings.exclude(zone_id__in=zone_map_ids).values_list('zone_id', flat=True)
+                all_zone_map_ids = zone_map_ids | rem_zone_map_ids
+                stock_zones1 = stock_detail.filter(location__zone_id__in=zone_map_ids).order_by(order_by)
+                stock_zones2 = stock_detail.exclude(location__zone_id__in=all_zone_map_ids).order_by(order_by)
+                stock_zones3 = stock_detail.filter(location__zone_id__in=rem_zone_map_ids).order_by(order_by)
+                stock_detail = stock_zones1.union(stock_zones2, stock_zones3)
+
 
             if seller_order and seller_order.order_status == 'DELIVERY_RESCHEDULED':
                 rto_stocks = stock_detail.filter(location__zone__zone='RTO_ZONE')
@@ -2659,6 +2675,9 @@ def get_marketplaces_list(request, user=''):
     if status_type == 'picked':
         marketplace = list(Picklist.objects.exclude(order__marketplace='').filter(picked_quantity__gt=0, order__user = user.id).\
                                             values_list('order__marketplace', flat=True).distinct())
+    elif status_type == 'all_marketplaces':
+        marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(user = user.id, quantity__gt=0).values_list('marketplace', flat=True).\
+                                                       distinct())
     else:
         marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user = user.id, quantity__gt=0).values_list('marketplace', flat=True).\
                                                distinct())

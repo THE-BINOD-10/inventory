@@ -16,22 +16,43 @@ function LocationMasterCtrl($scope, $state, $http, $timeout, Session, Service) {
   }
 
   location_data();
- 
+
   vm.add_zone = add_zone;
   function add_zone() {
-    $state.go('app.masters.LocationMaster.Zone');
+    vm.zone_title = "Update Zone";
+    vm.update = false;
+    vm.zone = "";
+    vm.marketplace_selected = [];
+    vm.service.apiCall('get_marketplaces_list/?status=all_marketplaces').then(function(mk_data){
+      if(mk_data.message) {
+        vm.market_list = mk_data.data.marketplaces;
+        $state.go('app.masters.LocationMaster.Zone');
+        $timeout(function() {
+          $('.selectpicker').selectpicker();
+        }, 500);
+      }
+    })
   }
 
   vm.zone = "";
+  vm.marketplaces = [];
   vm.zone_adding = function(zone) {
 
    if (zone.length> 0) {
-     vm.service.apiCall('add_zone/', 'GET', {zone: zone}, true).then(function(data){
+     if(vm.permissions.marketplace_model) {
+       var marketplaces = vm.marketplaces.join(",");
+     } else {
+       var marketplaces = vm.marketplace_selected.join(",");
+     }
+     vm.service.apiCall('add_zone/', 'GET', {zone: zone, marketplaces: marketplaces, update: vm.update}, true).then(function(data){
        if(data.message){
-         vm.service.pop_msg(data.data);
-         vm.zone = "";
-         location_data();
-         vm.close();
+         if(data.data == "Added Successfully") {
+           vm.zone = "";
+           location_data();
+           vm.close();
+         } else {
+           vm.service.pop_msg(data.data);
+         }
        }
      })
    }else{
@@ -119,6 +140,35 @@ function LocationMasterCtrl($scope, $state, $http, $timeout, Session, Service) {
 
     return (vm.model_data.location_group.indexOf(opt) > -1) ? true: false;
   }
+
+  vm.edit_zone = function(zone, e) {
+    e.preventDefault();
+    vm.zone_title = "Update Zone";
+    vm.update = true;
+    vm.zone = zone.zone;
+    vm.marketplace_selected = [];
+    vm.service.apiCall('get_zone_data/?zone='+vm.zone).then(function(data){
+      if(data.message) {
+      vm.service.apiCall('get_marketplaces_list/?status=all_marketplaces').then(function(mk_data){
+        if(mk_data.message) {
+          vm.market_list = mk_data.data.marketplaces;
+          vm.marketplace_selected = data.data.marketplaces;
+          $state.go('app.masters.LocationMaster.Zone');
+          $timeout(function() {
+            $('.selectpicker').selectpicker();
+          }, 500);
+        }
+      })
+      }
+    })
+  }
+
+  vm.market_list = [];
+  /*vm.service.apiCall('get_marketplaces_list/?status=all_marketplaces').then(function(data){
+    if(data.message) {
+      vm.market_list = data.data.marketplaces;
+    }
+  })*/
 }
 
 angular.module('urbanApp', [])

@@ -582,6 +582,7 @@ def configurations(request, user=''):
     tally_config = get_misc_value('tally_config', user.id)
     hsn_summary = get_misc_value('hsn_summary', user.id)
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
+    marketplace_model = get_misc_value('marketplace_model', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
@@ -659,32 +660,32 @@ def configurations(request, user=''):
            tax_data.append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_value})
 
     return HttpResponse(json.dumps({'batch_switch': batch_switch, 'fifo_switch': fifo_switch, 'pos_switch': pos_switch,
-                                                             'send_message': send_message, 'use_imei': use_imei, 'back_order': back_order,
-                                                             'show_image': show_image, 'online_percentage': online_percentage,
-                                                             'prefix': prefix, 'pallet_switch': pallet_switch,
-                                                             'production_switch': production_switch, 'mail_alerts': mail_alerts,
-                                                             'mail_inputs': mail_inputs, 'mail_options': MAIL_REPORTS_DATA,
-                                                             'mail_reports': MAIL_REPORTS, 'data_range': data_range,
-                                                             'report_freq': report_freq, 'email': email,
-                                                             'reports_data': reports_data, 'display_none': display_none,
-                                                             'internal_mails' : internal_mails, 'style_detail_headers': STYLE_DETAIL_HEADERS,
-                                                             'scan_picklist_option': _pick_option, "picklist_options": PICKLIST_OPTIONS,
-                                                             'is_config': 'true', 'order_headers': ORDER_HEADERS_d,
-                                                             'all_groups': all_groups, 'display_pos': display_pos,
-                                                             'auto_po_switch': auto_po_switch, 'no_stock_switch': no_stock_switch,
-                                                             'float_switch': float_switch, 'all_stages': all_stages,
-                                                             'automate_invoice': automate_invoice, 'show_mrp': show_mrp,
-                                                             'decimal_limit': decimal_limit, 'picklist_sort_by': picklist_sort_by,
-                                                             'stock_sync': stock_sync, 'auto_generate_picklist': auto_generate_picklist,
-                                                             'order_management' : order_manage, 'detailed_invoice': detailed_invoice,
-                                                             'all_related_warehouse' : all_related_warehouse,
-                                                             'stock_display_warehouse':  stock_display_warehouse,
-                                                             'all_view_order_status': all_view_order_status,
-                                                             'view_order_status': view_order_status, 'style_headers': style_headers,
-                                                             'sku_sync': sku_sync, 'seller_margin': seller_margin,
-                                                             'receive_process': receive_process, 'receive_options': RECEIVE_OPTIONS,
-                                                             'tally_config': tally_config, 'tax_data': tax_data, 'hsn_summary': hsn_summary,
-                                                             'display_customer_sku': display_customer_sku}))
+                                    'send_message': send_message, 'use_imei': use_imei, 'back_order': back_order,
+                                    'show_image': show_image, 'online_percentage': online_percentage,
+                                    'prefix': prefix, 'pallet_switch': pallet_switch,
+                                    'production_switch': production_switch, 'mail_alerts': mail_alerts,
+                                    'mail_inputs': mail_inputs, 'mail_options': MAIL_REPORTS_DATA,
+                                    'mail_reports': MAIL_REPORTS, 'data_range': data_range,
+                                    'report_freq': report_freq, 'email': email,
+                                    'reports_data': reports_data, 'display_none': display_none,
+                                    'internal_mails' : internal_mails, 'style_detail_headers': STYLE_DETAIL_HEADERS,
+                                    'scan_picklist_option': _pick_option, "picklist_options": PICKLIST_OPTIONS,
+                                    'is_config': 'true', 'order_headers': ORDER_HEADERS_d,
+                                    'all_groups': all_groups, 'display_pos': display_pos,
+                                    'auto_po_switch': auto_po_switch, 'no_stock_switch': no_stock_switch,
+                                    'float_switch': float_switch, 'all_stages': all_stages,
+                                    'automate_invoice': automate_invoice, 'show_mrp': show_mrp,
+                                    'decimal_limit': decimal_limit, 'picklist_sort_by': picklist_sort_by,
+                                    'stock_sync': stock_sync, 'auto_generate_picklist': auto_generate_picklist,
+                                    'order_management' : order_manage, 'detailed_invoice': detailed_invoice,
+                                    'all_related_warehouse' : all_related_warehouse,
+                                    'stock_display_warehouse':  stock_display_warehouse,
+                                    'all_view_order_status': all_view_order_status,
+                                    'view_order_status': view_order_status, 'style_headers': style_headers,
+                                    'sku_sync': sku_sync, 'seller_margin': seller_margin,
+                                    'receive_process': receive_process, 'receive_options': RECEIVE_OPTIONS,
+                                    'tally_config': tally_config, 'tax_data': tax_data, 'hsn_summary': hsn_summary,
+                                    'display_customer_sku': display_customer_sku, 'marketplace_model': marketplace_model}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):

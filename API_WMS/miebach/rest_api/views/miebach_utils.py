@@ -158,7 +158,7 @@ ADJUST_INVENTORY_FIELDS = ( (('WMS Code *','wms_code'),('Location *','location')
 
 MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Location', 'Quantity']
 
-SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'CST Number', 'TIN Number', 'PAN Number', 'PIN Code',
+SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number', 'PIN Code',
                     'City', 'State', 'Country']
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
@@ -845,9 +845,8 @@ WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'P
 
 # End of Customer Invoices page headers based on user type
 
-SUPPLIER_EXCEL_FIELDS = OrderedDict(( ('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4), ('cst_number', 5),
-                                      ('tin_number', 6), ('pan_number', 7), ('pincode', 8), ('city', 9), ('state', 10), ('country', 11)
-
+SUPPLIER_EXCEL_FIELDS = OrderedDict(( ('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),
+                                      ('tin_number', 5), ('pan_number', 6), ('pincode',7), ('city', 8), ('state', 9), ('country', 10)
                                    ))
 STATUS_DICT = {1: True, 0: False}
 

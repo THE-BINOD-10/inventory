@@ -30,20 +30,20 @@
               <div class="col-xs-6 text-left padding-none">
                 <div class="row">
                   {% if image %}
-                  <div class="col-md-2 col-sm-2 col-xs-2 padding-none">
+                  <div class="col-md-2 col-sm-2 col-xs-2 padding-none fs10">
                     <img src="data:image/jpg;base64, {{image}}" style="width:100%"/>
                   </div>
                   {% endif %}
                   {% if image %}
-                  <div class="col-md-10 col-sm-10 col-xs-10">
+                  <div class="col-md-10 col-sm-10 col-xs-10 fs10">
                   {% else %}
-                  <div class="col-md-12 col-sm-10 col-xs-10">
+                  <div class="col-md-12 col-sm-10 col-xs-10 fs10">
                   {% endif %}
                     <div class="col-md-12 padding-none">
-                      <span><b>{{company_name}}</b></span>
+                      <span><b class="fs12">{{company_name}}</b></span>
                     </div>
                     <div class="col-md-12 padding-none">
-                      <span>{{company_address}}</span>
+                      <span class="pre-custom padding-none">{{company_address}}</span>
                     </div>
                     <div class="col-md-12 padding-none">
                       <span>{{email}}</span>
@@ -54,12 +54,14 @@
                   </div>
                 </div>
               </div>
-              <div class="col-xs-6 text-left padding-none">
+              <div class="col-xs-6 text-left padding-none fs10">
                 <strong>Invoice Number:</strong>{{invoice_no}}<br>
                 <strong>Invoice Date:</strong>{{invoice_date}}<br>
                 <strong>Order Number:</strong>{{order_id}}<br>
                 <strong>Order Date:</strong>{{order_date}}<br>
+                {% if purchase_type %}
                 <span><strong>Purchase Type:</strong>{{purchase_type}}</span>
+                {% endif %}
               </div>
             </div>
           </td>
@@ -67,7 +69,7 @@
         <tr class="rm-padding">
           <td>
             <div class="row">
-              <div class="col-xs-6 text-left padding-none">
+              <div class="col-xs-6 text-left">
                 <address class="no-margin">
                   <strong>
                     <span>Bill To,</span>
@@ -75,26 +77,26 @@
                   {% if marketplace|lower == 'offline' %}
                   <div>
                     {% if customer_details.0.name == '' %}
-                    <p style="margin-bottom:0px">{{marketplace}}</p>
+                    <p style="margin-bottom:0px" class="fs10">{{marketplace}}</p>
                     {% endif %}
                     {% if customer_details.0.name %}
-                    <p style="margin-bottom:0px" class="cust_details">
+                    <p style="margin-bottom:0px" class="cust_details fs10">
                     {{customer_details.0.name}}</p>
                     {% endif %}
                     {% if customer_details.0.address %}
-                    <pre class="fs10 pre-custom" style="padding:0px">{{customer_details.0.address}}</pre>
+                    <pre class="fs10 pre-custom fs10" style="padding:0px">{{customer_details.0.address}}</pre>
                     {% endif %}
                     {% if customer_details.0.tin_number %}
-                    <p style="margin-bottom:0px" class="cust_details">
+                    <p style="margin-bottom:0px" class="cust_details fs10">
                      <b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
                     {% endif %}
                     {% if customer_details.0.email_id %}
-                    <p style="margin-bottom:0px" class="cust_details">
+                    <p style="margin-bottom:0px" class="cust_details fs10">
                     {{customer_details.0.email_id}}</p>
                     {%endif %}
                   </div>
                   {% endif %}
-                  <div>
+                  <div class="fs10">
                     {% if marketplace|lower != 'offline' %}
                       {{marketplace}}<br>
                     {%endif %}
@@ -104,31 +106,31 @@
               <div class="col-xs-6 text-left padding-none">
                  <address class="no-margin">
                    <strong>
-                    <span>ship To,</span>
+                    <span>Ship To,</span>
                   </strong><br>
                   {% if marketplace|lower == 'offline' %}
                   <div>
                     {% if customer_details.0.name == '' %}
-                    <p style="margin-bottom:0px">{{marketplace}}</p>
+                    <p style="margin-bottom:0px" class="fs10">{{marketplace}}</p>
                     {% endif %}
                     {% if customer_details.0.name %}
-                    <p style="margin-bottom:0px" class="cust_details">
+                    <p style="margin-bottom:0px" class="cust_details fs10">
                     {{customer_details.0.name}}</p>
                     {% endif %}
                     {% if customer_details.0.address %}
                     <pre class="fs10 pre-custom" style="padding:0px">{{customer_details.0.address}}</pre>
                     {% endif %}
                     {% if customer_details.0.tin_number %}
-                    <p style="margin-bottom:0px" class="cust_details">
+                    <p style="margin-bottom:0px" class="cust_details fs10">
                     <b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
                     {% endif %}
                     {% if customer_details.0.email_id %}
-                    <p style="margin-bottom:0px" class="cust_details">
+                    <p style="margin-bottom:0px" class="cust_details fs10">
                     {{customer_details.0.email_id}}</p>
                     {%endif %}
                   </div>
                   {% endif %}
-                  <div>
+                  <div class="fs10">
                     {% if marketplace|lower != 'offline' %}
                       {{marketplace}}<br>
                     {%endif %}
@@ -176,11 +178,17 @@
           <td>{{record.invoice_amount}}</td>
         </tr>
         {% endfor %}
+        {% if hsn_summary_display %}
+        <tr class="rm-padding rm-brdr">
+          {% for i in 'aaaaaaaaaaaa' %}
+            <td><p style="height:10px"></p></td>
+          {% endfor %}
+        </tr>
         <tr class="rm-padding" style="border-top: 1px solid rgba(128, 128, 128, 0.14)">
           <td></td>
           <td></td><td></td><td></td><td></td>
           <td colspan='2'><b>Summary</b></td>
-          <td><b>TAXABLE</b></td>
+          <td><b>Taxable Value</b></td>
           <td><b>CGST</b></td>
           <td><b>SGST</b></td>
           <td><b>IGST</b></td>
@@ -194,10 +202,11 @@
           <td>{{data.taxable}}</td>
           <td>{{data.cgst_amt}}</td>
           <td>{{data.sgst_amt}}</td>
-          <td> {{data.igst_amt}}</td>
+          <td>{{data.igst_amt}}</td>
           <td></td>
         </tr>
         {% endfor %}
+        {% endif %}
         <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14);font-weight: bold;" class="rm-padding text-right">
           <td colspan="3" style="text-align:left"><b>Total: </b></td>
           <td></td>
@@ -244,10 +253,10 @@
               <div class="col-xs-6 text-right fs12">
                 Total Tax(In Words)
               </div>
-              <div class="col-xs-6 text-right fs12">
-                {{total_tax_wors}}
+              <div class="col-xs-6 text-right fs12" style="text-transform: capitalize;">
+                {{total_tax_words}} Only
               </div>
-            </div> 
+            </div>
             <div class="row">
               <div class="col-xs-6 text-right fs12">
                 Invoice Total
@@ -268,8 +277,8 @@
               <div class="col-xs-6 text-right fs12">
                 Invoice Total(In Words)
               </div>
-              <div class="col-xs-6 text-right fs12">
-                <span style="text-transform:uppercase"> {{price_in_words}}</span>
+              <div class="col-xs-6 text-right fs12" style="text-transform: capitalize;">
+                {{price_in_words}} Only
               </div>
             </div>
           </td>
@@ -277,12 +286,12 @@
       </tbody>
       <tfoot>
         <tr class="rm-padding">
-          <td colspan='7' style="text-align:left;" class="fs12">
-            <span><b>DECLARATION:</b></span><br>
+          <td colspan='7' style="text-align:left;">
+            <span><b class="fs10">DECLARATION:</b></span><br>
             <p class="pre-custom fs10">{{declaration}}</p>
           </td>
-          <td colspan='5' class="fs12">
-            <p><b>{{company_name}}</b></p>
+          <td colspan='5'>
+            <p><b class="fs10">{{company_name}}</b></p>
             </br></br>
             <p style="text-align:center;margin-bottom:0px">Authorised Signatory</p>
           </td>

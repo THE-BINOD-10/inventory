@@ -535,11 +535,7 @@ def get_seller_invoice_data(start_index, stop_index, temp_data, search_term, ord
 def generated_po_data(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     status_dict = {'Self Receipt': 'SR', 'Vendor Receipt': 'VR'}
-    send_message = 'true'
     receipt_type = ''
-    data = MiscDetail.objects.filter(user = request.user.id, misc_type='send_message')
-    if data:
-        send_message = data[0].misc_value
 
     generated_id = request.GET['supplier_id']
     order_type_val = request.GET['order_type']
@@ -577,7 +573,7 @@ def generated_po_data(request, user=''):
     vendor_id = ''
     if record[0].vendor:
         vendor_id = record[0].vendor.vendor_id
-    return HttpResponse(json.dumps({'send_message': send_message, 'supplier_id': record[0].supplier_id, 'vendor_id': vendor_id,
+    return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'vendor_id': vendor_id,
                                     'Order Type': status_dict[record[0].order_type], 'po_name': record[0].po_name, 'ship_to': '',
                                     'data': ser_data, 'receipt_type': receipt_type, 'receipt_types': PO_RECEIPT_TYPES}))
 
@@ -951,11 +947,7 @@ def confirm_po(request, user=''):
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type, 'title': title}
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
-    send_message = 'false'
-    data = MiscDetail.objects.filter(user=user.id, misc_type='send_message')
-    if data:
-        send_message = data[0].misc_value
-    if send_message == 'true':
+    if get_misc_value('raise_po', user.id) == 'true':
         write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0],ean_flag=ean_flag)
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
@@ -964,10 +956,6 @@ def confirm_po(request, user=''):
 @login_required
 @get_admin_user
 def raise_po_toggle(request, user=''):
-    send_message = 'true'
-    data = MiscDetail.objects.filter(user=user.id, misc_type='send_message')
-    if data:
-        send_message = data[0].misc_value
     filter_params = {'user': user.id}
     suppliers = filter_by_values(SupplierMaster, filter_params, ['id', 'name'])
     supplier_data = [];
@@ -2031,7 +2019,6 @@ def confirm_grn(request, confirm_returns = '', user=''):
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/po_download.html')
                 rendered = t.render(report_data_dict)
-                send_message = get_misc_value('send_message', user.id)
                 write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
             return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,
                                    'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,
@@ -2140,8 +2127,8 @@ def check_sku(request, user=''):
         except:
             sku_id = ''
     if sku_id:
-        sku_code = SKUMaster.objects.get(id = sku_id).sku_code
-        data = {"status": 'confirmed', 'sku_code': sku_code}
+        sku_data = SKUMaster.objects.get(id = sku_id)
+        data = {"status": 'confirmed', 'sku_code': sku_data.sku_code, 'description': sku_data.sku_desc}
         return HttpResponse(json.dumps(data))
 
 
@@ -3461,12 +3448,7 @@ def confirm_add_po(request, sales_data = '', user=''):
 
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
-    send_message = 'false'
-    data = MiscDetail.objects.filter(user=user.id, misc_type='send_message')
-
-    if data:
-        send_message = data[0].misc_value
-    if send_message == 'true':
+    if get_misc_value('raise_po', user.id) == 'true':
         write_and_mail_pdf(po_reference, rendered, request, supplier_email, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag)
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
@@ -3591,11 +3573,7 @@ def confirm_po1(request, user=''):
 
             t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)
-            send_message = 'false'
-            misc_data = MiscDetail.objects.filter(user=request.user.id, misc_type='send_message')
-            if misc_data:
-                send_message = misc_data[0].misc_value
-            if send_message == 'true':
+            if get_misc_value('raise_po', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0])
 
     print data_dict
@@ -3692,7 +3670,7 @@ def returns_putaway_data(request, user=''):
         receipt_number = int(stock[0].receipt_number) + 1
     else:
         receipt_number = 1
-    myDict = dict(request.GET.iterlists())
+    myDict = dict(request.POST.iterlists())
     mod_locations = []
     for i in range(0, len(myDict['id'])):
         status = ''
@@ -4378,7 +4356,6 @@ def confirm_receive_qc(request, user=''):
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/po_download.html')
                 rendered = t.render(report_data_dict)
-                send_message = get_misc_value('send_message', user.id)
                 write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
             return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,
                                    'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,

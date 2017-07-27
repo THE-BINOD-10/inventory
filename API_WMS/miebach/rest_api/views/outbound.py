@@ -4441,7 +4441,7 @@ def get_customer_orders(request, user=""):
     if customer:
 
         customer_id = customer[0].customer.customer_id
-        orders = OrderDetail.objects.filter(customer_id = customer_id, user=user.id).order_by('-order_id')
+        orders = OrderDetail.objects.filter(customer_id = customer_id, user=user.id).order_by('-creation_date')
         picklist = Picklist.objects.filter(order__customer_id = customer_id, order__user=user.id)
         response_data['data'] = list(orders.values('order_id', 'order_code').distinct().annotate(total_quantity=Sum('quantity'), total_inv_amt=Sum('invoice_amount')))
 

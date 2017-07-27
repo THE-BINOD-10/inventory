@@ -35,13 +35,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Send [PO] Messages and Email",
-      model_name: "send_message",
-      param_no: 1,
-      class_name: "fa fa-envelope-o",
-      display: true
-    },
-    {
       name: "Auto Generate Picklist",
       model_name: "auto_generate_picklist",
       param_no: 22,

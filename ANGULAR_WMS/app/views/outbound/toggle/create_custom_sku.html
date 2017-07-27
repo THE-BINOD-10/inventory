@@ -65,29 +65,31 @@
         </div>
         <div class="row"><hr></div>
         <div class="row" ng-if="showCase.pop_data.sizes.length > 0">
-          <input type="hidden" name="style_data" value="{{ showCase.custom_data.sku_data}}">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Style</th>
-                <th ng-repeat="hd in showCase.pop_data.sizes">{{hd}}</th>
-                <th>Total</th>
-                <th>Remarks</th>
-                <th class="plus"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr ng-repeat="sku in showCase.custom_data.sku_data">
-                <td>{{sku.name}}</td>
-                <td ng-repeat="size in sku.sizes">
-                  <input ng-if="sku.av_sizes.indexOf(size.name) != -1" type="text" ng-class="service.get_decimal_perm()" ng-model="size.value" ng-change="showCase.calTotal(sku, size.value)">
-                </td>
-                <td><input type="text" readonly ng-class="service.get_decimal_perm()" value="{{sku.total}}"></td>
-                <td><input type="text" ng-model="sku.remarks"></td>
-                <td><i style="font-size: 20px;margin-top: -3px;cursor: pointer;margin-left: -15px;" ng-click="showCase.removeSKU($index)" class="fa fa-minus-square-o"></i></td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="col-md-12">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Style</th>
+                  <th ng-repeat="hd in showCase.pop_data.sizes">{{hd}}</th>
+                  <th>Total</th>
+                  <th>Remarks</th>
+                  <th class="plus"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr ng-repeat="sku in showCase.custom_data.sku_data">
+                  <td>{{sku.name}}</td>
+                  <td ng-repeat="size in sku.sizes">
+                    <input ng-if="sku.av_sizes.indexOf(size.name) != -1" type="text" class="form-control" ng-class="service.get_decimal_perm()" ng-model="size.value" ng-change="showCase.calTotal(sku, size.value)">
+                  </td>
+                  <td><input type="text" readonly class="form-control" ng-class="service.get_decimal_perm()" value="{{sku.total}}"></td>
+                  <td><input type="text" class="form-control" ng-model="sku.remarks"></td>
+                  <td><i style="font-size: 20px;cursor: pointer;margin-left: -15px;" ng-click="showCase.removeSKU($index)" class="fa fa-minus-square-o"></i></td>
+                </tr>
+              </tbody>
+            </table>
+            <input type="hidden" name="style_data" value="{{ showCase.custom_data.sku_data}}">
+          </div>
         </div>
         <div class="row"><hr></div>
      	<div class="row">

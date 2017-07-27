@@ -1976,7 +1976,8 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                     'dispatch_through': dispatch_through, 'inv_date': inv_date, 'tax_type': tax_type,
                     'rounded_invoice_amount': _total_invoice, 'purchase_type': purchase_type, 'is_gst_invoice': is_gst_invoice,
                     'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes, 'image': image,
-                    'total_tax_words': number_in_words(_total_tax), 'declaration': declaration, 'hsn_summary': hsn_summary}
+                    'total_tax_words': number_in_words(_total_tax), 'declaration': declaration, 'hsn_summary': hsn_summary,
+                    'hsn_summary_display': get_misc_value('hsn_summary', user.id)}
 
     return invoice_data
 

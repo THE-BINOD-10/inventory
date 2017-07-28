@@ -1,7 +1,7 @@
 <div id="page-pop">
   <!-- Modal -->
   <form name="form" role="form" ui-jq="validate" ui-options="pop.validationOpt">
-      <div class="modal-content model-custom">
+      <div class="model-custom">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
           <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="pop.ok()"><span aria-hidden="true">×</span>
@@ -25,13 +25,19 @@
               </label>
             </div>
           </div>
-          <div class="row" ng-if="pop.state_data.page == 'ViewOrders'">
-            <div class="col-md-12">
+          <!--<div class="row" ng-if="pop.state_data.page == 'ViewOrders'">
+            <div class="col-md-3 col-sm-4 col-xs-6">
               <h5>Picklist ID: <b>{{pop.model_data.picklist_id}}</b></h5>
               <input type="hidden" value="{{pop.model_data.single_order}}" name="single_order">
             </div>
-          </div>
-          <div class="row" ng-if="pop.state_data.page == 'PullConfirmation'">
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.scan_picklist_option == 'scan_label'">
+              <div class="form-group">
+                <label class="control-label">Scan Label</label>
+                <textarea rows="2" class="form-control" cols="27" ng-model="pop.model_data.scan_label" ng-keydown="pop.label_scan($event, pop.model_data.scan_label)"></textarea>
+              </div>
+            </div>
+          </div>-->
+          <div class="row"><!-- ng-if="pop.state_data.page == 'PullConfirmation'">-->
             <div class="col-md-3 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Picklist ID</label>
@@ -39,26 +45,32 @@
                 <input type="hidden" value="{{pop.model_data.single_order}}" name="single_order">
               </div>
             </div>
-            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.use_imei && pop.permissions.scan_picklist_option == 'scan_sku'">
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.scan_picklist_option == 'scan_sku'">
               <div class="form-group">
                 <label class="control-label">Scan SKU</label>
                 <textarea rows="2" class="form-control" cols="27" ng-model="pop.model_data.scan_sku" ng-keydown="pop.sku_scan($event, pop.model_data.scan_sku)" attr-name="sku"></textarea>
               </div>
             </div>
-            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.use_imei && pop.permissions.scan_picklist_option == 'scan_sku_location'">
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.scan_picklist_option == 'scan_sku_location'">
               <div class="form-group">
                 <label class="control-label">Scan Location</label>
                 <textarea rows="2" class="form-control" cols="27" ng-model="pop.model_data.scan_location" ng-keydown="pop.check_location($event, pop.model_data.scan_location)" attr-name="location"></textarea>
               </div>
             </div>
-            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.use_imei && pop.permissions.scan_picklist_option == 'scan_sku_location'">
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.scan_picklist_option == 'scan_sku_location'">
               <div class="form-group">
                 <label class="control-label">Scan SKU</label>
                 <textarea rows="2" class="form-control" cols="27" ng-model="pop.model_data.scan_sku" ng-keydown="pop.check_sku($event, pop.model_data.scan_sku)" attr-name="sku"></textarea>
               </div>
             </div>
-            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.use_imei">
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.scan_picklist_option == 'scan_sku_location'">
               <p ng-if="pop.sug_sku">Suggested SKU: {{pop.sug_sku}}</p>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.scan_picklist_option == 'scan_label'">
+              <div class="form-group">
+                <label class="control-label">Scan Label</label>
+                <textarea rows="2" class="form-control" cols="27" ng-model="pop.model_data.scan_label" ng-keydown="pop.label_scan($event, pop.model_data.scan_label)"></textarea>
+              </div>
             </div>
           </div>
           <div class="row">
@@ -67,7 +79,7 @@
             </div>
           </div>
           <div class="row over-x">
-            <table class="table mw85"> 
+            <table class="table mw85">
               <thead>
                 <tr>
                   <th ng-if="pop.permissions.show_image" style="width: 50px;"> Image </th>
@@ -80,7 +92,7 @@
                   <th class="w10" ng-if="pop.permissions.pallet_switch"> Pallet Code </th>
                   <th class="w10"> Reserved Quantity </th>
                   <th class="w10"> Picked Quantity </th>
-                  <th ng-if="pop.permissions.use_imei"> Serial Number </th>
+                  <th ng-if="pop.permissions.scan_picklist_option == 'scan_serial'"> Serial Number </th>
                   <th></th>
                 </tr>
               </thead>
@@ -92,6 +104,7 @@
                   <input type="hidden" name="orig_loc_{{data.id}}" value="{{record.orig_location}}">
                   <input type="hidden" name="orig_wms_{{data.id}}" value="{{data.wms_code}}">
                   <input type="hidden" name="picklist_number" value="{{data.picklist_number}}">
+                  <input type="hidden" name="labels_{{data.id}}" value="{{record.labels.join(',')}}">
                   <td ng-if="pop.permissions.show_image"><img ng-src="{{pop.service.check_image_url(data.image)}}" style="width: 30px;height: 50px;"></td>
                   <td ng-if="pop.model_data.order_status == 'open'"><input ng-model="data.order_no"  class="form-control" type="text" readonly></td>
                   <td><input name="wms_code_{{data.id}}" ng-model="data.wms_code"  class="form-control" type="text" readonly></td>
@@ -101,17 +114,24 @@
                   <td><input name="location_{{data.id}}" ng-model="record.location" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'location', $event);"></td>
                   <td ng-if="pop.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="record.pallet_code" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'pallet_code', $event);"></td>
                   <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>
-                  <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" class="form-control" type="text" ng-change="pop.count_sku_quantity();pop.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
-                  <td ng-if="pop.permissions.use_imei"><textarea class="form-control" name="imei_{{data.id}}" rows="1" ng-model="record.scan" ng-keydown="pop.serial_scan($event,record.scan, data, record)"></textarea></td>
-                  <td style="width: 20px;padding-left: 10px;padding-top: 15px;"><i ng-click="pop.update_data($index, data, $last)" ng-class="pop.isLast($last)"></i></td>
+                  <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" class="form-control" type="text" ng-change="pop.count_sku_quantity();pop.cal_quantity(record, data)" ng-class="service.get_decimal_perm()" ng-readonly = "pop.permissions.scan_picklist_option != 'scan_sku_location'"></td>
+                  <td ng-if="pop.permissions.scan_picklist_option == 'scan_serial'"><textarea class="form-control" name="imei_{{data.id}}" rows="1" ng-model="record.scan" ng-keydown="pop.serial_scan($event,record.scan, data, record)"></textarea></td>
+                  <td style="width: 20px;padding-left: 10px;padding-top: 15px;"><i ng-click="pop.update_data($index, data, $last)" ng-class="pop.service.isLast($last)"></i></td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <div class="row col-md-12" ng-if="pop.state_data.page == 'PullConfirmation'">
-            <button type="button" class="btn btn-danger pull-right" ng-click="pop.cancel_picklist(pop.model_data.picklist_id)">Cancel Picklist</button>
-            <button type="button" class="btn btn-success pull-right mr10"
-                             ng-click="pop.update_picklist(pop.model_data.picklist_id)">Update Picklist</button>
+          <!--<div class="row" ng-if="pop.state_data.page != 'PullConfirmation'">
+            <div class="col-md-12">
+              <button type="button" class="btn btn-success pull-right" ng-click="pop.print_barcodes(pop.model_data.picklist_id)">Print Barcodes</button>
+            </div>
+          </div>-->
+          <div class="row"><!-- ng-if="pop.state_data.page == 'PullConfirmation'">-->
+            <div class="col-md-12">
+              <button type="button" class="btn btn-danger pull-right" ng-click="pop.cancel_picklist(pop.model_data.picklist_id)">Cancel Picklist</button>
+              <button type="button" class="btn btn-success pull-right mr10" ng-click="pop.update_picklist(pop.model_data.picklist_id)">Update Picklist</button>
+              <button type="button" class="btn btn-success pull-right mr10" ng-click="pop.print_barcodes(pop.model_data.picklist_id)">Print Barcodes</button>
+            </div>
           </div>
           <div class="row insert-status"><h4 align="center">{{pop.message}}</h4></div>
         </div>

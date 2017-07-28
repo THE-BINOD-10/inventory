@@ -82,22 +82,20 @@ function ServerSideProcessingCtrl($scope, $http, $state , $compile, Session, DTO
     angular.forEach(vm.selected, function(k,v){
       if(k) {
         var row = rows[v];
-        data.push({'id':$(row).find("input[name='id']").val(),
-                   'zone':$(row).find("input[name='zone']").val(),
-                   'location':$(row).find("input[name='location']").val(),
-                   'quantity':$(row).find("input[name='quantity']").val()})
+        data.push({name: 'id', value: $(row).find("input[name='id']").val()})
+        data.push({name: 'zone', value: $(row).find("input[name='zone']").val()})
+        data.push({name: 'location', value: $(row).find("input[name='location']").val()})
+        data.push({name: 'quantity', value: $(row).find("input[name='quantity']").val()})
       }
     });
-    var elem = "";
-    for(var i=0; i < data.length; i++) {
-      elem = elem+$.param(data[i])+"&";
-    }
     vm.process = true;
-    $http.get(Session.url+'returns_putaway_data/?'+elem.slice(0,-1),{withCredential: true}).success(function(data){
-      console.log(data);
-      colFilters.showNoty(data);
-      reloadData();
-      vm.process = false;
+    vm.service.apiCall('returns_putaway_data/', 'POST', data).then(function(data){
+      if(data.message) {
+        console.log(data.data);
+        colFilters.showNoty(data.data);
+        reloadData();
+        vm.process = false;
+      }
     })
   }
 }

@@ -837,6 +837,16 @@ def pricing_master_form(request, user=''):
     return xls_to_response(wb, '%s.pricing_master_form.xls' % str(user.id))
 
 @csrf_exempt
+@get_admin_user
+def order_label_mapping_form(request, user=''):
+    label_file = request.GET['order-label-mapping-form']
+    if label_file:
+        return error_file_download(label_file)
+
+    wb, ws = get_work_sheet('Order Labels', )
+    return xls_to_response(wb, '%s.order_label_mapping_form.xls' % str(user.id))
+
+@csrf_exempt
 def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls'):
     sku_data = []
     wms_data = []
@@ -1380,7 +1390,7 @@ def validate_supplier_form(open_sheet, user_id):
 
 def supplier_excel_upload(request, open_sheet, user, demo_data=False):
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
-    number_str_fields = ['pincode', 'phone_number']
+    number_str_fields = ['pincode', 'phone_number', 'tin_number']
     for row_idx in range(1, open_sheet.nrows):
         sku_code = ''
         wms_code = ''
@@ -2957,7 +2967,6 @@ def pricing_excel_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
     return 'success'
 
-
 @csrf_exempt
 def validate_pricing_form(request, reader, user, no_of_rows, fname, file_type='xls'):
     sku_data = []
@@ -3037,4 +3046,127 @@ def pricing_master_upload(request, user=''):
     pricing_excel_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
 
     return HttpResponse('Success')
+
+def get_order_lable_mapping(reader, file_type):
+
+    label_mapping = {}
+    if get_cell_data(0, 1, reader, file_type) == 'ItemCode' and get_cell_data(0, 2, reader, file_type) == 'ItemSku':
+        label_mapping = copy.deepcopy(MYNTRA_LABEL_EXCEL_MAPPING)
+    elif get_cell_data(0, 1, reader, file_type) == 'SKU Code' and get_cell_data(0, 2, reader, file_type) == 'Label':
+        label_mapping = copy.deepcopy(ORDER_LABEL_EXCEL_MAPPING)
+
+    return label_mapping
+
+@csrf_exempt
+def validate_and_insert_order_labels(request, reader, user, no_of_rows, fname, file_type='xls'):
+    sku_data = []
+    wms_data = []
+    index_status = {}
+
+    label_mapping = get_order_lable_mapping(reader, file_type)
+    if not label_mapping:
+        return 'Invalid File'
+
+    save_records = []
+    order_objs = []
+    all_order_objs = OrderDetail.objects.filter(user=user.id)
+    for row_idx in range(1, no_of_rows):
+        label_mapping_dict = {}
+        search_params = {'user': user.id}
+        for key, value in label_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, label_mapping[key], reader, file_type)
+
+            if key == 'sku_code':
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    cell_data = str(xcode(cell_data))
+                    sku_code_id = check_and_return_mapping_id(cell_data, '', user)
+                    if not sku_code_id:
+                        index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                    else:
+                        search_params['sku_id'] = sku_code_id
+                else:
+                    index_status.setdefault(row_idx, set()).add('SKU Code missing')
+            elif key == 'order_id':
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    cell_data = str(xcode(cell_data))
+                    order_objs = get_order_detail_objs(cell_data, user, search_params=search_params, all_order_objs=all_order_objs)
+                    if not order_objs:
+                        index_status.setdefault(row_idx, set()).add('Invalid Order ID')
+                    else:
+                        label_mapping_dict['order_id'] = order_objs[0].id
+                else:
+                    index_status.setdefault(row_idx, set()).add('Order ID missing')
+
+            elif key == 'label':
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
+                    cell_data = str(xcode(cell_data))
+                    if order_objs:
+                        order_label_objs = OrderLabels.objects.filter(order_id__in=order_objs.values_list('id', flat=True))
+                        if order_label_objs:
+                            index_status.setdefault(row_idx, set()).add('Order Label Mapping Already exists')
+                        else:
+                            label_mapping_dict['label'] = cell_data
+                else:
+                    index_status.setdefault(row_idx, set()).add('Label Missing')
+        if not index_status:
+            save_records.append(OrderLabels(**label_mapping_dict))
+
+    if not index_status:
+        OrderLabels.objects.bulk_create(save_records)
+        return 'Success'
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def order_label_mapping_upload(request, user=''):
+    fname = request.FILES['files']
+    if (fname.name).split('.')[-1] == 'csv':
+        reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
+        no_of_rows = len(reader)
+        file_type = 'csv'
+    elif (fname.name).split('.')[-1] == 'xls' or (fname.name).split('.')[-1] == 'xlsx':
+        try:
+            data = fname.read()
+            if '<table' in data:
+                open_book, open_sheet = html_excel_data(data, fname)
+            else:
+                open_book = open_workbook(filename=None, file_contents=data)
+                open_sheet = open_book.sheet_by_index(0)
+        except:
+            return HttpResponse("Invalid File")
+        reader = open_sheet
+        no_of_rows = reader.nrows
+        file_type = 'xls'
+    else:
+        return HttpResponse('Invalid File')
+
+    try:
+        status  = validate_and_insert_order_labels(request, reader, user, no_of_rows, fname, file_type=file_type)
+        return HttpResponse(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Order Label Mapping Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Order Label Mapping Upload Failed")
 

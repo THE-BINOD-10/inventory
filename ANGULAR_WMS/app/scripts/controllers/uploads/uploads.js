@@ -164,6 +164,15 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-pricing-master",
                    value: "",
                    show: "add_pricemaster"
+                 }, {
+                   title: "Order Label Mapping Download/ Upload",
+                   download: "Download Order Label Mapping Form",
+                   upload: "Upload Order Label Mapping Form",
+                   durl: "order_label_mapping_form/",
+                   uurl: "order_label_mapping_upload/",
+                   dparam: "order-label-mapping-form",
+                   value: "",
+                   show: true
                  }
                  ]
 

@@ -73,6 +73,7 @@ urlpatterns = [
     url(r'^search_template_names/$',search_template_names),
     url(r'^get_tax_data/$', get_tax_data),
     url(r'^add_or_update_tax/$', add_or_update_tax),
+    url(r'^get_zone_data/$', get_zone_data),
 
     # Inbound
     url(r'^generated_po_data/$',generated_po_data),
@@ -220,6 +221,7 @@ urlpatterns = [
     url('^get_custom_template_styles/$',get_custom_template_styles),
     url('^get_seller_order_details/$',get_seller_order_details),
     url(r'^get_stock_transfer_details/$', get_stock_transfer_details),
+    url(r'^get_order_labels/$', get_order_labels),
 
     # Reports
     #url(r'^location_wise_filter/$',location_wise_filter),
@@ -296,6 +298,8 @@ urlpatterns += [
     url(r'customer_upload/$',customer_upload),
     url(r'^pricing_master_form/$',pricing_master_form),
     url(r'^pricing_master_upload/$',pricing_master_upload),
+    url(r'^order_label_mapping_form/$', order_label_mapping_form),
+    url(r'^order_label_mapping_upload/$', order_label_mapping_upload),
 
     #configurations
     url(r'^configurations/$',configurations),
@@ -326,6 +330,7 @@ urlpatterns += [
     url(r'get_tally_data/',get_tally_data),
     url(r'get_categories_list/',get_categories_list),
     url(r'get_sku_stock_check/', get_sku_stock_check),
+    url(r'check_labels/', check_labels),
 
     #Retailone
     url(r'^get_marketplace_data/$',get_marketplace_data),

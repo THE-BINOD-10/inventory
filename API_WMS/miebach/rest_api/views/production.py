@@ -857,11 +857,7 @@ def insert_rwo_po(rw_order, request, user):
 
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
-    send_message = 'false'
-    data = MiscDetail.objects.filter(user=user.id, misc_type='send_message')
-    if data:
-        send_message = data[0].misc_value
-    if send_message == 'true':
+    if get_misc_value('raise_po', user.id) == 'true':
         write_and_mail_pdf(po_reference, rendered, request, rw_order.vendor.email_id, phone_no, po_data, str(order_date).split(' ')[0])
 
 def reduce_putaway_stock(stock, quantity, user):
@@ -2229,11 +2225,7 @@ def confirm_back_order(request, user=''):
 
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dictionary)
-        send_message = 'false'
-        data = MiscDetail.objects.filter(user=user.id, misc_type='send_message')
-        if data:
-            send_message = data[0].misc_value
-        if send_message == 'true':
+        if get_misc_value('raise_po', user.id) == 'true':
             write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0])
 
 

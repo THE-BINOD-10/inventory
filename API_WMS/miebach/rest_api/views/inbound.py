@@ -725,6 +725,7 @@ def switches(request, user=''):
                     'hsn_summary': 'hsn_summary',
                     'display_customer_sku': 'display_customer_sku',
                     'label_generation': 'label_generation'
+                    'marketplace_model': 'marketplace_model'
                   }
 
     toggle_field, selection = "", ""
@@ -1687,7 +1688,8 @@ def get_purchase_order_data(order):
     unit = ""
     if 'job_code' in dir(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group, 'sku': order.product_code,
-                      'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle, 'sku_desc': order.product_code.sku_desc}
+                      'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle, 'sku_desc': order.product_code.sku_desc,
+                      'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]
@@ -1701,6 +1703,10 @@ def get_purchase_order_data(order):
         order_type = ''
         price = 0
         supplier_code = ''
+        cgst_tax = 0
+        sgst_tax = 0
+        igst_tax = 0
+        utgst_tax = 0
     elif order.open_po:
         open_data = order.open_po
         user_data = order.open_po.supplier
@@ -1713,6 +1719,10 @@ def get_purchase_order_data(order):
         unit = open_data.measurement_unit
         order_type = status_dict[order.open_po.order_type]
         supplier_code = open_data.supplier_code
+        cgst_tax = open_data.cgst_tax
+        sgst_tax = open_data.sgst_tax
+        igst_tax = open_data.igst_tax
+        utgst_tax = open_data.utgst_tax
         if sku.wms_code == 'TEMP':
             temp_wms = open_data.wms_code
     elif st_order and not order.open_po:
@@ -1727,6 +1737,10 @@ def get_purchase_order_data(order):
         price = open_data.price
         order_type = ''
         supplier_code = ''
+        cgst_tax = 0
+        sgst_tax = 0
+        igst_tax = 0
+        utgst_tax = 0
 
     order_data = {'order_quantity': order_quantity, 'price': price, 'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
@@ -1734,7 +1748,7 @@ def get_purchase_order_data(order):
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
                   'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms, 'order_type': order_type,
-                  'supplier_code': supplier_code}
+                  'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'utgst_tax': utgst_tax}
 
     return order_data
 
@@ -1882,7 +1896,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         unit = ''
         if 'unit' in myDict.keys():
             unit = myDict['unit'][i]
-        cond = (data.id, purchase_data['wms_code'], purchase_data['price'], unit)
+        cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'], purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'])
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
 
@@ -1957,6 +1971,9 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
                      ('Supplier Name', purchase_data['supplier_name']))
 
         price = float(value) * float(purchase_data['price'])
+        gst_taxes = purchase_data['cgst_tax'] + purchase_data['sgst_tax'] + purchase_data['igst_tax'] + purchase_data['utgst_tax']
+        if gst_taxes:
+            price += (price/100) * gst_taxes
         po_data.append((purchase_data['wms_code'], purchase_data['supplier_code'], purchase_data['sku_desc'], purchase_data['order_quantity'],
                         value, price))
     return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict
@@ -1966,7 +1983,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
 @get_admin_user
 def confirm_grn(request, confirm_returns = '', user=''):
     data_dict = ''
-    headers = ('WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Price')
+    headers = ('WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)', 'UTGST(%)', 'Amount')
     putaway_data = {headers: []}
     total_received_qty = 0
     total_order_qty = 0
@@ -1986,10 +2003,14 @@ def confirm_grn(request, confirm_returns = '', user=''):
         po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict = generate_grn(myDict, request, user)
 
         for key, value in all_data.iteritems():
-            putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[-1], key[2]))
+            entry_price = float(key[3]) * float(value)
+            entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7])
+            if entry_tax:
+                entry_price += (float(entry_price)/100) * entry_tax
+            putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5], key[6], key[7], entry_price))
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
-            total_price += float(key[2]) * float(value)
+            total_price += entry_price
 
         if is_putaway == 'true':
             btn_class = 'inb-putaway'
@@ -2007,24 +2028,25 @@ def confirm_grn(request, confirm_returns = '', user=''):
             order_id = data.order_id
             order_date = get_local_date(request.user, data.creation_date)
 
-            profile = UserProfile.objects.get(user=request.user.id)
-            po_reference = '%s%s_%s' % (data.prefix, str(order_date).split(' ')[0].replace('-', ''), order_id)
+            profile = UserProfile.objects.get(user=user.id)
+            po_reference = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), order_id)
             table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity', 'Amount')
-            report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
+            '''report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                                 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
                                 'po_reference': po_reference, 'total_qty': total_received_qty,
-                                'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}
-
-            misc_detail = get_misc_value('receive_po', user.id)
-            if misc_detail == 'true':
-                t = loader.get_template('templates/toggle/po_download.html')
-                rendered = t.render(report_data_dict)
-                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
-            return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,
+                                'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
+            report_data_dict = {'data': putaway_data, 'data_dict': data_dict,
                                    'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,
                                    'seller_name': seller_name,
                                    'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
-                                   'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class})
+                                   'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class}
+
+            misc_detail = get_misc_value('receive_po', user.id)
+            if misc_detail == 'true':
+                t = loader.get_template('templates/toggle/grn_form.html')
+                rendered = t.render(report_data_dict)
+                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, order_date, internal=True, report_type="Goods Receipt Note")
+            return render(request, 'templates/toggle/putaway_toggle.html', report_data_dict)
         else:
             return HttpResponse(status_msg)
     except Exception as e:
@@ -3478,7 +3500,10 @@ def write_and_mail_pdf(f_name, html_data, request, supplier_email, phone_no, po_
         send_mail_attachment(receivers, '%s %s' % (request.user.username, report_type), 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name), files=[{'path': path + pdf_file, 'name': pdf_file}])
 
     if phone_no:
-        po_message(po_data, phone_no, request.user.username, f_name, order_date, ean_flag)
+        if report_type == 'Purchase Order':
+            po_message(po_data, phone_no, request.user.username, f_name, order_date, ean_flag)
+        elif report_type == 'Goods Receipt Note':
+            grn_message(po_data, phone_no, request.user.username, f_name, order_date)
 
 @csrf_exempt
 @login_required
@@ -4293,7 +4318,7 @@ def check_return_imei(request, user=''):
 @get_admin_user
 def confirm_receive_qc(request, user=''):
     data_dict = ''
-    headers = ('WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Price')
+    headers = ('WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)', 'UTGST(%)', 'Amount')
     putaway_data = {headers: []}
     total_received_qty = 0
     total_order_qty = 0
@@ -4328,10 +4353,14 @@ def confirm_receive_qc(request, user=''):
                     save_qc_serials('rejected', [myDict.get("rejected",'')[i]], user.id, qc_id=quality_check.id)
 
         for key, value in all_data.iteritems():
-            putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[-1], key[2]))
+            entry_price = float(key[3]) * float(value)
+            entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7])
+            if entry_tax:
+                entry_price += (float(entry_price)/100) * entry_tax
+            putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5], key[6], key[7], entry_price))
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
-            total_price += float(key[2]) * float(value)
+            total_price += entry_price
 
         if not status_msg:
             if not purchase_data:
@@ -4344,24 +4373,25 @@ def confirm_receive_qc(request, user=''):
             order_id = data.order_id
             order_date = get_local_date(request.user, data.creation_date)
 
-            profile = UserProfile.objects.get(user=request.user.id)
-            po_reference = '%s%s_%s' % (data.prefix, str(order_date).split(' ')[0].replace('-', ''), order_id)
+            profile = UserProfile.objects.get(user=user.id)
+            po_reference = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), order_id)
             table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity', 'Amount')
-            report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
+            '''report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                                 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
                                 'po_reference': po_reference, 'total_qty': total_received_qty,
-                                'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}
-
-            misc_detail = get_misc_value('receive_po', user.id)
-            if misc_detail == 'true':
-                t = loader.get_template('templates/toggle/po_download.html')
-                rendered = t.render(report_data_dict)
-                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], internal=True, report_type="Goods Receipt Note")
-            return render(request, 'templates/toggle/putaway_toggle.html', {'data': putaway_data, 'data_dict': data_dict,
+                                'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
+            report_data_dict = {'data': putaway_data, 'data_dict': data_dict,
                                    'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,
                                    'seller_name': seller_name,
                                    'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
-                                   'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class})
+                                   'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class}
+
+            misc_detail = get_misc_value('receive_po', user.id)
+            if misc_detail == 'true':
+                t = loader.get_template('templates/toggle/grn_form.html')
+                rendered = t.render(report_data_dict)
+                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date), internal=True, report_type="Goods Receipt Note")
+            return render(request, 'templates/toggle/putaway_toggle.html', report_data_dict)
         else:
             return HttpResponse(status_msg)
     except Exception as e:

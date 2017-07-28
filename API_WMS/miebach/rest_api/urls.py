@@ -73,6 +73,7 @@ urlpatterns = [
     url(r'^search_template_names/$',search_template_names),
     url(r'^get_tax_data/$', get_tax_data),
     url(r'^add_or_update_tax/$', add_or_update_tax),
+    url(r'^get_zone_data/$', get_zone_data),
 
     # Inbound
     url(r'^generated_po_data/$',generated_po_data),

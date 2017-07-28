@@ -1691,7 +1691,7 @@ def get_purchase_order_data(order):
     if 'job_code' in dir(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group, 'sku': order.product_code,
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle, 'sku_desc': order.product_code.sku_desc,
-                      'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
+                      'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': ''}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]
@@ -1709,6 +1709,7 @@ def get_purchase_order_data(order):
         sgst_tax = 0
         igst_tax = 0
         utgst_tax = 0
+        tin_number = ''
     elif order.open_po:
         open_data = order.open_po
         user_data = order.open_po.supplier
@@ -1725,6 +1726,7 @@ def get_purchase_order_data(order):
         sgst_tax = open_data.sgst_tax
         igst_tax = open_data.igst_tax
         utgst_tax = open_data.utgst_tax
+        tin_number = open_data.supplier.tin_number
         if sku.wms_code == 'TEMP':
             temp_wms = open_data.wms_code
     elif st_order and not order.open_po:
@@ -1743,6 +1745,7 @@ def get_purchase_order_data(order):
         sgst_tax = 0
         igst_tax = 0
         utgst_tax = 0
+        tin_number = ''
 
     order_data = {'order_quantity': order_quantity, 'price': price, 'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
@@ -1750,7 +1753,8 @@ def get_purchase_order_data(order):
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
                   'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms, 'order_type': order_type,
-                  'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'utgst_tax': utgst_tax}
+                  'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
+                  'tin_number': tin_number}
 
     return order_data
 

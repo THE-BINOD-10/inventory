@@ -30,6 +30,9 @@
               <p>{{ name }}</p>
               {{ address|linebreaks }}
               <p><b>Telephone:</b> {{ telephone }}</p>
+              {% if gstin_no %}
+              <p><b>GSTIN No:</b> {{ gstin_no }}</p>
+              {% endif %}
               {% if vendor_name %}
                 <p style="font-weight: bold;">Shipped To: </p>
                 <p>{{ vendor_name }}</p>

@@ -724,7 +724,7 @@ def switches(request, user=''):
                     'tax_details': 'tax_details',
                     'hsn_summary': 'hsn_summary',
                     'display_customer_sku': 'display_customer_sku',
-                    'label_generation': 'label_generation'
+                    'label_generation': 'label_generation',
                     'marketplace_model': 'marketplace_model'
                   }
 
@@ -916,6 +916,7 @@ def confirm_po(request, user=''):
     telephone = purchase_order.supplier.phone_number
     name = purchase_order.supplier.name
     supplier_email = purchase_order.supplier.email_id
+    gstin_no = purchase_order.supplier.tin_number
     order_id = ids_dict[supplier]
     order_date = get_local_date(request.user, order.creation_date)
     vendor_name = ''
@@ -945,7 +946,8 @@ def confirm_po(request, user=''):
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'company_name': profile.company_name,
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
-                 'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type, 'title': title}
+                 'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type, 'title': title,
+                 'gstin_no': gstin_no}
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
@@ -3446,6 +3448,7 @@ def confirm_add_po(request, sales_data = '', user=''):
     order_id =  ids_dict[supplier]
     supplier_email = purchase_order.supplier.email_id
     phone_no = purchase_order.supplier.phone_number
+    gstin_no = purchase_order.supplier.tin_number
     order_date = get_local_date(request.user, order.creation_date)
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     if ean_flag:
@@ -3466,7 +3469,7 @@ def confirm_add_po(request, sales_data = '', user=''):
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'user_name': request.user.username,
                  'total_qty': total_qty, 'company_name': profile.company_name, 'location': profile.location, 'w_address': profile.address,
                  'company_name': profile.company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
-                 'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title}
+                 'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title, 'gstin_no': gstin_no}
 
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
@@ -3574,6 +3577,7 @@ def confirm_po1(request, user=''):
             telephone = purchase_orders[0].supplier.phone_number
             name = purchase_orders[0].supplier.name
             supplier_email = purchase_orders[0].supplier.email_id
+            gstin_no = purchase_orders[0].supplier.tin_number
             order_id =  ids_dict[supplier]
             order_date = get_local_date(request.user, order.creation_date)
             vendor_name = ''
@@ -3584,8 +3588,8 @@ def confirm_po1(request, user=''):
                 vendor_address = '\n'.join(vendor_address.split(','))
                 vendor_name = purchase_orders[0].vendor.name
                 vendor_telephone = purchase_orders[0].vendor.phone_number
-            profile = UserProfile.objects.get(user=request.user.id)
-            po_reference = 'PAV%s_%s' %(str(order_date).split(' ')[0].replace('-', ''), order_id)
+            profile = UserProfile.objects.get(user=user.id)
+            po_reference = '%s%s_%s' %(str(profile.prefix), str(order_date).split(' ')[0].replace('-', ''), order_id)
             #table_headers = ('WMS CODE', 'Supplier Name', 'Description', 'Quantity', 'Unit Price', 'Amount')
 
             if ean_flag:
@@ -3594,14 +3598,17 @@ def confirm_po1(request, user=''):
             else:
                 table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
                                  'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
-            data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total, 'company_name': profile.company_name, 'location': profile.location, 'po_reference': po_reference, 'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone}
+            data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
+                         'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
+                         'company_name': profile.company_name, 'location': profile.location, 'po_reference': po_reference,
+                         'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
+                         'vendor_telephone': vendor_telephone, 'gstin_no': gstin_no}
 
             t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)
             if get_misc_value('raise_po', user.id) == 'true':
-                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0])
+                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag)
 
-    print data_dict
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 @csrf_exempt

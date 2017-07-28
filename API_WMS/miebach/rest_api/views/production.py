@@ -2195,6 +2195,7 @@ def confirm_back_order(request, user=''):
             name = supplier.name
             order_id =  purchase_order.order_id
             supplier_email = supplier.email_id
+            gstin_no = supplier.tin_number
             order_date = get_local_date(request.user, purchase_order.creation_date)
             address = '\n'.join(supplier.address.split(','))
             vendor_name = ''
@@ -2221,7 +2222,8 @@ def confirm_back_order(request, user=''):
                          'user_name': request.user.username, 'total_qty': total_qty, 'company_name': profile.company_name,
                          'location': profile.location, 'w_address': profile.address, 'executive_name': executive_name,
                          'company_name': profile.company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
-                         'vendor_telephone': vendor_telephone, 'customization': customization, 'customer_name': customer_name}
+                         'vendor_telephone': vendor_telephone, 'customization': customization, 'customer_name': customer_name,
+                         'gstin_no': gstin_no}
 
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dictionary)

@@ -1,6 +1,5 @@
 <!-- Modal -->
 
-
 <form id="putaway-list">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -22,20 +21,20 @@
                     <div><b>Order Date</b>: {{ order_date }}</div>
                 </div>
 
-                <div class="form-group clearfix">
+                <div class="form-group clearfix print-invoice">
 
 
-                    <table class="table" style='margin-top:60px;'>
+                    <table class="table table-borderless table-bordered" style='margin-top:60px;'>
                         <tbody>
                         {% for keys, values in data.items %}
-                        <tr class="active">
+                        <tr class="rm-padding">
                             {% for key in keys %}
                             <th>{{ key }}</th>
                             {% endfor %}
                         </tr>
 
                         {% for value in values %}
-                        <tr>
+                        <tr class="rm-padding">
                             {% for dat in value %}
                             <td>{{ dat }}</td>
                             {% endfor %}
@@ -45,10 +44,10 @@
                         </tbody>
                         <br/>
                         <tfoot style='margin-top:20px;'>
-                          <tr>
+                          <tr class="rm-padding">
                               <th>Total</th><th>{{ total_order_qty }}</th>
                             <th>{{ total_received_qty }}</th>
-                            <th> </th><th>{{ total_price}}</th>
+                            <th> </th><th></th><th></th><th></th><th></th><th></th><th>{{ total_price}}</th>
                           </tr>
                         </tfoot>
                     </table>
@@ -61,11 +60,11 @@
                 </div>
             </div>
 
-            <div class="modal-footer">
+            <!--<div class="modal-footer">
                 <button class="btn btn-primary {{ btn_class }}" type="button" id="{{ order_id }}">Proceed to Next Step</button>
                 <button type="button" class="btn btn-primary print-grn">Print</button>
                 <button type="submit" class="btn btn-primary" data-dismiss="modal">Close</button>
-            </div>
+            </div>-->
         </div>
     </div>
 </form>

@@ -1311,25 +1311,72 @@ def insert_vendor(request, user=''):
 
     return HttpResponse(status_msg)
 
+def update_zone_marketplace_mapping(zone, marketplace_list):
+    mappings = ZoneMarketplaceMapping.objects.filter(zone__user=zone.user, zone__zone=zone.zone)
+    marketplace = []
+    resp = ''
+    if marketplace_list:
+        marketplace = marketplace_list.split(",")
+    if mappings:
+        for mapping in mappings:
+            status = 0
+            if mapping.marketplace in marketplace:
+                marketplace.remove(mapping.marketplace)
+                status = 1
+            mapping.status = status
+            mapping.save()
+        resp = 'updated'
+    if marketplace:
+        for mkp in marketplace:
+            zone_marketplace = ZoneMarketplaceMapping(**{'zone_id' : zone.id, 'marketplace': mkp})
+            zone_marketplace.save()
+        reps = 'created'
+    return resp
+
 @csrf_exempt
 @login_required
 @get_admin_user
 def add_zone(request, user=''):
-    zone = request.GET['zone']
-    data = ZoneMaster.objects.filter(zone=zone, user=user.id)
+    zone = request.GET.get('zone', '')
     if not zone:
         status = 'Please enter ZONE value'
-    elif not data:
-        location_dict = copy.deepcopy(ZONE_DATA)
-        location_dict['user'] = user.id
-        for key, value in request.GET.iteritems():
-            location_dict[key] = value
-        loc_master = ZoneMaster(**location_dict)
-        loc_master.save()
-        status = 'Added Successfully'
+    data = ZoneMaster.objects.filter(zone=zone, user=user.id)
+    update = request.GET.get('update', '')
+    marketplace = request.GET.get('marketplaces', '')
+    if update == 'true':
+        if not data:
+            status = 'ZONE not found'
+        else:
+            update_zone_marketplace_mapping(data[0], marketplace)
+            status = 'Update Successfully'
     else:
-        status = 'Entry Exists in DB'
+        if not data:
+            location_dict = copy.deepcopy(ZONE_DATA)
+            location_dict['user'] = user.id
+            location_dict['zone'] = zone
+            loc_master = ZoneMaster(**location_dict)
+            loc_master.save()
+            update_zone_marketplace_mapping(loc_master, marketplace)
+            status = 'Added Successfully'
+        else:
+            status = 'Entry Exists in DB'
     return HttpResponse(status)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_zone_data(request, user=''):
+    zone = request.GET.get('zone', '')
+    data = ZoneMaster.objects.filter(user=user.id, zone=zone)
+    resp = {'zone': zone}
+    if not data:
+        status = 'ZONE not found'
+    else:
+        marketplace_list = list(ZoneMarketplaceMapping.objects.filter(zone__user=user.id, zone__zone=zone, status=1).values_list('marketplace', flat=True))
+        resp['marketplaces'] = marketplace_list
+        status = 'Success'
+    resp['msg'] = status
+    return HttpResponse(json.dumps(resp))
 
 @csrf_exempt
 @login_required
@@ -1865,7 +1912,12 @@ def generate_barcode_dict(pdf_format, myDict, user):
     barcode_pdf_dict = {}
     barcodes_list = []
     user_prf = UserProfile.objects.filter(user_id=user.id)[0]
-    for sku, quant in zip(myDict['wms_code'], myDict['quantity']):
+    for ind in range(0, len(myDict['wms_code'])):
+        sku = myDict['wms_code'][ind]
+        quant = myDict['quantity'][ind]
+        label = ''
+        if myDict.has_key('label'):
+            label = myDict['label'][ind]
         if sku and quant:
             if sku.isdigit():
                 sku_data = SKUMaster.objects.filter(Q(ean_number = sku) | Q(wms_code = sku), user=user.id)[0]
@@ -1873,6 +1925,8 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 sku_data = SKUMaster.objects.filter(sku_code = sku, user=user.id)[0]
             single = copy.deepcopy(BARCODE_DICT[pdf_format])
             single['SKUCode'] = sku
+            if label:
+                single['SKUCode'] = label
             single['Size'] = str(sku_data.sku_size).replace("'",'')
             single['SKUPrintQty'] = quant
             single['Brand'] = sku_data.sku_brand.replace("'",'')
@@ -1909,6 +1963,7 @@ def generate_barcode_dict(pdf_format, myDict, user):
 
 def barcode_service(key, data_to_send, format_name=''):
     url = 'http://sandhani-001-site1.htempurl.com/Webservices/BarcodeServices.asmx/GetBarCode'
+    payload = ''
     if data_to_send:
         if format_name == 'format3':
             payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Adam', 'argBarcodeFormate' : key }

@@ -24,7 +24,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      19: 'picklist_sort_by', 20: 'stock_sync', 21: 'sku_sync', 22: 'auto_generate_picklist',
                      23: 'detailed_invoice', 24: 'scan_picklist_option', 25: 'stock_display_warehouse', 26: 'view_order_status',
                      27: 'seller_margin', 28: 'style_headers', 29: 'receive_process', 30: 'tally_config', 31: 'tax_details',
-                     32: 'hsn_summary', 33: 'display_customer_sku'}
+                     32: 'hsn_summary', 33: 'display_customer_sku', 34: 'marketplace_model', 35: 'label_generation'}
 
   vm.check_box_data = [
     {
@@ -32,13 +32,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       model_name: "tally_config",
       param_no: 30,
       class_name: "fa fa-th",
-      display: true
-    },
-    {
-      name: "Send [PO] Messages and Email",
-      model_name: "send_message",
-      param_no: 1,
-      class_name: "fa fa-envelope-o",
       display: true
     },
     {
@@ -147,13 +140,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Decimal Quantity",
-      model_name: "float_switch",
-      param_no: 15,
-      class_name: "fa fa-server",
-      display: true
-    },
-    {
       name: "Automatic Invoice Generation",
       model_name: "automate_invoice",
       param_no: 16,
@@ -180,7 +166,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       param_no: 21,
       class_name: "fa fa-refresh",
       display: true
-    }]
+    },
+    {
+      name: "Label Generation",
+      model_name: "label_generation",
+      param_no: 35,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
+      name: "Support Marketplace Model",
+      model_name: "marketplace_model",
+      param_no: 34,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
+      name: "Decimal Quantity",
+      model_name: "float_switch",
+      param_no: 15,
+      class_name: "fa fa-server",
+      display: true
+     }
+]
 
   vm.empty = {};
   vm.message = "";

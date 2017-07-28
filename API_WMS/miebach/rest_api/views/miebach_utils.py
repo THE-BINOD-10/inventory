@@ -158,7 +158,7 @@ ADJUST_INVENTORY_FIELDS = ( (('WMS Code *','wms_code'),('Location *','location')
 
 MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Location', 'Quantity']
 
-SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'CST Number', 'TIN Number', 'PAN Number', 'PIN Code',
+SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number', 'PIN Code',
                     'City', 'State', 'Country']
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
@@ -270,8 +270,8 @@ GRN_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'dat
             'dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Total Quantity'],
             'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient', 'SKU Code',
                               'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category', 'Received Qty', 'Unit Rate',
-                              'Pre-Tax Received Value', 'Tax', 'Post-Tax Received Value', 'Margin %', 'Margin', 'Invoiced Unit Rate',
-                              'Invoiced Total Amount'],
+                              'Pre-Tax Received Value', 'CGST(%)', 'SGST(%)', 'IGST(%)', 'UTGST(%)','Post-Tax Received Value',
+                              'Margin %', 'Margin', 'Invoiced Unit Rate', 'Invoiced Total Amount'],
             'dt_url': 'get_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
                      }
 
@@ -435,7 +435,7 @@ MAIL_REPORTS = { 'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wis
 
 MAIL_REPORTS_DATA = {'Raise PO': 'raise_po', 'Receive PO': 'receive_po', 'Orders': 'order', 'Dispatch': 'dispatch', 'Internal Mail' : 'internal_mail'}
 
-PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_location'}
+PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_location', 'Scan Serial': 'scan_serial', 'Scan Label': 'scan_label'}
 
 REPORTS_DATA = {'SKU List': 'sku_list', 'Location Wise SKU': 'location_wise_stock', 'Receipt Summary': 'receipt_note', 'Dispatch Summary': 'dispatch_summary', 'SKU Wise Stock': 'sku_wise'}
 
@@ -845,9 +845,8 @@ WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'P
 
 # End of Customer Invoices page headers based on user type
 
-SUPPLIER_EXCEL_FIELDS = OrderedDict(( ('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4), ('cst_number', 5),
-                                      ('tin_number', 6), ('pan_number', 7), ('pincode', 8), ('city', 9), ('state', 10), ('country', 11)
-
+SUPPLIER_EXCEL_FIELDS = OrderedDict(( ('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),
+                                      ('tin_number', 5), ('pan_number', 6), ('pincode',7), ('city', 8), ('state', 9), ('country', 10)
                                    ))
 STATUS_DICT = {1: True, 0: False}
 
@@ -872,6 +871,14 @@ GSTIN_USER_MAPPING = {'sagar_fab': '29ABEFS4899J1ZA', 'adam_clothing1': '2788OFB
                       'demo': 'ABC12345678', 'sjpmg': '07BDBPS8474F1Z7', 'tshirt_inc': '36AAHFT9169L1ZC'}
 
 #End of Username and GST Tin Mapping
+
+#ORDER LABEL MAPPING EXCEL (Campus Sutra)
+
+ORDER_LABEL_EXCEL_HEADERS = ['Order ID', 'SKU Code', 'Label']
+
+MYNTRA_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 2), ('order_id', 0), ('label', 1) ))
+
+ORDER_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 1), ('order_id', 0), ('label', 2) ))
 
 #Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg'}
@@ -1252,14 +1259,15 @@ def get_po_filter_data(search_params, user, sub_user):
     if user_profile.user_type == 'marketplace_user':
         is_market_user = True
     if is_market_user:
-        unsorted_dict = { 14: 'Pre-Tax Received Value', 16: 'Post-Tax Received Value', 18: 'Margin', 19:'Invoiced Unit Rate',
-                             20: 'Invoiced Total Amount'}
+        unsorted_dict = { 14: 'Pre-Tax Received Value', 19: 'Post-Tax Received Value', 20: 'Margin', 22:'Invoiced Unit Rate',
+                             23: 'Invoiced Total Amount'}
         lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
                'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
                'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc', 'purchase_order__open_po__sku__sku_class',
                'purchase_order__open_po__sku__style_name', 'purchase_order__open_po__sku__sku_brand',
                'purchase_order__open_po__sku__sku_category', 'total_received', 'purchase_order__open_po__price', 'id',
-               'purchase_order__open_po__tax', 'id', 'seller_po__margin_percent', 'id', 'id', 'id', 'seller_po__receipt_type']
+               'purchase_order__open_po__cgst_tax', 'purchase_order__open_po__sgst_tax', 'purchase_order__open_po__igst_tax',
+               'purchase_order__open_po__utgst_tax', 'id', 'seller_po__margin_percent', 'id', 'id', 'id', 'seller_po__receipt_type']
         model_name = SellerPOSummary
         field_mapping = {'from_date': 'purchase_order__creation_date', 'to_date': 'purchase_order__creation_date',
                          'order_id': 'purchase_order__order_id', 'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
@@ -1270,7 +1278,8 @@ def get_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                          'purchase_order__open_po__sku__sku_class', 'purchase_order__open_po__sku__style_name',
                          'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category',
-                         'purchase_order__received_quantity', 'purchase_order__open_po__price', 'purchase_order__open_po__tax',
+                         'purchase_order__received_quantity', 'purchase_order__open_po__price', 'purchase_order__open_po__cgst_tax',
+                         'purchase_order__open_po__sgst_tax', 'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id', 'seller_po__receipt_type']
         excl_status = {'purchase_order__status': ''}
         rec_quan = 'quantity'
@@ -1342,7 +1351,9 @@ def get_po_filter_data(search_params, user, sub_user):
                                                   )))
         else:
             amount = float(data['total_received'] * data['purchase_order__open_po__price'])
-            aft_unit_price = float(data['purchase_order__open_po__price']) + (float(data['purchase_order__open_po__price']/100) * float(data['purchase_order__open_po__tax']))
+            tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) + \
+                      float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])
+            aft_unit_price = float(data['purchase_order__open_po__price']) + (float(data['purchase_order__open_po__price']/100) * tot_tax)
             post_amount = aft_unit_price * float(data['total_received'])
             margin_price = float(data['seller_po__unit_price'] - aft_unit_price)
             if margin_price < 0:
@@ -1364,7 +1375,11 @@ def get_po_filter_data(search_params, user, sub_user):
                                                      ('SKU Category', data['purchase_order__open_po__sku__sku_category']),
                                                      ('Received Qty', data['total_received']),
                                                      ('Unit Rate', data['purchase_order__open_po__price']), ('Pre-Tax Received Value', amount),
-                                                     ('Tax', data['purchase_order__open_po__tax']), ('Post-Tax Received Value', post_amount),
+                                                     ('CGST(%)', data['purchase_order__open_po__cgst_tax']),
+                                                     ('SGST(%)', data['purchase_order__open_po__sgst_tax']),
+                                                     ('IGST(%)', data['purchase_order__open_po__igst_tax']),
+                                                     ('UTGST(%)', data['purchase_order__open_po__utgst_tax']),
+                                                     ('Post-Tax Received Value', post_amount),
                                                      ('Margin %', data['seller_po__margin_percent']), ('Margin', margin_price),
                                                      ('Invoiced Unit Rate', final_price),
                                                      ('Invoiced Total Amount',invoice_total_amount),

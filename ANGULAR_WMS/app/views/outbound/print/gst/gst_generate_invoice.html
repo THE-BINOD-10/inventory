@@ -23,12 +23,12 @@
                           <div class="col-md-2 col-sm-2 col-xs-2 padding-none" ng-if="showCase.pdf_data.image">
                             <img src="data:image/jpg;base64, {{showCase.pdf_data.image}}" style="width:100%"/>
                           </div>
-                          <div class="col-md-{{showCase.pdf_data.image ? 10 : 12}} col-sm-10 col-xs-10">
+                          <div class="col-md-{{showCase.pdf_data.image ? 10 : 12}} col-sm-10 col-xs-10 fs10">
                             <div class="col-md-12 padding-none">
-                              <span><b>{{showCase.pdf_data.company_name}}</b></span>
+                              <span><b class="fs12">{{showCase.pdf_data.company_name}}</b></span>
                             </div>
                             <div class="col-md-12 padding-none">
-                              <span>{{showCase.pdf_data.company_address}}</span>
+                              <span class="pre-custom rm-padding padding-none">{{showCase.pdf_data.company_address}}</span>
                             </div>
                             <div class="col-md-12 padding-none">
                               <span>{{showCase.pdf_data.email}}</span>
@@ -39,7 +39,7 @@
                           </div>
                         </div>
                       </div>
-                      <div class="col-xs-6 text-left padding-none ng-binding">
+                      <div class="col-xs-6 text-left padding-none ng-binding fs10">
                         <strong>Invoice Number:</strong>{{showCase.pdf_data.invoice_no}}<br>
                         <strong>Invoice Date:</strong>{{showCase.pdf_data.invoice_date}}<br>
                         <strong>Order Number:</strong>{{showCase.pdf_data.order_id}}<br>
@@ -59,16 +59,16 @@
                         <span ng-if="user.userName == 'campus_sutra'">CONSIGNEE,</span>
                       </strong><br>
                       <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'">
-                        <p style="margin-bottom:0px" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].name">
+                        <p style="margin-bottom:0px" class="fs10" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
+                        <p style="margin-bottom:0px" class="cust_details fs10" ng-if="showCase.pdf_data.customer_details[0].name">
                            {{showCase.pdf_data.customer_details[0].name}}</p>
-                        <pre class="fs10 pre-custom" style="padding:0px" ng-if="showCase.pdf_data.customer_details[0].address">{{showCase.pdf_data.customer_details[0].address}}</pre>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].tin_number">
+                        <p class="fs10 pre-custom" style="padding:0px" ng-if="showCase.pdf_data.customer_details[0].address">{{showCase.pdf_data.customer_details[0].address}}</p>
+                        <p style="margin-bottom:0px" class="cust_details fs10" ng-if="showCase.pdf_data.customer_details[0].tin_number">
                            <b>GSTIN No: </b>{{showCase.pdf_data.customer_details[0].tin_number}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].email_id">
+                        <p style="margin-bottom:0px" class="cust_details fs10" ng-if="showCase.pdf_data.customer_details[0].email_id">
                           {{showCase.pdf_data.customer_details[0].email_id}}</p>
                       </div>
-                      <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'">
+                      <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs10">
                         {{showCase.pdf_data.marketplace}}<br>
                       </div>
                     </address>
@@ -79,16 +79,16 @@
                         <span>Ship To,</span>
                       </strong><br>
                       <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'">
-                        <p style="margin-bottom:0px" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].name">
+                        <p style="margin-bottom:0px" class="fs10" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
+                        <p style="margin-bottom:0px" class="cust_details fs10" ng-if="showCase.pdf_data.customer_details[0].name">
                           {{showCase.pdf_data.customer_details[0].name}}</p>
-                        <pre class="fs10 pre-custom" style="padding:0px" ng-if="showCase.pdf_data.customer_details[0].address">{{showCase.pdf_data.customer_details[0].address}}</pre>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].tin_number">
+                        <p class="fs10 pre-custom" style="padding:0px" ng-if="showCase.pdf_data.customer_details[0].address">{{showCase.pdf_data.customer_details[0].address}}</>
+                        <p style="margin-bottom:0px" class="cust_details fs10" ng-if="showCase.pdf_data.customer_details[0].tin_number">
                            <b>GSTIN No: </b>{{showCase.pdf_data.customer_details[0].tin_number}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].email_id">
+                        <p style="margin-bottom:0px" class="cust_details fs10" ng-if="showCase.pdf_data.customer_details[0].email_id">
                            {{showCase.pdf_data.customer_details[0].email_id}}</p>
                       </div>
-                      <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'">
+                      <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs10">
                         {{showCase.pdf_data.marketplace}}<br>
                       </div>
                     </address>

@@ -20,7 +20,7 @@
         <td style="text-align: left;">{{record.sku_code}}</td>
         <td style="text-align: left;">{{record.hsn_code}}</td>
         <td style="text-align: left;">{{record.title}}</td>
-        <td>{{record.unit_price}}</td>
+        <td>{{record.unit_price | number:2}}</td>
         <td>{{record.quantity}}</td>
         <td>{{record.base_price | number:2}}</td>
         <!--<td ng-if="permissions.show_mrp">{{record.mrp_price | number:2}}</td>-->
@@ -31,11 +31,14 @@
         <td class="text-right">{{record.taxes.igst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.igst_tax}}%</span></td>
         <td>{{record.invoice_amount | number:2}}</td>
       </tr>
+      <tr class="rm-padding rm-brdr" ng-if="permissions.hsn_summary">
+        <td ng-repeat="item in [1,2,3,4,5,6,7,8,9,10,11,12]"><p style="height:10px"></p></td>
+      </tr>
       <tr class="rm-padding" style="border-top: 1px solid rgba(128, 128, 128, 0.14)" ng-if="permissions.hsn_summary">
         <td></td>
         <td></td><td></td><td></td><td></td>
         <td colspan='2'><b>Summary</b></td>
-        <td><b>TAXABLE</b></td>
+        <td><b>Taxable Value</b></td>
         <td><b>CGST</b></td>
         <td><b>SGST</b></td>
         <td><b>IGST</b></td>
@@ -45,10 +48,10 @@
         <td></td>
         <td></td><td></td><td></td><td></td>
         <td colspan='2' class="text-left">{{hsn}}</td>
-        <td>{{data.taxable}}</td>
-        <td>{{data.cgst_amt}}</td>
-        <td>{{data.sgst_amt}}</td>
-        <td>{{data.igst_amt}}</td>
+        <td>{{data.taxable | number:2}}</td>
+        <td>{{data.cgst_amt | number:2}}</td>
+        <td>{{data.sgst_amt | number:2}}</td>
+        <td>{{data.igst_amt | number:2}}</td>
         <td></td>
       </tr>
       <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14);font-weight: bold;" class="rm-padding text-right">
@@ -94,8 +97,8 @@
             <div class="col-xs-6 text-right fs12">
               Total Tax(In Words)
             </div>
-            <div class="col-xs-6 text-right fs12">
-              {{showCase.pdf_data.total_tax_words}}
+            <div class="col-xs-6 text-right fs12" style="text-transform: capitalize;">
+              {{showCase.pdf_data.total_tax_words}} Only
             </div>
           </div>
           <div class="row">
@@ -111,15 +114,15 @@
               Invoice Total (After rounding)
             </div>
             <div class="col-xs-6 text-right fs12">
-              Rs {{showCase.pdf_data.rounded_invoice_amount}}
+              Rs {{showCase.pdf_data.rounded_invoice_amount | number:0}}
             </div>
           </div>
           <div class="row">
             <div class="col-xs-6 text-right fs12">
               Invoice Total(In Words)
             </div>
-            <div class="col-xs-6 text-right fs12">
-              <span style="text-transform:uppercase"> {{showCase.pdf_data.price_in_words}}</span>
+            <div class="col-xs-6 text-right fs12" style="text-transform: capitalize;">
+             {{showCase.pdf_data.price_in_words}} Only
             </div>
           </div>
         </td>
@@ -128,11 +131,11 @@
     <tfoot>
       <tr class="rm-padding">
         <td colspan='7' style="text-align:left;" class="fs12">
-          <span><b>DECLARATION:</b></span><br>
+          <span><b class="fs10">DECLARATION:</b></span><br>
           <p class="pre-custom fs10">{{showCase.pdf_data.declaration}}</p>
         </td>
-        <td colspan='5' class="fs12">
-          <p><b>{{showCase.pdf_data.company_name}}</b></p>
+        <td colspan='5'>
+          <p><b class="fs10">{{showCase.pdf_data.company_name}}</b></p>
           </br></br>
           <p style="text-align:center;margin-bottom:0px">Authorised Signatory</p>
         </td>

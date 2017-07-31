@@ -606,16 +606,31 @@ def print_po_reports(request, user=''):
         else:
             results = SellerPOSummary.objects.filter(id=data_id, purchase_order__open_po__sku__user=user.id)
         total = 0
+        total_qty = 0
         for data in results:
             receipt_type = ''
             if key == 'po_id':
-                po_data.append([data.open_po.sku.wms_code, data.open_po.sku.sku_desc, data.received_quantity, data.open_po.price])
-                total += data.received_quantity * data.open_po.price
+                open_data = data.open_po
+                amount = float(data.received_quantity) * float(data.open_po.price)
+                gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
+                if gst_tax:
+                    amount += (amount/100) * gst_tax
+                po_data.append([open_data.sku.wms_code, open_data.order_quantity, data.received_quantity, open_data.measurement_unit,
+                                open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax, open_data.utgst_tax, amount])
+                total += amount
+                total_qty += data.received_quantity
             else:
                 po_order = data.purchase_order
-                po_data.append([po_order.open_po.sku.wms_code, po_order.open_po.sku.sku_desc,
-                                data.quantity, po_order.open_po.price])
-                total += data.quantity * po_order.open_po.price
+                open_data = po_order.open_po
+                amount = float(data.quantity) * float(open_data.price)
+                gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
+                if gst_tax:
+                    amount += (amount/100) * gst_tax
+
+                po_data.append([open_data.sku.wms_code, open_data.order_quantity, data.quantity, open_data.measurement_unit, open_data.price,
+                                open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax, open_data.utgst_tax, amount])
+                total += amount
+                total_qty += po_order.received_quantity
                 receipt_type = data.seller_po.receipt_type
 
         if results:
@@ -631,7 +646,7 @@ def print_po_reports(request, user=''):
             order_date = str(purchase_order.open_po.creation_date).split('+')[0]
             user_profile = UserProfile.objects.get(user_id=user.id)
             w_address = user_profile.address
-        table_headers = ('WMS CODE', 'Description', 'Received Quantity', 'Unit Price')
+        table_headers = ('WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)', 'UTGST(%)', 'Amount')
 
     title = 'Purchase Order'
     if receipt_type == 'Hosted Warehouse':
@@ -639,7 +654,7 @@ def print_po_reports(request, user=''):
     return render(request, 'templates/toggle/po_template.html', {'table_headers': table_headers, 'data': po_data, 'address': address,
                            'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
                            'po_reference': po_reference, 'w_address': w_address, 'company_name': user_profile.company_name,
-                           'display': 'display-none', 'receipt_type': receipt_type, 'title': title})
+                           'display': 'display-none', 'receipt_type': receipt_type, 'title': title, 'total_qty': total_qty})
 
 @csrf_exempt
 @get_admin_user

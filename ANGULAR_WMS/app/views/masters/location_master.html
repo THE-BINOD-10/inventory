@@ -17,9 +17,11 @@
       <accordion close-others="oneAtATime">
         <accordion-group ng-repeat="zone in showCase.data.location_data" is-open="status.isFirstOpen">
           <accordion-heading>
-            {{zone.zone}}<i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': status.open, 'glyphicon-chevron-right': !status.open}"></i>
+            {{zone.zone}}
+            <i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': status.open, 'glyphicon-chevron-right': !status.open}"></i>
           </accordion-heading>
           <div class="over-x">
+            <button type="button" class="btn btn-primary mr15 pull-right" ng-click="showCase.edit_zone(zone, $event)">Edit</button>
             <table class="table mb0 mw40">
               <thead>
                 <tr>
@@ -42,7 +44,7 @@
             </table>
           </div>
         </accordion-group>
-      </accordion> 
+      </accordion>
       <div ui-view></div>
     </div>
   </div>

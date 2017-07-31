@@ -4,15 +4,24 @@
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">×</span>
         </button>
-        <h4 class="modal-title" id="myLargeModalLabel">Add Zone</h4>
+        <h4 class="modal-title" id="myLargeModalLabel">{{showCase.zone_title}}</h4>
       </div>
       <div class="modal-body">
         <div class="form-group clearfix">
           <div class="row col-md-12">
-            <div class="col-md-6 col-sm-6 col-xs-6">
+            <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Zone ID</label>
-                <input type="text" name="zone" class="form-control" ng-model="showCase.zone">
+                <input type="text" name="zone" class="form-control" ng-model="showCase.zone" ng-readonly="showCase.update">
+                <input type="hidden" name="update" value="{{showCase.update}}">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-show="permissions.marketplace_model">
+              <div class="form-group">
+                <label class="control-label">Marketplaces</label>
+                <select class="selectpicker show-menu-arrow form-control" ng-model="showCase.marketplaces" multiple>
+                  <option ng-selected="(showCase.marketplace_selected.indexOf(mk) == -1)? false: true;" ng-repeat="mk in showCase.market_list" value="{{mk}}">{{mk}}</option>
+                </select>
               </div>
             </div>
           </div>

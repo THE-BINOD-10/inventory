@@ -930,7 +930,7 @@ def confirm_po(request, user=''):
 
     po_reference = '%s%s_%s' % (order.prefix, str(order_date).split(' ')[0].replace('-', ''), order_id)
 
-    profile = UserProfile.objects.get(user=request.user.id)
+    profile = UserProfile.objects.get(user=user.id)
 
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
@@ -951,7 +951,7 @@ def confirm_po(request, user=''):
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
-        write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0],ean_flag=ean_flag)
+        write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, str(order_date).split(' ')[0],ean_flag=ean_flag)
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
@@ -1688,6 +1688,7 @@ def get_purchase_order_data(order):
     st_order = STPurchaseOrder.objects.filter(po_id=order.id)
     temp_wms = ''
     unit = ""
+    gstin_number = ''
     if 'job_code' in dir(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group, 'sku': order.product_code,
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle, 'sku_desc': order.product_code.sku_desc,
@@ -1722,6 +1723,7 @@ def get_purchase_order_data(order):
         unit = open_data.measurement_unit
         order_type = status_dict[order.open_po.order_type]
         supplier_code = open_data.supplier_code
+        gstin_number = order.open_po.supplier.tin_number
         cgst_tax = open_data.cgst_tax
         sgst_tax = open_data.sgst_tax
         igst_tax = open_data.igst_tax
@@ -1749,7 +1751,7 @@ def get_purchase_order_data(order):
 
     order_data = {'order_quantity': order_quantity, 'price': price, 'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
-                  'qc_check': sku.qc_check, 'supplier_name': username,
+                  'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
                   'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms, 'order_type': order_type,
@@ -1962,7 +1964,8 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list)
             data_dict = (('Order ID', data.order_id), ('Supplier ID', purchase_data['supplier_id']),
                          ('Order Date', get_local_date(request.user, data.creation_date)),
-                         ('Supplier Name', purchase_data['supplier_name']))
+                         ('Supplier Name', purchase_data['supplier_name']),
+                         ('GSTIN No', purchase_data['gstin_number']))
 
             price = float(value) * float(purchase_data['price'])
             po_data.append((purchase_data['wms_code'], purchase_data['supplier_code'], purchase_data['sku_desc'],
@@ -1974,7 +1977,8 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         create_bayarea_stock(purchase_data['wms_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
         data_dict = (('Order ID', data.order_id), ('Supplier ID', purchase_data['supplier_id']),
                      ('Order Date', get_local_date(request.user, data.creation_date)),
-                     ('Supplier Name', purchase_data['supplier_name']))
+                     ('Supplier Name', purchase_data['supplier_name']),
+                     ('GSTIN No', purchase_data['gstin_number']))
 
         price = float(value) * float(purchase_data['price'])
         gst_taxes = purchase_data['cgst_tax'] + purchase_data['sgst_tax'] + purchase_data['igst_tax'] + purchase_data['utgst_tax']
@@ -2031,6 +2035,7 @@ def confirm_grn(request, confirm_returns = '', user=''):
             telephone = purchase_data['phone_number']
             name = purchase_data['supplier_name']
             supplier_email = purchase_data['email_id']
+            gstin_number = purchase_data['gstin_number']
             order_id = data.order_id
             order_date = get_local_date(request.user, data.creation_date)
 
@@ -2051,7 +2056,7 @@ def confirm_grn(request, confirm_returns = '', user=''):
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
                 rendered = t.render(report_data_dict)
-                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, order_date, internal=True, report_type="Goods Receipt Note")
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, order_date, internal=True, report_type="Goods Receipt Note")
             return render(request, 'templates/toggle/putaway_toggle.html', report_data_dict)
         else:
             return HttpResponse(status_msg)
@@ -3462,7 +3467,7 @@ def confirm_add_po(request, sales_data = '', user=''):
         table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
                          'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
 
-    profile = UserProfile.objects.get(user=request.user.id)
+    profile = UserProfile.objects.get(user=user.id)
 
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
@@ -3478,11 +3483,11 @@ def confirm_add_po(request, sales_data = '', user=''):
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
-        write_and_mail_pdf(po_reference, rendered, request, supplier_email, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag)
+        write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag)
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
-def write_and_mail_pdf(f_name, html_data, request, supplier_email, phone_no, po_data, order_date, ean_flag=False, internal=False, report_type='Purchase Order'):
+def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_no, po_data, order_date, ean_flag=False, internal=False, report_type='Purchase Order'):
     file_name = '%s.html' % f_name
     pdf_file = '%s.pdf' % f_name
     receivers = []
@@ -3503,14 +3508,17 @@ def write_and_mail_pdf(f_name, html_data, request, supplier_email, phone_no, po_
 
     if request.user.email:
         receivers.append(request.user.email)
+    username = user.username
+    if username == 'shotang':
+        username = 'SSHProc'
     if supplier_email or internal or internal_mail:
-        send_mail_attachment(receivers, '%s %s' % (request.user.username, report_type), 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name), files=[{'path': path + pdf_file, 'name': pdf_file}])
+        send_mail_attachment(receivers, '%s %s' % (username, report_type), 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name), files=[{'path': path + pdf_file, 'name': pdf_file}])
 
     if phone_no:
         if report_type == 'Purchase Order':
-            po_message(po_data, phone_no, request.user.username, f_name, order_date, ean_flag)
+            po_message(po_data, phone_no, username, f_name, order_date, ean_flag)
         elif report_type == 'Goods Receipt Note':
-            grn_message(po_data, phone_no, request.user.username, f_name, order_date)
+            grn_message(po_data, phone_no, username, f_name, order_date)
 
 @csrf_exempt
 @login_required
@@ -3611,7 +3619,7 @@ def confirm_po1(request, user=''):
             t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)
             if get_misc_value('raise_po', user.id) == 'true':
-                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag)
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag)
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
@@ -4401,7 +4409,7 @@ def confirm_receive_qc(request, user=''):
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
                 rendered = t.render(report_data_dict)
-                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date), internal=True, report_type="Goods Receipt Note")
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, str(order_date), internal=True, report_type="Goods Receipt Note")
             return render(request, 'templates/toggle/putaway_toggle.html', report_data_dict)
         else:
             return HttpResponse(status_msg)

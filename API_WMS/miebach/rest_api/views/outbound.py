@@ -220,7 +220,8 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         filter_params['status__icontains'] = "open"
         filter_params['reserved_quantity__gt'] = 0
     else:
-        del filter_params['status__icontains']
+        if not status == 'batch_picked':
+            del filter_params['status__icontains']
         filter_params['picked_quantity__gt'] = 0
     log.info(status)
     if status == 'batch_picked':
@@ -2449,7 +2450,7 @@ def insert_order_data(request, user=''):
 def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetime.now()):
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').\
                                      filter(sku__user=user.id, quantity__gt=0)
-    picklist_number = get_picklist_number(user)
+    picklist_number = int(get_picklist_number(user)) + 1
     mod_locations = []
 
     for order_id, orders in dispatch_orders.iteritems():
@@ -3448,13 +3449,18 @@ def get_stock_transfer_details(request, user=''):
     else:
         HttpResponse("Fail")
 
-    order_details = OrderDetail.objects.filter(order_id__in = main_ids, user=user.id)
-
+    total_data = {}
     order_details_data = []
-    sku_id_list = []
 
-    for one_order in order_details:
-        order_details_data.append({'order_quantity': one_order.quantity, 'wms_code': one_order.sku.sku_code, 'price': 0})
+    for order_id in main_ids:
+        order_data = get_order_detail_objs(order_id, user)
+        for sku_data in order_data:
+            if total_data.has_key(sku_data.sku.sku_code):
+                total_data[sku_data.sku.sku_code]['order_quantity'] += int(total_data[sku_data.sku.sku_code]['order_quantity'])
+            else:
+                total_data[sku_data.sku.sku_code] = {'order_quantity': int(sku_data.quantity), 'wms_code': sku_data.sku.sku_code, 'price': 0}
+
+    order_details_data = total_data.values()
 
     return HttpResponse(json.dumps({'data_dict': order_details_data}))
 
@@ -4979,7 +4985,8 @@ def generate_customer_invoice(request, user=''):
             if seller_summary[0].seller_order:
                 seller = seller_summary[0].seller_order.seller
                 seller_address = seller.name + '\n' + seller.address + "\nCall: " \
-                                    + seller.phone_number + "\nEmail: " + seller.email_id
+                                    + seller.phone_number + "\nEmail: " + seller.email_id \
+                                    + "\nGSTIN No: " + seller.tin_number
                 order = seller_summary[0].seller_order.order
             else:
                 order = seller_summary[0].order
@@ -4987,7 +4994,7 @@ def generate_customer_invoice(request, user=''):
             if order_d:
                 order_d = order_d[0]
                 buyer_address = order_d.name + '\n' + order_d.address + "\nCall: " \
-                                + order_d.phone_number + "\nEmail: " + order_d.email_id +"\nTin: "+order_d.tin_number
+                                + order_d.phone_number + "\nEmail: " + order_d.email_id +"\nGSTIN No: "+order_d.tin_number
             else:
                 buyer_address = order.customer_name + '\n' + order.address + "\nCall: " \
                                 + order.telephone + "\nEmail: " + order.email_id

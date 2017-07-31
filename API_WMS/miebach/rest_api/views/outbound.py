@@ -2450,7 +2450,7 @@ def insert_order_data(request, user=''):
 def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetime.now()):
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').\
                                      filter(sku__user=user.id, quantity__gt=0)
-    picklist_number = get_picklist_number(user)
+    picklist_number = int(get_picklist_number(user)) + 1
     mod_locations = []
 
     for order_id, orders in dispatch_orders.iteritems():
@@ -4985,7 +4985,8 @@ def generate_customer_invoice(request, user=''):
             if seller_summary[0].seller_order:
                 seller = seller_summary[0].seller_order.seller
                 seller_address = seller.name + '\n' + seller.address + "\nCall: " \
-                                    + seller.phone_number + "\nEmail: " + seller.email_id
+                                    + seller.phone_number + "\nEmail: " + seller.email_id \
+                                    + "\nGSTIN No: " + seller.tin_number
                 order = seller_summary[0].seller_order.order
             else:
                 order = seller_summary[0].order
@@ -4993,7 +4994,7 @@ def generate_customer_invoice(request, user=''):
             if order_d:
                 order_d = order_d[0]
                 buyer_address = order_d.name + '\n' + order_d.address + "\nCall: " \
-                                + order_d.phone_number + "\nEmail: " + order_d.email_id +"\nTin: "+order_d.tin_number
+                                + order_d.phone_number + "\nEmail: " + order_d.email_id +"\nGSTIN No: "+order_d.tin_number
             else:
                 buyer_address = order.customer_name + '\n' + order.address + "\nCall: " \
                                 + order.telephone + "\nEmail: " + order.email_id

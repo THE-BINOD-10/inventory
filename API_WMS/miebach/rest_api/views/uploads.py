@@ -1807,8 +1807,12 @@ def validate_purchase_order(open_sheet, user):
                 else:
                     index_status.setdefault(row_idx, set()).add('Missing Supplier ID')
             elif col_idx == 1:
-                if not (isinstance(cell_data, float) or '-' in str(cell_data)):
-                    index_status.setdefault(row_idx, set()).add('Check the date format')
+                if cell_data:
+                    try:
+                        po_date = xldate_as_tuple(cell_data, 0)
+
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Check the date format')
             elif col_idx == 3:
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Missing WMS Code')
@@ -1893,7 +1897,8 @@ def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
                     order_date = cell_data.split('-')
                     data['po_date'] = datetime.date(int(order_date[2]), int(order_date[0]), int(order_date[1]))
                 elif isinstance(cell_data, float):
-                    data['po_date'] = xldate_as_tuple(cell_data, 0)
+                    year, month, day, hour, minute, second  = xldate_as_tuple(cell_data, 0)
+                    data['po_date'] = datetime.datetime(year, month, day, hour, minute, second)
             elif col_idx == 0:
                 order_data['po_name'] = cell_data
             elif col_idx == 6:
@@ -1928,6 +1933,7 @@ def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
         order = PurchaseOrder(**data)
         order.save()
         order.po_date = data['po_date']
+        import pdb;pdb.set_trace();
         order.save()
         mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
     if mail_result_data:

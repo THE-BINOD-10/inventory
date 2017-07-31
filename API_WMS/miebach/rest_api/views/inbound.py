@@ -1685,6 +1685,7 @@ def get_purchase_order_data(order):
     st_order = STPurchaseOrder.objects.filter(po_id=order.id)
     temp_wms = ''
     unit = ""
+    gstin_number = ''
     if 'job_code' in dir(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group, 'sku': order.product_code,
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle, 'sku_desc': order.product_code.sku_desc}
@@ -1713,6 +1714,7 @@ def get_purchase_order_data(order):
         unit = open_data.measurement_unit
         order_type = status_dict[order.open_po.order_type]
         supplier_code = open_data.supplier_code
+        gstin_number = order.open_po.supplier.tin_number
         if sku.wms_code == 'TEMP':
             temp_wms = open_data.wms_code
     elif st_order and not order.open_po:
@@ -1730,7 +1732,7 @@ def get_purchase_order_data(order):
 
     order_data = {'order_quantity': order_quantity, 'price': price, 'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
-                  'qc_check': sku.qc_check, 'supplier_name': username,
+                  'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
                   'phone_number': user_data.phone_number, 'email_id': email_id,
                   'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms, 'order_type': order_type,
@@ -1942,7 +1944,8 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list)
             data_dict = (('Order ID', data.order_id), ('Supplier ID', purchase_data['supplier_id']),
                          ('Order Date', get_local_date(request.user, data.creation_date)),
-                         ('Supplier Name', purchase_data['supplier_name']))
+                         ('Supplier Name', purchase_data['supplier_name']),
+                         ('GSTIN No', purchase_data['gstin_number']))
 
             price = float(value) * float(purchase_data['price'])
             po_data.append((purchase_data['wms_code'], purchase_data['supplier_code'], purchase_data['sku_desc'],
@@ -1954,7 +1957,8 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         create_bayarea_stock(purchase_data['wms_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
         data_dict = (('Order ID', data.order_id), ('Supplier ID', purchase_data['supplier_id']),
                      ('Order Date', get_local_date(request.user, data.creation_date)),
-                     ('Supplier Name', purchase_data['supplier_name']))
+                     ('Supplier Name', purchase_data['supplier_name']),
+                     ('GSTIN No', purchase_data['gstin_number']))
 
         price = float(value) * float(purchase_data['price'])
         po_data.append((purchase_data['wms_code'], purchase_data['supplier_code'], purchase_data['sku_desc'], purchase_data['order_quantity'],
@@ -2004,6 +2008,7 @@ def confirm_grn(request, confirm_returns = '', user=''):
             telephone = purchase_data['phone_number']
             name = purchase_data['supplier_name']
             supplier_email = purchase_data['email_id']
+            gstin_number = purchase_data['gstin_number']
             order_id = data.order_id
             order_date = get_local_date(request.user, data.creation_date)
 
@@ -2012,7 +2017,7 @@ def confirm_grn(request, confirm_returns = '', user=''):
             table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity', 'Amount')
             report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                                 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
-                                'po_reference': po_reference, 'total_qty': total_received_qty,
+                                'po_reference': po_reference, 'total_qty': total_received_qty, 'gstin_number': gstin_number,
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}
 
             misc_detail = get_misc_value('receive_po', user.id)

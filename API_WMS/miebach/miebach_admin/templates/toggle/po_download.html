@@ -40,7 +40,9 @@
             {{ vendor_address|linebreaks }}
             <p><b>Telephone:</b> {{ vendor_telephone }}</p>
           {% endif %}
-
+          {% if gstin_number %}
+          <p><b>GSTIN No:</b> {{gstin_number}}</p>
+          {% endif %}
       </div>
       <div style="float:right">
         <p><b>Order ID:</b> {{ order_id }}</p>

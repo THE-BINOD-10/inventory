@@ -334,7 +334,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     for(var key in vm.selected){
       if(vm.selected[key]) {
         var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
-        data.push(temp['order_id'])
+        data.push(temp["Order ID"])
       }
     }
     vm.service.apiCall('get_stock_transfer_details/', 'GET', {order_id: data.join(",")}).then(function(data){

@@ -220,7 +220,8 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         filter_params['status__icontains'] = "open"
         filter_params['reserved_quantity__gt'] = 0
     else:
-        del filter_params['status__icontains']
+        if not status == 'batch_picked':
+            del filter_params['status__icontains']
         filter_params['picked_quantity__gt'] = 0
     log.info(status)
     if status == 'batch_picked':
@@ -3429,13 +3430,18 @@ def get_stock_transfer_details(request, user=''):
     else:
         HttpResponse("Fail")
 
-    order_details = OrderDetail.objects.filter(order_id__in = main_ids, user=user.id)
-
+    total_data = {}
     order_details_data = []
-    sku_id_list = []
 
-    for one_order in order_details:
-        order_details_data.append({'order_quantity': one_order.quantity, 'wms_code': one_order.sku.sku_code, 'price': 0})
+    for order_id in main_ids:
+        order_data = get_order_detail_objs(order_id, user)
+        for sku_data in order_data:
+            if total_data.has_key(sku_data.sku.sku_code):
+                total_data[sku_data.sku.sku_code]['order_quantity'] += int(total_data[sku_data.sku.sku_code]['order_quantity'])
+            else:
+                total_data[sku_data.sku.sku_code] = {'order_quantity': int(sku_data.quantity), 'wms_code': sku_data.sku.sku_code, 'price': 0}
+
+    order_details_data = total_data.values()
 
     return HttpResponse(json.dumps({'data_dict': order_details_data}))
 

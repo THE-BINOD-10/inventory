@@ -650,7 +650,7 @@ PERMISSION_DICT = OrderedDict((
                                # Masters
                                ("MASTERS_LABEL", (("SKU Master", "add_skumaster"), ("Location Master", "add_locationmaster"),
                                ("Supplier Master", "add_suppliermaster"),("Supplier SKU Mapping", "add_skusupplier"),
-                               ("Customer Master", "add_customermaster"),("Customer SKU Master", "add_customersku"),
+                               ("Customer Master", "add_customermaster"),("Customer SKU Mapping", "add_customersku"),
                                ("BOM Master", "add_bommaster"),
                                ("Vendor Master", "add_vendormaster"),("Discount Master", "add_categorydiscount"),
                                ("Custom SKU Template", "add_productproperties"),("Size Master", "add_sizemaster"))),

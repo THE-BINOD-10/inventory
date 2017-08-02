@@ -1,0 +1,170 @@
+<div class="page-layout" ng-controller="IMEITrackerCtrl as showCase">
+  <div class='layout-header'>
+    <div class="row">
+      <div class="col-md-12 col-sm-12 col-xs-12">
+        <!--<div ng-include="'views/common/title.html'"></div>-->
+        <h4 align="center">IMEI Tracker</h4>
+      </div>
+    </div>
+  </div>
+  <div class="layout-body">
+    <div class="panel">
+      <div class="panel-body">
+        <div class="row mb20">
+          <div class="col-md-2 col-sm-1 hidden-xs"></div>
+          <div class="col-md-8">
+            <div class="form-group">
+              <label class="col-sm-3 col-xs-5 control-label text-right" style="line-height: 30px">Scan IMEI :</label>
+              <div class="col-sm-6 col-xs-5">
+                <textarea class="form-control" rows="1" ng-model="showCase.imei" ng-keydown="showCase.scan_imei($event, showCase.imei)" auto-focus="" focus-on="focusIMEI"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row mb20" ng-if="showCase.model_data.sku_details">
+          <div class="col-md-2 col-sm-1 hidden-xs">
+          </div>
+          <div class="col-md-8">
+            <div class="panel">
+              <div class="panel-body" style="border: 1px solid #f0f0f0;padding: 10px !important;">
+                <div class="row">
+                  <div class="col-md-2 col-sm-2 col-xs-2">
+                    <img ng-src="{{service.check_image_url(showCase.model_data.sku_details.image_url)}}" height="15" alt="" style="width: 60px;height: 100%;">
+                  </div>
+                  <div class="col-md-3 col-sm-3 col-xs-3">
+                    <b>SKU Code</b></br></br>
+                    {{showCase.model_data.sku_details.sku_code}}
+                  </div>
+                  <div class="col-md-4 col-sm-4 col-xs-4">
+                    <b>SKU Description</b></br></br>
+                    {{showCase.model_data.sku_details.sku_desc}}
+                  </div>
+                  <div class="col-md-3 col-sm-3 col-xs-3">
+                    <b>Status</b></br></br>
+                     {{showCase.model_data.imei_status}}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <h5 align="center">IMEI History</h4>
+        </div>
+      <div ng-repeat="history in showCase.model_data.data" ng-if="showCase.model_data.data">
+        <div class="row mb20" ng-if="history.po_details">
+          <div class="col-md-2 col-sm-2 col-xs-4 hidden-xs">
+            <h4 align="right">INWARD</h4>
+          </div>
+          <div class="col-xs-12 visible-xs">
+            <h4>INWARD</h4>
+          </div>
+          <div class="col-md-8 col-sm-10 col-xs-12">
+            <div class="panel">
+              <div class="panel-body" style="border: 1px solid #f0f0f0;padding: 10px !important;">
+                <div class="row">
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>PO ID</b></br></br>
+                    {{history.po_details.po_number}}
+                  </div>
+                  <div class="col-md-3 col-sm-3 col-xs-4">
+                    <b>Receive Date</b></br></br>
+                    {{history.po_details.received_date}}
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Supplier Name</b></br></br>
+                    {{history.po_details.supplier_name}}
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Supplier ID</b></br></br>
+                    {{history.po_details.supplier_id}}
+                  </div>
+                  <div class="col-md-3 col-sm-2 col-xs-4">
+                    <b>Supplier Address</b></br></br>
+                    {{history.po_details.supplier_address}}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row mb20" ng-if="history.order_details">
+          <div class="col-md-2 col-sm-2 col-xs-4 hidden-xs">
+            <h4 align="right">SALE</h4>
+          </div>
+          <div class="col-xs-12 visible-xs">
+            <h4>SALE</h4>
+          </div>
+          <div class="col-md-8 col-sm-10 col-xs-12">
+            <div class="panel">
+              <div class="panel-body" style="border: 1px solid #f0f0f0;padding: 10px !important;">
+                <div class="row">
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Order ID</b></br></br>
+                    {{history.order_details.order_id}}
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Order Date</b></br></br>
+                    {{history.order_details.order_date}}
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Dispatch Date</b></br></br>
+                    {{history.order_details.dispatch_date}}
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Customer ID</b></br></br>
+                    {{history.order_details.customer_id}}
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Customer Name</b></br></br>
+                    {{history.order_details.customer_name}}
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Customer Address</b></br></br>
+                    {{history.order_details.customer_address}}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row mb20" ng-if="history.return_details">
+          <div class="col-md-2 col-sm-2 col-xs-4 hidden-xs">
+            <h4 align="right">RETURN</h4>
+          </div>
+          <div class="col-xs-12 visible-xs">
+            <h4>RETURN</h4>
+          </div>
+          <div class="col-md-8 col-sm-10 col-xs-12">
+            <div class="panel">
+              <div class="panel-body" style="border: 1px solid #f0f0f0;padding: 10px !important;">
+                <div class="row">
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Return ID</b></br></br>
+                    {{history.return_details.return_id}}
+                  </div>
+                  <div class="col-md-3 col-sm-3 col-xs-4">
+                    <b>Return Date</b></br></br>
+                    {{history.return_details.return_date}}
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Customer ID</b></br></br>
+                    {{history.return_details.customer_id}}
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Customer Name</b></br></br>
+                    {{history.return_details.customer_name}}
+                  </div>
+                  <div class="col-md-3 col-sm-3 col-xs-4">
+                    <b>Customer Address</b></br></br>
+                    {{history.return_details.customer_address}}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

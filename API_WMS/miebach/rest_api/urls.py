@@ -331,6 +331,7 @@ urlpatterns += [
     url(r'get_categories_list/',get_categories_list),
     url(r'get_sku_stock_check/', get_sku_stock_check),
     url(r'check_labels/', check_labels),
+    url(r'get_imei_data/', get_imei_data),
 
     #Retailone
     url(r'^get_marketplace_data/$',get_marketplace_data),

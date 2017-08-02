@@ -272,7 +272,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
         if isinstance(cell_data, float):
             cell_data = str(int(cell_data))
         order_data['sku_id'] = sku_masters_dict[cell_data]
-        if not 'title' in order_data.keys():
+        if not order_data.get('title', ''):
             order_data['title'] = all_sku_decs.get(cell_data, '')
 
         order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], order_code = order_data.get('order_code', ''),
@@ -2773,8 +2773,13 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                     order_id = str(int(order_id))
                 if isinstance(sku_code, float):
                     sku_code = str(int(sku_code))
+
+
+                order_id_search = ''.join(re.findall('\d+', order_id))
+                order_code_search = ''.join(re.findall('\D+', order_id))
                 if sor_id:
-                    seller_order = SellerOrder.objects.filter(sor_id=sor_id, order__order_id=order_id,
+                    seller_order = SellerOrder.objects.filter(Q(order__order_id=order_id_search, order__order_code=order_code_search) |
+                                                              Q(order__original_order_id=order_id), sor_id=sor_id,
                                                               order__sku__sku_code=sku_code, order__user=user.id)
                     if not seller_order:
                         index_status.setdefault(row_idx, set()).add('Invalid Sor ID')

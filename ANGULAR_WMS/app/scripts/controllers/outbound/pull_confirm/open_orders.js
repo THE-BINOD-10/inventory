@@ -76,7 +76,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        if (data.message == 'invoice') {
 
          angular.copy(data.data, vm.pdf_data);
-         if (vm.pdf_data.detailed_invoice) {
+         if (Session.user_profile['user_type'] == 'marketplace_user') {
+           $state.go('app.outbound.PullConfirmation.InvoiceM');
+         } else if (vm.pdf_data.detailed_invoice) {
            $state.go('app.outbound.PullConfirmation.DetailGenerateInvoice');
          } else {
             $state.go('app.outbound.PullConfirmation.GenerateInvoice');

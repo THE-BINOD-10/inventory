@@ -351,7 +351,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             reloadData();
             if (data.message == 'invoice') {
               angular.copy(data.data, vm.pdf_data);
-              if (vm.pdf_data.detailed_invoice) {
+              if (Session.user_profile['user_type'] == 'marketplace_user') {
+                $state.go('app.outbound.ViewOrders.InvoiceM');
+              } else if (vm.pdf_data.detailed_invoice) {
                 $state.go('app.outbound.ViewOrders.DetailGenerateInvoice');
               } else {
                 $state.go('app.outbound.ViewOrders.GenerateInvoice');

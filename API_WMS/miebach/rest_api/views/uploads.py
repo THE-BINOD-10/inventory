@@ -185,8 +185,10 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(UNI_WARE_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Sale Order Item Code' and get_cell_data(0, 2, reader, file_type) == 'Reverse Pickup Code':
         order_mapping = copy.deepcopy(UNI_WARE_EXCEL1)
-    elif get_cell_data(0, 0, reader, file_type) == 'SOR ID' and get_cell_data(0, 1, reader, file_type) == 'UOR ID':
+    elif get_cell_data(0, 0, reader, file_type) == 'SOR ID' and get_cell_data(0, 2, reader, file_type) == 'Lineitem ID':
         order_mapping = copy.deepcopy(SHOTANG_ORDER_FILE_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'SOR ID' and get_cell_data(0, 2, reader, file_type) == 'Seller ID':
+        order_mapping = copy.deepcopy(MARKETPLACE_ORDER_DEF_EXCEL)
     elif get_cell_data(0, 2, reader, file_type) == 'VENDOR ARTICLE NUMBER' and get_cell_data(0, 3, reader, file_type) == 'VENDOR ARTICLE NAME':
         order_mapping = copy.deepcopy(MYNTRA_BULK_PO_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'bag_id' and get_cell_data(0, 2, reader, file_type) == 'order_date':
@@ -270,7 +272,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
         if isinstance(cell_data, float):
             cell_data = str(int(cell_data))
         order_data['sku_id'] = sku_masters_dict[cell_data]
-        if not 'title' in order_mapping.keys():
+        if not order_data.get('title', ''):
             order_data['title'] = all_sku_decs.get(cell_data, '')
 
         order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], order_code = order_data.get('order_code', ''),
@@ -667,7 +669,9 @@ def order_form(request, user=''):
     ws = wb.add_sheet('order')
     header_style = easyxf('font: bold on')
 
-    for count, header in enumerate(ORDER_HEADERS):
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    order_headers = USER_ORDER_EXCEL_MAPPING.get(user_profile.user_type, {})
+    for count, header in enumerate(order_headers):
         ws.write(0, count, header, header_style)
 
     return xls_to_response(wb, '%s.order_form.xls' % str(user.id))
@@ -2002,7 +2006,7 @@ def purchase_upload_mail(request, data_to_send):
                             'location': profile.location, 'w_address': profile.address, 'vendor_name': vendor_name,
                             'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone, 'customization': customization }
         rendered = t.render(data_dictionary)
-        write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0])
+        write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, str(order_date).split(' ')[0])
 
 @csrf_exempt
 @login_required
@@ -2769,8 +2773,13 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                     order_id = str(int(order_id))
                 if isinstance(sku_code, float):
                     sku_code = str(int(sku_code))
+
+
+                order_id_search = ''.join(re.findall('\d+', order_id))
+                order_code_search = ''.join(re.findall('\D+', order_id))
                 if sor_id:
-                    seller_order = SellerOrder.objects.filter(sor_id=sor_id, order__order_id=order_id,
+                    seller_order = SellerOrder.objects.filter(Q(order__order_id=order_id_search, order__order_code=order_code_search) |
+                                                              Q(order__original_order_id=order_id), sor_id=sor_id,
                                                               order__sku__sku_code=sku_code, order__user=user.id)
                     if not seller_order:
                         index_status.setdefault(row_idx, set()).add('Invalid Sor ID')

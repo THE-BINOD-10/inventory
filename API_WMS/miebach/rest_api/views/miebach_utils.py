@@ -225,7 +225,28 @@ MARKET_LIST_HEADERS = ['Market Place', 'SKU', 'Description']
 
 MARKETPLACE_LIST = ['Flipkart', 'Snapdeal', 'Paytm', 'Amazon', 'Shopclues', 'HomeShop18', 'Jabong', 'Indiatimes']
 
+# User Type Order Formats
 ORDER_HEADERS = ['Order ID', 'Title', 'SKU Code', 'Quantity','Shipment Date(yyyy-mm-dd)', 'Channel Name', 'Customer ID', 'Customer Name', 'Email ID', 'Phone Number', 'Shipping Address', 'State', 'City', 'PIN Code', 'Invoice Amount(Without Tax and Discount)', 'Total Discount', 'CGST(%)', 'SGST(%)', 'IGST(%)']
+
+MARKETPLACE_ORDER_HEADERS = ['SOR ID', 'UOR ID', 'Seller ID', 'Order Status', 'Title', 'SKU Code', 'Quantity','Shipment Date(yyyy-mm-dd)', 'Channel Name', 'Customer ID', 'Customer Name', 'Email ID', 'Phone Number', 'Shipping Address', 'State', 'City', 'PIN Code', 'Invoice Amount(Without Tax and Discount)', 'Total Discount', 'CGST(%)', 'SGST(%)', 'IGST(%)']
+
+USER_ORDER_EXCEL_MAPPING = {'warehouse_user': ORDER_HEADERS, 'marketplace_user': MARKETPLACE_ORDER_HEADERS, 'customer': ORDER_HEADERS}
+
+# User Type Order Excel Mapping
+
+ORDER_DEF_EXCEL = OrderedDict(( ('order_id', 0), ('title', 1), ('sku_code', 2), ('quantity', 3), ('shipment_date', 4),
+                                ('channel_name', 5), ('shipment_check', 'true'), ('customer_id', 6), ('customer_name', 7), ('email_id', 8),
+                                ('telephone', 9), ('address', 10), ('state', 11), ('city', 12), ('pin_code', 13),
+                                ('amount', 14), ('amount_discount', 15), ('cgst_tax', 16), ('sgst_tax', 17), ('igst_tax', 18)
+                             ))
+
+MARKETPLACE_ORDER_DEF_EXCEL = OrderedDict(( ('sor_id', 0), ('order_id', 1), ('seller', 2), ('order_status', 3), ('title', 4),
+                                            ('sku_code', 5), ('quantity', 6), ('shipment_date', 7), ('channel_name', 8),
+                                            ('shipment_check', 'true'), ('customer_id', 9),
+                                            ('customer_name', 10), ('email_id', 11), ('telephone', 12), ('address', 13),
+                                            ('state', 14), ('city', 15), ('pin_code', 16), ('amount', 17),
+                                            ('amount_discount', 18), ('cgst_tax', 19), ('sgst_tax', 20), ('igst_tax', 21)
+                             ))
 
 SALES_RETURN_FIELDS = ( (('Return Tracking ID', 'return_id'),), )
 
@@ -507,12 +528,6 @@ AMAZON_FA_EXCEL = {'title': 4, 'invoice_amount': 14, 'marketplace': 'Amazon FA',
 
 SNAPDEAL_FA_EXCEL = {'title': 4, 'invoice_amount': 6, 'marketplace': 'Snapdeal FA', 'sku_code': 3, 'quantity': 5}
 
-ORDER_DEF_EXCEL = OrderedDict(( ('order_id', 0), ('title', 1), ('sku_code', 2), ('quantity', 3), ('shipment_date', 4),
-                                ('channel_name', 5), ('shipment_check', 'true'), ('customer_id', 6), ('customer_name', 7), ('email_id', 8),
-                                ('telephone', 9), ('address', 10), ('state', 11), ('city', 12), ('pin_code', 13),
-                                ('amount', 14), ('amount_discount', 15), ('cgst_tax', 16), ('sgst_tax', 17), ('igst_tax', 18)
-                             ))
-
 EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 9, 'invoice_amount': 3, 'channel_name': 5, 'sku_code': 8, 'title': 7, 'status': 4,
                        'split_order_id': 1}
 
@@ -669,7 +684,7 @@ PERMISSION_DICT = OrderedDict((
                                ("STOCK_LABEL",(("Stock Detail", "add_stockdetail"), ("Vendor Stock", "add_vendorstock"),
                                ("Cycle Count", "add_cyclecount"), ("Move Inventory", "change_inventoryadjustment"),
                                ("Inventory Adjustment", "add_inventoryadjustment"),("Stock Summary", "add_skustock"),
-                               ("Warehouse Stock", "add_usergroups"))),
+                               ("Warehouse Stock", "add_usergroups"), ("IMEI Tracker", "add_poimeimapping"))),
 
                                # Outbound
                                ("OUTBOUND_LABEL",(("Create Orders", "add_orderdetail"), ("View Orders", "add_picklist"),
@@ -682,7 +697,8 @@ PERMISSION_DICT = OrderedDict((
                                ("OTHERS_LABEL", (("Raise Stock Transfer", "add_openst"), ("Create Stock Transfer", "add_stocktransfer"))),
 
                                # Payment
-                               ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary")))
+                               ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary"))),
+
                              ))
 
 ORDERS_TRACK_STATUS = {0: 'Resolved', 1: "Conflict", 2: "Delete"}
@@ -1224,7 +1240,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
             aft_amount = float(order_data['order_quantity']) * float(aft_price)
             temp = OrderedDict(( ('PO Date', str(data.po_date).split('+')[0]), ('PO Number', po_number),
                                  ('Supplier ID', order_data['supplier_id']), ('Supplier Name', order_data['supplier_name']),
-                                 ('Recepient', 'SSHProc'),('SKU Code', order_data['sku_code']),('SKU Description', order_data['sku_desc']),
+                                 ('Recepient', 'SHProc'),('SKU Code', order_data['sku_code']),('SKU Description', order_data['sku_desc']),
                                  ('SKU Class', order_data['sku'].sku_class), ('SKU Style Name', order_data['sku'].style_name),
                                  ('SKU Brand', order_data['sku'].sku_brand), ('SKU Category', order_data['sku'].sku_category),
                                  ('PO Qty', order_data['order_quantity']), ('Unit Rate', order_data['price']),
@@ -1366,7 +1382,7 @@ def get_po_filter_data(search_params, user, sub_user):
             temp_data['aaData'].append(OrderedDict(( ('Received Date', get_local_date(user, result.updation_date)),
                                                      ('PO Date', get_local_date(user, result.creation_date)), ('PO Number', po_number),
                                                      ('Supplier ID', data[field_mapping['supplier_id']]),
-                                                     ('Supplier Name', data[field_mapping['supplier_name']]), ('Recepient', 'SSHProc'),
+                                                     ('Supplier Name', data[field_mapping['supplier_name']]), ('Recepient', 'SHProc'),
                                                      ('SKU Code', data['purchase_order__open_po__sku__sku_code']),
                                                      ('SKU Description', data['purchase_order__open_po__sku__sku_desc']),
                                                      ('SKU Class', data['purchase_order__open_po__sku__sku_class']),

@@ -930,7 +930,7 @@ def confirm_po(request, user=''):
 
     po_reference = '%s%s_%s' % (order.prefix, str(order_date).split(' ')[0].replace('-', ''), order_id)
 
-    profile = UserProfile.objects.get(user=request.user.id)
+    profile = UserProfile.objects.get(user=user.id)
 
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
@@ -951,7 +951,7 @@ def confirm_po(request, user=''):
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
-        write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0],ean_flag=ean_flag)
+        write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, str(order_date).split(' ')[0],ean_flag=ean_flag)
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
@@ -2056,7 +2056,7 @@ def confirm_grn(request, confirm_returns = '', user=''):
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
                 rendered = t.render(report_data_dict)
-                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, order_date, internal=True, report_type="Goods Receipt Note")
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, order_date, internal=True, report_type="Goods Receipt Note")
             return render(request, 'templates/toggle/putaway_toggle.html', report_data_dict)
         else:
             return HttpResponse(status_msg)
@@ -3467,7 +3467,7 @@ def confirm_add_po(request, sales_data = '', user=''):
         table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
                          'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
 
-    profile = UserProfile.objects.get(user=request.user.id)
+    profile = UserProfile.objects.get(user=user.id)
 
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
@@ -3483,11 +3483,11 @@ def confirm_add_po(request, sales_data = '', user=''):
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
-        write_and_mail_pdf(po_reference, rendered, request, supplier_email, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag)
+        write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag)
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
-def write_and_mail_pdf(f_name, html_data, request, supplier_email, phone_no, po_data, order_date, ean_flag=False, internal=False, report_type='Purchase Order'):
+def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_no, po_data, order_date, ean_flag=False, internal=False, report_type='Purchase Order'):
     file_name = '%s.html' % f_name
     pdf_file = '%s.pdf' % f_name
     receivers = []
@@ -3508,14 +3508,17 @@ def write_and_mail_pdf(f_name, html_data, request, supplier_email, phone_no, po_
 
     if request.user.email:
         receivers.append(request.user.email)
+    username = user.username
+    if username == 'shotang':
+        username = 'SHProc'
     if supplier_email or internal or internal_mail:
-        send_mail_attachment(receivers, '%s %s' % (request.user.username, report_type), 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name), files=[{'path': path + pdf_file, 'name': pdf_file}])
+        send_mail_attachment(receivers, '%s %s' % (username, report_type), 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name), files=[{'path': path + pdf_file, 'name': pdf_file}])
 
     if phone_no:
         if report_type == 'Purchase Order':
-            po_message(po_data, phone_no, request.user.username, f_name, order_date, ean_flag)
+            po_message(po_data, phone_no, username, f_name, order_date, ean_flag)
         elif report_type == 'Goods Receipt Note':
-            grn_message(po_data, phone_no, request.user.username, f_name, order_date)
+            grn_message(po_data, phone_no, username, f_name, order_date)
 
 @csrf_exempt
 @login_required
@@ -3616,7 +3619,7 @@ def confirm_po1(request, user=''):
             t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)
             if get_misc_value('raise_po', user.id) == 'true':
-                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag)
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, str(order_date).split(' ')[0], ean_flag=ean_flag)
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
@@ -4145,7 +4148,7 @@ def generate_seller_invoice(request, user=''):
     invoice_date = invoice_date.strftime("%d %b %Y")
     company_name = user_profile.company_name
     if user.username == 'shotang':
-        company_name = 'SSHProc'
+        company_name = 'SHProc'
 
     for summary_id in seller_summary_ids:
         seller_po_summary = SellerPOSummary.objects.get(seller_po__seller__user=user.id, id=summary_id)
@@ -4406,7 +4409,7 @@ def confirm_receive_qc(request, user=''):
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
                 rendered = t.render(report_data_dict)
-                write_and_mail_pdf(po_reference, rendered, request, supplier_email, telephone, po_data, str(order_date), internal=True, report_type="Goods Receipt Note")
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, str(order_date), internal=True, report_type="Goods Receipt Note")
             return render(request, 'templates/toggle/putaway_toggle.html', report_data_dict)
         else:
             return HttpResponse(status_msg)

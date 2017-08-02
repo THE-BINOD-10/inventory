@@ -1559,7 +1559,8 @@ def picklist_confirmation(request, user=''):
         if get_misc_value('auto_po_switch', user.id) == 'true' and auto_skus:
             auto_po(list(set(auto_skus)), user.id)
 
-        if not (single_order and picklist.order.marketplace == "Offline"):
+        detailed_invoice = get_misc_value('detailed_invoice', user.id)
+        if (detailed_invoice and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         if get_misc_value('automate_invoice', user.id) == 'true' and single_order:
             order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True).distinct()
@@ -2450,7 +2451,7 @@ def insert_order_data(request, user=''):
 def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetime.now()):
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').\
                                      filter(sku__user=user.id, quantity__gt=0)
-    picklist_number = get_picklist_number(user)
+    picklist_number = int(get_picklist_number(user)) + 1
     mod_locations = []
 
     for order_id, orders in dispatch_orders.iteritems():
@@ -4468,7 +4469,7 @@ def get_customer_orders(request, user=""):
         customer_id = customer[0].customer.customer_id
         orders = OrderDetail.objects.filter(customer_id = customer_id, user=user.id).order_by('-creation_date')
         picklist = Picklist.objects.filter(order__customer_id = customer_id, order__user=user.id)
-        response_data['data'] = list(orders.values('order_id', 'order_code').distinct().annotate(total_quantity=Sum('quantity'), total_inv_amt=Sum('invoice_amount')))
+        response_data['data'] = list(orders.values('order_id', 'order_code', 'original_order_id').distinct().annotate(total_quantity=Sum('quantity'), total_inv_amt=Sum('invoice_amount'), date_only=Cast('creation_date', DateField())).order_by('-date_only'))
 
         for record in response_data['data']:
             data = orders.filter(order_id = int(record['order_id']), order_code = record['order_code'])
@@ -4931,8 +4932,6 @@ def generate_customer_invoice(request, user=''):
     total_tax = 0
     total_mrp = 0
     order_no = ''
-    seller_address = ''
-    buyer_address = ''
     merge_data = {}
     data_dict = dict(request.GET.iterlists())
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
@@ -4984,26 +4983,14 @@ def generate_customer_invoice(request, user=''):
         if seller_summary:
             if seller_summary[0].seller_order:
                 seller = seller_summary[0].seller_order.seller
-                seller_address = seller.name + '\n' + seller.address + "\nCall: " \
-                                    + seller.phone_number + "\nEmail: " + seller.email_id
                 order = seller_summary[0].seller_order.order
             else:
                 order = seller_summary[0].order
-            order_d = CustomerMaster.objects.filter(customer_id=order.customer_id,user=user.id)
-            if order_d:
-                order_d = order_d[0]
-                buyer_address = order_d.name + '\n' + order_d.address + "\nCall: " \
-                                + order_d.phone_number + "\nEmail: " + order_d.email_id +"\nTin: "+order_d.tin_number
-            else:
-                buyer_address = order.customer_name + '\n' + order.address + "\nCall: " \
-                                + order.telephone + "\nEmail: " + order.email_id
 
             invoice_date = seller_summary.order_by('-creation_date')[0].creation_date
         invoice_date = get_local_date(user, invoice_date, send_date='true')
         inv_month_year = invoice_date.strftime("%m-%y")
         invoice_date = invoice_date.strftime("%d %b %Y")
-        invoice_data['seller_address'] = seller_address
-        invoice_data['buyer_address'] = buyer_address
         invoice_no = invoice_data['invoice_no']
         if is_marketplace:
             #invoice_no = user_profile.prefix + '/' + str(inv_month_year) + '/' + 'A-' + str(order.order_id)

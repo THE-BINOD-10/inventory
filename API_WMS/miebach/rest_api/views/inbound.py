@@ -3510,7 +3510,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         receivers.append(request.user.email)
     username = user.username
     if username == 'shotang':
-        username = 'SSHProc'
+        username = 'SHProc'
     if supplier_email or internal or internal_mail:
         send_mail_attachment(receivers, '%s %s' % (username, report_type), 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name), files=[{'path': path + pdf_file, 'name': pdf_file}])
 
@@ -4148,7 +4148,7 @@ def generate_seller_invoice(request, user=''):
     invoice_date = invoice_date.strftime("%d %b %Y")
     company_name = user_profile.company_name
     if user.username == 'shotang':
-        company_name = 'SSHProc'
+        company_name = 'SHProc'
 
     for summary_id in seller_summary_ids:
         seller_po_summary = SellerPOSummary.objects.get(seller_po__seller__user=user.id, id=summary_id)

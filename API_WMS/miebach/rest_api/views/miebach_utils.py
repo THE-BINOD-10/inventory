@@ -684,7 +684,7 @@ PERMISSION_DICT = OrderedDict((
                                ("STOCK_LABEL",(("Stock Detail", "add_stockdetail"), ("Vendor Stock", "add_vendorstock"),
                                ("Cycle Count", "add_cyclecount"), ("Move Inventory", "change_inventoryadjustment"),
                                ("Inventory Adjustment", "add_inventoryadjustment"),("Stock Summary", "add_skustock"),
-                               ("Warehouse Stock", "add_usergroups"))),
+                               ("Warehouse Stock", "add_usergroups"), ("IMEI Tracker", "add_poimeimapping"))),
 
                                # Outbound
                                ("OUTBOUND_LABEL",(("Create Orders", "add_orderdetail"), ("View Orders", "add_picklist"),
@@ -697,7 +697,8 @@ PERMISSION_DICT = OrderedDict((
                                ("OTHERS_LABEL", (("Raise Stock Transfer", "add_openst"), ("Create Stock Transfer", "add_stocktransfer"))),
 
                                # Payment
-                               ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary")))
+                               ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary"))),
+
                              ))
 
 ORDERS_TRACK_STATUS = {0: 'Resolved', 1: "Conflict", 2: "Delete"}
@@ -1239,7 +1240,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
             aft_amount = float(order_data['order_quantity']) * float(aft_price)
             temp = OrderedDict(( ('PO Date', str(data.po_date).split('+')[0]), ('PO Number', po_number),
                                  ('Supplier ID', order_data['supplier_id']), ('Supplier Name', order_data['supplier_name']),
-                                 ('Recepient', 'SSHProc'),('SKU Code', order_data['sku_code']),('SKU Description', order_data['sku_desc']),
+                                 ('Recepient', 'SHProc'),('SKU Code', order_data['sku_code']),('SKU Description', order_data['sku_desc']),
                                  ('SKU Class', order_data['sku'].sku_class), ('SKU Style Name', order_data['sku'].style_name),
                                  ('SKU Brand', order_data['sku'].sku_brand), ('SKU Category', order_data['sku'].sku_category),
                                  ('PO Qty', order_data['order_quantity']), ('Unit Rate', order_data['price']),
@@ -1381,7 +1382,7 @@ def get_po_filter_data(search_params, user, sub_user):
             temp_data['aaData'].append(OrderedDict(( ('Received Date', get_local_date(user, result.updation_date)),
                                                      ('PO Date', get_local_date(user, result.creation_date)), ('PO Number', po_number),
                                                      ('Supplier ID', data[field_mapping['supplier_id']]),
-                                                     ('Supplier Name', data[field_mapping['supplier_name']]), ('Recepient', 'SSHProc'),
+                                                     ('Supplier Name', data[field_mapping['supplier_name']]), ('Recepient', 'SHProc'),
                                                      ('SKU Code', data['purchase_order__open_po__sku__sku_code']),
                                                      ('SKU Description', data['purchase_order__open_po__sku__sku_desc']),
                                                      ('SKU Class', data['purchase_order__open_po__sku__sku_class']),

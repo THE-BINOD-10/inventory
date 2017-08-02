@@ -127,7 +127,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.service.apiCall("generate_order_invoice/", 'GET', {order_ids: send}, true).then(function(data){
       if(data.message) {
         angular.copy(data.data, vm.pdf_data)
-        if (vm.pdf_data.detailed_invoice) {
+        if (Session.user_profile['user_type'] == 'marketplace_user') {
+                $state.go('app.outbound.PullConfirmation.InvoiceM');
+        } else if (vm.pdf_data.detailed_invoice) {
                   var L = 600;
                   vm.x = 320;
                   var z = 221;
@@ -153,7 +155,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                   else {
                     var r = Math.round((y-v1)/v2) - 1;
                     vm.p = v1 + (1+r)*v2 - y;
-                  } 
+                  }
           $state.go('app.outbound.PullConfirmation.DetailGenerateInvoice');
         } else {
           $state.go('app.outbound.PullConfirmation.GenerateInvoice');

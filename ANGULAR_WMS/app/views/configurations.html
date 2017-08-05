@@ -45,7 +45,7 @@
             <option ng-selected="showCase.check_selected(value, 'style_headers')" ng-repeat="(key, value) in showCase.model_data.style_detail_headers" value="{{value}}"> {{key}}</option>
           </select>
         </div>
-      </div> 
+      </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
@@ -54,6 +54,17 @@
         <div class="col-md-2 col-sm-4 col-xs-4 create_orders">
           <select class="form-control" ng-model="showCase.model_data.scan_picklist_option" ng-init="showCase.model_data.scan_picklist_option" ng-change="showCase.switches(showCase.model_data.scan_picklist_option, 24)">
             <option ng-repeat="(key, value) in showCase.model_data.picklist_options" value="{{value}}" ng-selected="value == showCase.model_data.scan_picklist_option"> {{key}}</option>
+          </select>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Barcode generation options </strong>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-4 create_orders">
+          <select class="form-control" ng-model="showCase.model_data.barcode_generate_opt" ng-change="showCase.switches(showCase.model_data.barcode_generate_opt, 36)">
+            <option ng-repeat="(key, value) in showCase.model_data.barcode_generate_options" value="{{value}}" ng-selected="value == showCase.model_data.barcode_generate_opt"> {{key}}</option>
           </select>
         </div>
       </div>

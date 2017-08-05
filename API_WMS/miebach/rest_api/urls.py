@@ -123,6 +123,8 @@ urlpatterns = [
     url('^check_imei_qc/$',check_imei_qc),
     url('^check_return_imei/$',check_return_imei),
     url('^confirm_receive_qc/$',confirm_receive_qc),
+    url('^generate_po_labels/$',generate_po_labels),
+    url('^check_generated_label/$',check_generated_label),
 
     # Production
     url(r'^generated_jo_data/$',generated_jo_data),

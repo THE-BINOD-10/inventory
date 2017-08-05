@@ -10,6 +10,11 @@
 
           <p class="text-center mb30" style="color:#fff">Welcome to Stockone. Please sign in to your account</p>
 
+          <div class="alert alert-warning" ng-show="invalid">
+            <span class="close" ng-click="invalid = false">&times;</span>
+            <strong>Warning!</strong> Invalid Username/Password.
+          </div>
+
           <div class="form-inputs">
             <input type="username" class="form-control input-lg" ng-model="username" placeholder="Username" required>
             <input type="password" class="form-control input-lg" ng-model="password" placeholder="Password" required>

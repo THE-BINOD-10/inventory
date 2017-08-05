@@ -916,7 +916,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'IMEI Tracker',
+            title: 'Serial Number Tracker',
           }
         })
 

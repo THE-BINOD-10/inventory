@@ -27,7 +27,7 @@ class ZoneMaster(models.Model):
 
 class ZoneMarketplaceMapping(models.Model):
     id = BigAutoField(primary_key=True)
-    zone = models.ForeignKey(ZoneMaster, null=True, blank=True, default = None) 
+    zone = models.ForeignKey(ZoneMaster, null=True, blank=True, default = None)
     marketplace = models.CharField(max_length=64)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -251,7 +251,6 @@ class OrderLabels(models.Model):
 
     def __unicode__(self):
         return str(self.label)
-
 
 class SKUQuantity(models.Model):
     id = BigAutoField(primary_key=True)
@@ -1799,6 +1798,24 @@ class TaxMaster(models.Model):
             'max_amt': self.max_amt,
             'user_id': self.user.id
         }
+
+class POLabels(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
+    label = models.CharField(max_length=128, default='')
+    serial_number = models.IntegerField(default=0)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PO_LABELS'
+        unique_together = ('purchase_order', 'sku', 'label')
+        index_together = ('purchase_order', 'sku','label')
+
+    def __unicode__(self):
+        return str(self.label)
 
 import django
 from django.core.validators import MaxLengthValidator

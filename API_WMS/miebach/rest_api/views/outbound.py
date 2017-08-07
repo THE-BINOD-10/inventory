@@ -4026,6 +4026,8 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
             order_taken_val = cust_status_obj[0]['order_taken_by']
 
         order_id = dat['order_code'] + str(dat['order_id'])
+        if dat['original_order_id']:
+            order_id = dat['original_order_id']
         check_values = order_id
         #name = all_orders.filter(order_id=dat['order_id'], order_code=dat['order_code'], user=user.id)[0].id
         name = ''

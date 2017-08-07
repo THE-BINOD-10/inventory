@@ -681,6 +681,7 @@ class POIMEIMapping(models.Model):
     id = BigAutoField(primary_key = True)
     purchase_order =  models.ForeignKey(PurchaseOrder)
     imei_number = models.CharField(max_length = 64, default = '')
+    status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1565,6 +1566,7 @@ class ReturnsIMEIMapping(models.Model):
     order_return = models.ForeignKey(OrderReturns, blank=True, null=True)
     status = models.CharField(max_length = 64, default = '')
     reason = models.CharField(max_length = 128, default = '')
+    imei_status = models.IntegerField(max_length=1, default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

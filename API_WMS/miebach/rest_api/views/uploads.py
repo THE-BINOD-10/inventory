@@ -272,7 +272,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
         if isinstance(cell_data, float):
             cell_data = str(int(cell_data))
         order_data['sku_id'] = sku_masters_dict[cell_data]
-        if not 'title' in order_mapping.keys():
+        if not order_data.get('title', ''):
             order_data['title'] = all_sku_decs.get(cell_data, '')
 
         order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], order_code = order_data.get('order_code', ''),
@@ -1937,7 +1937,6 @@ def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
         order = PurchaseOrder(**data)
         order.save()
         order.po_date = data['po_date']
-        import pdb;pdb.set_trace();
         order.save()
         mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
     if mail_result_data:

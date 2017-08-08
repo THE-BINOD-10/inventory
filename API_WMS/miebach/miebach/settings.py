@@ -90,9 +90,10 @@ WSGI_APPLICATION = 'miebach.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'sreekanth',
+        'NAME': 'WMS_PROD1',
         'USER': 'root',
-        'PASSWORD': 'Hdrn^Miebach@',
+        'PASSWORD': 'Mbch@He@drn232017Mar',
+        'HOST': '88.99.193.85',
         'TEST_MIRROR': 'default',
     }
 }
@@ -134,6 +135,8 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+
+DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 
 GRAPPELLI_ADMIN_TITLE = 'MIEBACH Admin'
 

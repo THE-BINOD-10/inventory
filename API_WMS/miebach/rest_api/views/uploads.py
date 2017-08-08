@@ -185,7 +185,7 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(UNI_WARE_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Sale Order Item Code' and get_cell_data(0, 2, reader, file_type) == 'Reverse Pickup Code':
         order_mapping = copy.deepcopy(UNI_WARE_EXCEL1)
-    elif get_cell_data(0, 0, reader, file_type) == 'SOR ID' and get_cell_data(0, 2, reader, file_type) == 'Lineitem ID':
+    elif get_cell_data(0, 0, reader, file_type) == 'SOR ID' and get_cell_data(0, 2, reader, file_type) == 'Product Code':
         order_mapping = copy.deepcopy(SHOTANG_ORDER_FILE_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'SOR ID' and get_cell_data(0, 2, reader, file_type) == 'Seller ID':
         order_mapping = copy.deepcopy(MARKETPLACE_ORDER_DEF_EXCEL)
@@ -1400,7 +1400,7 @@ def validate_supplier_form(open_sheet, user_id):
 
 def supplier_excel_upload(request, open_sheet, user, demo_data=False):
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
-    number_str_fields = ['pincode', 'phone_number', 'tin_number']
+    number_str_fields = ['pincode', 'phone_number']
     for row_idx in range(1, open_sheet.nrows):
         sku_code = ''
         wms_code = ''

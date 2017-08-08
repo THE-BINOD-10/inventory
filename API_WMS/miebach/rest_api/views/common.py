@@ -2285,7 +2285,7 @@ def get_customer_sku_prices(request, user = ""):
 
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     try:
-        sku_codes = sku_codes.split(",")
+        sku_codes = [sku_codes]
         result_data = []
         price_type = ""
 

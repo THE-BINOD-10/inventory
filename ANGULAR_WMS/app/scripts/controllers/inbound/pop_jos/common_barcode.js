@@ -2,6 +2,7 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
 
   var vm = this;
   vm.service = Service;
+  vm.permissions = Session.roles.permissions;
 
   var url_get = "get_order_labels/";
   vm.model_data = {};
@@ -42,7 +43,9 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
     if(form.$valid) {
       var elem = $("form[name='barcodes']").serializeArray();
       var url = "generate_barcodes/";
-      url = "generate_po_labels/";
+      if (vm.permissions.barcode_generate_opt == "sku_serial") {
+        url = "generate_po_labels/";
+      }
       vm.service.apiCall(url, 'POST', elem, true).then(function(data){
         if(data.message) {
           console.log(data);

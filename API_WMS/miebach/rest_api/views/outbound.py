@@ -1060,7 +1060,7 @@ def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, me
     picklist.save()
     if not seller_pick_number:
         seller_pick_number = get_seller_pick_id(picklist, user)
-    if user_profile.user_type == 'marketplace_user':
+    if user_profile.user_type == 'marketplace_user' and picklist.order:
         create_seller_order_summary(picklist, p_quantity, seller_pick_number, picks_all)
     else:
         create_order_summary(picklist, p_quantity, seller_pick_number, picks_all)
@@ -1519,7 +1519,7 @@ def picklist_confirmation(request, user=''):
                     picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
                     if not seller_pick_number:
                         seller_pick_number = get_seller_pick_id(picklist, user)
-                    if user_profile.user_type == 'marketplace_user':
+                    if user_profile.user_type == 'marketplace_user' and picklist.order:
                         create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all, stock)
                     else:
                         create_order_summary(picklist, picking_count1, seller_pick_number, picks_all)
@@ -1560,7 +1560,7 @@ def picklist_confirmation(request, user=''):
             auto_po(list(set(auto_skus)), user.id)
 
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
-        if (detailed_invoice and picklist.order.marketplace == "Offline"):
+        if (detailed_invoice and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         if get_misc_value('automate_invoice', user.id) == 'true' and single_order:
             order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True).distinct()
@@ -4026,6 +4026,8 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
             order_taken_val = cust_status_obj[0]['order_taken_by']
 
         order_id = dat['order_code'] + str(dat['order_id'])
+        if dat['original_order_id']:
+            order_id = dat['original_order_id']
         check_values = order_id
         #name = all_orders.filter(order_id=dat['order_id'], order_code=dat['order_code'], user=user.id)[0].id
         name = ''

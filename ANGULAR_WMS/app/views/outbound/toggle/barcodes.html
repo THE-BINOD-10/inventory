@@ -14,22 +14,27 @@
             <select class="form-control col-md-3" name="pdf_format">
               <option ng-repeat="format in pop.model_data.format_types" value="{{format}}">{{format}}</option>
             </select>
+            <input type="hidden" name="order_id" value="{{pop.model_data.po_id}}">
           </div>
           <div class="row">
             <div class="col-md-12">
               <table class="table">
                 <thead>
                   <tr>
-                    <th>Label Code</th>
+                    <th ng-if="pop.model_data.barcodes[0].label">Label Code</th>
+                    <th ng-if="!pop.model_data.barcodes[0].label">SKU Code</th>
                     <th>Quantity </th>
                     <th class="plus"></th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr ng-repeat="barcode in pop.model_data.barcodes">
-                    <td>
+                    <td ng-if="barcode.label">
                       <input type="hidden" name="wms_code" class="form-control" value="{{barcode.wms_code}}">
                       <input type="text" name="label" class="form-control" ng-model="barcode.label" ng-required="true">
+                    </td>
+                    <td ng-if="!barcode.label">
+                      <input type="text" name="wms_code" class="form-control" ng-model="barcode.sku_code">
                     </td>
                     <td>
                       <input type="text" name="quantity" class="form-control" ng-model="barcode.quantity">
@@ -41,7 +46,7 @@
                   </tr>
                 </tbody>
               </table>
-              <div class="col-md-12 col-sm-6 col-xs-4">
+              <div class="col-md-12 col-sm-6 col-xs-4" ng-if="pop.model_data.barcodes[0].label">
                 <span class="plus pull-right">
                   <i class="fa fa-plus-circle" style="font-size: 45px;margin-top: -10px;"
                      ng-click="pop.model_data.barcodes.push({'label_code':'', 'quantity':''})"></i>

@@ -218,8 +218,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.picklist_confirmation = picklist_confirmation;
     function picklist_confirmation() {
-      var elem = angular.element($('form'));
-      elem = elem[1];
+      var elem = angular.element($('form:visible'));
       elem = $(elem).serializeArray();
       vm.service.apiCall('picklist_confirmation/', 'POST', elem, true).then(function(data){
         if(data.message) {

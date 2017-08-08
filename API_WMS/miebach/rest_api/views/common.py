@@ -31,6 +31,7 @@ from utils import *
 from django.core.files.base import ContentFile
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Sum, Count
+from requests import post
 import math
 from django.db.models import Max
 from django.db.models.functions import Cast
@@ -86,7 +87,6 @@ def get_user_permissions(request, user):
             user_perms.append(temp)
             roles[temp] = get_permission(request.user, temp, groups=all_groups)
             if roles[temp]:
-                print temp
                 label_perms.append(temp)
 
     roles.update(config)
@@ -585,13 +585,13 @@ def configurations(request, user=''):
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
     label_generation = get_misc_value('label_generation', user.id)
     marketplace_model = get_misc_value('marketplace_model', user.id)
+    barcode_generate_opt = get_misc_value('barcode_generate_opt', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
 
     view_order_status = view_order_status.split(',')
     style_headers = style_headers.split(',')
-
 
     if stock_display_warehouse and stock_display_warehouse != "false":
         stock_display_warehouse = stock_display_warehouse.split(',')
@@ -688,7 +688,8 @@ def configurations(request, user=''):
                                     'receive_process': receive_process, 'receive_options': RECEIVE_OPTIONS,
                                     'tally_config': tally_config, 'tax_data': tax_data, 'hsn_summary': hsn_summary,
                                     'display_customer_sku': display_customer_sku, 'marketplace_model': marketplace_model,
-                                    'label_generation': label_generation}))
+                                    'label_generation': label_generation, 'barcode_generate_options': BARCODE_OPTIONS,
+                                    'barcode_generate_opt': barcode_generate_opt}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -1845,6 +1846,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                 customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                    + dat.telephone + "\nEmail: " + dat.email_id
         if not customer_address:
+            dat = order_data[0]
             customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                             + dat.telephone + "\nEmail: " + dat.email_id
 
@@ -1946,14 +1948,14 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                        float(taxes_dict['utgst_amt'])
                 summary_key = str(hsn_code) + "@" + str(cgst_tax + sgst_tax + igst_tax + utgst_tax)
                 if hsn_summary.get(summary_key, ''):
-                    hsn_summary[summary_key]['taxable'] += float("%.2f" % float(base_price))
+                    hsn_summary[summary_key]['taxable'] += float("%.2f" % float(amt))
                     hsn_summary[summary_key]['sgst_amt'] += float("%.2f" % float(sgst_amt))
                     hsn_summary[summary_key]['cgst_amt'] += float("%.2f" % float(cgst_amt))
                     hsn_summary[summary_key]['igst_amt'] += float("%.2f" % float(igst_amt))
                     hsn_summary[summary_key]['utgst_amt'] += float("%.2f" % float(utgst_amt))
                 else:
                     hsn_summary[summary_key] = {}
-                    hsn_summary[summary_key]['taxable'] = float("%.2f" % float(base_price))
+                    hsn_summary[summary_key]['taxable'] = float("%.2f" % float(amt))
                     hsn_summary[summary_key]['sgst_amt'] = float("%.2f" % float(sgst_amt))
                     hsn_summary[summary_key]['cgst_amt'] = float("%.2f" % float(cgst_amt))
                     hsn_summary[summary_key]['igst_amt'] = float("%.2f" % float(igst_amt))
@@ -3228,3 +3230,73 @@ def get_imei_data(request, user=''):
         log.info('Get IMEI Tracker History Data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
     status = {'imei': imei, 'sku_details': sku_details, 'imei_status': imei_status, 'data': data, 'message': 'Success'}
     return HttpResponse(json.dumps(status))
+
+def generate_barcode_dict(pdf_format, myDict, user):
+    barcode_pdf_dict = {}
+    barcodes_list = []
+    user_prf = UserProfile.objects.filter(user_id=user.id)[0]
+    for ind in range(0, len(myDict['wms_code'])):
+        sku = myDict['wms_code'][ind]
+        quant = myDict['quantity'][ind]
+        label = ''
+        if myDict.has_key('label'):
+            label = myDict['label'][ind]
+        if sku and quant:
+            if sku.isdigit():
+                sku_data = SKUMaster.objects.filter(Q(ean_number = sku) | Q(wms_code = sku), user=user.id)[0]
+            else:
+                sku_data = SKUMaster.objects.filter(sku_code = sku, user=user.id)[0]
+            single = copy.deepcopy(BARCODE_DICT[pdf_format])
+            single['SKUCode'] = sku
+            single['label'] = label
+            if label:
+                single['SKUCode'] = label
+            single['Size'] = str(sku_data.sku_size).replace("'",'')
+            single['SKUPrintQty'] = quant
+            single['Brand'] = sku_data.sku_brand.replace("'",'')
+            single['SKUDes'] = sku_data.sku_desc.replace("'",'')
+            if pdf_format == 'format1':
+                single['Style'] = str(sku_data.style_name).replace("'",'')
+                single['Color'] = sku_data.color.replace("'",'')
+            if pdf_format in ['format3', 'format2']:
+                single['color'] = sku_data.color.replace("'",'')
+                present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
+                if pdf_format == 'format2':
+                    single["Packed on"] = str(present).replace("'",'')
+                    single['Marketed By'] = user_prf.company_name.replace("'",'')
+                if pdf_format == 'format3':
+                    single['MFD'] = str(present).replace("'",'')
+                    single['Marketed By'] = user_prf.company_name.replace("'",'')
+                    phone_number = user_prf.phone_number
+                    if not phone_number:
+                        phone_number = ''
+                    single['Contact No'] = phone_number
+                    single['Email'] = user.email
+                single["Gender"] = str(sku_data.style_name).replace("'",'')
+                single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
+                single['MRP'] = str(sku_data.price).replace("'",'')
+                address = user_prf.address
+                if BARCODE_ADDRESS_DICT.get(user.username, ''):
+                    address = BARCODE_ADDRESS_DICT.get(user.username)
+                single['Manufactured By'] = address.replace("'",'')
+                if len(sku_data.sku_desc) >= 25:
+                    single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
+            barcodes_list.append(single)
+    constructed_url = barcode_service(BARCODE_KEYS[pdf_format], barcodes_list, pdf_format)
+    return constructed_url
+
+def barcode_service(key, data_to_send, format_name=''):
+    url = 'http://sandhani-001-site1.htempurl.com/Webservices/BarcodeServices.asmx/GetBarCode'
+    payload = ''
+    if data_to_send:
+        if format_name == 'format3':
+            payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Adam', 'argBarcodeFormate' : key }
+        else:
+            payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Brilhante', 'argBarcodeFormate' : key }
+    r = post(url, data=payload)
+    if ('<string xmlns="http://tempuri.org/">' in r.text) and ('</string>' in r.text):
+        token_value = r.text.split('<string xmlns="http://tempuri.org/">')[1].split('</string>')[0]
+        pdf_url = 'data:application/pdf;base64,' + token_value
+        return pdf_url
+    else:
+        pdf_url = ''

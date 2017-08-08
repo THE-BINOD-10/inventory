@@ -1143,6 +1143,9 @@ def save_jo_locations(all_data, user, job_code):
                 for stock_dict in stock_detail_dict:
                     stock = stock_dict['stock']
                     stock_quantity = stock_dict['stock_quantity']
+                    if rem_stock_quantity <= 0:
+                        break
+
                     if stock_diff:
                         if stock_quantity >= stock_diff:
                             stock_count = stock_diff
@@ -1150,12 +1153,14 @@ def save_jo_locations(all_data, user, job_code):
                         else:
                             stock_count = stock_quantity
                             stock_diff -= stock_quantity
-                    elif stock_quantity >= rem_stock_quantity:
-                        stock_count = rem_stock_quantity
                     else:
-                        stock_count = stock_quantity
-                        stock_diff = rem_stock_quantity - stock_quantity
+                        if stock_quantity >= rem_stock_quantity:
+                            stock_count = rem_stock_quantity
+                        else:
+                            stock_count = stock_quantity
+                            stock_diff = rem_stock_quantity - stock_quantity
 
+                    rem_stock_quantity -= stock_count
                     rm_locations_dict = copy.deepcopy(MATERIAL_PICK_LOCATIONS)
                     rm_locations_dict['material_picklist_id'] = material_picklist.id
                     rm_locations_dict['stock_id'] = stock.id

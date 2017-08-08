@@ -645,12 +645,10 @@ body {
 .page-pop .modal-body table {
   /*width: 97%;
       margin: 10px;*/
-
 }
 #page-pop .modal-body table tbody > tr > td > input,
 .page-pop .modal-body table tbody > tr > td > input {
   /*width: 90%;*/
-
 }
 #page-pop .modal-body .dropdown-menu > .active > a:hover,
 .page-pop .modal-body .dropdown-menu > .active > a:hover,
@@ -1007,7 +1005,6 @@ rm-blur:active {
   padding: 5px 0;
   padding: 3px;
   /* Position the tooltip */
-
   position: absolute;
   z-index: 1;
   top: -5px;
@@ -1075,7 +1072,6 @@ rm-blur:active {
     }
   }
   */
-
 }
 .tracking .panel-group .panel-body {
   background: #f0f0f0;

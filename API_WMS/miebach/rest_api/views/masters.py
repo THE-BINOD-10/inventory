@@ -14,7 +14,6 @@ from miebach_utils import *
 from django.core import serializers
 import os
 from sync_sku import *
-from requests import post
 import simplejson
 log = init_logger('logs/masters.log')
 
@@ -1907,77 +1906,6 @@ def generate_barcodes(request, user=''):
     pdf_format = myDict['pdf_format'][0]
     barcodes_list = generate_barcode_dict(pdf_format, myDict, user)
     return HttpResponse(json.dumps(barcodes_list))
-
-def generate_barcode_dict(pdf_format, myDict, user):
-    barcode_pdf_dict = {}
-    barcodes_list = []
-    user_prf = UserProfile.objects.filter(user_id=user.id)[0]
-    for ind in range(0, len(myDict['wms_code'])):
-        sku = myDict['wms_code'][ind]
-        quant = myDict['quantity'][ind]
-        label = ''
-        if myDict.has_key('label'):
-            label = myDict['label'][ind]
-        if sku and quant:
-            if sku.isdigit():
-                sku_data = SKUMaster.objects.filter(Q(ean_number = sku) | Q(wms_code = sku), user=user.id)[0]
-            else:
-                sku_data = SKUMaster.objects.filter(sku_code = sku, user=user.id)[0]
-            single = copy.deepcopy(BARCODE_DICT[pdf_format])
-            single['SKUCode'] = sku
-            if label:
-                single['SKUCode'] = label
-            single['Size'] = str(sku_data.sku_size).replace("'",'')
-            single['SKUPrintQty'] = quant
-            single['Brand'] = sku_data.sku_brand.replace("'",'')
-            single['SKUDes'] = sku_data.sku_desc.replace("'",'')
-            if pdf_format == 'format1':
-                single['Style'] = str(sku_data.style_name).replace("'",'')
-                single['Color'] = sku_data.color.replace("'",'')
-            if pdf_format in ['format3', 'format2']:
-                single['color'] = sku_data.color.replace("'",'')
-                present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
-                if pdf_format == 'format2':
-                    single["Packed on"] = str(present).replace("'",'')
-                    single['Marketed By'] = user_prf.company_name.replace("'",'')
-                if pdf_format == 'format3':
-                    single['MFD'] = str(present).replace("'",'')
-                    single['Marketed By'] = user_prf.company_name.replace("'",'')
-                    phone_number = user_prf.phone_number
-                    if not phone_number:
-                        phone_number = ''
-                    single['Contact No'] = phone_number
-                    single['Email'] = user.email
-                single["Gender"] = str(sku_data.style_name).replace("'",'')
-                single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
-                single['MRP'] = str(sku_data.price).replace("'",'')
-                address = user_prf.address
-                if BARCODE_ADDRESS_DICT.get(user.username, ''):
-                    address = BARCODE_ADDRESS_DICT.get(user.username)
-                single['Manufactured By'] = address.replace("'",'')
-                if len(sku_data.sku_desc) >= 25:
-                    single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
-            barcodes_list.append(single)
-    constructed_url = barcode_service(BARCODE_KEYS[pdf_format], barcodes_list, pdf_format)
-    return constructed_url
-
-def barcode_service(key, data_to_send, format_name=''):
-    url = 'http://sandhani-001-site1.htempurl.com/Webservices/BarcodeServices.asmx/GetBarCode'
-    payload = ''
-    if data_to_send:
-        if format_name == 'format3':
-            payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Adam', 'argBarcodeFormate' : key }
-        else:
-            payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Brilhante', 'argBarcodeFormate' : key }
-    r = post(url, data=payload)
-    if ('<string xmlns="http://tempuri.org/">' in r.text) and ('</string>' in r.text):
-        token_value = r.text.split('<string xmlns="http://tempuri.org/">')[1].split('</string>')[0]
-        pdf_url = 'data:application/pdf;base64,' + token_value
-        return pdf_url
-    else:
-        pdf_url = ''
-
-
 
 @csrf_exempt
 def get_price_master_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters = {}):

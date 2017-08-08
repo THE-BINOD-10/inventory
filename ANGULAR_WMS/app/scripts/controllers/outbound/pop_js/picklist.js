@@ -805,7 +805,7 @@ angular
   .module('urbanApp')
   .controller('Picklist', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', '$modal', 'items', Picklist]);
 
-
+/*
 function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
 
   var vm = this;
@@ -862,4 +862,4 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
 
 angular
   .module('urbanApp')
-  .controller('Barcodes', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', Barcodes]);
+  .controller('Barcodes', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', Barcodes]);*/

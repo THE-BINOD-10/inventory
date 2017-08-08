@@ -101,7 +101,7 @@
             <div class="col-md-3 col-sm-3 col-xs-4" ng-if="showCase.show_status_scan">
               <textarea placeholder="Scan IMEI" name="serial_number" rows="1" ng-model="showCase.status_imei" ng-keydown="showCase.status_scan_imei($event,showCase.status_imei)" class="form-control"></textarea>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-4 pull-right">
+            <div class="col-md-3 col-sm-3 col-xs-4 pull-right" ng-if="permissions.barcode_generate_opt != 'sku_serial'">
               <textarea placeholder="Scan SKU" rows="1" ng-model="showCase.change_sku" ng-keydown="showCase.change_sku_scan($event,showCase.change_sku)" class="form-control" auto-focus focus-on="focusSKU"></textarea>
             </div>
           </div>

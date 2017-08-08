@@ -725,7 +725,8 @@ def switches(request, user=''):
                     'hsn_summary': 'hsn_summary',
                     'display_customer_sku': 'display_customer_sku',
                     'label_generation': 'label_generation',
-                    'marketplace_model': 'marketplace_model'
+                    'marketplace_model': 'marketplace_model',
+                    'barcode_generate_opt': 'barcode_generate_opt',
                   }
 
     toggle_field, selection = "", ""
@@ -1779,10 +1780,13 @@ def insert_po_mapping(imei_nos, data, user_id):
     imei_list = []
     imei_nos = list(set(imei_nos.split(',')))
     order_data = get_purchase_order_data(data)
+    all_po_labels = []
+    all_st_purchases = STPurchaseOrder.objects.filter(open_st__sku__user=user_id)
+    all_po_labels = POLabels.objects.filter(sku__user=user_id, status=1)
     for imei in imei_nos:
         po_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__wms_code=order_data['wms_code'], imei_number=imei,
                                                   purchase_order__open_po__sku__user=user_id)
-        st_purchase = STPurchaseOrder.objects.filter(open_st__sku__user=user_id, open_st__sku__wms_code=order_data['wms_code']).\
+        st_purchase = all_st_purchases.filter(open_st__sku__wms_code=order_data['wms_code']).\
                                               values_list('po_id', flat=True)
         mapping = POIMEIMapping.objects.filter(imei_number=imei, purchase_order_id__in=st_purchase)
         po_mapping = list(chain(po_mapping, mapping))
@@ -1790,6 +1794,7 @@ def insert_po_mapping(imei_nos, data, user_id):
             imei_mapping = {'purchase_order_id': data.id, 'imei_number': imei}
             po_imei = POIMEIMapping(**imei_mapping)
             po_imei.save()
+            all_po_labels.filter(purchase_order_id=data.id, label=imei, status=1).update(status=0)
         imei_list.append(imei)
 
 def create_bayarea_stock(sku_code, zone, quantity, user):
@@ -4419,3 +4424,100 @@ def confirm_receive_qc(request, user=''):
         log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Generate GRN Failed")
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def generate_po_labels(request, user=''):
+    data_dict = dict(request.POST.iterlists())
+    order_id = request.POST.get('order_id', '')
+    pdf_format = request.POST.get('pdf_format', '')
+    data = {}
+    data['pdf_format'] = [pdf_format]
+    if not order_id:
+        return HttpResponse(json.dumps({'message': 'Please send Purchase Order Id', 'data': []}))
+    log.info('Request params for Generate PO Labels for ' + user.username + ' is ' + str(data_dict))
+    try:
+        serial_number = 1
+        max_serial = POLabels.objects.filter(sku__user=user.id).aggregate(Max('serial_number'))['serial_number__max']
+        if max_serial:
+            serial_number = int(max_serial) + 1
+        all_st_purchases = STPurchaseOrder.objects.filter(po__order_id=order_id, open_st__sku__user=user.id)
+        all_rw_orders = RWPurchase.objects.filter(purchase_order__order_id=order_id, rwo__vendor__user=user.id)
+        po_ids = all_st_purchases.values_list('po_id', flat=True)
+        rw_po_ids = all_rw_orders.values_list('purchase_order_id', flat=True)
+        purchase_orders = PurchaseOrder.objects.filter(Q(id__in=po_ids) | Q(id__in=rw_po_ids) | Q(open_po__sku__user=user.id), order_id=order_id)
+        creation_date = datetime.datetime.now()
+        all_po_labels = POLabels.objects.filter(sku__user=user.id, purchase_order__order_id=order_id, status=1)
+        for ind in range(0, len(data_dict['wms_code'])):
+            order = purchase_orders.filter(open_po__sku__wms_code=data_dict['wms_code'][ind])
+            if not order:
+                st_purchase = all_st_purchases.filter(open_st__sku__wms_code=data_dict['wms_code'][ind])
+                rw_purchase = all_rw_orders.filter(rwo__job_order__product_code__wms_code=data_dict['wms_code'][ind])
+                if st_purchase:
+                    order = st_purchase[0].po
+                    sku = st_purchase[0].open_st.sku
+                elif rw_purchase:
+                    order = rw_purchase[0].purchase_order
+                    sku = rw_purchase[0].rwo.job_order.product_code
+            else:
+                order = order[0]
+                sku = order.open_po.sku
+            needed_quantity = int(data_dict['quantity'][ind])
+            po_labels = all_po_labels.filter(purchase_order_id=order.id).order_by('serial_number')
+            data.setdefault('label', [])
+            data.setdefault('wms_code', [])
+            data.setdefault('quantity', [])
+            for labels in po_labels:
+                data['label'].append(labels.label)
+                data['quantity'].append(1)
+                data['wms_code'].append(labels.sku.wms_code)
+                needed_quantity -= 1
+            for quantity in range(0, needed_quantity):
+                label = str(user.username[:2]).upper() + (str(serial_number).zfill(5))
+                data['label'].append(label)
+                data['quantity'].append(1)
+                label_dict = {'purchase_order_id': order.id, 'serial_number': serial_number, 'label': label, 'status': 1,
+                              'creation_date': creation_date}
+                label_dict['sku_id'] = sku.id
+                data['wms_code'].append(sku.wms_code)
+                POLabels.objects.create(**label_dict)
+
+                serial_number += 1
+
+        barcodes_list = generate_barcode_dict(pdf_format, data, user)
+        return HttpResponse(json.dumps(barcodes_list))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Generating Labels failed for params " + str(data_dict) + " and error statement is " + str(e))
+        return HttpResponse("Generate Labels Failed")
+
+@login_required
+@get_admin_user
+def check_generated_label(request, user=''):
+    status = {}
+    order_id = request.GET.get('order_id', '')
+    label = request.GET.get('label', '')
+    log.info('Request params for Check Labels for ' + user.username + ' is ' + str(request.GET.dict()))
+    try:
+        if order_id and label:
+            po_labels = POLabels.objects.filter(sku__user=user.id, label=label)
+            if not po_labels:
+                status = {'message': 'Invalid Serial Number', 'data': {}}
+            elif not int(po_labels[0].purchase_order.order_id) == int(order_id):
+                status = {'message': 'Serial Number is mapped with PO Number ' + get_po_reference(po_labels[0].purchase_order), 'data': {}}
+            elif int(po_labels[0].status) == 0:
+                status = {'message': 'Serial Number already mapped with ' + get_po_reference(po_labels[0].purchase_order), 'data': {}}
+            else:
+                po_label = po_labels[0]
+                data = {'sku_code': po_label.sku.sku_code, 'label': po_label.label}
+                status = {'message': 'Success', 'data': data}
+        else:
+            status = {'message': 'Missing required parameters', 'data': {}}
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Check Labels failed for params " + str(request.GET.dict()) + " and error statement is " + str(e))
+        status = {'message': 'Check Labels Failed', 'data': {}}
+
+    return HttpResponse(json.dumps(status))

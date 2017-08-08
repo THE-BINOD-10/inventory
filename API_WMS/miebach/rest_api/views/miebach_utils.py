@@ -456,7 +456,10 @@ MAIL_REPORTS = { 'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wis
 
 MAIL_REPORTS_DATA = {'Raise PO': 'raise_po', 'Receive PO': 'receive_po', 'Orders': 'order', 'Dispatch': 'dispatch', 'Internal Mail' : 'internal_mail'}
 
+# Configurations
 PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_location', 'Scan Serial': 'scan_serial', 'Scan Label': 'scan_label'}
+
+BARCODE_OPTIONS = {'SKU Code': 'sku_code', 'Embedded SKU Code in Serial': 'sku_serial'}
 
 REPORTS_DATA = {'SKU List': 'sku_list', 'Location Wise SKU': 'location_wise_stock', 'Receipt Summary': 'receipt_note', 'Dispatch Summary': 'dispatch_summary', 'SKU Wise Stock': 'sku_wise'}
 
@@ -578,6 +581,16 @@ CAMPUS_SUTRA_EXCEL = {'order_id': 2, 'invoice_amount': 14, 'marketplace': 'Campu
 LIMEROAD_EXCEL = {'original_order_id': 0, 'order_id': 0, 'unit_price': 20, 'marketplace': 'Lime Road', 'sku_code': 14,
                   'quantity': 21, 'customer_name': 3, 'address': 7, 'telephone': 6,  'shipment_date': 23}
 
+#Craftsvilla
+CRAFTSVILLA_EXCEL = OrderedDict(( ('order_id', 0), ('title', 12), ('sku_code', 17), ('quantity', 13), ('marketplace', 'Craftsvilla'),
+                                  ('customer_name', 3), ('address', 7), ('telephone', 9), ('email_id', 4),
+                                  ('amount', 21), ('amount_discount', 22), ('cgst_tax', 26), ('sgst_tax', 28), ('igst_tax', 30)
+                               ))
+
+CRAFTSVILLA_AMAZON_EXCEL = OrderedDict(( ('order_id', 0), ('title', 10), ('sku_code', 11), ('quantity', 14), ('marketplace', 'Amazon'),
+                                  ('unit_price', 16)
+                               ))
+
 #Adam clothing and Campus Sutra
 MYNTRA_EXCEL = {'invoice_amount': 19, 'marketplace': 'Myntra', 'sku_code': 2, 'quantity': 10, 'title': 8, 'original_order_id': 1,
                 'order_id': 1, 'mrp': 13, 'discount': 14, 'unit_price': 12, 'cgst_amt': 16, 'sgst_amt': 18, 'igst_amt': 15,
@@ -612,6 +625,13 @@ MYNTRA_BULK_PO_EXCEL = OrderedDict(( ('order_id', 0), ('original_order_id', 0), 
                                      ('marketplace', 'Myntra'), ('mrp', 7), ('quantity', 6), ('invoice_amount', [6, 12]),
                                      ('vat', {'tax': 10, 'quantity': 6, 'tax_value': 11}),
                                   ))
+
+# Alpha Ace
+ALPHA_ACE_ORDER_EXCEL = OrderedDict(( ('order_id', 0), ('title', 9), ('sku_code', 27), ('quantity', 12),
+                                ('marketplace', 'Alpha Ace'), ('customer_name', 25), ('telephone', 26),
+                                ('unit_price', 20), ('invoice_amount', [12,20]), ('cgst_tax', 16), ('sgst_tax', 18)
+                             ))
+
 
 UNI_COMMERCE_EXCEL1 = {'order_id': 8, 'channel_name': 2, 'sku_code': 20, 'customer_name': 9, 'email_id': 10, 'telephone': 11,
                        'address': [12, 13, 14], 'state': 15, 'pin_code': 16, 'invoice_amount': 19, 'recreate': True}
@@ -684,7 +704,7 @@ PERMISSION_DICT = OrderedDict((
                                ("STOCK_LABEL",(("Stock Detail", "add_stockdetail"), ("Vendor Stock", "add_vendorstock"),
                                ("Cycle Count", "add_cyclecount"), ("Move Inventory", "change_inventoryadjustment"),
                                ("Inventory Adjustment", "add_inventoryadjustment"),("Stock Summary", "add_skustock"),
-                               ("Warehouse Stock", "add_usergroups"))),
+                               ("Warehouse Stock", "add_usergroups"), ("IMEI Tracker", "add_poimeimapping"))),
 
                                # Outbound
                                ("OUTBOUND_LABEL",(("Create Orders", "add_orderdetail"), ("View Orders", "add_picklist"),
@@ -697,7 +717,8 @@ PERMISSION_DICT = OrderedDict((
                                ("OTHERS_LABEL", (("Raise Stock Transfer", "add_openst"), ("Create Stock Transfer", "add_stocktransfer"))),
 
                                # Payment
-                               ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary")))
+                               ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary"))),
+
                              ))
 
 ORDERS_TRACK_STATUS = {0: 'Resolved', 1: "Conflict", 2: "Delete"}

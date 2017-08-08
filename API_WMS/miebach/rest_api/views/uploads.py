@@ -185,7 +185,7 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(UNI_WARE_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Sale Order Item Code' and get_cell_data(0, 2, reader, file_type) == 'Reverse Pickup Code':
         order_mapping = copy.deepcopy(UNI_WARE_EXCEL1)
-    elif get_cell_data(0, 0, reader, file_type) == 'SOR ID' and get_cell_data(0, 2, reader, file_type) == 'Lineitem ID':
+    elif get_cell_data(0, 0, reader, file_type) == 'SOR ID' and get_cell_data(0, 2, reader, file_type) == 'Product Code':
         order_mapping = copy.deepcopy(SHOTANG_ORDER_FILE_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'SOR ID' and get_cell_data(0, 2, reader, file_type) == 'Seller ID':
         order_mapping = copy.deepcopy(MARKETPLACE_ORDER_DEF_EXCEL)
@@ -193,6 +193,12 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(MYNTRA_BULK_PO_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'bag_id' and get_cell_data(0, 2, reader, file_type) == 'order_date':
         order_mapping = copy.deepcopy(FYND_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'Order_Number' and get_cell_data(0, 4, reader, file_type) == 'Consignee_Email':
+        order_mapping = copy.deepcopy(CRAFTSVILLA_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'amazon-order-id' and get_cell_data(0, 5, reader, file_type) == 'fulfillment-channel':
+        order_mapping = copy.deepcopy(CRAFTSVILLA_AMAZON_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'OrderNo' and get_cell_data(0, 5, reader, file_type) == 'BuyerAccountOrganizationName':
+        order_mapping = copy.deepcopy(ALPHA_ACE_ORDER_EXCEL)
 
     return order_mapping
 
@@ -1394,7 +1400,7 @@ def validate_supplier_form(open_sheet, user_id):
 
 def supplier_excel_upload(request, open_sheet, user, demo_data=False):
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
-    number_str_fields = ['pincode', 'phone_number', 'tin_number']
+    number_str_fields = ['pincode', 'phone_number']
     for row_idx in range(1, open_sheet.nrows):
         sku_code = ''
         wms_code = ''
@@ -2772,8 +2778,13 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                     order_id = str(int(order_id))
                 if isinstance(sku_code, float):
                     sku_code = str(int(sku_code))
+
+
+                order_id_search = ''.join(re.findall('\d+', order_id))
+                order_code_search = ''.join(re.findall('\D+', order_id))
                 if sor_id:
-                    seller_order = SellerOrder.objects.filter(sor_id=sor_id, order__order_id=order_id,
+                    seller_order = SellerOrder.objects.filter(Q(order__order_id=order_id_search, order__order_code=order_code_search) |
+                                                              Q(order__original_order_id=order_id), sor_id=sor_id,
                                                               order__sku__sku_code=sku_code, order__user=user.id)
                     if not seller_order:
                         index_status.setdefault(row_idx, set()).add('Invalid Sor ID')

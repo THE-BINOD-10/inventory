@@ -906,6 +906,19 @@ var app = angular.module('urbanApp')
             url: '/StockDetails',
             templateUrl: 'views/stockLocator/toggles/stock_details.html'
           })
+        .state('app.stockLocator.IMEITracker', {
+          url: '/IMEITracker',
+          permission: 'add_poimeimapping',
+          templateUrl: 'views/stockLocator/imei_tracker.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/stockLocator/imei_tracker.js');
+              }]
+          },
+          data: {
+            title: 'Serial Number Tracker',
+          }
+        })
 
       // Outbound routes
       .state('app.outbound', {
@@ -1020,6 +1033,10 @@ var app = angular.module('urbanApp')
             url: '/DetailInvoice',
             templateUrl: 'views/outbound/print/d_generate_inv.html'
           })
+          .state('app.outbound.ViewOrders.InvoiceM', {
+            url: '/InvoiceM',
+            templateUrl: 'views/outbound/print/customer_inv.html'
+          })
           .state('app.outbound.ViewOrders.ST', {
             url: '/ST?data',
             templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
@@ -1079,6 +1096,10 @@ var app = angular.module('urbanApp')
                 ]);
               }]
             }
+          })
+          .state('app.outbound.PullConfirmation.InvoiceM', {
+            url: '/InvoiceM',
+            templateUrl: 'views/outbound/print/customer_inv.html'
           })
           .state('app.outbound.PullConfirmation.barcode', {
             url: '/Barcode',

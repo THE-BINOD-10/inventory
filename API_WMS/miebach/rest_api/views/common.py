@@ -31,6 +31,7 @@ from utils import *
 from django.core.files.base import ContentFile
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Sum, Count
+from requests import post
 import math
 from django.db.models import Max
 from django.db.models.functions import Cast
@@ -79,7 +80,7 @@ def get_user_permissions(request, user):
     permissions = Permission.objects.exclude(codename__icontains='delete_').values('codename')
     user_perms = []
     ignore_list = PERMISSION_IGNORE_LIST
-    all_groups = user.groups.all()
+    all_groups = request.user.groups.all()
     for permission in permissions:
         temp = permission['codename']
         if not temp in user_perms and not temp in ignore_list:
@@ -584,13 +585,13 @@ def configurations(request, user=''):
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
     label_generation = get_misc_value('label_generation', user.id)
     marketplace_model = get_misc_value('marketplace_model', user.id)
+    barcode_generate_opt = get_misc_value('barcode_generate_opt', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
 
     view_order_status = view_order_status.split(',')
     style_headers = style_headers.split(',')
-
 
     if stock_display_warehouse and stock_display_warehouse != "false":
         stock_display_warehouse = stock_display_warehouse.split(',')
@@ -687,7 +688,8 @@ def configurations(request, user=''):
                                     'receive_process': receive_process, 'receive_options': RECEIVE_OPTIONS,
                                     'tally_config': tally_config, 'tax_data': tax_data, 'hsn_summary': hsn_summary,
                                     'display_customer_sku': display_customer_sku, 'marketplace_model': marketplace_model,
-                                    'label_generation': label_generation}))
+                                    'label_generation': label_generation, 'barcode_generate_options': BARCODE_OPTIONS,
+                                    'barcode_generate_opt': barcode_generate_opt}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -1808,6 +1810,8 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     order_no = ''
     _total_tax = 0
     purchase_type = ''
+    seller_address = ''
+    customer_address = ''
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0}
     is_gst_invoice = False
     gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
@@ -1820,6 +1824,32 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     if order_ids:
         order_ids = order_ids.split(',')
         order_data = OrderDetail.objects.filter(id__in=order_ids)
+        seller_summary = SellerOrderSummary.objects.filter(seller_order__order_id__in=order_ids)
+        if seller_summary:
+            seller = seller_summary[0].seller_order.seller
+            seller_address = seller.name + '\n' + seller.address + "\nCall: " \
+                                    + seller.phone_number + "\nEmail: " + seller.email_id \
+                                    + "\nGSTIN No: " + seller.tin_number
+
+        if order_data and order_data[0].customer_id:
+            dat = order_data[0]
+            customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id).\
+                                                      values('customer_id', 'name', 'email_id', 'tin_number', 'address',
+                                                             'credit_period', 'phone_number'))
+            if customer_details:
+                consignee = customer_details[0]['name'] + '\n' + customer_details[0]['address'] + "\nCall: " \
+                            + customer_details[0]['phone_number'] + "\nEmail: " + customer_details[0]['email_id']
+                customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address'] + "\nCall: " \
+                                 + customer_details[0]['phone_number'] + "\nEmail: " + customer_details[0]['email_id'] \
+                                 + "\nGSTIN No: " + customer_details[0]['tin_number']
+            else:
+                customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
+                                   + dat.telephone + "\nEmail: " + dat.email_id
+        if not customer_address:
+            dat = order_data[0]
+            customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
+                            + dat.telephone + "\nEmail: " + dat.email_id
+
         picklist = Picklist.objects.filter(order_id__in=order_ids).order_by('-updation_date')
         picklist_obj = picklist
         if picklist:
@@ -1841,13 +1871,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             if not order_date:
                 order_date = get_local_date(user, dat.creation_date, send_date='true')
                 order_date = order_date.strftime("%d %b %Y")
-            if dat.customer_id and not customer_details:
-                customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id).\
-                                                          values('customer_id', 'name', 'email_id', 'tin_number', 'address',
-                                                                 'credit_period', 'phone_number'))
-                if customer_details:
-                    consignee = customer_details[0]['name'] + '\n' + customer_details[0]['address'] + "\nCall: " \
-                                + customer_details[0]['phone_number'] + "\nEmail: " + customer_details[0]['email_id']
+
             if not marketplace:
                 marketplace = dat.marketplace
                 username = user.username + ':' + marketplace.lower()
@@ -1924,14 +1948,14 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                        float(taxes_dict['utgst_amt'])
                 summary_key = str(hsn_code) + "@" + str(cgst_tax + sgst_tax + igst_tax + utgst_tax)
                 if hsn_summary.get(summary_key, ''):
-                    hsn_summary[summary_key]['taxable'] += float("%.2f" % float(base_price))
+                    hsn_summary[summary_key]['taxable'] += float("%.2f" % float(amt))
                     hsn_summary[summary_key]['sgst_amt'] += float("%.2f" % float(sgst_amt))
                     hsn_summary[summary_key]['cgst_amt'] += float("%.2f" % float(cgst_amt))
                     hsn_summary[summary_key]['igst_amt'] += float("%.2f" % float(igst_amt))
                     hsn_summary[summary_key]['utgst_amt'] += float("%.2f" % float(utgst_amt))
                 else:
                     hsn_summary[summary_key] = {}
-                    hsn_summary[summary_key]['taxable'] = float("%.2f" % float(base_price))
+                    hsn_summary[summary_key]['taxable'] = float("%.2f" % float(amt))
                     hsn_summary[summary_key]['sgst_amt'] = float("%.2f" % float(sgst_amt))
                     hsn_summary[summary_key]['cgst_amt'] = float("%.2f" % float(cgst_amt))
                     hsn_summary[summary_key]['igst_amt'] = float("%.2f" % float(igst_amt))
@@ -1990,7 +2014,8 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                     'rounded_invoice_amount': _total_invoice, 'purchase_type': purchase_type, 'is_gst_invoice': is_gst_invoice,
                     'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes, 'image': image,
                     'total_tax_words': number_in_words(_total_tax), 'declaration': declaration, 'hsn_summary': hsn_summary,
-                    'hsn_summary_display': get_misc_value('hsn_summary', user.id)}
+                    'hsn_summary_display': get_misc_value('hsn_summary', user.id), 'seller_address': seller_address,
+                    'customer_address': customer_address}
 
     return invoice_data
 
@@ -2260,7 +2285,7 @@ def get_customer_sku_prices(request, user = ""):
 
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     try:
-        sku_codes = sku_codes.split(",")
+        sku_codes = [sku_codes]
         result_data = []
         price_type = ""
 
@@ -3128,3 +3153,150 @@ def check_labels(request, user=''):
         else:
             status = {'message': 'Invalid Label', 'data': {}}
     return HttpResponse(json.dumps(status, cls=DjangoJSONEncoder))
+
+def get_po_reference(order):
+    po_number = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+    return po_number
+
+@csrf_exempt
+@get_admin_user
+def get_imei_data(request, user=''):
+    status = {}
+    imei =  request.GET.get('imei')
+    if not imei:
+        return HttpResponse(json.dumps({'imei': imei, 'message': 'Please scan imei number'}))
+    po_imei_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__user=user.id, imei_number=imei)
+    if not po_imei_mapping:
+        return HttpResponse(json.dumps({'imei': imei, 'message': 'Invalid IMEI Number'}))
+    data = []
+    imei_status = ''
+    stock_skus = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values_list('sku__sku_code', flat=True).distinct()
+    sku_details = {}
+    log.info('Get IMEI Tracker History data for ' + user.username + ' is ' + str(request.GET.dict()))
+    try:
+        for index, po_mapping in enumerate(po_imei_mapping):
+            imei_data = {}
+            sku = po_mapping.purchase_order.open_po.sku
+            purchase_order = po_mapping.purchase_order
+            if not sku_details:
+                sku_details = {'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'sku_category': sku.sku_category,
+                               'image_url': sku.image_url}
+            imei_data['po_details'] = {'po_number': get_po_reference(purchase_order), 'supplier_id': purchase_order.open_po.supplier_id,
+                                       'supplier_name': purchase_order.open_po.supplier.name,
+                                       'received_date': get_local_date(user, po_mapping.creation_date),
+                                       'supplier_address': purchase_order.open_po.supplier.address}
+            order_mappings = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping.id, order__user=user.id).order_by('-creation_date')
+            if not order_mappings:
+                data.append(imei_data)
+                if sku.sku_code in stock_skus:
+                    imei_status = 'Available'
+                continue
+            if order_mappings:
+                order_mapping = order_mappings[0]
+                order_id = order_mapping.order.original_order_id
+                if not order_id:
+                    order_id = str(order_mapping.order.order_code) + str(order_mapping.order.order_id)
+
+                customer_id = order_mapping.order.customer_id
+                customer_name = order_mapping.order.customer_name
+                customer_address = order_mapping.order.address
+                if customer_id:
+                    customer_master = CustomerMaster.objects.filter(customer_id=order_mapping.order.customer_id, user=user.id)
+                    if customer_master:
+                        customer_name = customer_master[0].name
+                        customer_address = customer_master[0].address
+                imei_data['order_details'] = {'order_id': order_id, 'order_date': get_local_date(user, order_mapping.order.creation_date),
+                                              'customer_id': str(customer_id), 'customer_name': customer_name,'customer_address': customer_address,
+                                              'dispatch_date': get_local_date(user, order_mapping.creation_date)
+                                             }
+                return_mapping = ReturnsIMEIMapping.objects.filter(order_imei_id=order_mapping.id, order_imei__order__user=user.id)
+                if not return_mapping:
+                    data.append(imei_data)
+                    imei_status = 'Dispatched'
+                    continue
+                return_mapping = return_mapping[0]
+                imei_data['return_details'] = {'return_id': return_mapping.order_return.return_id,
+                                               'return_date': get_local_date(user, return_mapping.order_return.creation_date),
+                                               'customer_id': str(customer_id), 'customer_name': customer_name,
+                                               'customer_address': customer_address,
+                                               'reason': return_mapping.order_return.reason}
+                imei_status = 'Returned'
+                data.append(imei_data)
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('Get IMEI Tracker History Data failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
+    status = {'imei': imei, 'sku_details': sku_details, 'imei_status': imei_status, 'data': data, 'message': 'Success'}
+    return HttpResponse(json.dumps(status))
+
+def generate_barcode_dict(pdf_format, myDict, user):
+    barcode_pdf_dict = {}
+    barcodes_list = []
+    user_prf = UserProfile.objects.filter(user_id=user.id)[0]
+    for ind in range(0, len(myDict['wms_code'])):
+        sku = myDict['wms_code'][ind]
+        quant = myDict['quantity'][ind]
+        label = ''
+        if myDict.has_key('label'):
+            label = myDict['label'][ind]
+        if sku and quant:
+            if sku.isdigit():
+                sku_data = SKUMaster.objects.filter(Q(ean_number = sku) | Q(wms_code = sku), user=user.id)[0]
+            else:
+                sku_data = SKUMaster.objects.filter(sku_code = sku, user=user.id)[0]
+            single = copy.deepcopy(BARCODE_DICT[pdf_format])
+            single['SKUCode'] = sku
+            single['label'] = label
+            if label:
+                single['SKUCode'] = label
+            single['Size'] = str(sku_data.sku_size).replace("'",'')
+            single['SKUPrintQty'] = quant
+            single['Brand'] = sku_data.sku_brand.replace("'",'')
+            single['SKUDes'] = sku_data.sku_desc.replace("'",'')
+            if pdf_format == 'format1':
+                single['Style'] = str(sku_data.style_name).replace("'",'')
+                single['Color'] = sku_data.color.replace("'",'')
+            if pdf_format in ['format3', 'format2']:
+                single['color'] = sku_data.color.replace("'",'')
+                present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
+                if pdf_format == 'format2':
+                    single["Packed on"] = str(present).replace("'",'')
+                    single['Marketed By'] = user_prf.company_name.replace("'",'')
+                if pdf_format == 'format3':
+                    single['MFD'] = str(present).replace("'",'')
+                    single['Marketed By'] = user_prf.company_name.replace("'",'')
+                    phone_number = user_prf.phone_number
+                    if not phone_number:
+                        phone_number = ''
+                    single['Contact No'] = phone_number
+                    single['Email'] = user.email
+                single["Gender"] = str(sku_data.style_name).replace("'",'')
+                single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
+                single['MRP'] = str(sku_data.price).replace("'",'')
+                address = user_prf.address
+                if BARCODE_ADDRESS_DICT.get(user.username, ''):
+                    address = BARCODE_ADDRESS_DICT.get(user.username)
+                single['Manufactured By'] = address.replace("'",'')
+                if len(sku_data.sku_desc) >= 25:
+                    single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
+            barcodes_list.append(single)
+    constructed_url = barcode_service(BARCODE_KEYS[pdf_format], barcodes_list, pdf_format)
+    return constructed_url
+
+def barcode_service(key, data_to_send, format_name=''):
+    url = 'http://sandhani-001-site1.htempurl.com/Webservices/BarcodeServices.asmx/GetBarCode'
+    payload = ''
+    if data_to_send:
+        if format_name == 'format3':
+            payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Adam', 'argBarcodeFormate' : key }
+        else:
+            payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Brilhante', 'argBarcodeFormate' : key }
+    r = post(url, data=payload)
+    if ('<string xmlns="http://tempuri.org/">' in r.text) and ('</string>' in r.text):
+        token_value = r.text.split('<string xmlns="http://tempuri.org/">')[1].split('</string>')[0]
+        pdf_url = 'data:application/pdf;base64,' + token_value
+        return pdf_url
+    else:
+        pdf_url = ''

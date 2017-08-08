@@ -123,6 +123,8 @@ urlpatterns = [
     url('^check_imei_qc/$',check_imei_qc),
     url('^check_return_imei/$',check_return_imei),
     url('^confirm_receive_qc/$',confirm_receive_qc),
+    url('^generate_po_labels/$',generate_po_labels),
+    url('^check_generated_label/$',check_generated_label),
 
     # Production
     url(r'^generated_jo_data/$',generated_jo_data),
@@ -331,6 +333,7 @@ urlpatterns += [
     url(r'get_categories_list/',get_categories_list),
     url(r'get_sku_stock_check/', get_sku_stock_check),
     url(r'check_labels/', check_labels),
+    url(r'get_imei_data/', get_imei_data),
 
     #Retailone
     url(r'^get_marketplace_data/$',get_marketplace_data),

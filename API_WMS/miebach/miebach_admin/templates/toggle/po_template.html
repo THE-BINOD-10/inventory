@@ -2,21 +2,21 @@
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <table style="font-size:12px;width:480px">
-          <tbody>
-            <tr>
-              <td rowspan="3" style="text-align:left;width:380px;"><h4>{{title}}</h4></td>
-              {% if company_name %}
-              <td style="text-align:center;">{{company_name }}</td>
-              {% endif %}
-            </tr>
-            {% if address %}
-            <tr>
-              <td style="text-align:center;width:480px;">{{ w_address|linebreaks }}</td>
-            </tr>
-            {% endif %}
-          </tbody>
-        </table>
+        <div class="row">
+          <div class="col-md-4 col-sm-4 col-xs-4">
+            <h4 style="text-align:left">{{title}}</h4>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-4">
+            <h3 align="center" style="margin: 2px"><b>{{company_name }}</b></h3>
+          </div>
+        </div>
+        {% if address %}
+        <div class="row">
+          <div class="col-md-12 col-sm-12 col-xs-12">
+            <p align="center" style="margin: 0px;">{{ w_address }}</p>
+          </div>
+        </div>
+        {% endif %}
       </div>
       <div class="modal-body">
         <div class="form-group clearfix print-invoice">

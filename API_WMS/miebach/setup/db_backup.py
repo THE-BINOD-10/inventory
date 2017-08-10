@@ -40,7 +40,7 @@ class DBBackup:
         tar.add(os.path.join(self.backup_path, bfile), arcname=bfile)
         tar.close()
         os.remove(os.path.join(self.backup_path, bfile))
-        status = file_upload(tar_file_path, '/WMS_SQL/', 'u121527.your-backup.de', 'u121527', 'g4ofUe6PdHJvAKMa', 1)
+        status = file_upload(tar_file_path, '/WMS_SQL/', 'u156461.your-backup.de', 'u156461', 'ZAl8lR76yJZ2pLSX', 1)
 
     def sending_mail(self, res):
         if res == "success":
@@ -52,7 +52,7 @@ class DBBackup:
             body = "Hi Team, Backup creation is failed please check asap."
 
         send_to = ["abhishek@mieone.com", "wms-dev@mieone.com", "sandhani@mieone.com", "sreekanth@mieone.com"]
-        #send_to = ["abhishek@mieone.com", "sreekanth@mieone.com"]
+        #send_to = ["sreekanth@mieone.com"]
         send_mail(send_to, subject, body)
 
 

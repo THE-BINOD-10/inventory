@@ -2840,8 +2840,8 @@ def generate_po_data(request, user=''):
 def generate_jo_data(request, user=''):
     all_data = []
     title = 'Raise Job Order'
-    data = []
     for key, value in request.POST.iteritems():
+        data = []
         key = key.split(':')[0]
         bom_master = BOMMaster.objects.filter(product_sku__sku_code=key, product_sku__user=user.id)
         if bom_master:

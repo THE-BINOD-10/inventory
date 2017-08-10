@@ -831,10 +831,22 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     return true;
   }
 
+  vm.generate_pdf_file2 = function(data){
+    var send = {};
+    send['data'] = $(".modal-body:visible").html()
+    send['css'] = 'page1'
+    vm.apiCall("generate_pdf_file/", "POST", send).then(function(data){
+       if(data.message) {
+         window.open(Session.url + data.data, '_blank');
+       }
+    })
+  }
+
   vm.generate_pdf_file = function(data){
       var send = {};
       //send['data'] = JSON.stringify(data);
       send['data'] = $(".print-invoice:visible").html()
+      send['css'] = 'page';
       vm.apiCall("generate_pdf_file/", "POST", send).then(function(data){
          if(data.message) {
            window.open(Session.url + data.data, '_blank');

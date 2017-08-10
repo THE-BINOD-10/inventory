@@ -25,7 +25,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      23: 'detailed_invoice', 24: 'scan_picklist_option', 25: 'stock_display_warehouse', 26: 'view_order_status',
                      27: 'seller_margin', 28: 'style_headers', 29: 'receive_process', 30: 'tally_config', 31: 'tax_details',
                      32: 'hsn_summary', 33: 'display_customer_sku', 34: 'marketplace_model', 35: 'label_generation',
-                     36: 'barcode_generate_opt'}
+                     36: 'barcode_generate_opt', 37: 'invoice_titles'}
 
   vm.check_box_data = [
     {
@@ -281,6 +281,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }, 500);
       $(".sku_groups").importTags(vm.model_data.all_groups);
       $(".stages").importTags(vm.model_data.all_stages);
+      $(".titles").importTags(vm.model_data.invoice_titles);
       $('#my-select').multiSelect();
     }
   })
@@ -339,6 +340,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         Auth.status();
       }
     });
+  }
+
+  vm.update_invoice_titles = function() {
+    var data = $(".titles").val();
+    vm.switches(data, 37);
+    Auth.status();
   }
 
   vm.update_internal_mails = function() {

@@ -197,6 +197,9 @@ function view_orders() {
         if(data.message) {
           if(data.data == "Picklist Confirmed") {
             vm.ok("done");
+          } else if (typeof(data.data) == "string" && data.data.indexOf("print-invoice")) {
+            vm.ok("html");
+            vm.status_data.data = data.data;
           } else if (data.data.status == 'invoice') {
 
             vm.status_data.data = data.data.data;

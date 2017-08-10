@@ -1,0 +1,48 @@
+            <table class="table table-bordered m0">
+              <tbody class="rm-padding">
+                <tr>
+                  <td colspan="3">
+                    {% if data|length > 1 %}
+                    <span class="pull-left fs14" ng-if="!($first) || !($last)">Page No.{{forloop.counter}}</span>
+                    {% endif %}
+                    <h4 class="m0" align="center"><b>Tax Invoice</b></h4>
+                    <span class="fs14" style="position: absolute;right: 3px;top: 3px;">{{title}}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="width: 35%">
+                    <div class="row m0 text-left">
+                      <div class="col-md-12 p0 fs16">
+                        <span><b>SELLER:</b></span>
+                      </div>
+                      <div class="col-md-12 p0 fs14">
+                        <p class="pre-custom p0">{{seller_address}}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="width: 35%">
+                    <div class="row m0 text-left">
+                      <div class="col-md-12 p0 fs16">
+                        <span><b>BUYER:</b></span>
+                      </div>
+                      <div class="col-md-12 p0 fs14">
+                        <p class="pre-custom p0">{{customer_address}}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="width: 30%">
+                    <div class="row m0">
+                      <div class="col-xs-12 text-left p0 fs14">
+                        <strong>Invoice Number:</strong>{{invoice_no}}<br>
+                        <strong>Invoice Date:</strong>{{invoice_date}}<br>
+                        <strong>Order Number:</strong>{{order_id}}<br>
+                        <strong>Order Date:</strong>{{order_date}}<br>
+                        {% if purchase_type %}
+                        <span ng-if="showCase.pdf_data.purchase_type"><strong>Purchase Type:</strong>{{purchase_type}}</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>

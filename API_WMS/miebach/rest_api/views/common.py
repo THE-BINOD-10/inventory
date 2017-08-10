@@ -586,6 +586,7 @@ def configurations(request, user=''):
     label_generation = get_misc_value('label_generation', user.id)
     marketplace_model = get_misc_value('marketplace_model', user.id)
     barcode_generate_opt = get_misc_value('barcode_generate_opt', user.id)
+    invoice_titles = get_misc_value('invoice_titles', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
@@ -689,7 +690,7 @@ def configurations(request, user=''):
                                     'tally_config': tally_config, 'tax_data': tax_data, 'hsn_summary': hsn_summary,
                                     'display_customer_sku': display_customer_sku, 'marketplace_model': marketplace_model,
                                     'label_generation': label_generation, 'barcode_generate_options': BARCODE_OPTIONS,
-                                    'barcode_generate_opt': barcode_generate_opt}))
+                                    'barcode_generate_opt': barcode_generate_opt, 'invoice_titles': invoice_titles}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):

@@ -1,0 +1,262 @@
+<div id="page-pop" style="display: block;" class="modal fade process-toggle in" id="location-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
+  <form name="form" role="form" id="add-customer">
+    <div class="modal-dialog modal-lg" style="width: 970px">
+      <!-- Modal content-->
+      <div class="modal-content model-custom">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+         <h4 class="modal-title">Invoice</h4>
+        </div>
+        <div class="modal-body" style="margin: 5px;">
+         <div class="invoice_titles" ng-repeat="title in showCase.pdf_data.titles">
+         <!-- invoice -->
+          <div class="print-invoice mb20" ng-repeat="page in showCase.pdf_data.data">
+            <div class="invoice-body">
+              <table class="table table-bordered m0">
+                <tbody>
+                  <tr>
+                    <td colspan="2">
+                      <span class="pull-left fs14" ng-if="!($first) || !($last)">Page No.{{$index+1}}</span>
+                      <h4 class="m0" align="center"><b>Tax Invoice</b></h4>
+                      <span class="fs14" style="position: absolute;right: 3px;top: 3px;">{{title}}</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="width: 50%">
+                      <div class="row m0" style="height: 105px;overflow: hidden;">
+                        <div class="col-md-2 col-sm-2 col-xs-2 p0" ng-if="showCase.pdf_data.image">
+                          <img src="data:image/jpg;base64, {{showCase.pdf_data.image}}" style="width:100%"/>
+                        </div>
+                        <div class="col-md-{{showCase.pdf_data.image ? 10 : 12}} col-sm-10 col-xs-10 fs14 p0">
+                          <div class="col-md-12 p0">
+                            <span><b class="fs16">{{showCase.pdf_data.company_name}}</b></span>
+                          </div>
+                          <div class="col-md-12 p0" ng-if="showCase.pdf_data.company_address">
+                            <span class="pre-custom rm-padding padding-none">{{showCase.pdf_data.company_address}}</span>
+                          </div>
+                          <div class="col-md-12 p0">
+                            <span><b>Email:</b>{{showCase.pdf_data.email}}</span>
+                          </div>
+                          <div class="col-md-12 p0">
+                            <span><b>GSTIN No:</b> {{showCase.pdf_data.gstin_no}}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="row m0">
+                        <div class="col-xs-12 text-left p0 fs14">
+                          <strong>Invoice Number:</strong>{{showCase.pdf_data.invoice_no}}<br>
+                          <strong>Invoice Date:</strong>{{showCase.pdf_data.invoice_date}}<br>
+                          <strong>Order Number:</strong>{{showCase.pdf_data.order_id}}<br>
+                          <strong>Order Date:</strong>{{showCase.pdf_data.order_date}}<br>
+                          <span ng-if="showCase.pdf_data.purchase_type"><strong>Purchase Type:</strong>{{showCase.pdf_data.purchase_type}}</span>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <address class="m0 p0" style="height: 145px;overflow: hidden;">
+                        <strong>
+                          <span class="fs16" ng-if="user.userName != 'campus_sutra'">Bill To,</span>
+                          <span class="fs16" ng-if="user.userName == 'campus_sutra'">CONSIGNEE,</span>
+                        </strong><br>
+                        <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'">
+                          <p class="fs14 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
+                          <p class="fs14 m0" ng-if="showCase.pdf_data.customer_details[0].name">
+                          {{showCase.pdf_data.customer_details[0].name}}</p>
+                          <p class="fs14 p0 m0 pre-custom" ng-if="showCase.pdf_data.customer_details[0].address">{{showCase.pdf_data.customer_details[0].address}}</p>
+                          <p class="fs14 m0" ng-if="showCase.pdf_data.customer_details[0].tin_number">
+                            <b>GSTIN No: </b>{{showCase.pdf_data.customer_details[0].tin_number}}</p>
+                          <p class="fs14 m0" m0 ng-if="showCase.pdf_data.customer_details[0].email_id">
+                            <b>Email: </b>{{showCase.pdf_data.customer_details[0].email_id}}</p>
+                        </div>
+                        <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs14">
+                          {{showCase.pdf_data.marketplace}}<br>
+                        </div>
+                      </address>
+                    </td>
+                    <td>
+                      <address class="m0 p0" style="height: 145px;overflow: hidden;">
+                        <strong>
+                          <span class="fs16">Ship To,</span>
+                        </strong><br>
+                        <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'">
+                          <p class="fs14 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
+                          <p class="fs14 m0" ng-if="showCase.pdf_data.customer_details[0].name">
+                          {{showCase.pdf_data.customer_details[0].name}}</p>
+                          <p class="fs14 p0 m0 pre-custom" ng-if="showCase.pdf_data.customer_details[0].address">{{showCase.pdf_data.customer_details[0].address}}</p>
+                          <p class="fs14 m0" ng-if="showCase.pdf_data.customer_details[0].tin_number">
+                            <b>GSTIN No: </b>{{showCase.pdf_data.customer_details[0].tin_number}}</p>
+                          <p class="fs14 m0" m0 ng-if="showCase.pdf_data.customer_details[0].email_id">
+                            <b>Email: </b>{{showCase.pdf_data.customer_details[0].email_id}}</p>
+                        </div>
+                        <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs14">
+                          {{showCase.pdf_data.marketplace}}<br>
+                        </div>
+                      </address>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <table class="table table-bordered bl br cal-table m0">
+                <thead>
+                  <tr class="fs14">
+                    <th class="w10"><center>SKU Code</center></th>
+                    <th class="w7"><center>HSN</center></th>
+                    <th><center>Description</center></th>
+                    <th class="w7"><center>Unit</br>Rate</center></th>
+                    <!--<th ng-if="permissions.show_mrp">MRP</center></th>-->
+                    <th class="w5"><center>Qty</center></th>
+                    <th class="w9"><center>Base</br>Price</center></th>
+                    <!--<th><center>Disc</center></th>-->
+                    <th class="w9"><center>Taxable</br>Value</center></th>
+                    <th class="w7"><center>CGST</center></th>
+                    <th class="w7"><center>SGST</center></th>
+                    <th class="w7"><center>IGST</center></th>
+                    <th class="w9"><center>Total</center></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="fs14 rm-border" ng-repeat="record in page.data">
+                    <td class="text-left">
+                      <div style="overflow: hidden;width: 100px;text-overflow: ellipsis;">{{record.sku_code}}</td>
+                    <td class="text-left">{{record.hsn_code}}</td>
+                    <td class="text-left"><div class="wrap">{{record.title}}</div></td>
+                    <td class="text-right">{{record.unit_price | number:2}}</td>
+                    <td class="text-right">{{record.quantity}}</td>
+                    <td class="text-right">{{record.base_price | number:2}}</td>
+                    <!--<td ng-if="permissions.show_mrp">{{record.mrp_price | number:2}}</td>-->
+                    <!--<td class="text-right">{{record.discount}}<br><span class="tax-percentage hide">@0%</span></td>-->
+                    <td class="text-right"> {{record.amt | number:2}} </td>
+                    <td class="text-right">{{record.taxes.cgst_amt | number:2}}<br><span class="tax-percentage">{{record.taxes.cgst_tax}}%</span></td>
+                    <td class="text-right">{{record.taxes.sgst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.sgst_tax}}%</span></td>
+                    <td class="text-right">{{record.taxes.igst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.igst_tax}}%</span></td>
+                    <td class="text-right">{{record.invoice_amount | number:2}}</td>
+                  </tr>
+                  <tr class="rm-border" style="height: 47px;" ng-repeat="empty in page.empty_data">
+                    <td ng-repeat="item in [1,2,3,4,5,6,7,8,9,10,11]"><p style="height:10px"></p></td>
+                  </tr>
+                  <!--<tr class="rm-border" style="height: 46px;" ng-if="permissions.hsn_summary">
+                    <td ng-repeat="item in [1,2,3,4,5,6,7,8,9,10,11]"><p style="height:10px"></p></td>
+                  </tr>-->
+                  <tr class="fs14" style="border-top: 1px solid black" ng-if="permissions.hsn_summary && $last">
+                    <td></td>
+                    <td></td><td></td>
+                    <td colspan='3'><b>Summary</b></td>
+                    <td><b>Taxable</br>Value</b></td>
+                    <td><b>CGST</b></td>
+                    <td><b>SGST</b></td>
+                    <td><b>IGST</b></td>
+                    <td></td>
+                  </tr>
+                  <tr class="fs14 text-right rm-border" ng-repeat="(hsn, data) in showCase.pdf_data.hsn_summary" ng-if="permissions.hsn_summary && $parent.$last">
+                    <td></td>
+                    <td></td><td></td>
+                    <td colspan='3' class="text-left">{{hsn}}</td>
+                    <td class="text-right">{{data.taxable | number:2}}</td>
+                    <td class="text-right">{{data.cgst_amt | number:2}}</td>
+                    <td class="text-right">{{data.sgst_amt | number:2}}</td>
+                    <td class="text-right">{{data.igst_amt | number:2}}</td>
+                    <td></td>
+                  </tr>
+                  <tr style="border-top: 1px solid black;font-weight: bold;" class="fs14 text-right" ng-if="$last">
+                    <td colspan="3" style="text-align:left"><b>Total: </b></td>
+                    <td></td>
+                    <td>{{showCase.pdf_data.total_quantity}}</td>
+                    <td></td>
+                    <!--<td></td>-->
+                    <td>{{showCase.pdf_data.total_taxable_amt | number:2}}</td>
+                    <td>{{showCase.pdf_data.total_taxes.cgst_amt | number:2}}</td>
+                    <td>{{showCase.pdf_data.total_taxes.sgst_amt | number:2}}</td>
+                    <td>{{showCase.pdf_data.total_taxes.igst_amt | number:2}}</td>
+                    <td>{{showCase.pdf_data.total_invoice | number:2}}</td>
+                  </tr>
+                  <tr ng-if="$last">
+                    <td colspan='11' class="fs14">
+                      <div class="row" ng-repeat="charge in showCase.pdf_data.order_charges" ng-if="showCase.pdf_data.order_charges">
+                        <div class="col-xs-6 text-right">
+                          {{charge.charge_name}}
+                        </div>
+                        <div class="col-xs-6 text-right">
+                          {{charge.charge_amount | number:2}}
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="col-xs-6 text-right">
+                          Taxable Amount
+                        </div>
+                        <div class="col-xs-6 text-right">
+                         Rs {{showCase.pdf_data.total_taxable_amt | number:2}}
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="col-xs-6 text-right">
+                          Total Tax *
+                        </div>
+                        <div class="col-xs-6 text-right">
+                          Rs {{showCase.pdf_data.total_tax | number:2}}
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="col-xs-6 text-right">
+                          Total Tax(In Words)
+                        </div>
+                        <div class="col-xs-6 text-right" style="text-transform: capitalize;">
+                          {{showCase.pdf_data.total_tax_words}} Only
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="col-xs-6 text-right">
+                        Invoice Total
+                        </div>
+                        <div class="col-xs-6 text-right">
+                          Rs {{showCase.pdf_data.total_invoice_amount | number:2}}
+                        </div>
+                      </div>
+                      <div class="row" style="font-weight:bold">
+                        <div class="col-xs-6 text-right">
+                          Invoice Total (After rounding)
+                        </div>
+                        <div class="col-xs-6 text-right">
+                          Rs {{showCase.pdf_data.rounded_invoice_amount | number:0}}
+                        </div>
+                      </div>
+                      <div class="row" style="font-weight:bold">
+                        <div class="col-xs-6 text-right">
+                          Invoice Total(In Words)
+                        </div>
+                        <div class="col-xs-6 text-right" style="text-transform: capitalize;">
+                          {{showCase.pdf_data.price_in_words}} Only
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr ng-if="$last">
+                    <td colspan='7' style="text-align:left;" class="fs14">
+                      <span><b class="fs16">DECLARATION:</b></span><br>
+                      <p class="pre-custom fs14">{{showCase.pdf_data.declaration}}</p>
+                    </td>
+                    <td colspan='4'>
+                      <p align="center"><b class="fs16 m0">{{showCase.pdf_data.company_name}}</b></p>
+                      </br></br>
+                      <p align="center" class="fs14 m0">Authorised Signatory</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+         </div>
+        </div>
+        <div class="row mt20">
+          <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.generate_pdf_file(showCase.pdf_data)">
+            <i class="ti-printer mr5"></i>Print
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

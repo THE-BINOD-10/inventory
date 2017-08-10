@@ -1229,9 +1229,12 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
             nv_data.update({'user': user})
             if nv_data['detailed_invoice']:
                 t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
+                rendered = t.render(nv_data)
             else:
-                t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
-            rendered = t.render(nv_data)
+                #t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
+                nv_data["customer_invoice"] = True
+                rendered = build_invoice(nv_data, user, True)
+            #rendered = t.render(nv_data)
             file_name = str(user.id) + '_' + 'dispatch_invoice.html'
             pdf_file = '%s_%s.pdf' % (str(user.id), "dispatch_invoice")
             file_ = open(file_name, "w+b")
@@ -1560,8 +1563,9 @@ def picklist_confirmation(request, user=''):
             auto_po(list(set(auto_skus)), user.id)
 
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
-        if (detailed_invoice and picklist.order and picklist.order.marketplace == "Offline"):
+        if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
+        import pdb;pdb.set_trace();
         if get_misc_value('automate_invoice', user.id) == 'true' and single_order:
             order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True).distinct()
             order_id = picklists_send_mail.keys()
@@ -1581,6 +1585,11 @@ def picklist_confirmation(request, user=''):
                 invoice_data['picklists_send_mail'] = str(picklists_send_mail)
 
                 invoice_data['order_id'] = invoice_data['order_id']
+                user_profile = UserProfile.objects.get(user_id=user.id)
+                import pdb;pdb.set_trace();
+                if not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']:
+                    invoice_data = build_invoice(invoice_data, user, False)
+                    return HttpResponse(invoice_data)
                 return HttpResponse(json.dumps({'data': invoice_data, 'status': 'invoice'}))
     except Exception as e:
         import traceback
@@ -3301,7 +3310,8 @@ def generate_order_invoice(request, user=''):
     invoice_data = modify_invoice_data(invoice_data, user)
     ord_ids = order_ids.split(",")
     invoice_data = add_consignee_data(invoice_data, ord_ids, user)
-
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    invoice_data = build_invoice(invoice_data, user, False)
     #invoice_data.update({'user': user})
     #if invoice_data['detailed_invoice']:
     #    t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
@@ -3309,7 +3319,7 @@ def generate_order_invoice(request, user=''):
     #    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
     #c = Context(invoice_data)
     #rendered = t.render(c)
-    return HttpResponse(json.dumps(invoice_data))
+    return HttpResponse(invoice_data)
 
 @csrf_exempt
 def get_shipment_picked(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, user_dict={}, filters={}):
@@ -4537,22 +4547,14 @@ def get_customer_order_detail(request, user=""):
 def generate_pdf_file(request, user=""):
 
     nv_data = request.POST['data']
-    #if not nv_data:
-    #  return HttpResponse("no invoice")
-    #if not os.path.exists('static/pdf_files/'):
-    #    os.makedirs('static/pdf_files/')
-    #nv_data.update({'user': user})
-    #if nv_data['detailed_invoice']:
-    #    t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
-    #else:
-    #    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
-    #c = Context(nv_data)
-    #rendered = t.render(c)
     c= {'name': 'kanna'}
-    top = loader.get_template('../miebach_admin/templates/toggle/invoice/top.html')
+    if request.POST.get('css', '') == 'page':
+        top = loader.get_template('../miebach_admin/templates/toggle/invoice/top.html')
+    else:
+        top = loader.get_template('../miebach_admin/templates/toggle/invoice/top1.html')
     top = top.render(c)
     nv_data = nv_data.encode('utf-8')
-    html_content = str(top)+nv_data+"</div>"
+    html_content = str(top)+nv_data #+"</div>"
     if not os.path.exists('static/pdf_files/'):
         os.makedirs('static/pdf_files/')
     file_name = 'static/pdf_files/%s_dispatch_invoice.html' % str(request.user.id)
@@ -4919,6 +4921,102 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
         temp_data['aaData'].append(data_dict)
     log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
 
+def build_invoice(invoice_data, user, css=False):
+    #it will create invoice template
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    if not (not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']):
+        return json.dumps(invoice_data, cls=DjangoJSONEncoder)
+
+    titles = ['']
+    import math
+    if get_misc_value('invoice_titles', user.id) and not (invoice_data.get("customer_invoice", "") == True):
+        titles = get_misc_value('invoice_titles', user.id).split(",")
+
+    invoice_data['user_type'] = user_profile.user_type
+
+    invoice_data['titles'] = titles
+    perm_hsn_summary = get_misc_value('hsn_summary', user.id)
+    invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
+    invoice_data['empty_tds'] = [1,2,3,4,5,6,7,8,9,10,11]
+
+    inv_height = 1358; #total invoice height
+    inv_details = 292; #invoice details height
+    inv_footer = 95;   #invoice footer height
+    inv_totals = 127;  #invoice totals height
+    inv_header = 47;   #invoice tables headers height
+    inv_product = 47;  #invoice products cell height
+    inv_summary = 47;  #invoice summary headers height
+    inv_total = 27;    #total display height
+    inv_charges = 20;  #height of other charges
+
+    inv_totals = inv_totals + len(invoice_data['order_charges'])*inv_charges
+
+    if invoice_data['user_type'] == 'marketplace_user':
+        inv_details = 142;
+        s_count = invoice_data['seller_address'].count('\n')
+        s_count = s_count - 4
+        b_count = invoice_data['customer_address'].count('\n')
+        b_count = b_count - 4
+        s_count = s_count if s_count > b_count else b_count
+        if s_count > 0:
+            inv_details = inv_details + (20*s_count)
+        else:
+            inv_details = inv_details + 20
+
+    render_data = []
+    render_space = 0;
+    hsn_summary_length= len(invoice_data['hsn_summary'].keys())*inv_total;
+    if(perm_hsn_summary == 'true'):
+        render_space = inv_height-(inv_details+inv_footer+inv_totals+inv_header+inv_summary+inv_total+hsn_summary_length);
+    else:
+        render_space = inv_height-(inv_details+inv_footer+inv_totals+inv_header+inv_total)
+
+    no_of_skus = int(render_space/inv_product);
+    data_length = len(invoice_data['data']);
+    invoice_data['empty_data'] = [];
+    if (data_length > no_of_skus):
+
+        needed_space = inv_footer + inv_footer + inv_total;
+        if(perm_hsn_summary == 'true'):
+            needed_space = needed_space+ inv_summary+hsn_summary_length;
+
+        temp_render_space = 0;
+        temp_render_space = inv_height-(inv_details+inv_header);
+        temp_no_of_skus = int(temp_render_space/inv_product);
+        for i in range(int(math.ceil(data_length/temp_no_of_skus))):
+            temp_page = {'data': []}
+            temp_page['data'] = invoice_data['data'][i*temp_no_of_skus: (i+1)*temp_no_of_skus]
+            temp_page['empty_data'] = [];
+            render_data.append(temp_page);
+        last = len(render_data) - 1;
+        data_length = len(render_data[last]['data']);
+
+        if(no_of_skus < data_length):
+          render_data.append({'empty_data': [], 'data': [render_data[last]['data'][data_length-1]]})
+          render_data[last]['data'] = render_data[last]['data'][:data_length-1]
+
+        last = len(render_data) - 1;
+        data_length = len(render_data[last]['data'])
+        empty_data = [""]*(no_of_skus - data_length)
+
+        render_data[last]['empty_data'] = empty_data;
+
+        invoice_data['data'] = render_data;
+    elif(data_length < no_of_skus):
+
+        temp = invoice_data['data'];
+        invoice_data['data'] = [];
+        empty_data = [""]*(no_of_skus - data_length)
+        invoice_data['data'].append({'data': temp, 'empty_data': empty_data})
+    top = ''
+    if css:
+        c= {'name': 'invoice'}
+        top = loader.get_template('../miebach_admin/templates/toggle/invoice/top1.html')
+        top = top.render(c)
+    html = loader.get_template('../miebach_admin/templates/toggle/invoice/customer_invoice.html')
+    html = html.render(invoice_data)
+    return top+html
+
 @csrf_exempt
 @get_admin_user
 def generate_customer_invoice(request, user=''):
@@ -4998,13 +5096,14 @@ def generate_customer_invoice(request, user=''):
         if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
+        invoice_data = build_invoice(invoice_data, user, False)
 
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Create customer invoice failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
         return HttpResponse(json.dumps({'message': 'failed'}))
-    return HttpResponse(json.dumps(invoice_data, cls=DjangoJSONEncoder))
+    return HttpResponse(invoice_data)
 
 @csrf_exempt
 def get_seller_order_view(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_dict={}):

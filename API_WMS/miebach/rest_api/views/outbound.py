@@ -1109,28 +1109,41 @@ def insert_order_serial(picklist, val, order=''):
         imei_nos = list(set(val['imei'].split(',')))
     else:
         imei_nos = list(set(val['imei'].split('\r\n')))
+    user_id = None
     for imei in imei_nos:
         imei_filter = {}
         if order:
             order_id = order.id
         else:
             order_id = picklist.order.id
-        po_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__sku_code=val['wms_code'], imei_number=imei)
+            order = picklist.order
+        if order:
+            user_id = order.user
+        po_mapping, status, imei_data = check_get_imei_details(imei, val['wms_code'], user_id, check_type='order_mapping', order=order)
+        #po_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__sku_code=val['wms_code'], imei_number=imei, status=1,
+        #                                          purchase_order__open_po__sku__user=user_id)
         if imei and po_mapping:
             order_mapping = {'order_id': order_id, 'po_imei_id': po_mapping[0].id, 'imei_number': ''}
             order_mapping_ins = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, order_id=order_id)
             if order_mapping_ins:
                 order_mapping_ins[0].status = 1
                 order_mapping_ins[0].save()
+                po_imei = order_mapping_ins[0].po_imei
             else:
                 imei_mapping = OrderIMEIMapping(**order_mapping)
                 imei_mapping.save()
+                po_imei = po_mapping[0]
                 log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
+            if po_imei:
+                po_imei.status=0
+                po_imei.save()
         elif imei and not po_mapping:
             order_mapping = {'order_id': order_id, 'po_imei_id': None, 'imei_number': imei}
             imei_mapping = OrderIMEIMapping(**order_mapping)
             imei_mapping.save()
             log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
+        ReturnsIMEIMapping.objects.filter(order_return__sku__user=user_id, order_imei__po_imei__imei_number=imei,
+                                          imei_status=1).update(imei_status=0)
 
 def update_picklist_pallet(stock, picking_count1):
     pallet = stock.pallet_detail
@@ -1853,8 +1866,12 @@ def check_imei(request, user=''):
                 continue
             sku_code = picklist.order.sku.sku_code
             order = picklist.order
-            imei_filter['purchase_order__open_po__sku__sku_code'] = sku_code
-        po_mapping = POIMEIMapping.objects.filter(**imei_filter)
+            #imei_filter['purchase_order__open_po__sku__sku_code'] = sku_code
+
+        po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping', order=order)
+        if imei_data.get('wms_code', ''):
+            sku_code = imei_data['wms_code']
+        '''po_mapping = POIMEIMapping.objects.filter(**imei_filter)
         if not sku_code and po_mapping and po_mapping[0].purchase_order.open_po:
             sku_code = po_mapping[0].purchase_order.open_po.sku.sku_code
         if not po_mapping:
@@ -1864,7 +1881,7 @@ def check_imei(request, user=''):
             if order and order_mapping[0].order_id == order.id:
                 status = str(value) + ' is already mapped with this order'
             else:
-                status = str(value) + ' is already mapped with another order'
+                status = str(value) + ' is already mapped with another order'''
         if is_shipment:
             if not status:
                 status = 'Success'

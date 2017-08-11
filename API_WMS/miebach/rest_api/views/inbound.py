@@ -727,6 +727,7 @@ def switches(request, user=''):
                     'label_generation': 'label_generation',
                     'marketplace_model': 'marketplace_model',
                     'barcode_generate_opt': 'barcode_generate_opt',
+                    'grn_scan_option': 'grn_scan_option'
                   }
 
     toggle_field, selection = "", ""

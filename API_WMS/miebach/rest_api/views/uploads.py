@@ -1946,7 +1946,7 @@ def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
         order.save()
         mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
     if mail_result_data:
-        mail_status = purchase_upload_mail(request, mail_result_data)
+        mail_status = purchase_upload_mail(request, mail_result_data, user)
     return 'success'
 
 def purchase_order_dict(data, data_req, purch, user, order):
@@ -1958,7 +1958,7 @@ def purchase_order_dict(data, data_req, purch, user, order):
                                          'purch': purch, 'user': user, 'purchase_order': order}]
     return data_req
 
-def purchase_upload_mail(request, data_to_send):
+def purchase_upload_mail(request, data_to_send, user):
     from django.template import loader, Context
     from inbound import write_and_mail_pdf
     for key, value in data_to_send.iteritems():

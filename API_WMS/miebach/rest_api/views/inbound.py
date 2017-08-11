@@ -727,6 +727,7 @@ def switches(request, user=''):
                     'label_generation': 'label_generation',
                     'marketplace_model': 'marketplace_model',
                     'barcode_generate_opt': 'barcode_generate_opt',
+                    'grn_scan_option': 'grn_scan_option'
                   }
 
     toggle_field, selection = "", ""
@@ -1682,85 +1683,6 @@ def supplier_code_mapping(request, myDict, i, data, user=''):
                 new_mapping = SKUSupplier(**sku_mapping)
                 new_mapping.save()
 
-def get_purchase_order_data(order):
-    order_data = {}
-    status_dict = PO_ORDER_TYPES
-    rw_purchase = RWPurchase.objects.filter(purchase_order_id=order.id)
-    st_order = STPurchaseOrder.objects.filter(po_id=order.id)
-    temp_wms = ''
-    unit = ""
-    gstin_number = ''
-    if 'job_code' in dir(order):
-        order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group, 'sku': order.product_code,
-                      'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle, 'sku_desc': order.product_code.sku_desc,
-                      'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': ''}
-        return order_data
-    elif rw_purchase and not order.open_po:
-        rw_purchase = rw_purchase[0]
-        open_data = rw_purchase.rwo
-        user_data = UserProfile.objects.get(user_id=open_data.vendor.user)
-        address = open_data.vendor.address
-        email_id = open_data.vendor.email_id
-        username = open_data.vendor.name
-        order_quantity = open_data.job_order.product_quantity
-        sku = open_data.job_order.product_code
-        order_type = ''
-        price = 0
-        supplier_code = ''
-        cgst_tax = 0
-        sgst_tax = 0
-        igst_tax = 0
-        utgst_tax = 0
-        tin_number = ''
-    elif order.open_po:
-        open_data = order.open_po
-        user_data = order.open_po.supplier
-        address = user_data.address
-        email_id = user_data.email_id
-        username = user_data.name
-        order_quantity = open_data.order_quantity
-        sku = open_data.sku
-        price = open_data.price
-        unit = open_data.measurement_unit
-        order_type = status_dict[order.open_po.order_type]
-        supplier_code = open_data.supplier_code
-        gstin_number = order.open_po.supplier.tin_number
-        cgst_tax = open_data.cgst_tax
-        sgst_tax = open_data.sgst_tax
-        igst_tax = open_data.igst_tax
-        utgst_tax = open_data.utgst_tax
-        tin_number = open_data.supplier.tin_number
-        if sku.wms_code == 'TEMP':
-            temp_wms = open_data.wms_code
-    elif st_order and not order.open_po:
-        st_picklist = STOrder.objects.filter(stock_transfer__st_po_id=st_order[0].id)
-        open_data = st_order[0].open_st
-        user_data = UserProfile.objects.get(user_id=st_order[0].open_st.warehouse_id)
-        address = user_data.location
-        email_id = user_data.user.email
-        username = user_data.user.username
-        order_quantity = open_data.order_quantity
-        sku = open_data.sku
-        price = open_data.price
-        order_type = ''
-        supplier_code = ''
-        cgst_tax = 0
-        sgst_tax = 0
-        igst_tax = 0
-        utgst_tax = 0
-        tin_number = ''
-
-    order_data = {'order_quantity': order_quantity, 'price': price, 'wms_code': sku.wms_code,
-                  'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
-                  'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
-                  'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
-                  'phone_number': user_data.phone_number, 'email_id': email_id,
-                  'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms, 'order_type': order_type,
-                  'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
-                  'tin_number': tin_number}
-
-    return order_data
-
 def insert_pallet_data(temp_dict, po_location_id, status=''):
     if not status:
         status = 1
@@ -1784,13 +1706,14 @@ def insert_po_mapping(imei_nos, data, user_id):
     all_st_purchases = STPurchaseOrder.objects.filter(open_st__sku__user=user_id)
     all_po_labels = POLabels.objects.filter(sku__user=user_id, status=1)
     for imei in imei_nos:
-        po_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__wms_code=order_data['wms_code'], imei_number=imei,
-                                                  purchase_order__open_po__sku__user=user_id)
-        st_purchase = all_st_purchases.filter(open_st__sku__wms_code=order_data['wms_code']).\
-                                              values_list('po_id', flat=True)
-        mapping = POIMEIMapping.objects.filter(imei_number=imei, purchase_order_id__in=st_purchase)
-        po_mapping = list(chain(po_mapping, mapping))
-        if imei and not po_mapping and (imei not in imei_list):
+        if not imei:
+            continue
+        po_mapping, status, imei_data = check_get_imei_details(imei, order_data['wms_code'], user_id, check_type='purchase_check')
+        if not status and (imei not in imei_list):
+            if po_mapping:
+                po_mapping_ids = list(po_mapping.values_list('id', flat=True))
+                OrderIMEIMapping.objects.filter(po_imei_id__in=po_mapping_ids, status=1).update(status=0)
+                ReturnsIMEIMapping.objects.filter(order_imei__po_imei_id__in=po_mapping_ids, imei_status=1).update(imei_status=0)
             imei_mapping = {'purchase_order_id': data.id, 'imei_number': imei}
             po_imei = POIMEIMapping(**imei_mapping)
             po_imei.save()
@@ -2316,7 +2239,11 @@ def save_return_imeis(user, returns, status, imei_numbers):
         elif order_imei:
             order_imei[0].status = 0
             order_imei[0].save()
-        returns_imei = ReturnsIMEIMapping.objects.filter(order_return__sku__user=user.id, order_imei_id=order_imei[0].id)
+            po_imei = order_imei[0].po_imei
+            po_imei.status = 1
+            po_imei.save()
+
+        returns_imei = ReturnsIMEIMapping.objects.filter(order_return__sku__user=user.id, order_imei_id=order_imei[0].id, status=1)
         if not returns_imei:
             ReturnsIMEIMapping.objects.create(order_imei_id=order_imei[0].id, status=status, reason=reason,
                                               creation_date=datetime.datetime.now(), order_return_id=returns.id)
@@ -3785,10 +3712,12 @@ def returns_putaway_data(request, user=''):
 @get_admin_user
 def check_imei_exists(request, user=''):
     status = ''
-    for key, value in request.GET.iteritems():
-        po_mapping = POIMEIMapping.objects.filter(imei_number=value, purchase_order__open_po__sku__user=user.id)
-        if po_mapping:
-            status = str(value) + ' is already exists'
+    imei = request.GET.get('imei', '')
+    sku_code = request.GET.get('sku_code', '')
+    if imei and sku_code:
+        po_mapping, status, imei_data = check_get_imei_details(imei, sku_code, user.id, check_type='purchase_check')
+    else:
+        status = "Missing Serial or SKU Code"
 
     return HttpResponse(status)
 
@@ -4257,7 +4186,7 @@ def check_imei_qc(request, user=''):
     log.info(request.GET.dict())
     try:
         if imei:
-            filter_params = {"imei_number": imei, "purchase_order__open_po__sku__user": user.id}
+            filter_params = {"imei_number": imei, "purchase_order__open_po__sku__user": user.id, "status": 1}
             po_mapping = {}
             quality_check = {}
             if order_id:
@@ -4276,7 +4205,7 @@ def check_imei_qc(request, user=''):
                 status = "imei does not exists"
 
             qc_mapping = QCSerialMapping.objects.filter(serial_number__imei_number=imei,
-                                                         quality_check__purchase_order__open_po__sku__user=user.id)
+                                                         quality_check__purchase_order__open_po__sku__user=user.id, serial_number__status=1)
             if qc_mapping:
                 status = "Quality Check completed for imei number " + str(imei)
             if quality_check:
@@ -4307,11 +4236,11 @@ def check_return_imei(request, user=''):
         for key, value in request.GET.iteritems():
             sku_code = ''
             order = None
-            order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, order__user=user.id)
+            order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, order__user=user.id, status=1)
             if not order_imei:
                 return_data['status'] = 'Imei Number is invalid'
             else:
-                return_mapping = ReturnsIMEIMapping.objects.filter(order_imei_id=order_imei[0].id, order_return__sku__user=user.id)
+                return_mapping = ReturnsIMEIMapping.objects.filter(order_imei_id=order_imei[0].id, order_return__sku__user=user.id, status=1)
                 if return_mapping:
                     return_data['status'] = 'Imei number is mapped with the return id %s' % str(return_mapping[0].order_return.return_id)
                     break

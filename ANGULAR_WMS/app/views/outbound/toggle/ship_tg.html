@@ -56,7 +56,7 @@
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.g_data.alternate_view">
               <div class="form-group">
                 <label class="control-label"> Invoice Number *</label>
-                <input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.invoice_number" required>
+                <input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.invoice_number" ng-required="(showCase.group_by == 'order') ? true: false;">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="user.user_profile['user_type'] == 'marketplace_user'">

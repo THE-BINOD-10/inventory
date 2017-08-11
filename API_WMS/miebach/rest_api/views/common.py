@@ -586,6 +586,7 @@ def configurations(request, user=''):
     label_generation = get_misc_value('label_generation', user.id)
     marketplace_model = get_misc_value('marketplace_model', user.id)
     barcode_generate_opt = get_misc_value('barcode_generate_opt', user.id)
+    grn_scan_option = get_misc_value('grn_scan_option', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
@@ -689,7 +690,7 @@ def configurations(request, user=''):
                                     'tally_config': tally_config, 'tax_data': tax_data, 'hsn_summary': hsn_summary,
                                     'display_customer_sku': display_customer_sku, 'marketplace_model': marketplace_model,
                                     'label_generation': label_generation, 'barcode_generate_options': BARCODE_OPTIONS,
-                                    'barcode_generate_opt': barcode_generate_opt}))
+                                    'barcode_generate_opt': barcode_generate_opt, 'grn_scan_option': grn_scan_option}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -3165,7 +3166,7 @@ def get_imei_data(request, user=''):
     imei =  request.GET.get('imei')
     if not imei:
         return HttpResponse(json.dumps({'imei': imei, 'message': 'Please scan imei number'}))
-    po_imei_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__user=user.id, imei_number=imei)
+    po_imei_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__user=user.id, imei_number=imei).order_by('creation_date')
     if not po_imei_mapping:
         return HttpResponse(json.dumps({'imei': imei, 'message': 'Invalid IMEI Number'}))
     data = []
@@ -3248,7 +3249,7 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 sku_data = SKUMaster.objects.filter(sku_code = sku, user=user.id)[0]
             single = copy.deepcopy(BARCODE_DICT[pdf_format])
             single['SKUCode'] = sku
-            single['label'] = label
+            single['Label'] = label
             if label:
                 single['SKUCode'] = label
             single['Size'] = str(sku_data.sku_size).replace("'",'')
@@ -3300,3 +3301,127 @@ def barcode_service(key, data_to_send, format_name=''):
         return pdf_url
     else:
         pdf_url = ''
+
+def get_purchase_order_data(order):
+    order_data = {}
+    status_dict = PO_ORDER_TYPES
+    rw_purchase = RWPurchase.objects.filter(purchase_order_id=order.id)
+    st_order = STPurchaseOrder.objects.filter(po_id=order.id)
+    temp_wms = ''
+    unit = ""
+    gstin_number = ''
+    if 'job_code' in dir(order):
+        order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group, 'sku': order.product_code,
+                      'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle, 'sku_desc': order.product_code.sku_desc,
+                      'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': ''}
+        return order_data
+    elif rw_purchase and not order.open_po:
+        rw_purchase = rw_purchase[0]
+        open_data = rw_purchase.rwo
+        user_data = UserProfile.objects.get(user_id=open_data.vendor.user)
+        address = open_data.vendor.address
+        email_id = open_data.vendor.email_id
+        username = open_data.vendor.name
+        order_quantity = open_data.job_order.product_quantity
+        sku = open_data.job_order.product_code
+        order_type = ''
+        price = 0
+        supplier_code = ''
+        cgst_tax = 0
+        sgst_tax = 0
+        igst_tax = 0
+        utgst_tax = 0
+        tin_number = ''
+    elif order.open_po:
+        open_data = order.open_po
+        user_data = order.open_po.supplier
+        address = user_data.address
+        email_id = user_data.email_id
+        username = user_data.name
+        order_quantity = open_data.order_quantity
+        sku = open_data.sku
+        price = open_data.price
+        unit = open_data.measurement_unit
+        order_type = status_dict[order.open_po.order_type]
+        supplier_code = open_data.supplier_code
+        gstin_number = order.open_po.supplier.tin_number
+        cgst_tax = open_data.cgst_tax
+        sgst_tax = open_data.sgst_tax
+        igst_tax = open_data.igst_tax
+        utgst_tax = open_data.utgst_tax
+        tin_number = open_data.supplier.tin_number
+        if sku.wms_code == 'TEMP':
+            temp_wms = open_data.wms_code
+    elif st_order and not order.open_po:
+        st_picklist = STOrder.objects.filter(stock_transfer__st_po_id=st_order[0].id)
+        open_data = st_order[0].open_st
+        user_data = UserProfile.objects.get(user_id=st_order[0].open_st.warehouse_id)
+        address = user_data.location
+        email_id = user_data.user.email
+        username = user_data.user.username
+        order_quantity = open_data.order_quantity
+        sku = open_data.sku
+        price = open_data.price
+        order_type = ''
+        supplier_code = ''
+        cgst_tax = 0
+        sgst_tax = 0
+        igst_tax = 0
+        utgst_tax = 0
+        tin_number = ''
+
+    order_data = {'order_quantity': order_quantity, 'price': price, 'wms_code': sku.wms_code,
+                  'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
+                  'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
+                  'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
+                  'phone_number': user_data.phone_number, 'email_id': email_id,
+                  'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms, 'order_type': order_type,
+                  'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
+                  'tin_number': tin_number}
+
+    return order_data
+
+def check_get_imei_details(imei, wms_code, user_id, check_type='', order=''):
+    status = ''
+    data = {}
+    log.info('Get IMEI Details data for user id ' + str(user_id) + ' for imei ' + str(imei))
+    try:
+        check_params = {'imei_number': imei, 'purchase_order__open_po__sku__user': user_id}
+        st_purchase = STPurchaseOrder.objects.filter(open_st__sku__user=user_id, open_st__sku__wms_code=wms_code).\
+                                              values_list('po_id', flat=True)
+        check_params1 = {'imei_number': imei, 'purchase_order_id__in': st_purchase}
+
+        po_mapping = POIMEIMapping.objects.filter(**check_params)
+        mapping = POIMEIMapping.objects.filter(**check_params1)
+        po_mapping = po_mapping | mapping
+        po_mapping = po_mapping.order_by('-creation_date')
+        if po_mapping:
+            order_data = get_purchase_order_data(po_mapping[0].purchase_order)
+            order_imei_mapping = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, status=1)
+            if check_type == 'purchase_check':
+                order_imei_mapping = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, status=1)
+
+                if po_mapping[0].status == 1 and not order_imei_mapping:
+                    purchase_order_id = get_po_reference(po_mapping[0].purchase_order)
+                    status = '%s is already mapped with %s' % (str(imei), purchase_order_id)
+                elif not (order_data['wms_code'] == wms_code):
+                    status = '%s will only maps with %s' % (str(imei), order_data['wms_code'])
+            elif check_type == 'order_mapping':
+                if not wms_code:
+                    wms_code = order_data['wms_code']
+                data['wms_code'] = wms_code
+                if order_imei_mapping:
+                    if order and order_imei_mapping[0].order_id == order.id:
+                        status = str(imei) + ' is already mapped with this order'
+                    else:
+                        status = str(imei) + ' is already mapped with another order'
+        elif not po_mapping and check_type == 'order_mapping':
+             status = str(imei) + ' is invalid Imei number'
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        po_mapping = None
+        status = 'Get IMEI details Failed'
+        log.info('Get IMEI details Data failed for user id %s for imei %s and error statement is %s' % (str(user_id), str(imei), str(e)))
+
+    return po_mapping, status, data

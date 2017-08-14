@@ -629,6 +629,10 @@ var app = angular.module('urbanApp')
             url: '/Invoice',
             templateUrl: 'views/inbound/print/seller_inv.html'
           })
+          .state('app.inbound.SellerInvoice.InvoiceE', {
+            url: '/InvoiceE',
+            templateUrl: 'views/outbound/print/empty_invoice.html'
+          })
 
       // Production routes
       .state('app.production', {

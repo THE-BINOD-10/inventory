@@ -37,6 +37,9 @@ from django.db.models import Max
 from django.db.models.functions import Cast
 from django.db.models.fields import DateField
 import re
+
+from django.template import loader, Context
+
 log = init_logger('logs/common.log')
 # Create your views here.
 
@@ -3300,3 +3303,101 @@ def barcode_service(key, data_to_send, format_name=''):
         return pdf_url
     else:
         pdf_url = ''
+
+def build_invoice(invoice_data, user, css=False):
+    #it will create invoice template
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    if not (not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']):
+        return json.dumps(invoice_data, cls=DjangoJSONEncoder)
+
+    titles = ['']
+    import math
+    if get_misc_value('invoice_titles', user.id) and not (invoice_data.get("customer_invoice", "") == True):
+        titles = get_misc_value('invoice_titles', user.id).split(",")
+
+    invoice_data['user_type'] = user_profile.user_type
+
+    invoice_data['titles'] = titles
+    perm_hsn_summary = get_misc_value('hsn_summary', user.id)
+    invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
+    if len(invoice_data['hsn_summary'].keys()) == 0:
+        invoice_data['perm_hsn_summary'] = 'false'
+    invoice_data['empty_tds'] = [1,2,3,4,5,6,7,8,9,10,11]
+
+    inv_height = 1358; #total invoice height
+    inv_details = 292; #invoice details height
+    inv_footer = 95;   #invoice footer height
+    inv_totals = 127;  #invoice totals height
+    inv_header = 47;   #invoice tables headers height
+    inv_product = 47;  #invoice products cell height
+    inv_summary = 47;  #invoice summary headers height
+    inv_total = 27;    #total display height
+    inv_charges = 20;  #height of other charges
+
+    inv_totals = inv_totals + len(invoice_data['order_charges'])*inv_charges
+
+    if invoice_data['user_type'] == 'marketplace_user':
+        inv_details = 142;
+        s_count = invoice_data['seller_address'].count('\n')
+        s_count = s_count - 4
+        b_count = invoice_data['customer_address'].count('\n')
+        b_count = b_count - 4
+        s_count = s_count if s_count > b_count else b_count
+        if s_count > 0:
+            inv_details = inv_details + (20*s_count)
+        else:
+            inv_details = inv_details + 20
+
+    render_data = []
+    render_space = 0;
+    hsn_summary_length= len(invoice_data['hsn_summary'].keys())*inv_total;
+    if(perm_hsn_summary == 'true'):
+        render_space = inv_height-(inv_details+inv_footer+inv_totals+inv_header+inv_summary+inv_total+hsn_summary_length);
+    else:
+        render_space = inv_height-(inv_details+inv_footer+inv_totals+inv_header+inv_total)
+
+    no_of_skus = int(render_space/inv_product);
+    data_length = len(invoice_data['data']);
+    invoice_data['empty_data'] = [];
+    if (data_length > no_of_skus):
+
+        needed_space = inv_footer + inv_footer + inv_total;
+        if(perm_hsn_summary == 'true'):
+            needed_space = needed_space+ inv_summary+hsn_summary_length;
+
+        temp_render_space = 0;
+        temp_render_space = inv_height-(inv_details+inv_header);
+        temp_no_of_skus = int(temp_render_space/inv_product);
+        for i in range(int(math.ceil(data_length/temp_no_of_skus))):
+            temp_page = {'data': []}
+            temp_page['data'] = invoice_data['data'][i*temp_no_of_skus: (i+1)*temp_no_of_skus]
+            temp_page['empty_data'] = [];
+            render_data.append(temp_page);
+        last = len(render_data) - 1;
+        data_length = len(render_data[last]['data']);
+
+        if(no_of_skus < data_length):
+          render_data.append({'empty_data': [], 'data': [render_data[last]['data'][data_length-1]]})
+          render_data[last]['data'] = render_data[last]['data'][:data_length-1]
+
+        last = len(render_data) - 1;
+        data_length = len(render_data[last]['data'])
+        empty_data = [""]*(no_of_skus - data_length)
+
+        render_data[last]['empty_data'] = empty_data;
+
+        invoice_data['data'] = render_data;
+    elif(data_length < no_of_skus):
+
+        temp = invoice_data['data'];
+        invoice_data['data'] = [];
+        empty_data = [""]*(no_of_skus - data_length)
+        invoice_data['data'].append({'data': temp, 'empty_data': empty_data})
+    top = ''
+    if css:
+        c= {'name': 'invoice'}
+        top = loader.get_template('../miebach_admin/templates/toggle/invoice/top1.html')
+        top = top.render(c)
+    html = loader.get_template('../miebach_admin/templates/toggle/invoice/customer_invoice.html')
+    html = html.render(invoice_data)
+    return top+html

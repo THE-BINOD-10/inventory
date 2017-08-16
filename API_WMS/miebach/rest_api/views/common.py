@@ -3322,7 +3322,7 @@ def build_invoice(invoice_data, user, css=False):
     invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
     if len(invoice_data['hsn_summary'].keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
-    invoice_data['empty_tds'] = [1,2,3,4,5,6,7,8,9,10,11]
+    invoice_data['empty_tds'] = [1,2,3,4,5,6,7,8,9,10]
 
     inv_height = 1358; #total invoice height
     inv_details = 292; #invoice details height

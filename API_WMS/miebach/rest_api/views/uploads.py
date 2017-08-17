@@ -1937,7 +1937,6 @@ def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
         order = PurchaseOrder(**data)
         order.save()
         order.po_date = data['po_date']
-        import pdb;pdb.set_trace();
         order.save()
         mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
     if mail_result_data:

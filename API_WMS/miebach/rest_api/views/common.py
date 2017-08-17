@@ -300,7 +300,7 @@ def get_search_params(request):
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date', 'wms_code': 'wms_code',
                     'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category', 'sku_category': 'sku_category', 'sku_type': 'sku_type',
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po', 'marketplace': 'marketplace',
-                    'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'job_code', 'sku_class': 'sku_class', 'sku_size':'sku_size', 'order_report_status': 'order_report_status'}
+                    'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'job_code', 'sku_class': 'sku_class', 'sku_size':'sku_size', 'order_report_status': 'order_report_status', 'customer_id': 'customer_id'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = { 'search0': 'search_0', 'search1': 'search_1',
                        'search2': 'search_2', 'search3': 'search_3',

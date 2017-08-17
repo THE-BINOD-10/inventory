@@ -1145,6 +1145,8 @@ def get_dispatch_data(search_params, user, sub_user):
         search_parameters['stock__sku__wms_code'] = search_params['wms_code']
     if 'sku_code' in search_params:
         search_parameters['stock__sku__sku_code'] = search_params['sku_code']
+    if 'customer_id' in search_params:
+        search_parameters['order__customer_id'] = search_params['customer_id']
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)

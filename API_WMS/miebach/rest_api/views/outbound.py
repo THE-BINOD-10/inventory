@@ -1777,11 +1777,16 @@ def get_customer_sku(request, user=''):
     if 'order_id' in request_data.keys() and not datatable_view == 'ShipmentPickedAlternative':
         search_params['id__in'] = request_data['order_id']
     elif 'order_id' in request_data.keys() and request_data['order_id']:
-        order_id_val = request_data['order_id'][0]
-        order_id_search = ''.join(re.findall('\d+', order_id_val))
-        order_code_search = ''.join(re.findall('\D+', order_id_val))
-        search_params['id__in'] = list(OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) |
-                                                             Q(original_order_id=order_id_val), user=user.id).values_list('id', flat=True))
+        filter_order_ids = []
+        for order_ids in request_data['order_id']:
+            order_id_val = order_ids
+            order_id_search = ''.join(re.findall('\d+', order_id_val))
+            order_code_search = ''.join(re.findall('\D+', order_id_val))
+            fil_ids = list(OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) |
+                                                                 Q(original_order_id=order_id_val), user=user.id).values_list('id', flat=True))
+            filter_order_ids = list(chain(filter_order_ids, fil_ids))
+        if filter_order_ids:
+            search_params['id__in'] = filter_order_ids
     ship_no = get_shipment_number(user)
     data_dict = copy.deepcopy(ORDER_SHIPMENT_DATA)
     data_dict['shipment_number'] = ship_no

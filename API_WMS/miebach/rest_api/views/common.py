@@ -3236,6 +3236,7 @@ def generate_barcode_dict(pdf_format, myDict, user):
     barcode_pdf_dict = {}
     barcodes_list = []
     user_prf = UserProfile.objects.filter(user_id=user.id)[0]
+    barcode_opt = get_misc_value('barcode_generate_opt', user.id)
     for ind in range(0, len(myDict['wms_code'])):
         sku = myDict['wms_code'][ind]
         quant = myDict['quantity'][ind]
@@ -3250,7 +3251,11 @@ def generate_barcode_dict(pdf_format, myDict, user):
             single = copy.deepcopy(BARCODE_DICT[pdf_format])
             single['SKUCode'] = sku
             single['Label'] = label
-            if label:
+            if barcode_opt == 'sku_ean' and sku_data.ean_number:
+                single['Label'] = str(sku_data.ean_number)
+            if not single['Label']:
+                single['Label'] = sku
+            if not sku:
                 single['SKUCode'] = label
             single['Size'] = str(sku_data.sku_size).replace("'",'')
             single['SKUPrintQty'] = quant
@@ -3294,6 +3299,7 @@ def barcode_service(key, data_to_send, format_name=''):
             payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Adam', 'argBarcodeFormate' : key }
         else:
             payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Brilhante', 'argBarcodeFormate' : key }
+
     r = post(url, data=payload)
     if ('<string xmlns="http://tempuri.org/">' in r.text) and ('</string>' in r.text):
         token_value = r.text.split('<string xmlns="http://tempuri.org/">')[1].split('</string>')[0]
@@ -3425,3 +3431,10 @@ def check_get_imei_details(imei, wms_code, user_id, check_type='', order=''):
         log.info('Get IMEI details Data failed for user id %s for imei %s and error statement is %s' % (str(user_id), str(imei), str(e)))
 
     return po_mapping, status, data
+
+def update_seller_order(seller_order_dict, order, user):
+    seller_orders = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id, seller__user=user.id)
+    for seller_order in seller_orders:
+        seller_order.order_status = seller_order_dict.get('order_status', '')
+        seller_order.status = 1
+        seller_order.save()

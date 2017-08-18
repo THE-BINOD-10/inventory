@@ -34,9 +34,9 @@ urlpatterns = [
     url(r'^get_misc_value/$',get_misc_value),
     url(r'^get_api_misc_value/$',get_api_misc_value),
     url(r'^get_skus/$',get_skus),
-    url(r'^get_user_skus/$',get_user_skus),
-    url(r'^update_orders_data/$',update_orders_data),
-    url(r'^update_skus_data/$',update_skus_data),
-    url(r'^update_customers_data/$',update_customers_data),
+    url(r'^get_sku/$',get_sku),
+    url(r'^update_order/$',update_order),
+    url(r'^update_sku/$',update_skus_data),
+    url(r'^update_customer/$',update_customers_data),
 ]
 

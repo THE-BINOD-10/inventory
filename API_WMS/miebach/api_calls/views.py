@@ -925,7 +925,7 @@ def get_skus(request):
 
 @csrf_exempt
 @login_required
-def get_user_skus(request):
+def get_sku(request):
     if request.user.is_anonymous():
         return HttpResponse(json.dumps({'message': 'fail'}))
     data = []
@@ -957,7 +957,7 @@ def get_user_skus(request):
 
 @csrf_exempt
 @login_required
-def update_orders_data(request):
+def update_order(request):
     try:
         orders = json.loads(request.body)
     except:

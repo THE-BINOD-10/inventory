@@ -221,13 +221,6 @@ def check_create_seller_order(seller_order_dict, order, user):
             seller_order = SellerOrder(**seller_order_dict)
             seller_order.save()
 
-def update_seller_order(seller_order_dict, order, user):
-    seller_orders = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id, seller__user=user.id)
-    for seller_order in seller_orders:
-        seller_order.order_status = seller_order_dict.get('order_status', '')
-        seller_order.status = 1
-        seller_order.save()
-
 def myntra_order_tax_calc(key, value, order_mapping, order_summary_dict, row_idx, reader, file_type):
     cell_data = ''
     if isinstance(value, dict):
@@ -377,6 +370,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             sku_code = cell_data.upper()
 
         sku_codes = sku_code.split(',')
+        print sku_codes
         for sku_code in sku_codes:
             sku_id = check_and_return_mapping_id(sku_code, title, user)
             if not sku_id:

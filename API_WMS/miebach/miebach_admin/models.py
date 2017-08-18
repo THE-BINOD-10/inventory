@@ -61,7 +61,6 @@ class VendorMaster(models.Model):
     def __unicode__(self):
         return str(self.name)
 
-
 class SKUMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
@@ -1819,6 +1818,21 @@ class POLabels(models.Model):
     def __unicode__(self):
         return str(self.label)
 
+class SKUAttributes(models.Model):
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    attribute_name = models.CharField(max_length=64, default='')
+    attribute_value = models.CharField(max_length=128, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SKU_ATTRIBUTES'
+        unique_together = ('sku', 'attribute_name')
+        index_together = ('sku', 'attribute_name')
+
+    def __unicode__(self):
+        return str(self.sku.sku_code) + '-' + str(self.attribute_name)
+
 import django
 from django.core.validators import MaxLengthValidator
 from django.utils.translation import ugettext as _
@@ -1850,8 +1864,3 @@ from django.contrib.auth.models import User
 if User._meta.get_field("first_name").max_length != MAX_USERNAME_LENGTH():
     patch_user_model(User)
 '''
-
-
-
-
-

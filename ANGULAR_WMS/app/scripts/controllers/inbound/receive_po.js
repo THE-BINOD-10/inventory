@@ -9,13 +9,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
 
-    //default values 
+    //default values
     if(!vm.permissions.grn_scan_option) {
-      vm.permissions.grn_scan_option == "sku_serial_scan"
+      vm.permissions.grn_scan_option = "sku_serial_scan";
     }
     if(!vm.permissions.barcode_generate_opt) {
-      vm.permissions.barcode_generate_opt == 'sku_code'
+      vm.permissions.barcode_generate_opt = 'sku_code';
     }
+    if(vm.permissions.barcode_generate_opt == 'sku_ean') {
+      vm.permissions.barcode_generate_opt = 'sku_code';
+    }
+
     //process type;
     vm.po_qc = true;
     vm.po_qc = (vm.permissions.receive_process == "receipt-qc")? true: false;

@@ -459,7 +459,7 @@ MAIL_REPORTS_DATA = {'Raise PO': 'raise_po', 'Receive PO': 'receive_po', 'Orders
 # Configurations
 PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_location', 'Scan Serial': 'scan_serial', 'Scan Label': 'scan_label'}
 
-BARCODE_OPTIONS = {'SKU Code': 'sku_code', 'Embedded SKU Code in Serial': 'sku_serial'}
+BARCODE_OPTIONS = {'SKU Code': 'sku_code', 'Embedded SKU Code in Serial': 'sku_serial', 'EAN Number': 'sku_ean'}
 
 REPORTS_DATA = {'SKU List': 'sku_list', 'Location Wise SKU': 'location_wise_stock', 'Receipt Summary': 'receipt_note', 'Dispatch Summary': 'dispatch_summary', 'SKU Wise Stock': 'sku_wise'}
 
@@ -602,7 +602,7 @@ JABONG_EXCEL = {'invoice_amount': 14, 'marketplace': 'Jabong', 'sku_code': 2, 'q
 
 
 #Adam clothing
-UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code': 1, 'recreate': True}
+UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code': 17, 'recreate': True}
 
 # ---  Returns Default headers --
 GENERIC_RETURN_EXCEL = OrderedDict((('sku_id', 2), ('order_id', 1), ('quantity', 3), ('damaged_quantity', 4),
@@ -725,21 +725,26 @@ ORDERS_TRACK_STATUS = {0: 'Resolved', 1: "Conflict", 2: "Delete"}
 
 # Shotang Integration Mapping Dictionaries
 
-ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems',
-                            'channel': 'orders["channel"]', 'sku': 'order["Sku"]',
-                         'title': 'order["productTitle"]', 'quantity': 'order["quantity"]',
-                         'shipment_date': 'orders["orderDate"]', 'channel_sku': 'order["channelSku"]',
-                         'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]', 'seller_id': 'order["seller_id"]',
-                         'sor_id': 'order["sor_id"]', 'cgst_tax': 'order.get("cgst_tax", "0")', 'sgst_tax': 'order.get("sgst_tax", "0")',
-                         'igst_tax': 'order.get("igst_tax", "0")', 'order_status': 'orders.get("currentStatus", "")'
+ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items': 'orders',
+                            'channel': 'orders.get("channel", "Shotang")', 'order_items': 'orders["subOrders"]', 'sku': 'sku_item["sku"]',
+                         'title': 'sku_item["name"]', 'quantity': 'sku_item["quantity"]',
+                         'shipment_date': 'orders.get("orderDate", '')', 'channel_sku': 'sku_item["sku"]',
+                         'unit_price': 'sku_item["unitPrice"]', 'seller_id': 'order["sellerId"]',
+                         'sor_id': 'order["sorId"]', 'cgst_tax': 'sku_item.get("cgst_tax", "0")', 'sgst_tax': 'sku_item.get("sgst_tax", "0")',
+                         'igst_tax': 'sku_item.get("igst_tax", "0")', 'order_status': 'order.get("currentStatus", "")', "is_dict": True,
+                         'line_items': 'order["lineItems"]', 'customer_id': 'orders.get("retailerId", "")',
+                         'customer_name': '(orders.get("retailerAddress", {})).get("name", "")',
+                         'telephone': '(orders.get("retailerAddress", {})).get("phoneNo", "")',
+                         'address': '(orders.get("retailerAddress", {})).get("address", "")',
+                         'city': '(orders.get("retailerAddress", {})).get("city", "")'
                         }
 
 SKU_MASTER_API_MAPPING = OrderedDict(( ('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_desc'), ('sku_brand', 'sku_brand'),
-                          ('sku_category', 'sku_category'), ('price', 'price'), ('mrp', 'mrp'), ('product_type', 'product_type'),
-                          ('sku_class', 'sku_class'), ('style_name', 'style_name'), ('status', 'Active'), ('hsn_code', 'hsn_code'),
+                          ('sku_category', 'sku_category_id'), ('price', 'price'), ('mrp', 'mrp'), ('product_type', 'product_type'),
+                          ('sku_class', 'sku_class'), ('style_name', 'style_name'), ('status', 'status'), ('hsn_code', 'hsn_code'),
                           ('ean_number', 'ean_number'), ('threshold_quantity', 'threshold_quantity'), ('color', 'color'),
                           ('measurement_type', 'measurement_type'), ('sku_size', 'sku_size'), ('size_type', 'size_type'),
-                          ('mix_sku', 'mix_sku'), ('child_skus', 'child_skus') ))
+                          ('mix_sku', 'mix_sku'), ('sku_type', 'sku_type'), ('attributes', 'sku_options'), ('child_skus', 'child_skus') ))
 
 CUSTOMER_MASTER_API_MAPPING = OrderedDict(( ('customers', 'customers'), ('customer_id', 'customer_id'), ('name', 'name'),
                                             ('address', 'address'), ('city', 'city'), ('state', 'state'), ('country', 'country'),
@@ -750,11 +755,12 @@ CUSTOMER_MASTER_API_MAPPING = OrderedDict(( ('customers', 'customers'), ('custom
                                          ))
 
 # Easyops Integration Mapping Dictionaries
-EASYOPS_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'orders["channel"]',
-                         'sku': 'order["easyopsSku"]',
-                         'title': 'order["productTitle"]', 'quantity': 'order["quantity"]',
-                         'shipment_date': 'orders["orderDate"]', 'channel_sku': 'order["channelSku"]',
-                         'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]'}
+EASYOPS_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orders.get("orderItems", [])',
+                         'channel': 'orders["channel"]',
+                         'sku': 'sku_item["easyopsSku"]',
+                         'title': 'sku_item["productTitle"]', 'quantity': 'sku_item["quantity"]',
+                         'shipment_date': 'orders["orderDate"]', 'channel_sku': 'sku_item["channelSku"]',
+                         'unit_price': 'sku_item["unitPrice"]', 'order_items': 'orders["orderItems"]'}
 
 EASYOPS_SHIPPED_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrackingNumber', 'items': 'orderItems', 'channel': 'channel',
                          'sku': 'order["easyopsSku"]',
@@ -797,9 +803,9 @@ TAX_TYPES = OrderedDict(( ('DEFAULT', 0), ('VAT', 5.5), ('CST', 2) ))
 D_TAX_TYPES = OrderedDict(( ('DEFAULT', 0), ('VAT', 6), ('CST', 2) ))
 
 ##RETAILONE RELATED
-R1_ORDER_MAPPING = {'id': 'id', 'order_id': 'order_id', 'items': 'items',
-                    'channel': 'orders["channel_sku"]["channel"]["name"]', 'sku': 'order["sku"]', 'channel_sku': 'order["mp_id_value"]',
-                    'title': 'order["title"]', 'quantity': 'order["quantity"]',
+R1_ORDER_MAPPING = {'id': 'id', 'order_id': 'order_id', 'items': 'orders.get("items", [])',
+                    'channel': 'orders["channel_sku"]["channel"]["name"]', 'sku': 'sku_item["sku"]', 'channel_sku': 'sku_item["mp_id_value"]',
+                    'title': 'sku_item["title"]', 'quantity': 'sku_item["quantity"]',
                     'shipment_date': 'order["ship_by"]',
                     'unit_price': '0', 'order_items': ''}
 

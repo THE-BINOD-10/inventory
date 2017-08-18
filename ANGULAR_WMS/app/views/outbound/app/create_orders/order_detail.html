@@ -63,7 +63,7 @@
           <div class="detail-item border-grey" style="cursor: pointer" ng-repeat="data in order.order_details.data">
             <div class="row">
               <section class="widget text-center no-margin">
-                <div class="widget-details col-md-4 col-sm-4 col-xs-4 text-right">
+                <div class="widget-details col-md-2 col-sm-2 col-xs-2 text-right">
                   <small class="order-label"></small>
                   <img  style="width: 100%;"ng-src="{{showCase.service.check_image_url(data.sku__image_url)}}">
                   <p class="text-center detail-black order-bold" style="font-size:12px;overflow-wrap: break-word;">{{data.sku__sku_code}}</p>
@@ -72,8 +72,12 @@
                   <small class="order-label">SKU Description</small>
                   <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.sku__sku_desc}}</p></div>
                 <div class="widget-details col-md-2 col-sm-2 col-xs-2 text-center">
-                  <small class="order-label">Qty</small>
+                  <small class="order-label">Ordered Qty</small>
                   <p class="no-margin order-bold detail-black">{{data.quantity}}</p>
+                </div>
+                <div class="widget-details col-md-2 col-sm-2 col-xs-2 text-center">
+                  <small class="order-label">Picked Qty</small>
+                  <p class="no-margin order-bold detail-black">{{data.picked_quantity}}</p>
                 </div>
                 <div class="widget-details col-md-2 col-sm-2 col-xs-2 text-right">
                   <small class="order-label">Amt</small>

@@ -37,6 +37,9 @@ from django.db.models import Max
 from django.db.models.functions import Cast
 from django.db.models.fields import DateField
 import re
+
+from django.template import loader, Context
+
 log = init_logger('logs/common.log')
 # Create your views here.
 
@@ -297,7 +300,7 @@ def get_search_params(request):
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date', 'wms_code': 'wms_code',
                     'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category', 'sku_category': 'sku_category', 'sku_type': 'sku_type',
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po', 'marketplace': 'marketplace',
-                    'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'job_code', 'sku_class': 'sku_class', 'sku_size':'sku_size', 'order_report_status': 'order_report_status'}
+                    'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'job_code', 'sku_class': 'sku_class', 'sku_size':'sku_size', 'order_report_status': 'order_report_status', 'customer_id': 'customer_id'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = { 'search0': 'search_0', 'search1': 'search_1',
                        'search2': 'search_2', 'search3': 'search_3',
@@ -587,6 +590,7 @@ def configurations(request, user=''):
     marketplace_model = get_misc_value('marketplace_model', user.id)
     barcode_generate_opt = get_misc_value('barcode_generate_opt', user.id)
     grn_scan_option = get_misc_value('grn_scan_option', user.id)
+    invoice_titles = get_misc_value('invoice_titles', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
@@ -690,7 +694,8 @@ def configurations(request, user=''):
                                     'tally_config': tally_config, 'tax_data': tax_data, 'hsn_summary': hsn_summary,
                                     'display_customer_sku': display_customer_sku, 'marketplace_model': marketplace_model,
                                     'label_generation': label_generation, 'barcode_generate_options': BARCODE_OPTIONS,
-                                    'barcode_generate_opt': barcode_generate_opt, 'grn_scan_option': grn_scan_option}))
+                                    'barcode_generate_opt': barcode_generate_opt, 'grn_scan_option': grn_scan_option,
+                                    'invoice_titles': invoice_titles}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -3438,3 +3443,101 @@ def update_seller_order(seller_order_dict, order, user):
         seller_order.order_status = seller_order_dict.get('order_status', '')
         seller_order.status = 1
         seller_order.save()
+
+def build_invoice(invoice_data, user, css=False):
+    #it will create invoice template
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    if not (not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']):
+        return json.dumps(invoice_data, cls=DjangoJSONEncoder)
+
+    titles = ['']
+    import math
+    if get_misc_value('invoice_titles', user.id) and not (invoice_data.get("customer_invoice", "") == True):
+        titles = get_misc_value('invoice_titles', user.id).split(",")
+
+    invoice_data['user_type'] = user_profile.user_type
+
+    invoice_data['titles'] = titles
+    perm_hsn_summary = get_misc_value('hsn_summary', user.id)
+    invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
+    if len(invoice_data['hsn_summary'].keys()) == 0:
+        invoice_data['perm_hsn_summary'] = 'false'
+    invoice_data['empty_tds'] = [1,2,3,4,5,6,7,8,9,10]
+
+    inv_height = 1358; #total invoice height
+    inv_details = 292; #invoice details height
+    inv_footer = 95;   #invoice footer height
+    inv_totals = 127;  #invoice totals height
+    inv_header = 47;   #invoice tables headers height
+    inv_product = 47;  #invoice products cell height
+    inv_summary = 47;  #invoice summary headers height
+    inv_total = 27;    #total display height
+    inv_charges = 20;  #height of other charges
+
+    inv_totals = inv_totals + len(invoice_data['order_charges'])*inv_charges
+
+    if invoice_data['user_type'] == 'marketplace_user':
+        inv_details = 142;
+        s_count = invoice_data['seller_address'].count('\n')
+        s_count = s_count - 4
+        b_count = invoice_data['customer_address'].count('\n')
+        b_count = b_count - 4
+        s_count = s_count if s_count > b_count else b_count
+        if s_count > 0:
+            inv_details = inv_details + (20*s_count)
+        else:
+            inv_details = inv_details + 20
+
+    render_data = []
+    render_space = 0;
+    hsn_summary_length= len(invoice_data['hsn_summary'].keys())*inv_total;
+    if(perm_hsn_summary == 'true'):
+        render_space = inv_height-(inv_details+inv_footer+inv_totals+inv_header+inv_summary+inv_total+hsn_summary_length);
+    else:
+        render_space = inv_height-(inv_details+inv_footer+inv_totals+inv_header+inv_total)
+
+    no_of_skus = int(render_space/inv_product);
+    data_length = len(invoice_data['data']);
+    invoice_data['empty_data'] = [];
+    if (data_length > no_of_skus):
+
+        needed_space = inv_footer + inv_footer + inv_total;
+        if(perm_hsn_summary == 'true'):
+            needed_space = needed_space+ inv_summary+hsn_summary_length;
+
+        temp_render_space = 0;
+        temp_render_space = inv_height-(inv_details+inv_header);
+        temp_no_of_skus = int(temp_render_space/inv_product);
+        for i in range(int(math.ceil(data_length/temp_no_of_skus))):
+            temp_page = {'data': []}
+            temp_page['data'] = invoice_data['data'][i*temp_no_of_skus: (i+1)*temp_no_of_skus]
+            temp_page['empty_data'] = [];
+            render_data.append(temp_page);
+        last = len(render_data) - 1;
+        data_length = len(render_data[last]['data']);
+
+        if(no_of_skus < data_length):
+          render_data.append({'empty_data': [], 'data': [render_data[last]['data'][data_length-1]]})
+          render_data[last]['data'] = render_data[last]['data'][:data_length-1]
+
+        last = len(render_data) - 1;
+        data_length = len(render_data[last]['data'])
+        empty_data = [""]*(no_of_skus - data_length)
+
+        render_data[last]['empty_data'] = empty_data;
+
+        invoice_data['data'] = render_data;
+    elif(data_length < no_of_skus):
+
+        temp = invoice_data['data'];
+        invoice_data['data'] = [];
+        empty_data = [""]*(no_of_skus - data_length)
+        invoice_data['data'].append({'data': temp, 'empty_data': empty_data})
+    top = ''
+    if css:
+        c= {'name': 'invoice'}
+        top = loader.get_template('../miebach_admin/templates/toggle/invoice/top1.html')
+        top = top.render(c)
+    html = loader.get_template('../miebach_admin/templates/toggle/invoice/customer_invoice.html')
+    html = html.render(invoice_data)
+    return top+html

@@ -629,6 +629,10 @@ var app = angular.module('urbanApp')
             url: '/Invoice',
             templateUrl: 'views/inbound/print/seller_inv.html'
           })
+          .state('app.inbound.SellerInvoice.InvoiceE', {
+            url: '/InvoiceE',
+            templateUrl: 'views/outbound/print/empty_invoice.html'
+          })
 
       // Production routes
       .state('app.production', {
@@ -1037,6 +1041,10 @@ var app = angular.module('urbanApp')
             url: '/InvoiceM',
             templateUrl: 'views/outbound/print/customer_inv.html'
           })
+          .state('app.outbound.ViewOrders.InvoiceE', {
+            url: '/InvoiceE',
+            templateUrl: 'views/outbound/print/empty_invoice.html'
+          })
           .state('app.outbound.ViewOrders.ST', {
             url: '/ST?data',
             templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
@@ -1096,6 +1104,10 @@ var app = angular.module('urbanApp')
                 ]);
               }]
             }
+          })
+          .state('app.outbound.PullConfirmation.InvoiceE', {
+            url: '/InvoiceE',
+            templateUrl: 'views/outbound/print/empty_invoice.html'
           })
           .state('app.outbound.PullConfirmation.InvoiceM', {
             url: '/InvoiceM',
@@ -1192,18 +1204,10 @@ var app = angular.module('urbanApp')
          .state('app.outbound.CustomerInvoices.InvoiceN', {
             url: '/InvoiceN',
             templateUrl: 'views/outbound/print/generate_inv.html',
-            resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load([
-                  {
-                    insertBefore: '#load_styles_before',
-                    files: [
-                                'styles/custom/page.css'
-                           ]
-                  }
-                ]);  
-              }]   
-            }
+          })
+         .state('app.outbound.CustomerInvoices.InvoiceE', {
+            url: '/InvoiceE',
+            templateUrl: 'views/outbound/print/empty_invoice.html'
           })
           .state('app.outbound.CustomerInvoices.InvoiceD', {
             url: '/InvoiceD',

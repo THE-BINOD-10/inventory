@@ -1242,9 +1242,12 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
             nv_data.update({'user': user})
             if nv_data['detailed_invoice']:
                 t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
+                rendered = t.render(nv_data)
             else:
-                t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
-            rendered = t.render(nv_data)
+                #t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
+                nv_data["customer_invoice"] = True
+                rendered = build_invoice(nv_data, user, True)
+            #rendered = t.render(nv_data)
             file_name = str(user.id) + '_' + 'dispatch_invoice.html'
             pdf_file = '%s_%s.pdf' % (str(user.id), "dispatch_invoice")
             file_ = open(file_name, "w+b")
@@ -1573,7 +1576,7 @@ def picklist_confirmation(request, user=''):
             auto_po(list(set(auto_skus)), user.id)
 
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
-        if (detailed_invoice and picklist.order and picklist.order.marketplace == "Offline"):
+        if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         if get_misc_value('automate_invoice', user.id) == 'true' and single_order:
             order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True).distinct()
@@ -1594,6 +1597,10 @@ def picklist_confirmation(request, user=''):
                 invoice_data['picklists_send_mail'] = str(picklists_send_mail)
 
                 invoice_data['order_id'] = invoice_data['order_id']
+                user_profile = UserProfile.objects.get(user_id=user.id)
+                if not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']:
+                    invoice_data = build_invoice(invoice_data, user, False)
+                    return HttpResponse(invoice_data)
                 return HttpResponse(json.dumps({'data': invoice_data, 'status': 'invoice'}))
     except Exception as e:
         import traceback
@@ -3323,7 +3330,8 @@ def generate_order_invoice(request, user=''):
     invoice_data = modify_invoice_data(invoice_data, user)
     ord_ids = order_ids.split(",")
     invoice_data = add_consignee_data(invoice_data, ord_ids, user)
-
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    invoice_data = build_invoice(invoice_data, user, False)
     #invoice_data.update({'user': user})
     #if invoice_data['detailed_invoice']:
     #    t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
@@ -3331,7 +3339,7 @@ def generate_order_invoice(request, user=''):
     #    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
     #c = Context(invoice_data)
     #rendered = t.render(c)
-    return HttpResponse(json.dumps(invoice_data))
+    return HttpResponse(invoice_data)
 
 @csrf_exempt
 def get_shipment_picked(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, user_dict={}, filters={}):
@@ -4505,9 +4513,13 @@ def get_customer_orders(request, user=""):
                 pick_status = picklist.filter(order__order_id = int(record['order_id']), order__order_code = record['order_code'], status__icontains = 'open')
                 if pick_status:
                     status = 'open'
+            picked_quantity = picklist.filter(order__order_id = int(record['order_id'])).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+            if not picked_quantity:
+                picked_quantity = 0
             record['status'] = status
             record['date'] = get_only_date(request, data[0].creation_date)
             record['total_inv_amt'] = round(record['total_inv_amt'], 2)
+            record['picked_quantity'] = picked_quantity
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
 @login_required
@@ -4521,7 +4533,6 @@ def get_customer_order_detail(request, user=""):
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
     order = OrderDetail.objects.filter(order_id = order_id, user=user.id)
-
     if not order:
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
@@ -4529,6 +4540,10 @@ def get_customer_order_detail(request, user=""):
 
     for record in response_data['data']:
         tax_data = CustomerOrderSummary.objects.filter(order__id = record['id'], order__user = user.id)
+        picked_quantity = Picklist.objects.filter(order_id = record['id']).values('picked_quantity').aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+        if not picked_quantity:
+            picked_quantity = 0
+        record['picked_quantity'] = picked_quantity
         if tax_data:
             tax_data = tax_data[0]
             record['invoice_amount'] = record['invoice_amount'] - tax_data.tax_value
@@ -4561,22 +4576,14 @@ def get_customer_order_detail(request, user=""):
 def generate_pdf_file(request, user=""):
 
     nv_data = request.POST['data']
-    #if not nv_data:
-    #  return HttpResponse("no invoice")
-    #if not os.path.exists('static/pdf_files/'):
-    #    os.makedirs('static/pdf_files/')
-    #nv_data.update({'user': user})
-    #if nv_data['detailed_invoice']:
-    #    t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
-    #else:
-    #    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
-    #c = Context(nv_data)
-    #rendered = t.render(c)
     c= {'name': 'kanna'}
-    top = loader.get_template('../miebach_admin/templates/toggle/invoice/top.html')
+    if request.POST.get('css', '') == 'page':
+        top = loader.get_template('../miebach_admin/templates/toggle/invoice/top.html')
+    else:
+        top = loader.get_template('../miebach_admin/templates/toggle/invoice/top1.html')
     top = top.render(c)
     nv_data = nv_data.encode('utf-8')
-    html_content = str(top)+nv_data+"</div>"
+    html_content = str(top)+nv_data #+"</div>"
     if not os.path.exists('static/pdf_files/'):
         os.makedirs('static/pdf_files/')
     file_name = 'static/pdf_files/%s_dispatch_invoice.html' % str(request.user.id)
@@ -5022,13 +5029,14 @@ def generate_customer_invoice(request, user=''):
         if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
+        invoice_data = build_invoice(invoice_data, user, False)
 
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Create customer invoice failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
         return HttpResponse(json.dumps({'message': 'failed'}))
-    return HttpResponse(json.dumps(invoice_data, cls=DjangoJSONEncoder))
+    return HttpResponse(invoice_data)
 
 @csrf_exempt
 def get_seller_order_view(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_dict={}):

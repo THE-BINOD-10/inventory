@@ -457,7 +457,8 @@ MAIL_REPORTS = { 'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wis
 MAIL_REPORTS_DATA = {'Raise PO': 'raise_po', 'Receive PO': 'receive_po', 'Orders': 'order', 'Dispatch': 'dispatch', 'Internal Mail' : 'internal_mail'}
 
 # Configurations
-PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_location', 'Scan Serial': 'scan_serial', 'Scan Label': 'scan_label'}
+PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_location', 'Scan Serial': 'scan_serial', 'Scan Label': 'scan_label',
+                    'Scan None': 'scan_none'}
 
 BARCODE_OPTIONS = {'SKU Code': 'sku_code', 'Embedded SKU Code in Serial': 'sku_serial', 'EAN Number': 'sku_ean'}
 
@@ -1169,6 +1170,8 @@ def get_dispatch_data(search_params, user, sub_user):
         search_parameters['stock__sku__wms_code'] = search_params['wms_code']
     if 'sku_code' in search_params:
         search_parameters['stock__sku__sku_code'] = search_params['sku_code']
+    if 'customer_id' in search_params:
+        search_parameters['order__customer_id'] = search_params['customer_id']
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)

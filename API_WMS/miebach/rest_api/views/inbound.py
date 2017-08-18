@@ -728,6 +728,7 @@ def switches(request, user=''):
                     'marketplace_model': 'marketplace_model',
                     'barcode_generate_opt': 'barcode_generate_opt',
                     'grn_scan_option': 'grn_scan_option'
+                    'invoice_titles': 'invoice_titles'
                   }
 
     toggle_field, selection = "", ""
@@ -4161,17 +4162,22 @@ def generate_seller_invoice(request, user=''):
     if not len(set(sell_ids.get('receipt_number__in', ''))) > 1:
         invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('receipt_number__in', ''))))
 
+    detailed_invoice = get_misc_value('detailed_invoice', user.id)
+
     invoice_data = {'data': data, 'company_name': company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': po_number,
                     'order_no': po_number, 'total_tax': "%.2f" % total_tax, 'total_mrp': total_mrp,
                     'invoice_no': invoice_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(total_invoice),
                     'total_invoice_amount': "%.2f" % total_invoice, 'seller_address': seller_address,
-                    'buyer_address': buyer_address, 'gstin_no': gstin_no,
+                    'customer_address': buyer_address, 'gstin_no': gstin_no,
                     'total_taxable_amt': "%.2f" % total_taxable_amt, 'rounded_invoice_amount': round(total_invoice),
-                    'total_taxes': total_taxes}
+                    'total_taxes': total_taxes, 'detailed_invoice': False, 'is_gst_invoice': True,
+                    'order_charges': [], 'hsn_summary': {}}
 
-    return HttpResponse(json.dumps(invoice_data))
+    invoice_data = build_invoice(invoice_data, user, False)
+
+    return HttpResponse(invoice_data)
 
 @csrf_exempt
 @get_admin_user

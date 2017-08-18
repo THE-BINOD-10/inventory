@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('PickedOrders',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('PickedOrders',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$timeout', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $timeout) {
     var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
@@ -126,36 +126,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       send = send.slice(0,-1);
       vm.service.apiCall("generate_order_invoice/", 'GET', {order_ids: send}, true).then(function(data){
       if(data.message) {
-        angular.copy(data.data, vm.pdf_data)
-        if (Session.user_profile['user_type'] == 'marketplace_user') {
+        vm.pdf_data = data.data;
+        if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
+          $state.go("app.outbound.PullConfirmation.InvoiceE");
+          $timeout(function () {
+            $(".modal-body:visible").html(vm.pdf_data)
+          }, 3000);
+        } else if (Session.user_profile['user_type'] == 'marketplace_user') {
                 $state.go('app.outbound.PullConfirmation.InvoiceM');
         } else if (vm.pdf_data.detailed_invoice) {
-                  var L = 600;
-                  vm.x = 320;
-                  var z = 221;
-                  var v1 = L - (vm.x + z);
-                  var v2 = (L - z);
-                  var styles = vm.pdf_data.data;
-                  var cate = vm.pdf_data.data;
-                  var n = Object.keys(styles).length / 10;
-                  var c = 0;
-                  for (var i=0; i<Object.keys(styles).length; i++) {
-                    var cat_len = Object.keys(styles[Object.keys(styles)[i]]).length;
-                    c = c + cat_len;
-                  }
-                  c = c / 20;
-                  var y = 20*c + 10*n;
-
-                  if (y<=v1) {
-                    vm.p = v1-y;
-                  }
-                  else if (v1<y<(v1+v2)) {
-                    vm.p = v1+v2-y;
-                  }
-                  else {
-                    var r = Math.round((y-v1)/v2) - 1;
-                    vm.p = v1 + (1+r)*v2 - y;
-                  }
           $state.go('app.outbound.PullConfirmation.DetailGenerateInvoice');
         } else {
           $state.go('app.outbound.PullConfirmation.GenerateInvoice');

@@ -358,6 +358,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               } else {
                 $state.go('app.outbound.ViewOrders.GenerateInvoice');
               }
+            } else if (data.message == 'html') {
+              $state.go("app.outbound.ViewOrders.InvoiceE");
+              $timeout(function () {
+                $(".modal-body:visible").html(data.data)
+              }, 3000);
             }
           }, function () {
           $log.info('Modal dismissed at: ' + new Date());

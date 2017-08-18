@@ -731,7 +731,7 @@ ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items
                          'shipment_date': 'orders.get("orderDate", '')', 'channel_sku': 'sku_item["sku"]',
                          'unit_price': 'sku_item["unitPrice"]', 'seller_id': 'order["sellerId"]',
                          'sor_id': 'order["sorId"]', 'cgst_tax': 'sku_item.get("cgst_tax", "0")', 'sgst_tax': 'sku_item.get("sgst_tax", "0")',
-                         'igst_tax': 'sku_item.get("igst_tax", "0")', 'order_status': 'order.get("currentStatus", "")', "is_dict": True,
+                         'igst_tax': 'sku_item.get("igst_tax", "0")', 'order_status': 'order.get("currentStatus", "")',
                          'line_items': 'order["lineItems"]', 'customer_id': 'orders.get("retailerId", "")',
                          'customer_name': '(orders.get("retailerAddress", {})).get("name", "")',
                          'telephone': '(orders.get("retailerAddress", {})).get("phoneNo", "")',

@@ -1250,6 +1250,7 @@ def confirmed_jo_data(request, user=''):
     sku_brands = []
     sku_categories = []
     sku_classes = []
+    sku_styles = []
     creation_date = ''
     headers = copy.deepcopy(RECEIVE_JO_TABLE_HEADERS)
     stages = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
@@ -1293,6 +1294,9 @@ def confirmed_jo_data(request, user=''):
 
         if rec.product_code.sku_class and rec.product_code.sku_class not in sku_classes:
             sku_classes.append(rec.product_code.sku_class)
+
+        if rec.product_code.style_name and rec.product_code.style_name not in sku_styles:
+            sku_styles.append(rec.product_code.style_name)
 
         for tracking in status_track:
             rem_stages = stages_list
@@ -1347,7 +1351,7 @@ def confirmed_jo_data(request, user=''):
 
     return HttpResponse(json.dumps({'data': all_data, 'job_code': job_code, 'temp': temp, 'order_ids': order_ids,
                                     'sku_brands': ','.join(sku_brands), 'sku_categories': ','.join(sku_categories),
-                                    'sku_classes': ','.join(sku_classes),
+                                    'sku_classes': ','.join(sku_classes), 'sku_styles': ','.join(sku_styles),
                                     'creation_date': creation_date }))
 
 def insert_pallet_data(temp_dict, po_location_id, status=''):

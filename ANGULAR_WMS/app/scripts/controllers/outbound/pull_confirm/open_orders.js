@@ -75,14 +75,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        reloadData();
        if (data.message == 'invoice') {
 
-         angular.copy(data.data, vm.pdf_data);
+         //angular.copy(data.data, vm.pdf_data);
+         vm.pdf_data = data.data;
          if (Session.user_profile['user_type'] == 'marketplace_user') {
            $state.go('app.outbound.PullConfirmation.InvoiceM');
          } else if (vm.pdf_data.detailed_invoice) {
            $state.go('app.outbound.PullConfirmation.DetailGenerateInvoice');
          } else {
-            $state.go('app.outbound.PullConfirmation.GenerateInvoice');
+           $state.go('app.outbound.PullConfirmation.GenerateInvoice');
          }
+       } else if (data.message == 'html') {
+         $state.go("app.outbound.PullConfirmation.InvoiceE");
+         $timeout(function () {
+           $(".modal-body:visible").html(data.data)
+         }, 3000);
        }
 
     }, function () {

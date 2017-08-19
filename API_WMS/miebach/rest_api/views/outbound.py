@@ -1109,28 +1109,41 @@ def insert_order_serial(picklist, val, order=''):
         imei_nos = list(set(val['imei'].split(',')))
     else:
         imei_nos = list(set(val['imei'].split('\r\n')))
+    user_id = None
     for imei in imei_nos:
         imei_filter = {}
         if order:
             order_id = order.id
         else:
             order_id = picklist.order.id
-        po_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__sku_code=val['wms_code'], imei_number=imei)
+            order = picklist.order
+        if order:
+            user_id = order.user
+        po_mapping, status, imei_data = check_get_imei_details(imei, val['wms_code'], user_id, check_type='order_mapping', order=order)
+        #po_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__sku_code=val['wms_code'], imei_number=imei, status=1,
+        #                                          purchase_order__open_po__sku__user=user_id)
         if imei and po_mapping:
             order_mapping = {'order_id': order_id, 'po_imei_id': po_mapping[0].id, 'imei_number': ''}
             order_mapping_ins = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, order_id=order_id)
             if order_mapping_ins:
                 order_mapping_ins[0].status = 1
                 order_mapping_ins[0].save()
+                po_imei = order_mapping_ins[0].po_imei
             else:
                 imei_mapping = OrderIMEIMapping(**order_mapping)
                 imei_mapping.save()
+                po_imei = po_mapping[0]
                 log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
+            if po_imei:
+                po_imei.status=0
+                po_imei.save()
         elif imei and not po_mapping:
             order_mapping = {'order_id': order_id, 'po_imei_id': None, 'imei_number': imei}
             imei_mapping = OrderIMEIMapping(**order_mapping)
             imei_mapping.save()
             log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
+        ReturnsIMEIMapping.objects.filter(order_return__sku__user=user_id, order_imei__po_imei__imei_number=imei,
+                                          imei_status=1).update(imei_status=0)
 
 def update_picklist_pallet(stock, picking_count1):
     pallet = stock.pallet_detail
@@ -1229,9 +1242,12 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
             nv_data.update({'user': user})
             if nv_data['detailed_invoice']:
                 t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
+                rendered = t.render(nv_data)
             else:
-                t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
-            rendered = t.render(nv_data)
+                #t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
+                nv_data["customer_invoice"] = True
+                rendered = build_invoice(nv_data, user, True)
+            #rendered = t.render(nv_data)
             file_name = str(user.id) + '_' + 'dispatch_invoice.html'
             pdf_file = '%s_%s.pdf' % (str(user.id), "dispatch_invoice")
             file_ = open(file_name, "w+b")
@@ -1560,7 +1576,7 @@ def picklist_confirmation(request, user=''):
             auto_po(list(set(auto_skus)), user.id)
 
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
-        if (detailed_invoice and picklist.order and picklist.order.marketplace == "Offline"):
+        if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         if get_misc_value('automate_invoice', user.id) == 'true' and single_order:
             order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True).distinct()
@@ -1581,6 +1597,10 @@ def picklist_confirmation(request, user=''):
                 invoice_data['picklists_send_mail'] = str(picklists_send_mail)
 
                 invoice_data['order_id'] = invoice_data['order_id']
+                user_profile = UserProfile.objects.get(user_id=user.id)
+                if not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']:
+                    invoice_data = build_invoice(invoice_data, user, False)
+                    return HttpResponse(invoice_data)
                 return HttpResponse(json.dumps({'data': invoice_data, 'status': 'invoice'}))
     except Exception as e:
         import traceback
@@ -1764,11 +1784,16 @@ def get_customer_sku(request, user=''):
     if 'order_id' in request_data.keys() and not datatable_view == 'ShipmentPickedAlternative':
         search_params['id__in'] = request_data['order_id']
     elif 'order_id' in request_data.keys() and request_data['order_id']:
-        order_id_val = request_data['order_id'][0]
-        order_id_search = ''.join(re.findall('\d+', order_id_val))
-        order_code_search = ''.join(re.findall('\D+', order_id_val))
-        search_params['id__in'] = list(OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) |
-                                                             Q(original_order_id=order_id_val), user=user.id).values_list('id', flat=True))
+        filter_order_ids = []
+        for order_ids in request_data['order_id']:
+            order_id_val = order_ids
+            order_id_search = ''.join(re.findall('\d+', order_id_val))
+            order_code_search = ''.join(re.findall('\D+', order_id_val))
+            fil_ids = list(OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) |
+                                                                 Q(original_order_id=order_id_val), user=user.id).values_list('id', flat=True))
+            filter_order_ids = list(chain(filter_order_ids, fil_ids))
+        if filter_order_ids:
+            search_params['id__in'] = filter_order_ids
     ship_no = get_shipment_number(user)
     data_dict = copy.deepcopy(ORDER_SHIPMENT_DATA)
     data_dict['shipment_number'] = ship_no
@@ -1853,8 +1878,12 @@ def check_imei(request, user=''):
                 continue
             sku_code = picklist.order.sku.sku_code
             order = picklist.order
-            imei_filter['purchase_order__open_po__sku__sku_code'] = sku_code
-        po_mapping = POIMEIMapping.objects.filter(**imei_filter)
+            #imei_filter['purchase_order__open_po__sku__sku_code'] = sku_code
+
+        po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping', order=order)
+        if imei_data.get('wms_code', ''):
+            sku_code = imei_data['wms_code']
+        '''po_mapping = POIMEIMapping.objects.filter(**imei_filter)
         if not sku_code and po_mapping and po_mapping[0].purchase_order.open_po:
             sku_code = po_mapping[0].purchase_order.open_po.sku.sku_code
         if not po_mapping:
@@ -1864,7 +1893,7 @@ def check_imei(request, user=''):
             if order and order_mapping[0].order_id == order.id:
                 status = str(value) + ' is already mapped with this order'
             else:
-                status = str(value) + ' is already mapped with another order'
+                status = str(value) + ' is already mapped with another order'''
         if is_shipment:
             if not status:
                 status = 'Success'
@@ -3301,7 +3330,8 @@ def generate_order_invoice(request, user=''):
     invoice_data = modify_invoice_data(invoice_data, user)
     ord_ids = order_ids.split(",")
     invoice_data = add_consignee_data(invoice_data, ord_ids, user)
-
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    invoice_data = build_invoice(invoice_data, user, False)
     #invoice_data.update({'user': user})
     #if invoice_data['detailed_invoice']:
     #    t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
@@ -3309,7 +3339,7 @@ def generate_order_invoice(request, user=''):
     #    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
     #c = Context(invoice_data)
     #rendered = t.render(c)
-    return HttpResponse(json.dumps(invoice_data))
+    return HttpResponse(invoice_data)
 
 @csrf_exempt
 def get_shipment_picked(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, user_dict={}, filters={}):
@@ -4163,7 +4193,7 @@ def order_category_generate_picklist(request, user=''):
     picklist_number = get_picklist_number(user)
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
+    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
 
@@ -4483,9 +4513,13 @@ def get_customer_orders(request, user=""):
                 pick_status = picklist.filter(order__order_id = int(record['order_id']), order__order_code = record['order_code'], status__icontains = 'open')
                 if pick_status:
                     status = 'open'
+            picked_quantity = picklist.filter(order__order_id = int(record['order_id'])).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+            if not picked_quantity:
+                picked_quantity = 0
             record['status'] = status
             record['date'] = get_only_date(request, data[0].creation_date)
             record['total_inv_amt'] = round(record['total_inv_amt'], 2)
+            record['picked_quantity'] = picked_quantity
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
 @login_required
@@ -4499,7 +4533,6 @@ def get_customer_order_detail(request, user=""):
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
     order = OrderDetail.objects.filter(order_id = order_id, user=user.id)
-
     if not order:
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
@@ -4507,6 +4540,10 @@ def get_customer_order_detail(request, user=""):
 
     for record in response_data['data']:
         tax_data = CustomerOrderSummary.objects.filter(order__id = record['id'], order__user = user.id)
+        picked_quantity = Picklist.objects.filter(order_id = record['id']).values('picked_quantity').aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+        if not picked_quantity:
+            picked_quantity = 0
+        record['picked_quantity'] = picked_quantity
         if tax_data:
             tax_data = tax_data[0]
             record['invoice_amount'] = record['invoice_amount'] - tax_data.tax_value
@@ -4539,22 +4576,14 @@ def get_customer_order_detail(request, user=""):
 def generate_pdf_file(request, user=""):
 
     nv_data = request.POST['data']
-    #if not nv_data:
-    #  return HttpResponse("no invoice")
-    #if not os.path.exists('static/pdf_files/'):
-    #    os.makedirs('static/pdf_files/')
-    #nv_data.update({'user': user})
-    #if nv_data['detailed_invoice']:
-    #    t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')
-    #else:
-    #    t = loader.get_template('../miebach_admin/templates/toggle/generate_invoice.html')
-    #c = Context(nv_data)
-    #rendered = t.render(c)
     c= {'name': 'kanna'}
-    top = loader.get_template('../miebach_admin/templates/toggle/invoice/top.html')
+    if request.POST.get('css', '') == 'page':
+        top = loader.get_template('../miebach_admin/templates/toggle/invoice/top.html')
+    else:
+        top = loader.get_template('../miebach_admin/templates/toggle/invoice/top1.html')
     top = top.render(c)
     nv_data = nv_data.encode('utf-8')
-    html_content = str(top)+nv_data+"</div>"
+    html_content = str(top)+nv_data #+"</div>"
     if not os.path.exists('static/pdf_files/'):
         os.makedirs('static/pdf_files/')
     file_name = 'static/pdf_files/%s_dispatch_invoice.html' % str(request.user.id)
@@ -5000,13 +5029,14 @@ def generate_customer_invoice(request, user=''):
         if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
+        invoice_data = build_invoice(invoice_data, user, False)
 
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Create customer invoice failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
         return HttpResponse(json.dumps({'message': 'failed'}))
-    return HttpResponse(json.dumps(invoice_data, cls=DjangoJSONEncoder))
+    return HttpResponse(invoice_data)
 
 @csrf_exempt
 def get_seller_order_view(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters, user_dict={}):

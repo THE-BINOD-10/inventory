@@ -221,13 +221,6 @@ def check_create_seller_order(seller_order_dict, order, user):
             seller_order = SellerOrder(**seller_order_dict)
             seller_order.save()
 
-def update_seller_order(seller_order_dict, order, user):
-    seller_orders = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id, seller__user=user.id)
-    for seller_order in seller_orders:
-        seller_order.order_status = seller_order_dict.get('order_status', '')
-        seller_order.status = 1
-        seller_order.save()
-
 def myntra_order_tax_calc(key, value, order_mapping, order_summary_dict, row_idx, reader, file_type):
     cell_data = ''
     if isinstance(value, dict):
@@ -284,7 +277,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
         order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], order_code = order_data.get('order_code', ''),
                                                sku_id=order_data['sku_id'], user=user.id)
         order_create = True
-        if user_profile.user_type == 'marketplace_user':
+        if user_profile.user_type == 'marketplace_user' and order_mapping.has_key('seller_id'):
             if not seller_order_dict['seller_id'] or (not seller_order_dict.get('order_status','') in ['PROCESSED', 'DELIVERY_RESCHEDULED']):
                 order_create = False
             elif seller_order_dict['seller_id'] and seller_order_dict.get('order_status','') == 'DELIVERY_RESCHEDULED':
@@ -377,6 +370,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             sku_code = cell_data.upper()
 
         sku_codes = sku_code.split(',')
+        print sku_codes
         for sku_code in sku_codes:
             sku_id = check_and_return_mapping_id(sku_code, title, user)
             if not sku_id:
@@ -1946,7 +1940,7 @@ def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
         order.save()
         mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
     if mail_result_data:
-        mail_status = purchase_upload_mail(request, mail_result_data)
+        mail_status = purchase_upload_mail(request, mail_result_data, user)
     return 'success'
 
 def purchase_order_dict(data, data_req, purch, user, order):
@@ -1958,7 +1952,7 @@ def purchase_order_dict(data, data_req, purch, user, order):
                                          'purch': purch, 'user': user, 'purchase_order': order}]
     return data_req
 
-def purchase_upload_mail(request, data_to_send):
+def purchase_upload_mail(request, data_to_send, user):
     from django.template import loader, Context
     from inbound import write_and_mail_pdf
     for key, value in data_to_send.iteritems():

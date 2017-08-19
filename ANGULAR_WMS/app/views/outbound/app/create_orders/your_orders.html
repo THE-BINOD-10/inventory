@@ -26,7 +26,7 @@
           <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
         </div>
         <div class="order-list">
-          <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data" ng-click="$state.go('user.App.OrderDetails', {orderId: order.order_id})"> <!--ng-click="showCase.open_order_detail(order)">-->
+          <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data" ng-click="$state.go('user.App.OrderDetails', {orderId: order.order_id})" style="cursor: pointer"> <!--ng-click="showCase.open_order_detail(order)">-->
             <div class="row">
               <div class="col-md-6 col-sm-6 col-xs-6">
                 <div class="order-id">
@@ -43,9 +43,13 @@
                 <div class="widget-details col-xs-4 text-left">
                   <small class="order-label">Order id</small>
                   <h2 class="no-margin order-bold">{{order.order_id}}</h2></div>
-                <div class="widget-details col-xs-4 text-center">
+                <div class="widget-details col-xs-2 text-center">
                   <small class="order-label">Order Quantity</small>
                   <h2 class="no-margin order-bold">{{order.total_quantity}}</h2>
+                </div>
+                <div class="widget-details col-xs-2 text-center">
+                  <small class="order-label">Picked Quantity</small>
+                  <h2 class="no-margin order-bold">{{order.picked_quantity}}</h2>
                 </div>
                 <div class="widget-details col-xs-4 text-right">
                   <small class="order-label">Order Value</small>

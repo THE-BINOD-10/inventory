@@ -80,6 +80,14 @@
 .print-invoice .table-bordered > tbody > tr > td:last-child {
   border-right: 1px;
 }
+.print-invoice .table-dark {
+  border-color: black;
+}
+.print-invoice .table-dark tbody > tr > td,
+.print-invoice .table-dark th {
+  border-color: black !important;
+  padding: 5px 5px !important;
+}
 .pre-custom {
   border: 0px;
   background: #fff;

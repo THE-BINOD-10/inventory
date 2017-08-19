@@ -32,6 +32,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
        .withOption('drawCallback', function(settings) {
          vm.service.make_selected(settings, vm.selected);
        })
+       .withOption('lengthMenu', [100, 200, 300, 400, 500, 1000, 2000])
        .withOption('processing', true)
        .withOption('serverSide', true)
        .withOption('createdRow', function(row, data, dataIndex) {
@@ -107,27 +108,42 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
     vm.today_date = new Date();
     vm.customer_details = false;
-    vm.add = add;
-    function add(data) {
+    vm.add = function (data) {
         vm.bt_disable = true;
         var table = vm.dtInstance.DataTable.data()
 
         var data = []
         var order_ids = [];
+        var mk_places = [];
       	angular.forEach(vm.selected, function(key,value){
           if(key) {
             var temp = table[Number(value)]['order_id']
+            var temp2 = table[Number(value)]['Marketplace']
 	        data.push({ name: "order_id", value: temp})
 	        if(order_ids.indexOf(temp) == -1) {
               order_ids.push(temp);
 	        }
+	        if(mk_places.indexOf(temp2) == -1) {
+	          mk_places.push(temp2);
+	        }
           }
       	});
 
-        if(vm.g_data.view == 'ShipmentPickedAlternative' && order_ids.length > 1) {
-          vm.bt_disable = false;
-          service.showNoty("Please Select Single Order");
-          return;
+        if(order_ids.length == 0) {
+          service.showNoty("Please Select Orders First");
+          return false;
+        }
+
+        if(vm.g_data.view == 'ShipmentPickedAlternative'){
+          if (vm.group_by == 'order' && order_ids.length > 1) {
+            vm.bt_disable = false;
+            service.showNoty("Please Select Single Order");
+            return;
+          } else if(vm.group_by == 'marketplace' && mk_places.length > 1) {
+            vm.bt_disable = false;
+            service.showNoty("Please Select Single Marketplace");
+            return;
+          }
         }
         data.push({name:'view', value:vm.g_data.view});
         service.apiCall("get_customer_sku/", "GET", data).then(function(data){
@@ -174,7 +190,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       });
     };
 
-    service.apiCall("get_marketplaces_list/").then(function(data){
+    service.apiCall("get_marketplaces_list/?status=picked").then(function(data){
       if(data.message) {
         vm.model_data.market_list = data.data.marketplaces;
         vm.empty_data.market_list = data.data.marketplaces;

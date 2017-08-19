@@ -17,7 +17,7 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
          angular.copy(data.data, vm.model_data);
          for(var i=0; i<vm.model_data.data.length; i++){
                     vm.model_data.data[i]['sub_data'] = [];
-                    var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
+                    var value = (vm.permissions.scan_picklist_option != 'scan_none')? 0: vm.model_data.data[i].picked_quantity;
                     if(Session.user_profile.user_type == "marketplace_user") {
                       value = vm.model_data.data[i].picked_quantity;
                     }
@@ -197,6 +197,9 @@ function view_orders() {
         if(data.message) {
           if(data.data == "Picklist Confirmed") {
             vm.ok("done");
+          } else if (typeof(data.data) == "string" && data.data.indexOf("print-invoice")) {
+            vm.ok("html");
+            vm.status_data.data = data.data;
           } else if (data.data.status == 'invoice') {
 
             vm.status_data.data = data.data.data;
@@ -218,7 +221,13 @@ function pull_confirmation() {
       if(data) {
         vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
           if(data.message) {
+            if(typeof(data.data) == 'string') {
+              alert(data.data);
+              vm.model_data.scan_sku = "";
+              return false;
+            }
             field = data.data.sku_code;
+            vm.model_data.scan_sku = field;
 
             if(vm.check_sku_match(field)) {
               if(vm.model_data.sku_total_quantities[field] <= vm.remain_quantity[field]) {
@@ -360,32 +369,52 @@ function pull_confirmation() {
     vm.service.scan(event, field).then(function(data){
       if(data) {
         if(vm.model_data.scan_location) {
-          if(vm.check_sku_match(field)) {
-            if(vm.model_data.sku_total_quantities[field] <= vm.remain_quantity[field]) {
-              alert("Reservered quantity equal to picked quantity")
-            } else {
-              if (vm.check_comb()) {
-                vm.incr_qty();
-              } else {
-                vm.service.apiCall("get_stock_location_quantity/", "GET", {location: vm.model_data.scan_location, wms_code: field})
-                  .then(function(data){
-                  if(data.data.message == "Invalid Location"){
-                    alert("Invalid Location");
-                  } else if(data.data.stock == 0) {
-                    alert("Zero Stock");
+          vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
+            if(data.message) {
+              if(typeof(data.data) == 'string') {
+                alert(data.data);
+                vm.model_data.scan_sku = "";
+                return false;
+              }
+              field = data.data.sku_code;
+              vm.model_data.scan_sku = field;
+
+              if(vm.check_sku_match(field)) {
+                if(vm.model_data.sku_total_quantities[field] <= vm.remain_quantity[field]) {
+                  alert("Reservered quantity equal to picked quantity")
+                  vm.model_data.scan_sku = "";
+                  return false;
+                } else {
+                  if (vm.check_comb()) {
+                    vm.incr_qty();
                   } else {
-                    var required = vm.model_data.sku_total_quantities[field] - vm.remain_quantity[field];
-                    var temp_reserve = (data.data.stock < required)? data.data.stock: required;
-                    vm.model_data.data.push({image: "",order_id: "", reserved_quantity: temp_reserve, wms_code: field, sub_data:[{location: vm.model_data.scan_location, picked_quantity: 1, new: true}]})
-                    vm.count_sku_quantity();
+                    vm.service.apiCall("get_stock_location_quantity/", "GET", {location: vm.model_data.scan_location, wms_code: field})
+                    .then(function(data){
+                      if(data.data.message == "Invalid Location"){
+                        alert("Invalid Location");
+                        vm.model_data.scan_sku = "";
+                        return false;
+                      } else if(data.data.stock == 0) {
+                        alert("Zero Stock");
+                        vm.model_data.scan_sku = "";
+                        return false;
+                      } else {
+                        var required = vm.model_data.sku_total_quantities[field] - vm.remain_quantity[field];
+                        var temp_reserve = (data.data.stock < required)? data.data.stock: required;
+                        vm.model_data.data.push({image: "",order_id: "", reserved_quantity: temp_reserve, wms_code: field, sub_data:[{location: vm.model_data.scan_location, picked_quantity: 1, new: true}]})
+                        vm.count_sku_quantity();
+                        vm.model_data.scan_sku = "";
+                      }
+                    })
                   }
-                })
+                }
+              } else {
+                alert("Invalid SKU");
+                vm.model_data.scan_sku = "";
+                return false;
               }
             }
-          } else {
-            alert("Invalid SKU");
-          }
-          vm.model_data.scan_sku = "";
+          })
         } else {
           alert("Please Enter location first");
           vm.model_data.scan_sku = "";
@@ -437,15 +466,8 @@ function pull_confirmation() {
           break;
         }
       }
-      //angular.forEach(data.sub_data, function(record){
-      //  if(record.location == location || true) {
-      //    record.picked_quantity = Number(record.picked_quantity) + 1;
-      //    vm.count_sku_quantity();
-      //    status = true;
-      //    return status;
-      //  }
-      //})
     }
+    vm.model_data.scan_sku = "";
     return status;
   }
 

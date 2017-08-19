@@ -9,6 +9,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
 
+    //default values
+    if(!vm.permissions.grn_scan_option) {
+      vm.permissions.grn_scan_option = "sku_serial_scan";
+    }
+    if(!vm.permissions.barcode_generate_opt) {
+      vm.permissions.barcode_generate_opt = 'sku_code';
+    }
+    if(vm.permissions.barcode_generate_opt == 'sku_ean') {
+      vm.permissions.barcode_generate_opt = 'sku_code';
+    }
+
     //process type;
     vm.po_qc = true;
     vm.po_qc = (vm.permissions.receive_process == "receipt-qc")? true: false;
@@ -317,7 +328,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 fb.change_serial(data1, data1.imei_number);
                 vm.current_sku = "";
                 data1.imei_number = "";
-                if(vm.permissions.barcode_generate_opt != "sku_serial") {
+                //if(vm.permissions.barcode_generate_opt != "sku_serial") {
+                //  $('textarea[name="scan_sku"]').trigger('focus').val('');
+                //}
+                if(vm.permissions.grn_scan_option == "sku_serial_scan") {
                   $('textarea[name="scan_sku"]').trigger('focus').val('');
                 }
           //    } else {
@@ -333,6 +347,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function qc_details() {
 
       $state.go('app.inbound.RevceivePo.qc_detail');
+      $timeout(function() {
+        if(vm.permissions.grn_scan_option == "serial_scan") {
+          focus('focusIMEI');
+        }
+      }, 2000);
     }
 
     vm.goBack = function() {
@@ -368,7 +387,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       event.stopPropagation();
       if (event.keyCode == 13 && field.length > 0) {
 
-        if (!vm.current_sku && (vm.permissions.barcode_generate_opt != 'sku_serial')) {
+        if (!vm.current_sku && (vm.permissions.grn_scan_option == "sku_serial_scan")) {
 
           focus('focusSKU');
           Service.showNoty("Scan SKU first before scaning IMEI");
@@ -384,16 +403,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             if (resp.status) {
               Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
               vm.current_sku = "";
-              focus('focusSKU');
+              if(vm.permissions.grn_scan_option == "sku_serial_scan") {
+                focus('focusSKU');
+              }
             } else {
-              if(vm.permissions.barcode_generate_opt != 'sku_serial') {
-                vm.service.apiCall('check_imei_exists/', 'GET',{imei: field}).then(function(data){
+              if(vm.permissions.barcode_generate_opt == 'sku_serial' || vm.permissions.barcode_generate_opt == 'sku_code') {
+                vm.service.apiCall('check_imei_exists/', 'GET',{imei: field, sku_code: vm.model_data.data[vm.current_index][0].wms_code}).then(function(data){
                   if(data.message) {
                     if (data.data == "") {
                       vm.imei_list.push(field);
                       vm.accept_qc(vm.model_data.data[vm.current_index], field);
-                      vm.current_sku = "";
-                      focus('focusSKU');
+                      if(vm.permissions.grn_scan_option == "sku_serial_scan") {
+                        focus('focusSKU');
+                        vm.current_sku = "";
+                      }
                     } else {
                       Service.showNoty(data.data);
                     }
@@ -424,7 +447,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       vm.accept_qc(vm.model_data.data[vm.current_index], field);
                       vm.current_sku = "";
                     } else {
-                       Service.showNoty(data.data.message);
+                      Service.showNoty(data.data.message);
                     }
                   }
                 })
@@ -449,7 +472,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
           Service.showNoty("Serial Number already Exist");
           data1.imei_number = "";
-          if(vm.permissions.barcode_generate_opt != "sku_serial") {
+          //if(vm.permissions.barcode_generate_opt != "sku_serial") {
+          //  $('textarea[name="scan_sku"]').trigger('focus').val('');
+          //}
+          if(vm.permissions.grn_scan_option == "sku_serial_scan") {
             $('textarea[name="scan_sku"]').trigger('focus').val('');
           }
         } else {
@@ -458,12 +484,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             if (resp.status) {
               Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
               data1.imei_number = "";
-              if(vm.permissions.barcode_generate_opt != "sku_serial") { 
+              //if(vm.permissions.barcode_generate_opt != "sku_serial") { 
+              //  $('textarea[name="scan_sku"]').trigger('focus').val('');
+              //}
+              if(vm.permissions.grn_scan_option == "sku_serial_scan") {
                 $('textarea[name="scan_sku"]').trigger('focus').val('');
               }
             } else {
               if(vm.permissions.barcode_generate_opt != "sku_serial") {
-                vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number}).then(function(data){
+                vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
                   if(data.message) {
                     if (data.data == "") {
                       if(vm.po_qc) {
@@ -482,6 +511,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   if(data.message) {
                     if(data.data.message == 'Success') {
                       var sku_code = data.data.data.sku_code;
+                      if (data.wms_code != sku_code) {
+                        Service.showNoty("Scanned label belongs to "+sku_code);
+                        data1.imei_number = "";
+                        return false;
+                      }
                       if(vm.po_qc) {
                         vm.po_qc_imei_scan(data1, index)
                       } else {

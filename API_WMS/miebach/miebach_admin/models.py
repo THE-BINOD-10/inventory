@@ -429,7 +429,7 @@ class MiscDetail(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
     misc_type = models.CharField(max_length=64)
-    misc_value = models.CharField(max_length=64)
+    misc_value = models.CharField(max_length=255)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

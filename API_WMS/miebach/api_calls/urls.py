@@ -36,7 +36,8 @@ urlpatterns = [
     url(r'^get_skus/$',get_skus),
     url(r'^get_sku/$',get_sku),
     url(r'^update_order/$',update_order),
-    url(r'^update_sku/$',update_skus_data),
-    url(r'^update_customer/$',update_customers_data),
+    url(r'^update_sku/$',update_sku),
+    url(r'^update_customer/$',update_customer),
+    url(r'^update_supplier/$',update_supplier),
 ]
 

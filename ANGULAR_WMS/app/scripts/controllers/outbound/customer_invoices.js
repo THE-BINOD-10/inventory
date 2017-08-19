@@ -109,8 +109,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
           if(data.message) {
             console.log(data.data);
-            angular.copy(data.data, vm.pdf_data);
-            if(Session.user_profile.user_type == "marketplace_user") {
+            vm.pdf_data = data.data;
+            if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
+              $state.go("app.outbound.CustomerInvoices.InvoiceE");
+              $timeout(function () {
+                $(".modal-body:visible").html(vm.pdf_data)
+              }, 3000);
+            } else if(Session.user_profile.user_type == "marketplace_user") {
               $state.go("app.outbound.CustomerInvoices.InvoiceM");
             } else if(vm.permissions.detailed_invoice) {
               $state.go("app.outbound.CustomerInvoices.InvoiceD");
@@ -119,6 +124,81 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             }
           }
         });
+      }
+    }
+
+    vm.inv_height = 1358; //total invoice height
+    vm.inv_details = 292; //invoice details height
+    vm.inv_footer = 95;   //invoice footer height
+    vm.inv_totals = 127;  //invoice totals height
+    vm.inv_header = 47;   //invoice tables headers height
+    vm.inv_product = 47;  //invoice products cell height
+    vm.inv_summary = 47;  //invoice summary headers height
+    vm.inv_total = 27;    //total display height
+
+    vm.render_data = []
+    vm.invoiceAdjust = function(data){
+      vm.render_data = []
+      var render_space = 0;
+      var hsn_summary_length= (Object.keys(data.hsn_summary).length)*vm.inv_total;
+      if(vm.permissions.hsn_summary) {
+        render_space = vm.inv_height-(vm.inv_details+vm.inv_footer+vm.inv_totals+vm.inv_header+vm.inv_summary+vm.inv_total+hsn_summary_length);
+      } else {
+        render_space = vm.inv_height-(vm.inv_details+vm.inv_footer+vm.inv_totals+vm.inv_header+vm.inv_total)
+      }
+      var no_of_skus = parseInt(render_space/vm.inv_product);
+      var data_length = data.data.length;
+      vm.pdf_data.empty_data = [];
+      if(data_length > no_of_skus) {
+
+        var needed_space = vm.inv_footer + vm.inv_footer + vm.inv_total;
+        if(vm.permissions.hsn_summary) {
+          needed_space = needed_space+ vm.inv_summary+hsn_summary_length;
+        }
+
+        var temp_render_space = 0;
+        temp_render_space = vm.inv_height-(vm.inv_details+vm.inv_header);
+        var temp_no_of_skus = parseInt(temp_render_space/vm.inv_product);
+
+        if(data_length > temp_no_of_skus) {
+          for(var i=0; i<Math.ceil(data_length/temp_no_of_skus); i++) {
+            var temp_page = {data: []}
+            temp_page.data = data.data.slice(i*temp_no_of_skus,((i+1)*temp_no_of_skus));
+            temp_page["empty_data"] = [];
+            vm.render_data.push(temp_page);
+          }
+        }
+        console.log(data_length);
+
+        var last = vm.render_data.length - 1;
+        data_length = vm.render_data[last].data.length;
+        if(no_of_skus < data_length) {
+          vm.render_data.push({empty_data: [], data: [vm.render_data[last].data[data_length-1]]});
+          vm.render_data[last].data.splice(data_length-1,1);
+        }
+
+        last = vm.render_data.length - 1;
+        data_length = vm.render_data[last].data.length;
+        var empty_data = [];
+        for(var i = 0; i < (no_of_skus - data_length); i++) {
+          empty_data.push(i);
+        }
+        vm.render_data[last].empty_data = empty_data;
+
+        vm.pdf_data.data = vm.render_data;
+      } else if(data_length < no_of_skus) {
+
+        var temp = vm.pdf_data.data;
+        vm.pdf_data.data = [];
+        var empty_data = [];
+        for(var i = 0; i < (no_of_skus - data_length); i++) {
+          empty_data.push(i);
+        }
+        vm.pdf_data.data[0] = {data: temp, empty_data: empty_data}
+      }
+      vm.pdf_data.titles = [""];
+      if (vm.permissions.invoice_titles) {
+        vm.pdf_data.titles = vm.permissions.invoice_titles.split(",");
       }
     }
   }

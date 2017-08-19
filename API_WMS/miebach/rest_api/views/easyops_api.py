@@ -22,6 +22,7 @@ class EasyopsAPI:
         self.auth_check = eval(LOAD_CONFIG.get(self.company_name, 'auth_check', 'False'))
         self.host = LOAD_CONFIG.get(self.company_name, 'host', '')
         self.auth_data = LOAD_CONFIG.get(self.company_name, 'authentication', '')
+        self.access_token_name = LOAD_CONFIG.get(self.company_name, 'access_token_name', '')
         self.token = token
         self.user = user
         self.content_type = 'application/json'
@@ -54,7 +55,10 @@ class EasyopsAPI:
 
     def get_response(self, url, data=None, put=False, auth=False, is_first=True):
         """ Getting API response using request module """
-        self.headers["Authorization"] = "Bearer " + self.token
+        if self.access_token_name == 'access_token':
+            self.headers["Authorization"] = "Bearer " + self.token
+        else:
+            self.headers[self.access_token_name] = self.token
         if put:
             response = requests.put(url, headers=self.headers, data=json.dumps(data), verify=False)
         elif data:

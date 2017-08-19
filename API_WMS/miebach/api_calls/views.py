@@ -975,7 +975,7 @@ def update_order(request):
 
 @csrf_exempt
 @login_required
-def update_skus_data(request):
+def update_sku(request):
     try:
         skus = json.loads(request.body)
     except:
@@ -993,7 +993,7 @@ def update_skus_data(request):
 
 @csrf_exempt
 @login_required
-def update_customers_data(request):
+def update_customer(request):
     try:
         customers = json.loads(request.body)
     except:
@@ -1006,5 +1006,23 @@ def update_customers_data(request):
         import traceback
         log.debug(traceback.format_exc())
         log.info('Update Customers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        status = {'message': 'Internal Server Error'}
+    return HttpResponse(json.dumps(status))
+
+@csrf_exempt
+@login_required
+def update_supplier(request):
+    try:
+        suppliers = json.loads(request.body)
+    except:
+        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+    log.info('Request params for ' + request.user.username + ' is ' + str(customers))
+    try:
+        status = update_suppliers(suppliers, user=request.user, company_name='mieone')
+        log.info(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update Suppliers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'message': 'Internal Server Error'}
     return HttpResponse(json.dumps(status))

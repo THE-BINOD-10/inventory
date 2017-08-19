@@ -1,0 +1,79 @@
+.print-invoice2 {
+  height: 1358px;
+  width: 960px;
+  page-break-before: always;
+  background-color: #ffffff;
+  position: relative;
+  box-sizing: border-box;
+  color: black !important;
+}
+.print-invoice2 p {
+  color: black !important;
+}
+.print-invoice2 .mb0 {
+  margin-bottom: 0px;
+}
+.print-invoice2 .m0 {
+  margin: 0px !important;
+}
+.print-invoice2 .p0 {
+  padding: 0px !important;
+}
+.print-invoice2 .table {
+  border: 1px solid black !important;
+}
+.print-invoice2 .table th,
+.print-invoice2 .table td {
+  padding: 3px 3px;
+  border-color: black !important;
+}
+.print-invoice2 .fs12 {
+  font-size: 12px !important;
+}
+.print-invoice2 .fs11 {
+  font-size: 11px !important;
+}
+.print-invoice2 .fs10 {
+  font-size: 10px !important;
+}
+.print-invoice2 .fs14 {
+  font-size: 14px !important;
+}
+.print-invoice2 .fs16 {
+  font-size: 16px !important;
+}
+.print-invoice2 .fs22 {
+  font-size: 22px !important;
+}
+.print-invoice2 .w9 {
+  width: 90px;
+}
+.print-invoice2 .w5 {
+  width: 50px;
+}
+.print-invoice2 .w6 {
+  width: 60px;
+}
+.print-invoice2 .w7 {
+  width: 70px;
+}
+.print-invoice2 .w10 {
+  width: 100px;
+}
+.print-invoice2 .rm-border td {
+  border-top: 0px !important;
+  border-bottom: 0px !important;
+}
+.print-invoice2 .pre-custom {
+  border: 0px;
+  background: #fff;
+  padding: 0px 0px;
+  white-space: pre-line;
+  margin-bottom: 0px;
+  font-family: "Source Sans Pro", sans-serif;
+  color: black !important;
+}
+.print-invoice2 .wrap {
+  overflow: hidden;
+  height: 40px;
+}

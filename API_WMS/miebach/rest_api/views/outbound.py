@@ -4193,7 +4193,7 @@ def order_category_generate_picklist(request, user=''):
     picklist_number = get_picklist_number(user)
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
+    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
 

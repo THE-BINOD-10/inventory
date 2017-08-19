@@ -3452,8 +3452,10 @@ def build_invoice(invoice_data, user, css=False):
 
     titles = ['']
     import math
-    if get_misc_value('invoice_titles', user.id) and not (invoice_data.get("customer_invoice", "") == True):
-        titles = get_misc_value('invoice_titles', user.id).split(",")
+    if not (invoice_data.get("customer_invoice", "") == True):
+        title_dat = get_misc_value('invoice_titles', user.id)
+        if not title_dat == 'false':
+            titles = title_dat.split(",")
 
     invoice_data['user_type'] = user_profile.user_type
 

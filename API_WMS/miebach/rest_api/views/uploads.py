@@ -277,7 +277,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
         order_obj = OrderDetail.objects.filter(order_id = order_data['order_id'], order_code = order_data.get('order_code', ''),
                                                sku_id=order_data['sku_id'], user=user.id)
         order_create = True
-        if user_profile.user_type == 'marketplace_user':
+        if user_profile.user_type == 'marketplace_user' and order_mapping.has_key('seller_id'):
             if not seller_order_dict['seller_id'] or (not seller_order_dict.get('order_status','') in ['PROCESSED', 'DELIVERY_RESCHEDULED']):
                 order_create = False
             elif seller_order_dict['seller_id'] and seller_order_dict.get('order_status','') == 'DELIVERY_RESCHEDULED':

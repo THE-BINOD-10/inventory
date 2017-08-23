@@ -3630,6 +3630,7 @@ def check_and_update_order_status(shipped_orders_dict, user):
                         order_status_dict[order_detail_id]['subOrders'][index]['lineItems'].append(imei_dict)
             final_data = order_status_dict.values()
             call_response = obj.confirm_order_status(final_data, user=user)
+            log.info(str(call_response))
             if isinstance(call_response, dict) and call_response.get('status') == 1:
                 log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
         except:

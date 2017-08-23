@@ -966,14 +966,15 @@ def update_order(request):
     try:
         validation_dict, final_data_dict = validate_orders(orders, user=request.user, company_name='mieone')
         if validation_dict:
-            return HttpResponse(json.dumps(validation_dict))
+            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
         #status = update_orders(orders, user=request.user, company_name='mieone')
+        status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
         log.info(status)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
-        status = {'message': 'Internal Server Error'}
+        status = {'messages': 'Internal Server Error', 'status': 0}
     return HttpResponse(json.dumps(status))
 
 @csrf_exempt

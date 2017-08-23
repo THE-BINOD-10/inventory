@@ -737,7 +737,8 @@ ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items
                          'customer_name': '(orders.get("retailerAddress", {})).get("name", "")',
                          'telephone': '(orders.get("retailerAddress", {})).get("phoneNo", "")',
                          'address': '(orders.get("retailerAddress", {})).get("address", "")',
-                         'city': '(orders.get("retailerAddress", {})).get("city", "")'
+                         'city': '(orders.get("retailerAddress", {})).get("city", "")', 'seller_item_id': 'sku_item["lineItemId"]',
+                         'seller_parent_item_id': 'sku_item["parent_line_item_id"]'
                         }
 
 SKU_MASTER_API_MAPPING = OrderedDict(( ('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_desc'), ('sku_brand', 'sku_brand'),
@@ -753,6 +754,12 @@ CUSTOMER_MASTER_API_MAPPING = OrderedDict(( ('customers', 'customers'), ('custom
                                             ('status', 'status'), ('last_name', 'last_name'), ('credit_period', 'credit_period'),
                                             ('tin_number', 'tin_number'), ('price_type', 'price_type'), ('tax_type', 'tax_type'),
                                             ('pan_number', 'pan_number')
+                                         ))
+
+SUPPLIER_MASTER_API_MAPPING = OrderedDict(( ('suppliers', 'suppliers'), ('supplier_id', 'supplier_id'), ('name', 'name'),
+                                            ('address', 'address'), ('city', 'city'), ('state', 'state'), ('country', 'country'),
+                                            ('pincode', 'pincode'), ('phone_number', 'phone_number'), ('email_id', 'email_id'),
+                                            ('status', 'status'), ('tin_number', 'tin_number'), ('pan_number', 'pan_number')
                                          ))
 
 # Easyops Integration Mapping Dictionaries

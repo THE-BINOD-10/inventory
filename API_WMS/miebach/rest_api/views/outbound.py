@@ -443,7 +443,7 @@ def generate_picklist(request, user=''):
     else:
         stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by('location_id__pick_sequence')
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
-    sku_stocks = stock_detail1 | stock_detail2
+    all_sku_stocks = stock_detail1 | stock_detail2
     log.info("Generate Picklist params " + str(request.POST.dict()))
     seller_stocks = SellerStock.objects.filter(seller__user=user.id).values('stock_id', 'seller_id')
     for key, value in request.POST.iteritems():
@@ -455,6 +455,7 @@ def generate_picklist(request, user=''):
         try:
             if seller_orders:
                 for seller_order in seller_orders:
+                    sku_stocks = all_sku_stocks
                     seller_stock_dict = filter(lambda person: str(person['seller_id']) == str(seller_order.seller_id), seller_stocks)
                     if seller_stock_dict:
                         sell_stock_ids =  map(lambda person: person['stock_id'], seller_stock_dict)
@@ -1104,7 +1105,7 @@ def validate_location_stock(val, all_locations, all_skus, user):
         status.append(error_string)
     return pic_check_data, ', '.join(status)
 
-def insert_order_serial(picklist, val, order=''):
+def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
     if ',' in val['imei']:
         imei_nos = list(set(val['imei'].split(',')))
     else:
@@ -1122,12 +1123,14 @@ def insert_order_serial(picklist, val, order=''):
         po_mapping, status, imei_data = check_get_imei_details(imei, val['wms_code'], user_id, check_type='order_mapping', order=order)
         #po_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__sku_code=val['wms_code'], imei_number=imei, status=1,
         #                                          purchase_order__open_po__sku__user=user_id)
+        imei_mapping = None
         if imei and po_mapping:
             order_mapping = {'order_id': order_id, 'po_imei_id': po_mapping[0].id, 'imei_number': ''}
             order_mapping_ins = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, order_id=order_id)
             if order_mapping_ins:
-                order_mapping_ins[0].status = 1
-                order_mapping_ins[0].save()
+                imei_mapping = order_mapping_ins[0]
+                imei_mapping.status = 1
+                imei_mapping.save()
                 po_imei = order_mapping_ins[0].po_imei
             else:
                 imei_mapping = OrderIMEIMapping(**order_mapping)
@@ -1142,8 +1145,15 @@ def insert_order_serial(picklist, val, order=''):
             imei_mapping = OrderIMEIMapping(**order_mapping)
             imei_mapping.save()
             log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
+        if imei_mapping:
+            if shipped_orders_dict.has_key(int(order_id)):
+                shipped_orders_dict[int(order_id)]['imeis'].append(imei_mapping)
+            else:
+                shipped_orders_dict[int(order_id)] = {}
+                shipped_orders_dict[int(order_id)]['imeis'] = [imei_mapping]
         ReturnsIMEIMapping.objects.filter(order_return__sku__user=user_id, order_imei__po_imei__imei_number=imei,
                                           imei_status=1).update(imei_status=0)
+    return shipped_orders_dict
 
 def update_picklist_pallet(stock, picking_count1):
     pallet = stock.pallet_detail
@@ -2927,6 +2937,7 @@ def insert_shipment_info(request, user=''):
         log.info('Create shipment failed for params ' + str(request.POST.dict()) + ' error statement is ' +str(e))
         return HttpResponse('Create shipment Failed')
     try:
+        shipped_orders_dict = {}
         for i in range(0, len(myDict['sku_code'])):
 
             if not myDict['shipping_quantity'][i]:
@@ -2961,7 +2972,8 @@ def insert_shipment_info(request, user=''):
                         shipment_data[key] = value[i]
 
                 if 'imei_number' in myDict.keys() and myDict['imei_number'][i]:
-                    insert_order_serial([], {'wms_code': order_detail.sku.wms_code, 'imei': myDict['imei_number'][i]}, order=order_detail)
+                    shipped_orders_dict = insert_order_serial([], {'wms_code': order_detail.sku.wms_code, 'imei': myDict['imei_number'][i]},
+                                                              order=order_detail, shipped_orders_dict=shipped_orders_dict)
                 order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id,
                                                                     package_reference=myDict['package_reference'][i], order_shipment__user=user.id)
                 if not order_pack_instance:
@@ -2988,6 +3000,14 @@ def insert_shipment_info(request, user=''):
                 shipment_data['invoice_number'] = invoice_number
                 ship_data = ShipmentInfo(**shipment_data)
                 ship_data.save()
+                if shipped_orders_dict.has_key(int(order_id)):
+                    shipped_orders_dict[int(order_id)].setdefault('quantity', 0)
+                    shipped_orders_dict[int(order_id)]['quantity'] += float(shipped_quantity)
+                else:
+                    shipped_orders_dict[int(order_id)] = {}
+                    shipped_orders_dict[int(order_id)]['quantity'] = float(shipped_quantity)
+
+
                 log.info('Shipemnt Info dict is '+ str(shipment_data))
                 ship_quantity = ShipmentInfo.objects.filter(order_id=order_id).\
                                                      aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
@@ -2997,6 +3017,8 @@ def insert_shipment_info(request, user=''):
                     for pick_order in picked_orders:
                         setattr(pick_order, 'status', 'dispatched')
                         pick_order.save()
+        if shipped_orders_dict:
+            check_and_update_order_status(shipped_orders_dict, user)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -4205,7 +4227,7 @@ def order_category_generate_picklist(request, user=''):
     else:
         stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by('location_id__pick_sequence')
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
-    sku_stocks = stock_detail1 | stock_detail2
+    all_sku_stocks = stock_detail1 | stock_detail2
 
     seller_stocks = SellerStock.objects.filter(seller__user=user.id).values('stock_id', 'seller_id')
     for key, value in request.POST.iteritems():
@@ -4230,6 +4252,7 @@ def order_category_generate_picklist(request, user=''):
         try:
             if seller_orders:
                 for seller_order in seller_orders:
+                    sku_stocks = all_sku_stocks
                     seller_stock_dict = filter(lambda person: str(person['seller_id']) == str(seller_order.seller_id), seller_stocks)
                     if seller_stock_dict:
                         sell_stock_ids =  map(lambda person: person['stock_id'], seller_stock_dict)
@@ -4809,24 +4832,33 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
     picklist = Picklist.objects.filter(order__user=user.id, picked_quantity__gt=0)
-    tot_order_qtys = OrderDetail.objects.filter(user=user.id, quantity__gt=0).values_list('order_id', 'quantity')
+    #tot_order_qtys = OrderDetail.objects.filter(user=user.id, quantity__gt=0).values_list('order_id', 'quantity')
+    tot_order_qtys = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0).values_list('order_id').distinct().annotate(ordered=Sum('quantity')))
     all_seller_orders = SellerOrder.objects.filter(seller__user=user.id, order_status='DELIVERY_RESCHEDULED')
+    all_shipment_orders = ShipmentInfo.objects.filter(order__user=user.id)
 
     for data in master_data[start_index:stop_index]:
+        print count
         data1 = copy.deepcopy(data)
         del data1['total_ordered']
         del data1['total_picked']
         order_pick = picklist.filter(**data1)
         creation_date = datetime.datetime.now()
-        if order_pick:
+        if order_pick.count():
             creation_date = order_pick[0].creation_date
         creation_date = get_local_date(user, creation_date)
         order_id = data['order__original_order_id']
         if not order_id:
             order_id = data['order__order_code'] + str(data['order__order_id'])
 
-        shipped = ShipmentInfo.objects.filter(order_id__in=list(order_pick.values_list('order_id', flat=True))).\
-                                       aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
+        #shipped = all_shipment_orders.filter(order_id__in=order_pick.values_list('order_id', flat=True)).\
+        #                               aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
+        shipped = all_shipment_orders.filter(Q(order__order_id=data['order__order_id'], order__order_code=data['order__order_code']) |
+                                             Q(order__original_order_id=data['order__original_order_id']),
+                                             order__customer_id=data['order__customer_id'], order__customer_name=data['order__customer_name'],
+                                             order__marketplace=data['order__marketplace']).aggregate(Sum('shipping_quantity'))\
+                                             ['shipping_quantity__sum']
+
         seller_order = all_seller_orders.filter(order__order_id=data['order__order_id'])
         dis_quantity = 0
         if seller_order:
@@ -4839,10 +4871,10 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
             if data['total_picked'] <= 0:
                 continue
 
-        qty_indexes = [i for i, x in enumerate(tot_order_qtys) if str(x[0]) == str(data['order__order_id'])]
-        total_quantity = 0
-        for qty_ind in qty_indexes:
-            total_quantity += tot_order_qtys[qty_ind][1]
+        #qty_indexes = [i for i, x in enumerate(tot_order_qtys) if str(x[0]) == str(data['order__order_id'])]
+        total_quantity = tot_order_qtys.get(data['order__order_id'], 0)
+        #for qty_ind in qty_indexes:
+        #    total_quantity += tot_order_qtys[qty_ind][1]
         temp_data['aaData'].append(OrderedDict(( ('Order ID', str(order_id)), ('id', count),
                                                  ('Customer ID', data['order__customer_id']), ('Customer Name', data['order__customer_name']),
                                                  ('Marketplace', data['order__marketplace']), ('Picked Quantity', data['total_picked']),
@@ -5155,7 +5187,8 @@ def seller_generate_picklist(request, user=''):
     log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0)
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone='DAMAGED_ZONE').\
+                                         filter(sku__user=user.id, quantity__gt=0)
         all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**order_filter)
 
         fifo_switch = get_misc_value('fifo_switch', user.id)
@@ -5166,12 +5199,13 @@ def seller_generate_picklist(request, user=''):
         else:
             stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by('location_id__pick_sequence')
             stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
-        sku_stocks = stock_detail1 | stock_detail2
+        all_sku_stocks = stock_detail1 | stock_detail2
         seller_stocks = SellerStock.objects.filter(seller__user=user.id).values('stock_id', 'seller_id')
         for key, value in request.POST.iteritems():
             if key in PICKLIST_SKIP_LIST or key in ['filters']:
                 continue
 
+            sku_stocks = all_sku_stocks
             order_filter = {'quantity__gt': 0 }
             seller_id = ''
             if '<>' in key:

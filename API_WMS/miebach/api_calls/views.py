@@ -964,7 +964,10 @@ def update_order(request):
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
     try:
-        status = update_orders(orders, user=request.user, company_name='mieone')
+        validation_dict, final_data_dict = validate_orders(orders, user=request.user, company_name='mieone')
+        if validation_dict:
+            return HttpResponse(json.dumps(validation_dict))
+        #status = update_orders(orders, user=request.user, company_name='mieone')
         log.info(status)
     except Exception as e:
         import traceback
@@ -1016,7 +1019,7 @@ def update_supplier(request):
         suppliers = json.loads(request.body)
     except:
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
-    log.info('Request params for ' + request.user.username + ' is ' + str(customers))
+    log.info('Request params for ' + request.user.username + ' is ' + str(suppliers))
     try:
         status = update_suppliers(suppliers, user=request.user, company_name='mieone')
         log.info(status)

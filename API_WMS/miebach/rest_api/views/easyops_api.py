@@ -23,10 +23,12 @@ class EasyopsAPI:
         self.host = LOAD_CONFIG.get(self.company_name, 'host', '')
         self.auth_data = LOAD_CONFIG.get(self.company_name, 'authentication', '')
         self.access_token_name = LOAD_CONFIG.get(self.company_name, 'access_token_name', '')
+        self.is_full_link = LOAD_CONFIG.get(self.company_name, 'is_full_link', False)
+        self.content_type_name = LOAD_CONFIG.get(self.company_name, 'content_type_name', False)
         self.token = token
         self.user = user
         self.content_type = 'application/json'
-        self.headers = { 'ContentType' : self.content_type }
+        self.headers = { self.content_type_name : self.content_type }
 
     def update_token(self, json_response):
         """ Updating refresh token details to DB """
@@ -47,7 +49,7 @@ class EasyopsAPI:
         self.token = ''
         if user and self.auth_check:
             self.user = user
-            access_token = UserAccessTokens.objects.filter(user_profile__user_id=user.id, app_host='easyops')
+            access_token = UserAccessTokens.objects.filter(user_profile__user_id=user.id, app_host=self.company_name)
             if access_token:
                 self.token = access_token[0].access_token
             else:
@@ -171,6 +173,19 @@ class EasyopsAPI:
         url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'confirm_picklist', ''))
         data = eval(LOAD_CONFIG.get(self.company_name, 'confirm_picklist_dict', '') % order_id)
         json_response = self.get_response(url, data, put=True)
+        return json_response
+
+    def confirm_order_status(self, data={}, token='', user=''):
+        """ API to confirm the order status (shotang)"""
+        if user:
+            self.user = user
+            self.get_user_token(user)
+
+        if self.is_full_link:
+            url = LOAD_CONFIG.get(self.company_name, 'confirm_picklist', '')
+        else:
+            url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'confirm_picklist', ''))
+        json_response = self.get_response(url, data)
         return json_response
 
     def get_shipped_orders(self, token='', user=''):

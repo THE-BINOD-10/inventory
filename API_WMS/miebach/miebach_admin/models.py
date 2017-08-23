@@ -662,7 +662,7 @@ class SWXMapping(models.Model):
 
     class Meta:
         db_table = 'SWX_MAPPING'
-        unique_together = ('swx_id', 'local_id', 'swx_type')
+        unique_together = ('swx_id', 'local_id', 'swx_type', 'app_host')
 
 class LRDetail(models.Model):
     id = BigAutoField(primary_key = True)

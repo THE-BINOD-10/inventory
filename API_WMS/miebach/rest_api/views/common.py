@@ -595,6 +595,11 @@ def configurations(request, user=''):
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
 
+    receive_options =  dict(RECEIVE_OPTIONS)
+    total_groups = request.user.groups.all()
+    if not get_permission(request.user, 'add_qualitycheck', groups=total_groups):
+        del receive_options['One step Receipt + Qc']
+
     view_order_status = view_order_status.split(',')
     style_headers = style_headers.split(',')
 
@@ -690,7 +695,7 @@ def configurations(request, user=''):
                                     'all_view_order_status': all_view_order_status,
                                     'view_order_status': view_order_status, 'style_headers': style_headers,
                                     'sku_sync': sku_sync, 'seller_margin': seller_margin,
-                                    'receive_process': receive_process, 'receive_options': RECEIVE_OPTIONS,
+                                    'receive_process': receive_process, 'receive_options': receive_options,
                                     'tally_config': tally_config, 'tax_data': tax_data, 'hsn_summary': hsn_summary,
                                     'display_customer_sku': display_customer_sku, 'marketplace_model': marketplace_model,
                                     'label_generation': label_generation, 'barcode_generate_options': BARCODE_OPTIONS,

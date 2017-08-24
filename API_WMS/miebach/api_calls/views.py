@@ -983,6 +983,7 @@ def update_sku(request):
     try:
         skus = json.loads(request.body)
     except:
+        log.info('Incorrect Request params for ' + request.user.username + ' is ' + str(skus))
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(skus))
     try:

@@ -1759,7 +1759,9 @@ def check_and_update_marketplace_stock(stock_updates, user):
             try:
                 response = obj.update_sku_count(
                     data=[update], user=user, method_put=False, individual_update=True)
+                log.info('Stock Sync API response for the user ' + str(user.username) + ' is ' + str(response))
             except:
+                log.info('Stock Sync API failed for the user ' + str(user.username) + ' is ' + str(response))
                 continue
 
 

@@ -9,6 +9,7 @@ from itertools import chain
 from collections import OrderedDict
 from django.contrib.auth import authenticate
 from django.contrib import auth
+from django.db.models.query import QuerySet
 from miebach_admin.models import *
 from miebach_utils import *
 from mail_server import send_mail, send_mail_attachment
@@ -2446,6 +2447,7 @@ def putaway_location(data, value, exc_loc, user, order_id, po_id):
 def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=False):
     if not data.purchase_order.open_po:
         return
+    seller_stock_update_details = []
     received_quantity = float(stock_obj.quantity)
     if use_value:
         received_quantity = value
@@ -2465,12 +2467,22 @@ def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=
         seller_stock = SellerStock.objects.filter(seller_id=sell_summary.seller_po.seller_id, stock_id=stock_obj.id,
                                                   stock__sku__user=user.id, seller_po_summary_id=sell_summary.id)
         if not seller_stock:
-            SellerStock.objects.create(seller_id=sell_summary.seller_po.seller_id, quantity=sell_quan,
+            seller_stock = SellerStock.objects.create(seller_id=sell_summary.seller_po.seller_id, quantity=sell_quan,
                                        seller_po_summary_id=sell_summary.id,
                                        creation_date=datetime.datetime.now(), status=1, stock_id=stock_obj.id)
         else:
             seller_stock[0].quantity = float(seller_stock[0].quantity) + float(sell_quan)
             seller_stock[0].save()
+        if isinstance(seller_stock, QuerySet):
+            seller_stock = seller_stock[0]
+
+        if seller_stock:
+            seller_stock_update_details.append({
+                    'sku_code' : str(seller_stock.stock.sku.sku_code),
+                    'seller_id' : int(seller_stock.seller.seller_id),
+                    'quantity' : int(seller_stock.quantity)
+                })
+    return seller_stock_update_details
 
 @csrf_exempt
 @login_required
@@ -2481,6 +2493,7 @@ def putaway_data(request, user=''):
     all_data = {}
     myDict = dict(request.POST.iterlists())
     sku_codes = []
+    marketplace_data = []
     mod_locations = []
     for i in range(0, len(myDict['id'])):
         po_data = ''
@@ -2567,7 +2580,8 @@ def putaway_data(request, user=''):
                     setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
                 stock_data.save()
                 #create_update_seller_stock(data, value, user, stock_data, exc_loc, use_value=True)
-                create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
+                update_details = create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
+                marketplace_data += update_details
             else:
                 record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
                                'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
@@ -2579,7 +2593,8 @@ def putaway_data(request, user=''):
                     pallet_mapping[0].save()
                 stock_detail = StockDetail(**record_data)
                 stock_detail.save()
-                create_update_seller_stock(data, value, user, stock_detail, old_loc)
+                update_details = create_update_seller_stock(data, value, user, stock_detail, old_loc)
+                marketplace_data += update_details
                 #create_update_seller_stock(data, value, user, stock_detail, exc_loc)
             consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 
@@ -2595,11 +2610,13 @@ def putaway_data(request, user=''):
                 data.purchase_order.status = 'confirmed-putaway'
 
             data.purchase_order.save()
-    check_and_update_stock(sku_codes, user)
+    if user.userprofile.user_type == 'marketplace_user':
+        check_and_update_marketplace_stock(marketplace_data, user)
+    else:
+        check_and_update_stock(sku_codes, user)
     update_filled_capacity(list(set(mod_locations)), user.id)
 
     return HttpResponse('Updated Successfully')
-
 @csrf_exempt
 @login_required
 @get_admin_user

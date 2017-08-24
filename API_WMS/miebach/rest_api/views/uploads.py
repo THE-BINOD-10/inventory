@@ -213,13 +213,18 @@ def get_customer_master_mapping(reader, file_type):
     return mapping_dict
 
 
-def check_create_seller_order(seller_order_dict, order, user):
+def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):
     if seller_order_dict.get('seller_id', ''):
         sell_order_ins = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id, seller__user=user.id)
         seller_order_dict['order_id'] = order.id
         if not sell_order_ins:
             seller_order = SellerOrder(**seller_order_dict)
             seller_order.save()
+            for swx_mapping in swx_mappings:
+                try:
+                    create_swx_mapping(swx_mapping['swx_id'], seller_order.id, swx_mapping['swx_type'], swx_mapping['app_host'])
+                except:
+                    pass
 
 def myntra_order_tax_calc(key, value, order_mapping, order_summary_dict, row_idx, reader, file_type):
     cell_data = ''

@@ -595,6 +595,11 @@ def configurations(request, user=''):
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
 
+    receive_options =  dict(RECEIVE_OPTIONS)
+    total_groups = request.user.groups.all()
+    if not get_permission(request.user, 'add_qualitycheck', groups=total_groups):
+        del receive_options['One step Receipt + Qc']
+
     view_order_status = view_order_status.split(',')
     style_headers = style_headers.split(',')
 
@@ -690,7 +695,7 @@ def configurations(request, user=''):
                                     'all_view_order_status': all_view_order_status,
                                     'view_order_status': view_order_status, 'style_headers': style_headers,
                                     'sku_sync': sku_sync, 'seller_margin': seller_margin,
-                                    'receive_process': receive_process, 'receive_options': RECEIVE_OPTIONS,
+                                    'receive_process': receive_process, 'receive_options': receive_options,
                                     'tally_config': tally_config, 'tax_data': tax_data, 'hsn_summary': hsn_summary,
                                     'display_customer_sku': display_customer_sku, 'marketplace_model': marketplace_model,
                                     'label_generation': label_generation, 'barcode_generate_options': BARCODE_OPTIONS,
@@ -1742,6 +1747,24 @@ def check_and_update_stock(wms_codes, user):
         except:
             continue
 
+def check_and_update_marketplace_stock(stock_updates, user):
+    stock_sync = get_misc_value('stock_sync', user.id)
+    if not stock_sync == 'true':
+        return
+    from rest_api.views.easyops_api import *
+    integrations = Integrations.objects.filter(user=user.id, status=1)
+    for integrate in integrations:
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        for update in stock_updates:
+            try:
+                response = obj.update_sku_count(
+                    data=[update], user=user, method_put=False, individual_update=True)
+                log.info('Stock Sync API response for the user ' + str(user.username) + ' is ' + str(response))
+            except:
+                log.info('Stock Sync API failed for the user ' + str(user.username) + ' is ' + str(response))
+                continue
+
+
 def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_ids=[]):
     extra_data = []
     product_images = []
@@ -1770,11 +1793,13 @@ def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_i
 def check_and_update_order(user, order_id):
     from rest_api.views.easyops_api import *
     user = User.objects.get(id=user)
+    user_profile = UserProfile.objects.get(user_id=user)
     integrations = Integrations.objects.filter(user=user.id, status=1)
     for integrate in integrations:
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
         try:
-            obj.confirm_picklist(order_id, user=user)
+            if not user_profile.user_type == 'marketplace_user':
+                obj.confirm_picklist(order_id, user=user)
         except:
             continue
 
@@ -3515,6 +3540,12 @@ def build_invoice(invoice_data, user, css=False):
             temp_page['data'] = invoice_data['data'][i*temp_no_of_skus: (i+1)*temp_no_of_skus]
             temp_page['empty_data'] = [];
             render_data.append(temp_page);
+        if int(math.ceil(data_length/temp_no_of_skus)) == 0:
+            temp_page = {'data': []}
+            temp_page['data'] = invoice_data['data']
+            temp_page['empty_data'] = [];
+            temp_page['empty_data'] = [];
+            render_data.append(temp_page);
         last = len(render_data) - 1;
         data_length = len(render_data[last]['data']);
 
@@ -3543,3 +3574,87 @@ def build_invoice(invoice_data, user, css=False):
     html = loader.get_template('../miebach_admin/templates/toggle/invoice/customer_invoice.html')
     html = html.render(invoice_data)
     return top+html
+
+def get_new_supplier_id(user):
+    max_sup_id = SupplierMaster.objects.count()
+    run_iterator = 1
+    while run_iterator:
+        supplier_obj = SupplierMaster.objects.filter(id=max_sup_id)
+        if not supplier_obj:
+            run_iterator = 0
+        else:
+            max_sup_id += 1
+    return max_sup_id
+
+def create_swx_mapping(swx_id, local_id, swx_type, app_host):
+    swx_mapping = SWXMapping.objects.filter(swx_id=swx_id, local_id=local_id, swx_type=swx_type, app_host=app_host)
+    if not swx_mapping:
+        SWXMapping.objects.create(swx_id=swx_id, local_id=local_id, swx_type=swx_type, app_host=app_host,
+                                  creation_date=datetime.datetime.now())
+
+def check_and_update_order_status(shipped_orders_dict, user):
+    from rest_api.views.easyops_api import EasyopsAPI
+    integrations = Integrations.objects.filter(user=user.id, status=1)
+    for integrate in integrations:
+        order_status_dict = {}
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        all_seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id__in=shipped_orders_dict.keys(), status=0)
+        all_orders = OrderDetail.objects.filter(user=user.id, id__in=shipped_orders_dict.keys())
+        seller_line_ids = dict(SWXMapping.objects.filter(app_host='shotang', swx_type='seller_item_id').values_list('local_id', 'swx_id'))
+        seller_parent_ids = dict(SWXMapping.objects.filter(app_host='shotang', swx_type='seller_parent_item_id').\
+                                 values_list('local_id', 'swx_id'))
+        try:
+            for order_id, order_data in shipped_orders_dict.iteritems():
+
+                order = all_orders.filter(id=order_id)
+                if not order:
+                    continue
+                else:
+                    order = order[0]
+                seller_orders = all_seller_orders.filter(order_id=order_id)
+
+                order_detail_id = str(order.original_order_id)
+                if not order_detail_id:
+                    order_detail_id = str(order.order_code) + str(order.order_id)
+                if not order_status_dict.has_key(order_detail_id):
+                    order_status_dict[order_detail_id] = {}
+                    order_status_dict[order_detail_id]['uorId'] = order_detail_id
+                    order_status_dict[order_detail_id]['dateAdded'] = 1476901800000
+                    order_status_dict[order_detail_id]['retailerId'] = str(order.customer_id)
+                    order_status_dict[order_detail_id]['retailerAddress'] = {'retailerId': str(order.customer_id), 'city': order.city,
+                                                                             'address': order.address,
+                                                                             'name': order.customer_name, 'phoneNo': order.telephone }
+
+                order_status_dict[order_detail_id].setdefault('subOrders', [])
+                for seller_order in seller_orders:
+                    is_sor_id = filter(lambda a: str(a['sorId']) == str(seller_order.sor_id), order_status_dict[order_detail_id]['subOrders'])
+                    if not len(is_sor_id) > 0:
+                        seller_dict = {}
+                        seller_dict['sorId'] = str(seller_order.sor_id)
+                        seller_dict['sellerId'] = seller_order.seller.seller_id
+                        seller_dict['invoiceNo'] = seller_order.invoice_no
+                        #seller_dict['seller_city'] = ''
+                        #seller_dict['sellerAddress'] = {}
+                        order_status_dict[order_detail_id]['subOrders'].append(seller_dict)
+                        index = len(order_status_dict[order_detail_id]['subOrders']) - 1
+                    else:
+                        index = order_status_dict[order_detail_id].index(is_sor_id[0])
+                    order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
+                    for imei in order_data.get('imeis', []):
+                        hsn_code = ''
+                        if order.sku.hsn_code:
+                            hsn_code = order.sku.hsn_code
+                        imei_dict = {'lineItemId': str(seller_line_ids.get(seller_order.id, 0)), 'name': order.title,
+                                     'unitPrice': str(order.unit_price), 'quantity': str(1),
+                                     'sku': order.sku.sku_code, 'cgstTax': 0, 'sgstTax': 0, 'igstTax': 0,
+                                     'parent_line_item_id': str(seller_parent_ids.get(seller_order.id, 0)), 'status': 'PROCESSED',
+                                     'imei': imei.po_imei.imei_number, 'hsn': hsn_code}
+                        order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
+                        order_status_dict[order_detail_id]['subOrders'][index]['lineItems'].append(imei_dict)
+            final_data = order_status_dict.values()
+            call_response = obj.confirm_order_status(final_data, user=user)
+            log.info(str(call_response))
+            if isinstance(call_response, dict) and call_response.get('status') == 1:
+                log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
+        except:
+            continue

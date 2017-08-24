@@ -731,14 +731,14 @@ ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items
                          'title': 'sku_item["name"]', 'quantity': 'sku_item["quantity"]',
                          'shipment_date': 'orders.get("orderDate", '')', 'channel_sku': 'sku_item["sku"]',
                          'unit_price': 'sku_item["unitPrice"]', 'seller_id': 'order["sellerId"]',
-                         'sor_id': 'order["sorId"]', 'cgst_tax': 'sku_item.get("cgst_tax", "0")', 'sgst_tax': 'sku_item.get("sgst_tax", "0")',
-                         'igst_tax': 'sku_item.get("igst_tax", "0")', 'order_status': 'order.get("currentStatus", "")',
+                         'sor_id': 'order["sorId"]', 'cgst_tax': 'sku_item.get("cgstTax", "0")', 'sgstTax': 'sku_item.get("sgstTax", "0")',
+                         'igst_tax': 'sku_item.get("igstTax", "0")', 'order_status': 'order.get("currentStatus", "")',
                          'line_items': 'order["lineItems"]', 'customer_id': 'orders.get("retailerId", "")',
                          'customer_name': '(orders.get("retailerAddress", {})).get("name", "")',
                          'telephone': '(orders.get("retailerAddress", {})).get("phoneNo", "")',
                          'address': '(orders.get("retailerAddress", {})).get("address", "")',
                          'city': '(orders.get("retailerAddress", {})).get("city", "")', 'seller_item_id': 'sku_item["lineItemId"]',
-                         'seller_parent_item_id': 'sku_item["parent_line_item_id"]'
+                         'seller_parent_item_id': 'sku_item["parentLineItemId"]'
                         }
 
 SKU_MASTER_API_MAPPING = OrderedDict(( ('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_name'),

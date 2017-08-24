@@ -46,7 +46,7 @@ def validate_orders(orders, user='', company_name=''):
 
             order_details = copy.deepcopy(ORDER_DATA)
             data = orders
-            original_order_id = data[order_mapping['order_id']]
+            original_order_id = str(data[order_mapping['order_id']])
             order_code = ''.join(re.findall('\D+', original_order_id))
             order_id = ''.join(re.findall('\d+', original_order_id))
             filter_params = {'user': user.id, 'order_id': order_id}
@@ -224,7 +224,7 @@ def validate_orders(orders, user='', company_name=''):
         return insert_status, final_data_dict
 
 def update_order_dicts(orders, user='', company_name=''):
-    status = {'status': 0, 'messages': 'Something went wrong'}
+    status = {'status': 0, 'messages': ['Something went wrong']}
     for order_key, order in orders.iteritems():
         if not order.get('order_details', {}):
             continue
@@ -247,7 +247,7 @@ def update_order_dicts(orders, user='', company_name=''):
             customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
         if order.get('seller_order_dict', {}):
             check_create_seller_order(order['seller_order_dict'], order_detail, user, order.get('swx_mappings', []))
-        status = {'status': 1, 'messages': 'Success'}
+        status = {'status': 1, 'messages': ['Success']}
     return status
 
 

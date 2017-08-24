@@ -193,7 +193,7 @@ class OrderDetail(models.Model):
     customer_name = models.CharField(max_length=256,default='')
     email_id = models.EmailField(max_length=64, default='')
     address = models.CharField(max_length=256,default='')
-    telephone = models.CharField(max_length=128, default='')
+    telephone = models.CharField(max_length=128, default='', blank=True, null=True)
     sku = models.ForeignKey(SKUMaster)
     title = models.CharField(max_length=256, default='')
     quantity = models.FloatField(default=0)
@@ -657,12 +657,13 @@ class SWXMapping(models.Model):
     local_id = models.PositiveIntegerField(default=0)
     swx_type = models.CharField(max_length = 32, default = '')
     app_host = models.CharField(max_length=64, default='')
+    imei = models.CharField(max_length = 64, default = '')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'SWX_MAPPING'
-        unique_together = ('swx_id', 'local_id', 'swx_type', 'app_host')
+        unique_together = ('swx_id', 'local_id', 'swx_type', 'app_host', 'imei')
 
 class LRDetail(models.Model):
     id = BigAutoField(primary_key = True)

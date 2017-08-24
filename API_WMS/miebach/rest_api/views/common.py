@@ -3600,9 +3600,7 @@ def check_and_update_order_status(shipped_orders_dict, user):
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
         all_seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id__in=shipped_orders_dict.keys(), status=0)
         all_orders = OrderDetail.objects.filter(user=user.id, id__in=shipped_orders_dict.keys())
-        seller_line_ids = dict(SWXMapping.objects.filter(app_host='shotang', swx_type='seller_item_id').values_list('local_id', 'swx_id'))
-        seller_parent_ids = dict(SWXMapping.objects.filter(app_host='shotang', swx_type='seller_parent_item_id').\
-                                 values_list('local_id', 'swx_id'))
+        line_items_ids = SWXMapping.objects.filter(app_host='shotang')
         try:
             for order_id, order_data in shipped_orders_dict.iteritems():
 
@@ -3644,10 +3642,25 @@ def check_and_update_order_status(shipped_orders_dict, user):
                         hsn_code = ''
                         if order.sku.hsn_code:
                             hsn_code = order.sku.hsn_code
-                        imei_dict = {'lineItemId': str(seller_line_ids.get(seller_order.id, 0)), 'name': order.title,
+                        seller_item_obj = line_items_ids.filter(local_id=seller_order.id, app_host='shotang', swx_type='seller_item_id',
+                                                                imei='')
+                        seller_item_id = ''
+                        if seller_item_obj:
+                            seller_item_id = seller_item_obj[0].swx_id
+                            seller_item_obj[0].imei = imei.po_imei.imei_number
+                            seller_item_obj[0].save()
+
+                        seller_parent_item_obj = line_items_ids.filter(local_id=seller_order.id, app_host='shotang',
+                                                                       swx_type='seller_parent_item_id', imei='')
+                        seller_parent_id = ''
+                        if seller_parent_item_obj:
+                            seller_parent_id = seller_item_obj[0].swx_id
+                            seller_parent_item_obj[0].imei = imei.po_imei.imei_number
+                            seller_parent_item_obj[0].save()
+                        imei_dict = {'lineItemId': seller_item_id, 'name': order.title,
                                      'unitPrice': str(order.unit_price), 'quantity': str(1),
                                      'sku': order.sku.sku_code, 'cgstTax': 0, 'sgstTax': 0, 'igstTax': 0,
-                                     'parent_line_item_id': str(seller_parent_ids.get(seller_order.id, 0)), 'status': 'PROCESSED',
+                                     'parentLineItemId':seller_parent_id, 'status': 'PROCESSED',
                                      'imei': imei.po_imei.imei_number, 'hsn': hsn_code}
                         order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
                         order_status_dict[order_detail_id]['subOrders'][index]['lineItems'].append(imei_dict)

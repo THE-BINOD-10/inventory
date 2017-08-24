@@ -1747,6 +1747,22 @@ def check_and_update_stock(wms_codes, user):
         except:
             continue
 
+def check_and_update_marketplace_stock(stock_updates, user):
+    stock_sync = get_misc_value('stock_sync', user.id)
+    if not stock_sync == 'true':
+        return
+    from rest_api.views.easyops_api import *
+    integrations = Integrations.objects.filter(user=user.id, status=1)
+    for integrate in integrations:
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        for update in stock_updates:
+            try:
+                response = obj.update_sku_count(
+                    data=[update], user=user, method_put=False, individual_update=True)
+            except:
+                continue
+
+
 def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_ids=[]):
     extra_data = []
     product_images = []

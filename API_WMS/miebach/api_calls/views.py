@@ -1016,18 +1016,18 @@ def update_customer(request):
 
 @csrf_exempt
 @login_required
-def update_supplier(request):
+def update_seller(request):
     try:
-        suppliers = json.loads(request.body)
+        sellers = json.loads(request.body)
     except:
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
-    log.info('Request params for ' + request.user.username + ' is ' + str(suppliers))
+    log.info('Request params for ' + request.user.username + ' are ' + str(sellers))
     try:
-        status = update_suppliers(suppliers, user=request.user, company_name='mieone')
+        status = update_sellers(sellers, user=request.user, company_name='mieone')
         log.info(status)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Update Suppliers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        log.info('Update Sellers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'message': 'Internal Server Error'}
     return HttpResponse(json.dumps(status))

@@ -828,64 +828,63 @@ def update_customers(customers, user='', company_name=''):
         traceback.print_exc()
         return insert_status
 
-
-def update_suppliers(suppliers, user='', company_name=''):
-    supplier_mapping = eval(LOAD_CONFIG.get(company_name, 'supplier_mapping_dict', ''))
+def update_sellers(sellers, user='', company_name=''):
+    seller_mapping = eval(LOAD_CONFIG.get(company_name, 'seller_mapping_dict', ''))
     NOW = datetime.datetime.now()
 
-    insert_status = {'Newly Created Supplier ids': [], 'Data updated for supplier ids': [],
-                     'Supplier ID should not be empty for supplier names': [],
-                     'Supplier ID should be number for supplier names': []}
+    insert_status = {'Newly Created Seller ids': [], 'Data updated for seller ids': [],
+                     'Seller ID should not be empty for seller names': [],
+                     'Seller ID should be number for seller names': [],
+                     'Data updated for Seller ids': []}
 
     try:
         user_profile = UserProfile.objects.get(user_id=user.id)
-        supplier_ids = []
-        if not suppliers:
-            suppliers = {}
-        suppliers = suppliers.get(supplier_mapping['suppliers'], [])
-        for supplier_data in suppliers:
-            supplier_master = None
-            supplier_id = supplier_data.get(supplier_mapping['supplier_id'], '')
-            if not supplier_id:
-                insert_status['Supplier ID should not be empty for supplier names'].append(str(supplier_data.get(supplier_mapping['name'], '')))
+        seller_ids = []
+        if not sellers:
+            sellers = {}
+        sellers = sellers.get(seller_mapping['sellers'], [])
+        for seller_data in sellers:
+            seller_master = None
+            seller_id = seller_data.get(seller_mapping['seller_id'], '')
+            if not seller_id:
+                insert_status['Seller ID should not be empty for seller names'].append(str(seller_data.get(seller_mapping['name'], '')))
                 continue
-            #elif not isinstance(supplier_id, int):
-            #    insert_status['Supplier ID should be number for supplier names'].append(str(customer_data.get(customer_mapping['name'], '')))
+            #elif not isinstance(seller_id, int):
+            #    insert_status['Seller ID should be number for seller names'].append(str(customer_data.get(customer_mapping['name'], '')))
             #    continue
-            supplier_ins = SupplierMaster.objects.filter(user=user.id, id=supplier_id)
-            if supplier_ins:
-                supplier_master = supplier_ins[0]
-            supplier_master_dict = {'user': user.id, 'creation_date': datetime.datetime.now()}
-            exclude_list = ['suppliers']
+            seller_ins = SellerMaster.objects.filter(user=user.id, id=seller_id)
+            if seller_ins:
+                seller_master = seller_ins[0]
+            seller_master_dict = {'user': user.id, 'creation_date': datetime.datetime.now()}
+            exclude_list = ['sellers']
             number_fields = {'status': 'Status', 'pincode': 'Pin Code',
-                             'phone_number': 'Phone Number'}
-            for key, val in supplier_mapping.iteritems():
+                             'phone_number': 'Phone Number', 'seller_id': 'Seller Id', 'margin': 'Margin'}
+            for key, val in seller_mapping.iteritems():
                 if key in exclude_list:
                     continue
-                value = supplier_data.get(key, '')
+                value = seller_data.get(key, '')
                 if key in number_fields.keys():
                     if not value:
                         value = 0
                     try:
                         value = int(value)
                     except:
-                        if insert_status.has_key(number_fields[key] + " should be number for Supplier ids"):
-                            insert_status[number_fields[key] + " should be number for Supplier ids"].append(str(supplier_id))
+                        if insert_status.has_key(number_fields[key] + " should be number for Seller ids"):
+                            insert_status[number_fields[key] + " should be number for Seller ids"].append(str(seller_id))
                         else:
-                            insert_status[number_fields[key] + " should be number for Supplier ids"] = [str(supplier_id)]
-                supplier_master_dict[key] = value
-                if supplier_master:
-                    setattr(supplier_master, key, value)
-
-            if str(supplier_id) in sum(insert_status.values(), []):
+                            insert_status[number_fields[key] + " should be number for Seller ids"] = [str(seller_id)]
+                seller_master_dict[key] = value
+                if seller_master:
+                    setattr(seller_master, key, value)
+            if str(seller_id) in sum(insert_status.values(), []):
                 continue
-            if supplier_master:
-                supplier_master.save()
-                insert_status['Data updated for Supplier ids'].append(str(supplier_id))
+            if seller_master:
+                seller_master.save()
+                insert_status['Data updated for Seller ids'].append(str(seller_id))
             else:
-                supplier_master = SupplierMaster(**supplier_master_dict)
-                supplier_master.save()
-                insert_status['Newly Created Supplier ids'].append(str(supplier_id))
+                seller_master = SellerMaster(**seller_master_dict)
+                seller_master.save()
+                insert_status['Newly Created Seller ids'].append(str(seller_id))
 
         final_status = {}
         for key, value in insert_status.iteritems():
@@ -897,4 +896,3 @@ def update_suppliers(suppliers, user='', company_name=''):
     except:
         traceback.print_exc()
         return insert_status
-

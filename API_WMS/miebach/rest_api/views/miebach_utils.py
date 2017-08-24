@@ -741,12 +741,14 @@ ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items
                          'seller_parent_item_id': 'sku_item["parent_line_item_id"]'
                         }
 
-SKU_MASTER_API_MAPPING = OrderedDict(( ('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_desc'), ('sku_brand', 'sku_brand'),
-                          ('sku_category', 'sku_category_id'), ('price', 'price'), ('mrp', 'mrp'), ('product_type', 'product_type'),
-                          ('sku_class', 'sku_class'), ('style_name', 'style_name'), ('status', 'status'), ('hsn_code', 'hsn_code'),
-                          ('ean_number', 'ean_number'), ('threshold_quantity', 'threshold_quantity'), ('color', 'color'),
-                          ('measurement_type', 'measurement_type'), ('sku_size', 'sku_size'), ('size_type', 'size_type'),
-                          ('mix_sku', 'mix_sku'), ('sku_type', 'sku_type'), ('attributes', 'sku_options'), ('child_skus', 'child_skus') ))
+SKU_MASTER_API_MAPPING = OrderedDict(( ('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_name'),
+                                       ('sku_brand', 'sku_brand'), ('sku_category', 'sku_category_name'), ('price', 'price'),
+                                       ('mrp', 'mrp'), ('product_type', 'product_type'), ('sku_class', 'sku_class'),
+                                       ('style_name', 'style_name'), ('status', 'status'), ('hsn_code', 'hsn_code'),
+                                       ('ean_number', 'ean_number'), ('threshold_quantity', 'threshold_quantity'), ('color', 'color'),
+                                       ('measurement_type', 'measurement_type'), ('sku_size', 'sku_size'), ('size_type', 'size_type'),
+                                       ('mix_sku', 'mix_sku'), ('sku_type', 'sku_type'), ('attributes', 'sku_options'),
+                                       ('child_skus', 'child_skus') ))
 
 CUSTOMER_MASTER_API_MAPPING = OrderedDict(( ('customers', 'customers'), ('customer_id', 'customer_id'), ('name', 'name'),
                                             ('address', 'address'), ('city', 'city'), ('state', 'state'), ('country', 'country'),

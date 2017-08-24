@@ -10,10 +10,21 @@ import datetime
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read('rest_api/views/configuration.cfg')
 
-def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}):
+def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, is_list=False):
     final_data_dict.setdefault(grouping_key, {})
-    #final_data_dict[grouping_key].setdefault(key_name, '')
-    final_data_dict[grouping_key][key_name] = copy.deepcopy(adding_dat)
+    final_data_dict[grouping_key].setdefault(key_name, {})
+    if is_list:
+        final_data_dict[grouping_key].setdefault(key_name, [])
+        final_data_dict[grouping_key][key_name] = copy.deepcopy(list(chain(final_data_dict[grouping_key][key_name], adding_dat)))
+
+    elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('quantity'):
+        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['quantity'] +\
+                                                                  adding_dat.get('quantity', 0)
+    elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
+        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['invoice_amount'] +\
+                                                                  adding_dat.get('invoice_amount', 0)
+    else:
+        final_data_dict[grouping_key][key_name] = copy.deepcopy(adding_dat)
 
     return final_data_dict
 
@@ -140,7 +151,7 @@ def validate_orders(orders, user='', company_name=''):
                     if order_mapping.get('sor_id', ''):
                         order_sor_id = eval(order_mapping['sor_id'])
                     grouping_key = str(original_order_id) + '<<>>' + str(sku_master[0].sku_code) + '<<>>' +str(order_sor_id)
-                    final_data_dict = check_and_add_dict(grouping_key, 'swx_mappings', swx_mappings, final_data_dict=final_data_dict)
+                    final_data_dict = check_and_add_dict(grouping_key, 'swx_mappings', swx_mappings, final_data_dict=final_data_dict, is_list=True)
                     order_det = OrderDetail.objects.filter(**filter_params)
                     order_det1 = OrderDetail.objects.filter(**filter_params1)
                     invoice_amount = float(data.get('total_price', 0))
@@ -249,7 +260,6 @@ def update_order_dicts(orders, user='', company_name=''):
             check_create_seller_order(order['seller_order_dict'], order_detail, user, order.get('swx_mappings', []))
         status = {'status': 1, 'messages': ['Success']}
     return status
-
 
 def update_orders(orders, user='', company_name=''):
     order_mapping = eval(LOAD_CONFIG.get(company_name, 'order_mapping_dict', ''))

@@ -30,7 +30,7 @@
                 </thead>
                 <tbody>
                   {% for record in page.data %}
-                  <tr class="fs14 rm-border" ng-repeat="record in page.data">
+                  <tr ng-repeat="record in page.data" {% if record.imeis %} class="fs14" {% else %} class="fs14 rm-border" {% endif %}>
                     <td class="text-left">
                       <div style="overflow: hidden;width: 100px;text-overflow: ellipsis;">{{record.sku_code}}</td>
                     <td class="text-left">{{record.hsn_code}}</td>
@@ -44,6 +44,24 @@
                     <td class="text-right">{{record.taxes.igst_amt}}<br><span class="tax-percentage">@{{record.taxes.igst_tax}}%</span></td>
                     <td class="text-right">{{record.invoice_amount}}</td>
                   </tr>
+
+                  {% if record.imeis %}
+                  <tr class="fs14">
+                    <td colspan="10">
+                      <div class="row">
+                        <div class="col-md-12">
+                          <b>IMEI Numbers List:</b>
+                        </div>
+                        {% for imei in record.imeis %}
+                        <div class="col-md-3 col-sm-3">
+                           {{forloop.counter}}. {{imei}}
+                        </div>
+                        {% endfor %}
+                      </div>
+                    </td>
+                  </tr>
+                  {% endif %}
+
                   {% endfor %}
                   {% for empty in page.empty_data %}
                   <tr class="rm-border" style="height: 47px;" ng-repeat="empty in page.empty_data">

@@ -1105,7 +1105,7 @@ def validate_location_stock(val, all_locations, all_skus, user):
         status.append(error_string)
     return pic_check_data, ', '.join(status)
 
-def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
+def insert_order_serial(picklist, val, order='', shipped_orders_dict={}, sor_id=''):
     if ',' in val['imei']:
         imei_nos = list(set(val['imei'].split(',')))
     else:
@@ -1125,7 +1125,7 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
         #                                          purchase_order__open_po__sku__user=user_id)
         imei_mapping = None
         if imei and po_mapping:
-            order_mapping = {'order_id': order_id, 'po_imei_id': po_mapping[0].id, 'imei_number': ''}
+            order_mapping = {'order_id': order_id, 'po_imei_id': po_mapping[0].id, 'imei_number': imei, 'sor_id': sor_id}
             order_mapping_ins = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, order_id=order_id)
             if order_mapping_ins:
                 imei_mapping = order_mapping_ins[0]
@@ -1141,7 +1141,7 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
                 po_imei.status=0
                 po_imei.save()
         elif imei and not po_mapping:
-            order_mapping = {'order_id': order_id, 'po_imei_id': None, 'imei_number': imei}
+            order_mapping = {'order_id': order_id, 'po_imei_id': None, 'imei_number': imei, 'sor_id': sor_id}
             imei_mapping = OrderIMEIMapping(**order_mapping)
             imei_mapping.save()
             log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
@@ -2972,8 +2972,13 @@ def insert_shipment_info(request, user=''):
                         shipment_data[key] = value[i]
 
                 if 'imei_number' in myDict.keys() and myDict['imei_number'][i]:
+                    sor_id = ''
+                    sor_data = SellerOrder.objects.filter(order_id = order_id)
+                    if sor_data:
+                        sor_id = sor_data[0].sor_id
+
                     shipped_orders_dict = insert_order_serial([], {'wms_code': order_detail.sku.wms_code, 'imei': myDict['imei_number'][i]},
-                                                              order=order_detail, shipped_orders_dict=shipped_orders_dict)
+                                                              order=order_detail, shipped_orders_dict=shipped_orders_dict, sor_id=sor_id)
                 order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id,
                                                                     package_reference=myDict['package_reference'][i], order_shipment__user=user.id)
                 if not order_pack_instance:

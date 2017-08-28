@@ -1826,6 +1826,7 @@ def get_invoice_number(user, order_no, invoice_date):
 
 def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     data = []
+    imei_data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''
     order_id = ''
@@ -2006,12 +2007,24 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                 customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,sku__sku_code=sku_code)
                 if customer_sku_code_ins:
                     sku_code = customer_sku_code_ins[0]['customer_sku_code']
+
+            sor_id = '' 
+            sor_data = SellerOrder.objects.filter(order_id = dat.id)
+            if sor_data:
+                sor_id = sor_data[0].sor_id
+            imeis = OrderIMEIMapping.objects.filter(order__user = user.id, order_id = dat.id, sor_id = sor_id)
+            temp_imeis = [] 
+            if imeis:
+                for imei in imeis:
+                    if imei:
+                        temp_imeis.append(imei.imei_number)
+            imei_data.append(temp_imeis)
+
             data.append({'order_id': order_id, 'sku_code': sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
                          'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
                          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
                          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
-                         'base_price': base_price, 'hsn_code': hsn_code})
-
+                         'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis})
 
     _invoice_no = get_invoice_number(user_profile, order_no, invoice_date)
     inv_date = invoice_date.strftime("%m/%d/%Y")
@@ -2035,7 +2048,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     declaration = DECLARATIONS.get(user.username, '')
     if not declaration:
         declaration = DECLARATIONS['default']
-    invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
+    invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'marketplace': marketplace, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
                     'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % _total_tax, 'total_mrp': total_mrp,

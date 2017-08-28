@@ -2496,7 +2496,8 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
     mapping_dict = get_customer_master_mapping(reader, file_type)
     if not mapping_dict:
         return "Headers not Matching"
-    number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code', 'phone': 'Phone Number'}
+    number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code', 'phone': 'Phone Number',
+                     'margin': 'Margin'}
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:
             break
@@ -2558,7 +2559,8 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
 
 def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
     mapping_dict = get_customer_master_mapping(reader, file_type)
-    number_fields = ['credit_period', 'phone_number', 'pincode', 'phone']
+    number_fields = ['credit_period', 'phone_number', 'pincode', 'phone', 'margin']
+    float_fields = ['margin']
     rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:
@@ -2591,9 +2593,12 @@ def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
                     customer_master.tax_type = customer_data['tax_type']
             elif key in number_fields:
                 try:
-                    cell_data = int(cell_data)
+                    if key in float_fields:
+                        cell_data = float(cell_data)
+                    else:
+                        cell_data = int(cell_data)
                 except:
-                    print "error"
+                    pass
                 if isinstance(cell_data, (int, float)):
                     if customer_master:
                         if key == 'phone':

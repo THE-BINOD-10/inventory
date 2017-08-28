@@ -164,11 +164,12 @@ SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone N
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
 CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Credit Period', 'CST Number', 'TIN Number', 'PAN Number', 'Email', 'Phone No.',
-                    'City', 'State', 'Country', 'Pin Code', 'Address', 'Selling Price Type', 'Tax Type(Options: Inter State, Intra State)']
+                    'City', 'State', 'Country', 'Pin Code', 'Address', 'Selling Price Type', 'Tax Type(Options: Inter State, Intra State)',
+                    'Margin Percentage']
 
 CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 1), ('credit_period', 2), ('cst_number', 3), ('tin_number', 4),
                                        ('pan_number', 5), ('email_id', 6), ('phone_number', 7), ('city', 8), ('state', 9), ('country', 10),
-                                       ('pincode', 11), ('address', 12), ('price_type', 13), ('tax_type', 14)
+                                       ('pincode', 11), ('address', 12), ('price_type', 13), ('tax_type', 14), ('margin', 15)
                                     ))
 
 MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('phone', 1), ('name', 2), ('address', 3), ('pincode', 4), ('city', 5), ('tin', 6)

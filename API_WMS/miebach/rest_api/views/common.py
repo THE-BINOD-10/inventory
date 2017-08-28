@@ -2341,11 +2341,14 @@ def get_customer_sku_prices(request, user = ""):
             discount = 0
 
             if price_type:
-                price_type = price_type[0].price_type
+                customer_obj = price_type[0]
+                price_type = customer_obj.price_type
                 price_master_objs = PriceMaster.objects.filter(price_type = price_type, sku__sku_code = sku_code, sku__user = user.id)
                 if price_master_objs:
                     price = price_master_objs[0].price
                     discount = price_master_objs[0].discount
+                if customer_obj.margin:
+                    price = price * float(1 + float(customer_obj.margin)/100)
             result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
                                 'taxes': taxes_data})
 
@@ -3522,7 +3525,6 @@ def build_invoice(invoice_data, user, css=False):
         render_space = inv_height-(inv_details+inv_footer+inv_totals+inv_header+inv_summary+inv_total+hsn_summary_length);
     else:
         render_space = inv_height-(inv_details+inv_footer+inv_totals+inv_header+inv_total)
-
     no_of_skus = int(render_space/inv_product);
     data_length = len(invoice_data['data']);
     invoice_data['empty_data'] = [];
@@ -3535,7 +3537,7 @@ def build_invoice(invoice_data, user, css=False):
         temp_render_space = 0;
         temp_render_space = inv_height-(inv_details+inv_header);
         temp_no_of_skus = int(temp_render_space/inv_product);
-        for i in range(int(math.ceil(data_length/temp_no_of_skus))):
+        for i in range(int(math.ceil(float(data_length)/temp_no_of_skus))):
             temp_page = {'data': []}
             temp_page['data'] = invoice_data['data'][i*temp_no_of_skus: (i+1)*temp_no_of_skus]
             temp_page['empty_data'] = [];

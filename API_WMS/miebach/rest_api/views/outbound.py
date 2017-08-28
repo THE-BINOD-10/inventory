@@ -4650,18 +4650,12 @@ def get_customer_cart_data(request, user=""):
 
 
     if cart_data:
-        #tax_types = copy.deepcopy(TAX_VALUES)
-        #tax_types.append({'tax_name': 'DEFAULT', 'tax_value': ''})
-        #tax_types = dict(MiscDetail.objects.filter(misc_type__icontains='tax', user=user.id).values_list('misc_type', 'misc_value'))
         tax_type = CustomerUserMapping.objects.filter(user_id=request.user.id).values_list('customer__tax_type', flat = True)
         tax = 0
         if tax_type:
             tax_type = tax_type[0]
-            #tax = tax_types.get('tax_' + tax, 0)
         for record in cart_data:
             json_record = record.json()
-            #if float(json_record['tax']) != float(tax):
-            #    json_record['tax'] = tax
             product_type = SKUMaster.objects.filter(user=user.id, sku_code=json_record['sku_id'])
             product_type = product_type[0].product_type
             if not tax_type:
@@ -4683,6 +4677,8 @@ def get_customer_cart_data(request, user=""):
                     if price_master_obj:
                         price_master_obj = price_master_obj[0]
                         json_record['price'] = price_master_obj.price
+                    if cust_obj.margin:
+                        json_record['price'] = float(json_record['price']) * (1 + (float(cust_obj.margin)/100))
                     json_record['invoice_amount'] = json_record['quantity'] * json_record['price']
                     json_record['total_amount']= ((json_record['invoice_amount'] * json_record['tax'])/100) + json_record['invoice_amount']
 

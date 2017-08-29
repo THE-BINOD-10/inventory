@@ -3562,8 +3562,7 @@ def build_invoice(invoice_data, user, css=False):
         render_data[last]['empty_data'] = empty_data;
 
         invoice_data['data'] = render_data;
-    elif(data_length < no_of_skus):
-
+    else:
         temp = invoice_data['data'];
         invoice_data['data'] = [];
         empty_data = [""]*(no_of_skus - data_length)

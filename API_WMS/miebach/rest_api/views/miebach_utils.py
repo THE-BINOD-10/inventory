@@ -801,6 +801,8 @@ EASYOPS_CANCEL_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumbe
 ORDER_DETAIL_STATES = {0: 'Picklist generated', 1: 'Newly Created', 2: 'Dispatched', 3: 'Cancelled', 4: 'Returned',
                        5: 'Delivery Reschedule Cancelled'}
 
+SELLER_ORDER_STATES = {0: 'Seller Order Picklist generated', 1: 'Newly Created', 4: 'Returned'}
+
 PAYMENT_MODES = ['Credit Card', 'Debit Card', 'Cash', 'NEFT', 'RTGS', 'IMPS', 'Online Transfer', 'Cash Remittance', 'Cheque']
 
 ORDER_HEADERS_d = OrderedDict(( ('Unit Price', 'unit_price'), ('Amount', 'amount'), ('Tax', 'tax'), ('Total Amount', 'total_amount'),

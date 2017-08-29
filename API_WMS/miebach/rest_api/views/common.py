@@ -3673,3 +3673,14 @@ def check_and_update_order_status(shipped_orders_dict, user):
                 log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
         except:
             continue
+
+def get_returns_seller_order_id(order_detail_id, sku_code, user, sor_id=''):
+    filt_params = {'order_id': order_detail_id, 'order__sku__sku_code': sku_code, 'order__user': user.id}
+    if sor_id:
+        filt_params['sor_id'] = sor_id
+    seller_order = SellerOrder.objects.filter(**filt_params)
+    if seller_order:
+        return seller_order[0].id
+    else:
+        return ''
+

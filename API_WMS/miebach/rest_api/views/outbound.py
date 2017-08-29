@@ -1124,15 +1124,28 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
         #po_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__sku_code=val['wms_code'], imei_number=imei, status=1,
         #                                          purchase_order__open_po__sku__user=user_id)
         imei_mapping = None
+        all_seller_pos = SellerPO.objects.filter(seller__user=user_id)
+        all_seller_orders = SellerOrder.objects.filter(seller__user=user_id)
         if imei and po_mapping:
+            sor_id = ''
             order_mapping = {'order_id': order_id, 'po_imei_id': po_mapping[0].id, 'imei_number': ''}
+            if po_mapping[0].purchase_order.open_po_id:
+                seller_po = all_seller_pos.filter(open_po_id=po_mapping[0].purchase_order.open_po_id)
+                if seller_po:
+                    seller_id = seller_po[0].seller_id
+                    seller_order_obj = all_seller_orders.filter(order_id=order_id, seller_id=seller_id)
+                    if seller_order_obj:
+                        sor_id = seller_order_obj[0].sor_id
+
             order_mapping_ins = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, order_id=order_id)
             if order_mapping_ins:
                 imei_mapping = order_mapping_ins[0]
+                imei_mapping.sor_id = sor_id
                 imei_mapping.status = 1
                 imei_mapping.save()
                 po_imei = order_mapping_ins[0].po_imei
             else:
+                order_mapping['sor_id'] = sor_id
                 imei_mapping = OrderIMEIMapping(**order_mapping)
                 imei_mapping.save()
                 po_imei = po_mapping[0]
@@ -4765,7 +4778,7 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     if user_dict:
         user_dict = eval(user_dict)
-    lis = ['id','order__order_id', 'order__customer_id', 'order__customer_name', 'order__marketplace', 'total_picked',
+    lis = ['order__order_id','order__order_id', 'order__customer_id', 'order__customer_name', 'order__marketplace', 'total_picked',
            'total_ordered', 'order__creation_date']
     data_dict = {'status__icontains': 'picked', 'order__user': user.id, 'picked_quantity__gt': 0}
 
@@ -4827,20 +4840,19 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
-    picklist = Picklist.objects.filter(order__user=user.id, picked_quantity__gt=0)
+    picklist = Picklist.objects.filter(order__user=user.id, picked_quantity__gt=0).exclude(order__status__in=[1, 3, 5])
     #tot_order_qtys = OrderDetail.objects.filter(user=user.id, quantity__gt=0).values_list('order_id', 'quantity')
     tot_order_qtys = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0).values_list('order_id').distinct().annotate(ordered=Sum('quantity')))
     all_seller_orders = SellerOrder.objects.filter(seller__user=user.id, order_status='DELIVERY_RESCHEDULED')
     all_shipment_orders = ShipmentInfo.objects.filter(order__user=user.id)
 
     for data in master_data[start_index:stop_index]:
-        print count
         data1 = copy.deepcopy(data)
         del data1['total_ordered']
         del data1['total_picked']
         order_pick = picklist.filter(**data1)
         creation_date = datetime.datetime.now()
-        if order_pick.count():
+        if order_pick:
             creation_date = order_pick[0].creation_date
         creation_date = get_local_date(user, creation_date)
         order_id = data['order__original_order_id']

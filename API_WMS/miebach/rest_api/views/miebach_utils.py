@@ -760,7 +760,7 @@ CUSTOMER_MASTER_API_MAPPING = OrderedDict(( ('customers', 'customers'), ('custom
 
 SELLER_MASTER_API_MAPPING = OrderedDict(( ('sellers', 'sellers'), ('seller_id', 'seller_id'), ('name', 'name'),
                                             ('phone_number', 'phone_number'), ('address', 'address'),
-                                            ('email_id', 'email_id'), ('tin_number', 'tin_number'),
+                                            ('email_id', 'email_id'), ('tin_number', 'gstin_no'),
                                             ('vat_number', 'vat_number'), ('price_type', 'price_type'),
                                             ('margin', 'margin'), ('status', 'status')
                                          ))

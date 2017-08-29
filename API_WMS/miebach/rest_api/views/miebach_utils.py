@@ -759,10 +759,11 @@ CUSTOMER_MASTER_API_MAPPING = OrderedDict(( ('customers', 'customers'), ('custom
                                             ('pan_number', 'pan_number')
                                          ))
 
-SUPPLIER_MASTER_API_MAPPING = OrderedDict(( ('suppliers', 'suppliers'), ('supplier_id', 'supplier_id'), ('name', 'name'),
-                                            ('address', 'address'), ('city', 'city'), ('state', 'state'), ('country', 'country'),
-                                            ('pincode', 'pincode'), ('phone_number', 'phone_number'), ('email_id', 'email_id'),
-                                            ('status', 'status'), ('tin_number', 'tin_number'), ('pan_number', 'pan_number')
+SELLER_MASTER_API_MAPPING = OrderedDict(( ('sellers', 'sellers'), ('seller_id', 'seller_id'), ('name', 'name'),
+                                            ('phone_number', 'phone_number'), ('address', 'address'),
+                                            ('email_id', 'email_id'), ('tin_number', 'gstin_no'),
+                                            ('vat_number', 'vat_number'), ('price_type', 'price_type'),
+                                            ('margin', 'margin'), ('status', 'status')
                                          ))
 
 # Easyops Integration Mapping Dictionaries

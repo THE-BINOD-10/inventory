@@ -3588,6 +3588,146 @@ def build_invoice(invoice_data, user, css=False):
     html = html.render(invoice_data)
     return top+html
 
+def get_sku_height(sku_data):
+
+    inv_product = 47;  #invoice products cell height
+    imei_height = 20;
+    imei_header = 27;
+    row_items = 4
+
+    if not sku_data['imeis']:
+        return inv_product
+
+    if len(sku_data['imeis']) <= row_items:
+        return inv_product + imei_header + imei_height
+    else:
+        import math
+        return inv_product + imei_header + (int(math.ceil(float(len(sku_data['imeis']))/row_items))*imei_height)
+
+def build_marketplace_invoice(invoice_data, user, css=False):
+    #it will create invoice template
+
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    if not (not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']):
+        return json.dumps(invoice_data, cls=DjangoJSONEncoder)
+
+    titles = ['']
+    import math
+    if not (invoice_data.get("customer_invoice", "") == True):
+        title_dat = get_misc_value('invoice_titles', user.id)
+        if not title_dat == 'false':
+            titles = title_dat.split(",")
+
+    invoice_data['user_type'] = user_profile.user_type
+
+    invoice_data['titles'] = titles
+    perm_hsn_summary = get_misc_value('hsn_summary', user.id)
+    invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
+    if len(invoice_data['hsn_summary'].keys()) == 0:
+        invoice_data['perm_hsn_summary'] = 'false'
+    invoice_data['empty_tds'] = [1,2,3,4,5,6,7,8,9,10]
+
+    inv_height = 1358; #total invoice height
+    inv_details = 292; #invoice details height
+    inv_footer = 95;   #invoice footer height
+    inv_totals = 127;  #invoice totals height
+    inv_header = 47;   #invoice tables headers height
+    inv_product = 47;  #invoice products cell height
+    inv_summary = 47;  #invoice summary headers height
+    inv_total = 27;    #total display height
+    inv_charges = 20;  #height of other charges
+
+    inv_totals = inv_totals + len(invoice_data['order_charges'])*inv_charges
+    if invoice_data['user_type'] == 'marketplace_user':
+        inv_details = 142;
+        s_count = invoice_data['seller_address'].count('\n')
+        s_count = s_count - 3
+        b_count = invoice_data['customer_address'].count('\n')
+        b_count = b_count - 3
+        s_count = s_count if s_count > b_count else b_count
+        if s_count > 0:
+            inv_details = inv_details + (20*s_count)
+        else:
+            inv_details = inv_details + 20
+
+    render_data = []
+    render_space = 0
+    hsn_summary_length= len(invoice_data['hsn_summary'].keys())*inv_total
+    if(perm_hsn_summary == 'true'):
+        render_space = inv_height-(inv_details+inv_footer+inv_totals+inv_header+inv_summary+inv_total+hsn_summary_length)
+    else:
+        render_space = inv_height-(inv_details+inv_footer+inv_totals+inv_header+inv_total)
+
+    render_space2 = inv_height-(inv_details+inv_header)
+
+    render_data
+    space1 = render_space
+    space2 = render_space2
+    row_items = 4
+    temp_sku_data = {'empty_data': [], 'data': [], 'space_left': 0}
+    #preparing pages
+    for index,data in enumerate(invoice_data['data']):
+        sku_height = get_sku_height(data)
+        if (space2 < sku_height):
+            if (space2 > 100):
+                arr_index = ((sku_height - space2)/20)*row_items
+                temp_data = copy.deepcopy(data)
+                temp_data['imeis'] = temp_data['imeis'][:arr_index]
+                temp_sku_data['data'].append(temp_data)
+                data['imeis'] = data['imeis'][arr_index:]
+            temp_sku_data['space_left'] = space2
+            temp = copy.deepcopy(temp_sku_data)
+            render_data.append(temp)
+            temp_sku_data['data'] = []
+            space2 = render_space2
+
+        temp_sku_data['data'].append(data)
+        space2 = space2-sku_height
+
+        if index == len(invoice_data['data'])-1:
+            temp_sku_data['space_left'] = space2
+            render_data.append(temp_sku_data)
+
+    last = len(render_data) - 1
+    space1 = render_space
+    page_split = False;
+    #checking last page have enough space
+    for index,data in enumerate(render_data[last]['data']):
+        sku_height = get_sku_height(data)
+        if (space1 < sku_height):
+            if len(render_data[last]['data'][index:]) == 1:
+                temp_imeis1 = render_data[last]['data'][index]['imeis'][:-1]
+                #temp_imeis2 = render_data[last]['data'][index]['imeis'][-1:]
+                render_data[last]['data'][index]['imeis'] = render_data[last]['data'][index]['imeis'][-1:]
+                sku_height = get_sku_height(render_data[last]['data'][index])
+                render_data.append({'empty_data': [], 'data': copy.deepcopy(render_data[last]['data'][index:]), 'space_left': render_space-sku_height})
+                data['imeis'] = temp_imeis1
+                #render_data[last]['data'].pop(index)
+                page_split = True;
+            else:
+                sku_height = get_sku_height(render_data[last]['data'][-1:])
+                render_data.append({'empty_data': [], 'data': copy.deepcopy(render_data[last]['data'][-1:]), 'space_left': render_space-sku_height})
+                render_data[last]['data'].pop(len(render_data[last]['data'])-1)
+
+            break;
+        space1 = space1-sku_height
+    last = len(render_data) - 1
+    if not page_split:
+        render_data[last]['space_left'] = space1
+    if render_data[last]['space_left'] >= inv_product:
+        render_data[last]['empty_data'] = [""]*((render_data[last]['space_left'])/inv_product)
+
+    invoice_data['data'] = render_data
+
+    top = ''
+    if css:
+        c= {'name': 'invoice'}
+        top = loader.get_template('../miebach_admin/templates/toggle/invoice/top1.html')
+        top = top.render(c)
+    html = loader.get_template('../miebach_admin/templates/toggle/invoice/customer_invoice.html')
+    html = html.render(invoice_data)
+    return top+html
+
 def get_new_supplier_id(user):
     max_sup_id = SupplierMaster.objects.count()
     run_iterator = 1

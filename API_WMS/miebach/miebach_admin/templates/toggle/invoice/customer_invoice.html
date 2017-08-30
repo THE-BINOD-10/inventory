@@ -39,7 +39,7 @@
                     <td class="text-right">{{record.quantity}}</td>
                     <!--<td class="text-right">{{record.base_price}}</td>-->
                     <td class="text-right"> {{record.amt}} </td>
-                    <td class="text-right">{{record.taxes.cgst_amt}}<br><span class="tax-percentage">{{record.taxes.cgst_tax}}%</span></td>
+                    <td class="text-right">{{record.taxes.cgst_amt}}<br><span class="tax-percentage">@{{record.taxes.cgst_tax}}%</span></td>
                     <td class="text-right">{{record.taxes.sgst_amt}}<br><span class="tax-percentage">@{{record.taxes.sgst_tax}}%</span></td>
                     <td class="text-right">{{record.taxes.igst_amt}}<br><span class="tax-percentage">@{{record.taxes.igst_tax}}%</span></td>
                     <td class="text-right">{{record.invoice_amount}}</td>
@@ -53,7 +53,7 @@
                           <b>IMEI Numbers List:</b>
                         </div>
                         {% for imei in record.imeis %}
-                        <div class="col-md-3 col-sm-3">
+                        <div class="col-md-3 col-sm-3" style="width:25%; display:block; float:left">
                            {{forloop.counter}}. {{imei}}
                         </div>
                         {% endfor %}

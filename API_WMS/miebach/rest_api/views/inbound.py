@@ -2133,7 +2133,7 @@ def create_return_order(data, i, user):
             quantity = data['damaged'][i]
         return_type = ''
         if 'return_type' in data.keys() and data['return_type'][0]:
-            return_type = data['return_type'][2]
+            return_type = data['return_type'][0]
         marketplace = ''
         if 'marketplace' in data.keys() and data['marketplace'][i]:
             marketplace = data['marketplace'][i]

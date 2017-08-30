@@ -3589,12 +3589,11 @@ def build_invoice(invoice_data, user, css=False):
     html = html.render(invoice_data)
     return top+html
 
-def get_sku_height(sku_data):
+def get_sku_height(sku_data, row_items):
 
     inv_product = 47;  #invoice products cell height
     imei_height = 20;
     imei_header = 27;
-    row_items = 4
 
     if not sku_data['imeis']:
         return inv_product
@@ -3629,7 +3628,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
     invoice_data['empty_tds'] = [1,2,3,4,5,6,7,8,9,10]
 
     inv_height = 1358; #total invoice height
-    inv_details = 292; #invoice details height
+    inv_details = 292; #invoice details height 292
     inv_footer = 95;   #invoice footer height
     inv_totals = 127;  #invoice totals height
     inv_header = 47;   #invoice tables headers height
@@ -3640,7 +3639,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
 
     inv_totals = inv_totals + len(invoice_data['order_charges'])*inv_charges
     if invoice_data['user_type'] == 'marketplace_user':
-        inv_details = 142;
+        inv_details = 121;
         s_count = invoice_data['seller_address'].count('\n')
         s_count = s_count - 3
         b_count = invoice_data['customer_address'].count('\n')
@@ -3650,7 +3649,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
             inv_details = inv_details + (20*s_count)
         else:
             inv_details = inv_details + 20
-
+        inv_details = 210;
     render_data = []
     render_space = 0
     hsn_summary_length= len(invoice_data['hsn_summary'].keys())*inv_total
@@ -3661,6 +3660,11 @@ def build_marketplace_invoice(invoice_data, user, css=False):
 
     render_space2 = inv_height-(inv_details+inv_header)
 
+    #random imeis
+    #import random
+    #for index,data in enumerate(invoice_data['data']):
+    #    data['imeis'] = [random.random() for _ in xrange(random.choice([500]))]
+
     render_data
     space1 = render_space
     space2 = render_space2
@@ -3668,10 +3672,12 @@ def build_marketplace_invoice(invoice_data, user, css=False):
     temp_sku_data = {'empty_data': [], 'data': [], 'space_left': 0}
     #preparing pages
     for index,data in enumerate(invoice_data['data']):
-        sku_height = get_sku_height(data)
+        sku_height = get_sku_height(data, row_items)
         if (space2 < sku_height):
             if (space2 > 100):
-                arr_index = ((sku_height - space2)/20)*row_items
+                arr_index = (int(math.ceil((float(sku_height - space2)/20)))*row_items)*-1 #((sku_height - space2)/20)*row_items
+                if (len(temp_sku_data['data']) == 0):
+                    arr_index = 204
                 temp_data = copy.deepcopy(data)
                 temp_data['imeis'] = temp_data['imeis'][:arr_index]
                 temp_sku_data['data'].append(temp_data)
@@ -3681,6 +3687,19 @@ def build_marketplace_invoice(invoice_data, user, css=False):
             render_data.append(temp)
             temp_sku_data['data'] = []
             space2 = render_space2
+
+            imei_limit = 204
+            if (len(data['imeis']) > imei_limit):
+                temp_imeis = data['imeis']
+                for i in range(len(data['imeis'])/imei_limit):
+                    temp_data = copy.deepcopy(data)
+                    temp_data['imeis'] = temp_data['imeis'][i*imei_limit: (i+1)*imei_limit]
+                    if temp_data['imeis']:
+                        render_data.append({'empty_data': [], 'data': [temp_data], 'space_left': 0})
+                        temp_imeis = data['imeis'][(i+1)*imei_limit:]
+                data['imeis'] = temp_imeis
+
+            sku_height = get_sku_height(data, row_items)
 
         temp_sku_data['data'].append(data)
         space2 = space2-sku_height
@@ -3694,21 +3713,22 @@ def build_marketplace_invoice(invoice_data, user, css=False):
     page_split = False;
     #checking last page have enough space
     for index,data in enumerate(render_data[last]['data']):
-        sku_height = get_sku_height(data)
+        sku_height = get_sku_height(data, row_items)
         if (space1 < sku_height):
             if len(render_data[last]['data'][index:]) == 1:
                 temp_imeis1 = render_data[last]['data'][index]['imeis'][:-1]
                 #temp_imeis2 = render_data[last]['data'][index]['imeis'][-1:]
                 render_data[last]['data'][index]['imeis'] = render_data[last]['data'][index]['imeis'][-1:]
-                sku_height = get_sku_height(render_data[last]['data'][index])
+                sku_height = get_sku_height(render_data[last]['data'][index], row_items)
                 render_data.append({'empty_data': [], 'data': copy.deepcopy(render_data[last]['data'][index:]), 'space_left': render_space-sku_height})
                 data['imeis'] = temp_imeis1
                 #render_data[last]['data'].pop(index)
                 page_split = True;
             else:
-                sku_height = get_sku_height(render_data[last]['data'][-1:])
+                sku_height = get_sku_height(render_data[last]['data'][-1:][0], row_items)
                 render_data.append({'empty_data': [], 'data': copy.deepcopy(render_data[last]['data'][-1:]), 'space_left': render_space-sku_height})
                 render_data[last]['data'].pop(len(render_data[last]['data'])-1)
+                page_split = True;
 
             break;
         space1 = space1-sku_height

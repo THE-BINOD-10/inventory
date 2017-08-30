@@ -3641,7 +3641,7 @@ def check_and_update_order_status(shipped_orders_dict, user):
                     for imei in order_data.get('imeis', []):
                         hsn_code = ''
                         if order.sku.hsn_code:
-                            hsn_code = order.sku.hsn_code
+                            hsn_code = str(order.sku.hsn_code)
                         seller_item_obj = line_items_ids.filter(local_id=seller_order.id, app_host='shotang', swx_type='seller_item_id',
                                                                 imei='')
                         seller_item_id = ''
@@ -3654,9 +3654,14 @@ def check_and_update_order_status(shipped_orders_dict, user):
                                                                        swx_type='seller_parent_item_id', imei='')
                         seller_parent_id = ''
                         if seller_parent_item_obj:
-                            seller_parent_id = seller_item_obj[0].swx_id
+                            seller_parent_id = seller_parent_item_obj[0].swx_id
                             seller_parent_item_obj[0].imei = imei.po_imei.imei_number
                             seller_parent_item_obj[0].save()
+                        elif not seller_parent_item_obj:
+                            seller_parent_item_obj = line_items_ids.filter(local_id=seller_order.id, app_host='shotang',
+                                                                           swx_type='seller_parent_item_id').order_by('-creation_date')
+                            if seller_parent_item_obj:
+                                seller_parent_id = seller_parent_item_obj[0].swx_id
                         imei_dict = {'lineItemId': seller_item_id, 'name': order.title,
                                      'unitPrice': str(order.unit_price), 'quantity': str(1),
                                      'sku': order.sku.sku_code, 'cgstTax': 0, 'sgstTax': 0, 'igstTax': 0,
@@ -3665,6 +3670,7 @@ def check_and_update_order_status(shipped_orders_dict, user):
                         order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
                         order_status_dict[order_detail_id]['subOrders'][index]['lineItems'].append(imei_dict)
             final_data = order_status_dict.values()
+            print final_data
             call_response = obj.confirm_order_status(final_data, user=user)
             log.info(str(call_response))
             if isinstance(call_response, dict) and call_response.get('status') == 1:

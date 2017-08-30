@@ -3018,6 +3018,7 @@ def insert_shipment_info(request, user=''):
                         setattr(pick_order, 'status', 'dispatched')
                         pick_order.save()
         if shipped_orders_dict:
+            log.info('Order Status update call for user '+ str(user.username) + ' is ' + str(shipped_orders_dict))
             check_and_update_order_status(shipped_orders_dict, user)
     except Exception as e:
         import traceback

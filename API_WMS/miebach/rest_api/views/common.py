@@ -3680,6 +3680,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
                     arr_index = 204
                 temp_data = copy.deepcopy(data)
                 temp_data['imeis'] = temp_data['imeis'][:arr_index]
+                temp_data['quantity'] = len(temp_data['imeis'])
                 temp_sku_data['data'].append(temp_data)
                 data['imeis'] = data['imeis'][arr_index:]
             temp_sku_data['space_left'] = space2
@@ -3694,6 +3695,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
                 for i in range(len(data['imeis'])/imei_limit):
                     temp_data = copy.deepcopy(data)
                     temp_data['imeis'] = temp_data['imeis'][i*imei_limit: (i+1)*imei_limit]
+                    temp_data['quantity'] = len(temp_data['imeis'])
                     if temp_data['imeis']:
                         render_data.append({'empty_data': [], 'data': [temp_data], 'space_left': 0})
                         temp_imeis = data['imeis'][(i+1)*imei_limit:]
@@ -3701,6 +3703,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
 
             sku_height = get_sku_height(data, row_items)
 
+        data['quantity'] = len(data['imeis'])
         temp_sku_data['data'].append(data)
         space2 = space2-sku_height
 
@@ -3719,9 +3722,11 @@ def build_marketplace_invoice(invoice_data, user, css=False):
                 temp_imeis1 = render_data[last]['data'][index]['imeis'][:-1]
                 #temp_imeis2 = render_data[last]['data'][index]['imeis'][-1:]
                 render_data[last]['data'][index]['imeis'] = render_data[last]['data'][index]['imeis'][-1:]
+                render_data[last]['data'][index]['quantity'] = len(render_data[last]['data'][index]['imeis'])
                 sku_height = get_sku_height(render_data[last]['data'][index], row_items)
                 render_data.append({'empty_data': [], 'data': copy.deepcopy(render_data[last]['data'][index:]), 'space_left': render_space-sku_height})
                 data['imeis'] = temp_imeis1
+                data['quantity'] = len(data['imeis'])
                 #render_data[last]['data'].pop(index)
                 page_split = True;
             else:

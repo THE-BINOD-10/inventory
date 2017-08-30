@@ -838,73 +838,103 @@ def update_customers(customers, user='', company_name=''):
         traceback.print_exc()
         return insert_status
 
+def validate_sellers(sellers, user=None, seller_mapping=None):
 
-def update_suppliers(suppliers, user='', company_name=''):
-    supplier_mapping = eval(LOAD_CONFIG.get(company_name, 'supplier_mapping_dict', ''))
+    if not sellers or not user or not seller_mapping:
+        return [None, None, None]
+
+    messages = {}
+    sellers_update = []
+    is_valid = True
+
+    for seller_data in sellers:
+        seller_id = seller_data.get(seller_mapping['seller_id'], '')
+
+        if not seller_id:
+            is_valid = is_valid and False
+            insert_message(messages, 'No ids', 'Seller ID should not be empty for '+ seller_data['name'])
+            continue
+
+        seller_master_dict = {'user': user.id, 'creation_date': datetime.datetime.now()}
+        exclude_list = ['sellers']
+        number_fields = {'status': 'Status','phone_number': 'Phone Number',
+         'seller_id': 'Seller Id', 'margin': 'Margin'}
+
+        string_fields = {'name': 'Name', 'address': 'Address', 'gstin_no':'GSTIN number'}
+
+        for key, val in seller_mapping.iteritems():
+            if key in exclude_list:
+                continue
+            value = seller_data.get(seller_mapping[key], '')
+            if key in number_fields.keys():
+                value = value or 0
+                try:
+                    value = int(value)
+                except:
+                    is_valid = is_valid and False
+                    insert_message(messages, seller_data['seller_id'], number_fields[key] + " should be number")
+
+            if key in string_fields.keys():
+                value = value or ''
+                try:
+                    assert isinstance(value, basestring) == True
+                except:
+                    is_valid = is_valid and False
+                    insert_message(messages, seller_data['seller_id'], string_fields[key] + " should be string")
+
+            seller_master_dict[key] = value
+        sellers_update.append(seller_master_dict)
+    return [is_valid, sellers_update, messages]
+
+
+def update_sellers(sellers, user='', company_name=''):
+    seller_mapping = eval(LOAD_CONFIG.get(company_name, 'seller_mapping_dict', ''))
     NOW = datetime.datetime.now()
-
-    insert_status = {'Newly Created Supplier ids': [], 'Data updated for supplier ids': [],
-                     'Supplier ID should not be empty for supplier names': [],
-                     'Supplier ID should be number for supplier names': []}
-
+    status = {}
+    messages= {}
     try:
         user_profile = UserProfile.objects.get(user_id=user.id)
-        supplier_ids = []
-        if not suppliers:
-            suppliers = {}
-        suppliers = suppliers.get(supplier_mapping['suppliers'], [])
-        for supplier_data in suppliers:
-            supplier_master = None
-            supplier_id = supplier_data.get(supplier_mapping['supplier_id'], '')
-            if not supplier_id:
-                insert_status['Supplier ID should not be empty for supplier names'].append(str(supplier_data.get(supplier_mapping['name'], '')))
-                continue
-            #elif not isinstance(supplier_id, int):
-            #    insert_status['Supplier ID should be number for supplier names'].append(str(customer_data.get(customer_mapping['name'], '')))
-            #    continue
-            supplier_ins = SupplierMaster.objects.filter(user=user.id, id=supplier_id)
-            if supplier_ins:
-                supplier_master = supplier_ins[0]
-            supplier_master_dict = {'user': user.id, 'creation_date': datetime.datetime.now()}
-            exclude_list = ['suppliers']
-            number_fields = {'status': 'Status', 'pincode': 'Pin Code',
-                             'phone_number': 'Phone Number'}
-            for key, val in supplier_mapping.iteritems():
-                if key in exclude_list:
-                    continue
-                value = supplier_data.get(key, '')
-                if key in number_fields.keys():
-                    if not value:
-                        value = 0
-                    try:
-                        value = int(value)
-                    except:
-                        if insert_status.has_key(number_fields[key] + " should be number for Supplier ids"):
-                            insert_status[number_fields[key] + " should be number for Supplier ids"].append(str(supplier_id))
-                        else:
-                            insert_status[number_fields[key] + " should be number for Supplier ids"] = [str(supplier_id)]
-                supplier_master_dict[key] = value
-                if supplier_master:
-                    setattr(supplier_master, key, value)
+        if not sellers:
+            sellers = {}
+        sellers = sellers.get(seller_mapping['sellers'], [])
 
-            if str(supplier_id) in sum(insert_status.values(), []):
-                continue
-            if supplier_master:
-                supplier_master.save()
-                insert_status['Data updated for Supplier ids'].append(str(supplier_id))
-            else:
-                supplier_master = SupplierMaster(**supplier_master_dict)
-                supplier_master.save()
-                insert_status['Newly Created Supplier ids'].append(str(supplier_id))
+        is_valid, sellers, messages = validate_sellers(sellers, user, seller_mapping)
 
-        final_status = {}
-        for key, value in insert_status.iteritems():
-            if not value:
-                continue
-            final_status[key] = ','.join(value)
-        return final_status
+        if is_valid:
+            for seller in sellers:
+                try:
+                    seller_master, created = SellerMaster.objects.get_or_create(
+                    user=seller['user'], seller_id=seller['seller_id'])
 
-    except:
+                    for key, value in seller.iteritems():
+                        setattr(seller_master, key, value)
+                    seller_master.save()
+                except Exception as e:
+                    is_valid = is_valid and False
+                    print e.message
+                    insert_message(messages, seller['seller_id'], e.message)
+
+        if is_valid:
+            status['status'] = 1
+            status['messages'] = ['success']
+        else:
+            status['status'] = 0
+            status['messages'] = messages.values()
+        return status
+
+    except Exception as e:
         traceback.print_exc()
-        return insert_status
+        status['status'] = 0
+        status['messages'] = [e.message]
+        return status
 
+def insert_message(messages, seller_id, message):
+    try:
+        statuses = messages.setdefault(
+            seller_id, {})
+        statuses.update({'seller_id':seller_id})
+        statuses.setdefault(
+            'messages', []).append(message)
+    except Exception as e:
+        return False
+    return True

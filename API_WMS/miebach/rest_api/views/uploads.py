@@ -902,8 +902,8 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('HSN Code must be integer')
-                    elif not len(str(int(cell_data))) == 8:
-                        index_status.setdefault(row_idx, set()).add('HSN Code should be 8 digit')
+                    #elif not len(str(int(cell_data))) == 8:
+                    #    index_status.setdefault(row_idx, set()).add('HSN Code should be 8 digit')
 
             elif key == 'product_type':
                 if cell_data:
@@ -2496,7 +2496,8 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
     mapping_dict = get_customer_master_mapping(reader, file_type)
     if not mapping_dict:
         return "Headers not Matching"
-    number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code', 'phone': 'Phone Number'}
+    number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code', 'phone': 'Phone Number',
+                     'margin': 'Margin'}
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:
             break
@@ -2558,7 +2559,8 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
 
 def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
     mapping_dict = get_customer_master_mapping(reader, file_type)
-    number_fields = ['credit_period', 'phone_number', 'pincode', 'phone']
+    number_fields = ['credit_period', 'phone_number', 'pincode', 'phone', 'margin']
+    float_fields = ['margin']
     rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:
@@ -2591,9 +2593,12 @@ def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
                     customer_master.tax_type = customer_data['tax_type']
             elif key in number_fields:
                 try:
-                    cell_data = int(cell_data)
+                    if key in float_fields:
+                        cell_data = float(cell_data)
+                    else:
+                        cell_data = int(cell_data)
                 except:
-                    print "error"
+                    pass
                 if isinstance(cell_data, (int, float)):
                     if customer_master:
                         if key == 'phone':
@@ -2875,11 +2880,11 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                 sor_id = get_cell_data(row_idx, order_mapping[key], reader, file_type)
                 if isinstance(sor_id, float):
                     sor_id = str(int(sor_id))
+                seller_order_id = ''
                 if sor_id:
-                    seller_order = SellerOrder.objects.filter(sor_id=sor_id, order_id=order_data['order_id'],
-                                                              order__sku__sku_code=sku_code, order__user=user.id)
-                    if seller_order:
-                        order_data[key] = seller_order[0].id
+                    seller_order_id = get_returns_seller_order_id(order_data['order_id'], sku_code, user, sor_id=sor_id)
+                if seller_order_id:
+                    order_data[key] = seller_order_id
             else:
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
                 if cell_data:
@@ -2898,6 +2903,8 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
             #    del order_data['order_id']
             returns = OrderReturns(**order_data)
             returns.save()
+            if order_data.get('seller_order_id', ''):
+                SellerOrder.objects.filter(id=order_data['seller_order_id']).update(status=4)
 
             if not returns.return_id:
                 returns.return_id = 'MN%s' % returns.id

@@ -281,6 +281,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                                                  ('pincode', data.pincode), ('city', data.city), ('state', data.state),
                                                  ('country', data.country),('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
                                                  ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
+                                                 ('margin', data.margin)
                                              )))
 
 @csrf_exempt

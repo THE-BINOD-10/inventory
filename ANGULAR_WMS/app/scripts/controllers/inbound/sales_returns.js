@@ -159,7 +159,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.add_new_sku = function(new_sku) {
       vm.model_data.data.push({'sku_code': new_sku.sku_code, 'sku_desc': new_sku.description, 'shipping_quantity': '', 'order_id':'',
                                 'return_quantity': 1, 'damaged_quantity': '', 'track_id_enable': false,
-                                'is_new': true, 'marketplace':vm.model_data.marketplace})
+                                'is_new': true, 'marketplace':vm.model_data.marketplace, 'sor_id': vm.model_data.sor_id})
     }
 
     vm.confirm_disable = false;
@@ -167,7 +167,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('confirm_sales_return/', 'GET', elem, true).then(function(data){
+      vm.service.apiCall('confirm_sales_return/', 'POST', elem, true).then(function(data){
         if(data.message) {
           pop_msg(data.data);
           vm.confirm_disable = true;
@@ -291,7 +291,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                                'return_quantity': 1, 'damaged_quantity': '', 'track_id_enable': false,
                                'is_new': true, 'marketplace': '', 'return_type': '', 'sku_desc': data.data.sku_desc,
                                'invoice_number': data.data.invoice_number, 'returns_imeis': [field], 'damaged_imeis': [],
-                               'damaged_imeis_reason': [], 'id': data.data.id});
+                               'damaged_imeis_reason': [], 'id': data.data.id, 'sor_id': data.data.sor_id});
       vm.imei_data["index"] = vm.model_data.data.length-1;
     }
 

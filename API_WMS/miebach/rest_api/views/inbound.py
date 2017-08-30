@@ -2120,10 +2120,12 @@ def get_returns_location(put_zone, request, user):
 
 def create_return_order(data, i, user):
     status = ''
+    user_obj = User.objects.get(id=user)
     sku_id = SKUMaster.objects.filter(sku_code = data['sku_code'][i], user = user)
     if not sku_id:
         return "", "SKU Code doesn't exist"
     return_details = copy.deepcopy(RETURN_DATA)
+    user_obj = User.objects.get(id=user)
     if (data['return'][i] or data['damaged'][i]) and sku_id:
         #order_details = OrderReturns.objects.filter(return_id = data['return_id'][i])
         quantity = data['return'][i]
@@ -2135,8 +2137,21 @@ def create_return_order(data, i, user):
         marketplace = ''
         if 'marketplace' in data.keys() and data['marketplace'][i]:
             marketplace = data['marketplace'][i]
+        sor_id = ''
+        if data.has_key('sor_id') and data['sor_id'][i]:
+            sor_id = data['sor_id'][i]
         return_details = {'return_id': '', 'return_date': datetime.datetime.now(), 'quantity': quantity,
                           'sku_id': sku_id[0].id, 'status': 1, 'marketplace': marketplace, 'return_type': return_type}
+        if data.has_key('order_id') and data['order_id'][i]:
+            order_detail = get_order_detail_objs(data['order_id'][i], user_obj, search_params={'sku_id': sku_id[0].id, 'user': user})
+            if order_detail:
+                return_details['order_id'] = order_detail[0].id
+                if order_detail[0].status == int(2):
+                    order_detail[0].status = 4
+                    order_detail[0].save()
+                seller_order_id = get_returns_seller_order_id(return_details['order_id'], sku_id[0].sku_code, user_obj, sor_id=sor_id)
+                if seller_order_id:
+                    return_details['seller_order_id'] = seller_order_id
         returns = OrderReturns(**return_details)
         returns.save()
 
@@ -2254,8 +2269,8 @@ def save_return_imeis(user, returns, status, imei_numbers):
 @login_required
 @get_admin_user
 def confirm_sales_return(request, user=''):
-    data_dict = dict(request.GET.iterlists())
-    return_type = request.GET.get('return_type', '')
+    data_dict = dict(request.POST.iterlists())
+    return_type = request.POST.get('return_type', '')
     for i in range(0, len(data_dict['id'])):
         all_data = []
         if not data_dict['id'][i]:
@@ -4276,11 +4291,12 @@ def check_return_imei(request, user=''):
                 if shipment_info:
                     invoice_number = shipment_info[0].invoice_number
                 return_data['data'] = {'sku_code': order_imei[0].order.sku.sku_code, 'invoice_number': invoice_number,
-                                       'order_id': order_id, 'sku_desc': order_imei[0].order.title, 'shipping_quantity': 1}
+                                       'order_id': order_id, 'sku_desc': order_imei[0].order.title, 'shipping_quantity': 1,
+                                       'sor_id': order_imei[0].sor_id}
                 order_return = OrderReturns.objects.filter(order_id=order_imei[0].order.id, sku__user=user.id)
                 if order_return:
                     return_data['data'].update({'id': order_return[0].id, 'return_id': order_return[0].return_id,
-                                                'return_type': order_return[0].return_type})
+                                                'return_type': order_return[0].return_type, 'sor_id': ''})
                 log.info(return_data)
     except Exception as e:
         import traceback

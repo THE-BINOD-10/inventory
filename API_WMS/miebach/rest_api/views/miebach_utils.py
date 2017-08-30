@@ -164,11 +164,12 @@ SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone N
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
 CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Credit Period', 'CST Number', 'TIN Number', 'PAN Number', 'Email', 'Phone No.',
-                    'City', 'State', 'Country', 'Pin Code', 'Address', 'Selling Price Type', 'Tax Type(Options: Inter State, Intra State)']
+                    'City', 'State', 'Country', 'Pin Code', 'Address', 'Selling Price Type', 'Tax Type(Options: Inter State, Intra State)',
+                    'Margin Percentage']
 
 CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 1), ('credit_period', 2), ('cst_number', 3), ('tin_number', 4),
                                        ('pan_number', 5), ('email_id', 6), ('phone_number', 7), ('city', 8), ('state', 9), ('country', 10),
-                                       ('pincode', 11), ('address', 12), ('price_type', 13), ('tax_type', 14)
+                                       ('pincode', 11), ('address', 12), ('price_type', 13), ('tax_type', 14), ('margin', 15)
                                     ))
 
 MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('phone', 1), ('name', 2), ('address', 3), ('pincode', 4), ('city', 5), ('tin', 6)
@@ -758,10 +759,11 @@ CUSTOMER_MASTER_API_MAPPING = OrderedDict(( ('customers', 'customers'), ('custom
                                             ('pan_number', 'pan_number')
                                          ))
 
-SUPPLIER_MASTER_API_MAPPING = OrderedDict(( ('suppliers', 'suppliers'), ('supplier_id', 'supplier_id'), ('name', 'name'),
-                                            ('address', 'address'), ('city', 'city'), ('state', 'state'), ('country', 'country'),
-                                            ('pincode', 'pincode'), ('phone_number', 'phone_number'), ('email_id', 'email_id'),
-                                            ('status', 'status'), ('tin_number', 'tin_number'), ('pan_number', 'pan_number')
+SELLER_MASTER_API_MAPPING = OrderedDict(( ('sellers', 'sellers'), ('seller_id', 'seller_id'), ('name', 'name'),
+                                            ('phone_number', 'phone_number'), ('address', 'address'),
+                                            ('email_id', 'email_id'), ('tin_number', 'gstin_no'),
+                                            ('vat_number', 'vat_number'), ('price_type', 'price_type'),
+                                            ('margin', 'margin'), ('status', 'status')
                                          ))
 
 # Easyops Integration Mapping Dictionaries
@@ -799,6 +801,8 @@ EASYOPS_CANCEL_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumbe
 
 ORDER_DETAIL_STATES = {0: 'Picklist generated', 1: 'Newly Created', 2: 'Dispatched', 3: 'Cancelled', 4: 'Returned',
                        5: 'Delivery Reschedule Cancelled'}
+
+SELLER_ORDER_STATES = {0: 'Seller Order Picklist generated', 1: 'Newly Created', 4: 'Returned'}
 
 PAYMENT_MODES = ['Credit Card', 'Debit Card', 'Cash', 'NEFT', 'RTGS', 'IMPS', 'Online Transfer', 'Cash Remittance', 'Cheque']
 

@@ -16,12 +16,13 @@ class DBBackup:
         self.db_name = self.default['NAME']
         self.password = self.default['PASSWORD']
         self.host = self.default['HOST']
+        self.user = self.default['USER']
 
     def mysql_backup(self):
         bdate = datetime.now().strftime('%Y%m%d%H%M')
         bfile =  self.db_name+'_'+bdate+'.sql'
         dumpfile = open(os.path.join(self.backup_path, bfile), 'w')
-        cmd = ['mysqldump', '--host='+self.host, '--password='+self.password, self.db_name]
+        cmd = ['mysqldump', '--host='+self.host, '--user='+self.user, '--password='+self.password, self.db_name]
         p = subprocess.Popen(cmd, stdout=dumpfile)
         retcode = p.wait()
         dumpfile.close()

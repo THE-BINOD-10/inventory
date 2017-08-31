@@ -729,7 +729,8 @@ def switches(request, user=''):
                     'marketplace_model': 'marketplace_model',
                     'barcode_generate_opt': 'barcode_generate_opt',
                     'grn_scan_option': 'grn_scan_option',
-                    'invoice_titles': 'invoice_titles'
+                    'invoice_titles': 'invoice_titles',
+                    'show_imei_invoice': 'show_imei_invoice'
                   }
 
     toggle_field, selection = "", ""

@@ -591,6 +591,7 @@ def configurations(request, user=''):
     barcode_generate_opt = get_misc_value('barcode_generate_opt', user.id)
     grn_scan_option = get_misc_value('grn_scan_option', user.id)
     invoice_titles = get_misc_value('invoice_titles', user.id)
+    show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
@@ -700,7 +701,7 @@ def configurations(request, user=''):
                                     'display_customer_sku': display_customer_sku, 'marketplace_model': marketplace_model,
                                     'label_generation': label_generation, 'barcode_generate_options': BARCODE_OPTIONS,
                                     'barcode_generate_opt': barcode_generate_opt, 'grn_scan_option': grn_scan_option,
-                                    'invoice_titles': invoice_titles}))
+                                    'invoice_titles': invoice_titles, 'show_imei_invoice': show_imei_invoice}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -1850,6 +1851,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     invoice_date = datetime.datetime.now()
     hsn_summary = {}
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
+    show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     if display_customer_sku == 'true':
         customer_sku_codes = CustomerSKU.objects.filter(sku__user=user.id).exclude(customer_sku_code='').values('sku__sku_code',
                                                         'customer__customer_id', 'customer_sku_code')
@@ -2008,13 +2010,13 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                 if customer_sku_code_ins:
                     sku_code = customer_sku_code_ins[0]['customer_sku_code']
 
-            sor_id = '' 
+            sor_id = ''
             sor_data = SellerOrder.objects.filter(order_id = dat.id)
             if sor_data:
                 sor_id = sor_data[0].sor_id
             imeis = OrderIMEIMapping.objects.filter(order__user = user.id, order_id = dat.id, sor_id = sor_id)
-            temp_imeis = [] 
-            if imeis:
+            temp_imeis = []
+            if imeis and show_imei_invoice == 'true':
                 for imei in imeis:
                     if imei:
                         temp_imeis.append(imei.imei_number)
@@ -3508,7 +3510,7 @@ def build_invoice(invoice_data, user, css=False):
     invoice_data['empty_tds'] = [1,2,3,4,5,6,7,8,9,10]
 
     inv_height = 1358; #total invoice height
-    inv_details = 292; #invoice details height
+    inv_details = 317; #invoice details height
     inv_footer = 95;   #invoice footer height
     inv_totals = 127;  #invoice totals height
     inv_header = 47;   #invoice tables headers height
@@ -3530,6 +3532,7 @@ def build_invoice(invoice_data, user, css=False):
             inv_details = inv_details + (20*s_count)
         else:
             inv_details = inv_details + 20
+        inv_details = 230;
 
     render_data = []
     render_space = 0;
@@ -3649,7 +3652,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
             inv_details = inv_details + (20*s_count)
         else:
             inv_details = inv_details + 20
-        inv_details = 210;
+        inv_details = 230;
     render_data = []
     render_space = 0
     hsn_summary_length= len(invoice_data['hsn_summary'].keys())*inv_total

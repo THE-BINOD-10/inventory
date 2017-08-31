@@ -1484,6 +1484,8 @@ def get_purchaseorder_locations(put_zone, temp_dict):
     return location
 
 def get_remaining_capacity(loc, received_quantity, put_zone, pallet_number, user):
+    if loc.zone.zone in ['DEFAULT', 'QC_ZONE', 'DAMAGED_ZONE']:
+        return received_quantity, 0
     total_quantity = POLocation.objects.filter(location_id=loc.id, status=1, location__zone__user=user).\
                                         aggregate(Sum('quantity'))['quantity__sum']
     if not total_quantity:
@@ -2631,7 +2633,6 @@ def putaway_data(request, user=''):
         else:
             check_and_update_stock(sku_codes, user)
         update_filled_capacity(list(set(mod_locations)), user.id)
-
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

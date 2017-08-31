@@ -57,6 +57,7 @@ class EasyopsAPI:
 
     def get_response(self, url, data=None, put=False, auth=False, is_first=True):
         """ Getting API response using request module """
+        response = {'status': 'Internal Server Error'}
         if self.access_token_name == 'access_token':
             self.headers["Authorization"] = "Bearer " + self.token
         else:
@@ -73,8 +74,11 @@ class EasyopsAPI:
         except:
             if is_first:
                 self.get_access_token(self.user)
-                response = self.get_response(url, data, put, is_first=False)
-
+                try:
+                    response = self.get_response(url, data, put, is_first=False)
+                    response = response.json()
+                except Exception as e:
+                    response = {'status': 'Internal Server Error'}
         return response
 
     def get_access_token(self, user=''):
@@ -91,9 +95,10 @@ class EasyopsAPI:
         if self.auth:
             json_response = requests.post(auth_url, headers=self.headers, auth=data, verify=False).json()
         else:
-            json_response = self.get_response(auth_url, data)
-        self.token = json_response.get('access_token', '')
-        self.update_token(json_response)
+            json_response = self.get_response(auth_url, data, is_first=False)
+        if self.check_response_type(json_response, 'json'):
+            self.token = json_response.get('access_token', '')
+            self.update_token(json_response)
         return json_response
 
     def get_pending_orders(self, token='', user=''):
@@ -296,3 +301,13 @@ class EasyopsAPI:
                 run_iterator = 0
             print data
         return main_json_response
+
+    def check_response_type(self, response, check_type):
+        supported_types = ['html', 'json']
+        if check_type in supported_types:
+            try:
+                actual_type = response.headers['Content-Type'].split(';')[0].split('/')[1]
+            except Exception as e:
+                return False
+            return actual_type == check_type
+        return False

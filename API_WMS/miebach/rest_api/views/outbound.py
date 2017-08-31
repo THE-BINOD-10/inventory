@@ -460,6 +460,8 @@ def generate_picklist(request, user=''):
                     if seller_stock_dict:
                         sell_stock_ids =  map(lambda person: person['stock_id'], seller_stock_dict)
                         sku_stocks = sku_stocks.filter(id__in=sell_stock_ids)
+                    else:
+                        sku_stocks = sku_stocks.filter(id=0)
                     stock_status, picklist_number = picklist_generation([seller_order], request, picklist_number, user, sku_combos, sku_stocks, status = 'open', remarks=remarks, is_seller_order=True)
             else:
                 stock_status, picklist_number = picklist_generation([order_data], request, picklist_number, user, sku_combos, sku_stocks, status = 'open', remarks=remarks)
@@ -4271,6 +4273,8 @@ def order_category_generate_picklist(request, user=''):
                     if seller_stock_dict:
                         sell_stock_ids =  map(lambda person: person['stock_id'], seller_stock_dict)
                         sku_stocks = sku_stocks.filter(id__in=sell_stock_ids)
+                    else:
+                        sku_stocks = sku_stocks.filter(id=0)
                     stock_status, picklist_number = picklist_generation([seller_order], request, picklist_number, user, sku_combos, sku_stocks, status = 'open', remarks='', is_seller_order=True)
                     if stock_status:
                         out_of_stock = out_of_stock + stock_status
@@ -5229,6 +5233,8 @@ def seller_generate_picklist(request, user=''):
                 if seller_stock_dict:
                     sell_stock_ids =  map(lambda person: person['stock_id'], seller_stock_dict)
                     sku_stocks = sku_stocks.filter(id__in=sell_stock_ids)
+                else:
+                    sku_stocks = sku_stocks.filter(id=0)
             order_code = ''.join(re.findall('\D+', order_id))
             order_id = ''.join(re.findall('\d+', order_id))
             order_filter['order__order_id'] = order_id

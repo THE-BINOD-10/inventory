@@ -2494,11 +2494,12 @@ def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=
             seller_stock = seller_stock[0]
 
         if seller_stock:
-            seller_stock_update_details.append({
-                    'sku_code' : str(seller_stock.stock.sku.sku_code),
-                    'seller_id' : int(seller_stock.seller.seller_id),
-                    'quantity' : int(seller_stock.quantity)
-                })
+            if seller_stock.stock.location.zone.zone not in ['DAMAGED_ZONE']:
+                seller_stock_update_details.append({
+                        'sku_code' : str(seller_stock.stock.sku.sku_code),
+                        'seller_id' : int(seller_stock.seller.seller_id),
+                        'quantity' : int(value)
+                    })
     return seller_stock_update_details
 
 @csrf_exempt

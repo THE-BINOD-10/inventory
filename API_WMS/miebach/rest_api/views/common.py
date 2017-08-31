@@ -3637,7 +3637,7 @@ def check_and_update_order_status(shipped_orders_dict, user):
                         order_status_dict[order_detail_id]['subOrders'].append(seller_dict)
                         index = len(order_status_dict[order_detail_id]['subOrders']) - 1
                     else:
-                        index = order_status_dict[order_detail_id].index(is_sor_id[0])
+                        index = order_status_dict[order_detail_id]['subOrders'].index(is_sor_id[0])
                     order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
                     for imei in order_data.get('imeis', []):
                         hsn_code = ''

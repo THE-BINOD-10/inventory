@@ -256,7 +256,10 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
             status = 'Active'
 
         if data.phone_number:
-            data.phone_number = int(float(data.phone_number))
+            try:
+                data.phone_number = int(float(data.phone_number))
+            except:
+                data.phone_number = ''
         login_created = False
         customer_login = CustomerUserMapping.objects.filter(customer_id=data.id)
         user_name = ""

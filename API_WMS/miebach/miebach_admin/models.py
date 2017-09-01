@@ -697,6 +697,7 @@ class OrderIMEIMapping(models.Model):
     imei_number =  models.CharField(max_length = 64, default = '')
     sor_id = models.CharField(max_length=128, default='')
     status = models.IntegerField(default=1)
+    sor_id = models.CharField(max_length = 128, default = '')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

@@ -1107,7 +1107,7 @@ def validate_location_stock(val, all_locations, all_skus, user):
         status.append(error_string)
     return pic_check_data, ', '.join(status)
 
-def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
+def insert_order_serial(picklist, val, order='', shipped_orders_dict={}, sor_id=''):
     if ',' in val['imei']:
         imei_nos = list(set(val['imei'].split(',')))
     else:
@@ -1156,7 +1156,7 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
                 po_imei.status=0
                 po_imei.save()
         elif imei and not po_mapping:
-            order_mapping = {'order_id': order_id, 'po_imei_id': None, 'imei_number': imei}
+            order_mapping = {'order_id': order_id, 'po_imei_id': None, 'imei_number': imei, 'sor_id': sor_id}
             imei_mapping = OrderIMEIMapping(**order_mapping)
             imei_mapping.save()
             log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
@@ -2987,8 +2987,13 @@ def insert_shipment_info(request, user=''):
                         shipment_data[key] = value[i]
 
                 if 'imei_number' in myDict.keys() and myDict['imei_number'][i]:
+                    sor_id = ''
+                    sor_data = SellerOrder.objects.filter(order_id = order_id)
+                    if sor_data:
+                        sor_id = sor_data[0].sor_id
+
                     shipped_orders_dict = insert_order_serial([], {'wms_code': order_detail.sku.wms_code, 'imei': myDict['imei_number'][i]},
-                                                              order=order_detail, shipped_orders_dict=shipped_orders_dict)
+                                                              order=order_detail, shipped_orders_dict=shipped_orders_dict, sor_id=sor_id)
                 order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id,
                                                                     package_reference=myDict['package_reference'][i], order_shipment__user=user.id)
                 if not order_pack_instance:
@@ -5074,7 +5079,10 @@ def generate_customer_invoice(request, user=''):
         if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
-        invoice_data = build_invoice(invoice_data, user, False)
+        if get_misc_value('show_imei_invoice', user.id) == 'true':
+            invoice_data = build_marketplace_invoice(invoice_data, user, False)
+        else:
+            invoice_data = build_invoice(invoice_data, user, False)
 
     except Exception as e:
         import traceback

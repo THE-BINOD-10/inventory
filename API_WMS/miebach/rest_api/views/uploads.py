@@ -852,8 +852,18 @@ def order_label_mapping_form(request, user=''):
     if label_file:
         return error_file_download(label_file)
 
-    wb, ws = get_work_sheet('Order Labels', )
+    wb, ws = get_work_sheet('Order Labels', ORDER_LABEL_EXCEL_HEADERS)
     return xls_to_response(wb, '%s.order_label_mapping_form.xls' % str(user.id))
+
+#@csrf_exempt
+#@get_admin_user
+#def order_serial_mapping_form(request, user=''):
+#    label_file = request.GET['order-serial-mapping-form']
+#    if label_file:
+#        return error_file_download(label_file)
+#
+#    wb, ws = get_work_sheet('Order Serials', ORDER_SERIAL_EXCEL_HEADERS)
+#    return xls_to_response(wb, '%s.order_serial_mapping_form.xls' % str(user.id))
 
 @csrf_exempt
 def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls'):

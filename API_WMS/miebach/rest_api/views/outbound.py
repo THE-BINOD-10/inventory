@@ -2966,20 +2966,20 @@ def insert_shipment_info(request, user=''):
                 if received_quantity <= 0:
                     break
                 invoice_number = ''
-                if 'invoice_number' in myDict.keys() and myDict['invoice_number'][0]:
-                    invoice_number = myDict['invoice_number'][0]
+                #if 'invoice_number' in myDict.keys() and myDict['invoice_number'][0]:
+                #    invoice_number = myDict['invoice_number'][0]
                 data_dict = copy.deepcopy(ORDER_PACKAGING_FIELDS)
                 shipment_data = copy.deepcopy(SHIPMENT_INFO_FIELDS)
                 order_detail = OrderDetail.objects.get(id=order_id)
 
-                if not invoice_number and user_profile.user_type == 'marketplace_user':
-                     return HttpResponse("Invoice Number Missing")
-                if invoice_number:
-                    shipment_info_obj = ShipmentInfo.objects.filter(order__user=user.id, invoice_number=invoice_number).\
-                                                           exclude(order__order_id=order_detail.order_id, order__order_code=order_detail.order_code,
-                                                                     order__original_order_id=order_detail.original_order_id)
-                    if shipment_info_obj:
-                        return HttpResponse("Invoice Number mapped for another order")
+                #if not invoice_number and user_profile.user_type == 'marketplace_user':
+                #     return HttpResponse("Invoice Number Missing")
+                #if invoice_number:
+                #    shipment_info_obj = ShipmentInfo.objects.filter(order__user=user.id, invoice_number=invoice_number).\
+                #                                           exclude(order__order_id=order_detail.order_id, order__order_code=order_detail.order_code,
+                #                                                     order__original_order_id=order_detail.original_order_id)
+                #    if shipment_info_obj:
+                #        return HttpResponse("Invoice Number mapped for another order")
                 for key, value in myDict.iteritems():
                     if key in data_dict:
                         data_dict[key] = value[i]

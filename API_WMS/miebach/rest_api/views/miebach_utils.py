@@ -164,11 +164,12 @@ SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone N
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
 CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Credit Period', 'CST Number', 'TIN Number', 'PAN Number', 'Email', 'Phone No.',
-                    'City', 'State', 'Country', 'Pin Code', 'Address', 'Selling Price Type', 'Tax Type(Options: Inter State, Intra State)']
+                    'City', 'State', 'Country', 'Pin Code', 'Address', 'Selling Price Type', 'Tax Type(Options: Inter State, Intra State)',
+                    'Margin Percentage']
 
 CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('name', 1), ('credit_period', 2), ('cst_number', 3), ('tin_number', 4),
                                        ('pan_number', 5), ('email_id', 6), ('phone_number', 7), ('city', 8), ('state', 9), ('country', 10),
-                                       ('pincode', 11), ('address', 12), ('price_type', 13), ('tax_type', 14)
+                                       ('pincode', 11), ('address', 12), ('price_type', 13), ('tax_type', 14), ('margin', 15)
                                     ))
 
 MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(( ('customer_id', 0), ('phone', 1), ('name', 2), ('address', 3), ('pincode', 4), ('city', 5), ('tin', 6)
@@ -731,21 +732,24 @@ ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items
                          'title': 'sku_item["name"]', 'quantity': 'sku_item["quantity"]',
                          'shipment_date': 'orders.get("orderDate", '')', 'channel_sku': 'sku_item["sku"]',
                          'unit_price': 'sku_item["unitPrice"]', 'seller_id': 'order["sellerId"]',
-                         'sor_id': 'order["sorId"]', 'cgst_tax': 'sku_item.get("cgst_tax", "0")', 'sgst_tax': 'sku_item.get("sgst_tax", "0")',
-                         'igst_tax': 'sku_item.get("igst_tax", "0")', 'order_status': 'order.get("currentStatus", "")',
+                         'sor_id': 'order["sorId"]', 'cgst_tax': 'sku_item.get("cgstTax", "0")', 'sgst_tax':'sku_item.get("sgstTax", "0")',
+                         'igst_tax': 'sku_item.get("igstTax", "0")', 'order_status': 'order.get("currentStatus", "")',
                          'line_items': 'order["lineItems"]', 'customer_id': 'orders.get("retailerId", "")',
                          'customer_name': '(orders.get("retailerAddress", {})).get("name", "")',
                          'telephone': '(orders.get("retailerAddress", {})).get("phoneNo", "")',
                          'address': '(orders.get("retailerAddress", {})).get("address", "")',
-                         'city': '(orders.get("retailerAddress", {})).get("city", "")'
+                         'city': '(orders.get("retailerAddress", {})).get("city", "")', 'seller_item_id': 'sku_item["lineItemId"]',
+                         'seller_parent_item_id': 'sku_item["parentLineItemId"]'
                         }
 
-SKU_MASTER_API_MAPPING = OrderedDict(( ('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_desc'), ('sku_brand', 'sku_brand'),
-                          ('sku_category', 'sku_category_id'), ('price', 'price'), ('mrp', 'mrp'), ('product_type', 'product_type'),
-                          ('sku_class', 'sku_class'), ('style_name', 'style_name'), ('status', 'status'), ('hsn_code', 'hsn_code'),
-                          ('ean_number', 'ean_number'), ('threshold_quantity', 'threshold_quantity'), ('color', 'color'),
-                          ('measurement_type', 'measurement_type'), ('sku_size', 'sku_size'), ('size_type', 'size_type'),
-                          ('mix_sku', 'mix_sku'), ('sku_type', 'sku_type'), ('attributes', 'sku_options'), ('child_skus', 'child_skus') ))
+SKU_MASTER_API_MAPPING = OrderedDict(( ('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_name'),
+                                       ('sku_brand', 'sku_brand'), ('sku_category', 'sku_category_name'), ('price', 'price'),
+                                       ('mrp', 'mrp'), ('product_type', 'product_type'), ('sku_class', 'sku_class'),
+                                       ('style_name', 'style_name'), ('status', 'status'), ('hsn_code', 'hsn_code'),
+                                       ('ean_number', 'ean_number'), ('threshold_quantity', 'threshold_quantity'), ('color', 'color'),
+                                       ('measurement_type', 'measurement_type'), ('sku_size', 'sku_size'), ('size_type', 'size_type'),
+                                       ('mix_sku', 'mix_sku'), ('sku_type', 'sku_type'), ('attributes', 'sku_options'),
+                                       ('child_skus', 'child_skus') ))
 
 CUSTOMER_MASTER_API_MAPPING = OrderedDict(( ('customers', 'customers'), ('customer_id', 'customer_id'), ('name', 'name'),
                                             ('address', 'address'), ('city', 'city'), ('state', 'state'), ('country', 'country'),
@@ -753,6 +757,13 @@ CUSTOMER_MASTER_API_MAPPING = OrderedDict(( ('customers', 'customers'), ('custom
                                             ('status', 'status'), ('last_name', 'last_name'), ('credit_period', 'credit_period'),
                                             ('tin_number', 'tin_number'), ('price_type', 'price_type'), ('tax_type', 'tax_type'),
                                             ('pan_number', 'pan_number')
+                                         ))
+
+SELLER_MASTER_API_MAPPING = OrderedDict(( ('sellers', 'sellers'), ('seller_id', 'seller_id'), ('name', 'name'),
+                                            ('phone_number', 'phone_number'), ('address', 'address'),
+                                            ('email_id', 'email_id'), ('tin_number', 'gstin_no'),
+                                            ('vat_number', 'vat_number'), ('price_type', 'price_type'),
+                                            ('margin', 'margin'), ('status', 'status')
                                          ))
 
 # Easyops Integration Mapping Dictionaries
@@ -790,6 +801,8 @@ EASYOPS_CANCEL_ORDER_MAPPING = {'id': 'orderId', 'order_id': 'orderTrackingNumbe
 
 ORDER_DETAIL_STATES = {0: 'Picklist generated', 1: 'Newly Created', 2: 'Dispatched', 3: 'Cancelled', 4: 'Returned',
                        5: 'Delivery Reschedule Cancelled'}
+
+SELLER_ORDER_STATES = {0: 'Seller Order Picklist generated', 1: 'Newly Created', 4: 'Returned'}
 
 PAYMENT_MODES = ['Credit Card', 'Debit Card', 'Cash', 'NEFT', 'RTGS', 'IMPS', 'Online Transfer', 'Cash Remittance', 'Cheque']
 

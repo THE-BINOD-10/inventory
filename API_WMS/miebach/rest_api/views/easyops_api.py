@@ -23,10 +23,12 @@ class EasyopsAPI:
         self.host = LOAD_CONFIG.get(self.company_name, 'host', '')
         self.auth_data = LOAD_CONFIG.get(self.company_name, 'authentication', '')
         self.access_token_name = LOAD_CONFIG.get(self.company_name, 'access_token_name', '')
+        self.is_full_link = LOAD_CONFIG.get(self.company_name, 'is_full_link', False)
+        self.content_type_name = LOAD_CONFIG.get(self.company_name, 'content_type_name', False)
         self.token = token
         self.user = user
         self.content_type = 'application/json'
-        self.headers = { 'ContentType' : self.content_type }
+        self.headers = { self.content_type_name : self.content_type }
 
     def update_token(self, json_response):
         """ Updating refresh token details to DB """
@@ -47,7 +49,7 @@ class EasyopsAPI:
         self.token = ''
         if user and self.auth_check:
             self.user = user
-            access_token = UserAccessTokens.objects.filter(user_profile__user_id=user.id, app_host='easyops')
+            access_token = UserAccessTokens.objects.filter(user_profile__user_id=user.id, app_host=self.company_name)
             if access_token:
                 self.token = access_token[0].access_token
             else:
@@ -55,6 +57,7 @@ class EasyopsAPI:
 
     def get_response(self, url, data=None, put=False, auth=False, is_first=True):
         """ Getting API response using request module """
+        response = {'status': 'Internal Server Error'}
         if self.access_token_name == 'access_token':
             self.headers["Authorization"] = "Bearer " + self.token
         else:
@@ -71,8 +74,11 @@ class EasyopsAPI:
         except:
             if is_first:
                 self.get_access_token(self.user)
-                response = self.get_response(url, data, put, is_first=False)
-
+                try:
+                    response = self.get_response(url, data, put, is_first=False)
+                    response = response.json()
+                except Exception as e:
+                    response = {'status': 'Internal Server Error'}
         return response
 
     def get_access_token(self, user=''):
@@ -89,9 +95,10 @@ class EasyopsAPI:
         if self.auth:
             json_response = requests.post(auth_url, headers=self.headers, auth=data, verify=False).json()
         else:
-            json_response = self.get_response(auth_url, data)
-        self.token = json_response.get('access_token', '')
-        self.update_token(json_response)
+            json_response = self.get_response(auth_url, data, is_first=False)
+        if self.check_response_type(json_response, 'json'):
+            self.token = json_response.get('access_token', '')
+            self.update_token(json_response)
         return json_response
 
     def get_pending_orders(self, token='', user=''):
@@ -141,12 +148,11 @@ class EasyopsAPI:
         json_response = self.get_response(url)
         return json_response
 
-    def update_sku_count(self, data={}, token='', user=''):
+    def update_sku_count(self, data={}, token='', user='', method_put=True, individual_update=False):
         """ Updating SKU count for a particular User """
         if user:
             self.user = user
             self.get_user_token(user)
-
         run_iterator = 1
         url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'update_stock', ''))
         #data = eval(LOAD_CONFIG.get(self.company_name, 'update_stock_dict', '') % stock_count)
@@ -155,7 +161,10 @@ class EasyopsAPI:
         if LOAD_CONFIG.get(self.company_name, 'stock_pagination_limit', ''):
             run_limit = int(LOAD_CONFIG.get(self.company_name, 'stock_pagination_limit', ''))
         while run_iterator:
-            json_response = self.get_response(url, data[offset:(offset + run_limit)], put=True)
+            slice_data = data[offset:(offset + run_limit)]
+            if individual_update:
+                slice_data = slice_data[0]
+            json_response = self.get_response(url, slice_data, put=method_put)
             offset += run_limit
             if offset >= len(data):
                 run_iterator = 0
@@ -171,6 +180,19 @@ class EasyopsAPI:
         url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'confirm_picklist', ''))
         data = eval(LOAD_CONFIG.get(self.company_name, 'confirm_picklist_dict', '') % order_id)
         json_response = self.get_response(url, data, put=True)
+        return json_response
+
+    def confirm_order_status(self, data={}, token='', user=''):
+        """ API to confirm the order status (shotang)"""
+        if user:
+            self.user = user
+            self.get_user_token(user)
+
+        if self.is_full_link:
+            url = LOAD_CONFIG.get(self.company_name, 'confirm_picklist', '')
+        else:
+            url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'confirm_picklist', ''))
+        json_response = self.get_response(url, data)
         return json_response
 
     def get_shipped_orders(self, token='', user=''):
@@ -279,3 +301,13 @@ class EasyopsAPI:
                 run_iterator = 0
             print data
         return main_json_response
+
+    def check_response_type(self, response, check_type):
+        supported_types = ['html', 'json']
+        if check_type in supported_types:
+            try:
+                actual_type = response.headers['Content-Type'].split(';')[0].split('/')[1]
+            except Exception as e:
+                return False
+            return actual_type == check_type
+        return False

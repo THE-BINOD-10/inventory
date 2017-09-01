@@ -119,6 +119,11 @@
             </div>
             <div class="col-md-4">
               <div class="form-group">
+                <label class="control-label"> Margin Percentage </label>
+                <input type="text" name="margin" class="form-control" ng-model="showCase.model_data.margin" percentage-field percentage-max-value="99.99" percentage-max-decimals="2"> </div>
+              </div>
+            <div class="col-md-4">
+              <div class="form-group">
                 <label class="control-label"> Status </label>
                 <select class="form-control customer_status" ng-model="showCase.model_data.status" name="status">
                   <option ng-repeat="status in showCase.status_data" value="{{status}}">{{status}}</option>

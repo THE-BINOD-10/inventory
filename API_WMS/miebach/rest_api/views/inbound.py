@@ -9,6 +9,7 @@ from itertools import chain
 from collections import OrderedDict
 from django.contrib.auth import authenticate
 from django.contrib import auth
+from django.db.models.query import QuerySet
 from miebach_admin.models import *
 from miebach_utils import *
 from mail_server import send_mail, send_mail_attachment
@@ -728,7 +729,8 @@ def switches(request, user=''):
                     'marketplace_model': 'marketplace_model',
                     'barcode_generate_opt': 'barcode_generate_opt',
                     'grn_scan_option': 'grn_scan_option',
-                    'invoice_titles': 'invoice_titles'
+                    'invoice_titles': 'invoice_titles',
+                    'show_imei_invoice': 'show_imei_invoice'
                   }
 
     toggle_field, selection = "", ""
@@ -935,10 +937,13 @@ def confirm_po(request, user=''):
 
     profile = UserProfile.objects.get(user=user.id)
 
+    company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     if receipt_type == 'Hosted Warehouse':
         title = 'Stock Transfer Note'
+    if request.GET.get('seller_id', '') and str(request.GET.get('seller_id').split(":")[1]).lower() == 'shproc':
+        company_name = 'SHPROC'
 
     if ean_flag:
         table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
@@ -946,8 +951,9 @@ def confirm_po(request, user=''):
     else:
         table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
                          'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
+
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
-                 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'company_name': profile.company_name,
+                 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'company_name': company_name,
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type, 'title': title,
                  'gstin_no': gstin_no}
@@ -1483,6 +1489,8 @@ def get_purchaseorder_locations(put_zone, temp_dict):
     return location
 
 def get_remaining_capacity(loc, received_quantity, put_zone, pallet_number, user):
+    if loc.zone.zone in ['DEFAULT', 'QC_ZONE', 'DAMAGED_ZONE']:
+        return received_quantity, 0
     total_quantity = POLocation.objects.filter(location_id=loc.id, status=1, location__zone__user=user).\
                                         aggregate(Sum('quantity'))['quantity__sum']
     if not total_quantity:
@@ -2119,10 +2127,12 @@ def get_returns_location(put_zone, request, user):
 
 def create_return_order(data, i, user):
     status = ''
+    user_obj = User.objects.get(id=user)
     sku_id = SKUMaster.objects.filter(sku_code = data['sku_code'][i], user = user)
     if not sku_id:
         return "", "SKU Code doesn't exist"
     return_details = copy.deepcopy(RETURN_DATA)
+    user_obj = User.objects.get(id=user)
     if (data['return'][i] or data['damaged'][i]) and sku_id:
         #order_details = OrderReturns.objects.filter(return_id = data['return_id'][i])
         quantity = data['return'][i]
@@ -2134,8 +2144,21 @@ def create_return_order(data, i, user):
         marketplace = ''
         if 'marketplace' in data.keys() and data['marketplace'][i]:
             marketplace = data['marketplace'][i]
+        sor_id = ''
+        if data.has_key('sor_id') and data['sor_id'][i]:
+            sor_id = data['sor_id'][i]
         return_details = {'return_id': '', 'return_date': datetime.datetime.now(), 'quantity': quantity,
                           'sku_id': sku_id[0].id, 'status': 1, 'marketplace': marketplace, 'return_type': return_type}
+        if data.has_key('order_id') and data['order_id'][i]:
+            order_detail = get_order_detail_objs(data['order_id'][i], user_obj, search_params={'sku_id': sku_id[0].id, 'user': user})
+            if order_detail:
+                return_details['order_id'] = order_detail[0].id
+                if order_detail[0].status == int(2):
+                    order_detail[0].status = 4
+                    order_detail[0].save()
+                seller_order_id = get_returns_seller_order_id(return_details['order_id'], sku_id[0].sku_code, user_obj, sor_id=sor_id)
+                if seller_order_id:
+                    return_details['seller_order_id'] = seller_order_id
         returns = OrderReturns(**return_details)
         returns.save()
 
@@ -2253,8 +2276,8 @@ def save_return_imeis(user, returns, status, imei_numbers):
 @login_required
 @get_admin_user
 def confirm_sales_return(request, user=''):
-    data_dict = dict(request.GET.iterlists())
-    return_type = request.GET.get('return_type', '')
+    data_dict = dict(request.POST.iterlists())
+    return_type = request.POST.get('return_type', '')
     for i in range(0, len(data_dict['id'])):
         all_data = []
         if not data_dict['id'][i]:
@@ -2446,6 +2469,7 @@ def putaway_location(data, value, exc_loc, user, order_id, po_id):
 def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=False):
     if not data.purchase_order.open_po:
         return
+    seller_stock_update_details = []
     received_quantity = float(stock_obj.quantity)
     if use_value:
         received_quantity = value
@@ -2465,12 +2489,23 @@ def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=
         seller_stock = SellerStock.objects.filter(seller_id=sell_summary.seller_po.seller_id, stock_id=stock_obj.id,
                                                   stock__sku__user=user.id, seller_po_summary_id=sell_summary.id)
         if not seller_stock:
-            SellerStock.objects.create(seller_id=sell_summary.seller_po.seller_id, quantity=sell_quan,
+            seller_stock = SellerStock.objects.create(seller_id=sell_summary.seller_po.seller_id, quantity=sell_quan,
                                        seller_po_summary_id=sell_summary.id,
                                        creation_date=datetime.datetime.now(), status=1, stock_id=stock_obj.id)
         else:
             seller_stock[0].quantity = float(seller_stock[0].quantity) + float(sell_quan)
             seller_stock[0].save()
+        if isinstance(seller_stock, QuerySet):
+            seller_stock = seller_stock[0]
+
+        if seller_stock:
+            if seller_stock.stock.location.zone.zone not in ['DAMAGED_ZONE']:
+                seller_stock_update_details.append({
+                        'sku_code' : str(seller_stock.stock.sku.sku_code),
+                        'seller_id' : int(seller_stock.seller.seller_id),
+                        'quantity' : int(value)
+                    })
+    return seller_stock_update_details
 
 @csrf_exempt
 @login_required
@@ -2479,127 +2514,136 @@ def putaway_data(request, user=''):
     purchase_order_id= ''
     diff_quan = 0
     all_data = {}
-    myDict = dict(request.POST.iterlists())
-    sku_codes = []
-    mod_locations = []
-    for i in range(0, len(myDict['id'])):
-        po_data = ''
-        if myDict['orig_data'][i]:
-            myDict['orig_data'][i] = eval(myDict['orig_data'][i])
-            for orig_data in myDict['orig_data'][i]:
-                cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
+    try:
+        myDict = dict(request.POST.iterlists())
+        sku_codes = []
+        marketplace_data = []
+        mod_locations = []
+        for i in range(0, len(myDict['id'])):
+            po_data = ''
+            if myDict['orig_data'][i]:
+                myDict['orig_data'][i] = eval(myDict['orig_data'][i])
+                for orig_data in myDict['orig_data'][i]:
+                    cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
+                    all_data.setdefault(cond, 0)
+                    all_data[cond] += float(orig_data['orig_quantity'])
+
+            else:
+                cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
                 all_data.setdefault(cond, 0)
-                all_data[cond] += float(orig_data['orig_quantity'])
+                if not myDict['quantity'][i]:
+                    myDict['quantity'][i] = 0
+                all_data[cond] += float(myDict['quantity'][i])
 
-        else:
-            cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
-            all_data.setdefault(cond, 0)
-            if not myDict['quantity'][i]:
-                myDict['quantity'][i] = 0
-            all_data[cond] += float(myDict['quantity'][i])
+        all_data = OrderedDict(sorted(all_data.items(), reverse=True))
+        status = validate_putaway(all_data,user)
+        if status:
+            return HttpResponse(status)
 
-    all_data = OrderedDict(sorted(all_data.items(), reverse=True))
-    status = validate_putaway(all_data,user)
-    if status:
-        return HttpResponse(status)
-
-    for key, value in all_data.iteritems():
-        loc = LocationMaster.objects.get(location=key[1], zone__user=user.id)
-        loc1 = loc
-        exc_loc = loc.id
-        if key[0]:
-            po_loc_data = POLocation.objects.filter(id=key[0], location__zone__user=user.id)
-            purchase_order_id = po_loc_data[0].purchase_order.order_id
-        else:
-            sku_master, sku_master_ids = get_sku_master(user, request.user)
-            results = PurchaseOrder.objects.filter(open_po__sku__user = user.id, open_po__sku_id__in=sku_master_ids,
-                                                   order_id=purchase_order_id, open_po__sku__wms_code=key[4]).exclude(status__in=['',
-                                                   'confirmed-putaway']).values_list('id', flat=True).distinct()
-            stock_results = STPurchaseOrder.objects.exclude(po__status__in=['','confirmed-putaway', 'stock-transfer']).\
-                                                    filter(open_st__sku__user = user.id, open_st__sku_id__in=sku_master_ids,
-                                                    open_st__sku__wms_code=key[4], po__order_id=purchase_order_id).\
-                                                    values_list('po_id', flat=True).distinct()
-            rw_results = RWPurchase.objects.filter(rwo__job_order__product_code_id__in=sku_master_ids,
-                                                   rwo__job_order__product_code__wms_code=key[4]).exclude(purchase_order__status__in=['',
-                                            'confirmed-putaway', 'stock-transfer'], purchase_order__order_id=purchase_order_id).\
-                                            filter(rwo__vendor__user = user.id).values_list('purchase_order_id', flat=True)
-            results = list(chain(results, stock_results, rw_results))
-            po_loc_data = POLocation.objects.filter(location__zone__user=user.id, purchase_order_id__in=results)
-
-        old_loc = ""
-        if po_loc_data:
-            old_loc = po_loc_data[0].location_id
-
-        if not value:
-            continue
-        count = value
-        for data in po_loc_data:
-            if not count:
-                break
-            if float(data.quantity) < count:
-                value = count - float(data.quantity)
-                count -= float(data.quantity)
+        for key, value in all_data.iteritems():
+            loc = LocationMaster.objects.get(location=key[1], zone__user=user.id)
+            loc1 = loc
+            exc_loc = loc.id
+            if key[0]:
+                po_loc_data = POLocation.objects.filter(id=key[0], location__zone__user=user.id)
+                purchase_order_id = po_loc_data[0].purchase_order.order_id
             else:
-                value = count
-                count = 0
-            order_data = get_purchase_order_data(data.purchase_order)
-            putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
-            stock_data = StockDetail.objects.filter(location_id=exc_loc, receipt_number=data.purchase_order.order_id,
-                                                    sku_id=order_data['sku_id'], sku__user=user.id)
-            pallet_mapping = PalletMapping.objects.filter(po_location_id=data.id,status=1)
-            if pallet_mapping:
+                sku_master, sku_master_ids = get_sku_master(user, request.user)
+                results = PurchaseOrder.objects.filter(open_po__sku__user = user.id, open_po__sku_id__in=sku_master_ids,
+                                                       order_id=purchase_order_id, open_po__sku__wms_code=key[4]).exclude(status__in=['',
+                                                       'confirmed-putaway']).values_list('id', flat=True).distinct()
+                stock_results = STPurchaseOrder.objects.exclude(po__status__in=['','confirmed-putaway', 'stock-transfer']).\
+                                                        filter(open_st__sku__user = user.id, open_st__sku_id__in=sku_master_ids,
+                                                        open_st__sku__wms_code=key[4], po__order_id=purchase_order_id).\
+                                                        values_list('po_id', flat=True).distinct()
+                rw_results = RWPurchase.objects.filter(rwo__job_order__product_code_id__in=sku_master_ids,
+                                                       rwo__job_order__product_code__wms_code=key[4]).exclude(purchase_order__status__in=['',
+                                                'confirmed-putaway', 'stock-transfer'], purchase_order__order_id=purchase_order_id).\
+                                                filter(rwo__vendor__user = user.id).values_list('purchase_order_id', flat=True)
+                results = list(chain(results, stock_results, rw_results))
+                po_loc_data = POLocation.objects.filter(location__zone__user=user.id, purchase_order_id__in=results)
+
+            old_loc = ""
+            if po_loc_data:
+                old_loc = po_loc_data[0].location_id
+
+            if not value:
+                continue
+            count = value
+            for data in po_loc_data:
+                if not count:
+                    break
+                if float(data.quantity) < count:
+                    value = count - float(data.quantity)
+                    count -= float(data.quantity)
+                else:
+                    value = count
+                    count = 0
+                order_data = get_purchase_order_data(data.purchase_order)
+                putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
                 stock_data = StockDetail.objects.filter(location_id=exc_loc, receipt_number=data.purchase_order.order_id,
-                                                        sku_id=order_data['sku_id'], sku__user=user.id,
-                                                        pallet_detail_id=pallet_mapping[0].pallet_detail.id)
-            if pallet_mapping:
-                setattr(loc1, 'pallet_filled', float(loc1.pallet_filled) + 1)
-            else:
-                mod_locations.append(loc1.location)
-            if loc1.pallet_filled > loc1.pallet_capacity:
-                setattr(loc1, 'pallet_capacity', loc1.pallet_filled)
-            loc1.save()
-            if stock_data:
-                stock_data = stock_data[0]
-                add_quan = float(stock_data.quantity) + float(value)
-                setattr(stock_data, 'quantity', add_quan)
+                                                        sku_id=order_data['sku_id'], sku__user=user.id)
+                pallet_mapping = PalletMapping.objects.filter(po_location_id=data.id,status=1)
                 if pallet_mapping:
-                    pallet_detail = pallet_mapping[0].pallet_detail
-                    setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
-                stock_data.save()
-                #create_update_seller_stock(data, value, user, stock_data, exc_loc, use_value=True)
-                create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
-            else:
-                record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
-                               'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
-                               'quantity': value, 'status': 1, 'receipt_type': 'purchase order', 'creation_date': datetime.datetime.now(),
-                               'updation_date': datetime.datetime.now()}
+                    stock_data = StockDetail.objects.filter(location_id=exc_loc, receipt_number=data.purchase_order.order_id,
+                                                            sku_id=order_data['sku_id'], sku__user=user.id,
+                                                            pallet_detail_id=pallet_mapping[0].pallet_detail.id)
                 if pallet_mapping:
-                    record_data['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
-                    pallet_mapping[0].status = 0
-                    pallet_mapping[0].save()
-                stock_detail = StockDetail(**record_data)
-                stock_detail.save()
-                create_update_seller_stock(data, value, user, stock_detail, old_loc)
-                #create_update_seller_stock(data, value, user, stock_detail, exc_loc)
-            consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
+                    setattr(loc1, 'pallet_filled', float(loc1.pallet_filled) + 1)
+                else:
+                    mod_locations.append(loc1.location)
+                if loc1.pallet_filled > loc1.pallet_capacity:
+                    setattr(loc1, 'pallet_capacity', loc1.pallet_filled)
+                loc1.save()
+                if stock_data:
+                    stock_data = stock_data[0]
+                    add_quan = float(stock_data.quantity) + float(value)
+                    setattr(stock_data, 'quantity', add_quan)
+                    if pallet_mapping:
+                        pallet_detail = pallet_mapping[0].pallet_detail
+                        setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
+                    stock_data.save()
+                    #create_update_seller_stock(data, value, user, stock_data, exc_loc, use_value=True)
+                    update_details = create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
+                    marketplace_data += update_details
+                else:
+                    record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
+                                   'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
+                                   'quantity': value, 'status': 1, 'receipt_type': 'purchase order', 'creation_date': datetime.datetime.now(),
+                                   'updation_date': datetime.datetime.now()}
+                    if pallet_mapping:
+                        record_data['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
+                        pallet_mapping[0].status = 0
+                        pallet_mapping[0].save()
+                    stock_detail = StockDetail(**record_data)
+                    stock_detail.save()
+                    update_details = create_update_seller_stock(data, value, user, stock_detail, old_loc)
+                    marketplace_data += update_details
+                    #create_update_seller_stock(data, value, user, stock_detail, exc_loc)
+                consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 
-            if order_data['sku_code'] not in sku_codes:
-                sku_codes.append(order_data['sku_code'])
+                if order_data['sku_code'] not in sku_codes:
+                    sku_codes.append(order_data['sku_code'])
 
-            putaway_quantity = POLocation.objects.filter(purchase_order_id=data.purchase_order_id,
-                                                         location__zone__user = user.id, status=0).\
-                                                         aggregate(Sum('original_quantity'))['original_quantity__sum']
-            if not putaway_quantity:
-                putaway_quantity = 0
-            if (float(order_data['order_quantity']) <= float(data.purchase_order.received_quantity)) and float(data.purchase_order.received_quantity) - float(putaway_quantity) <= 0:
-                data.purchase_order.status = 'confirmed-putaway'
+                putaway_quantity = POLocation.objects.filter(purchase_order_id=data.purchase_order_id,
+                                                             location__zone__user = user.id, status=0).\
+                                                             aggregate(Sum('original_quantity'))['original_quantity__sum']
+                if not putaway_quantity:
+                    putaway_quantity = 0
+                if (float(order_data['order_quantity']) <= float(data.purchase_order.received_quantity)) and float(data.purchase_order.received_quantity) - float(putaway_quantity) <= 0:
+                    data.purchase_order.status = 'confirmed-putaway'
 
-            data.purchase_order.save()
-    check_and_update_stock(sku_codes, user)
-    update_filled_capacity(list(set(mod_locations)), user.id)
-
+                data.purchase_order.save()
+        if user.userprofile.user_type == 'marketplace_user':
+            check_and_update_marketplace_stock(marketplace_data, user)
+        else:
+            check_and_update_stock(sku_codes, user)
+        update_filled_capacity(list(set(mod_locations)), user.id)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Putaway Confirmation failed for ' + str(scan_data) + ' error statement is ' + str(e))
     return HttpResponse('Updated Successfully')
-
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -3402,15 +3446,18 @@ def confirm_add_po(request, sales_data = '', user=''):
 
     profile = UserProfile.objects.get(user=user.id)
 
+    company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     if receipt_type == 'Hosted Warehouse':
         title = 'Stock Transfer Note'
+    if request.GET.get('seller_id', '') and str(request.GET.get('seller_id').split(":")[1]).lower() == 'shproc':
+        company_name = 'SHPROC'
 
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'user_name': request.user.username,
-                 'total_qty': total_qty, 'company_name': profile.company_name, 'location': profile.location, 'w_address': profile.address,
-                 'company_name': profile.company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
+                 'total_qty': total_qty, 'company_name': company_name, 'location': profile.location, 'w_address': profile.address,
+                 'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title, 'gstin_no': gstin_no}
 
     t = loader.get_template('templates/toggle/po_download.html')
@@ -4259,11 +4306,12 @@ def check_return_imei(request, user=''):
                 if shipment_info:
                     invoice_number = shipment_info[0].invoice_number
                 return_data['data'] = {'sku_code': order_imei[0].order.sku.sku_code, 'invoice_number': invoice_number,
-                                       'order_id': order_id, 'sku_desc': order_imei[0].order.title, 'shipping_quantity': 1}
+                                       'order_id': order_id, 'sku_desc': order_imei[0].order.title, 'shipping_quantity': 1,
+                                       'sor_id': order_imei[0].sor_id}
                 order_return = OrderReturns.objects.filter(order_id=order_imei[0].order.id, sku__user=user.id)
                 if order_return:
                     return_data['data'].update({'id': order_return[0].id, 'return_id': order_return[0].return_id,
-                                                'return_type': order_return[0].return_type})
+                                                'return_type': order_return[0].return_type, 'sor_id': ''})
                 log.info(return_data)
     except Exception as e:
         import traceback

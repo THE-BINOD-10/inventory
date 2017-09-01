@@ -591,9 +591,15 @@ def configurations(request, user=''):
     barcode_generate_opt = get_misc_value('barcode_generate_opt', user.id)
     grn_scan_option = get_misc_value('grn_scan_option', user.id)
     invoice_titles = get_misc_value('invoice_titles', user.id)
+    show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
+
+    receive_options =  dict(RECEIVE_OPTIONS)
+    total_groups = request.user.groups.all()
+    if not get_permission(request.user, 'add_qualitycheck', groups=total_groups):
+        del receive_options['One step Receipt + Qc']
 
     view_order_status = view_order_status.split(',')
     style_headers = style_headers.split(',')
@@ -690,12 +696,12 @@ def configurations(request, user=''):
                                     'all_view_order_status': all_view_order_status,
                                     'view_order_status': view_order_status, 'style_headers': style_headers,
                                     'sku_sync': sku_sync, 'seller_margin': seller_margin,
-                                    'receive_process': receive_process, 'receive_options': RECEIVE_OPTIONS,
+                                    'receive_process': receive_process, 'receive_options': receive_options,
                                     'tally_config': tally_config, 'tax_data': tax_data, 'hsn_summary': hsn_summary,
                                     'display_customer_sku': display_customer_sku, 'marketplace_model': marketplace_model,
                                     'label_generation': label_generation, 'barcode_generate_options': BARCODE_OPTIONS,
                                     'barcode_generate_opt': barcode_generate_opt, 'grn_scan_option': grn_scan_option,
-                                    'invoice_titles': invoice_titles}))
+                                    'invoice_titles': invoice_titles, 'show_imei_invoice': show_imei_invoice}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -1742,6 +1748,24 @@ def check_and_update_stock(wms_codes, user):
         except:
             continue
 
+def check_and_update_marketplace_stock(stock_updates, user):
+    stock_sync = get_misc_value('stock_sync', user.id)
+    if not stock_sync == 'true':
+        return
+    from rest_api.views.easyops_api import *
+    integrations = Integrations.objects.filter(user=user.id, status=1)
+    for integrate in integrations:
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        for update in stock_updates:
+            try:
+                response = obj.update_sku_count(
+                    data=[update], user=user, method_put=False, individual_update=True)
+                log.info('Stock Sync API response for the user ' + str(user.username) + ' is ' + str(response))
+            except:
+                log.info('Stock Sync API failed for the user ' + str(user.username) + ' is ' + str(response))
+                continue
+
+
 def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_ids=[]):
     extra_data = []
     product_images = []
@@ -1770,11 +1794,13 @@ def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_i
 def check_and_update_order(user, order_id):
     from rest_api.views.easyops_api import *
     user = User.objects.get(id=user)
+    user_profile = UserProfile.objects.get(user_id=user)
     integrations = Integrations.objects.filter(user=user.id, status=1)
     for integrate in integrations:
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
         try:
-            obj.confirm_picklist(order_id, user=user)
+            if not user_profile.user_type == 'marketplace_user':
+                obj.confirm_picklist(order_id, user=user)
         except:
             continue
 
@@ -1801,6 +1827,7 @@ def get_invoice_number(user, order_no, invoice_date):
 
 def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     data = []
+    imei_data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_date = ''
     order_id = ''
@@ -1824,6 +1851,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     invoice_date = datetime.datetime.now()
     hsn_summary = {}
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
+    show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     if display_customer_sku == 'true':
         customer_sku_codes = CustomerSKU.objects.filter(sku__user=user.id).exclude(customer_sku_code='').values('sku__sku_code',
                                                         'customer__customer_id', 'customer_sku_code')
@@ -1981,12 +2009,24 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                 customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,sku__sku_code=sku_code)
                 if customer_sku_code_ins:
                     sku_code = customer_sku_code_ins[0]['customer_sku_code']
+
+            sor_id = ''
+            sor_data = SellerOrder.objects.filter(order_id = dat.id)
+            if sor_data:
+                sor_id = sor_data[0].sor_id
+            imeis = OrderIMEIMapping.objects.filter(order__user = user.id, order_id = dat.id, sor_id = sor_id)
+            temp_imeis = []
+            if imeis and show_imei_invoice == 'true':
+                for imei in imeis:
+                    if imei:
+                        temp_imeis.append(imei.po_imei.imei_number)
+            imei_data.append(temp_imeis)
+
             data.append({'order_id': order_id, 'sku_code': sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
                          'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
                          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
                          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
-                         'base_price': base_price, 'hsn_code': hsn_code})
-
+                         'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis})
 
     _invoice_no = get_invoice_number(user_profile, order_no, invoice_date)
     inv_date = invoice_date.strftime("%m/%d/%Y")
@@ -2010,7 +2050,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     declaration = DECLARATIONS.get(user.username, '')
     if not declaration:
         declaration = DECLARATIONS['default']
-    invoice_data = {'data': data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
+    invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
                     'order_date': order_date, 'email': user.email, 'marketplace': marketplace, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
                     'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % _total_tax, 'total_mrp': total_mrp,
@@ -2316,11 +2356,14 @@ def get_customer_sku_prices(request, user = ""):
             discount = 0
 
             if price_type:
-                price_type = price_type[0].price_type
+                customer_obj = price_type[0]
+                price_type = customer_obj.price_type
                 price_master_objs = PriceMaster.objects.filter(price_type = price_type, sku__sku_code = sku_code, sku__user = user.id)
                 if price_master_objs:
                     price = price_master_objs[0].price
                     discount = price_master_objs[0].discount
+                if customer_obj.margin:
+                    price = price * float(1 + float(customer_obj.margin)/100)
             result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
                                 'taxes': taxes_data})
 
@@ -3467,7 +3510,7 @@ def build_invoice(invoice_data, user, css=False):
     invoice_data['empty_tds'] = [1,2,3,4,5,6,7,8,9,10]
 
     inv_height = 1358; #total invoice height
-    inv_details = 292; #invoice details height
+    inv_details = 317; #invoice details height
     inv_footer = 95;   #invoice footer height
     inv_totals = 127;  #invoice totals height
     inv_header = 47;   #invoice tables headers height
@@ -3489,6 +3532,7 @@ def build_invoice(invoice_data, user, css=False):
             inv_details = inv_details + (20*s_count)
         else:
             inv_details = inv_details + 20
+        inv_details = 230;
 
     render_data = []
     render_space = 0;
@@ -3497,7 +3541,6 @@ def build_invoice(invoice_data, user, css=False):
         render_space = inv_height-(inv_details+inv_footer+inv_totals+inv_header+inv_summary+inv_total+hsn_summary_length);
     else:
         render_space = inv_height-(inv_details+inv_footer+inv_totals+inv_header+inv_total)
-
     no_of_skus = int(render_space/inv_product);
     data_length = len(invoice_data['data']);
     invoice_data['empty_data'] = [];
@@ -3535,8 +3578,7 @@ def build_invoice(invoice_data, user, css=False):
         render_data[last]['empty_data'] = empty_data;
 
         invoice_data['data'] = render_data;
-    elif(data_length < no_of_skus):
-
+    else:
         temp = invoice_data['data'];
         invoice_data['data'] = [];
         empty_data = [""]*(no_of_skus - data_length)
@@ -3549,3 +3591,282 @@ def build_invoice(invoice_data, user, css=False):
     html = loader.get_template('../miebach_admin/templates/toggle/invoice/customer_invoice.html')
     html = html.render(invoice_data)
     return top+html
+
+def get_sku_height(sku_data, row_items):
+
+    inv_product = 47;  #invoice products cell height
+    imei_height = 20;
+    imei_header = 27;
+
+    if not sku_data['imeis']:
+        return inv_product
+
+    if len(sku_data['imeis']) <= row_items:
+        return inv_product + imei_header + imei_height
+    else:
+        import math
+        return inv_product + imei_header + (int(math.ceil(float(len(sku_data['imeis']))/row_items))*imei_height)
+
+def build_marketplace_invoice(invoice_data, user, css=False):
+    #it will create invoice template
+
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    if not (not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']):
+        return json.dumps(invoice_data, cls=DjangoJSONEncoder)
+
+    titles = ['']
+    import math
+    if not (invoice_data.get("customer_invoice", "") == True):
+        title_dat = get_misc_value('invoice_titles', user.id)
+        if not title_dat == 'false':
+            titles = title_dat.split(",")
+
+    invoice_data['user_type'] = user_profile.user_type
+
+    invoice_data['titles'] = titles
+    perm_hsn_summary = get_misc_value('hsn_summary', user.id)
+    invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
+    if len(invoice_data['hsn_summary'].keys()) == 0:
+        invoice_data['perm_hsn_summary'] = 'false'
+    invoice_data['empty_tds'] = [1,2,3,4,5,6,7,8,9,10]
+
+    inv_height = 1358; #total invoice height
+    inv_details = 292; #invoice details height 292
+    inv_footer = 95;   #invoice footer height
+    inv_totals = 127;  #invoice totals height
+    inv_header = 47;   #invoice tables headers height
+    inv_product = 47;  #invoice products cell height
+    inv_summary = 47;  #invoice summary headers height
+    inv_total = 27;    #total display height
+    inv_charges = 20;  #height of other charges
+
+    inv_totals = inv_totals + len(invoice_data['order_charges'])*inv_charges
+    if invoice_data['user_type'] == 'marketplace_user':
+        inv_details = 121;
+        s_count = invoice_data['seller_address'].count('\n')
+        s_count = s_count - 3
+        b_count = invoice_data['customer_address'].count('\n')
+        b_count = b_count - 3
+        s_count = s_count if s_count > b_count else b_count
+        if s_count > 0:
+            inv_details = inv_details + (20*s_count)
+        else:
+            inv_details = inv_details + 20
+        inv_details = 230;
+    render_data = []
+    render_space = 0
+    hsn_summary_length= len(invoice_data['hsn_summary'].keys())*inv_total
+    if(perm_hsn_summary == 'true'):
+        render_space = inv_height-(inv_details+inv_footer+inv_totals+inv_header+inv_summary+inv_total+hsn_summary_length)
+    else:
+        render_space = inv_height-(inv_details+inv_footer+inv_totals+inv_header+inv_total)
+
+    render_space2 = inv_height-(inv_details+inv_header)
+
+    #random imeis
+    #import random
+    #for index,data in enumerate(invoice_data['data']):
+    #    data['imeis'] = [random.random() for _ in xrange(random.choice([500]))]
+
+    render_data
+    space1 = render_space
+    space2 = render_space2
+    row_items = 4
+    temp_sku_data = {'empty_data': [], 'data': [], 'space_left': 0}
+    #preparing pages
+    for index,data in enumerate(invoice_data['data']):
+        sku_height = get_sku_height(data, row_items)
+        if (space2 < sku_height):
+            if (space2 > 100):
+                arr_index = (int(math.ceil((float(sku_height - space2)/20)))*row_items)*-1 #((sku_height - space2)/20)*row_items
+                if (len(temp_sku_data['data']) == 0):
+                    arr_index = 204
+                temp_data = copy.deepcopy(data)
+                temp_data['imeis'] = temp_data['imeis'][:arr_index]
+                temp_data['imei_quantity'] = len(temp_data['imeis'])
+                temp_sku_data['data'].append(temp_data)
+                data['imeis'] = data['imeis'][arr_index:]
+            temp_sku_data['space_left'] = space2
+            temp = copy.deepcopy(temp_sku_data)
+            render_data.append(temp)
+            temp_sku_data['data'] = []
+            space2 = render_space2
+
+            imei_limit = 204
+            if (len(data['imeis']) > imei_limit):
+                temp_imeis = data['imeis']
+                for i in range(len(data['imeis'])/imei_limit):
+                    temp_data = copy.deepcopy(data)
+                    temp_data['imeis'] = temp_data['imeis'][i*imei_limit: (i+1)*imei_limit]
+                    temp_data['imei_quantity'] = len(temp_data['imeis'])
+                    if temp_data['imeis']:
+                        render_data.append({'empty_data': [], 'data': [temp_data], 'space_left': 0})
+                        temp_imeis = data['imeis'][(i+1)*imei_limit:]
+                data['imeis'] = temp_imeis
+
+            sku_height = get_sku_height(data, row_items)
+
+        data['imei_quantity'] = len(data['imeis'])
+        temp_sku_data['data'].append(data)
+        space2 = space2-sku_height
+
+        if index == len(invoice_data['data'])-1:
+            temp_sku_data['space_left'] = space2
+            render_data.append(temp_sku_data)
+
+    last = len(render_data) - 1
+    space1 = render_space
+    page_split = False;
+    #checking last page have enough space
+    for index,data in enumerate(render_data[last]['data']):
+        sku_height = get_sku_height(data, row_items)
+        if (space1 < sku_height):
+            if len(render_data[last]['data'][index:]) == 1:
+                temp_imeis1 = render_data[last]['data'][index]['imeis'][:-1]
+                #temp_imeis2 = render_data[last]['data'][index]['imeis'][-1:]
+                render_data[last]['data'][index]['imeis'] = render_data[last]['data'][index]['imeis'][-1:]
+                render_data[last]['data'][index]['imei_quantity'] = len(render_data[last]['data'][index]['imeis'])
+                sku_height = get_sku_height(render_data[last]['data'][index], row_items)
+                render_data.append({'empty_data': [], 'data': copy.deepcopy(render_data[last]['data'][index:]), 'space_left': render_space-sku_height})
+                data['imeis'] = temp_imeis1
+                data['imei_quantity'] = len(data['imeis'])
+                #render_data[last]['data'].pop(index)
+                page_split = True;
+            else:
+                sku_height = get_sku_height(render_data[last]['data'][-1:][0], row_items)
+                render_data.append({'empty_data': [], 'data': copy.deepcopy(render_data[last]['data'][-1:]), 'space_left': render_space-sku_height})
+                render_data[last]['data'].pop(len(render_data[last]['data'])-1)
+                page_split = True;
+
+            break;
+        space1 = space1-sku_height
+    last = len(render_data) - 1
+    if not page_split:
+        render_data[last]['space_left'] = space1
+    if render_data[last]['space_left'] >= inv_product:
+        render_data[last]['empty_data'] = [""]*((render_data[last]['space_left'])/inv_product)
+
+    invoice_data['data'] = render_data
+
+    top = ''
+    if css:
+        c= {'name': 'invoice'}
+        top = loader.get_template('../miebach_admin/templates/toggle/invoice/top1.html')
+        top = top.render(c)
+    html = loader.get_template('../miebach_admin/templates/toggle/invoice/customer_invoice.html')
+    html = html.render(invoice_data)
+    return top+html
+
+def get_new_supplier_id(user):
+    max_sup_id = SupplierMaster.objects.count()
+    run_iterator = 1
+    while run_iterator:
+        supplier_obj = SupplierMaster.objects.filter(id=max_sup_id)
+        if not supplier_obj:
+            run_iterator = 0
+        else:
+            max_sup_id += 1
+    return max_sup_id
+
+def create_swx_mapping(swx_id, local_id, swx_type, app_host):
+    swx_mapping = SWXMapping.objects.filter(swx_id=swx_id, local_id=local_id, swx_type=swx_type, app_host=app_host)
+    if not swx_mapping:
+        SWXMapping.objects.create(swx_id=swx_id, local_id=local_id, swx_type=swx_type, app_host=app_host,
+                                  creation_date=datetime.datetime.now())
+
+def check_and_update_order_status(shipped_orders_dict, user):
+    from rest_api.views.easyops_api import EasyopsAPI
+    integrations = Integrations.objects.filter(user=user.id, status=1)
+    for integrate in integrations:
+        order_status_dict = {}
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        all_seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id__in=shipped_orders_dict.keys(), status=0)
+        all_orders = OrderDetail.objects.filter(user=user.id, id__in=shipped_orders_dict.keys())
+        line_items_ids = SWXMapping.objects.filter(app_host='shotang')
+        try:
+            for order_id, order_data in shipped_orders_dict.iteritems():
+
+                order = all_orders.filter(id=order_id)
+                if not order:
+                    continue
+                else:
+                    order = order[0]
+                seller_orders = all_seller_orders.filter(order_id=order_id)
+
+                order_detail_id = str(order.original_order_id)
+                if not order_detail_id:
+                    order_detail_id = str(order.order_code) + str(order.order_id)
+                if not order_status_dict.has_key(order_detail_id):
+                    order_status_dict[order_detail_id] = {}
+                    order_status_dict[order_detail_id]['uorId'] = order_detail_id
+                    order_status_dict[order_detail_id]['dateAdded'] = 1476901800000
+                    order_status_dict[order_detail_id]['retailerId'] = str(order.customer_id)
+                    order_status_dict[order_detail_id]['retailerAddress'] = {'retailerId': str(order.customer_id), 'city': order.city,
+                                                                             'address': order.address,
+                                                                             'name': order.customer_name, 'phoneNo': order.telephone }
+
+                order_status_dict[order_detail_id].setdefault('subOrders', [])
+                for seller_order in seller_orders:
+                    is_sor_id = filter(lambda a: str(a['sorId']) == str(seller_order.sor_id), order_status_dict[order_detail_id]['subOrders'])
+                    if not len(is_sor_id) > 0:
+                        seller_dict = {}
+                        seller_dict['sorId'] = str(seller_order.sor_id)
+                        seller_dict['sellerId'] = seller_order.seller.seller_id
+                        seller_dict['invoiceNo'] = seller_order.invoice_no
+                        #seller_dict['seller_city'] = ''
+                        #seller_dict['sellerAddress'] = {}
+                        order_status_dict[order_detail_id]['subOrders'].append(seller_dict)
+                        index = len(order_status_dict[order_detail_id]['subOrders']) - 1
+                    else:
+                        index = order_status_dict[order_detail_id]['subOrders'].index(is_sor_id[0])
+                    order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
+                    for imei in order_data.get('imeis', []):
+                        hsn_code = ''
+                        if order.sku.hsn_code:
+                            hsn_code = str(order.sku.hsn_code)
+                        seller_item_obj = line_items_ids.filter(local_id=seller_order.id, app_host='shotang', swx_type='seller_item_id',
+                                                                imei='')
+                        seller_item_id = ''
+                        if seller_item_obj:
+                            seller_item_id = seller_item_obj[0].swx_id
+                            seller_item_obj[0].imei = imei.po_imei.imei_number
+                            seller_item_obj[0].save()
+
+                        seller_parent_item_obj = line_items_ids.filter(local_id=seller_order.id, app_host='shotang',
+                                                                       swx_type='seller_parent_item_id', imei='')
+                        seller_parent_id = ''
+                        if seller_parent_item_obj:
+                            seller_parent_id = seller_parent_item_obj[0].swx_id
+                            seller_parent_item_obj[0].imei = imei.po_imei.imei_number
+                            seller_parent_item_obj[0].save()
+                        elif not seller_parent_item_obj:
+                            seller_parent_item_obj = line_items_ids.filter(local_id=seller_order.id, app_host='shotang',
+                                                                           swx_type='seller_parent_item_id').order_by('-creation_date')
+                            if seller_parent_item_obj:
+                                seller_parent_id = seller_parent_item_obj[0].swx_id
+                        imei_dict = {'lineItemId': seller_item_id, 'name': order.title,
+                                     'unitPrice': str(order.unit_price), 'quantity': str(1),
+                                     'sku': order.sku.sku_code, 'cgstTax': 0, 'sgstTax': 0, 'igstTax': 0,
+                                     'parentLineItemId':seller_parent_id, 'status': 'PROCESSED',
+                                     'imei': imei.po_imei.imei_number, 'hsn': hsn_code}
+                        order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
+                        order_status_dict[order_detail_id]['subOrders'][index]['lineItems'].append(imei_dict)
+            final_data = order_status_dict.values()
+            print final_data
+            call_response = obj.confirm_order_status(final_data, user=user)
+            log.info(str(call_response))
+            if isinstance(call_response, dict) and call_response.get('status') == 1:
+                log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
+        except:
+            continue
+
+def get_returns_seller_order_id(order_detail_id, sku_code, user, sor_id=''):
+    filt_params = {'order_id': order_detail_id, 'order__sku__sku_code': sku_code, 'order__user': user.id}
+    if sor_id:
+        filt_params['sor_id'] = sor_id
+    seller_order = SellerOrder.objects.filter(**filt_params)
+    if seller_order:
+        return seller_order[0].id
+    else:
+        return ''
+

@@ -113,7 +113,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                   });
 
                   vm.default_status = (Session.user_profile.user_type == 'marketplace_user')? true : false;
-
+                  vm.getCompany();
                   vm.seller_change = function(type) {
 
                     if(vm.model_data.receipt_type == 'Hosted Warehouse') {
@@ -127,6 +127,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                       vm.default_status = false;
                       vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
                     }
+                    vm.getCompany();
                   }
                 }
               });
@@ -162,7 +163,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                         {'fields':{"supplier_Code":"", "ean_number":"", "order_quantity":"", 'price':'', "measurement_unit":"", 
                                    "dedicated_seller": "", "row_price": 0, 'sku': {"price":"", 'wms_code': ""},
                                    "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "", "tax": ""}}
-                      ]
+                      ],
+                      "company": Session.user_profile.company_name
                      };
 
     vm.model_data = {};
@@ -210,6 +212,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.selected_seller = type;
             vm.default_status = false;
             vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
+            vm.getCompany();
           }
           vm.model_data.receipt_type = 'Purchase Order';
           if (Session.user_profile.user_type == 'marketplace_user') {
@@ -569,6 +572,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.model_data.total_price = vm.model_data.total_price + temp;
         vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.fields.tax) + temp;
       })
+    }
+
+    vm.getCompany = function() {
+
+      var temp = vm.model_data.seller_type;
+      if (!vm.model_data.seller_type) {
+        vm.model_data.company = Session.user_profile.company_name;
+        return false;
+      }
+      temp = temp.toLowerCase()
+      if (temp.indexOf('shproc') != -1) {
+        vm.model_data.company = 'SHPROC'
+      } else {
+        vm.model_data.company = Session.user_profile.company_name
+      }
     }
   }
 

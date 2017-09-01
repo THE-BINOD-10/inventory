@@ -193,7 +193,7 @@ class OrderDetail(models.Model):
     customer_name = models.CharField(max_length=256,default='')
     email_id = models.EmailField(max_length=64, default='')
     address = models.CharField(max_length=256,default='')
-    telephone = models.CharField(max_length=128, default='')
+    telephone = models.CharField(max_length=128, default='', blank=True, null=True)
     sku = models.ForeignKey(SKUMaster)
     title = models.CharField(max_length=256, default='')
     quantity = models.FloatField(default=0)
@@ -582,6 +582,7 @@ class CustomerMaster(models.Model):
     credit_period = models.PositiveIntegerField(default=0)
     price_type = models.CharField(max_length=32, default='')
     tax_type = models.CharField(max_length=32, default='')
+    margin = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -657,12 +658,13 @@ class SWXMapping(models.Model):
     local_id = models.PositiveIntegerField(default=0)
     swx_type = models.CharField(max_length = 32, default = '')
     app_host = models.CharField(max_length=64, default='')
+    imei = models.CharField(max_length = 64, default = '')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'SWX_MAPPING'
-        unique_together = ('swx_id', 'local_id', 'swx_type')
+        unique_together = ('swx_id', 'local_id', 'swx_type', 'app_host', 'imei')
 
 class LRDetail(models.Model):
     id = BigAutoField(primary_key = True)
@@ -693,7 +695,9 @@ class OrderIMEIMapping(models.Model):
     order = models.ForeignKey(OrderDetail)
     po_imei = models.ForeignKey(POIMEIMapping, blank=True, null=True)
     imei_number =  models.CharField(max_length = 64, default = '')
+    sor_id = models.CharField(max_length=128, default='')
     status = models.IntegerField(default=1)
+    sor_id = models.CharField(max_length = 128, default = '')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

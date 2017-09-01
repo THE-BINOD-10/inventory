@@ -297,7 +297,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
             service.showNoty("IMEI Number Already Exist");
             vm.imei_number = "";
         } else {
-          vm.service.apiCall('check_imei/', 'GET',{is_shipment: true, imei: imei}).then(function(data){
+          var imei_order_id = ''
+          if(vm.model_data.data.length > 0 && vm.model_data.data[0].order_id)
+          {
+              imei_order_id = vm.model_data.data[0].order_id
+          }
+          vm.service.apiCall('check_imei/', 'GET',{is_shipment: true, imei: imei, order_id: imei_order_id}).then(function(data){
             if(data.message) {
               if (data.data.status == "Success") {
                 vm.update_imei_data(data.data, imei);

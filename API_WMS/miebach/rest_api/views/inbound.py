@@ -937,10 +937,13 @@ def confirm_po(request, user=''):
 
     profile = UserProfile.objects.get(user=user.id)
 
+    company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     if receipt_type == 'Hosted Warehouse':
         title = 'Stock Transfer Note'
+    if request.GET.get('seller_id', '') and str(request.GET.get('seller_id').split(":")[1]).lower() == 'shproc':
+        company_name = 'SHPROC'
 
     if ean_flag:
         table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
@@ -948,8 +951,9 @@ def confirm_po(request, user=''):
     else:
         table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
                          'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
+
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
-                 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'company_name': profile.company_name,
+                 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'company_name': company_name,
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type, 'title': title,
                  'gstin_no': gstin_no}
@@ -3442,15 +3446,18 @@ def confirm_add_po(request, sales_data = '', user=''):
 
     profile = UserProfile.objects.get(user=user.id)
 
+    company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     if receipt_type == 'Hosted Warehouse':
         title = 'Stock Transfer Note'
+    if request.GET.get('seller_id', '') and str(request.GET.get('seller_id').split(":")[1]).lower() == 'shproc':
+        company_name = 'SHPROC'
 
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'user_name': request.user.username,
-                 'total_qty': total_qty, 'company_name': profile.company_name, 'location': profile.location, 'w_address': profile.address,
-                 'company_name': profile.company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
+                 'total_qty': total_qty, 'company_name': company_name, 'location': profile.location, 'w_address': profile.address,
+                 'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title, 'gstin_no': gstin_no}
 
     t = loader.get_template('templates/toggle/po_download.html')

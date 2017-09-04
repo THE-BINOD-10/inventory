@@ -72,7 +72,7 @@ class SKUMaster(models.Model):
     sku_category = models.CharField(max_length=64, default='')
     sku_class = models.CharField(max_length=64, default='')
     sku_brand = models.CharField(max_length=64, default='')
-    style_name = models.CharField(max_length=64, default='')
+    style_name = models.CharField(max_length=256, default='')
     sku_size = models.CharField(max_length=64, default='')
     product_type = models.CharField(max_length=64, default='')
     zone = models.ForeignKey(ZoneMaster, null=True, blank=True, default = None)
@@ -697,7 +697,6 @@ class OrderIMEIMapping(models.Model):
     imei_number =  models.CharField(max_length = 64, default = '')
     sor_id = models.CharField(max_length=128, default='')
     status = models.IntegerField(default=1)
-    sor_id = models.CharField(max_length = 128, default = '')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

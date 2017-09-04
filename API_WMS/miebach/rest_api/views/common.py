@@ -2363,7 +2363,7 @@ def get_customer_sku_prices(request, user = ""):
                     price = price_master_objs[0].price
                     discount = price_master_objs[0].discount
                 if customer_obj.margin:
-                    price = price * float(1 + float(customer_obj.margin)/100)
+                    price = price * float(1 - float(customer_obj.margin)/100)
             result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
                                 'taxes': taxes_data})
 

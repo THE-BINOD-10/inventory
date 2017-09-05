@@ -3196,6 +3196,7 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
     log.info("order upload started")
     st_time = datetime.datetime.now()
     index_status = {}
+
     order_mapping = ORDER_SERIAL_EXCEL_MAPPING
 
     count = 0
@@ -3209,7 +3210,7 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
         order_details = {'user': user.id, 'creation_date': datetime.datetime.now(), 'shipment_date': datetime.datetime.now(), 'status': 1}
         seller_order_details = {'creation_date': datetime.datetime.now(), 'status': 1}
         customer_order_summary = {'issue_type': 'order', 'creation_date': datetime.datetime.now()}
-        order_po_mapping = {}
+        order_po_mapping = []
         for key, val in order_mapping.iteritems():
             value = get_cell_data(row_idx, order_mapping[key], reader, file_type)
             if key == 'order_id':
@@ -3303,7 +3304,7 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                     if not po_imei_mapping:
                         index_status.setdefault(count, set()).add('Invalid PO Number')
                     else:
-                        order_po_mapping.append({'order_id': original_order_id, 'sku_id': order_details['sku_id'], 'po_order_id': value,
+                        order_po_mapping.append({'order_id': original_order_id, 'sku_id': order_details['sku_id'], 'purchase_order_id': value,
                                                  'status': 1})
             elif key == 'order_type':
                 if value not in ['Transit', 'Normal']:
@@ -3346,6 +3347,7 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
 @login_required
 @get_admin_user
 def order_serial_mapping_upload(request, user=''):
+    
     fname = request.FILES['files']
     if (fname.name).split('.')[-1] == 'csv':
         reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]

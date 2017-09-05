@@ -2363,7 +2363,7 @@ def get_customer_sku_prices(request, user = ""):
                     price = price_master_objs[0].price
                     discount = price_master_objs[0].discount
                 if customer_obj.margin:
-                    price = price * float(1 + float(customer_obj.margin)/100)
+                    price = price * float(1 - float(customer_obj.margin)/100)
             result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
                                 'taxes': taxes_data})
 
@@ -3870,3 +3870,60 @@ def get_returns_seller_order_id(order_detail_id, sku_code, user, sor_id=''):
     else:
         return ''
 
+def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, is_list=False):
+    final_data_dict.setdefault(grouping_key, {})
+    final_data_dict[grouping_key].setdefault(key_name, {})
+    if is_list:
+        final_data_dict[grouping_key].setdefault(key_name, [])
+        final_data_dict[grouping_key][key_name] = copy.deepcopy(list(chain(final_data_dict[grouping_key][key_name], adding_dat)))
+
+    elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('quantity'):
+        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['quantity'] +\
+                                                                  adding_dat.get('quantity', 0)
+    elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
+        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['invoice_amount'] +\
+                                                                  adding_dat.get('invoice_amount', 0)
+    else:
+        final_data_dict[grouping_key][key_name] = copy.deepcopy(adding_dat)
+
+    return final_data_dict
+
+def update_order_dicts(orders, user='', company_name=''):
+    status = {'status': 0, 'messages': ['Something went wrong']}
+    for order_key, order in orders.iteritems():
+        if not order.get('order_details', {}):
+            continue
+        order_det_dict = order['order_details']
+        if not order.get('order_detail_obj', None):
+            order_obj = OrderDetail.objects.filter(original_order_id=order_det_dict['original_order_id'], order_id=order_det_dict['order_id'],
+                                                   order_code=order_det_dict['order_code'], sku_id=order_det_dict['sku_id'],
+                                                   user=order_det_dict['user'])
+        else:
+            order_obj = [order.get('order_detail_obj', None)]
+        if order_obj:
+            order_obj = order_obj[0]
+            order_obj.quantity = float(order_obj.quantity) + float(order_det_dict.get('quantity', 0))
+            order_obj.invoice_amount = float(order_obj.invoice_amount) + float(order_det_dict.get('invoice_amount', 0))
+            order_obj.save()
+            order_detail = order_obj
+        else:
+            order_detail = OrderDetail.objects.create(**order['order_details'])
+        if order.get('order_summary_dict', {}) and not order_obj:
+            customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
+        if order.get('seller_order_dict', {}):
+            check_create_seller_order(order['seller_order_dict'], order_detail, user, order.get('swx_mappings', []))
+        status = {'status': 1, 'messages': ['Success']}
+    return status
+
+def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):
+    if seller_order_dict.get('seller_id', ''):
+        sell_order_ins = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id, seller__user=user.id)
+        seller_order_dict['order_id'] = order.id
+        if not sell_order_ins:
+            seller_order = SellerOrder(**seller_order_dict)
+            seller_order.save()
+            for swx_mapping in swx_mappings:
+                try:
+                    create_swx_mapping(swx_mapping['swx_id'], seller_order.id, swx_mapping['swx_type'], swx_mapping['app_host'])
+                except:
+                    pass

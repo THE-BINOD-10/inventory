@@ -16,6 +16,7 @@ from common import *
 from miebach_utils import *
 from operator import itemgetter
 from django.db.models import Sum
+from django.db.models import Max
 from itertools import groupby
 import datetime
 import shutil
@@ -1603,6 +1604,7 @@ def picklist_confirmation(request, user=''):
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
+        order_ids = picks_all.values_list('order_id', flat=True).distinct()
         if get_misc_value('automate_invoice', user.id) == 'true' and single_order:
             order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True).distinct()
             order_id = picklists_send_mail.keys()
@@ -1637,9 +1639,79 @@ def picklist_confirmation(request, user=''):
     duration = end_time - st_time
     log.info("process completed")
     log.info("total time -- %s" %(duration))
+
+    serial_order_mapping(picks_all, order_ids)
     if mod_locations:
         update_filled_capacity(list(set(mod_locations)), user.id)
     return HttpResponse('Picklist Confirmed')
+
+
+
+def serial_order_mapping(picklist, order_ids):
+    """ getting all imeis of corresponding orders """
+    serials = []
+    val = {}
+    picklist = picklist[0]
+    seller_orders = SellerOrder.objects.filter(order__id__in=order_ids)
+    for order in seller_orders:
+        if order.order_type == 'Transit':
+            order_objs = OrderPOMapping.objects.filter(order_id=order.sor_id.split('-')[-1], sku= order.order.sku)
+
+            if not order_objs:
+                continue
+                        
+            ord_objs = order_objs.values_list('purchase_order_id', 'sku')
+            po_nos, skus = [], []
+            for item in ord_objs:
+                po_nos.append(item[0])
+                skus.append(item[1])
+
+            val['wms_code'] = SKUMaster.objects.get(id=skus[0]).wms_code
+            imeis = POIMEIMapping.objects.filter(purchase_order__order_id__in=po_nos, purchase_order__open_po__sku__in=skus,
+                        status = 1).values_list('imei_number', flat=True)
+
+            serials.extend(list(imeis))
+    try:
+        if serials:
+            serials = ",".join(serials)
+            val['imei'] = serials
+            insert_order_serial(picklist, val)
+            create_shipment_entry(picklist)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+
+    return 'Success'
+
+
+def create_shipment_entry(picklist):
+    """ create shipment data """
+    status = 1
+    order_shipment   = {}
+    shipment_info    = {}
+    order_packaging  = {}
+    order_shipment['user'] = picklist.order.user
+    shipment_number = OrderShipment.objects.all().aggregate(Max('shipment_number'))['shipment_number__max']
+    order_shipment['shipment_number'] = shipment_number + 1
+    order_shipment['shipment_date'] = datetime.datetime.now()
+    order_shipment['shipment_reference'] = 'auto generated'
+    order_shipment['status'] = status
+
+    m = OrderShipment(**order_shipment)
+    m.save()
+
+    order_packaging['order_shipment'] = m
+    order_packaging['status'] = status
+    n = OrderPackaging(**order_packaging)
+    n.save()
+
+    shipment_info['order_shipment'] = m
+    shipment_info['order_packaging'] = n 
+    shipment_info['order'] = picklist.order
+    shipment_info['shipping_quantity'] = picklist.order.quantity
+    shipment_info['status'] = status
+    p = ShipmentInfo(**shipment_info)
+    p.save()
 
 
 @csrf_exempt
@@ -5303,6 +5375,9 @@ def seller_generate_picklist(request, user=''):
                            'picklist_id': picklist_number + 1,'stock_status': stock_status, 'show_image': show_image,
                            'use_imei': use_imei, 'order_status': order_status, 'user': request.user.id}))
 
+
+
+
 def update_exist_picklists(picklist_no, request, user, sku_code='', location='', picklist_obj=None):
     filter_param = {'reserved_quantity__gt' : 0, 'picklist_number' : picklist_no}
     if picklist_obj:
@@ -5459,11 +5534,11 @@ def customer_invoice_data(request, user=''):
         headers = WH_CUSTOMER_INVOICE_HEADERS
     return HttpResponse(json.dumps({'headers': headers}))
 
+
 @csrf_exempt
 @login_required
 @get_admin_user
 def search_template_names(request, user=''):
-
     template_names = []
     name = request.GET.get('q', '')
 

@@ -1531,6 +1531,7 @@ class SellerOrder(models.Model):
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
     order_status = models.CharField(max_length=64, default='')
+    order_type = models.CharField(max_length=64, default='')
     invoice_no = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -1836,6 +1837,18 @@ class SKUAttributes(models.Model):
 
     def __unicode__(self):
         return str(self.sku.sku_code) + '-' + str(self.attribute_name)
+
+class OrderPOMapping(models.Model):
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    order_id = models.CharField(max_length=64, default='')
+    purchase_order_id = models.CharField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_PO_MAPPING'
+        index_together = ('order_id', 'purchase_order_id', 'sku')
 
 import django
 from django.core.validators import MaxLengthValidator

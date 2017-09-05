@@ -173,6 +173,15 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "order-label-mapping-form",
                    value: "",
                    show: true
+                 }, {
+                   title: "Order Serial Mapping Download/ Upload",
+                   download: "Download Order Serial Mapping Form",
+                   upload: "Upload Order Serial Mapping Form",
+                   durl: "order_serial_mapping_form/",
+                   uurl: "order_serial_mapping_upload/",
+                   dparam: "order-serial-mapping-form",
+                   value: "",
+                   show: true
                  }
                  ]
 

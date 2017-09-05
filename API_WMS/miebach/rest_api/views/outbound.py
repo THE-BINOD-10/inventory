@@ -1655,9 +1655,12 @@ def serial_order_mapping(picklist, order_ids):
     seller_orders = SellerOrder.objects.filter(order__id__in=order_ids)
     for order in seller_orders:
         if order.order_type == 'Transit':
-            ord_objs = OrderPOMapping.objects.filter(order_id=order.sor_id.split('-')[-1], sku= order.order.sku).\
-                        values_list('purchase_order_id', 'sku')
+            order_objs = OrderPOMapping.objects.filter(order_id=order.sor_id.split('-')[-1], sku= order.order.sku)
 
+            if not order_objs:
+                continue
+                        
+            ord_objs = order_objs.values_list('purchase_order_id', 'sku')
             po_nos, skus = [], []
             for item in ord_objs:
                 po_nos.append(item[0])
@@ -1669,10 +1672,11 @@ def serial_order_mapping(picklist, order_ids):
 
             serials.extend(list(imeis))
     try:
-        serials = ",".join(serials)
-        val['imei'] = serials
-        insert_order_serial(picklist, val)
-        create_shipment_entry(picklist)
+        if serials:
+            serials = ",".join(serials)
+            val['imei'] = serials
+            insert_order_serial(picklist, val)
+            create_shipment_entry(picklist)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -5535,7 +5539,6 @@ def customer_invoice_data(request, user=''):
 @login_required
 @get_admin_user
 def search_template_names(request, user=''):
-
     template_names = []
     name = request.GET.get('q', '')
 

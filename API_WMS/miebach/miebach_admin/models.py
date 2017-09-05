@@ -1850,9 +1850,6 @@ class OrderPOMapping(models.Model):
         db_table = 'ORDER_PO_MAPPING'
         index_together = ('order_id', 'purchase_order_id', 'sku')
 
-    def __unicode__(self):
-        return str(self.label)
-
 import django
 from django.core.validators import MaxLengthValidator
 from django.utils.translation import ugettext as _

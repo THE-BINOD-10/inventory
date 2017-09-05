@@ -3272,6 +3272,7 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                     index_status.setdefault(count, set()).add('Quantity should be greater than Zero')
                 else:
                     order_details['quantity'] = value
+                    seller_order_details['quantity'] = value
             elif key == 'unit_price':
                 try:
                     value = float(value)
@@ -3318,6 +3319,7 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                                                           sku_id=order_details['sku_id'], user=user.id)
             if order_detail_obj:
                 index_status.setdefault(count, set()).add('Order Exists Already')
+
         final_data_dict = check_and_add_dict(original_order_id, 'order_details', order_details, final_data_dict=final_data_dict)
         final_data_dict = check_and_add_dict(original_order_id, 'seller_order_dict', seller_order_details, final_data_dict=final_data_dict)
         final_data_dict = check_and_add_dict(original_order_id, 'order_summary_dict', customer_order_summary, final_data_dict=final_data_dict)

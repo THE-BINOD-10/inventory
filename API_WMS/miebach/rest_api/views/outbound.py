@@ -16,6 +16,7 @@ from common import *
 from miebach_utils import *
 from operator import itemgetter
 from django.db.models import Sum
+from django.db.models import Max
 from itertools import groupby
 import datetime
 import shutil
@@ -1128,8 +1129,8 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
         imei_mapping = None
         all_seller_pos = SellerPO.objects.filter(seller__user=user_id)
         all_seller_orders = SellerOrder.objects.filter(seller__user=user_id)
+        sor_id = ''
         if imei and po_mapping:
-            sor_id = ''
             order_mapping = {'order_id': order_id, 'po_imei_id': po_mapping[0].id, 'imei_number': ''}
             if po_mapping[0].purchase_order.open_po_id:
                 seller_po = all_seller_pos.filter(open_po_id=po_mapping[0].purchase_order.open_po_id)
@@ -1156,7 +1157,7 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
                 po_imei.status=0
                 po_imei.save()
         elif imei and not po_mapping:
-            order_mapping = {'order_id': order_id, 'po_imei_id': None, 'imei_number': imei}
+            order_mapping = {'order_id': order_id, 'po_imei_id': None, 'imei_number': imei, 'sor_id': sor_id}
             imei_mapping = OrderIMEIMapping(**order_mapping)
             imei_mapping.save()
             log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
@@ -1603,6 +1604,7 @@ def picklist_confirmation(request, user=''):
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
+        order_ids = picks_all.values_list('order_id', flat=True).distinct()
         if get_misc_value('automate_invoice', user.id) == 'true' and single_order:
             order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True).distinct()
             order_id = picklists_send_mail.keys()
@@ -1637,9 +1639,79 @@ def picklist_confirmation(request, user=''):
     duration = end_time - st_time
     log.info("process completed")
     log.info("total time -- %s" %(duration))
+
+    serial_order_mapping(picks_all, order_ids)
     if mod_locations:
         update_filled_capacity(list(set(mod_locations)), user.id)
     return HttpResponse('Picklist Confirmed')
+
+
+
+def serial_order_mapping(picklist, order_ids):
+    """ getting all imeis of corresponding orders """
+    serials = []
+    val = {}
+    picklist = picklist[0]
+    seller_orders = SellerOrder.objects.filter(order__id__in=order_ids)
+    for order in seller_orders:
+        if order.order_type == 'Transit':
+            order_objs = OrderPOMapping.objects.filter(order_id=order.sor_id.split('-')[-1], sku= order.order.sku)
+
+            if not order_objs:
+                continue
+                        
+            ord_objs = order_objs.values_list('purchase_order_id', 'sku')
+            po_nos, skus = [], []
+            for item in ord_objs:
+                po_nos.append(item[0])
+                skus.append(item[1])
+
+            val['wms_code'] = SKUMaster.objects.get(id=skus[0]).wms_code
+            imeis = POIMEIMapping.objects.filter(purchase_order__order_id__in=po_nos, purchase_order__open_po__sku__in=skus,
+                        status = 1).values_list('imei_number', flat=True)
+
+            serials.extend(list(imeis))
+    try:
+        if serials:
+            serials = ",".join(serials)
+            val['imei'] = serials
+            insert_order_serial(picklist, val)
+            create_shipment_entry(picklist)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+
+    return 'Success'
+
+
+def create_shipment_entry(picklist):
+    """ create shipment data """
+    status = 1
+    order_shipment   = {}
+    shipment_info    = {}
+    order_packaging  = {}
+    order_shipment['user'] = picklist.order.user
+    shipment_number = OrderShipment.objects.all().aggregate(Max('shipment_number'))['shipment_number__max']
+    order_shipment['shipment_number'] = shipment_number + 1
+    order_shipment['shipment_date'] = datetime.datetime.now()
+    order_shipment['shipment_reference'] = 'auto generated'
+    order_shipment['status'] = status
+
+    m = OrderShipment(**order_shipment)
+    m.save()
+
+    order_packaging['order_shipment'] = m
+    order_packaging['status'] = status
+    n = OrderPackaging(**order_packaging)
+    n.save()
+
+    shipment_info['order_shipment'] = m
+    shipment_info['order_packaging'] = n 
+    shipment_info['order'] = picklist.order
+    shipment_info['shipping_quantity'] = picklist.order.quantity
+    shipment_info['status'] = status
+    p = ShipmentInfo(**shipment_info)
+    p.save()
 
 
 @csrf_exempt
@@ -1891,8 +1963,9 @@ def get_customer_sku(request, user=''):
 def check_imei(request, user=''):
     status = ''
     is_shipment = request.GET.get('is_shipment', False)
+    order_id = request.GET.get('order_id', '')
     for key, value in request.GET.iteritems():
-        if key == 'is_shipment':
+        if key in ['is_shipment', 'order_id']:
             continue
         sku_code = ''
         order = None
@@ -1908,7 +1981,7 @@ def check_imei(request, user=''):
         po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping', order=order)
         if imei_data.get('wms_code', ''):
             sku_code = imei_data['wms_code']
-        '''po_mapping = POIMEIMapping.objects.filter(**imei_filter)
+
         if not sku_code and po_mapping and po_mapping[0].purchase_order.open_po:
             sku_code = po_mapping[0].purchase_order.open_po.sku.sku_code
         if not po_mapping:
@@ -1918,13 +1991,23 @@ def check_imei(request, user=''):
             if order and order_mapping[0].order_id == order.id:
                 status = str(value) + ' is already mapped with this order'
             else:
-                status = str(value) + ' is already mapped with another order'''
-        if is_shipment:
+                status = str(value) + ' is already mapped with another order'
+        if is_shipment and po_mapping:
+            seller_id = ''
+            seller_po = SellerPO.objects.filter(open_po_id=po_mapping[0].purchase_order.open_po_id)
+            if seller_po:
+                seller_id = seller_po[0].seller_id
+            order_detail_objs = get_order_detail_objs(order_id, user, search_params={},all_order_objs = [])
+            if order_detail_objs and seller_id:
+                seller_order = SellerOrder.objects.filter(seller__user=user.id, order_id__in=order_detail_objs.values_list('id'),
+                                           seller_id=seller_id)
+                if not seller_order:
+                    status = 'IMEI Mapped to another Seller'
             if not status:
                 status = 'Success'
             return HttpResponse(json.dumps({'status': status, 'data': {'sku_code': sku_code}}))
 
-    return HttpResponse(status)
+    return HttpResponse(json.dumps({'status': status, 'data': {}}))
 
 @get_admin_user
 def print_picklist_excel(request, user=''):
@@ -2966,20 +3049,20 @@ def insert_shipment_info(request, user=''):
                 if received_quantity <= 0:
                     break
                 invoice_number = ''
-                if 'invoice_number' in myDict.keys() and myDict['invoice_number'][0]:
-                    invoice_number = myDict['invoice_number'][0]
+                #if 'invoice_number' in myDict.keys() and myDict['invoice_number'][0]:
+                #    invoice_number = myDict['invoice_number'][0]
                 data_dict = copy.deepcopy(ORDER_PACKAGING_FIELDS)
                 shipment_data = copy.deepcopy(SHIPMENT_INFO_FIELDS)
                 order_detail = OrderDetail.objects.get(id=order_id)
 
-                if not invoice_number and user_profile.user_type == 'marketplace_user':
-                     return HttpResponse("Invoice Number Missing")
-                if invoice_number:
-                    shipment_info_obj = ShipmentInfo.objects.filter(order__user=user.id, invoice_number=invoice_number).\
-                                                           exclude(order__order_id=order_detail.order_id, order__order_code=order_detail.order_code,
-                                                                     order__original_order_id=order_detail.original_order_id)
-                    if shipment_info_obj:
-                        return HttpResponse("Invoice Number mapped for another order")
+                #if not invoice_number and user_profile.user_type == 'marketplace_user':
+                #     return HttpResponse("Invoice Number Missing")
+                #if invoice_number:
+                #    shipment_info_obj = ShipmentInfo.objects.filter(order__user=user.id, invoice_number=invoice_number).\
+                #                                           exclude(order__order_id=order_detail.order_id, order__order_code=order_detail.order_code,
+                #                                                     order__original_order_id=order_detail.original_order_id)
+                #    if shipment_info_obj:
+                #        return HttpResponse("Invoice Number mapped for another order")
                 for key, value in myDict.iteritems():
                     if key in data_dict:
                         data_dict[key] = value[i]
@@ -5074,7 +5157,10 @@ def generate_customer_invoice(request, user=''):
         if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
-        invoice_data = build_invoice(invoice_data, user, False)
+        if get_misc_value('show_imei_invoice', user.id) == 'true':
+            invoice_data = build_marketplace_invoice(invoice_data, user, False)
+        else:
+            invoice_data = build_invoice(invoice_data, user, False)
 
     except Exception as e:
         import traceback
@@ -5289,6 +5375,9 @@ def seller_generate_picklist(request, user=''):
                            'picklist_id': picklist_number + 1,'stock_status': stock_status, 'show_image': show_image,
                            'use_imei': use_imei, 'order_status': order_status, 'user': request.user.id}))
 
+
+
+
 def update_exist_picklists(picklist_no, request, user, sku_code='', location='', picklist_obj=None):
     filter_param = {'reserved_quantity__gt' : 0, 'picklist_number' : picklist_no}
     if picklist_obj:
@@ -5445,11 +5534,11 @@ def customer_invoice_data(request, user=''):
         headers = WH_CUSTOMER_INVOICE_HEADERS
     return HttpResponse(json.dumps({'headers': headers}))
 
+
 @csrf_exempt
 @login_required
 @get_admin_user
 def search_template_names(request, user=''):
-
     template_names = []
     name = request.GET.get('q', '')
 

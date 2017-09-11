@@ -1659,7 +1659,6 @@ def serial_order_mapping(picklist, order_ids):
 
             if not order_objs:
                 continue
-                        
             ord_objs = order_objs.values_list('purchase_order_id', 'sku')
             po_nos, skus = [], []
             for item in ord_objs:
@@ -1683,7 +1682,6 @@ def serial_order_mapping(picklist, order_ids):
 
     return 'Success'
 
-
 def create_shipment_entry(picklist):
     """ create shipment data """
     status = 1
@@ -1706,12 +1704,16 @@ def create_shipment_entry(picklist):
     n.save()
 
     shipment_info['order_shipment'] = m
-    shipment_info['order_packaging'] = n 
+    shipment_info['order_packaging'] = n
     shipment_info['order'] = picklist.order
     shipment_info['shipping_quantity'] = picklist.order.quantity
     shipment_info['status'] = status
     p = ShipmentInfo(**shipment_info)
     p.save()
+    picklist.status = 'dispatched'
+    picklist.save()
+    picklist.order.status = 2
+    picklist.order.save()
 
 
 @csrf_exempt

@@ -3207,10 +3207,13 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
             break
 
         count += 1
-        order_details = {'user': user.id, 'creation_date': datetime.datetime.now(), 'shipment_date': datetime.datetime.now(), 'status': 1}
+        order_details = {'user': user.id, 'creation_date': datetime.datetime.now(), 'shipment_date': datetime.datetime.now(), 'status': 1,
+                                  'sku_id':''}
         seller_order_details = {'creation_date': datetime.datetime.now(), 'status': 1}
         customer_order_summary = {'issue_type': 'order', 'creation_date': datetime.datetime.now()}
         order_po_mapping = []
+        sku_code = ''
+        seller_id = ''
         for key, val in order_mapping.iteritems():
             value = get_cell_data(row_idx, order_mapping[key], reader, file_type)
             if key == 'order_id':
@@ -3224,7 +3227,6 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                 order_details['original_order_id'] = value
                 order_details['order_id'] = order_id
                 order_details['order_code'] = order_code
-                #check_and_add_dict(original_order_id, 'order_details', adding_dat, final_data_dict={}, is_list=False)
             elif key == 'sku_code':
                 if isinstance(value, float):
                     value = str(int(value))
@@ -3235,8 +3237,10 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                     if not sku_id:
                         index_status.setdefault(count, set()).add('Invalid SKU Code')
                     else:
+                        sku_code = value
                         order_details['sku_id'] = sku_id
                         order_details['title'] = SKUMaster.objects.get(id=sku_id).sku_desc
+                        #original_order_id = str(original_order_id)+"<<>>"+SKUMaster.objects.get(id=sku_id).sku_code
             elif key == 'seller_id':
                 seller_id = value
                 seller_master = None
@@ -3260,7 +3264,7 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                     if not customer_master:
                         index_status.setdefault(count, set()).add('Invalid Customer ID')
                 if customer_master:
-                    order_details['customer_id'] = customer_master[0].id
+                    order_details['customer_id'] = customer_master[0].customer_id
                     order_details['customer_name'] = customer_master[0].name
                     order_details['address'] = customer_master[0].address
             elif key == 'quantity':
@@ -3319,10 +3323,10 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                                                           sku_id=order_details['sku_id'], user=user.id)
             if order_detail_obj:
                 index_status.setdefault(count, set()).add('Order Exists Already')
-
-        final_data_dict = check_and_add_dict(original_order_id, 'order_details', order_details, final_data_dict=final_data_dict)
-        final_data_dict = check_and_add_dict(original_order_id, 'seller_order_dict', seller_order_details, final_data_dict=final_data_dict)
-        final_data_dict = check_and_add_dict(original_order_id, 'order_summary_dict', customer_order_summary, final_data_dict=final_data_dict)
+        group_key = str(original_order_id) + ":" + str(sku_code) + ":" + str(seller_id)
+        final_data_dict = check_and_add_dict(group_key, 'order_details', order_details, final_data_dict=final_data_dict)
+        final_data_dict = check_and_add_dict(group_key, 'seller_order_dict', seller_order_details, final_data_dict=final_data_dict)
+        final_data_dict = check_and_add_dict(group_key, 'order_summary_dict', customer_order_summary, final_data_dict=final_data_dict)
         log.info("Order Saving Started %s" %(datetime.datetime.now()))
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
@@ -3337,7 +3341,6 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
         if file_path:
             f_name = file_path
         return f_name
-
     status = update_order_dicts(final_data_dict, user=user)
     for order_po in order_po_mapping:
         OrderPOMapping.objects.create(**order_po)
@@ -3349,7 +3352,6 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
 @login_required
 @get_admin_user
 def order_serial_mapping_upload(request, user=''):
-    
     fname = request.FILES['files']
     if (fname.name).split('.')[-1] == 'csv':
         reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]

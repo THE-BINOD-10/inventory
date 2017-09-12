@@ -6,6 +6,9 @@ angular.module('urbanApp', ['angularjs-dropdown-multiselect'])
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth, $timeout, Service) {
   var vm = this;
   vm.service = Service;
+
+  vm.marketplace_user = (Session.user_profile.user_type == "marketplace_user")? true: false;
+
   vm.model_data = {
                     'send_message': false, 'batch_switch': false, 'fifo_switch': false, 'show_image': false,'sku_sync': false,
                     'back_order': false, 'use_imei': false, 'pallet_switch': false, 'production_switch': false,'stock_sync': false,
@@ -25,7 +28,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      23: 'detailed_invoice', 24: 'scan_picklist_option', 25: 'stock_display_warehouse', 26: 'view_order_status',
                      27: 'seller_margin', 28: 'style_headers', 29: 'receive_process', 30: 'tally_config', 31: 'tax_details',
                      32: 'hsn_summary', 33: 'display_customer_sku', 34: 'marketplace_model', 35: 'label_generation',
-                     36: 'barcode_generate_opt', 37: 'grn_scan_option', 38: 'invoice_titles'}
+                     36: 'barcode_generate_opt', 37: 'grn_scan_option', 38: 'invoice_titles', 39: 'show_imei_invoice'}
 
   vm.check_box_data = [
     {
@@ -181,6 +184,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       param_no: 34,
       class_name: "fa fa-refresh",
       display: true
+    },
+    {
+      name: "Display IMEI Numbers In Invoice",
+      model_name: "show_imei_invoice",
+      param_no: 39, 
+      class_name: "fa fa-refresh",
+      display: vm.marketplace_user
     },
     {
       name: "Decimal Quantity",

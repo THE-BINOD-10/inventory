@@ -729,7 +729,8 @@ def switches(request, user=''):
                     'marketplace_model': 'marketplace_model',
                     'barcode_generate_opt': 'barcode_generate_opt',
                     'grn_scan_option': 'grn_scan_option',
-                    'invoice_titles': 'invoice_titles'
+                    'invoice_titles': 'invoice_titles',
+                    'show_imei_invoice': 'show_imei_invoice'
                   }
 
     toggle_field, selection = "", ""
@@ -936,10 +937,13 @@ def confirm_po(request, user=''):
 
     profile = UserProfile.objects.get(user=user.id)
 
+    company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     if receipt_type == 'Hosted Warehouse':
         title = 'Stock Transfer Note'
+    if request.GET.get('seller_id', '') and str(request.GET.get('seller_id').split(":")[1]).lower() == 'shproc':
+        company_name = 'SHPROC'
 
     if ean_flag:
         table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
@@ -947,8 +951,9 @@ def confirm_po(request, user=''):
     else:
         table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
                          'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
+
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
-                 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'company_name': profile.company_name,
+                 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'company_name': company_name,
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type, 'title': title,
                  'gstin_no': gstin_no}
@@ -2515,132 +2520,135 @@ def putaway_data(request, user=''):
     purchase_order_id= ''
     diff_quan = 0
     all_data = {}
-    myDict = dict(request.POST.iterlists())
-    sku_codes = []
-    marketplace_data = []
-    mod_locations = []
-    for i in range(0, len(myDict['id'])):
-        po_data = ''
-        if myDict['orig_data'][i]:
-            myDict['orig_data'][i] = eval(myDict['orig_data'][i])
-            for orig_data in myDict['orig_data'][i]:
-                cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
+    try:
+        myDict = dict(request.POST.iterlists())
+        sku_codes = []
+        marketplace_data = []
+        mod_locations = []
+        for i in range(0, len(myDict['id'])):
+            po_data = ''
+            if myDict['orig_data'][i]:
+                myDict['orig_data'][i] = eval(myDict['orig_data'][i])
+                for orig_data in myDict['orig_data'][i]:
+                    cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
+                    all_data.setdefault(cond, 0)
+                    all_data[cond] += float(orig_data['orig_quantity'])
+
+            else:
+                cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
                 all_data.setdefault(cond, 0)
-                all_data[cond] += float(orig_data['orig_quantity'])
+                if not myDict['quantity'][i]:
+                    myDict['quantity'][i] = 0
+                all_data[cond] += float(myDict['quantity'][i])
 
-        else:
-            cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
-            all_data.setdefault(cond, 0)
-            if not myDict['quantity'][i]:
-                myDict['quantity'][i] = 0
-            all_data[cond] += float(myDict['quantity'][i])
+        all_data = OrderedDict(sorted(all_data.items(), reverse=True))
+        status = validate_putaway(all_data,user)
+        if status:
+            return HttpResponse(status)
 
-    all_data = OrderedDict(sorted(all_data.items(), reverse=True))
-    status = validate_putaway(all_data,user)
-    if status:
-        return HttpResponse(status)
-
-    for key, value in all_data.iteritems():
-        loc = LocationMaster.objects.get(location=key[1], zone__user=user.id)
-        loc1 = loc
-        exc_loc = loc.id
-        if key[0]:
-            po_loc_data = POLocation.objects.filter(id=key[0], location__zone__user=user.id)
-            purchase_order_id = po_loc_data[0].purchase_order.order_id
-        else:
-            sku_master, sku_master_ids = get_sku_master(user, request.user)
-            results = PurchaseOrder.objects.filter(open_po__sku__user = user.id, open_po__sku_id__in=sku_master_ids,
-                                                   order_id=purchase_order_id, open_po__sku__wms_code=key[4]).exclude(status__in=['',
-                                                   'confirmed-putaway']).values_list('id', flat=True).distinct()
-            stock_results = STPurchaseOrder.objects.exclude(po__status__in=['','confirmed-putaway', 'stock-transfer']).\
-                                                    filter(open_st__sku__user = user.id, open_st__sku_id__in=sku_master_ids,
-                                                    open_st__sku__wms_code=key[4], po__order_id=purchase_order_id).\
-                                                    values_list('po_id', flat=True).distinct()
-            rw_results = RWPurchase.objects.filter(rwo__job_order__product_code_id__in=sku_master_ids,
-                                                   rwo__job_order__product_code__wms_code=key[4]).exclude(purchase_order__status__in=['',
-                                            'confirmed-putaway', 'stock-transfer'], purchase_order__order_id=purchase_order_id).\
-                                            filter(rwo__vendor__user = user.id).values_list('purchase_order_id', flat=True)
-            results = list(chain(results, stock_results, rw_results))
-            po_loc_data = POLocation.objects.filter(location__zone__user=user.id, purchase_order_id__in=results)
-
-        old_loc = ""
-        if po_loc_data:
-            old_loc = po_loc_data[0].location_id
-
-        if not value:
-            continue
-        count = value
-        for data in po_loc_data:
-            if not count:
-                break
-            if float(data.quantity) < count:
-                value = count - float(data.quantity)
-                count -= float(data.quantity)
+        for key, value in all_data.iteritems():
+            loc = LocationMaster.objects.get(location=key[1], zone__user=user.id)
+            loc1 = loc
+            exc_loc = loc.id
+            if key[0]:
+                po_loc_data = POLocation.objects.filter(id=key[0], location__zone__user=user.id)
+                purchase_order_id = po_loc_data[0].purchase_order.order_id
             else:
-                value = count
-                count = 0
-            order_data = get_purchase_order_data(data.purchase_order)
-            putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
-            stock_data = StockDetail.objects.filter(location_id=exc_loc, receipt_number=data.purchase_order.order_id,
-                                                    sku_id=order_data['sku_id'], sku__user=user.id)
-            pallet_mapping = PalletMapping.objects.filter(po_location_id=data.id,status=1)
-            if pallet_mapping:
+                sku_master, sku_master_ids = get_sku_master(user, request.user)
+                results = PurchaseOrder.objects.filter(open_po__sku__user = user.id, open_po__sku_id__in=sku_master_ids,
+                                                       order_id=purchase_order_id, open_po__sku__wms_code=key[4]).exclude(status__in=['',
+                                                       'confirmed-putaway']).values_list('id', flat=True).distinct()
+                stock_results = STPurchaseOrder.objects.exclude(po__status__in=['','confirmed-putaway', 'stock-transfer']).\
+                                                        filter(open_st__sku__user = user.id, open_st__sku_id__in=sku_master_ids,
+                                                        open_st__sku__wms_code=key[4], po__order_id=purchase_order_id).\
+                                                        values_list('po_id', flat=True).distinct()
+                rw_results = RWPurchase.objects.filter(rwo__job_order__product_code_id__in=sku_master_ids,
+                                                       rwo__job_order__product_code__wms_code=key[4]).exclude(purchase_order__status__in=['',
+                                                'confirmed-putaway', 'stock-transfer'], purchase_order__order_id=purchase_order_id).\
+                                                filter(rwo__vendor__user = user.id).values_list('purchase_order_id', flat=True)
+                results = list(chain(results, stock_results, rw_results))
+                po_loc_data = POLocation.objects.filter(location__zone__user=user.id, purchase_order_id__in=results)
+
+            old_loc = ""
+            if po_loc_data:
+                old_loc = po_loc_data[0].location_id
+
+            if not value:
+                continue
+            count = value
+            for data in po_loc_data:
+                if not count:
+                    break
+                if float(data.quantity) < count:
+                    value = count - float(data.quantity)
+                    count -= float(data.quantity)
+                else:
+                    value = count
+                    count = 0
+                order_data = get_purchase_order_data(data.purchase_order)
+                putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
                 stock_data = StockDetail.objects.filter(location_id=exc_loc, receipt_number=data.purchase_order.order_id,
-                                                        sku_id=order_data['sku_id'], sku__user=user.id,
-                                                        pallet_detail_id=pallet_mapping[0].pallet_detail.id)
-            if pallet_mapping:
-                setattr(loc1, 'pallet_filled', float(loc1.pallet_filled) + 1)
-            else:
-                mod_locations.append(loc1.location)
-            if loc1.pallet_filled > loc1.pallet_capacity:
-                setattr(loc1, 'pallet_capacity', loc1.pallet_filled)
-            loc1.save()
-            if stock_data:
-                stock_data = stock_data[0]
-                add_quan = float(stock_data.quantity) + float(value)
-                setattr(stock_data, 'quantity', add_quan)
+                                                        sku_id=order_data['sku_id'], sku__user=user.id)
+                pallet_mapping = PalletMapping.objects.filter(po_location_id=data.id,status=1)
                 if pallet_mapping:
-                    pallet_detail = pallet_mapping[0].pallet_detail
-                    setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
-                stock_data.save()
-                #create_update_seller_stock(data, value, user, stock_data, exc_loc, use_value=True)
-                update_details = create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
-                marketplace_data += update_details
-            else:
-                record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
-                               'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
-                               'quantity': value, 'status': 1, 'receipt_type': 'purchase order', 'creation_date': datetime.datetime.now(),
-                               'updation_date': datetime.datetime.now()}
+                    stock_data = StockDetail.objects.filter(location_id=exc_loc, receipt_number=data.purchase_order.order_id,
+                                                            sku_id=order_data['sku_id'], sku__user=user.id,
+                                                            pallet_detail_id=pallet_mapping[0].pallet_detail.id)
                 if pallet_mapping:
-                    record_data['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
-                    pallet_mapping[0].status = 0
-                    pallet_mapping[0].save()
-                stock_detail = StockDetail(**record_data)
-                stock_detail.save()
-                update_details = create_update_seller_stock(data, value, user, stock_detail, old_loc)
-                marketplace_data += update_details
-                #create_update_seller_stock(data, value, user, stock_detail, exc_loc)
-            consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
+                    setattr(loc1, 'pallet_filled', float(loc1.pallet_filled) + 1)
+                else:
+                    mod_locations.append(loc1.location)
+                if loc1.pallet_filled > loc1.pallet_capacity:
+                    setattr(loc1, 'pallet_capacity', loc1.pallet_filled)
+                loc1.save()
+                if stock_data:
+                    stock_data = stock_data[0]
+                    add_quan = float(stock_data.quantity) + float(value)
+                    setattr(stock_data, 'quantity', add_quan)
+                    if pallet_mapping:
+                        pallet_detail = pallet_mapping[0].pallet_detail
+                        setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
+                    stock_data.save()
+                    #create_update_seller_stock(data, value, user, stock_data, exc_loc, use_value=True)
+                    update_details = create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
+                    marketplace_data += update_details
+                else:
+                    record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
+                                   'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
+                                   'quantity': value, 'status': 1, 'receipt_type': 'purchase order', 'creation_date': datetime.datetime.now(),
+                                   'updation_date': datetime.datetime.now()}
+                    if pallet_mapping:
+                        record_data['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
+                        pallet_mapping[0].status = 0
+                        pallet_mapping[0].save()
+                    stock_detail = StockDetail(**record_data)
+                    stock_detail.save()
+                    update_details = create_update_seller_stock(data, value, user, stock_detail, old_loc)
+                    marketplace_data += update_details
+                    #create_update_seller_stock(data, value, user, stock_detail, exc_loc)
+                consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 
-            if order_data['sku_code'] not in sku_codes:
-                sku_codes.append(order_data['sku_code'])
+                if order_data['sku_code'] not in sku_codes:
+                    sku_codes.append(order_data['sku_code'])
 
-            putaway_quantity = POLocation.objects.filter(purchase_order_id=data.purchase_order_id,
-                                                         location__zone__user = user.id, status=0).\
-                                                         aggregate(Sum('original_quantity'))['original_quantity__sum']
-            if not putaway_quantity:
-                putaway_quantity = 0
-            if (float(order_data['order_quantity']) <= float(data.purchase_order.received_quantity)) and float(data.purchase_order.received_quantity) - float(putaway_quantity) <= 0:
-                data.purchase_order.status = 'confirmed-putaway'
+                putaway_quantity = POLocation.objects.filter(purchase_order_id=data.purchase_order_id,
+                                                             location__zone__user = user.id, status=0).\
+                                                             aggregate(Sum('original_quantity'))['original_quantity__sum']
+                if not putaway_quantity:
+                    putaway_quantity = 0
+                if (float(order_data['order_quantity']) <= float(data.purchase_order.received_quantity)) and float(data.purchase_order.received_quantity) - float(putaway_quantity) <= 0:
+                    data.purchase_order.status = 'confirmed-putaway'
 
-            data.purchase_order.save()
-
-    if user.userprofile.user_type == 'marketplace_user':
-        check_and_update_marketplace_stock(marketplace_data, user)
-    else:
-        check_and_update_stock(sku_codes, user)
-    update_filled_capacity(list(set(mod_locations)), user.id)
-
+                data.purchase_order.save()
+        if user.userprofile.user_type == 'marketplace_user':
+            check_and_update_marketplace_stock(marketplace_data, user)
+        else:
+            check_and_update_stock(sku_codes, user)
+        update_filled_capacity(list(set(mod_locations)), user.id)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Putaway Confirmation failed for ' + str(scan_data) + ' error statement is ' + str(e))
     return HttpResponse('Updated Successfully')
 @csrf_exempt
 @login_required
@@ -3444,15 +3452,18 @@ def confirm_add_po(request, sales_data = '', user=''):
 
     profile = UserProfile.objects.get(user=user.id)
 
+    company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     if receipt_type == 'Hosted Warehouse':
         title = 'Stock Transfer Note'
+    if request.GET.get('seller_id', '') and str(request.GET.get('seller_id').split(":")[1]).lower() == 'shproc':
+        company_name = 'SHPROC'
 
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'user_name': request.user.username,
-                 'total_qty': total_qty, 'company_name': profile.company_name, 'location': profile.location, 'w_address': profile.address,
-                 'company_name': profile.company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
+                 'total_qty': total_qty, 'company_name': company_name, 'location': profile.location, 'w_address': profile.address,
+                 'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title, 'gstin_no': gstin_no}
 
     t = loader.get_template('templates/toggle/po_download.html')

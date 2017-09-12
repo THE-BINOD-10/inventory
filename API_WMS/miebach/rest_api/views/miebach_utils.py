@@ -937,6 +937,13 @@ MYNTRA_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 2), ('order_id', 0), ('l
 
 ORDER_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 1), ('order_id', 0), ('label', 2) ))
 
+ORDER_SERIAL_EXCEL_HEADERS = ['Seller ID', 'Customer ID', 'Uor ID', 'PO Number', 'SKU Code', 'Quantity', 'Unit Price', 'CGST(%)',
+                              'SGST(%)', 'IGST(%)', 'Order Type(Options: Normal, Transit)']
+
+ORDER_SERIAL_EXCEL_MAPPING = OrderedDict(( ('order_id', 2), ('seller_id', 0), ('customer_id', 1), ('sku_code', 4), ('po_number', 3),
+                                           ('quantity', 5), ('unit_price', 6), ('cgst_tax', 7), ('sgst_tax', 8), ('igst_tax', 9),
+                                           ('order_type', 10) ))
+
 #Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg'}
 

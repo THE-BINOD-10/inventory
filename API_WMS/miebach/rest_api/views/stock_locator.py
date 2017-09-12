@@ -1104,7 +1104,7 @@ def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order
 
     categories = dict(SKUMaster.objects.filter(user=user.id).values_list('sku_code', 'sku_category'))
     if search_term:
-        master_data = SellerStock.objects.exclude(stock__receipt_number=0).values_list('seller__seller_id',
+        master_data = SellerStock.objects.exclude(stock__receipt_number=0).filter(quantity__gt=0).values_list('seller__seller_id',
                                                   'seller__name', 'stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__sku__sku_class',
                                                   'stock__sku__sku_brand').distinct().\
                                           annotate(total=Sum('quantity')).\

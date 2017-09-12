@@ -9,14 +9,14 @@
               <h4 class="modal-title pull-left">{{showCase.title}}</h4>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-12">
-              <h4 align="center"><b>{{user.user_profile.company_name}}</b></h4>
+              <h4 align="center"><b>{{showCase.model_data.company}}</b></h4>
             </div>
           </div>
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
         </div>
-        <div class="modal-body raise_po" 
+        <div class="modal-body raise_po"
              ng-class="(showCase.confirm_print)? 'hide': 'show'">
-           <div ng-if="!(user.user_profile.user_type == 'marketplace_user')"> 
+           <div ng-if="!(user.user_profile.user_type == 'marketplace_user')">
            <div class="row" ng-if="(!(showCase.update))">
             <div class="col-md-11 col-sm-11 col-xs-10">
               <p align="right">Vendor Receipt</p>

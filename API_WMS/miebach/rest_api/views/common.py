@@ -3683,3 +3683,82 @@ def get_returns_seller_order_id(order_detail_id, sku_code, user, sor_id=''):
     else:
         return ''
 
+def check_and_update_return_order_status(shipped_orders_dict, user):
+    from rest_api.views.easyops_api import EasyopsAPI
+    integrations = Integrations.objects.filter(user=user.id, status=1)
+    for integrate in integrations:
+        order_status_dict = {}
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        all_seller_orders = SellerOrder.objects.filter(order__user=user.id, id__in=shipped_orders_dict.keys(), status=0)
+        all_orders = OrderDetail.objects.filter(user=user.id, id__in=shipped_orders_dict.keys())
+        line_items_ids = SWXMapping.objects.filter(app_host='shotang')
+
+        try:
+            for order_id, order_data in shipped_orders_dict.iteritems():
+
+                seller_order = all_seller_orders.filter(id=order_id)[0]
+                order = seller_order.order
+                if not order:
+                    continue
+
+                order_detail_id = str(order.original_order_id)
+                if not order_detail_id:
+                    order_detail_id = str(order.order_code) + str(order.order_id)
+                if not order_status_dict.has_key(order_detail_id):
+                    order_status_dict[order_detail_id] = {}
+                    order_status_dict[order_detail_id]['uorId'] = order_detail_id
+                    order_status_dict[order_detail_id]['dateAdded'] = 1476901800000
+                    order_status_dict[order_detail_id]['retailerId'] = str(order.customer_id)
+                    order_status_dict[order_detail_id]['retailerAddress'] = {'retailerId': str(order.customer_id), 'city': order.city,
+                                                                             'address': order.address,
+                                                                             'name': order.customer_name, 'phoneNo': order.telephone }
+
+                order_status_dict[order_detail_id].setdefault('subOrders', [])
+
+                is_sor_id = filter(lambda a: str(a['sorId']) == str(seller_order.sor_id), order_status_dict[order_detail_id]['subOrders'])
+                if not len(is_sor_id) > 0:
+                    seller_dict = {}
+                    seller_dict['sorId'] = str(seller_order.sor_id)
+                    seller_dict['sellerId'] = seller_order.seller.seller_id
+                    seller_dict['invoiceNo'] = seller_order.invoice_no
+                    #seller_dict['seller_city'] = ''
+                    #seller_dict['sellerAddress'] = {}
+                    order_status_dict[order_detail_id]['subOrders'].append(seller_dict)
+                    index = len(order_status_dict[order_detail_id]['subOrders']) - 1
+                else:
+                    index = order_status_dict[order_detail_id]['subOrders'].index(is_sor_id[0])
+                order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
+                for imei in order_data:
+                    hsn_code = ''
+                    if order.sku.hsn_code:
+                        hsn_code = order.sku.hsn_code
+                    seller_item_obj = line_items_ids.filter(local_id=seller_order.id, app_host='shotang', swx_type='seller_item_id',
+                                                            imei='')
+                    seller_item_id = ''
+                    if seller_item_obj:
+                        seller_item_id = seller_item_obj[0].swx_id
+                        seller_item_obj[0].imei = imei
+                        seller_item_obj[0].save()
+
+                    seller_parent_item_obj = line_items_ids.filter(local_id=seller_order.id, app_host='shotang',
+                                                                   swx_type='seller_parent_item_id', imei='')
+                    seller_parent_id = ''
+                    if seller_parent_item_obj:
+                        seller_parent_id = seller_item_obj[0].swx_id
+                        seller_parent_item_obj[0].imei = imei
+                        seller_parent_item_obj[0].save()
+                    imei_dict = {'lineItemId': seller_item_id, 'name': order.title,
+                                 'unitPrice': str(order.unit_price), 'quantity': str(1),
+                                 'sku': order.sku.sku_code, 'cgstTax': 0, 'sgstTax': 0, 'igstTax': 0,
+                                 'parentLineItemId':seller_parent_id, 'status': 'RETURNED',
+                                 'imei': imei, 'hsn': hsn_code}
+                    order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
+                    order_status_dict[order_detail_id]['subOrders'][index]['lineItems'].append(imei_dict)
+            final_data = order_status_dict.values()
+            call_response = obj.set_return_order_status(final_data, user=user)
+            log.info(str(call_response))
+            if isinstance(call_response, dict) and call_response.get('status') == 1:
+                log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
+        except Exception as e:
+            print e.message
+            continue

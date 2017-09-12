@@ -2280,7 +2280,8 @@ def confirm_sales_return(request, user=''):
         all_data = []
         if not data_dict['id'][i]:
             data_dict['id'][i], status, seller_order_ids = create_return_order(data_dict, i , user.id)
-            mp_return_data.setdefault(seller_order_ids[0], []).append(data_dict['returns_imeis'][i])
+            mp_return_data.setdefault(seller_order_ids[0], {}).setdefault(
+                'imeis', []).append(data_dict['returns_imeis'][i])
             if status:
                 return HttpResponse(status)
         order_returns = OrderReturns.objects.filter(id = data_dict['id'][i], status = 1)
@@ -2300,7 +2301,7 @@ def confirm_sales_return(request, user=''):
         if not locations_status == 'Success':
             return HttpResponse(locations_status)
     if user.userprofile.user_type == 'marketplace_user':
-        check_and_update_return_order_status(mp_return_data, user)
+        check_and_update_order_status_data(mp_return_data, user, status='RETURNED')
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt

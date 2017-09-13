@@ -41,6 +41,7 @@ import re
 from django.template import loader, Context
 
 log = init_logger('logs/common.log')
+init_log = init_logger('logs/integrations.log')
 # Create your views here.
 
 def process_date(value):
@@ -3852,11 +3853,10 @@ def check_and_update_order_status(shipped_orders_dict, user):
                         order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
                         order_status_dict[order_detail_id]['subOrders'][index]['lineItems'].append(imei_dict)
             final_data = order_status_dict.values()
-            print final_data
             call_response = obj.confirm_order_status(final_data, user=user)
-            log.info(str(call_response))
+            init_log.info(str(call_response))
             if isinstance(call_response, dict) and call_response.get('status') == 1:
-                log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
+                init_log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
         except:
             continue
 
@@ -3927,3 +3927,20 @@ def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):
                     create_swx_mapping(swx_mapping['swx_id'], seller_order.id, swx_mapping['swx_type'], swx_mapping['app_host'])
                 except:
                     pass
+
+def save_order_tracking_data(order, quantity, status='', imei=''):
+    try:
+        log.info('Order Tracking Data Request Params %s, %s, %s, %s' % (str(order.__dict__), str(quantity), str(status), str(imei)))
+        order_tracking = OrderTracking.objects.filter(order_id=order.id, status=status, imei='')
+        if order_tracking:
+            order_tracking = order_tracking[0]
+            order_tracking.quantity = float(order_tracking.quantity) + float(remaining_qty)
+            order_tracking.save()
+        else:
+            OrderTracking.objects.create(order_id=order.id, status=status, imei=imei, quantity=quantity, creation_date=datetime.datetime.now(),
+                                         updation_date=datetime.datetime.now())
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Order Tracking Insert failed for %s and params are %s and error statement is %s' % (str(order.user), str(order.__dict__), str(e)))
+

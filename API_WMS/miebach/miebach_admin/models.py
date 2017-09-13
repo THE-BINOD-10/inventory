@@ -1853,6 +1853,18 @@ class OrderPOMapping(models.Model):
         db_table = 'ORDER_PO_MAPPING'
         index_together = ('order_id', 'purchase_order_id', 'sku')
 
+class OrderTracking(models.Model):
+    order = models.ForeignKey(OrderDetail, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    imei = models.CharField(max_length=128, default='')
+    status = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_TRACKING'
+        index_together = ('order', 'quantity')
+
 import django
 from django.core.validators import MaxLengthValidator
 from django.utils.translation import ugettext as _

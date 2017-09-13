@@ -909,6 +909,7 @@ class SellerMaster(models.Model):
         index_together = ('user', 'seller_id')
 
     def json(self):
+        supplier_id = '' if not self.supplier else self.supplier.id
         return {
             'id': self.id,
             'seller_id': self.seller_id,
@@ -920,7 +921,7 @@ class SellerMaster(models.Model):
             'tin_number': self.tin_number,
             'price_type': self.price_type,
             'margin': self.margin,
-            'supplier': self.supplier.id,
+            'supplier': supplier_id,
             'status': self.status
           }
 
@@ -1530,6 +1531,7 @@ class SellerOrder(models.Model):
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
     order_status = models.CharField(max_length=64, default='')
+    order_type = models.CharField(max_length=64, default='')
     invoice_no = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -1835,6 +1837,30 @@ class SKUAttributes(models.Model):
 
     def __unicode__(self):
         return str(self.sku.sku_code) + '-' + str(self.attribute_name)
+
+class OrderPOMapping(models.Model):
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    order_id = models.CharField(max_length=64, default='')
+    purchase_order_id = models.CharField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_PO_MAPPING'
+        index_together = ('order_id', 'purchase_order_id', 'sku')
+
+class OrderTracking(models.Model):
+    order = models.ForeignKey(OrderDetail, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    imei = models.CharField(max_length=128, default='')
+    status = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_TRACKING'
+        index_together = ('order', 'quantity')
 
 import django
 from django.core.validators import MaxLengthValidator

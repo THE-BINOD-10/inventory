@@ -212,20 +212,6 @@ def get_customer_master_mapping(reader, file_type):
 
     return mapping_dict
 
-
-def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):
-    if seller_order_dict.get('seller_id', ''):
-        sell_order_ins = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id, seller__user=user.id)
-        seller_order_dict['order_id'] = order.id
-        if not sell_order_ins:
-            seller_order = SellerOrder(**seller_order_dict)
-            seller_order.save()
-            for swx_mapping in swx_mappings:
-                try:
-                    create_swx_mapping(swx_mapping['swx_id'], seller_order.id, swx_mapping['swx_type'], swx_mapping['app_host'])
-                except:
-                    pass
-
 def myntra_order_tax_calc(key, value, order_mapping, order_summary_dict, row_idx, reader, file_type):
     cell_data = ''
     if isinstance(value, dict):
@@ -855,15 +841,15 @@ def order_label_mapping_form(request, user=''):
     wb, ws = get_work_sheet('Order Labels', ORDER_LABEL_EXCEL_HEADERS)
     return xls_to_response(wb, '%s.order_label_mapping_form.xls' % str(user.id))
 
-#@csrf_exempt
-#@get_admin_user
-#def order_serial_mapping_form(request, user=''):
-#    label_file = request.GET['order-serial-mapping-form']
-#    if label_file:
-#        return error_file_download(label_file)
-#
-#    wb, ws = get_work_sheet('Order Serials', ORDER_SERIAL_EXCEL_HEADERS)
-#    return xls_to_response(wb, '%s.order_serial_mapping_form.xls' % str(user.id))
+@csrf_exempt
+@get_admin_user
+def order_serial_mapping_form(request, user=''):
+    label_file = request.GET['order-serial-mapping-form']
+    if label_file:
+        return error_file_download(label_file)
+
+    wb, ws = get_work_sheet('Order Serials', ORDER_SERIAL_EXCEL_HEADERS)
+    return xls_to_response(wb, '%s.order_serial_mapping_form.xls' % str(user.id))
 
 @csrf_exempt
 def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls'):
@@ -3205,4 +3191,195 @@ def order_label_mapping_upload(request, user=''):
         log.debug(traceback.format_exc())
         log.info('Order Label Mapping Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Order Label Mapping Upload Failed")
+
+def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
+    log.info("order upload started")
+    st_time = datetime.datetime.now()
+    index_status = {}
+
+    order_mapping = ORDER_SERIAL_EXCEL_MAPPING
+
+    count = 0
+    log.info("Validation Started %s" %datetime.datetime.now())
+    final_data_dict = OrderedDict()
+    for row_idx in range(1, no_of_rows):
+        if not order_mapping:
+            break
+
+        count += 1
+        order_details = {'user': user.id, 'creation_date': datetime.datetime.now(), 'shipment_date': datetime.datetime.now(), 'status': 1,
+                                  'sku_id':''}
+        seller_order_details = {'creation_date': datetime.datetime.now(), 'status': 1}
+        customer_order_summary = {'issue_type': 'order', 'creation_date': datetime.datetime.now()}
+        order_po_mapping = []
+        sku_code = ''
+        seller_id = ''
+        for key, val in order_mapping.iteritems():
+            value = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+            if key == 'order_id':
+                if not value:
+                    index_status.setdefault(count, set()).add('Order Id should not be empty')
+                if isinstance(value, float):
+                    value = str(int(value))
+                original_order_id = value
+                order_code = ''.join(re.findall('\D+', original_order_id))
+                order_id = ''.join(re.findall('\d+', original_order_id))
+                order_details['original_order_id'] = value
+                order_details['order_id'] = order_id
+                order_details['order_code'] = order_code
+            elif key == 'sku_code':
+                if isinstance(value, float):
+                    value = str(int(value))
+                if not value:
+                    index_status.setdefault(count, set()).add('SKU Code should not be empty')
+                elif value:
+                    sku_id = check_and_return_mapping_id(value, '', user)
+                    if not sku_id:
+                        index_status.setdefault(count, set()).add('Invalid SKU Code')
+                    else:
+                        sku_code = value
+                        order_details['sku_id'] = sku_id
+                        order_details['title'] = SKUMaster.objects.get(id=sku_id).sku_desc
+                        #original_order_id = str(original_order_id)+"<<>>"+SKUMaster.objects.get(id=sku_id).sku_code
+            elif key == 'seller_id':
+                seller_id = value
+                seller_master = None
+                if not seller_id:
+                    index_status.setdefault(count, set()).add('Seller ID should not be empty')
+                else:
+                    if isinstance(seller_id, float):
+                        seller_id = int(seller_id)
+                    seller_master = SellerMaster.objects.filter( user=user.id, seller_id=seller_id)
+                    if not seller_master:
+                        index_status.setdefault(count, set()).add('Invalid Serial ID')
+                if seller_master:
+                     seller_order_details['seller_id'] = seller_master[0].id
+                     seller_order_details['sor_id'] = str(seller_master[0].seller_id) + '-' + str(original_order_id)
+            elif key == 'customer_id':
+                customer_master = None
+                if value:
+                    if isinstance(value, float):
+                        value = int(value)
+                    customer_master = CustomerMaster.objects.filter( user=user.id, customer_id=value)
+                    if not customer_master:
+                        index_status.setdefault(count, set()).add('Invalid Customer ID')
+                if customer_master:
+                    order_details['customer_id'] = customer_master[0].customer_id
+                    order_details['customer_name'] = customer_master[0].name
+                    order_details['address'] = customer_master[0].address
+            elif key == 'quantity':
+                if not value:
+                    index_status.setdefault(count, set()).add('Quantity should not be empty')
+                elif not isinstance(value, (int, float)):
+                    index_status.setdefault(count, set()).add('Quantity should Number')
+                elif not float(value) > 0:
+                    index_status.setdefault(count, set()).add('Quantity should be greater than Zero')
+                else:
+                    order_details['quantity'] = value
+                    seller_order_details['quantity'] = value
+            elif key == 'unit_price':
+                try:
+                    value = float(value)
+                except:
+                    value = 0
+                order_details['unit_price'] = value
+            elif key in ['cgst_tax', 'sgst_tax', 'igst_tax']:
+                try:
+                    value = float(value)
+                except:
+                    value = 0
+                customer_order_summary[key] = value
+                amount = float(order_details.get('quantity', 0)) * float(order_details['unit_price'])
+                if not order_details.has_key('invoice_amount'):
+                    order_details['invoice_amount'] = amount
+                order_details['invoice_amount'] = order_details['invoice_amount'] + (amount * (float(value)/100))
+            elif key == 'po_number':
+                if '_' in str(value):
+                    try:
+                        value = int(value.split('_')[-1])
+                    except:
+                        value = 0
+                if isinstance(value, float):
+                    value = int(value)
+                if not isinstance(value, int):
+                    index_status.setdefault(count, set()).add('Invalid PO Number')
+                if order_details.get('sku_id', ''):
+                    po_imei_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku_id=order_details['sku_id'], status=1,
+                                                 purchase_order__open_po__sku__user=user.id, purchase_order__order_id=value)
+                    if not po_imei_mapping:
+                        index_status.setdefault(count, set()).add('Invalid PO Number')
+                    else:
+                        order_po_mapping.append({'order_id': original_order_id, 'sku_id': order_details['sku_id'], 'purchase_order_id': value,
+                                                 'status': 1})
+            elif key == 'order_type':
+                if value not in ['Transit', 'Normal']:
+                    index_status.setdefault(count, set()).add('Invalid Order Type')
+                else:
+                    seller_order_details['order_type'] = value
+
+        if order_details.has_key('sku_id'):
+            order_detail_obj = OrderDetail.objects.filter(Q(original_order_id=order_details['original_order_id']) |
+                                                          Q(order_id=order_details['order_id'], order_code=order_details['order_code']),
+                                                          sku_id=order_details['sku_id'], user=user.id)
+            if order_detail_obj:
+                index_status.setdefault(count, set()).add('Order Exists Already')
+        group_key = str(original_order_id) + ":" + str(sku_code) + ":" + str(seller_id)
+        final_data_dict = check_and_add_dict(group_key, 'order_details', order_details, final_data_dict=final_data_dict)
+        final_data_dict = check_and_add_dict(group_key, 'seller_order_dict', seller_order_details, final_data_dict=final_data_dict)
+        final_data_dict = check_and_add_dict(group_key, 'order_summary_dict', customer_order_summary, final_data_dict=final_data_dict)
+        log.info("Order Saving Started %s" %(datetime.datetime.now()))
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+    status = update_order_dicts(final_data_dict, user=user)
+    for order_po in order_po_mapping:
+        OrderPOMapping.objects.create(**order_po)
+
+    return 'Success'
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def order_serial_mapping_upload(request, user=''):
+    fname = request.FILES['files']
+    if (fname.name).split('.')[-1] == 'csv':
+        reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
+        no_of_rows = len(reader)
+        file_type = 'csv'
+    elif (fname.name).split('.')[-1] == 'xls' or (fname.name).split('.')[-1] == 'xlsx':
+        try:
+            data = fname.read()
+            if '<table' in data:
+                open_book, open_sheet = html_excel_data(data, fname)
+            else:
+                open_book = open_workbook(filename=None, file_contents=data)
+                open_sheet = open_book.sheet_by_index(0)
+        except:
+            return HttpResponse("Invalid File")
+        reader = open_sheet
+        no_of_rows = reader.nrows
+        file_type = 'xls'
+    else:
+        return HttpResponse('Invalid File')
+
+    try:
+        status  = validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file_type=file_type)
+        return HttpResponse(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Order Serial Mapping Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Order Serial Mapping Upload Failed")
+
 

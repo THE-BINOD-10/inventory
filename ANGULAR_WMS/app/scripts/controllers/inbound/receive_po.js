@@ -480,6 +480,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         } else {
 
+          data1["disable"] = true;
           fb.check_imei(data1.imei_number).then(function(resp) {
             if (resp.status) {
               Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
@@ -490,6 +491,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               if(vm.permissions.grn_scan_option == "sku_serial_scan") {
                 $('textarea[name="scan_sku"]').trigger('focus').val('');
               }
+              data1["disable"] = false;
             } else {
               if(vm.permissions.barcode_generate_opt != "sku_serial") {
                 vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
@@ -505,6 +507,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       data1.imei_number = "";
                     }
                   }
+                  data1["disable"] = false;
                 })
               } else {
                 vm.service.apiCall('check_generated_label/', 'GET',{'label': data1.imei_number, 'order_id': vm.model_data.po_id}).then(function(data){
@@ -526,6 +529,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                        data1.imei_number = "";
                     }
                   }
+                  data1["disable"] = false;
                 })
               }
             }

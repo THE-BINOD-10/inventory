@@ -16,6 +16,7 @@ from common import *
 from miebach_utils import *
 from operator import itemgetter
 from django.db.models import Sum
+from django.db.models import Max
 from itertools import groupby
 import datetime
 import shutil
@@ -1603,6 +1604,7 @@ def picklist_confirmation(request, user=''):
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
+        order_ids = picks_all.values_list('order_id', flat=True).distinct()
         if get_misc_value('automate_invoice', user.id) == 'true' and single_order:
             order_ids = picks_all.filter(order__order_id=single_order, picked_quantity__gt=0).values_list('order_id', flat=True).distinct()
             order_id = picklists_send_mail.keys()
@@ -1637,9 +1639,81 @@ def picklist_confirmation(request, user=''):
     duration = end_time - st_time
     log.info("process completed")
     log.info("total time -- %s" %(duration))
+
+    serial_order_mapping(picks_all, order_ids)
     if mod_locations:
         update_filled_capacity(list(set(mod_locations)), user.id)
     return HttpResponse('Picklist Confirmed')
+
+
+
+def serial_order_mapping(picklist, order_ids):
+    """ getting all imeis of corresponding orders """
+    serials = []
+    val = {}
+    picklist = picklist[0]
+    seller_orders = SellerOrder.objects.filter(order__id__in=order_ids)
+    for order in seller_orders:
+        if order.order_type == 'Transit':
+            order_objs = OrderPOMapping.objects.filter(order_id=order.sor_id.split('-')[-1], sku= order.order.sku)
+
+            if not order_objs:
+                continue
+            ord_objs = order_objs.values_list('purchase_order_id', 'sku')
+            po_nos, skus = [], []
+            for item in ord_objs:
+                po_nos.append(item[0])
+                skus.append(item[1])
+
+            val['wms_code'] = SKUMaster.objects.get(id=skus[0]).wms_code
+            imeis = POIMEIMapping.objects.filter(purchase_order__order_id__in=po_nos, purchase_order__open_po__sku__in=skus,
+                        status = 1).values_list('imei_number', flat=True)
+
+            serials.extend(list(imeis))
+    try:
+        if serials:
+            serials = ",".join(serials)
+            val['imei'] = serials
+            insert_order_serial(picklist, val)
+            create_shipment_entry(picklist)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+
+    return 'Success'
+
+def create_shipment_entry(picklist):
+    """ create shipment data """
+    status = 1
+    order_shipment   = {}
+    shipment_info    = {}
+    order_packaging  = {}
+    order_shipment['user'] = picklist.order.user
+    shipment_number = OrderShipment.objects.all().aggregate(Max('shipment_number'))['shipment_number__max']
+    order_shipment['shipment_number'] = shipment_number + 1
+    order_shipment['shipment_date'] = datetime.datetime.now()
+    order_shipment['shipment_reference'] = 'auto generated'
+    order_shipment['status'] = status
+
+    m = OrderShipment(**order_shipment)
+    m.save()
+
+    order_packaging['order_shipment'] = m
+    order_packaging['status'] = status
+    n = OrderPackaging(**order_packaging)
+    n.save()
+
+    shipment_info['order_shipment'] = m
+    shipment_info['order_packaging'] = n
+    shipment_info['order'] = picklist.order
+    shipment_info['shipping_quantity'] = picklist.order.quantity
+    shipment_info['status'] = status
+    p = ShipmentInfo(**shipment_info)
+    p.save()
+    picklist.status = 'dispatched'
+    picklist.save()
+    picklist.order.status = 2
+    picklist.order.save()
 
 
 @csrf_exempt
@@ -1831,7 +1905,7 @@ def get_customer_sku(request, user=''):
 
     for customer in customer_dict:
         customer_picklists = Picklist.objects.filter(order__customer_id=customer['customer_id'], order__customer_name=customer['customer_name'],
-                                                     status__icontains='picked',
+                                                     status__in=['open', 'picked', 'batch_open', 'batch_picked'], picked_quantity__gt=0,
                                                      order__user=user.id)
         picklist_order_ids = list(customer_picklists.values_list('order_id', flat=True))
         customer_orders = all_orders.filter(id__in=picklist_order_ids)
@@ -1851,6 +1925,8 @@ def get_customer_sku(request, user=''):
                 dis_pick = Picklist.objects.filter(order_id=dat['id'], status='dispatched')
                 if dis_pick:
                     dis_quantity = dis_pick[0].order.quantity
+            if customer_picklists.filter(**ship_dict).exclude(order_type='combo'):
+                all_data[ind]['picked'] = customer_picklists.filter(**ship_dict).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
             shipped = ShipmentInfo.objects.filter(**ship_dict).aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
             if shipped:
                 shipped = shipped - dis_quantity
@@ -4437,6 +4513,7 @@ def picklist_delete(request, user=""):
     order_ids = picklist_objs.values_list('order_id', flat=True)
     order_objs = OrderDetail.objects.filter(id__in = order_ids, user=user.id)
     log.info('Cancel Picklist request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    cancelled_orders_dict = {}
     try:
         if key == "process":
             for order in order_objs:
@@ -4462,8 +4539,62 @@ def picklist_delete(request, user=""):
             return HttpResponse("Picklist is saved for later use")
 
         elif key == "delete":
-            #order_objs.delete()
-            if order_objs:
+            for order in order_objs:
+                if picklist_objs.filter(order_type='combo', order_id = order.id):
+                    is_picked = picklist_objs.filter(picked_quantity__gt=0, order_id = order.id)
+                    remaining_qty = order.quantity
+                    if is_picked:
+                        return HttpResponse("Partial Picked Picklist not allowed to cancel")
+                else:
+                    all_seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id__in=order_objs.values_list('id', flat=True))
+                    picked_qty = picklist_objs.filter(order_id = order).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+                    if picked_qty > 0:
+                        pick_order = picklist_objs.filter(order_id = order)
+                        remaining_qty = pick_order.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
+                        pick_status = 'picked'
+                        if pick_order.filter(status__icontains='batch'):
+                            pick_status = 'batch_picked'
+                        seller_order = all_seller_orders.filter(order_id=order.id, order__user=user.id)
+                        if seller_order:
+                            cancelled_orders_dict.setdefault(seller_order[0].id, {})
+                            cancelled_orders_dict[seller_order[0].id].setdefault('quantity', 0)
+                            cancelled_orders_dict[seller_order[0].id]['quantity'] = float(cancelled_orders_dict[seller_order[0].id]['quantity']) +\
+                                                                                    float(remaining_qty)
+                        save_order_tracking_data(order, quantity=remaining_qty, status='cancelled', imei='')
+                        order.quantity = float(order.quantity) - float(remaining_qty)
+                        shipped = ShipmentInfo.objects.filter(order_id=order.id).aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
+                        proc_pick_obj = Picklist.objects.filter(order_id=order.id, status='dispatched', order__user=user.id)
+                        proc_pick_qty = 0
+                        if proc_pick_obj and proc_pick_obj[0].order:
+                            proc_pick_qty = float(proc_pick_obj[0].order.quantity)
+                        if shipped:
+                            shipped = float(shipped) - float(proc_pick_qty)
+                            if float(shipped) == float(order.quantity):
+                                order.status = 2
+                                pick_status = 'dispatched'
+                        order.save()
+                        PicklistLocation.objects.filter(picklist__order_id=order.id, picklist__picklist_number = picklist_id,
+                                                        picklist__status__in = ["open", "batch_open"],
+                                                        picklist__order__user = user.id).update(status=0, reserved=0)
+                        pick_order.update(reserved_quantity=0, status=pick_status)
+                    else:
+                        seller_order = all_seller_orders.filter(order_id=order.id, order_status='DELIVERY_RESCHEDULED')
+                        if seller_order:
+                            order.status = 5
+                            order.save()
+                            seller_order = seller_order[0]
+                            seller_order.status = 0
+                            seller_order.order_status = 'PROCESSED'
+                            seller_order.save()
+                        else:
+                            seller_ids = SellerStock.objects.filter(stock__sku__user=user.id,
+                                                                    stock_id__in=picklist_objs.values_list('stock_id', flat=True)).\
+                                                                    values_list('seller_id', flat=True)
+                            seller_order = all_seller_orders.filter(order_id=order.id, seller_id__in = seller_ids)
+                            SWXMapping.objects.filter(local_id__in=seller_order.values_list('id', flat=True)).delete()
+                            order.delete()
+
+            '''if order_objs:
                 order_detail_ids = order_objs.values_list('id', flat=True)
                 seller_orders = list(SellerOrder.objects.filter(order_id__in=order_detail_ids, order_status='DELIVERY_RESCHEDULED').\
                                                     values_list('order_id', flat=True))
@@ -4474,7 +4605,7 @@ def picklist_delete(request, user=""):
                     order_detail_ids = list(set(order_detail_ids) - set(seller_orders))
                 if order_detail_ids:
                     OrderDetail.objects.filter(id__in=order_detail_ids).delete()
-                picklist_objs.delete()
+                picklist_objs.delete()'''
             end_time = datetime.datetime.now()
             duration = end_time - st_time
             log.info("process completed")
@@ -4796,7 +4927,7 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
         user_dict = eval(user_dict)
     lis = ['order__order_id','order__order_id', 'order__customer_id', 'order__customer_name', 'order__marketplace', 'total_picked',
            'total_ordered', 'order__creation_date']
-    data_dict = {'status__icontains': 'picked', 'order__user': user.id, 'picked_quantity__gt': 0}
+    data_dict = {'status__in': ['picked', 'batch_picked', 'open', 'batch_open'], 'order__user': user.id, 'picked_quantity__gt': 0}
 
     if user_dict.get('market_place', ''):
         marketplace = user_dict['market_place'].split(',')
@@ -5303,6 +5434,9 @@ def seller_generate_picklist(request, user=''):
                            'picklist_id': picklist_number + 1,'stock_status': stock_status, 'show_image': show_image,
                            'use_imei': use_imei, 'order_status': order_status, 'user': request.user.id}))
 
+
+
+
 def update_exist_picklists(picklist_no, request, user, sku_code='', location='', picklist_obj=None):
     filter_param = {'reserved_quantity__gt' : 0, 'picklist_number' : picklist_no}
     if picklist_obj:
@@ -5459,11 +5593,11 @@ def customer_invoice_data(request, user=''):
         headers = WH_CUSTOMER_INVOICE_HEADERS
     return HttpResponse(json.dumps({'headers': headers}))
 
+
 @csrf_exempt
 @login_required
 @get_admin_user
 def search_template_names(request, user=''):
-
     template_names = []
     name = request.GET.get('q', '')
 

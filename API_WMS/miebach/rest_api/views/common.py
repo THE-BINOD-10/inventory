@@ -41,6 +41,7 @@ import re
 from django.template import loader, Context
 
 log = init_logger('logs/common.log')
+init_log = init_logger('logs/integrations.log')
 # Create your views here.
 
 def process_date(value):
@@ -3852,11 +3853,10 @@ def check_and_update_order_status(shipped_orders_dict, user):
                         order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
                         order_status_dict[order_detail_id]['subOrders'][index]['lineItems'].append(imei_dict)
             final_data = order_status_dict.values()
-            print final_data
             call_response = obj.confirm_order_status(final_data, user=user)
-            log.info(str(call_response))
+            init_log.info(str(call_response))
             if isinstance(call_response, dict) and call_response.get('status') == 1:
-                log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
+                init_log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
         except:
             continue
 
@@ -3869,4 +3869,166 @@ def get_returns_seller_order_id(order_detail_id, sku_code, user, sor_id=''):
         return seller_order[0].id
     else:
         return ''
+
+
+def check_and_update_order_status_data(shipped_orders_dict, user, status=''):
+    from rest_api.views.easyops_api import EasyopsAPI
+    integrations = Integrations.objects.filter(user=user.id, status=1)
+    for integrate in integrations:
+        order_status_dict = {}
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        all_seller_orders = SellerOrder.objects.filter(order__user=user.id, id__in=shipped_orders_dict.keys(), status=0)
+        all_orders = OrderDetail.objects.filter(user=user.id, id__in=shipped_orders_dict.keys())
+        line_items_ids = SWXMapping.objects.filter(app_host='shotang')
+
+        try:
+            for order_id, order_data in shipped_orders_dict.iteritems():
+
+                seller_order = all_seller_orders.get(id=order_id)
+                order = seller_order.order
+                if not order:
+                    continue
+
+                order_detail_id = str(order.original_order_id)
+                if not order_detail_id:
+                    order_detail_id = str(order.order_code) + str(order.order_id)
+                if not order_status_dict.has_key(order_detail_id):
+                    order_status_dict[order_detail_id] = {}
+                    order_status_dict[order_detail_id]['uorId'] = order_detail_id
+                    order_status_dict[order_detail_id]['dateAdded'] = get_local_date(user, order.creation_date)
+                    order_status_dict[order_detail_id]['retailerId'] = str(order.customer_id)
+                    order_status_dict[order_detail_id]['retailerAddress'] = {'retailerId': str(order.customer_id), 'city': order.city,
+                                                                             'address': order.address,
+                                                                             'name': order.customer_name, 'phoneNo': order.telephone }
+
+                order_status_dict[order_detail_id].setdefault('subOrders', [])
+
+                is_sor_id = filter(lambda a: str(a['sorId']) == str(seller_order.sor_id), order_status_dict[order_detail_id]['subOrders'])
+                if not len(is_sor_id) > 0:
+                    seller_dict = {}
+                    seller_dict['sorId'] = str(seller_order.sor_id)
+                    seller_dict['sellerId'] = seller_order.seller.seller_id
+                    seller_dict['invoiceNo'] = seller_order.invoice_no
+                    order_status_dict[order_detail_id]['subOrders'].append(seller_dict)
+                    index = len(order_status_dict[order_detail_id]['subOrders']) - 1
+                else:
+                    index = order_status_dict[order_detail_id]['subOrders'].index(is_sor_id[0])
+                order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
+                hsn_code = ''
+                if order.sku.hsn_code:
+                    hsn_code = order.sku.hsn_code
+                if order_data.get('quantity', 0):
+                    order_data['imeis'] = ['None'] * int(order_data['quantity'])
+
+                for imei in order_data.get('imeis', []):
+                    filt_params = {'local_id': seller_order.id, 'app_host': 'shotang'}
+                    if status == 'CANCELLED':
+                        filt_params['imei'] = ''
+                    else:
+                        filt_params['imei'] = imei
+                    seller_item_obj = line_items_ids.filter(swx_type='seller_item_id', **filt_params)
+                    seller_item_id = ''
+                    if seller_item_obj:
+                        seller_item_id = seller_item_obj[0].swx_id
+                        if status == 'CANCELLED':
+                            seller_item_obj[0].imei = imei
+                            seller_item_obj[0].save()
+
+                    seller_parent_item_obj = line_items_ids.filter(swx_type='seller_parent_item_id', **filt_params)
+                    seller_parent_id = ''
+                    if seller_parent_item_obj:
+                        seller_parent_id = seller_item_obj[0].swx_id
+                        if status == 'CANCELLED':
+                            seller_parent_item_obj[0].imei = imei
+                            seller_parent_item_obj[0].save()
+                    imei_dict = {'lineItemId': seller_item_id, 'name': order.title,
+                                 'unitPrice': str(order.unit_price), 'quantity': str(1),
+                                 'sku': order.sku.sku_code, 'cgstTax': 0, 'sgstTax': 0, 'igstTax': 0,
+                                 'parentLineItemId':seller_parent_id, 'status': status,
+                                 'imei': imei, 'hsn': hsn_code}
+                    order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
+                    order_status_dict[order_detail_id]['subOrders'][index]['lineItems'].append(imei_dict)
+
+            final_data = order_status_dict.values()
+            call_response = obj.set_return_order_status(final_data, user=user)
+            log.info(str(call_response))
+            if isinstance(call_response, dict) and call_response.get('status') == 1:
+                log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
+        except Exception as e:
+            print e.message
+            continue
+
+def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, is_list=False):
+    final_data_dict.setdefault(grouping_key, {})
+    final_data_dict[grouping_key].setdefault(key_name, {})
+    if is_list:
+        final_data_dict[grouping_key].setdefault(key_name, [])
+        final_data_dict[grouping_key][key_name] = copy.deepcopy(list(chain(final_data_dict[grouping_key][key_name], adding_dat)))
+
+    elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('quantity'):
+        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['quantity'] +\
+                                                                  adding_dat.get('quantity', 0)
+    elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
+        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['invoice_amount'] +\
+                                                                  adding_dat.get('invoice_amount', 0)
+    else:
+        final_data_dict[grouping_key][key_name] = copy.deepcopy(adding_dat)
+
+    return final_data_dict
+
+def update_order_dicts(orders, user='', company_name=''):
+    status = {'status': 0, 'messages': ['Something went wrong']}
+    for order_key, order in orders.iteritems():
+        if not order.get('order_details', {}):
+            continue
+        order_det_dict = order['order_details']
+        if not order.get('order_detail_obj', None):
+            order_obj = OrderDetail.objects.filter(original_order_id=order_det_dict['original_order_id'], order_id=order_det_dict['order_id'],
+                                                   order_code=order_det_dict['order_code'], sku_id=order_det_dict['sku_id'],
+                                                   user=order_det_dict['user'])
+        else:
+            order_obj = [order.get('order_detail_obj', None)]
+        if order_obj:
+            order_obj = order_obj[0]
+            order_obj.quantity = float(order_obj.quantity) + float(order_det_dict.get('quantity', 0))
+            order_obj.invoice_amount = float(order_obj.invoice_amount) + float(order_det_dict.get('invoice_amount', 0))
+            order_obj.save()
+            order_detail = order_obj
+        else:
+            order_detail = OrderDetail.objects.create(**order['order_details'])
+        if order.get('order_summary_dict', {}) and not order_obj:
+            customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
+        if order.get('seller_order_dict', {}):
+            check_create_seller_order(order['seller_order_dict'], order_detail, user, order.get('swx_mappings', []))
+        status = {'status': 1, 'messages': ['Success']}
+    return status
+
+def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):
+    if seller_order_dict.get('seller_id', ''):
+        sell_order_ins = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id, seller__user=user.id)
+        seller_order_dict['order_id'] = order.id
+        if not sell_order_ins:
+            seller_order = SellerOrder(**seller_order_dict)
+            seller_order.save()
+            for swx_mapping in swx_mappings:
+                try:
+                    create_swx_mapping(swx_mapping['swx_id'], seller_order.id, swx_mapping['swx_type'], swx_mapping['app_host'])
+                except:
+                    pass
+
+def save_order_tracking_data(order, quantity, status='', imei=''):
+    try:
+        log.info('Order Tracking Data Request Params %s, %s, %s, %s' % (str(order.__dict__), str(quantity), str(status), str(imei)))
+        order_tracking = OrderTracking.objects.filter(order_id=order.id, status=status, imei='')
+        if order_tracking:
+            order_tracking = order_tracking[0]
+            order_tracking.quantity = float(order_tracking.quantity) + float(remaining_qty)
+            order_tracking.save()
+        else:
+            OrderTracking.objects.create(order_id=order.id, status=status, imei=imei, quantity=quantity, creation_date=datetime.datetime.now(),
+                                         updation_date=datetime.datetime.now())
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Order Tracking Insert failed for %s and params are %s and error statement is %s' % (str(order.user), str(order.__dict__), str(e)))
 

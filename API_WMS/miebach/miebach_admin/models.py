@@ -1086,7 +1086,7 @@ class SizeMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
     size_name = models.CharField(max_length=64, default='')
-    size_value = models.CharField(max_length=256, default='')
+    size_value = models.TextField()
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

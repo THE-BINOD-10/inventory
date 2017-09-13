@@ -3558,7 +3558,7 @@ def build_invoice(invoice_data, user, css=False):
             temp_page['data'] = invoice_data['data'][i*temp_no_of_skus: (i+1)*temp_no_of_skus]
             temp_page['empty_data'] = [];
             render_data.append(temp_page);
-        if int(math.ceil(data_length/temp_no_of_skus)) == 0:
+        if int(math.ceil(float(data_length)/temp_no_of_skus)) == 0:
             temp_page = {'data': []}
             temp_page['data'] = invoice_data['data']
             temp_page['empty_data'] = [];

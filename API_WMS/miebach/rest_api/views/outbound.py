@@ -3555,7 +3555,7 @@ def get_seller_order_details(request, user=''):
     order_code = ''.join(re.findall('\D+', uor_id))
     order_id = ''.join(re.findall('\d+', uor_id))
     seller_data = SellerOrder.objects.filter(Q(order__order_id = order_id, order__order_code = order_code) | \
-                                             Q(order__original_order_id=order_id), order__user=user.id, sor_id = sor_id)
+                                             Q(order__original_order_id=order_id), order__user=user.id, sor_id = sor_id, status=1)
     order_details = seller_data
     seller_details = seller_data[0].seller.json()
     row_id = order_details[0].id

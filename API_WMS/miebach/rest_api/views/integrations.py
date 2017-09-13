@@ -907,9 +907,12 @@ def update_sellers(sellers, user='', company_name=''):
                     user=seller['user'], seller_id=seller['seller_id'])
 
                     for key, value in seller.iteritems():
+                        if key == 'tin_number':
+                            value = str(value)
                         setattr(seller_master, key, value)
                     seller_master.save()
                 except Exception as e:
+                    traceback.print_exc()
                     is_valid = is_valid and False
                     print e.message
                     insert_message(messages, seller['seller_id'], e.message)

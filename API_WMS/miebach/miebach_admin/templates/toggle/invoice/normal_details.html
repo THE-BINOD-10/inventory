@@ -53,6 +53,18 @@
                   </tr>
                   <tr>
                     <td>
+                      {% if user_type|lower == 'marketplace_user' %}
+                      <div class="row m0 text-left" style="height: 170px;overflow: hidden;">
+                        <div class="col-md-12 p0 fs16">
+                          <span><b>Bill To:</b></span>
+                        </div>
+
+                        <div class="col-md-12 p0 fs14">
+                          <p class="pre-custom p0">{{customer_address}}</p>
+                        </div>
+                      </div>
+                      {% else %}
+
                       <address class="m0 p0" style="height: 170px;overflow: hidden;">
                         <strong>
                           <span class="fs16" ng-if="user.userName != 'campus_sutra'">Bill To,</span>
@@ -86,8 +98,19 @@
                         </div>
                         {% endif %}
                       </address>
+                      {% endif %}
                     </td>
                     <td>
+                      {% if user_type|lower == 'marketplace_user' %}
+                      <div class="row m0 text-left" style="height: 170px;overflow: hidden;">
+                        <div class="col-md-12 p0 fs16">
+                          <span><b>Ship To:</b></span>
+                        </div>
+                        <div class="col-md-12 p0 fs14">
+                          <p class="pre-custom p0">{{customer_address}}</p>
+                        </div>
+                      </div>
+                      {% else %}
                       <address class="m0 p0" style="height: 170px;overflow: hidden;">
                         <strong>
                           <span class="fs16">Ship To,</span>
@@ -120,6 +143,7 @@
                         </div>
                         {% endif %}
                       </address>
+                      {% endif %}
                     </td>
                   </tr>
                 </tbody>

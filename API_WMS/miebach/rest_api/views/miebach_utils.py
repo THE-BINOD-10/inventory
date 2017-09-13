@@ -2005,7 +2005,8 @@ def get_grn_inventory_addition_data(search_params, user, sub_user):
     temp_data = copy.deepcopy( AJAX_DATA )
     temp_data['draw'] = search_params.get('draw')
     result_values = ['purchase_order__order_id', 'receipt_number', 'purchase_order__open_po__sku__sku_code', 'seller_po__seller__seller_id',
-                     'purchase_order__received_quantity', 'purchase_order__open_po__price', 'purchase_order__open_po__tax',
+                     'purchase_order__received_quantity', 'purchase_order__open_po__price', 'purchase_order__open_po__sgst_tax',
+                     'purchase_order__open_po__cgst_tax', 'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
                      'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price']
 
     if 'from_date' in search_params:
@@ -2038,7 +2039,8 @@ def get_grn_inventory_addition_data(search_params, user, sub_user):
         result = purchase_orders.filter(order_id=data['purchase_order__order_id'],open_po__sku__user=user.id)[0]
         po_number = '%s%s_%s' %(data['purchase_order__prefix'], str(result.creation_date).split(' ')[0].replace('-', ''), data['purchase_order__order_id'])
         amount = float(data['total_received'] * data['purchase_order__open_po__price'])
-        aft_unit_price = float(data['purchase_order__open_po__price']) + (float(data['purchase_order__open_po__price']/100) * float(data['purchase_order__open_po__tax']))
+        tax = float(data['purchase_order__open_po__sgst_tax']) + float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])
+        aft_unit_price = float(data['purchase_order__open_po__price']) + (float(data['purchase_order__open_po__price']/100) * tax)
         post_amount = aft_unit_price * float(data['total_received'])
         margin_price = float(data['seller_po__unit_price'] - aft_unit_price)
         if margin_price < 0:

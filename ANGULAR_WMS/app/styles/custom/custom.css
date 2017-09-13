@@ -339,7 +339,7 @@ h1 small {
   }
 }
 .order-list {
-  border: 1px solid #cccccc;
+  border: 1px solid #ccc;
 }
 .order-list .order-item {
   padding: 10px;
@@ -348,23 +348,23 @@ h1 small {
   color: blue;
 }
 .order-list .order-label {
-  color: #999999;
+  color: #999;
 }
 .order-list .order-bold {
   font-size: 20px;
   color: black;
 }
 .order-list .border-grey {
-  border-bottom: 1px solid #cccccc;
+  border-bottom: 1px solid #ccc;
 }
 .detail-list {
-  border: 1px solid #cccccc;
+  border: 1px solid #ccc;
 }
 .detail-list .detail-item {
   padding: 10px;
 }
 .detail-list .border-grey {
-  border-bottom: 1px solid #cccccc;
+  border-bottom: 1px solid #ccc;
 }
 .detail-list .detail-bg-grey {
   background: #f0f0f0;
@@ -548,7 +548,7 @@ body {
   top: 8px;
 }
 .layout-sub-header {
-  background: #ffffff;
+  background: #fff;
 }
 .layout-sub-header .filters {
   background: #f0f0f0;

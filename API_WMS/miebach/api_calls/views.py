@@ -980,6 +980,7 @@ def update_order(request):
 @csrf_exempt
 @login_required
 def update_sku(request):
+    skus = ''
     try:
         skus = json.loads(request.body)
     except:

@@ -2126,6 +2126,7 @@ def get_returns_location(put_zone, request, user):
 
 
 def create_return_order(data, i, user):
+    seller_order_ids = []
     status = ''
     user_obj = User.objects.get(id=user)
     sku_id = SKUMaster.objects.filter(sku_code = data['sku_code'][i], user = user)
@@ -2159,6 +2160,7 @@ def create_return_order(data, i, user):
                 seller_order_id = get_returns_seller_order_id(return_details['order_id'], sku_id[0].sku_code, user_obj, sor_id=sor_id)
                 if seller_order_id:
                     return_details['seller_order_id'] = seller_order_id
+                    seller_order_ids.append(seller_order_id)
         returns = OrderReturns(**return_details)
         returns.save()
 
@@ -2168,9 +2170,9 @@ def create_return_order(data, i, user):
     else:
         status = 'Missing Required Fields'
     if not status:
-        return returns.id, status
+        return returns.id, status, seller_order_ids
     else:
-        return "", status
+        return "", status, seller_order_ids
 
 def create_default_zones(user, zone, location, sequence):
     try:
@@ -2278,10 +2280,13 @@ def save_return_imeis(user, returns, status, imei_numbers):
 def confirm_sales_return(request, user=''):
     data_dict = dict(request.POST.iterlists())
     return_type = request.POST.get('return_type', '')
+    mp_return_data = {}
     for i in range(0, len(data_dict['id'])):
         all_data = []
         if not data_dict['id'][i]:
-            data_dict['id'][i], status = create_return_order(data_dict, i , user.id)
+            data_dict['id'][i], status, seller_order_ids = create_return_order(data_dict, i , user.id)
+            mp_return_data.setdefault(seller_order_ids[0], {}).setdefault(
+                'imeis', []).append(data_dict['returns_imeis'][i])
             if status:
                 return HttpResponse(status)
         order_returns = OrderReturns.objects.filter(id = data_dict['id'][i], status = 1)
@@ -2300,7 +2305,8 @@ def confirm_sales_return(request, user=''):
         locations_status = save_return_locations(**return_loc_params)
         if not locations_status == 'Success':
             return HttpResponse(locations_status)
-
+    if user.userprofile.user_type == 'marketplace_user':
+        check_and_update_order_status_data(mp_return_data, user, status='RETURNED')
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt
@@ -3449,10 +3455,11 @@ def confirm_add_po(request, sales_data = '', user=''):
     company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
-    if receipt_type == 'Hosted Warehouse':
-        title = 'Stock Transfer Note'
-    if request.GET.get('seller_id', '') and str(request.GET.get('seller_id').split(":")[1]).lower() == 'shproc':
+    #if receipt_type == 'Hosted Warehouse':
+    title = 'Stock Transfer Note'
+    if request.GET.get('seller_id', '') and 'shproc' in str(request.GET.get('seller_id').split(":")[1]).lower():
         company_name = 'SHPROC'
+        title = 'Purchase Order'
 
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'user_name': request.user.username,

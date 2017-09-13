@@ -1302,7 +1302,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         var elem = {serial: scan};
         vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
           if(data.message) {
-            if(data.data == "") {
+            if(data.data.status == "") {
               if(vm.checkAndAdd(scan)) {
                 vm.service.showNoty("Already Scanned")
               } else {
@@ -1312,7 +1312,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
                 vm.cal_percentage(sku_data);
               }
             } else {
-              vm.service.showNoty(data.data);
+              vm.service.showNoty(data.data.status);
             }
           }
         });

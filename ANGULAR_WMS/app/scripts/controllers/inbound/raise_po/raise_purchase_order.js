@@ -391,7 +391,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               vm.service.refresh(vm.dtInstance);
               if(data.data.search("<div") != -1) {
                 if (vm.model_data.receipt_type == 'Hosted Warehouse') {
-                  vm.title = "Stock transfer Note";
+                  //vm.title = "Stock transfer Note";
+                  vm.title = $(data.data).find('.modal-header h4').text().trim();
+
                 }
                 vm.html = $(data.data)[0];
                 var html = $(vm.html).closest("form").clone();

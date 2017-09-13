@@ -863,6 +863,10 @@ def update_customer_values(request,user=''):
                 if not value:
                     continue
                 setattr(data, key, value)
+            if key == 'margin':
+                if not value:
+                    value = 0
+                setattr(data, key, float(value))
             else:
                 setattr(data, key, value)
 

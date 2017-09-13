@@ -81,7 +81,7 @@
                     <td><input type="text" ng-model="data.value" name="quantity" class="form-control" ng-class="service.get_decimal_perm()" required ng-readonly="showCase.permissions.use_imei" ng-change="showCase.receive_quantity_change(data)"> </div></td>
                     <td><input type="text" ng-model="data.unit" name="unit" class="form-control" readonly></td>
                     <td ng-if="showCase.permissions.use_imei">
-                      <input type="text" name="imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control" ng-disabled="data.po_quantity == data.value" ng-keydown="showCase.check_imei_exists($event, data, $parent.$parent.$index)">
+                      <input type="text" name="imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control" ng-disabled="data.po_quantity == data.value || data.disable" ng-keydown="showCase.check_imei_exists($event, data, $parent.$parent.$index)">
                       <input ng-if="!showCase.po_qc" type="hidden" name="imei_number" class="form-control" ng-init="data.imei_list=[]" value="{{data.imei_list.join(',')}}">
                     </td>
                     <td><input type="text" ng-model="data.price" name="price" class="form-control" value="" ng-readonly="records[0].dis"></td>

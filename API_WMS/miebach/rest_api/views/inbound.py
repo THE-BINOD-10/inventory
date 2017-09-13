@@ -3455,10 +3455,11 @@ def confirm_add_po(request, sales_data = '', user=''):
     company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
-    if receipt_type == 'Hosted Warehouse':
-        title = 'Stock Transfer Note'
-    if request.GET.get('seller_id', '') and str(request.GET.get('seller_id').split(":")[1]).lower() == 'shproc':
+    #if receipt_type == 'Hosted Warehouse':
+    title = 'Stock Transfer Note'
+    if request.GET.get('seller_id', '') and 'shproc' in str(request.GET.get('seller_id').split(":")[1]).lower():
         company_name = 'SHPROC'
+        title = 'Purchase Order'
 
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'user_name': request.user.username,

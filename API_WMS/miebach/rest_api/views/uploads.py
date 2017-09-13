@@ -3207,7 +3207,8 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
             break
 
         count += 1
-        order_details = {'user': user.id, 'creation_date': datetime.datetime.now(), 'shipment_date': datetime.datetime.now(), 'status': 1}
+        order_details = {'user': user.id, 'creation_date': datetime.datetime.now(), 'shipment_date': datetime.datetime.now(), 'status': 1,
+                                  'sku_id':''}
         seller_order_details = {'creation_date': datetime.datetime.now(), 'status': 1}
         customer_order_summary = {'issue_type': 'order', 'creation_date': datetime.datetime.now()}
         order_po_mapping = []
@@ -3226,7 +3227,6 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                 order_details['original_order_id'] = value
                 order_details['order_id'] = order_id
                 order_details['order_code'] = order_code
-                #check_and_add_dict(original_order_id, 'order_details', adding_dat, final_data_dict={}, is_list=False)
             elif key == 'sku_code':
                 if isinstance(value, float):
                     value = str(int(value))
@@ -3240,6 +3240,7 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                         sku_code = value
                         order_details['sku_id'] = sku_id
                         order_details['title'] = SKUMaster.objects.get(id=sku_id).sku_desc
+                        #original_order_id = str(original_order_id)+"<<>>"+SKUMaster.objects.get(id=sku_id).sku_code
             elif key == 'seller_id':
                 seller_id = value
                 seller_master = None

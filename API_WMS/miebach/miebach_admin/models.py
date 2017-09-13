@@ -72,7 +72,7 @@ class SKUMaster(models.Model):
     sku_category = models.CharField(max_length=64, default='')
     sku_class = models.CharField(max_length=64, default='')
     sku_brand = models.CharField(max_length=64, default='')
-    style_name = models.CharField(max_length=64, default='')
+    style_name = models.CharField(max_length=256, default='')
     sku_size = models.CharField(max_length=64, default='')
     product_type = models.CharField(max_length=64, default='')
     zone = models.ForeignKey(ZoneMaster, null=True, blank=True, default = None)
@@ -697,7 +697,6 @@ class OrderIMEIMapping(models.Model):
     imei_number =  models.CharField(max_length = 64, default = '')
     sor_id = models.CharField(max_length=128, default='')
     status = models.IntegerField(default=1)
-    sor_id = models.CharField(max_length = 128, default = '')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -910,6 +909,7 @@ class SellerMaster(models.Model):
         index_together = ('user', 'seller_id')
 
     def json(self):
+        supplier_id = '' if not self.supplier else self.supplier.id
         return {
             'id': self.id,
             'seller_id': self.seller_id,
@@ -921,7 +921,7 @@ class SellerMaster(models.Model):
             'tin_number': self.tin_number,
             'price_type': self.price_type,
             'margin': self.margin,
-            'supplier': self.supplier.id,
+            'supplier': supplier_id,
             'status': self.status
           }
 
@@ -1087,7 +1087,7 @@ class SizeMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
     size_name = models.CharField(max_length=64, default='')
-    size_value = models.CharField(max_length=256, default='')
+    size_value = models.TextField()
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1849,6 +1849,18 @@ class OrderPOMapping(models.Model):
     class Meta:
         db_table = 'ORDER_PO_MAPPING'
         index_together = ('order_id', 'purchase_order_id', 'sku')
+
+class OrderTracking(models.Model):
+    order = models.ForeignKey(OrderDetail, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    imei = models.CharField(max_length=128, default='')
+    status = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_TRACKING'
+        index_together = ('order', 'quantity')
 
 import django
 from django.core.validators import MaxLengthValidator

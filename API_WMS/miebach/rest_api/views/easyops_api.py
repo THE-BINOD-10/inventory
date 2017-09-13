@@ -311,3 +311,16 @@ class EasyopsAPI:
                 return False
             return actual_type == check_type
         return False
+
+    def set_return_order_status(self, data={}, token='', user=''):
+        """ API to set returned as order status (shotang)"""
+        if user:
+            self.user = user
+            self.get_user_token(user)
+
+        if self.is_full_link:
+            url = LOAD_CONFIG.get(self.company_name, 'return_order', '')
+        else:
+            url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'return_order', ''))
+        json_response = self.get_response(url, data)
+        return json_response    

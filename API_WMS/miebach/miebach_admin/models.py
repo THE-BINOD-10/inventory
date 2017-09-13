@@ -910,9 +910,7 @@ class SellerMaster(models.Model):
         index_together = ('user', 'seller_id')
 
     def json(self):
-        supplier_id = ''
-        if self.supplier:
-            supplier_id = self.supplier.id
+        supplier_id = '' if not self.supplier else self.supplier.id
         return {
             'id': self.id,
             'seller_id': self.seller_id,

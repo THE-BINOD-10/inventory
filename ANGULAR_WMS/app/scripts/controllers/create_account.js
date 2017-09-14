@@ -13,9 +13,10 @@ function createAccountCtrl($rootScope ,$scope, $state, $http, Auth, AUTH_EVENTS,
           console.log(data)
           if(data.data == 'Added Successfully') {
 
-            $scope.valid_msg = 'Thank You! Please check your email to activate your subscription.';
+            //$scope.valid_msg = 'Thank You! Please check your email to activate your subscription.';
             $scope.valid = true;
             $scope.invalid = false;
+            window.location.href = 'http://stockone.in/index.php/thanks-30-day-trial';
           } else {
 
             $scope.invalid_msg = data.data;

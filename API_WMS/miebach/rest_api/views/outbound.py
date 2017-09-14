@@ -4982,7 +4982,7 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
         data1 = copy.deepcopy(data)
         del data1['total_ordered']
         del data1['total_picked']
-        order_pick = picklist.filter(**data1)
+        order_pick = picklist.filter(**data1).prefetch_related('order')
         creation_date = datetime.datetime.now()
         if order_pick:
             creation_date = order_pick[0].creation_date
@@ -4990,6 +4990,7 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
         order_id = data['order__original_order_id']
         if not order_id:
             order_id = data['order__order_code'] + str(data['order__order_id'])
+            data['order__original_order_id'] = order_id
 
         #shipped = all_shipment_orders.filter(order_id__in=order_pick.values_list('order_id', flat=True)).\
         #                               aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']

@@ -9,7 +9,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service = service;
     vm.apply_filters = colFilters;
     vm.sku_group = false;
-    vm.mk_user = (Session.user_profile.user_type == "marketplace_user") ? true: false;
+    vm.permissions = Session.roles.permissions;
+    vm.mk_user = (vm.permissions.use_imei == true) ? true: false;
 
     vm.g_data = Data.create_shipment;
 

@@ -217,7 +217,8 @@ class OrderDetail(models.Model):
     class Meta:
         db_table = 'ORDER_DETAIL'
         unique_together = ('order_id','sku','order_code')
-        index_together = (('order_id','sku','order_code'), ('user', 'order_code'))
+        index_together = (('order_id','sku','order_code'), ('user', 'order_code'),
+                          ('customer_id', 'order_code', 'marketplace', 'original_order_id', 'order_id', 'customer_name'))
 
     def __unicode__(self):
         return str(self.sku)

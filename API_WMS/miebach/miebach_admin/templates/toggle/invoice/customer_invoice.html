@@ -6,11 +6,7 @@
           {% for page in data %}
           <div class="print-invoice2 mb20" ng-repeat="page in showCase.pdf_data.data">
             <div class="invoice-body">
-              {% ifequal user_type "marketplace_user" %}
-                {% include "toggle/invoice/marketplace_details.html" %}
-              {% else %}
                 {% include "toggle/invoice/normal_details.html" %}
-              {% endifequal %}
 
               <table class="table table-bordered bl br cal-table m0">
                 <thead>
@@ -52,7 +48,7 @@
                         <div class="col-md-12">
                           <b class="pull-left">IMEI Numbers List:</b>
                           <b class="pull-right">Sub Quantity: {{record.imei_quantity}}</b>
-                        </div>
+                        </div></br>
                         {% for imei in record.imeis %}
                         <div class="col-md-3 col-sm-3" style="width:25%; display:block; float:left">
                            {{forloop.counter}}. {{imei}}

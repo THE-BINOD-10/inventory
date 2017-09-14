@@ -2051,8 +2051,18 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     declaration = DECLARATIONS.get(user.username, '')
     if not declaration:
         declaration = DECLARATIONS['default']
-    invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': user_profile.company_name, 'company_address': user_profile.address,
-                    'order_date': order_date, 'email': user.email, 'marketplace': marketplace, 'total_amt': total_amt,
+    company_name = user_profile.company_name
+    company_address = user_profile.address
+    email = user.email
+    if seller_address:
+        company_address = seller.address
+        email = seller.email_id
+        gstin_no = seller.tin_number
+        company_name = seller.name
+        company_address = company_address.replace("\n", " ")
+        company_name = 'SHPROC Procurement Pvt. Ltd.'
+    invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name, 'company_address': company_address,
+                    'order_date': order_date, 'email': email, 'marketplace': marketplace, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
                     'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % _total_tax, 'total_mrp': total_mrp,
                     'invoice_no': _invoice_no, 'invoice_date': invoice_date, 'price_in_words': number_in_words(_total_invoice),
@@ -3522,6 +3532,7 @@ def build_invoice(invoice_data, user, css=False):
 
     inv_totals = inv_totals + len(invoice_data['order_charges'])*inv_charges
 
+    '''
     if invoice_data['user_type'] == 'marketplace_user':
         inv_details = 142;
         s_count = invoice_data['seller_address'].count('\n')
@@ -3534,7 +3545,7 @@ def build_invoice(invoice_data, user, css=False):
         else:
             inv_details = inv_details + 20
         inv_details = 230;
-
+    '''
     render_data = []
     render_space = 0;
     hsn_summary_length= len(invoice_data['hsn_summary'].keys())*inv_total;
@@ -3632,7 +3643,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
     invoice_data['empty_tds'] = [1,2,3,4,5,6,7,8,9,10]
 
     inv_height = 1358; #total invoice height
-    inv_details = 292; #invoice details height 292
+    inv_details = 317 #292; #invoice details height 292
     inv_footer = 95;   #invoice footer height
     inv_totals = 127;  #invoice totals height
     inv_header = 47;   #invoice tables headers height
@@ -3642,6 +3653,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
     inv_charges = 20;  #height of other charges
 
     inv_totals = inv_totals + len(invoice_data['order_charges'])*inv_charges
+    '''
     if invoice_data['user_type'] == 'marketplace_user':
         inv_details = 121;
         s_count = invoice_data['seller_address'].count('\n')
@@ -3654,6 +3666,8 @@ def build_marketplace_invoice(invoice_data, user, css=False):
         else:
             inv_details = inv_details + 20
         inv_details = 230;
+    '''
+    #invoice_data['user_type'] = 'warehouse_user'
     render_data = []
     render_space = 0
     hsn_summary_length= len(invoice_data['hsn_summary'].keys())*inv_total
@@ -3748,7 +3762,6 @@ def build_marketplace_invoice(invoice_data, user, css=False):
         render_data[last]['empty_data'] = [""]*((render_data[last]['space_left'])/inv_product)
 
     invoice_data['data'] = render_data
-
     top = ''
     if css:
         c= {'name': 'invoice'}

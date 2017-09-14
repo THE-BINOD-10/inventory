@@ -3456,7 +3456,11 @@ def generate_order_invoice(request, user=''):
     ord_ids = order_ids.split(",")
     invoice_data = add_consignee_data(invoice_data, ord_ids, user)
     user_profile = UserProfile.objects.get(user_id=user.id)
-    invoice_data = build_invoice(invoice_data, user, False)
+    #invoice_data = build_invoice(invoice_data, user, False)
+    if get_misc_value('show_imei_invoice', user.id) == 'true':
+        invoice_data = build_marketplace_invoice(invoice_data, user, False)
+    else:
+        invoice_data = build_invoice(invoice_data, user, False)
     #invoice_data.update({'user': user})
     #if invoice_data['detailed_invoice']:
     #    t = loader.get_template('../miebach_admin/templates/toggle/detail_generate_invoice.html')

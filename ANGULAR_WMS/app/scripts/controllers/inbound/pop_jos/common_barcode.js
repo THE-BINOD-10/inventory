@@ -27,9 +27,9 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
 
     angular.copy(items, vm.model_data)
   } else {
-    vm.model_data['format_types'] = ['format1', 'format2', 'format3']
+    vm.model_data['format_types'] = ['format1', 'format2', 'format3', 'format4']
 
-    var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
+    var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'format4': 'Details'}
 
     vm.model_data['barcodes'] = [{'sku_code':'', 'quantity':''}];
     vm.getPoData(items);

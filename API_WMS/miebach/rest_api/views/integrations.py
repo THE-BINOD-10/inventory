@@ -29,7 +29,7 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
     return final_data_dict
 
 
-def validate_orders(orders, user='', company_name=''):
+def validate_orders(orders, user='', company_name='', is_cancelled=False):
     order_mapping = eval(LOAD_CONFIG.get(company_name, 'order_mapping_dict', ''))
     NOW = datetime.datetime.now()
 
@@ -127,9 +127,10 @@ def validate_orders(orders, user='', company_name=''):
                     seller_order = SellerOrder.objects.filter(Q(order__original_order_id=original_order_id)|Q(order__order_id=order_id,
                                                  order__order_code=order_code),sor_id=eval(order_mapping['sor_id']), seller__user=user.id)
                     if seller_order and not order_status == 'DELIVERY_RESCHEDULED':
-                        insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
-                                              'error': 'Order Exists already'})
-                        continue
+                        if not is_cancelled:
+                            insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
+                                                  'error': 'Order Exists already'})
+                            continue
                     sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
                     if sku_master:
                         filter_params['sku_id'] = sku_master[0].id
@@ -180,9 +181,11 @@ def validate_orders(orders, user='', company_name=''):
                         #order_det.quantity += float(eval(order_mapping['quantity']))
                         #order_det.invoice_amount += invoice_amount
                         #order_det.save()
-                        final_data_dict = check_and_add_dict(grouping_key, 'order_detail_obj', order_det, final_data_dict=final_data_dict)
+                        #final_data_dict = check_and_add_dict(grouping_key, 'order_detail_obj', order_det, final_data_dict=final_data_dict)
                         if order_det and seller_id in seller_master_dict.keys():
                             order_create = False
+                        elif is_cancelled:
+                            final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details, final_data_dict=final_data_dict)
                         else:
                             insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
                                                   'error': 'Order Exists already'})
@@ -198,7 +201,7 @@ def validate_orders(orders, user='', company_name=''):
                                               'error': 'Invalid Delivery Rescheduled Order'})
                         continue
 
-                    if order_create:
+                    if order_create or is_cancelled:
                         order_details['original_order_id'] = original_order_id
                         order_details['order_id'] = order_id
                         order_details['order_code'] = order_code
@@ -540,6 +543,8 @@ def update_returns(orders, user='', company_name=''):
                 order_returns.save()
     except:
         traceback.print_exc()
+
+
 
 def update_cancelled(orders, user='', company_name=''):
     order_mapping = eval(LOAD_CONFIG.get(company_name, 'cancelled_mapping_dict', ''))
@@ -914,3 +919,44 @@ def insert_message(messages, seller_id, message):
     except Exception as e:
         return False
     return True
+
+def update_order_cancel(orders_data, user='', company_name=''):
+    NOW = datetime.datetime.now()
+    try:
+        for key, order_dict in orders_data.iteritems():
+            original_order_id = order_dict['order_details']['original_order_id']
+            filter_params = {'user': user.id, 'original_order_id': original_order_id, 'sku_id': order_dict['order_details']['sku_id'],
+                             'order_id': order_dict['order_details']['order_id'], 'order_code': order_dict['order_details']['order_code']}
+
+            order_det = OrderDetail.objects.exclude(status=3).filter(**filter_params)
+            if order_det:
+                order_det = order_det[0]
+                if order_det.status == 1:
+                    order_det.status = 3
+                    order_det.save()
+                    if order_dict.get('seller_order_dict', {}):
+                        seller_order = SellerOrder.objects.filter(sor_id=order_dict['seller_order_dict']['sor_id'], order_id=order_det.id)
+                        if seller_order:
+                            seller_order.update(status=0)
+                else:
+                    picklists = Picklist.objects.filter(order_id=order_det.id, order__user=user.id)
+                    for picklist in picklists:
+                        if picklist.picked_quantity <= 0:
+                            picklist.delete()
+                        elif picklist.stock:
+                            cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id, picklist__order__user=user.id)
+                            if not cancel_location:
+                                seller_id = order_dict['seller_order_dict']['seller_id']
+                                CancelledLocation.objects.create(picklist_id=picklist.id, quantity=picklist.picked_quantity,
+                                             location_id=picklist.stock.location_id, creation_date=datetime.datetime.now(), status=1,
+                                             seller_id=seller_id)
+                                picklist.status = 'cancelled'
+                                picklist.save()
+                        else:
+                            picklist.status = 'cancelled'
+                            picklist.save()
+                    order_det.status = 3
+                    order_det.save()
+    except:
+        traceback.print_exc()
+

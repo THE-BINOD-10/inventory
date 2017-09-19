@@ -689,76 +689,83 @@ def modify_po_update(request, user=''):
 @csrf_exempt
 @get_admin_user
 def switches(request, user=''):
+    log.info('Request params for ' + user.username + ' on ' + str(get_local_date(user, datetime.datetime.now())) + ' is ' + str(request.GET.dict()))
+    try:
+        toggle_data = { 'fifo_switch': 'fifo_switch',
+                        'batch_switch': 'batch_switch',
+                        'send_message': 'send_message',
+                        'show_image': 'show_image',
+                        'stock_sync': 'sync_switch',
+                        'back_order': 'back_order',
+                        'online_percentage': 'online_percentage',
+                        'use_imei': 'use_imei',
+                        'pallet_switch': 'pallet_switch',
+                        'production_switch': 'production_switch',
+                        'mail_alerts': 'mail_alerts',
+                        'invoice_prefix': 'invoice_prefix',
+                        'pos_switch': 'pos_switch',
+                        'auto_po_switch': 'auto_po_switch',
+                        'no_stock_switch': 'no_stock_switch',
+                        'float_switch': 'float_switch',
+                        'automate_invoice': 'automate_invoice',
+                        'show_mrp': 'show_mrp',
+                        'decimal_limit': 'decimal_limit',
+                        'picklist_sort_by': 'picklist_sort_by',
+                        'stock_sync': 'stock_sync',
+                        'sku_sync': 'sku_sync',
+                        'auto_generate_picklist': 'auto_generate_picklist',
+                        'order_headers' : 'order_headers',
+                        'detailed_invoice' : 'detailed_invoice',
+                        'scan_picklist_option' : 'scan_picklist_option',
+                        'stock_display_warehouse': 'stock_display_warehouse',
+                        'view_order_status': 'view_order_status',
+                        'style_headers': 'style_headers',
+                        'seller_margin': 'seller_margin',
+                        'receive_process': 'receive_process',
+                        'tally_config': 'tally_config',
+                        'tax_details': 'tax_details',
+                        'hsn_summary': 'hsn_summary',
+                        'display_customer_sku': 'display_customer_sku',
+                        'label_generation': 'label_generation',
+                        'marketplace_model': 'marketplace_model',
+                        'barcode_generate_opt': 'barcode_generate_opt',
+                        'grn_scan_option': 'grn_scan_option',
+                        'invoice_titles': 'invoice_titles',
+                        'show_imei_invoice': 'show_imei_invoice'
+                      }
 
-    toggle_data = { 'fifo_switch': 'fifo_switch',
-                    'batch_switch': 'batch_switch',
-                    'send_message': 'send_message',
-                    'show_image': 'show_image',
-                    'stock_sync': 'sync_switch',
-                    'back_order': 'back_order',
-                    'online_percentage': 'online_percentage',
-                    'use_imei': 'use_imei',
-                    'pallet_switch': 'pallet_switch',
-                    'production_switch': 'production_switch',
-                    'mail_alerts': 'mail_alerts',
-                    'invoice_prefix': 'invoice_prefix',
-                    'pos_switch': 'pos_switch',
-                    'auto_po_switch': 'auto_po_switch',
-                    'no_stock_switch': 'no_stock_switch',
-                    'float_switch': 'float_switch',
-                    'automate_invoice': 'automate_invoice',
-                    'show_mrp': 'show_mrp',
-                    'decimal_limit': 'decimal_limit',
-                    'picklist_sort_by': 'picklist_sort_by',
-                    'stock_sync': 'stock_sync',
-                    'sku_sync': 'sku_sync',
-                    'auto_generate_picklist': 'auto_generate_picklist',
-                    'order_headers' : 'order_headers',
-                    'detailed_invoice' : 'detailed_invoice',
-                    'scan_picklist_option' : 'scan_picklist_option',
-                    'stock_display_warehouse': 'stock_display_warehouse',
-                    'view_order_status': 'view_order_status',
-                    'style_headers': 'style_headers',
-                    'seller_margin': 'seller_margin',
-                    'receive_process': 'receive_process',
-                    'tally_config': 'tally_config',
-                    'tax_details': 'tax_details',
-                    'hsn_summary': 'hsn_summary',
-                    'display_customer_sku': 'display_customer_sku',
-                    'label_generation': 'label_generation',
-                    'marketplace_model': 'marketplace_model',
-                    'barcode_generate_opt': 'barcode_generate_opt',
-                    'grn_scan_option': 'grn_scan_option',
-                    'invoice_titles': 'invoice_titles',
-                    'show_imei_invoice': 'show_imei_invoice'
-                  }
+        toggle_field, selection = "", ""
 
-    toggle_field, selection = "", ""
+        for key, value in request.GET.iteritems():
+            toggle_field = toggle_data.get(key, '')
+            selection = value
 
-    for key, value in request.GET.iteritems():
-        toggle_field = toggle_data.get(key, '')
-        selection = value
-
-    user_id = user.id
-    if toggle_field == 'invoice_prefix':
-        user_profile = UserProfile.objects.filter(user_id=user_id)
-        if user_profile and selection:
-            setattr(user_profile[0], 'prefix', selection)
-            user_profile[0].save()
-    else:
-        if toggle_field == 'tax_details':
-            tax_name = eval(selection)
-            toggle_field = tax_name.keys()[0]
-            selection = tax_name[toggle_field]
-        data = MiscDetail.objects.filter(misc_type=toggle_field, user=user_id)
-        if not data:
-            misc_detail = MiscDetail(user=user_id, misc_type=toggle_field, misc_value=selection, creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
-            misc_detail.save()
+        user_id = user.id
+        if toggle_field == 'invoice_prefix':
+            user_profile = UserProfile.objects.filter(user_id=user_id)
+            if user_profile and selection:
+                setattr(user_profile[0], 'prefix', selection)
+                user_profile[0].save()
         else:
-            setattr(data[0], 'misc_value', selection)
-            data[0].save()
-        if toggle_field == 'sku_sync' and value == 'true':
-            insert_skus(user.id)
+            if toggle_field == 'tax_details':
+                tax_name = eval(selection)
+                toggle_field = tax_name.keys()[0]
+                selection = tax_name[toggle_field]
+            data = MiscDetail.objects.filter(misc_type=toggle_field, user=user_id)
+            if not data:
+                misc_detail = MiscDetail(user=user_id, misc_type=toggle_field, misc_value=selection, creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+                misc_detail.save()
+            else:
+                setattr(data[0], 'misc_value', selection)
+                data[0].save()
+            if toggle_field == 'sku_sync' and value == 'true':
+                insert_skus(user.id)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Update Configurations failed for params " + str(request.GET.dict()) + " on " +\
+                   str(get_local_date(user, datetime.datetime.now())) + "and error statement is " + str(e))
+        return HttpResponse("Updation Failed")
 
     return HttpResponse('Success')
 
@@ -1706,29 +1713,6 @@ def insert_pallet_data(temp_dict, po_location_id, status=''):
         pallet_mapping = PalletMapping(**pallet_map)
         pallet_mapping.save()
 
-@csrf_exempt
-def insert_po_mapping(imei_nos, data, user_id):
-    imei_list = []
-    imei_nos = list(set(imei_nos.split(',')))
-    order_data = get_purchase_order_data(data)
-    all_po_labels = []
-    all_st_purchases = STPurchaseOrder.objects.filter(open_st__sku__user=user_id)
-    all_po_labels = POLabels.objects.filter(sku__user=user_id, status=1)
-    for imei in imei_nos:
-        if not imei:
-            continue
-        po_mapping, status, imei_data = check_get_imei_details(imei, order_data['wms_code'], user_id, check_type='purchase_check')
-        if not status and (imei not in imei_list):
-            if po_mapping:
-                po_mapping_ids = list(po_mapping.values_list('id', flat=True))
-                OrderIMEIMapping.objects.filter(po_imei_id__in=po_mapping_ids, status=1).update(status=0)
-                ReturnsIMEIMapping.objects.filter(order_imei__po_imei_id__in=po_mapping_ids, imei_status=1).update(imei_status=0)
-            imei_mapping = {'purchase_order_id': data.id, 'imei_number': imei}
-            po_imei = POIMEIMapping(**imei_mapping)
-            po_imei.save()
-            all_po_labels.filter(purchase_order_id=data.id, label=imei, status=1).update(status=0)
-        imei_list.append(imei)
-
 def create_bayarea_stock(sku_code, zone, quantity, user):
     back_order = get_misc_value('back_order', user)
     mod_location = []
@@ -2285,8 +2269,9 @@ def confirm_sales_return(request, user=''):
         all_data = []
         if not data_dict['id'][i]:
             data_dict['id'][i], status, seller_order_ids = create_return_order(data_dict, i , user.id)
-            mp_return_data.setdefault(seller_order_ids[0], {}).setdefault(
-                'imeis', []).append(data_dict['returns_imeis'][i])
+            if seller_order_ids:
+                mp_return_data.setdefault(seller_order_ids[0], {}).setdefault(
+                    'imeis', []).append(data_dict['returns_imeis'][i])
             if status:
                 return HttpResponse(status)
         order_returns = OrderReturns.objects.filter(id = data_dict['id'][i], status = 1)
@@ -3105,17 +3090,6 @@ def confirm_st(request, user=''):
         all_data = insert_st(all_data, user)
         status = confirm_stock_transfer(all_data, user, warehouse_name)
     return HttpResponse(status)
-
-def get_purchase_order_id(user):
-    po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).values_list('order_id', flat=True).order_by("-order_id")
-    st_order = STPurchaseOrder.objects.filter(open_st__sku__user=user.id).values_list('po__order_id', flat=True).order_by("-po__order_id")
-    order_ids = list(chain(po_data, st_order))
-    order_ids = sorted(order_ids,reverse=True)
-    if not order_ids:
-        po_id = 1
-    else:
-        po_id = int(order_ids[0]) + 1
-    return po_id
 
 @csrf_exempt
 def get_po_data(request):
@@ -3999,7 +3973,10 @@ def get_cancelled_putaway(start_index, stop_index, temp_data, search_term, order
         zone = data.location.zone.zone
         location = data.location.location
         quantity = data.quantity
-        temp_data['aaData'].append({'': checkbox, 'Order ID': data.picklist.order.order_id,
+        order_id = data.picklist.order.original_order_id
+        if not order_id:
+            order_id = str(data.picklist.order.order_code) + str(data.picklist.order.order_id)
+        temp_data['aaData'].append({'': checkbox, 'Order ID': order_id,
                                     'WMS Code': data.picklist.stock.sku.wms_code,
                                     'Product Description': data.picklist.order.sku.sku_desc, 'Zone': zone, 'Location': location,
                                     'Quantity': quantity, 'DT_RowClass': 'results', 'DT_RowAttr': {'data-id': data.id}, 'id':count})
@@ -4040,6 +4017,7 @@ def cancelled_putaway_data(request, user=''):
                 stock_data = stock_data[0]
                 setattr(stock_data, 'quantity', float(stock_data.quantity) + quantity)
                 stock_data.save()
+                new_stock = stock_data
                 mod_locations.append(stock_data.location.location)
             else:
                 stock_dict = {'location_id': location_id[0].id, 'receipt_number': receipt_number, 'receipt_date': datetime.datetime.now(),
@@ -4048,6 +4026,14 @@ def cancelled_putaway_data(request, user=''):
                 new_stock = StockDetail(**stock_dict)
                 new_stock.save()
                 mod_locations.append(new_stock.location.location)
+            if cancelled_data.seller_id:
+                seller_stock_obj = SellerStock.objects.filter(stock_id=new_stock.id, seller_id=cancelled_data.seller_id)
+                if seller_stock_obj:
+                    seller_stock_obj = seller_stock_obj[0]
+                    seller_stock_obj.quantity += quantity
+                else:
+                    SellerStock.objects.create(stock_id=new_stock.id, seller_id=cancelled_data.seller_id,
+                                               quantity=quantity, status=1, creation_date=datetime.datetime.now())
             cancelled_data.quantity = float(cancelled_data.quantity) - float(quantity)
             if cancelled_data.quantity <= 0:
                 cancelled_data.status = 0

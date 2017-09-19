@@ -1479,7 +1479,7 @@ def add_group(request, user=''):
         for stage in stages_list:
             if not stage:
                 continue
-	        stage_obj = ProductionStages.objects.filter(stage_name = stage, user=user.id)
+            stage_obj = ProductionStages.objects.filter(stage_name = stage, user=user.id)
             if stage_obj:
                 stage_group.stages_list.add(stage_obj[0])
                 stage_group.save()
@@ -1761,9 +1761,9 @@ def check_and_update_marketplace_stock(stock_updates, user):
             try:
                 response = obj.update_sku_count(
                     data=[update], user=user, method_put=False, individual_update=True)
-                log.info('Stock Sync API response for the user ' + str(user.username) + ' is ' + str(response))
+                init_log.info('Stock Sync API response for the user ' + str(user.username) + ' is ' + str(response))
             except:
-                log.info('Stock Sync API failed for the user ' + str(user.username) + ' is ' + str(response))
+                init_log.info('Stock Sync API failed for the user ' + str(user.username) + ' is ' + str(response))
                 continue
 
 
@@ -3336,7 +3336,7 @@ def generate_barcode_dict(pdf_format, myDict, user):
             if pdf_format == 'format1':
                 single['Style'] = str(sku_data.style_name).replace("'",'')
                 single['Color'] = sku_data.color.replace("'",'')
-            if pdf_format in ['format3', 'format2']:
+            if pdf_format in ['format3', 'format2', 'format4']:
                 single['color'] = sku_data.color.replace("'",'')
                 present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
                 if pdf_format == 'format2':
@@ -3353,6 +3353,15 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 single["Gender"] = str(sku_data.style_name).replace("'",'')
                 single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
                 single['MRP'] = str(sku_data.price).replace("'",'')
+                order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
+                if order_label:
+                    single["Vendor SKU"] = order_label[0].vendor_sku
+                    single['MRP'] = order_label[0].mrp
+                    single['Phone'] = user_prf.phone_number
+                    single['Email'] = user.email
+                    single["PO No"] = order_label[0].order.original_order_id
+                    if not single["PO No"]:
+                        single["PO No"] = str(order_label[0].order.order_code) + str(order_label[0].order.order_id)
                 address = user_prf.address
                 if BARCODE_ADDRESS_DICT.get(user.username, ''):
                     address = BARCODE_ADDRESS_DICT.get(user.username)
@@ -3366,9 +3375,12 @@ def generate_barcode_dict(pdf_format, myDict, user):
 def barcode_service(key, data_to_send, format_name=''):
     url = 'http://sandhani-001-site1.htempurl.com/Webservices/BarcodeServices.asmx/GetBarCode'
     payload = ''
+    print data_to_send
     if data_to_send:
         if format_name == 'format3':
             payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Adam', 'argBarcodeFormate' : key }
+        elif format_name == 'format4':
+            payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Campus_Sutra', 'argBarcodeFormate' : key }
         else:
             payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Brilhante', 'argBarcodeFormate' : key }
 
@@ -3942,7 +3954,7 @@ def check_and_update_order_status_data(shipped_orders_dict, user, status=''):
                 order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
                 hsn_code = ''
                 if order.sku.hsn_code:
-                    hsn_code = order.sku.hsn_code
+                    hsn_code = str(order.sku.hsn_code)
                 if order_data.get('quantity', 0):
                     order_data['imeis'] = ['None'] * int(order_data['quantity'])
 
@@ -3963,7 +3975,7 @@ def check_and_update_order_status_data(shipped_orders_dict, user, status=''):
                     seller_parent_item_obj = line_items_ids.filter(swx_type='seller_parent_item_id', **filt_params)
                     seller_parent_id = ''
                     if seller_parent_item_obj:
-                        seller_parent_id = seller_item_obj[0].swx_id
+                        seller_parent_id = seller_parent_item_obj[0].swx_id
                         if status == 'CANCELLED':
                             seller_parent_item_obj[0].imei = imei
                             seller_parent_item_obj[0].save()
@@ -3976,10 +3988,11 @@ def check_and_update_order_status_data(shipped_orders_dict, user, status=''):
                     order_status_dict[order_detail_id]['subOrders'][index]['lineItems'].append(imei_dict)
 
             final_data = order_status_dict.values()
-            call_response = obj.set_return_order_status(final_data, user=user)
-            log.info(str(call_response))
+            print final_data
+            call_response = obj.set_return_order_status(final_data, user=user, status=status)
+            init_log.info(str(call_response))
             if isinstance(call_response, dict) and call_response.get('status') == 1:
-                log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
+                init_log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
         except Exception as e:
             print e.message
             continue
@@ -4058,3 +4071,46 @@ def save_order_tracking_data(order, quantity, status='', imei=''):
         log.debug(traceback.format_exc())
         log.info('Order Tracking Insert failed for %s and params are %s and error statement is %s' % (str(order.user), str(order.__dict__), str(e)))
 
+def get_stock_receipt_number(user):
+    receipt_number = StockDetail.objects.filter(sku__user=user.id).aggregate(Max('receipt_number'))\
+                                               ['receipt_number__max']
+    if receipt_number:
+        receipt_number = receipt_number + 1
+    else:
+        receipt_number = 1
+    return receipt_number
+
+@csrf_exempt
+def insert_po_mapping(imei_nos, data, user_id):
+    imei_list = []
+    imei_nos = list(set(imei_nos.split(',')))
+    order_data = get_purchase_order_data(data)
+    all_po_labels = []
+    all_st_purchases = STPurchaseOrder.objects.filter(open_st__sku__user=user_id)
+    all_po_labels = POLabels.objects.filter(sku__user=user_id, status=1)
+    for imei in imei_nos:
+        if not imei:
+            continue
+        po_mapping, status, imei_data = check_get_imei_details(imei, order_data['wms_code'], user_id, check_type='purchase_check')
+        if not status and (imei not in imei_list):
+            if po_mapping:
+                po_mapping_ids = list(po_mapping.values_list('id', flat=True))
+                OrderIMEIMapping.objects.filter(po_imei_id__in=po_mapping_ids, status=1).update(status=0)
+                ReturnsIMEIMapping.objects.filter(order_imei__po_imei_id__in=po_mapping_ids, imei_status=1).update(imei_status=0)
+            imei_mapping = {'purchase_order_id': data.id, 'imei_number': imei, 'status': 1, 'creation_date': datetime.datetime.now(),
+                            'updation_date': datetime.datetime.now()}
+            po_imei = POIMEIMapping(**imei_mapping)
+            po_imei.save()
+            all_po_labels.filter(purchase_order_id=data.id, label=imei, status=1).update(status=0)
+        imei_list.append(imei)
+
+def get_purchase_order_id(user):
+    po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).values_list('order_id', flat=True).order_by("-order_id")
+    st_order = STPurchaseOrder.objects.filter(open_st__sku__user=user.id).values_list('po__order_id', flat=True).order_by("-po__order_id")
+    order_ids = list(chain(po_data, st_order))
+    order_ids = sorted(order_ids,reverse=True)
+    if not order_ids:
+        po_id = 1
+    else:
+        po_id = int(order_ids[0]) + 1
+    return po_id

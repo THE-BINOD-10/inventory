@@ -182,6 +182,15 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "order-serial-mapping-form",
                    value: "",
                    show: true
+                 }, {
+                   title: "PO Serial Mapping Download/ Upload",
+                   download: "Download PO Serial Mapping Form",
+                   upload: "Upload PO Serial Mapping Form",
+                   durl: "po_serial_mapping_form/",
+                   uurl: "po_serial_mapping_upload/",
+                   dparam: "po-serial-mapping-form",
+                   value: "",
+                   show: Session.roles.permissions.use_imei
                  }
                  ]
 

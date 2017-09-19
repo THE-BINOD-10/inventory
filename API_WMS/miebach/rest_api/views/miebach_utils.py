@@ -733,7 +733,7 @@ ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items
                          'shipment_date': 'orders.get("orderDate", '')', 'channel_sku': 'sku_item["sku"]',
                          'unit_price': 'sku_item["unitPrice"]', 'seller_id': 'order["sellerId"]',
                          'sor_id': 'order["sorId"]', 'cgst_tax': 'sku_item.get("cgstTax", "0")', 'sgst_tax':'sku_item.get("sgstTax", "0")',
-                         'igst_tax': 'sku_item.get("igstTax", "0")', 'order_status': 'order.get("currentStatus", "")',
+                         'igst_tax': 'sku_item.get("igstTax", "0")', 'order_status': 'sku_item.get("status", "")',
                          'line_items': 'order["lineItems"]', 'customer_id': 'orders.get("retailerId", "")',
                          'customer_name': '(orders.get("retailerAddress", {})).get("name", "")',
                          'telephone': '(orders.get("retailerAddress", {})).get("phoneNo", "")',
@@ -834,9 +834,13 @@ BARCODE_DICT = {'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': ''
                 'format2': {'SKUCode': '', 'SKUDes': '', 'color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '',
                             'DesignNo': '', 'Qty': '1', 'Gender': '', 'MRP': '', 'Packed on': '', 'Manufactured By': '', 'Marketed By': ''},
                 'format3': {'SKUCode': '', 'SKUDes': '', 'color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '', 'DesignNo': '',
-                            'Qty': '1', 'Gender': '', 'MRP': '', 'MFD': '', 'Manufactured By': '', 'Marketed By': ''}}
+                            'Qty': '1', 'Gender': '', 'MRP': '', 'MFD': '', 'Manufactured By': '', 'Marketed By': ''},
+                'format4': {'SKUCode': '', 'color': '', 'Size': '', 'SKUPrintQty': '',
+                            'Qty': '1', 'MRP': '', 'Manufactured By': '', 'Marketed By': '', 'Phone': '',
+                            'Vendor SKU': '', 'PO No': '', 'Email': ''}
+               }
 
-BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
+BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'format4': 'Details'}
 
 BARCODE_ADDRESS_DICT = {'adam_clothing1': 'Adam Exports 401, 4th Floor,\n Pratiek Plazza, S.V.Road,\n Goregaon West, Mumbai - 400062.\n MADE IN INDIA'}
 
@@ -933,7 +937,8 @@ GSTIN_USER_MAPPING = {'sagar_fab': '29ABEFS4899J1ZA', 'adam_clothing1': '2788OFB
 
 ORDER_LABEL_EXCEL_HEADERS = ['Order ID', 'SKU Code', 'Label']
 
-MYNTRA_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 2), ('order_id', 0), ('label', 1) ))
+MYNTRA_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 2), ('order_id', 0), ('label', 1), ('vendor_sku', 4),
+                                           ('mrp', 7)))
 
 ORDER_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 1), ('order_id', 0), ('label', 2) ))
 
@@ -943,6 +948,11 @@ ORDER_SERIAL_EXCEL_HEADERS = ['Seller ID', 'Customer ID', 'Uor ID', 'PO Number',
 ORDER_SERIAL_EXCEL_MAPPING = OrderedDict(( ('order_id', 2), ('seller_id', 0), ('customer_id', 1), ('sku_code', 4), ('po_number', 3),
                                            ('quantity', 5), ('unit_price', 6), ('cgst_tax', 7), ('sgst_tax', 8), ('igst_tax', 9),
                                            ('order_type', 10) ))
+
+PO_SERIAL_EXCEL_HEADERS = ['Supplier ID', 'SKU Code', 'Location', 'Unit Price', 'Serial Number']
+
+PO_SERIAL_EXCEL_MAPPING = OrderedDict(( ('supplier_id', 0), ('sku_code', 1), ('location', 2), ('unit_price', 3),
+                                        ('imei_number', 4)))
 
 #Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg'}

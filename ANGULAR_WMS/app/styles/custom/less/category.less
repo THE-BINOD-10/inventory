@@ -224,3 +224,44 @@
     }
   }
 }
+
+.toggle-filter {
+
+    position: absolute;
+    margin-top: 70px;
+    z-index: 120;
+    background: white;
+    width: 250px;
+    border: 1px solid #ed1c24;
+
+    .toggle-header {
+
+      background: #ed1c24;
+      height: 26px;
+      color: white;
+      font-size: 14px;
+      line-height: 26px;
+      padding: 0px 10px;
+    }
+    .toggle-body {
+      width: 100%;
+      padding: 5px;
+      overflow: hidden;
+
+      .filter-box {
+
+        margin-top: 5px;
+        margin-bottom: 5px;
+        .box-header {
+          border-bottom: 1px solid #e4e4e4;
+        }
+
+        .box-body {
+
+          > span {
+            padding: 3px 5px;
+          }
+        }
+      }
+    }
+}

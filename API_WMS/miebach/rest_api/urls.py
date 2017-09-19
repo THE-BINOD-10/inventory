@@ -304,6 +304,8 @@ urlpatterns += [
     url(r'^order_label_mapping_upload/$', order_label_mapping_upload),
     url(r'^order_serial_mapping_form/$', order_serial_mapping_form),
     url(r'^order_serial_mapping_upload/$', order_serial_mapping_upload),
+    url(r'^po_serial_mapping_form/$', po_serial_mapping_form),
+    url(r'^po_serial_mapping_upload/$', po_serial_mapping_upload),
 
     #configurations
     url(r'^configurations/$',configurations),

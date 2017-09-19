@@ -967,7 +967,6 @@ def update_order(request):
         validation_dict, final_data_dict = validate_orders(orders, user=request.user, company_name='mieone')
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
-        #status = update_orders(orders, user=request.user, company_name='mieone')
         status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
         log.info(status)
     except Exception as e:
@@ -1025,6 +1024,28 @@ def update_seller(request):
     log.info('Request params for ' + request.user.username + ' are ' + str(sellers))
     try:
         status = update_sellers(sellers, user=request.user, company_name='mieone')
+        log.info(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update Sellers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        status = {'message': 'Internal Server Error'}
+    return HttpResponse(json.dumps(status))
+
+@csrf_exempt
+@login_required
+def cancel_order(request):
+    try:
+        orders = json.loads(request.body)
+        log.info('Request params for ' + request.user.username + ' are ' + str(orders))
+    except:
+        log.info('Request params for ' + request.user.username + ' are ' + str(request.body))
+        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+    try:
+        validation_dict, final_data_dict = validate_orders(orders, user=request.user, company_name='mieone', is_cancelled=True)
+        if validation_dict:
+            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
+        status = update_order_cancel(final_data_dict, user=request.user, company_name='mieone')
         log.info(status)
     except Exception as e:
         import traceback

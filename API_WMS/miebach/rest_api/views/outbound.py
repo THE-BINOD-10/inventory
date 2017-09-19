@@ -2505,6 +2505,8 @@ def insert_order_data(request, user=''):
                     order_data['payment_received'] = order_payment
 
                 order_data['creation_date'] = creation_date
+                if not order_data.get('original_order_id', ''):
+                    order_data['original_order_id'] = str(order_data['order_code']) + str(order_data['order_id'])
                 order_detail = OrderDetail(**order_data)
                 order_detail.save()
 
@@ -3053,20 +3055,10 @@ def insert_shipment_info(request, user=''):
                 if received_quantity <= 0:
                     break
                 invoice_number = ''
-                #if 'invoice_number' in myDict.keys() and myDict['invoice_number'][0]:
-                #    invoice_number = myDict['invoice_number'][0]
                 data_dict = copy.deepcopy(ORDER_PACKAGING_FIELDS)
                 shipment_data = copy.deepcopy(SHIPMENT_INFO_FIELDS)
                 order_detail = OrderDetail.objects.get(id=order_id)
 
-                #if not invoice_number and user_profile.user_type == 'marketplace_user':
-                #     return HttpResponse("Invoice Number Missing")
-                #if invoice_number:
-                #    shipment_info_obj = ShipmentInfo.objects.filter(order__user=user.id, invoice_number=invoice_number).\
-                #                                           exclude(order__order_id=order_detail.order_id, order__order_code=order_detail.order_code,
-                #                                                     order__original_order_id=order_detail.original_order_id)
-                #    if shipment_info_obj:
-                #        return HttpResponse("Invoice Number mapped for another order")
                 for key, value in myDict.iteritems():
                     if key in data_dict:
                         data_dict[key] = value[i]
@@ -3222,9 +3214,9 @@ def print_shipment(request, user=''):
 @login_required
 @get_admin_user
 def get_sku_categories(request, user=''):
-    brands, categories, sizes = get_sku_categories_data(request, user)
+    brands, categories, sizes, colors = get_sku_categories_data(request, user)
     stages_list = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
-    return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list}))
+    return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list, 'colors': colors}))
 
 def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id=''):
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku_id').distinct().annotate(in_stock=Sum('quantity'))
@@ -3353,6 +3345,21 @@ def all_whstock_quant(sku_master, user):
 @get_admin_user
 def get_sku_catalogs(request, user=''):
     data, start, stop = get_sku_catalogs_data(request, user)
+    download_pdf = request.GET.get('share', '')
+    if download_pdf:
+        t = loader.get_template('templates/customer_search.html')
+        rendered = t.render({'data': data, 'user': request.user.first_name})
+
+        if not os.path.exists('static/pdf_files/'):
+            os.makedirs('static/pdf_files/')
+        file_name = 'static/pdf_files/%s_customer_search.html' % str(request.user.id)
+        name = str(request.user.id)+"_customer_search"
+        pdf_file = 'static/pdf_files/%s.pdf' % name
+        file_ = open(file_name, "w+b")
+        file_.write(str(rendered))
+        file_.close()
+        os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
+        return HttpResponse("static/pdf_files/"+ str(request.user.id) +"_customer_search.pdf")
     return HttpResponse(json.dumps({'data': data, 'next_index': str(start + 20) + ':' + str(stop + 20)}))
 
 @csrf_exempt
@@ -3636,6 +3643,7 @@ def get_seller_order_details(request, user=''):
     order_id = ''.join(re.findall('\d+', uor_id))
     seller_data = SellerOrder.objects.filter(Q(order__order_id = order_id, order__order_code = order_code) | \
                                              Q(order__original_order_id=order_id), order__user=user.id, sor_id = sor_id, status=1)
+
     order_details = seller_data
     seller_details = seller_data[0].seller.json()
     row_id = order_details[0].id
@@ -4552,68 +4560,58 @@ def picklist_delete(request, user=""):
                 else:
                     all_seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id__in=order_objs.values_list('id', flat=True))
                     picked_qty = picklist_objs.filter(order_id = order).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
-                    if picked_qty > 0:
-                        pick_order = picklist_objs.filter(order_id = order)
-                        remaining_qty = pick_order.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
-                        pick_status = 'picked'
-                        if pick_order.filter(status__icontains='batch'):
-                            pick_status = 'batch_picked'
-                        seller_order = all_seller_orders.filter(order_id=order.id, order__user=user.id)
-                        if seller_order:
-                            cancelled_orders_dict.setdefault(seller_order[0].id, {})
-                            cancelled_orders_dict[seller_order[0].id].setdefault('quantity', 0)
-                            cancelled_orders_dict[seller_order[0].id]['quantity'] = float(cancelled_orders_dict[seller_order[0].id]['quantity']) +\
-                                                                                    float(remaining_qty)
-                        save_order_tracking_data(order, quantity=remaining_qty, status='cancelled', imei='')
-                        order.quantity = float(order.quantity) - float(remaining_qty)
-                        shipped = ShipmentInfo.objects.filter(order_id=order.id).aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
-                        proc_pick_obj = Picklist.objects.filter(order_id=order.id, status='dispatched', order__user=user.id)
-                        proc_pick_qty = 0
-                        if proc_pick_obj and proc_pick_obj[0].order:
-                            proc_pick_qty = float(proc_pick_obj[0].order.quantity)
-                        if shipped:
-                            shipped = float(shipped) - float(proc_pick_qty)
-                            if float(shipped) == float(order.quantity):
-                                order.status = 2
-                                pick_status = 'dispatched'
-                        order.save()
-                        PicklistLocation.objects.filter(picklist__order_id=order.id, picklist__picklist_number = picklist_id,
-                                                        picklist__status__in = ["open", "batch_open"],
-                                                        picklist__order__user = user.id).update(status=0, reserved=0)
-                        pick_order.update(reserved_quantity=0, status=pick_status)
+                    pick_order = picklist_objs.filter(order_id = order)
+                    remaining_qty = pick_order.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
+                    pick_status = 'picked'
+                    if pick_order.filter(status__icontains='batch'):
+                        pick_status = 'batch_picked'
+                    seller_order = all_seller_orders.filter(order_id=order.id, order__user=user.id)
+                    if seller_order:
+                        cancelled_orders_dict.setdefault(seller_order[0].id, {})
+                        cancelled_orders_dict[seller_order[0].id].setdefault('quantity', 0)
+                        cancelled_orders_dict[seller_order[0].id]['quantity'] = float(cancelled_orders_dict[seller_order[0].id]['quantity']) +\
+                                                                                float(remaining_qty)
+                    save_order_tracking_data(order, quantity=remaining_qty, status='cancelled', imei='')
+                    temp_order_quantity = float(order.quantity) - float(remaining_qty)
+                    if temp_order_quantity > 0:
+                        order.quantity = temp_order_quantity
                     else:
-                        seller_order = all_seller_orders.filter(order_id=order.id, order_status='DELIVERY_RESCHEDULED')
-                        if seller_order:
-                            order.status = 5
-                            order.save()
-                            seller_order = seller_order[0]
-                            seller_order.status = 0
-                            seller_order.order_status = 'PROCESSED'
-                            seller_order.save()
-                        else:
-                            seller_ids = SellerStock.objects.filter(stock__sku__user=user.id,
-                                                                    stock_id__in=picklist_objs.values_list('stock_id', flat=True)).\
-                                                                    values_list('seller_id', flat=True)
-                            seller_order = all_seller_orders.filter(order_id=order.id, seller_id__in = seller_ids)
-                            SWXMapping.objects.filter(local_id__in=seller_order.values_list('id', flat=True)).delete()
-                            order.delete()
+                        order.status = 3
+                    shipped = ShipmentInfo.objects.filter(order_id=order.id).aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
+                    proc_pick_obj = Picklist.objects.filter(order_id=order.id, status='dispatched', order__user=user.id)
+                    proc_pick_qty = 0
+                    if proc_pick_obj and proc_pick_obj[0].order:
+                        proc_pick_qty = float(proc_pick_obj[0].order.quantity)
+                    if shipped:
+                        shipped = float(shipped) - float(proc_pick_qty)
+                        if float(shipped) == float(order.quantity):
+                            order.status = 2
+                            pick_status = 'dispatched'
+                    del_seller_order = all_seller_orders.filter(order_id=order.id, order_status='DELIVERY_RESCHEDULED')
+                    if del_seller_order and not pick_status == 'dispatched':
+                        order.status = 5
+                        del_seller_order = del_seller_order[0]
+                        del_seller_order.status = 0
+                        del_seller_order.order_status = 'PROCESSED'
+                        del_seller_order.save()
+                    order.save()
+                    picklist_locations = PicklistLocation.objects.filter(picklist__order_id=order.id,
+                                                                         picklist__picklist_number = picklist_id,
+                                                                         picklist__status__in = ["open", "batch_open"],
+                                                                         picklist__order__user = user.id)
+                    for pick_location in picklist_locations:
+                        pick_location.quantity = float(pick_location.quantity) - float(pick_location.reserved)
+                        pick_location.reserved = 0
+                        pick_location.status = 0
+                        pick_location.save()
+                    pick_order.update(reserved_quantity=0, status=pick_status)
 
-            '''if order_objs:
-                order_detail_ids = order_objs.values_list('id', flat=True)
-                seller_orders = list(SellerOrder.objects.filter(order_id__in=order_detail_ids, order_status='DELIVERY_RESCHEDULED').\
-                                                    values_list('order_id', flat=True))
-                order_detail_ids = list(order_detail_ids)
-                if seller_orders:
-                    OrderDetail.objects.filter(id__in=seller_orders).update(status=5)
-                    SellerOrder.objects.filter(order_id__in=seller_orders).update(status=0, order_status='PROCESSED')
-                    order_detail_ids = list(set(order_detail_ids) - set(seller_orders))
-                if order_detail_ids:
-                    OrderDetail.objects.filter(id__in=order_detail_ids).delete()
-                picklist_objs.delete()'''
             end_time = datetime.datetime.now()
             duration = end_time - st_time
             log.info("process completed")
             log.info("total time -- %s" %(duration))
+            if cancelled_orders_dict:
+                check_and_update_order_status_data(cancelled_orders_dict, user, status='CANCELLED')
             return HttpResponse("Picklist is deleted")
 
         else:
@@ -5001,7 +4999,7 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
         data1 = copy.deepcopy(data)
         del data1['total_ordered']
         del data1['total_picked']
-        order_pick = picklist.filter(**data1)
+        order_pick = picklist.filter(**data1).prefetch_related('order')
         creation_date = datetime.datetime.now()
         if order_pick:
             creation_date = order_pick[0].creation_date
@@ -5009,6 +5007,7 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
         order_id = data['order__original_order_id']
         if not order_id:
             order_id = data['order__order_code'] + str(data['order__order_id'])
+            data['order__original_order_id'] = order_id
 
         #shipped = all_shipment_orders.filter(order_id__in=order_pick.values_list('order_id', flat=True)).\
         #                               aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']

@@ -3214,9 +3214,9 @@ def print_shipment(request, user=''):
 @login_required
 @get_admin_user
 def get_sku_categories(request, user=''):
-    brands, categories, sizes = get_sku_categories_data(request, user)
+    brands, categories, sizes, colors = get_sku_categories_data(request, user)
     stages_list = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
-    return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list}))
+    return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list, 'colors': colors}))
 
 def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id=''):
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku_id').distinct().annotate(in_stock=Sum('quantity'))
@@ -3345,6 +3345,21 @@ def all_whstock_quant(sku_master, user):
 @get_admin_user
 def get_sku_catalogs(request, user=''):
     data, start, stop = get_sku_catalogs_data(request, user)
+    download_pdf = request.GET.get('share', '')
+    if download_pdf:
+        t = loader.get_template('templates/customer_search.html')
+        rendered = t.render({'data': data, 'user': request.user.first_name})
+
+        if not os.path.exists('static/pdf_files/'):
+            os.makedirs('static/pdf_files/')
+        file_name = 'static/pdf_files/%s_customer_search.html' % str(request.user.id)
+        name = str(request.user.id)+"_customer_search"
+        pdf_file = 'static/pdf_files/%s.pdf' % name
+        file_ = open(file_name, "w+b")
+        file_.write(str(rendered))
+        file_.close()
+        os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
+        return HttpResponse("static/pdf_files/"+ str(request.user.id) +"_customer_search.pdf")
     return HttpResponse(json.dumps({'data': data, 'next_index': str(start + 20) + ':' + str(stop + 20)}))
 
 @csrf_exempt
@@ -3628,6 +3643,7 @@ def get_seller_order_details(request, user=''):
     order_id = ''.join(re.findall('\d+', uor_id))
     seller_data = SellerOrder.objects.filter(Q(order__order_id = order_id, order__order_code = order_code) | \
                                              Q(order__original_order_id=order_id), order__user=user.id, sor_id = sor_id, status=1)
+
     order_details = seller_data
     seller_details = seller_data[0].seller.json()
     row_id = order_details[0].id
@@ -4594,7 +4610,8 @@ def picklist_delete(request, user=""):
             duration = end_time - st_time
             log.info("process completed")
             log.info("total time -- %s" %(duration))
-            print cancelled_orders_dict
+            if cancelled_orders_dict:
+                check_and_update_order_status_data(cancelled_orders_dict, user, status='CANCELLED')
             return HttpResponse("Picklist is deleted")
 
         else:

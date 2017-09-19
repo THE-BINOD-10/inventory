@@ -852,6 +852,16 @@ def order_serial_mapping_form(request, user=''):
     return xls_to_response(wb, '%s.order_serial_mapping_form.xls' % str(user.id))
 
 @csrf_exempt
+@get_admin_user
+def po_serial_mapping_form(request, user=''):
+    label_file = request.GET['po-serial-mapping-form']
+    if label_file:
+        return error_file_download(label_file)
+
+    wb, ws = get_work_sheet('PO Serials', PO_SERIAL_EXCEL_HEADERS)
+    return xls_to_response(wb, '%s.po_serial_mapping_form.xls' % str(user.id))
+
+@csrf_exempt
 def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls'):
     sku_data = []
     wms_data = []
@@ -3098,6 +3108,7 @@ def validate_and_insert_order_labels(request, reader, user, no_of_rows, fname, f
         for key, value in label_mapping.iteritems():
             cell_data = get_cell_data(row_idx, label_mapping[key], reader, file_type)
 
+            print key, cell_data
             if key == 'sku_code':
                 if cell_data:
                     if isinstance(cell_data, (int, float)):
@@ -3136,6 +3147,16 @@ def validate_and_insert_order_labels(request, reader, user, no_of_rows, fname, f
                             label_mapping_dict['label'] = cell_data
                 else:
                     index_status.setdefault(row_idx, set()).add('Label Missing')
+            elif key == 'mrp':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('MRP is mandatory')
+                else:
+                    try:
+                        label_mapping_dict[key] = float(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('MRP should be in number')
+            else:
+                label_mapping_dict[key] = cell_data
         if not index_status:
             save_records.append(OrderLabels(**label_mapping_dict))
 
@@ -3347,7 +3368,6 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
 
     return 'Success'
 
-
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -3382,4 +3402,184 @@ def order_serial_mapping_upload(request, user=''):
         log.info('Order Serial Mapping Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Order Serial Mapping Upload Failed")
 
+def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
+    log.info("po serial upload started")
+    st_time = datetime.datetime.now()
+    index_status = {}
 
+    order_mapping = PO_SERIAL_EXCEL_MAPPING
+
+    count = 0
+    log.info("Validation Started %s" %datetime.datetime.now())
+    final_data_dict = OrderedDict()
+    all_imeis = []
+    for row_idx in range(1, no_of_rows):
+        if not order_mapping:
+            break
+
+        count += 1
+        po_details = {'status': 'confirmed-putaway', 'creation_date': datetime.datetime.now()}
+        po_imei_details = {'creation_date': datetime.datetime.now(), 'status': 1}
+        sku_code = ''
+        supplier_id = ''
+        for key, val in order_mapping.iteritems():
+            value = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+
+            if key == 'sku_code':
+                if isinstance(value, float):
+                    value = str(int(value))
+                if not value:
+                    index_status.setdefault(count, set()).add('SKU Code should not be empty')
+                elif value:
+                    sku_id = check_and_return_mapping_id(value, '', user)
+                    if not sku_id:
+                        index_status.setdefault(count, set()).add('Invalid SKU Code')
+                    else:
+                        sku_code = value
+                        po_details['sku_id'] = sku_id
+
+            elif key == 'supplier_id':
+                supplier_id = value
+                supplier_master = None
+                if not supplier_id:
+                    index_status.setdefault(count, set()).add('Supplier ID should not be empty')
+                else:
+                    if isinstance(supplier_id, float):
+                        supplier_id = int(supplier_id)
+                    supplier_master = SupplierMaster.objects.filter( user=user.id, id=supplier_id)
+                    if not supplier_master:
+                        index_status.setdefault(count, set()).add('Invalid Supplier ID')
+                if supplier_master:
+                     po_details['supplier_id'] = supplier_master[0].id
+
+            elif key == 'location':
+                location_master = None
+                if not value:
+                    index_status.setdefault(count, set()).add('Location should not be empty')
+                else:
+                    if isinstance(value, float):
+                        value = int(value)
+                    location_master = LocationMaster.objects.filter( zone__user=user.id, location=value)
+                    if not location_master:
+                        index_status.setdefault(count, set()).add('Invalid Location')
+                if location_master:
+                     po_details['location_id'] = location_master[0].id
+
+            elif key == 'unit_price':
+                try:
+                    value = float(value)
+                except:
+                    value = 0
+                po_details['unit_price'] = value
+
+            elif key == 'imei_number':
+                imei_number = ''
+                try:
+                    imei_number = int(value)
+                except:
+                    imei_number = value
+                if not imei_number:
+                    index_status.setdefault(count, set()).add('Serial Number is Mandatory')
+                elif imei_number in all_imeis:
+                    index_status.setdefault(count, set()).add('Duplicate Serial Number')
+                else:
+                    all_imeis.append(imei_number)
+                    po_mapping, c_status, c_data = check_get_imei_details(imei_number, sku_code, user.id, check_type='purchase_check', order='')
+                    if c_status:
+                        index_status.setdefault(count, set()).add(c_status)
+
+        group_key = str(supplier_id) + ':' + str(sku_code)
+        final_data_dict = check_and_add_dict(group_key, 'po_details', po_details, final_data_dict=final_data_dict)
+        final_data_dict = check_and_add_dict(group_key, 'imei_list', [imei_number], final_data_dict=final_data_dict, is_list=True)
+        #log.info("Order Saving Started %s" %(datetime.datetime.now()))
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+
+    create_po_serial_mapping(final_data_dict, user)
+    return 'Success'
+
+def create_po_serial_mapping(final_data_dict, user):
+    order_id_dict = {}
+    receipt_number = get_stock_receipt_number(user)
+    NOW = datetime.datetime.now()
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    log.info('PO Serial Mapping data for ' + user.username + ' is ' + str(final_data_dict))
+    for key, value in final_data_dict.iteritems():
+        quantity = len(value['imei_list'])
+        po_details = value['po_details']
+        location_master = LocationMaster.objects.get(id=po_details['location_id'], zone__user=user.id)
+        sku = SKUMaster.objects.get(id=po_details['sku_id'], user=user.id)
+        open_po_dict = {'creation_date': NOW, 'order_quantity': quantity,
+                        'price': po_details['unit_price'], 'status': 0, 'sku_id': po_details['sku_id'],
+                        'supplier_id': po_details['supplier_id'], 'measurement_unit': sku.measurement_type}
+        open_po_obj = OpenPO(**open_po_dict)
+        open_po_obj.save()
+        order_id = order_id_dict.get(po_details['supplier_id'], '')
+        if not order_id:
+            order_id = get_purchase_order_id(user)
+            order_id_dict[po_details['supplier_id']] = order_id
+        purchase_order_dict = {'open_po_id': open_po_obj.id, 'received_quantity': quantity, 'saved_quantity':0,
+                               'po_date': NOW, 'status': po_details['status'], 'prefix': user_profile.prefix,
+                               'order_id': order_id, 'creation_date': NOW}
+        purchase_order = PurchaseOrder(**purchase_order_dict)
+        purchase_order.save()
+        imei_nos = ','.join(value['imei_list'])
+        insert_po_mapping(imei_nos, purchase_order, user.id)
+
+        po_location_dict = {'creation_date': NOW, 'status': 0, 'quantity': 0, 'original_quantity': quantity,
+                            'location_id': po_details['location_id'], 'purchase_order_id': purchase_order.id}
+        po_location = POLocation(**po_location_dict)
+        po_location.save()
+        stock_dict = StockDetail.objects.create(receipt_number=receipt_number, receipt_date=NOW, quantity=quantity,
+                                                status=1, location_id=po_details['location_id'], sku_id=po_details['sku_id'],
+                                                receipt_type='purchase order', creation_date=NOW)
+        mod_locations.append(location_master.location)
+
+    if mod_locations:
+        update_filled_capacity(mod_locations, user.id)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def po_serial_mapping_upload(request, user=''):
+    fname = request.FILES['files']
+    if (fname.name).split('.')[-1] == 'csv':
+        reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
+        no_of_rows = len(reader)
+        file_type = 'csv'
+    elif (fname.name).split('.')[-1] == 'xls' or (fname.name).split('.')[-1] == 'xlsx':
+        try:
+            data = fname.read()
+            if '<table' in data:
+                open_book, open_sheet = html_excel_data(data, fname)
+            else:
+                open_book = open_workbook(filename=None, file_contents=data)
+                open_sheet = open_book.sheet_by_index(0)
+        except:
+            return HttpResponse("Invalid File")
+        reader = open_sheet
+        no_of_rows = reader.nrows
+        file_type = 'xls'
+    else:
+        return HttpResponse('Invalid File')
+
+    try:
+        status  = validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_type=file_type)
+        return HttpResponse(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('PO Serial Mapping Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("PO Serial Mapping Upload Failed")

@@ -3950,7 +3950,7 @@ def check_and_update_order_status_data(shipped_orders_dict, user, status=''):
                     seller_parent_item_obj = line_items_ids.filter(swx_type='seller_parent_item_id', **filt_params)
                     seller_parent_id = ''
                     if seller_parent_item_obj:
-                        seller_parent_id = seller_item_obj[0].swx_id
+                        seller_parent_id = seller_parent_item_obj[0].swx_id
                         if status == 'CANCELLED':
                             seller_parent_item_obj[0].imei = imei
                             seller_parent_item_obj[0].save()

@@ -1,0 +1,73 @@
+{% load tag_extras %}
+<style>
+  {% include 'toggle/bootstrap.min.css' %}
+  {% include 'toggle/page.css' %}
+  /*html { zoom: 0.79; /*workaround for phantomJS2 rendering pages too large }*/
+  .print-invoice .cal-table .rm-padding td,th {
+        font-size: 8px !important;
+          padding: 4px 2px !important;
+  }
+  .print-invoice .cal-table .rm-padding th {
+        font-size: 8px !important;
+          padding: 4px 2px !important;
+  }
+  .print-invoice .tax-percentage {
+        font-size:7px;
+  }
+
+ /*div > div > div {
+    border-top: 1px solid #f0f0f0;
+    padding: 0px 5px;
+    text-align: center;
+
+ }
+  span {
+     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0px;
+    font-weight: 800;
+    color: black; 
+  }
+  h4 {
+    padding: 5px 5px;
+  }*/
+</style>
+
+<div class='row'>
+<div class="print-invoice">
+  <div class="row col-md-12 no-padding" style="background-color: #ed1c24 !important;color: white;">
+    <h4 style="margin-bottom:10px" align="center">{{ user }}</h4>
+  </div>
+{% for obj in data %}
+{% if forloop.counter|divisibleby:2 %}
+<div class='row' {% if forloop.counter|divisibleby:5 %} style="page-break-after: always;" {% endif %}>
+{% endif %}
+<div class="col-md-6 col-sm-6 col-xs-6" style="border-top: 1px solid #f0f0f0;padding-top:15px">
+  <div class='row'>
+    <div class="col-md-4 col-sm-4 col-xs-3" style="padding:0px 5px;">
+      <img style="border:0px !important;width: 100%;padding: 10px 0px;" class="img-thumbnail" src="{{  obj.image_url| get_image_code }}">
+    </div>
+    <div class="col-md-8 col-sm-8 col-xs-9" style="padding:0px 5px;">
+      <div>
+        <img style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail hide" src="{{  obj.image_url| get_image_code }}">
+        <div>
+          <span class="style_name" style="font-size: 12px" title="{{ obj.sku_class }}"><b>Style:</b> {{ obj.sku_class }}</span><br>
+          <span class="style_name" style="font-size: 12px" >{{ obj.variants.0.price| get_price_code }}</span><br>
+          <span class="style_name" style="font-size: 12px" ><b>Style Name:</b>{{ obj.variants.0.style_name }}</span><br>
+          <span class="style_name" style="font-size: 12px" title="{{ obj.sku_class }}"><b>Brand:</b> {{ obj.variants.0.sku_brand }}</span><br>
+          <span class="style_name" style="font-size: 12px" title="{{ obj.sku_class }}"><b>Category:</b> {{ obj.variants.0.sku_category }}</span><br>
+          <span style="font-size: 12px;" class="ng-binding"><b>Stock: </b>{{ obj.variants| get_size_wise_stock }}</span><br>
+          <span style="font-size: 12px;"><b>Price:</b>&#8377; {{ obj.variants.0.mrp| floatformat:0 }}</span>
+          <br>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% if forloop.counter|divisibleby:2 %}
+</div>
+{% endif %}
+{% endfor %}
+</div>
+</div>

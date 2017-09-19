@@ -2100,7 +2100,10 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
     categories = list(sku_master.exclude(sku_category='').filter(**filter_params).values_list('sku_category', flat=True).distinct())
     brands = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
     sizes = list(sku_master.exclude(sku_brand='').values_list('sku_size', flat=True).order_by('sequence').distinct())
+    print sizes
     sizes = list(OrderedDict.fromkeys(sizes))
+    print sizes
+    colors = list(sku_master.exclude(sku_brand='').exclude(color='').values_list('color', flat=True).distinct())
     _sizes = {}
     integer = []
     character = []
@@ -2110,7 +2113,8 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
         except:
             character.append(size)
     _sizes = {'type2': integer, 'type1': character}
-    return brands, sorted(categories), _sizes
+    print _sizes
+    return brands, sorted(categories), _sizes, colors
 
 
 def get_sku_available_stock(user, sku_masters, query_string, size_dict):
@@ -2206,6 +2210,9 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     sku_class = request_data.get('sku_class', '')
     sku_brand = request_data.get('brand', '')
     sku_category = request_data.get('category', '')
+    from_price = request_data.get('from_price', '')
+    to_price = request_data.get('to_price', '')
+    color = request_data.get('color', '')
     customer_data_id = request_data.get('customer_data_id', '')
     if not is_catalog:
         is_catalog = request_data.get('is_catalog', '')
@@ -2227,13 +2234,19 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if not indexes:
         indexes = '0:20'
     if sku_brand:
-        filter_params['sku_brand'] = sku_brand
+        filter_params['sku_brand__in'] = [i.strip() for i in sku_brand.split(",") if i]
     if sku_category:
-        filter_params['sku_category'] = sku_category
+        filter_params['sku_category__in'] = [i.strip() for i in sku_category.split(",") if i]
     if is_catalog:
         filter_params['status'] = 1
+    if color:
+        filter_params['color__in'] = [i.strip() for i in color.split(",") if i]
     if sale_through:
         filter_params['sale_through__iexact'] = sale_through
+    if from_price:
+        filter_params['mrp__gte'] = int(from_price)
+    if to_price:
+        filter_params['mrp__lte'] = int(to_price)
 
     start, stop = indexes.split(':')
     start, stop = int(start), int(stop)
@@ -2261,7 +2274,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
 def get_user_sku_data(user):
     request = {}
     #user = User.objects.get(id=sku.user)
-    _brand, _categories, _size = get_sku_categories_data(request, user, request_data={'file': True}, is_catalog='true')
+    _brand, _categories, _size, _colors = get_sku_categories_data(request, user, request_data={'file': True}, is_catalog='true')
     brands_data = [_brand, _categories]
     skus_data = get_sku_catalogs_data(request, user, request_data={'file': True}, is_catalog='true')
     path = 'static/text_files'

@@ -1,6 +1,9 @@
 from django import template
 from miebach_admin.views import get_misc_value, get_permission
 
+import base64, os
+from django.conf import settings
+
 register = template.Library()
 
 @register.filter
@@ -132,3 +135,31 @@ def is_picklist(user):
 def is_outbound(user):
     return get_permission(user, 'add_orderdetail') or user.is_staff or user.is_superuser
 
+@register.filter
+def get_image_code(image_url):
+    if not os.path.exists(image_url):
+        if os.path.exists(image_url.strip("/")):
+            ur = "%s%s" % (settings.BASE_DIR, image_url)
+            print ur
+            return ur
+            image_url = image_url.strip("/")
+            with open(image_url, "rb") as image_file:
+                image = base64.b64encode(image_file.read())
+            return image
+    return image_url
+
+@register.filter
+def get_price_code(price):
+    price = int(price)
+    if len(str(price)) == 2:
+        return "DN-80"+str(price)
+    else:
+        return "DN-8"+str(price)
+
+@register.filter
+def get_size_wise_stock(data):
+
+    quantity_list = "";
+    for size in data:
+        quantity_list = quantity_list + size['sku_size'] + "-" + str(int(size['physical_stock'])) + ", "
+    return quantity_list

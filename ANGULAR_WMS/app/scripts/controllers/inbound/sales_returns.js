@@ -6,6 +6,7 @@ angular.module('urbanApp', ['datatables'])
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, SweetAlert, COLORS, Service) {
     var vm = this;
     vm.service = Service;
+    vm.permissions = Session.roles.permissions;
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',

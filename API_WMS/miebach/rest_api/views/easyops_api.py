@@ -312,7 +312,7 @@ class EasyopsAPI:
             return actual_type == check_type
         return False
 
-    def set_return_order_status(self, data={}, token='', user=''):
+    def set_return_order_status(self, data={}, token='', user='', status='RETURNED'):
         """ API to set returned as order status (shotang)"""
         if user:
             self.user = user
@@ -320,7 +320,11 @@ class EasyopsAPI:
 
         if self.is_full_link:
             url = LOAD_CONFIG.get(self.company_name, 'return_order', '')
+            if status == 'CANCELLED':
+                url = LOAD_CONFIG.get(self.company_name, 'cancel_order', '')
         else:
             url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'return_order', ''))
+            if status == 'CANCELLED':
+                url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'cancel_order', ''))
         json_response = self.get_response(url, data)
-        return json_response    
+        return json_response

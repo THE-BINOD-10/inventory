@@ -221,7 +221,7 @@ class OrderDetail(models.Model):
                           ('customer_id', 'order_code', 'marketplace', 'original_order_id', 'order_id', 'customer_name'))
 
     def __unicode__(self):
-        return str(self.sku)
+        return str(self.sku) + str(self.original_order_id)
 
 class OrderCharges(models.Model):
     id = BigAutoField(primary_key=True)
@@ -239,6 +239,9 @@ class OrderLabels(models.Model):
     id = BigAutoField(primary_key=True)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     label = models.CharField(max_length=128, default='')
+    vendor_sku = models.CharField(max_length=128, default='')
+    item_sku = models.CharField(max_length=128, default='')
+    mrp = models.FloatField(default=0)
     picklist_number = models.PositiveIntegerField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -704,17 +707,6 @@ class OrderIMEIMapping(models.Model):
     class Meta:
         db_table = 'ORDER_IMEI_MAPPING'
 
-class CancelledLocation(models.Model):
-    id = BigAutoField(primary_key=True)
-    picklist = models.ForeignKey(Picklist, blank=True, null=True)
-    location = models.ForeignKey(LocationMaster, blank=True, null=True)
-    quantity = models.FloatField(default=0)
-    status = models.IntegerField(default=0)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'CANCELLED_LOCATION'
 
 class UserGroups(models.Model):
     id = BigAutoField(primary_key=True)
@@ -925,6 +917,19 @@ class SellerMaster(models.Model):
             'supplier': supplier_id,
             'status': self.status
           }
+
+class CancelledLocation(models.Model):
+    id = BigAutoField(primary_key=True)
+    picklist = models.ForeignKey(Picklist, blank=True, null=True)
+    location = models.ForeignKey(LocationMaster, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    status = models.IntegerField(default=0)
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CANCELLED_LOCATION'
 
 class CustomerSKU(models.Model):
     id = BigAutoField(primary_key=True)

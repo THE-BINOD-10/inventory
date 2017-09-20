@@ -252,6 +252,47 @@ h1 small {
   color: #fff;
   background: #ed1c24;
 }
+.toggle-filter {
+  position: absolute;
+  margin-top: 70px;
+  z-index: 120;
+  background: white;
+  width: 250px;
+  border: 1px solid #ed1c24;
+}
+.toggle-filter .toggle-header {
+  background: #ed1c24;
+  height: 26px;
+  color: white;
+  font-size: 14px;
+  line-height: 26px;
+  padding: 0px 10px;
+}
+.toggle-filter .toggle-body {
+  width: 100%;
+  padding: 5px;
+  overflow: hidden;
+}
+.toggle-filter .toggle-body .filter-box {
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+.toggle-filter .toggle-body .filter-box .box-header {
+  border-bottom: 1px solid #e4e4e4;
+}
+.toggle-filter .toggle-body .filter-box .box-body > span {
+  padding: 3px 5px;
+}
+.toggle-filter .toggle-body .filter-table th,
+.toggle-filter .toggle-body .filter-table td {
+  padding: 5px;
+  text-align: center;
+}
+.toggle-filter .toggle-body .filter-table .form-control,
+.toggle-filter .toggle-body .filter-table input {
+  padding: 2px 6px !important;
+  height: 25px !important;
+}
 .kk-timeline .round {
   width: 25px;
   height: 25px;
@@ -339,7 +380,7 @@ h1 small {
   }
 }
 .order-list {
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
 }
 .order-list .order-item {
   padding: 10px;
@@ -348,23 +389,23 @@ h1 small {
   color: blue;
 }
 .order-list .order-label {
-  color: #999;
+  color: #999999;
 }
 .order-list .order-bold {
   font-size: 20px;
   color: black;
 }
 .order-list .border-grey {
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid #cccccc;
 }
 .detail-list {
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
 }
 .detail-list .detail-item {
   padding: 10px;
 }
 .detail-list .border-grey {
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid #cccccc;
 }
 .detail-list .detail-bg-grey {
   background: #f0f0f0;
@@ -548,7 +589,7 @@ body {
   top: 8px;
 }
 .layout-sub-header {
-  background: #fff;
+  background: #ffffff;
 }
 .layout-sub-header .filters {
   background: #f0f0f0;
@@ -645,10 +686,12 @@ body {
 .page-pop .modal-body table {
   /*width: 97%;
       margin: 10px;*/
+
 }
 #page-pop .modal-body table tbody > tr > td > input,
 .page-pop .modal-body table tbody > tr > td > input {
   /*width: 90%;*/
+
 }
 #page-pop .modal-body .dropdown-menu > .active > a:hover,
 .page-pop .modal-body .dropdown-menu > .active > a:hover,
@@ -1005,6 +1048,7 @@ rm-blur:active {
   padding: 5px 0;
   padding: 3px;
   /* Position the tooltip */
+
   position: absolute;
   z-index: 1;
   top: -5px;
@@ -1072,6 +1116,7 @@ rm-blur:active {
     }
   }
   */
+
 }
 .tracking .panel-group .panel-body {
   background: #f0f0f0;

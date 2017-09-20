@@ -733,7 +733,7 @@ ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items
                          'shipment_date': 'orders.get("orderDate", '')', 'channel_sku': 'sku_item["sku"]',
                          'unit_price': 'sku_item["unitPrice"]', 'seller_id': 'order["sellerId"]',
                          'sor_id': 'order["sorId"]', 'cgst_tax': 'sku_item.get("cgstTax", "0")', 'sgst_tax':'sku_item.get("sgstTax", "0")',
-                         'igst_tax': 'sku_item.get("igstTax", "0")', 'order_status': 'order.get("currentStatus", "")',
+                         'igst_tax': 'sku_item.get("igstTax", "0")', 'order_status': 'sku_item.get("status", "")',
                          'line_items': 'order["lineItems"]', 'customer_id': 'orders.get("retailerId", "")',
                          'customer_name': '(orders.get("retailerAddress", {})).get("name", "")',
                          'telephone': '(orders.get("retailerAddress", {})).get("phoneNo", "")',
@@ -834,9 +834,13 @@ BARCODE_DICT = {'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': ''
                 'format2': {'SKUCode': '', 'SKUDes': '', 'color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '',
                             'DesignNo': '', 'Qty': '1', 'Gender': '', 'MRP': '', 'Packed on': '', 'Manufactured By': '', 'Marketed By': ''},
                 'format3': {'SKUCode': '', 'SKUDes': '', 'color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '', 'DesignNo': '',
-                            'Qty': '1', 'Gender': '', 'MRP': '', 'MFD': '', 'Manufactured By': '', 'Marketed By': ''}}
+                            'Qty': '1', 'Gender': '', 'MRP': '', 'MFD': '', 'Manufactured By': '', 'Marketed By': ''},
+                'format4': {'SKUCode': '', 'color': '', 'Size': '', 'SKUPrintQty': '',
+                            'Qty': '1', 'MRP': '', 'Manufactured By': '', 'Marketed By': '', 'Phone': '',
+                            'Vendor SKU': '', 'PO No': '', 'Email': ''}
+               }
 
-BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
+BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'format4': 'Details'}
 
 BARCODE_ADDRESS_DICT = {'adam_clothing1': 'Adam Exports 401, 4th Floor,\n Pratiek Plazza, S.V.Road,\n Goregaon West, Mumbai - 400062.\n MADE IN INDIA'}
 
@@ -933,7 +937,11 @@ GSTIN_USER_MAPPING = {'sagar_fab': '29ABEFS4899J1ZA', 'adam_clothing1': '2788OFB
 
 ORDER_LABEL_EXCEL_HEADERS = ['Order ID', 'SKU Code', 'Label']
 
-MYNTRA_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 2), ('order_id', 0), ('label', 1) ))
+MYNTRA_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 2), ('order_id', 0), ('label', 1), ('vendor_sku', 4),
+                                           ('mrp', 7)))
+
+MYNTRA_LABEL_EXCEL_MAPPING1 = OrderedDict(( ('sku_code', 2), ('order_id', 0), ('label', 1), ('vendor_sku', 4),
+                                           ('mrp', 8)))
 
 ORDER_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 1), ('order_id', 0), ('label', 2) ))
 
@@ -943,6 +951,11 @@ ORDER_SERIAL_EXCEL_HEADERS = ['Seller ID', 'Customer ID', 'Uor ID', 'PO Number',
 ORDER_SERIAL_EXCEL_MAPPING = OrderedDict(( ('order_id', 2), ('seller_id', 0), ('customer_id', 1), ('sku_code', 4), ('po_number', 3),
                                            ('quantity', 5), ('unit_price', 6), ('cgst_tax', 7), ('sgst_tax', 8), ('igst_tax', 9),
                                            ('order_type', 10) ))
+
+PO_SERIAL_EXCEL_HEADERS = ['Supplier ID', 'SKU Code', 'Location', 'Unit Price', 'Serial Number']
+
+PO_SERIAL_EXCEL_MAPPING = OrderedDict(( ('supplier_id', 0), ('sku_code', 1), ('location', 2), ('unit_price', 3),
+                                        ('imei_number', 4)))
 
 #Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg'}
@@ -1124,10 +1137,18 @@ def get_location_stock_data(search_params, user, sub_user):
 
 def get_receipt_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
-    from rest_api.views.common import get_sku_master
+    from rest_api.views.common import get_sku_master, get_misc_value
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
+    use_imei = get_misc_value('use_imei', user.id)
+    query_prefix = ''
     lis = ['open_po__supplier__name', 'order_id', 'open_po__sku__wms_code', 'open_po__sku__sku_desc', 'received_quantity']
+    model_obj = PurchaseOrder
+    if use_imei:
+        lis = ['purchase_order__open_po__supplier__name', 'purchase_order__order_id', 'purchase_order__open_po__sku__wms_code',
+               'purchase_order__open_po__sku__sku_desc', 'imei_number']
+        query_prefix = 'purchase_order__'
+        model_obj = POIMEIMapping
     temp_data = copy.deepcopy( AJAX_DATA )
     temp_data['draw'] = search_params.get('draw')
 
@@ -1135,23 +1156,29 @@ def get_receipt_filter_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     if 'from_date' in search_params:
-        search_parameters['creation_date__gt'] = search_params['from_date']
+        search_parameters[query_prefix + 'creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
-        search_parameters['creation_date__lt'] = search_params['to_date']
+        search_parameters[query_prefix + 'creation_date__lt'] = search_params['to_date']
 
     if 'supplier' in search_params:
-        search_parameters['open_po__supplier__id__iexact'] = search_params['supplier']
+        search_parameters[query_prefix + 'open_po__supplier__id__iexact'] = search_params['supplier']
     if 'wms_code' in search_params:
-        search_parameters['open_po__sku__wms_code__iexact'] = search_params['wms_code']
+        search_parameters[query_prefix + 'open_po__sku__wms_code__iexact'] = search_params['wms_code']
     if 'sku_code' in search_params:
-        search_parameters['open_po__sku__sku_code__iexact'] = search_params['sku_code']
+        search_parameters[query_prefix + 'open_po__sku__sku_code__iexact'] = search_params['sku_code']
+    if 'order_id' in search_params:
+        temp = re.findall('\d+', search_params['order_id'])
+        if temp:
+            search_parameters[query_prefix + 'order_id'] = temp[-1]
+    if 'imei_number' in search_params:
+        search_parameters['imei_number'] = search_params['imei_number']
 
     purchase_order = []
-    search_parameters['open_po__sku__user'] = user.id
-    search_parameters['status__in'] = ['grn-generated', 'location-assigned', 'confirmed-putaway']
-    search_parameters['open_po__sku_id__in'] = sku_master_ids
+    search_parameters[query_prefix + 'open_po__sku__user'] = user.id
+    search_parameters[query_prefix + 'status__in'] = ['grn-generated', 'location-assigned', 'confirmed-putaway']
+    search_parameters[query_prefix + 'open_po__sku_id__in'] = sku_master_ids
 
-    purchase_order = PurchaseOrder.objects.filter(**search_parameters)
+    purchase_order = model_obj.objects.filter(**search_parameters)
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
@@ -1159,16 +1186,21 @@ def get_receipt_filter_data(search_params, user, sub_user):
 
         purchase_order = purchase_order.order_by(order_data)
 
-    temp_data['recordsTotal'] = len(purchase_order)
-    temp_data['recordsFiltered'] = len(purchase_order)
+    temp_data['recordsTotal'] = purchase_order.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     if stop_index:
         purchase_order = purchase_order[start_index:stop_index]
     for data in purchase_order:
+        serial_number = ''
+        if use_imei:
+            serial_number = data.imei_number
+            data = data.purchase_order
         po_reference = '%s%s_%s' %(data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), data.order_id)
         temp_data['aaData'].append(OrderedDict(( ('PO Reference', po_reference), ('WMS Code', data.open_po.sku.wms_code), ('Description', data.open_po.sku.sku_desc),
                                     ('Supplier', '%s (%s)' % (data.open_po.supplier.name, data.open_po.supplier_id)),
-                                    ('Receipt Number', data.open_po_id), ('Received Quantity', data.received_quantity) )))
+                                    ('Receipt Number', data.open_po_id), ('Received Quantity', data.received_quantity),
+                                    ('Serial Number', serial_number) )))
     return temp_data
 
 def get_dispatch_data(search_params, user, sub_user):
@@ -1284,7 +1316,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
             tax = 0
             price = order_data['price']
             if data.open_po:
-                tax = float(data.open_po.tax)
+                tax = float(data.open_po.cgst_tax) + float(data.open_po.sgst_tax) + float(data.open_po.igst_tax)
                 aft_price = price + ((price/100)*tax)
             pre_amount = float(order_data['order_quantity']) * float(price)
             aft_amount = float(order_data['order_quantity']) * float(aft_price)

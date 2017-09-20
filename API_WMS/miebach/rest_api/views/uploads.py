@@ -3084,8 +3084,10 @@ def get_order_lable_mapping(reader, file_type):
     label_mapping = {}
     if get_cell_data(0, 1, reader, file_type) == 'ItemCode' and get_cell_data(0, 2, reader, file_type) == 'ItemSku':
         label_mapping = copy.deepcopy(MYNTRA_LABEL_EXCEL_MAPPING)
-    elif get_cell_data(0, 1, reader, file_type) == 'SKU Code' and get_cell_data(0, 2, reader, file_type) == 'Label':
+    elif get_cell_data(0, 1, reader, file_type) == 'SKU Code' and get_cell_data(0, 7, reader, file_type) == 'mrp':
         label_mapping = copy.deepcopy(ORDER_LABEL_EXCEL_MAPPING)
+    elif get_cell_data(0, 1, reader, file_type) == 'SKU Code' and get_cell_data(0, 8, reader, file_type) == 'mrp':
+        label_mapping = copy.deepcopy(ORDER_LABEL_EXCEL_MAPPING1)
 
     return label_mapping
 

@@ -139,7 +139,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.gotData = {};
   vm.data_loading = false;
   vm.getingData = function(data) {
-
+    vm.catDisplay = false;
     if(vm.data_loading) {
 
       vm.cancel();
@@ -247,7 +247,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.get_category(true);
   }
 
+  vm.catDisplay = false;
   vm.all_cate = [];
+  vm.categories_details = {};
   vm.change_brand = function(data) {
 
     vm.brand = data;
@@ -258,8 +260,38 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.size_filter_show=false;
     vm.filterData.selectedBrands = {};
     vm.filterData.selectedBrands[vm.brand] = true;
+
+    angular.forEach(vm.filterData.selectedCats, function(value, key) {
+      vm.filterData.selectedCats[key] = false;
+    });
+
+    angular.forEach(vm.filterData.selectedColors, function(value, key) {
+      vm.filterData.selectedColors[key] = false;
+    });
+    angular.forEach(vm.filterData.size_filter, function(value, key) {
+      vm.filterData.size_filter[key] = "";
+    })
+
+    vm.category = "";
+    vm.color = "";
+    vm.filterData.fromPrice = "";
+    vm.filterData.toPrice = "";
+    vm.size_filter_data = vm.filterData.size_filter
+
     vm.showFilter = false;
-    vm.get_category(true);
+    //vm.get_category(true);
+
+    vm.pdfDownloading = true;
+    vm.catDisplay = true;
+    var data = {brand: vm.brand, sale_through: vm.order_type_value};
+    vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
+      if(data.message) {
+        vm.all_cate = data.data.categories;
+        vm.categories_details = data.data.categories_details;
+        $state.go('user.App.Products');
+      }
+      vm.pdfDownloading = false;
+    })
 
     //vm.sizeform('clear');
     /*    $('#size_form').trigger('reset');
@@ -296,6 +328,18 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.brand_size_data = $.unique(data.data.size.type1)
       }
     })*/
+  }
+
+  vm.change_category = function(category) {
+
+    vm.category = category;
+    if (vm.filterData.selectedCats){
+      vm.filterData.selectedCats[category] = true;
+    } else {
+      vm.filterData.selectedCats = {};
+      vm.filterData.selectedCats[category] = true;
+    }
+    vm.get_category(true);
   }
 
   vm.change_size_type = function(toggle) {
@@ -580,11 +624,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.clearFilters = function(data) {
 
-    if(data == "size") {
       angular.forEach(vm.filterData.size_filter, function(value, key) {
         vm.filterData.size_filter[key] = "";
       })
-    } else {
 
       angular.forEach(vm.filterData.selectedBrands, function(value, key) {
         vm.filterData.selectedBrands[key] = false;
@@ -602,7 +644,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.color = "";
       vm.filterData.fromPrice = "";
       vm.filterData.toPrice = "";
-    }
+
     vm.catlog_data.index = "";
     vm.size_filter_data = vm.filterData.size_filter
     vm.showFilter = false;

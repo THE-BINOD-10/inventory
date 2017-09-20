@@ -930,7 +930,7 @@ def update_order_cancel(orders_data, user='', company_name=''):
             order_det = OrderDetail.objects.exclude(status=3).filter(**filter_params)
             if order_det:
                 order_det = order_det[0]
-                if order_det.status == 1:
+                if int(order_det.status) == 1:
                     order_det.status = 3
                     order_det.save()
                     if order_dict.get('seller_order_dict', {}):
@@ -956,7 +956,7 @@ def update_order_cancel(orders_data, user='', company_name=''):
                             picklist.save()
                     order_det.status = 3
                     order_det.save()
-                #save_order_tracking_data(order_det, quantity=order_dict['order_details'].get('quantity', 0), status='cancelled', imei='')
+                save_order_tracking_data(order_det, quantity=order_dict['order_details'].get('quantity', 0), status='cancelled', imei='')
         return "Success"
     except:
         traceback.print_exc()

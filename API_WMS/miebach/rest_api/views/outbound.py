@@ -801,8 +801,9 @@ def batch_generate_picklist(request, user=''):
     if data:
         order_status = data[0]['status']
 
-    return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,
-                                    'order_status': order_status, 'user': request.user.id}))
+    return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,\
+                                    'order_status': order_status, 'user': request.user.id,\
+                                    'sku_total_quantities': sku_total_quantities}))
 
 def get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks, reserved_instances):
     stock_left = 0
@@ -3214,9 +3215,10 @@ def print_shipment(request, user=''):
 @login_required
 @get_admin_user
 def get_sku_categories(request, user=''):
-    brands, categories, sizes, colors = get_sku_categories_data(request, user)
+    brands, categories, sizes, colors, categories_details = get_sku_categories_data(request, user)
     stages_list = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
-    return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list, 'colors': colors}))
+    return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,\
+                                    'colors': colors, 'categories_details': categories_details}))
 
 def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id=''):
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku_id').distinct().annotate(in_stock=Sum('quantity'))
@@ -4440,75 +4442,84 @@ def update_order_data(request, user = ""):
     st_time = datetime.datetime.now()
     log.info("updation of order process started")
     myDict = dict(request.GET.iterlists())
-    complete_id = myDict['order id'][0]
-    order_id = ''.join(re.findall('\d+', complete_id))
-    order_code = ''.join(re.findall('\D+', complete_id))
-    older_objs = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id)
-    old_cust_obj = ""
-    order_creation_date = datetime.datetime.now()
+    log.info('Order update request params for ' + user.username + ' is ' + str(request.GET.dict()))
+    try:
+        complete_id = myDict['order id'][0]
+        order_id = ''.join(re.findall('\d+', complete_id))
+        order_code = ''.join(re.findall('\D+', complete_id))
+        older_objs = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id)
+        old_cust_obj = ""
+        order_creation_date = datetime.datetime.now()
 
-    if older_objs:
-        older_order = older_objs[0]
-        old_cust_obj = CustomerOrderSummary.objects.filter(order = older_order.id)
-        order_creation_date = older_order.creation_date
-    else:
-        return HttpResponse("Order Creation Failed")
-
-    for i in range(0, len(myDict['item_code'])):
-        s_date = datetime.datetime.strptime(myDict['shipment_date'][0], '%d %b, %Y %H:%M %p')
-        if not myDict['item_code'][i] or not myDict['quantity'][i]:
-            continue
-        sku_id = SKUMaster.objects.get(sku_code = myDict['item_code'][i], user = user.id)
-
-        default_dict = {'title': myDict['product_title'][i], 'quantity': myDict['quantity'][i], 'invoice_amount': myDict['invoice_amount'][i],
-                        'user': user.id, 'customer_id': older_order.customer_id, 'customer_name': older_order.customer_name,
-                        'telephone': older_order.telephone, 'email_id': older_order.email_id, 'address': older_order.address,
-                        'shipment_date' : older_order.shipment_date, 'status': 1, "marketplace" : older_order.marketplace,
-                        'remarks': myDict['remarks'][i], 'original_order_id': older_order.original_order_id}
-
-        order_obj, created = OrderDetail.objects.update_or_create(
-            order_id = order_id, order_code = order_code, sku = sku_id, defaults = default_dict
-            )
-
-        if created:
-            order_obj.creation_date = order_creation_date
-            order_obj.save()
-            if old_cust_obj:
-                CustomerOrderSummary.objects.create(order = order_obj, discount = old_cust_obj[0].discount, vat = old_cust_obj[0].vat, tax_value = old_cust_obj[0].tax_value, order_taken_by = old_cust_obj[0].order_taken_by, mrp  = old_cust_obj[0].mrp, tax_type = old_cust_obj[0].tax_type, status = old_cust_obj[0].status, central_remarks = old_cust_obj[0].central_remarks)
-            else:
-                CustomerOrderSummary.objects.create(order = order_obj, status = myDict['status_type'][0], central_remarks = myDict['central_remarks'][0])
+        if older_objs:
+            older_order = older_objs[0]
+            old_cust_obj = CustomerOrderSummary.objects.filter(order = older_order.id)
+            order_creation_date = older_order.creation_date
         else:
-            status_obj = CustomerOrderSummary.objects.filter(order = order_obj.id)
-            if not status_obj:
-                status_obj = CustomerOrderSummary.objects.create(order = order_obj, status = myDict['status_type'][0])
+            return HttpResponse("Order Creation Failed")
+
+        for i in range(0, len(myDict['item_code'])):
+            s_date = datetime.datetime.strptime(myDict['shipment_date'][0], '%d %b, %Y %H:%M %p')
+            if not myDict['item_code'][i] or not myDict['quantity'][i]:
+                continue
+            sku_id = SKUMaster.objects.get(sku_code = myDict['item_code'][i], user = user.id)
+
+            if not myDict['invoice_amount'][i]:
+                myDict['invoice_amount'][i] = 0
+            default_dict = {'title': myDict['product_title'][i], 'quantity': myDict['quantity'][i], 'invoice_amount': myDict['invoice_amount'][i],
+                            'user': user.id, 'customer_id': older_order.customer_id, 'customer_name': older_order.customer_name,
+                            'telephone': older_order.telephone, 'email_id': older_order.email_id, 'address': older_order.address,
+                            'shipment_date' : older_order.shipment_date, 'status': 1, "marketplace" : older_order.marketplace,
+                            'remarks': myDict['remarks'][i], 'original_order_id': older_order.original_order_id}
+
+            order_obj, created = OrderDetail.objects.update_or_create(
+                order_id = order_id, order_code = order_code, sku = sku_id, defaults = default_dict
+                )
+
+            if created:
+                order_obj.creation_date = order_creation_date
+                order_obj.save()
+                if old_cust_obj:
+                    CustomerOrderSummary.objects.create(order = order_obj, discount = old_cust_obj[0].discount, vat = old_cust_obj[0].vat, tax_value = old_cust_obj[0].tax_value, order_taken_by = old_cust_obj[0].order_taken_by, mrp  = old_cust_obj[0].mrp, tax_type = old_cust_obj[0].tax_type, status = old_cust_obj[0].status, central_remarks = old_cust_obj[0].central_remarks)
+                else:
+                    CustomerOrderSummary.objects.create(order = order_obj, status = myDict['status_type'][0], central_remarks = myDict['central_remarks'][0])
             else:
-                status_obj = status_obj[0]
-            status_obj.status = myDict['status_type'][0]
-            status_obj.central_remarks = myDict['central_remarks'][0]
+                status_obj = CustomerOrderSummary.objects.filter(order = order_obj.id)
+                if not status_obj:
+                    status_obj = CustomerOrderSummary.objects.create(order = order_obj, status = myDict['status_type'][0])
+                else:
+                    status_obj = status_obj[0]
+                status_obj.status = myDict['status_type'][0]
+                status_obj.central_remarks = myDict['central_remarks'][0]
 
-            status_obj.save()
+                status_obj.save()
 
-            vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']
-            for item in vendor_list:
-                if myDict.has_key(item):
-                    if not myDict[item][0]:
-                        OrderMapping.objects.filter(order__id = order_obj.id, order__user = user.id, mapping_type = item).delete()
-                    else:
-                        ord_map_obj = OrderMapping.objects.filter(order__id = order_obj.id, order__user = user.id, mapping_type = item)
-                        vend_obj = VendorMaster.objects.filter(vendor_id = myDict[item][0], user = user.id)
-                        if vend_obj:
-                            vendor_id = vend_obj[0].id
-                            if ord_map_obj:
-                                ord_map_obj = ord_map_obj[0]
-                                ord_map_obj.mapping_id = vendor_id
-                                ord_map_obj.save()
-                            else:
-                                OrderMapping.objects.create(mapping_id = vendor_id, mapping_type = item, order_id = order_obj.id)
+                vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']
+                for item in vendor_list:
+                    if myDict.has_key(item):
+                        if not myDict[item][0]:
+                            OrderMapping.objects.filter(order__id = order_obj.id, order__user = user.id, mapping_type = item).delete()
+                        else:
+                            ord_map_obj = OrderMapping.objects.filter(order__id = order_obj.id, order__user = user.id, mapping_type = item)
+                            vend_obj = VendorMaster.objects.filter(vendor_id = myDict[item][0], user = user.id)
+                            if vend_obj:
+                                vendor_id = vend_obj[0].id
+                                if ord_map_obj:
+                                    ord_map_obj = ord_map_obj[0]
+                                    ord_map_obj.mapping_id = vendor_id
+                                    ord_map_obj.save()
+                                else:
+                                    OrderMapping.objects.create(mapping_id = vendor_id, mapping_type = item, order_id = order_obj.id)
 
-    end_time = datetime.datetime.now()
-    duration = end_time - st_time
-    log.info("process completed")
-    log.info("total time -- %s" %(duration))
+        end_time = datetime.datetime.now()
+        duration = end_time - st_time
+        log.info("process completed")
+        log.info("total time -- %s" %(duration))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update Order failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.GET.dict()), str(e)))
+        return HttpResponse("Update Order Failed")
     return HttpResponse("Success")
 
 @csrf_exempt

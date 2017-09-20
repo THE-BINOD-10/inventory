@@ -3213,16 +3213,27 @@ def order_label_mapping_upload(request, user=''):
         log.info('Order Label Mapping Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Order Label Mapping Upload Failed")
 
+def get_order_serial_mapping(reader, file_type):
+
+    order_mapping = {}
+    if get_cell_data(0, 2, reader, file_type) == 'Uor ID' and get_cell_data(0, 3, reader, file_type) == 'PO Number':
+        order_mapping = copy.deepcopy(ORDER_SERIAL_EXCEL_MAPPING)
+
+    return order_mapping
+
 def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("order upload started")
     st_time = datetime.datetime.now()
     index_status = {}
 
-    order_mapping = ORDER_SERIAL_EXCEL_MAPPING
+    order_mapping = get_order_serial_mapping(reader, file_type)
+    if not order_mapping:
+        return 'Invalid File'
 
     count = 0
     log.info("Validation Started %s" %datetime.datetime.now())
     final_data_dict = OrderedDict()
+    order_po_mapping = []
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
@@ -3232,7 +3243,7 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                                   'sku_id':''}
         seller_order_details = {'creation_date': datetime.datetime.now(), 'status': 1}
         customer_order_summary = {'issue_type': 'order', 'creation_date': datetime.datetime.now()}
-        order_po_mapping = []
+        
         sku_code = ''
         seller_id = ''
         for key, val in order_mapping.iteritems():
@@ -3402,12 +3413,22 @@ def order_serial_mapping_upload(request, user=''):
         log.info('Order Serial Mapping Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Order Serial Mapping Upload Failed")
 
+def get_po_serial_mapping(reader, file_type):
+
+    order_mapping = {}
+    if get_cell_data(0, 0, reader, file_type) == 'Supplier ID' and get_cell_data(0, 2, reader, file_type) == 'Location':
+        order_mapping = copy.deepcopy(PO_SERIAL_EXCEL_MAPPING)
+
+    return order_mapping
+
 def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
     log.info("po serial upload started")
     st_time = datetime.datetime.now()
     index_status = {}
 
-    order_mapping = PO_SERIAL_EXCEL_MAPPING
+    order_mapping = get_po_serial_mapping(reader, file_type)
+    if not order_mapping:
+        return 'Invalid File'
 
     count = 0
     log.info("Validation Started %s" %datetime.datetime.now())
@@ -3516,6 +3537,7 @@ def create_po_serial_mapping(final_data_dict, user):
     NOW = datetime.datetime.now()
     user_profile = UserProfile.objects.get(user_id=user.id)
     log.info('PO Serial Mapping data for ' + user.username + ' is ' + str(final_data_dict))
+    mod_locations = []
     for key, value in final_data_dict.iteritems():
         quantity = len(value['imei_list'])
         po_details = value['po_details']

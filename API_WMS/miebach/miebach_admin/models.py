@@ -240,6 +240,7 @@ class OrderLabels(models.Model):
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     label = models.CharField(max_length=128, default='')
     vendor_sku = models.CharField(max_length=128, default='')
+    item_sku = models.CharField(max_length=128, default='')
     mrp = models.FloatField(default=0)
     picklist_number = models.PositiveIntegerField(default=0)
     status = models.IntegerField(default=1)

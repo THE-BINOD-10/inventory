@@ -3363,6 +3363,7 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
                 if order_label:
                     single["Vendor SKU"] = order_label[0].vendor_sku
+                    single["SKUCode"] = order_label[0].item_sku
                     single['MRP'] = order_label[0].mrp
                     single['Phone'] = user_prf.phone_number
                     single['Email'] = user.email

@@ -3119,6 +3119,7 @@ def validate_and_insert_order_labels(request, reader, user, no_of_rows, fname, f
                         index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
                     else:
                         search_params['sku_id'] = sku_code_id
+                    label_mapping_dict['item_sku'] = cell_data
                 else:
                     index_status.setdefault(row_idx, set()).add('SKU Code missing')
             elif key == 'order_id':

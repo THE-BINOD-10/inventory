@@ -29,6 +29,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.categories = [];
   vm.category = "";
   vm.brand = "";
+  vm.filterData = {};
 
   function change_filter_data() {
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
@@ -37,6 +38,17 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       if(data.message) {
 
         vm.categories = data.data.categories;
+        vm.filterData = data.data;
+        console.log(data.data);
+        vm.filterData.brand_size_data = []
+        if(data.data.size.type1) {
+          vm.filterData.brand_size_data = $.unique(data.data.size.type1)
+        }
+        vm.filterData.brand_size_data = ['XS','S','M', 'L', 'XL', '2XL', '3XL', '4XL'];
+        vm.filterData.brands.push("All");
+        vm.filterData.categories.push("All");
+        vm.filterData.colors.push("All");
+        //vm.filterData.colors = ['red','white', 'yellow', 'All'];
 
 	vm.brands = data.data.brands;
 	if (vm.brands.length === 0){
@@ -50,7 +62,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         'Scala': 'scala-1.png','Scott International': 'scott-1.png', 'Scott Young': 'scott-young-1.png', 'Spark': 'spark-1.png',
         'Star - 11': 'star-11-1.png','Super Sigma': 'super-sigma-dryfit-1.png', 'Sulphur Cotton': 'sulphur-cottnt-1.png',                             'Sulphur Dryfit': 'sulphur-dryfit-1.png', 'Spring': 'spring-1.png', '100% Cotton': '100-cotton-1.png', 'Sprint': 'sprint-1.png',
         'Supreme': 'supreme-1.png', 'Sport': 'sport-1.png'}
-        vm.change_brand('');
+        //vm.change_brand('');
       }
     });
   }
@@ -102,6 +114,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                 sale_through: vm.order_type_value, size_filter:size_stock}
     vm.scroll_data = false;
 
+    angular.copy([], vm.catlog_data.data);
     vm.getingData(data).then(function(data) {
       if(data == 'done') {
         var data = {data: vm.gotData};
@@ -141,6 +154,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         console.log("done");
         canceller.resolve("done");
         vm.data_loading = false;
+        vm.showFilter = false;
       }
     });
     vm.cancel = function() {
@@ -151,6 +165,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   vm.get_category = function(status, scroll) {
+
+    if(vm.showFilter) {
+      return false;
+    }
 
     vm.loading = true;
     vm.scroll_data = false;
@@ -169,8 +187,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
 
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
-                sale_through: vm.order_type_value, size_filter: size_stock }
-
+                sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
+                to_price: vm.toPrice}
+    if(status) {
+      angular.copy([], vm.catlog_data.data);
+    }
     vm.getingData(data).then(function(data) {
     if(data == 'done') {
         var data = {data: vm.gotData};
@@ -235,9 +256,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.category = '';
     vm.style='';
     vm.size_filter_show=false;
+    vm.filterData.selectedBrands = {};
+    vm.filterData.selectedBrands[vm.brand] = true;
+    vm.showFilter = false;
+    vm.get_category(true);
 
     //vm.sizeform('clear');
-        $('#size_form').trigger('reset');
+    /*    $('#size_form').trigger('reset');
         vm.size_filter = ""; 
         vm.size_filter_show = false;
         vm.size_filter_data = {}; 
@@ -251,12 +276,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
             size_stock[obj.name] = obj.value;
           }
         })
-
-        vm.size_filter = size_stock;
+    */
+    //    vm.size_filter = size_stock;
         //stock_qty['size_filter'] = JSON.stringify(size_stock);
 
 
-    var all = $(".cat-tags");
+    /*var all = $(".cat-tags");
     var data = {brand: vm.brand, sale_through: vm.order_type_value, size_filter: JSON.stringify(size_stock)}
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
       if(data.message) {
@@ -270,7 +295,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.brand_size_collect = data.data.size;
         vm.brand_size_data = $.unique(data.data.size.type1)
       }
-    })
+    })*/
   }
 
   vm.change_size_type = function(toggle) {
@@ -484,6 +509,133 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
+
+  vm.getQuantityList = function(data){
+
+    var quantityList = "";
+    angular.forEach(data, function(size){
+      quantityList = quantityList + size.sku_size + "-" + size.physical_stock + ",";
+    });
+    return quantityList;
+  }
+
+  //filters
+  vm.showFilters = false;
+
+  vm.applyFilters = function(){
+    console.log(vm.filterData);
+    var brand= [];
+    var category= [];
+    var color = [];
+    angular.forEach(vm.filterData.selectedBrands, function(value, key) {
+      if (value) {
+        brand.push(key);
+      }
+    });
+
+    angular.forEach(vm.filterData.selectedCats, function(value, key) {
+      if (value) {
+        category.push(key);
+      }
+    });
+
+    angular.forEach(vm.filterData.selectedColors, function(value, key) {
+      if (value) {
+        color.push(key);
+      }
+    });
+
+    if(brand.indexOf("All") != -1) {
+      brand.splice(brand.indexOf("All"),1)
+    }
+    if(category.indexOf("All") != -1) {
+      category.splice(category.indexOf("All"),1)
+    }
+    if(color.indexOf("All") != -1) {
+      color.splice(color.indexOf("All"),1)
+    }
+
+    vm.catlog_data.index = "";
+    vm.brand = brand.join(",");
+    vm.category = category.join(",");
+    vm.color = color.join(",");
+    vm.size_filter_data = vm.filterData.size_filter
+    vm.fromPrice = vm.filterData.fromPrice;
+    vm.toPrice = vm.filterData.toPrice;
+    vm.showFilter = false;
+    vm.get_category(true);
+    $window.scrollTo(0, angular.element(".app_body").offsetTop);
+  }
+
+  vm.filterData.brandShow = false;
+  vm.filterData.catShow = false;
+  vm.filterData.colorShow = false;
+  vm.showFilters = function() {
+
+    vm.filterData.brandShow = false;
+    vm.filterData.catShow = false;
+    vm.filterData.colorShow = false;
+    vm.showFilter = true;
+  }
+
+  vm.clearFilters = function(data) {
+
+    if(data == "size") {
+      angular.forEach(vm.filterData.size_filter, function(value, key) {
+        vm.filterData.size_filter[key] = "";
+      })
+    } else {
+
+      angular.forEach(vm.filterData.selectedBrands, function(value, key) {
+        vm.filterData.selectedBrands[key] = false;
+      });
+
+      angular.forEach(vm.filterData.selectedCats, function(value, key) {
+        vm.filterData.selectedCats[key] = false;
+      });
+
+      angular.forEach(vm.filterData.selectedColors, function(value, key) {
+        vm.filterData.selectedColors[key] = false;
+      });
+      vm.brand = "";
+      vm.category = "";
+      vm.color = "";
+      vm.filterData.fromPrice = "";
+      vm.filterData.toPrice = "";
+    }
+    vm.catlog_data.index = "";
+    vm.size_filter_data = vm.filterData.size_filter
+    vm.showFilter = false;
+    vm.get_category(true);
+    $window.scrollTo(0, angular.element(".app_body").offsetTop);
+  }
+
+  vm.checkFilters = function(value, data) {
+
+    var all = data['All'];
+    if (value != 'All') {
+      data['All'] = false;
+    } else {
+      angular.forEach(data, function(value, key) {
+        data[key] = false;
+      })
+    }
+  }
+
+  vm.pdfDownloading = false;
+  vm.downloadPdf = function() {
+    var size_stock = JSON.stringify(vm.size_filter_data);
+    var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
+                sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true}
+    vm.pdfDownloading = true;
+    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(response) {
+      if(response.message) {
+        window.open(Session.host + response.data, '_blank');
+        //http://ultd-dev.mieone.com:9022/#/App/Products;
+      }
+      vm.pdfDownloading = false;
+    });
+  }
 }
 
 angular

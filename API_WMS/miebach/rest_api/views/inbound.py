@@ -3588,7 +3588,8 @@ def confirm_po1(request, user=''):
 @login_required
 @get_admin_user
 def delete_po_group(request, user=''):
-    status_dict = PO_RECEIPT_TYPES
+    status_dict = dict(zip(PO_ORDER_TYPES.values(), PO_ORDER_TYPES.keys()))
+
     myDict = dict(request.GET.iterlists())
     for key, value in myDict.iteritems():
         for val in value:

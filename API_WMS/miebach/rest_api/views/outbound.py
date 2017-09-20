@@ -4407,7 +4407,7 @@ def order_category_generate_picklist(request, user=''):
                 single_order = str(order_count[0])
 
     return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1,'stock_status': stock_status,
-                                    'order_status': order_status, 'user': request.user.id}))
+                                    'order_status': order_status, 'user': request.user.id, 'sku_total_quantities': sku_total_quantities}))
 
 
 @csrf_exempt
@@ -5447,7 +5447,8 @@ def seller_generate_picklist(request, user=''):
 
     return HttpResponse(json.dumps({'data': data, 'headers': headers,
                            'picklist_id': picklist_number + 1,'stock_status': stock_status, 'show_image': show_image,
-                           'use_imei': use_imei, 'order_status': order_status, 'user': request.user.id}))
+                           'use_imei': use_imei, 'order_status': order_status, 'user': request.user.id, \
+                           'sku_total_quantities': sku_total_quantities}))
 
 
 

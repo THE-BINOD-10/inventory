@@ -940,6 +940,9 @@ ORDER_LABEL_EXCEL_HEADERS = ['Order ID', 'SKU Code', 'Label']
 MYNTRA_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 2), ('order_id', 0), ('label', 1), ('vendor_sku', 4),
                                            ('mrp', 7)))
 
+MYNTRA_LABEL_EXCEL_MAPPING1 = OrderedDict(( ('sku_code', 2), ('order_id', 0), ('label', 1), ('vendor_sku', 4),
+                                           ('mrp', 8)))
+
 ORDER_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 1), ('order_id', 0), ('label', 2) ))
 
 ORDER_SERIAL_EXCEL_HEADERS = ['Seller ID', 'Customer ID', 'Uor ID', 'PO Number', 'SKU Code', 'Quantity', 'Unit Price', 'CGST(%)',

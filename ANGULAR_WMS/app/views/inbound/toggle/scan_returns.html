@@ -22,13 +22,6 @@
               <textarea id="scan_order_id" rows="1" name="scan_order_id" class="form-control" ng-model="showCase.model_data.scan_order_id" ng-keydown="showCase.scan_track($event, showCase.model_data.scan_order_id)"></textarea>
              </div>
            </div>
-           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
-             <div class="form-group">
-               <label class="control-label"> Scan IMEI Number </label>
-              <textarea id="return_imei" rows="1" name="return_imei" class="form-control" ng-model="showCase.model_data.return_imei" ng-keydown="showCase.scan_imei($event, showCase.model_data.return_imei)"></textarea>
-             </div>
-           </div>
-
            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="user.user_profile['user_type'] != 'marketplace_user'">
              <div class="form-group">
                <label class="control-label"> SKU Code </label>
@@ -41,6 +34,12 @@
                <select class="form-control" ng-model="showCase.model_data.marketplace" ng-init="showCase.model_data.marketplace='Offline'" name="status">
                   <option ng-repeat="status in showCase.market_list" ng-selected="showCase.model_data.marketplace == status" value="{{status}}">{{status}}</option>
                 </select>
+             </div>
+           </div>
+           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.permissions.use_imei">
+             <div class="form-group">
+               <label class="control-label"> Scan IMEI Number </label>
+              <textarea id="return_imei" rows="1" name="return_imei" class="form-control" ng-model="showCase.model_data.return_imei" ng-keydown="showCase.scan_imei($event, showCase.model_data.return_imei)"></textarea>
              </div>
            </div>
 

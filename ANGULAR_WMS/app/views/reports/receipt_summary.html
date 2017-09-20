@@ -47,6 +47,18 @@
                   <input name="sku_code" class="form-control" type="text" ng-model="showCase.model_data.sku_code">
                 </div>
               </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.permissions.use_imei">
+                <div class="form-group">
+                  <label class="control-label">Serial Number</label>
+                  <input name="sku_code" class="form-control" type="text" ng-model="showCase.model_data.imei_number">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">Purchase Order ID</label>
+                  <input name="sku_code" class="form-control" type="text" ng-model="showCase.model_data.order_id">
+                </div>
+              </div>
             </div>
             <div class="col-md-12">
               <div class="filter-controls">

@@ -1134,10 +1134,18 @@ def get_location_stock_data(search_params, user, sub_user):
 
 def get_receipt_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
-    from rest_api.views.common import get_sku_master
+    from rest_api.views.common import get_sku_master, get_misc_value
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
+    use_imei = get_misc_value('use_imei', user.id)
+    query_prefix = ''
     lis = ['open_po__supplier__name', 'order_id', 'open_po__sku__wms_code', 'open_po__sku__sku_desc', 'received_quantity']
+    model_obj = PurchaseOrder
+    if use_imei:
+        lis = ['purchase_order__open_po__supplier__name', 'purchase_order__order_id', 'purchase_order__open_po__sku__wms_code',
+               'purchase_order__open_po__sku__sku_desc', 'imei_number']
+        query_prefix = 'purchase_order__'
+        model_obj = POIMEIMapping
     temp_data = copy.deepcopy( AJAX_DATA )
     temp_data['draw'] = search_params.get('draw')
 
@@ -1145,23 +1153,29 @@ def get_receipt_filter_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     if 'from_date' in search_params:
-        search_parameters['creation_date__gt'] = search_params['from_date']
+        search_parameters[query_prefix + 'creation_date__gt'] = search_params['from_date']
     if 'to_date' in search_params:
-        search_parameters['creation_date__lt'] = search_params['to_date']
+        search_parameters[query_prefix + 'creation_date__lt'] = search_params['to_date']
 
     if 'supplier' in search_params:
-        search_parameters['open_po__supplier__id__iexact'] = search_params['supplier']
+        search_parameters[query_prefix + 'open_po__supplier__id__iexact'] = search_params['supplier']
     if 'wms_code' in search_params:
-        search_parameters['open_po__sku__wms_code__iexact'] = search_params['wms_code']
+        search_parameters[query_prefix + 'open_po__sku__wms_code__iexact'] = search_params['wms_code']
     if 'sku_code' in search_params:
-        search_parameters['open_po__sku__sku_code__iexact'] = search_params['sku_code']
+        search_parameters[query_prefix + 'open_po__sku__sku_code__iexact'] = search_params['sku_code']
+    if 'order_id' in search_params:
+        temp = re.findall('\d+', search_params['order_id'])
+        if temp:
+            search_parameters[query_prefix + 'order_id'] = temp[-1]
+    if 'imei_number' in search_params:
+        search_parameters['imei_number'] = search_params['imei_number']
 
     purchase_order = []
-    search_parameters['open_po__sku__user'] = user.id
-    search_parameters['status__in'] = ['grn-generated', 'location-assigned', 'confirmed-putaway']
-    search_parameters['open_po__sku_id__in'] = sku_master_ids
+    search_parameters[query_prefix + 'open_po__sku__user'] = user.id
+    search_parameters[query_prefix + 'status__in'] = ['grn-generated', 'location-assigned', 'confirmed-putaway']
+    search_parameters[query_prefix + 'open_po__sku_id__in'] = sku_master_ids
 
-    purchase_order = PurchaseOrder.objects.filter(**search_parameters)
+    purchase_order = model_obj.objects.filter(**search_parameters)
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
@@ -1169,16 +1183,21 @@ def get_receipt_filter_data(search_params, user, sub_user):
 
         purchase_order = purchase_order.order_by(order_data)
 
-    temp_data['recordsTotal'] = len(purchase_order)
-    temp_data['recordsFiltered'] = len(purchase_order)
+    temp_data['recordsTotal'] = purchase_order.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     if stop_index:
         purchase_order = purchase_order[start_index:stop_index]
     for data in purchase_order:
+        serial_number = ''
+        if use_imei:
+            serial_number = data.imei_number
+            data = data.purchase_order
         po_reference = '%s%s_%s' %(data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), data.order_id)
         temp_data['aaData'].append(OrderedDict(( ('PO Reference', po_reference), ('WMS Code', data.open_po.sku.wms_code), ('Description', data.open_po.sku.sku_desc),
                                     ('Supplier', '%s (%s)' % (data.open_po.supplier.name, data.open_po.supplier_id)),
-                                    ('Receipt Number', data.open_po_id), ('Received Quantity', data.received_quantity) )))
+                                    ('Receipt Number', data.open_po_id), ('Received Quantity', data.received_quantity),
+                                    ('Serial Number', serial_number) )))
     return temp_data
 
 def get_dispatch_data(search_params, user, sub_user):
@@ -1294,7 +1313,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
             tax = 0
             price = order_data['price']
             if data.open_po:
-                tax = float(data.open_po.tax)
+                tax = float(data.open_po.cgst_tax) + float(data.open_po.sgst_tax) + float(data.open_po.igst_tax)
                 aft_price = price + ((price/100)*tax)
             pre_amount = float(order_data['order_quantity']) * float(price)
             aft_amount = float(order_data['order_quantity']) * float(aft_price)

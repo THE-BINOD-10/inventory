@@ -342,7 +342,7 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         all_data[cond] += result.shipping_quantity
 
     temp_data['recordsTotal'] = len(all_data)
-    temp_data['recordsFiltered'] = len(all_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for key, value in all_data.iteritems():
         temp_data['aaData'].append({'DT_RowId': key[0], 'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2],
                                     'Total Quantity': value, 'DT_RowClass': 'results' })
@@ -352,7 +352,7 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col))
     else:
         temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
-
+    temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
 
 
@@ -4571,6 +4571,7 @@ def picklist_delete(request, user=""):
                         cancelled_orders_dict[seller_order[0].id].setdefault('quantity', 0)
                         cancelled_orders_dict[seller_order[0].id]['quantity'] = float(cancelled_orders_dict[seller_order[0].id]['quantity']) +\
                                                                                 float(remaining_qty)
+                                                                                
                     save_order_tracking_data(order, quantity=remaining_qty, status='cancelled', imei='')
                     temp_order_quantity = float(order.quantity) - float(remaining_qty)
                     if temp_order_quantity > 0:

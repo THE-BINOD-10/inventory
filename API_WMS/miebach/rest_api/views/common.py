@@ -2251,9 +2251,9 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if sale_through:
         filter_params['sale_through__iexact'] = sale_through
     if from_price:
-        filter_params['mrp__gte'] = int(from_price)
+        filter_params['price__gte'] = int(from_price)
     if to_price:
-        filter_params['mrp__lte'] = int(to_price)
+        filter_params['price__lte'] = int(to_price)
 
     start, stop = indexes.split(':')
     start, stop = int(start), int(stop)

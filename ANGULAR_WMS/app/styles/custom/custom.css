@@ -283,6 +283,16 @@ h1 small {
 .toggle-filter .toggle-body .filter-box .box-body > span {
   padding: 3px 5px;
 }
+.toggle-filter .toggle-body .filter-table th,
+.toggle-filter .toggle-body .filter-table td {
+  padding: 5px;
+  text-align: center;
+}
+.toggle-filter .toggle-body .filter-table .form-control,
+.toggle-filter .toggle-body .filter-table input {
+  padding: 2px 6px !important;
+  height: 25px !important;
+}
 .kk-timeline .round {
   width: 25px;
   height: 25px;

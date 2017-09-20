@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     var vm = this;
     vm.service = Service;
     vm.service.print_enable = false;
+    vm.permissions = Session.roles.permissions;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -29,9 +30,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('PO Reference').withTitle('PO Reference'),
         DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
         DTColumnBuilder.newColumn('Description').withTitle('Description'),
-        DTColumnBuilder.newColumn('Received Quantity').withTitle('Received Quantity')
+        //DTColumnBuilder.newColumn('Received Quantity').withTitle('Received Quantity')
     ];
 
+  if(vm.permissions.use_imei){
+    vm.dtColumns.push(DTColumnBuilder.newColumn('Serial Number').withTitle('Serial Number'));
+  }
+  else {
+    vm.dtColumns.push(DTColumnBuilder.newColumn('Received Quantity').withTitle('Received Quantity'));
+  }
   vm.dtInstance = {};
 
   vm.empty_data = {

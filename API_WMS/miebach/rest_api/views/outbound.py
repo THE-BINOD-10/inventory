@@ -801,8 +801,9 @@ def batch_generate_picklist(request, user=''):
     if data:
         order_status = data[0]['status']
 
-    return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,
-                                    'order_status': order_status, 'user': request.user.id}))
+    return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,\
+                                    'order_status': order_status, 'user': request.user.id,\
+                                    'sku_total_quantities': sku_total_quantities}))
 
 def get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks, reserved_instances):
     stock_left = 0
@@ -3214,9 +3215,10 @@ def print_shipment(request, user=''):
 @login_required
 @get_admin_user
 def get_sku_categories(request, user=''):
-    brands, categories, sizes, colors = get_sku_categories_data(request, user)
+    brands, categories, sizes, colors, categories_details = get_sku_categories_data(request, user)
     stages_list = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
-    return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list, 'colors': colors}))
+    return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,\
+                                    'colors': colors, 'categories_details': categories_details}))
 
 def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id=''):
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku_id').distinct().annotate(in_stock=Sum('quantity'))

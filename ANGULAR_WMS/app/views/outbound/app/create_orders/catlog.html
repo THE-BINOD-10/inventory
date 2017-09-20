@@ -1,5 +1,5 @@
 <div class="clearfix render-items" style="padding-top: 60px;">
-  <div ng-if="showCase.pdfDownloading" style="position: fixed;z-index: 101;width: 100%;height: 100%;top: 0px;background: rgba(0, 0, 0, 0.1);padding-top: 125px;"><img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;"></div>
+  <!--<div ng-if="showCase.pdfDownloading" style="position: fixed;z-index: 101;width: 100%;height: 100%;top: 0px;background: rgba(0, 0, 0, 0.1);padding-top: 125px;"><img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;"></div>-->
   <div class="row style-menu" style="height: 60px;position: absolute;top:0px;width:100%;z-index:100">
     <div class="col-md-4 col-sm-4 col-xs-4">
       <div class="menu-left" style="line-height: 60px">
@@ -207,7 +207,21 @@
       </div>
     </div>-->
   </div>
-  <div class="item-display row">
+  <div class="item-display row" ng-if="showCase.catDisplay">
+    <div class="col-md-3 col-sm-3 col-xs-4 class-item" ng-repeat="cat in showCase.all_cate" ng-click="showCase.change_category(cat)" style="padding: 10px 5px 0px 5px;">
+      <div>
+        <img ng-src="{{ showCase.service.check_image_url(showCase.categories_details[cat]) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
+        <br>
+        <div>
+          <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{cat}}</p>
+        </div>
+      </div>
+    </div>
+    <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="showCase.all_cate.length == 0" style="color:white">
+      <h5>------ No Category Found ------</h5>
+    </div>
+  </div>
+  <div class="item-display row" ng-if="!showCase.catDisplay">
     <div class="col-md-2 col-sm-3 col-xs-4 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="$state.go('user.App.Style', {styleId: item.sku_class})"><!--ng-click="showCase.open_style(item.sku_class,item); $state.go('user.App.Style')">-->
       <div>
         <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">

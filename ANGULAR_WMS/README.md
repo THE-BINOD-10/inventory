@@ -15,8 +15,10 @@ Installing requirements:
 
 5.After installing bower it will install all dependencies in "bower_componentes" directory.Move bower_componentes folder into app directory with the name "vendor".
 
-5.Change api url in following directory.
+6.Change api url in following directory.
   directory : 'app/scripts/extensions/auth/session.js'
 
-5.Finally To run project use following command.Run this command where 'Gruntfile.js' exist.
+7.Please check firebase url in "index.html" before starting the project. If it contains prod firebase then change it to some other.
+
+8.Finally To run project use following command.Run this command where 'Gruntfile.js' exist.
   command : grunt serve

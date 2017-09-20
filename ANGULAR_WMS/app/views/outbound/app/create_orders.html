@@ -2,6 +2,9 @@
 <div class="app-body">
   <p class="hide">{{showCase.details}}</p>
   <div class="page-layout no-scroll create_red app_scroll" ng-controller="appCreateOrders as showCase">
+    <div ng-if="showCase.pdfDownloading" style="position: fixed;z-index: 101;width: 100%;height: 100%;top: 0px;background: rgba(0, 0, 0, 0.5);padding-top: 125px;">
+      <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+    </div>
     <div>
       <div class="layout-header" ng-if="$state.current.name != 'user.App.Products'" style="min-height: initial;padding: 0px;position:relative">
         <div ng-include="'views/App/create_orders/company_name.html'"></div>

@@ -2100,21 +2100,26 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
     categories = list(sku_master.exclude(sku_category='').filter(**filter_params).values_list('sku_category', flat=True).distinct())
     brands = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
     sizes = list(sku_master.exclude(sku_brand='').values_list('sku_size', flat=True).order_by('sequence').distinct())
-    print sizes
     sizes = list(OrderedDict.fromkeys(sizes))
-    print sizes
     colors = list(sku_master.exclude(sku_brand='').exclude(color='').values_list('color', flat=True).distinct())
     _sizes = {}
     integer = []
     character = []
+    categories_details = {}
+    for category in categories:
+        categories_details[category] = ""
+        category = sku_master.filter(sku_category = category)
+        if category:
+            category = category[0]
+            if category.image_url:
+                categories_details[category.sku_category] = resize_image(category.image_url, user)
     for size in sizes:
         try:
             integer.append(int(eval(size)))
         except:
             character.append(size)
     _sizes = {'type2': integer, 'type1': character}
-    print _sizes
-    return brands, sorted(categories), _sizes, colors
+    return brands, sorted(categories), _sizes, colors, categories_details
 
 
 def get_sku_available_stock(user, sku_masters, query_string, size_dict):

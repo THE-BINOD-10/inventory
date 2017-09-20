@@ -81,7 +81,7 @@
           <span><b>Sizes: </b></span>
         </div>
         <div class="box-body mt10" style="overflow: auto;">
-          <table class="table table-bordered">
+          <table class="table table-bordered filter-table">
             <!--<thead>
               <tr style="min-width:30px">
                 <th style="text-align:center" ng-repeat="sizewise in showCase.filterData.brand_size_data">{{sizewise}}</th>
@@ -93,15 +93,15 @@
               </tr>
             </tbody>-->
             <thead>
-              <tr style="min-width:30px">
-                <th>size</th>
-                <th>value</th>
+              <tr>
+                <th>Size</th>
+                <th>Value</th>
               </tr>
             </thead>
             <tbody>
-              <tr style="min-width:30px" ng-repeat="sizewise in showCase.filterData.brand_size_data">
+              <tr ng-repeat="sizewise in showCase.filterData.brand_size_data">
                 <td style="text-align:center">{{sizewise}}</td>
-                <td style="text-align:center"><input style="min-width: 60px"               name="{{sizewise}}" class="form-control number" type="string" placeholder="Stock Quantity" ng-model="showCase.filterData.size_filter[sizewise]"/></td>
+                <td style="text-align:center"><input name="{{sizewise}}" class="form-control number" type="string" placeholder="Stock Quantity" ng-model="showCase.filterData.size_filter[sizewise]"/></td>
               </tr>
             </tbody>
           </table>

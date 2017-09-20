@@ -159,7 +159,7 @@ def get_price_code(price):
 @register.filter
 def get_size_wise_stock(data):
 
-    quantity_list = "";
+    quantity_list = [];
     for size in data:
-        quantity_list = quantity_list + size['sku_size'] + "-" + str(int(size['physical_stock'])) + ", "
-    return quantity_list
+        quantity_list.append(size['sku_size'] + "-" + str(int(size['physical_stock'])))
+    return ", ".join(quantity_list)

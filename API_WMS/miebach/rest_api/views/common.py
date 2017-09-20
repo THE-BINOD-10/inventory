@@ -2110,7 +2110,10 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
     categories_details = {}
     for category in categories:
         categories_details[category] = ""
-        category = sku_master.filter(sku_category = category)
+        if user.username == 'sagar_fab' and category == 'Gents Polo':
+            category = sku_master.filter(sku_category = category).order_by('sequence')
+        else:
+            category = sku_master.filter(sku_category = category)
         if category:
             category = category[0]
             if category.image_url:

@@ -269,6 +269,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     count = 0
     for data in master_data[start_index:stop_index]:
         prepare_str = ''
+        shipment_date = ''
         create_date_value, order_marketplace, order_customer_name, picklist_id, remarks = '', [], [], '', ''
         picklist_obj = all_picks.filter(picklist_number=data['picklist_number'])
         reserved_quantity_sum_value = picklist_obj.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
@@ -4582,7 +4583,10 @@ def picklist_delete(request, user=""):
                         cancelled_orders_dict[seller_order[0].id].setdefault('quantity', 0)
                         cancelled_orders_dict[seller_order[0].id]['quantity'] = float(cancelled_orders_dict[seller_order[0].id]['quantity']) +\
                                                                                 float(remaining_qty)
-                                                                                
+
+                    if picked_qty <= 0 and not seller_order:
+                        order.delete()
+                        continue                                                                                
                     save_order_tracking_data(order, quantity=remaining_qty, status='cancelled', imei='')
                     temp_order_quantity = float(order.quantity) - float(remaining_qty)
                     if temp_order_quantity > 0:

@@ -269,6 +269,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     count = 0
     for data in master_data[start_index:stop_index]:
         prepare_str = ''
+        shipment_date = ''
         create_date_value, order_marketplace, order_customer_name, picklist_id, remarks = '', [], [], '', ''
         picklist_obj = all_picks.filter(picklist_number=data['picklist_number'])
         reserved_quantity_sum_value = picklist_obj.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
@@ -2607,6 +2608,7 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
             val['wms_code'] = order.sku.wms_code
             val['imei'] = data['serials']
             insert_order_serial(None, val, order=order)
+            
             for stock in order_stocks:
                 picked_quantity = 0
                 if float(stock.quantity) <= needed_quantity:
@@ -2621,18 +2623,18 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
 
                 mod_locations.append(stock.location.location)
 
-                new_picklist = Picklist.objects.create(picklist_number=picklist_number,reserved_quantity=0,picked_quantity=needed_quantity,
-                                                       remarks='Direct-Dispatch Orders', status='picked', creation_date=creation_date,
+                new_picklist = Picklist.objects.create(picklist_number=picklist_number,reserved_quantity=0,picked_quantity=picked_quantity,
+                                                       remarks='Direct-Dispatch Orders', status='dispatched', creation_date=creation_date,
                                                        order_id=order.id,stock_id=stock.id)
-                pick_loc = PicklistLocation.objects.create(quantity=needed_quantity,status=0,creation_date=creation_date,
+                pick_loc = PicklistLocation.objects.create(quantity=picked_quantity,status=0,creation_date=creation_date,
                                                            updation_date=creation_date,picklist_id=new_picklist.id,stock_id=stock.id,
                                                            reserved=0)
-                order_summary = SellerOrderSummary.objects.create(picklist_id=new_picklist.id, pick_number=1, quantity=needed_quantity,
+                order_summary = SellerOrderSummary.objects.create(picklist_id=new_picklist.id, pick_number=1, quantity=picked_quantity,
                                                                   order_id=order.id, creation_date=creation_date)
                 needed_quantity -= picked_quantity
                 if needed_quantity <= 0:
                     break
-            order.status = 0
+            order.status = 2
             order.save()
 
     if mod_locations:
@@ -4553,7 +4555,7 @@ def picklist_delete(request, user=""):
                 seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id=order.id)
                 if seller_orders:
                     seller_orders.update(status=1)
-            OrderLabels.objects.filter(order_id__in=order_ids, picklist_number=picklist_id).update(picklist_number=0)
+            OrderLabels.objects.filter(order_id__in=order_ids, picklist__picklist_number=picklist_id).update(picklist_number=0)
             picklist_objs.delete()
             end_time = datetime.datetime.now()
             duration = end_time - st_time
@@ -4582,7 +4584,10 @@ def picklist_delete(request, user=""):
                         cancelled_orders_dict[seller_order[0].id].setdefault('quantity', 0)
                         cancelled_orders_dict[seller_order[0].id]['quantity'] = float(cancelled_orders_dict[seller_order[0].id]['quantity']) +\
                                                                                 float(remaining_qty)
-                                                                                
+
+                    if picked_qty <= 0 and not seller_order:
+                        order.delete()
+                        continue
                     save_order_tracking_data(order, quantity=remaining_qty, status='cancelled', imei='')
                     temp_order_quantity = float(order.quantity) - float(remaining_qty)
                     if temp_order_quantity > 0:
@@ -5673,9 +5678,9 @@ def get_order_labels(request, user=''):
     for picklist in picklists:
         if not picklist.order:
             continue
-        labels = OrderLabels.objects.filter(order_id=picklist.order_id, status=1).exclude(picklist_number=picklist_number)
+        labels = OrderLabels.objects.filter(order_id=picklist.order_id, status=1).exclude(picklist__picklist_number=picklist_number)
         label_count = 0
-        mapped_labels = OrderLabels.objects.filter(picklist_number=picklist_number, status=1, order_id=picklist.order_id)
+        mapped_labels = OrderLabels.objects.filter(picklist_id=picklist.id, status=1, order_id=picklist.order_id)
         for map_label in mapped_labels:
             data.append({'label': map_label.label, 'wms_code': map_label.order.sku.sku_code, 'quantity': 1})
             label_count += 1
@@ -5685,7 +5690,7 @@ def get_order_labels(request, user=''):
         for label in labels:
             if int(picklist.reserved_quantity) == int(label_count):
                 break
-            label.picklist_number = picklist.picklist_number
+            label.picklist_id = picklist.id
             label.save()
             data.append({'label': label.label, 'wms_code': label.order.sku.sku_code, 'quantity': 1})
             label_count += 1

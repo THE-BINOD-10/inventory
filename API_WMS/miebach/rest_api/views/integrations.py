@@ -961,3 +961,14 @@ def update_order_cancel(orders_data, user='', company_name=''):
     except:
         traceback.print_exc()
 
+def update_order_returns(orders_data, user='', company_name=''):
+    NOW = datetime.datetime.now()
+    try:
+        for key, order_dict in orders_data.iteritems():
+            original_order_id = order_dict['order_details']['original_order_id']
+            filter_params = {'user': user.id, 'original_order_id': original_order_id, 'sku_id': order_dict['order_details']['sku_id'],
+                             'order_id': order_dict['order_details']['order_id'], 'order_code': order_dict['order_details']['order_code']}
+
+        return "Success"
+    except:
+        traceback.print_exc()

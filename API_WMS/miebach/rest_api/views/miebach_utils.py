@@ -25,7 +25,7 @@ SKU_GROUP_FIELDS = {'group': '', 'user': ''}
 
 ADJUST_INVENTORY_EXCEL_HEADERS = ['WMS Code', 'Location', 'Physical Quantity', 'Reason']
 
-DECLARATIONS = {'default': 'We declare that this invoice hows actual price of the goods described inclusive of taxes and that all particulars are true and correct.',
+DECLARATIONS = {'default': 'We declare that this invoice shows actual price of the goods described inclusive of taxes and that all particulars are true and correct.',
                 'TranceHomeLinen': 'Certify that the particulars given above are true and correct and the amount indicated represents the price actually charged and that there is no flow of additional consideration directly or indirectly.\n Subject to Banglore Jurisdication'}
 
 PERMISSION_KEYS =['add_qualitycheck', 'add_skustock', 'add_shipmentinfo', 'add_openpo', 'add_orderreturns', 'add_openpo', 'add_purchaseorder',
@@ -862,8 +862,11 @@ RETURNS_TYPE_MAPPING = {'return to origin(rto)': 'rto', 'customer initiated retu
 
 
 # Myntra Invoice Address based on username
-MYNTRA_BANGALORE_ADDRESS = 'Myntra Designs Pvt Ltd\nNumber 88/17-18 and 19, Khata number 44 and 45, Ward Number 7 ,\n\
-                            Singasandra Village, Hongasandra panchayat,\nBegur Hobli, Bangalore - 560068\nKarnataka       TIN:29910754899'
+MYNTRA_BANGALORE_ADDRESS = 'Myntra Jabong India Pvt Ltd \n Survey Numbers 231, 232 and 233, Soukya Road,\n Samethanahalli Village,\n\
+                            Anugondanahalli Hobli, Hoskote Taluk,\n Bangalore;-560087 Karnataka\n GSTIN: 29AAACQ3774A2ZI'
+
+MYNTRA_JABONG_ADDRESS = 'Jabong Marketplace\n DTDC Facility Premise No. 79/2,79/1A & 78/6 Dasanpura Village,\nDasanpura Hobli, Bangalore,\
+                         North Taluk,Bangalore,Karnataka,562162\n GSTIN: 29AAACQ3774A2ZI'
 
 MYNTRA_MUMBAI_ADDRESS = 'Myntra jabong India Pvt Ltd.\nKsquare Industrial Park, Warehouse 4\n\
                          Before Padgha Toll naka Nashik-Mumbai Highway \nNear Pushkar Mela Hotel Rahul Narkhede,\n\
@@ -878,7 +881,7 @@ JABONG_ADDRESS = 'Jabong Marketplace Mahindra Logistics Limited\nBlock No. H2 Sa
 
 USER_CHANNEL_ADDRESS = {'campus_sutra:myntra': MYNTRA_BANGALORE_ADDRESS, 'adam_clothing:myntra': MYNTRA_MUMBAI_ADDRESS,
                         'adam_clothing1:myntra': MYNTRA_MUMBAI_ADDRESS, 'adam_clothing1:myntra:bulk': MYNTRA_BULK_ADDRESS,
-                        'adam_clothing1:jabong': JABONG_ADDRESS
+                        'adam_clothing1:jabong': JABONG_ADDRESS, 'campus_sutra:jabong': MYNTRA_JABONG_ADDRESS
                        }
 
 MYNTRA_BULK_ADDRESS = 'MYNTRA DESIGNS PVT LTD\nKsquare Industrial Park, Warehouse 4\n\
@@ -938,10 +941,10 @@ GSTIN_USER_MAPPING = {'sagar_fab': '29ABEFS4899J1ZA', 'adam_clothing1': '2788OFB
 ORDER_LABEL_EXCEL_HEADERS = ['Order ID', 'SKU Code', 'Label']
 
 MYNTRA_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 2), ('order_id', 0), ('label', 1), ('vendor_sku', 4),
-                                           ('mrp', 7)))
+                                           ('title', 3), ('size', 5), ('color', 6), ('mrp', 7)))
 
 MYNTRA_LABEL_EXCEL_MAPPING1 = OrderedDict(( ('sku_code', 2), ('order_id', 0), ('label', 1), ('vendor_sku', 4),
-                                           ('mrp', 8)))
+                                            ('title', 3), ('size', 5), ('color', 6), ('mrp', 8)))
 
 ORDER_LABEL_EXCEL_MAPPING = OrderedDict(( ('sku_code', 1), ('order_id', 0), ('label', 2) ))
 

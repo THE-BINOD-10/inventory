@@ -261,7 +261,7 @@ def print_dispatch_summary(request, user=''):
     if request.GET.get('datatable', '') == 'serialView':
         serial_view = True
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_dispatch_data(search_params, user, request.user)
+    report_data = get_dispatch_data(search_params, user, request.user, serial_view = serial_view)
     report_data = report_data['aaData']
 
     if report_data:

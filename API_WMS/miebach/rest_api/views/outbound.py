@@ -3220,7 +3220,7 @@ def get_sku_categories(request, user=''):
     return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,\
                                     'colors': colors, 'categories_details': categories_details}))
 
-def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id=''):
+def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id='', prices_dict={}):
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku_id').distinct().annotate(in_stock=Sum('quantity'))
     purchase_orders = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id).\
                                            values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
@@ -3259,6 +3259,7 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
         sku_master[ind]['style_quantity'] = total_quantity
         sku_master[ind]['taxes'] = []
         customer_data = []
+        sku_master[ind]['your_price'] = prices_dict.get(sku_master[ind]['id'], 0)
         if customer_id:
             customer_user = CustomerUserMapping.objects.filter(user = customer_id)[0].customer.customer_id
             customer_data = CustomerMaster.objects.filter(customer_id=customer_user, user = user.id)
@@ -3349,8 +3350,9 @@ def get_sku_catalogs(request, user=''):
     data, start, stop = get_sku_catalogs_data(request, user)
     download_pdf = request.GET.get('share', '')
     if download_pdf:
+        date = get_local_date(user, datetime.datetime.now())
         t = loader.get_template('templates/customer_search.html')
-        rendered = t.render({'data': data, 'user': request.user.first_name})
+        rendered = t.render({'data': data, 'user': request.user.first_name, 'date': date})
 
         if not os.path.exists('static/pdf_files/'):
             os.makedirs('static/pdf_files/')

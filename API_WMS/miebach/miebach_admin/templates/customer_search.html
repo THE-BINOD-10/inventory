@@ -35,13 +35,16 @@
 </style>
 
 <div class='row'>
-<div class="print-invoice">
-  <div class="row col-md-12 no-padding" style="background-color: #ed1c24 !important;color: white;">
-    <h4 style="margin-bottom:10px" align="center">{{ user }}</h4>
-  </div>
+  <div class="print-invoice">
+    <div class="row col-md-12 no-padding" style="background-color: #ed1c24 !important;color: white;">
+      <h4 style="margin-bottom:10px" align="center">{{ user }}</h4>
+      <span class="pull-right" style="position: absolute;top: 10px;right: 20px;font-size:12px">Date&Time: {{date}}</span>
+    </div>
 {% for obj in data %}
-{% if forloop.counter|divisibleby:2 %}
-<div class='row' {% if forloop.counter|divisibleby:5 %} style="page-break-after: always;" {% endif %}>
+{% if forloop.first %}
+<div class='row'>
+{% elif not forloop.counter|divisibleby:2 %}
+<div class='row' {% if forloop.counter|divisibleby:10 %} style="page-break-after: always;" {% endif %}>
 {% endif %}
 <div class="col-md-6 col-sm-6 col-xs-6" style="border-top: 1px solid #f0f0f0;padding-top:10px;padding-bottom:10px">
   <div class='row'>
@@ -70,4 +73,5 @@
 {% endif %}
 {% endfor %}
 </div>
+<p style="margin-top: 20px;width:100%;margin-left:20"><b>Note:</b> Delivery date could vary basis the actual stock availability at the time of ordering.</p>
 </div>

@@ -1,6 +1,6 @@
 'use strict';
 
-function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth) {
+function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $modal) {
 
   $scope.msg = "start";
   var vm = this;
@@ -188,7 +188,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
-                to_price: vm.toPrice}
+                to_price: vm.toPrice, is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin}
     if(status) {
       angular.copy([], vm.catlog_data.data);
     }
@@ -276,6 +276,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.color = "";
     vm.filterData.fromPrice = "";
     vm.filterData.toPrice = "";
+    vm.fromPrice = vm.filterData.fromPrice;
+    vm.toPrice = vm.filterData.toPrice;
     vm.size_filter_data = vm.filterData.size_filter
 
     vm.showFilter = false;
@@ -339,6 +341,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.filterData.selectedCats = {};
       vm.filterData.selectedCats[category] = true;
     }
+    vm.showFilter = false;
     vm.get_category(true);
   }
 
@@ -567,7 +570,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.showFilters = false;
 
   vm.applyFilters = function(){
-    console.log(vm.filterData);
+    console.log(vm.filterData, $state);
     var brand= [];
     var category= [];
     var color = [];
@@ -608,6 +611,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.toPrice = vm.filterData.toPrice;
     vm.showFilter = false;
     vm.get_category(true);
+    if( $state.$current.name == "user.App.Brands") {
+      $state.go('user.App.Products');
+    }
     $window.scrollTo(0, angular.element(".app_body").offsetTop);
   }
 
@@ -644,10 +650,16 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.color = "";
       vm.filterData.fromPrice = "";
       vm.filterData.toPrice = "";
+      vm.fromPrice = vm.filterData.fromPrice;
+      vm.toPrice = vm.filterData.toPrice;
 
     vm.catlog_data.index = "";
     vm.size_filter_data = vm.filterData.size_filter
-    vm.showFilter = false;
+    if( $state.$current.name == "user.App.Brands") {
+      return false;
+    } else {
+      vm.showFilter = false;
+    }
     vm.get_category(true);
     $window.scrollTo(0, angular.element(".app_body").offsetTop);
   }
@@ -668,7 +680,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.downloadPdf = function() {
     var size_stock = JSON.stringify(vm.size_filter_data);
     var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
-                sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true}
+                sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true,
+                color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice,
+                is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin}
     vm.pdfDownloading = true;
     vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(response) {
       if(response.message) {
@@ -678,8 +692,81 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.pdfDownloading = false;
     });
   }
+
+  //margin value
+  vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true};
+  vm.addMargin = function() {
+
+    var mod_data = vm.marginData;
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/app/create_orders/add_margin.html',
+      controller: 'addMarginCtrl',
+      controllerAs: '$ctrl',
+      size: 'md',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+       vm.marginData = selectedItem;
+       if (vm.marginData.margin_type == 'Margin Percentage') {
+         vm.marginData.is_margin_percentage = true;
+         vm.marginData.margin = vm.marginData.margin_percentage;
+       } else {
+         vm.marginData.is_margin_percentage = false;
+         vm.marginData.margin = vm.marginData.margin_value;
+       }
+    })
+  }
+
+  vm.category_image_map = {'Denim Shirt': 'software-catagaies-final_08.png',
+                           'Formal Shirt': 'software-catagaies-final_34.png',
+                           'Gents Polo': 'software-catagaies-final_11.png',
+                           'Hoodie': 'software-catagaies-final_44.png',
+                           'Hoodie - 300 GSM': 'software-catagaies-final_21.png',
+                           'Hoodie - 300 GSM ZIP': 'software-catagaies-final_24.png',
+                           'Hoodie - 400 GSM': 'software-catagaies-final_22.png',
+                           'Hoodie - 400 GSM ZIP': 'software-catagaies-final_24.png',
+                           'Ladies Polo': 'software-catagaies-final_06.png',
+                           'Polo': 'software-catagaies-final_52.png', 
+                           'Round Neck': 'software-catagaies-final_46.png',
+                           'Scott Basic - RN': 'software-catagaies-final_57.png',
+                           'V Neck T Shirt': 'software-catagaies-final_37.png',
+                           //'T Shirt': 'software-catagaies-final_06.png',
+                           'Sleeve Less Jacket': 'software-catagaies-final_13.png',
+                           'Round Neck T Shirt': 'software-catagaies-final_35.png',
+                           'Slub Round Neck': 'software-catagaies-final_32.png'};
+
+  vm.get_category_image = function(category) {
+
+    if(vm.category_image_map[category]) {
+      return '/images/categories/'+vm.category_image_map[category];
+    } else {
+      return '/images/categories/default.png'
+    }
+  }
 }
 
 angular
   .module('urbanApp')
-  .controller('appCreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', appCreateOrders]);
+  .controller('appCreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', '$modal', appCreateOrders]);
+
+angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance, $modal, items) {
+  var $ctrl = this;
+  $ctrl.marginData = items;
+
+  $ctrl.margin_types = ['Margin Percentage', 'Margin Value'];
+
+  $ctrl.ok = function () {
+    $modalInstance.close($ctrl.marginData);
+  };
+
+  $ctrl.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
+});

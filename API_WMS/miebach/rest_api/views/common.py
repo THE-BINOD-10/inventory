@@ -3223,7 +3223,7 @@ def check_labels(request, user=''):
         filter_params['label'] = label
         picklist_number = request.GET.get('picklist_number', '')
         if picklist_number:
-            filter_params['picklist_number'] = picklist_number
+            filter_params['picklist__picklist_number'] = picklist_number
         order_labels = OrderLabels.objects.filter(**filter_params)
         data = {}
         if order_labels:

@@ -4555,7 +4555,7 @@ def picklist_delete(request, user=""):
                 seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id=order.id)
                 if seller_orders:
                     seller_orders.update(status=1)
-            OrderLabels.objects.filter(order_id__in=order_ids, picklist__picklist_number=picklist_id).update(picklist_number=0)
+            OrderLabels.objects.filter(order_id__in=order_ids, picklist__picklist_number=picklist_id).update(picklist=None)
             picklist_objs.delete()
             end_time = datetime.datetime.now()
             duration = end_time - st_time

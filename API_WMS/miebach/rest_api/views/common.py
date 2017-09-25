@@ -3223,7 +3223,7 @@ def check_labels(request, user=''):
         filter_params['label'] = label
         picklist_number = request.GET.get('picklist_number', '')
         if picklist_number:
-            filter_params['picklist_number'] = picklist_number
+            filter_params['picklist__picklist_number'] = picklist_number
         order_labels = OrderLabels.objects.filter(**filter_params)
         data = {}
         if order_labels:
@@ -3365,12 +3365,15 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 single['MRP'] = str(sku_data.price).replace("'",'')
                 order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
                 if order_label:
-                    single["Vendor SKU"] = order_label[0].vendor_sku
-                    single["SKUCode"] = order_label[0].item_sku
-                    single['MRP'] = order_label[0].mrp
+                    order_label = order_label[0]
+                    single["Vendor SKU"] = order_label.vendor_sku
+                    single["SKUCode"] = order_label.item_sku
+                    single['MRP'] = order_label.mrp
                     single['Phone'] = user_prf.phone_number
                     single['Email'] = user.email
-                    single["PO No"] = order_label[0].order.original_order_id
+                    single["PO No"] = order_label.order.original_order_id
+                    single['Color'] = order_label.color.replace("'",'')
+                    single['Size'] = str(order_label.size).replace("'",'')
                     if not single["PO No"]:
                         single["PO No"] = str(order_label[0].order.order_code) + str(order_label[0].order.order_id)
                 address = user_prf.address

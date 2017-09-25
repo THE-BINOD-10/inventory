@@ -136,8 +136,11 @@ def print_receipt_summary(request, user=''):
 @login_required
 @get_admin_user
 def get_dispatch_filter(request, user=''):
+    serial_view = False
+    if request.GET.get('datatable', '') == 'serialView':
+        serial_view = True
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_dispatch_data(search_params, user, request.user)
+    temp_data = get_dispatch_data(search_params, user, request.user, serial_view=serial_view)
 
     return HttpResponse(json.dumps(temp_data, cls=DjangoJSONEncoder), content_type='application/json')
 
@@ -254,6 +257,9 @@ def print_daily_production_report(request, user=''):
 def print_dispatch_summary(request, user=''):
     search_parameters = {}
 
+    serial_view = False
+    if request.GET.get('datatable', '') == 'serialView':
+        serial_view = True
     headers, search_params, filter_params = get_search_params(request)
     report_data = get_dispatch_data(search_params, user, request.user)
     report_data = report_data['aaData']
@@ -677,7 +683,10 @@ def excel_reports(request, user=''):
             if 'date' in dat:
                 temp[1] = datetime.datetime.strptime(temp[1], '%m/%d/%Y')
             search_params[temp[0]] = temp[1]
-    report_data = func_name(search_params, user, request.user)
+    params = [search_params, user, request.user]
+    if 'datatable=serialView' in form_data:
+        params.append(True)
+    report_data = func_name(*params)
     if isinstance(report_data, tuple):
         report_data = report_data[0]
     if temp[1] in ['grn_inventory_addition', 'sales_returns_addition', 'seller_stock_summary_replace'] and len(report_data['aaData']) > 0:

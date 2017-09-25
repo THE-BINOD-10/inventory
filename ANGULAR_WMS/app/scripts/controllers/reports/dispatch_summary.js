@@ -10,7 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service.print_enable = false;
 
     vm.g_data = Data.dispatch_summary_report;
-
+    vm.model_data = {'datatable': vm.g_data.view}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'get_dispatch_filter/',
@@ -47,7 +47,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'wms_code': '',
                     'sku_code': '',
                     'order_id': '',
-                    'imei_number': ''
+                    'imei_number': '',
+                    'datatable': vm.g_data.view
                     };
 
    vm.model_data = {};

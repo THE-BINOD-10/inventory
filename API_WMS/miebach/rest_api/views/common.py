@@ -4011,7 +4011,6 @@ def check_and_update_order_status_data(shipped_orders_dict, user, status=''):
             if isinstance(call_response, dict) and call_response.get('status') == 1:
                 init_log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
         except Exception as e:
-        except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
             log.info('Update Order returns or cancelled status failed for %s and params are %s and error statement is %s' % (str(user.username), str(shipped_orders_dict), str(e)))

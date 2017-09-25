@@ -117,6 +117,15 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                     'PutawayConfirmation': ['Job Code', 'Creation Date'] }
     }
 
+    //Dispatch Summary Report
+    self.dispatch_summary_report = {
+
+                            alternate_view: false,
+                            view: 'normalView',
+                            tb_headers: {'normalView': ['Order ID', 'WMS Code', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
+                                         'serialView': ['Order ID', 'WMS Code', 'Description', 'Customer Name', 'Serial Number', 'Date', 'Time']}
+                         }
+
     if(Session.roles.permissions['batch_switch']) {
 
       self.other_view.view = 'SKUView'

@@ -3157,6 +3157,12 @@ def validate_and_insert_order_labels(request, reader, user, no_of_rows, fname, f
                         label_mapping_dict[key] = float(cell_data)
                     except:
                         index_status.setdefault(row_idx, set()).add('MRP should be in number')
+            elif key == 'size':
+                if cell_data:
+                    try:
+                        label_mapping_dict[key] = float(cell_data)
+                    except:
+                        label_mapping_dict[key] = cell_data
             else:
                 label_mapping_dict[key] = cell_data
         if not index_status:

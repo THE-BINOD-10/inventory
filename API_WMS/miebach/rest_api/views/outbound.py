@@ -2608,6 +2608,7 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
             val['wms_code'] = order.sku.wms_code
             val['imei'] = data['serials']
             insert_order_serial(None, val, order=order)
+            
             for stock in order_stocks:
                 picked_quantity = 0
                 if float(stock.quantity) <= needed_quantity:
@@ -2622,18 +2623,18 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
 
                 mod_locations.append(stock.location.location)
 
-                new_picklist = Picklist.objects.create(picklist_number=picklist_number,reserved_quantity=0,picked_quantity=needed_quantity,
-                                                       remarks='Direct-Dispatch Orders', status='picked', creation_date=creation_date,
+                new_picklist = Picklist.objects.create(picklist_number=picklist_number,reserved_quantity=0,picked_quantity=picked_quantity,
+                                                       remarks='Direct-Dispatch Orders', status='dispatched', creation_date=creation_date,
                                                        order_id=order.id,stock_id=stock.id)
-                pick_loc = PicklistLocation.objects.create(quantity=needed_quantity,status=0,creation_date=creation_date,
+                pick_loc = PicklistLocation.objects.create(quantity=picked_quantity,status=0,creation_date=creation_date,
                                                            updation_date=creation_date,picklist_id=new_picklist.id,stock_id=stock.id,
                                                            reserved=0)
-                order_summary = SellerOrderSummary.objects.create(picklist_id=new_picklist.id, pick_number=1, quantity=needed_quantity,
+                order_summary = SellerOrderSummary.objects.create(picklist_id=new_picklist.id, pick_number=1, quantity=picked_quantity,
                                                                   order_id=order.id, creation_date=creation_date)
                 needed_quantity -= picked_quantity
                 if needed_quantity <= 0:
                     break
-            order.status = 0
+            order.status = 2
             order.save()
 
     if mod_locations:
@@ -3221,7 +3222,7 @@ def get_sku_categories(request, user=''):
     return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,\
                                     'colors': colors, 'categories_details': categories_details}))
 
-def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id=''):
+def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id='', prices_dict={}):
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku_id').distinct().annotate(in_stock=Sum('quantity'))
     purchase_orders = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id).\
                                            values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
@@ -3260,6 +3261,7 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
         sku_master[ind]['style_quantity'] = total_quantity
         sku_master[ind]['taxes'] = []
         customer_data = []
+        sku_master[ind]['your_price'] = prices_dict.get(sku_master[ind]['id'], 0)
         if customer_id:
             customer_user = CustomerUserMapping.objects.filter(user = customer_id)[0].customer.customer_id
             customer_data = CustomerMaster.objects.filter(customer_id=customer_user, user = user.id)
@@ -3350,8 +3352,9 @@ def get_sku_catalogs(request, user=''):
     data, start, stop = get_sku_catalogs_data(request, user)
     download_pdf = request.GET.get('share', '')
     if download_pdf:
+        date = get_local_date(user, datetime.datetime.now())
         t = loader.get_template('templates/customer_search.html')
-        rendered = t.render({'data': data, 'user': request.user.first_name})
+        rendered = t.render({'data': data, 'user': request.user.first_name, 'date': date})
 
         if not os.path.exists('static/pdf_files/'):
             os.makedirs('static/pdf_files/')
@@ -4554,7 +4557,7 @@ def picklist_delete(request, user=""):
                 seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id=order.id)
                 if seller_orders:
                     seller_orders.update(status=1)
-            OrderLabels.objects.filter(order_id__in=order_ids, picklist_number=picklist_id).update(picklist_number=0)
+            OrderLabels.objects.filter(order_id__in=order_ids, picklist__picklist_number=picklist_id).update(picklist=None)
             picklist_objs.delete()
             end_time = datetime.datetime.now()
             duration = end_time - st_time
@@ -4586,7 +4589,7 @@ def picklist_delete(request, user=""):
 
                     if picked_qty <= 0 and not seller_order:
                         order.delete()
-                        continue                                                                                
+                        continue
                     save_order_tracking_data(order, quantity=remaining_qty, status='cancelled', imei='')
                     temp_order_quantity = float(order.quantity) - float(remaining_qty)
                     if temp_order_quantity > 0:
@@ -5677,9 +5680,9 @@ def get_order_labels(request, user=''):
     for picklist in picklists:
         if not picklist.order:
             continue
-        labels = OrderLabels.objects.filter(order_id=picklist.order_id, status=1).exclude(picklist_number=picklist_number)
+        labels = OrderLabels.objects.filter(order_id=picklist.order_id, status=1).exclude(picklist__picklist_number=picklist_number)
         label_count = 0
-        mapped_labels = OrderLabels.objects.filter(picklist_number=picklist_number, status=1, order_id=picklist.order_id)
+        mapped_labels = OrderLabels.objects.filter(picklist_id=picklist.id, status=1, order_id=picklist.order_id)
         for map_label in mapped_labels:
             data.append({'label': map_label.label, 'wms_code': map_label.order.sku.sku_code, 'quantity': 1})
             label_count += 1
@@ -5689,7 +5692,7 @@ def get_order_labels(request, user=''):
         for label in labels:
             if int(picklist.reserved_quantity) == int(label_count):
                 break
-            label.picklist_number = picklist.picklist_number
+            label.picklist_id = picklist.id
             label.save()
             data.append({'label': label.label, 'wms_code': label.order.sku.sku_code, 'quantity': 1})
             label_count += 1

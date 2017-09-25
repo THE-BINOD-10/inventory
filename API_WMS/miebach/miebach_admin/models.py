@@ -235,26 +235,6 @@ class OrderCharges(models.Model):
     class Meta:
         db_table = 'ORDER_CHARGES'
 
-class OrderLabels(models.Model):
-    id = BigAutoField(primary_key=True)
-    order = models.ForeignKey(OrderDetail, blank=True, null=True)
-    label = models.CharField(max_length=128, default='')
-    vendor_sku = models.CharField(max_length=128, default='')
-    item_sku = models.CharField(max_length=128, default='')
-    mrp = models.FloatField(default=0)
-    picklist_number = models.PositiveIntegerField(default=0)
-    status = models.IntegerField(default=1)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'ORDER_LABELS'
-        unique_together = ('order', 'label')
-        index_together = ('order', 'label')
-
-    def __unicode__(self):
-        return str(self.label)
-
 class SKUQuantity(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster)
@@ -428,6 +408,29 @@ class PicklistLocation(models.Model):
     class Meta:
         db_table = 'PICKLIST_LOCATION'
         index_together = ('picklist', 'stock', 'reserved')
+
+class OrderLabels(models.Model):
+    id = BigAutoField(primary_key=True)
+    order = models.ForeignKey(OrderDetail, blank=True, null=True)
+    label = models.CharField(max_length=128, default='')
+    vendor_sku = models.CharField(max_length=128, default='')
+    item_sku = models.CharField(max_length=128, default='')
+    mrp = models.FloatField(default=0)
+    title = models.CharField(max_length=256, default='')
+    size = models.CharField(max_length=32, default='')
+    color = models.CharField(max_length=64, default='')
+    picklist = models.ForeignKey(Picklist, blank=True, null=True)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_LABELS'
+        unique_together = ('order', 'label')
+        index_together = ('order', 'label')
+
+    def __unicode__(self):
+        return str(self.label)
 
 class MiscDetail(models.Model):
     id = BigAutoField(primary_key=True)

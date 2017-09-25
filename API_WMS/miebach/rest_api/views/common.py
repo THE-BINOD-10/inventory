@@ -3833,7 +3833,7 @@ def check_and_update_order_status(shipped_orders_dict, user):
     for integrate in integrations:
         order_status_dict = {}
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        all_seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id__in=shipped_orders_dict.keys(), status=0)
+        all_seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id__in=shipped_orders_dict.keys())
         all_orders = OrderDetail.objects.filter(user=user.id, id__in=shipped_orders_dict.keys())
         line_items_ids = SWXMapping.objects.filter(app_host='shotang')
         try:
@@ -3909,7 +3909,10 @@ def check_and_update_order_status(shipped_orders_dict, user):
             init_log.info(str(call_response))
             if isinstance(call_response, dict) and call_response.get('status') == 1:
                 init_log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
-        except:
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Update Order status failed for %s and params are %s and error statement is %s' % (str(user.username), str(shipped_orders_dict), str(e)))
             continue
 
 def get_returns_seller_order_id(order_detail_id, sku_code, user, sor_id=''):
@@ -3929,7 +3932,7 @@ def check_and_update_order_status_data(shipped_orders_dict, user, status=''):
     for integrate in integrations:
         order_status_dict = {}
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        all_seller_orders = SellerOrder.objects.filter(order__user=user.id, id__in=shipped_orders_dict.keys(), status=0)
+        all_seller_orders = SellerOrder.objects.filter(order__user=user.id, id__in=shipped_orders_dict.keys())
         all_orders = OrderDetail.objects.filter(user=user.id, id__in=shipped_orders_dict.keys())
         line_items_ids = SWXMapping.objects.filter(app_host='shotang')
 
@@ -4008,7 +4011,10 @@ def check_and_update_order_status_data(shipped_orders_dict, user, status=''):
             if isinstance(call_response, dict) and call_response.get('status') == 1:
                 init_log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
         except Exception as e:
-            print e.message
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Update Order returns or cancelled status failed for %s and params are %s and error statement is %s' % (str(user.username), str(shipped_orders_dict), str(e)))
             continue
 
 def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, is_list=False):

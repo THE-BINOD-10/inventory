@@ -3292,7 +3292,7 @@ def check_labels(request, user=''):
         filter_params['label'] = label
         picklist_number = request.GET.get('picklist_number', '')
         if picklist_number:
-            filter_params['picklist_number'] = picklist_number
+            filter_params['picklist__picklist_number'] = picklist_number
         order_labels = OrderLabels.objects.filter(**filter_params)
         data = {}
         if order_labels:
@@ -3434,11 +3434,15 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 single['MRP'] = str(sku_data.price).replace("'",'')
                 order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
                 if order_label:
-                    single["Vendor SKU"] = order_label[0].vendor_sku
-                    single['MRP'] = order_label[0].mrp
+                    order_label = order_label[0]
+                    single["Vendor SKU"] = order_label.vendor_sku
+                    single["SKUCode"] = order_label.item_sku
+                    single['MRP'] = order_label.mrp
                     single['Phone'] = user_prf.phone_number
                     single['Email'] = user.email
-                    single["PO No"] = order_label[0].order.original_order_id
+                    single["PO No"] = order_label.order.original_order_id
+                    single['Color'] = order_label.color.replace("'",'')
+                    single['Size'] = str(order_label.size).replace("'",'')
                     if not single["PO No"]:
                         single["PO No"] = str(order_label[0].order.order_code) + str(order_label[0].order.order_id)
                 address = user_prf.address
@@ -3898,7 +3902,7 @@ def check_and_update_order_status(shipped_orders_dict, user):
     for integrate in integrations:
         order_status_dict = {}
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        all_seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id__in=shipped_orders_dict.keys(), status=0)
+        all_seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id__in=shipped_orders_dict.keys())
         all_orders = OrderDetail.objects.filter(user=user.id, id__in=shipped_orders_dict.keys())
         line_items_ids = SWXMapping.objects.filter(app_host='shotang')
         try:
@@ -3974,7 +3978,10 @@ def check_and_update_order_status(shipped_orders_dict, user):
             init_log.info(str(call_response))
             if isinstance(call_response, dict) and call_response.get('status') == 1:
                 init_log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
-        except:
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Update Order status failed for %s and params are %s and error statement is %s' % (str(user.username), str(shipped_orders_dict), str(e)))
             continue
 
 def get_returns_seller_order_id(order_detail_id, sku_code, user, sor_id=''):
@@ -3994,7 +4001,7 @@ def check_and_update_order_status_data(shipped_orders_dict, user, status=''):
     for integrate in integrations:
         order_status_dict = {}
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        all_seller_orders = SellerOrder.objects.filter(order__user=user.id, id__in=shipped_orders_dict.keys(), status=0)
+        all_seller_orders = SellerOrder.objects.filter(order__user=user.id, id__in=shipped_orders_dict.keys())
         all_orders = OrderDetail.objects.filter(user=user.id, id__in=shipped_orders_dict.keys())
         line_items_ids = SWXMapping.objects.filter(app_host='shotang')
 
@@ -4073,7 +4080,9 @@ def check_and_update_order_status_data(shipped_orders_dict, user, status=''):
             if isinstance(call_response, dict) and call_response.get('status') == 1:
                 init_log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
         except Exception as e:
-            print e.message
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Update Order returns or cancelled status failed for %s and params are %s and error statement is %s' % (str(user.username), str(shipped_orders_dict), str(e)))
             continue
 
 def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, is_list=False):

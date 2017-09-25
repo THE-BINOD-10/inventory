@@ -1,14 +1,16 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('DispatchSummaryCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('DispatchSummaryCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data) {
 
     var vm = this;
     vm.service = Service;
     vm.service.print_enable = false;
 
+    vm.g_data = Data.dispatch_summary_report;
+    vm.model_data = {'datatable': vm.g_data.view}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'get_dispatch_filter/',
@@ -24,7 +26,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
        .withOption('serverSide', true)
        .withPaginationType('full_numbers');
 
-    vm.dtColumns = [
+    /*vm.dtColumns = [
         DTColumnBuilder.newColumn('Order ID').withTitle('Order ID'),
         DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
         DTColumnBuilder.newColumn('Description').withTitle('Description'),
@@ -33,7 +35,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('Picked Quantity').withTitle('Picked Quantity'),
         DTColumnBuilder.newColumn('Date').withTitle('Date'),
         DTColumnBuilder.newColumn('Time').withTitle('Time')
-    ];
+    ];*/
+
+    vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers[vm.g_data.view]);
 
    vm.dtInstance = {};
 
@@ -41,11 +45,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'from_date': '',
                     'to_date': '',
                     'wms_code': '',
-                    'sku_code': ''
+                    'sku_code': '',
+                    'order_id': '',
+                    'imei_number': '',
+                    'datatable': vm.g_data.view
                     };
 
    vm.model_data = {};
    angular.copy(vm.empty_data, vm.model_data);
+
+  vm.change_datatable = function() {
+    Data.dispatch_summary_report.view = (vm.g_data.alternate_view)? 'serialView': 'normalView';
+    $state.go($state.current, {}, {reload: true});
+  }
 
   }
 

@@ -125,6 +125,7 @@ h1 small {
   margin: 10px 0px 0px 0px;
   padding: 5px 5px;
   text-align: center;
+  position: relative;
 }
 .class-item {
   overflow: hidden;
@@ -254,7 +255,8 @@ h1 small {
 }
 .toggle-filter {
   position: absolute;
-  margin-top: 70px;
+  top: 0px;
+  left: 0px;
   z-index: 120;
   background: white;
   width: 250px;
@@ -274,6 +276,7 @@ h1 small {
   overflow: hidden;
 }
 .toggle-filter .toggle-body .filter-box {
+  text-align: left;
   margin-top: 5px;
   margin-bottom: 5px;
 }

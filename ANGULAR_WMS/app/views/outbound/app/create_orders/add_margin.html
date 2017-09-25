@@ -1,0 +1,30 @@
+<div class="modal-header">
+  <h4 class="modal-title" id="modal-title">ADD MARGIN</h4>
+</div>
+<div class="modal-body" id="modal-body">
+  <div class="row" ui-jq="checkBo">
+    <div class="col-md-2 col-sm-1"></div>
+    <div class="col-md-4 col-sm-5 col-xs-6" ng-repeat="style in $ctrl.margin_types">
+      <label class="cb-radio cb-sm" ng-click="$ctrl.marginData.margin_type = style">
+        <input type="radio" ng-checked="($ctrl.marginData.margin_type == style)?'checked': '';" name="default-radio-name" ng-model="$ctrl.marginData.margin_type"/>{{style}}
+      </label>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-2 col-sm-1"></div>
+    <div class="col-md-4 col-sm-5 col-xs-6">
+      <div class="form-group">
+        <input type="text" name="margin" class="form-control" ng-model="$ctrl.marginData.margin_percentage" ng-readonly="$ctrl.marginData.margin_type == $ctrl.margin_types[1] || $ctrl.marginData.margin_type == ''" decimal-number>
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-5 col-xs-6">
+      <div class="form-group">
+        <input type="text" name="margin" class="form-control number" ng-model="$ctrl.marginData.margin_value" ng-readonly="$ctrl.marginData.margin_type == $ctrl.margin_types[0] || $ctrl.marginData.margin_type == ''">
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-primary" type="button" ng-click="$ctrl.ok()">OK</button>
+  <button class="btn btn-warning" type="button" ng-click="$ctrl.cancel()">Cancel</button>
+</div>

@@ -17,7 +17,7 @@ from django.contrib.auth.models import User,Permission
 from xlwt import Workbook, easyxf
 from xlrd import open_workbook, xldate_as_tuple
 import operator
-from django.db.models import Q, F
+from django.db.models import Q, F, Value
 from django.conf import settings
 from sync_sku import *
 import csv
@@ -2118,6 +2118,7 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
             category = category[0]
             if category.image_url:
                 categories_details[category.sku_category] = resize_image(category.image_url, user)
+
     for size in sizes:
         try:
             integer.append(int(eval(size)))
@@ -2223,47 +2224,114 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     from_price = request_data.get('from_price', '')
     to_price = request_data.get('to_price', '')
     color = request_data.get('color', '')
+    custom_margin = request.GET.get('margin', 0)
+    try:
+        custom_margin = float(custom_margin)
+    except:
+        custom_margin = 0
+
+    is_margin_percentage = request.GET.get('is_margin_percentage', 'false')
     customer_data_id = request_data.get('customer_data_id', '')
+    price_type = ''
+    if not customer_data_id:
+        request_user = ''
+        if request:
+            request_user = request.user.id
+        else:
+            request_user = user.id
+        user_type = CustomerUserMapping.objects.filter(user = request_user)
+        if user_type:
+            customer_data_id = user_type[0].customer.customer_id
+            customer_id = user_type[0].customer_id
+            price_type = user_type[0].customer.price_type
+    elif customer_id:
+        customer_master = CustomerMaster.objects.filter(customer_id=customer_id, user=user.id)
+        if customer_master:
+            price_type = customer_master[0].price_type
+    elif customer_data_id:
+        customer_master = CustomerMaster.objects.filter(customer_id=customer_data_id, user=user.id)
+        if customer_master:
+            price_type = customer_master[0].price_type
+
     if not is_catalog:
         is_catalog = request_data.get('is_catalog', '')
 
     customer_id = ''
-    request_user = ''
+    '''request_user = ''
     if request:
         request_user = request.user.id
     else:
         request_user = user.id
     user_type = CustomerUserMapping.objects.filter(user = request_user)
     if user_type:
-        customer_id = request_user
+        customer_id = request_user'''
 
     indexes = request_data.get('index', '0:20')
     is_file = request_data.get('file', '')
     sale_through = request_data.get('sale_through', '')
 
+    filter_params1 = {}
     if not indexes:
         indexes = '0:20'
     if sku_brand:
         filter_params['sku_brand__in'] = [i.strip() for i in sku_brand.split(",") if i]
+        filter_params1['sku__sku_brand__in'] = filter_params['sku_brand__in']
     if sku_category:
         filter_params['sku_category__in'] = [i.strip() for i in sku_category.split(",") if i]
+        filter_params1['sku__sku_category__in'] = filter_params['sku_category__in']
     if is_catalog:
         filter_params['status'] = 1
+        filter_params1['sku__status'] = 1
     if color:
         filter_params['color__in'] = [i.strip() for i in color.split(",") if i]
+        filter_params1['sku__color__in'] = filter_params['color__in']
     if sale_through:
         filter_params['sale_through__iexact'] = sale_through
+        filter_params1['sku__sale_through__iexact'] = sale_through
     if from_price:
-        filter_params['price__gte'] = int(from_price)
+        filter_params['new_price__gte'] = int(from_price)
+        filter_params1['new_price__gte'] = int(from_price)
     if to_price:
-        filter_params['price__lte'] = int(to_price)
+        filter_params['new_price__lte'] = int(to_price)
+        filter_params1['new_price__lte'] = int(to_price)
 
     start, stop = indexes.split(':')
     start, stop = int(start), int(stop)
     if sku_class:
         filter_params['sku_class__icontains'] = sku_class
+        filter_params1['sku__sku_class__icontains'] = sku_class
 
-    sku_master = SKUMaster.objects.exclude(sku_class='').filter(**filter_params)
+    if is_margin_percentage == 'true':
+        all_pricing_ids = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).values_list('sku_id', flat=True)
+        pricemaster = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).\
+                                                 annotate(new_price=F('price') + ((F('price')/Value(100))*Value(custom_margin))).filter(**filter_params1)
+        non_filtered = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).exclude(id__in=pricemaster.values_list('sku_id', flat=True))
+        sku_master1 = SKUMaster.objects.exclude(sku_class='').annotate(new_price=F('price') + (F('price')/Value(100))*Value(custom_margin)).\
+                                            filter(**filter_params).exclude(id__in=all_pricing_ids)
+        if filter_params.has_key('new_price__lte'):
+            del filter_params['new_price__lte']
+        if filter_params.has_key('new_price__gte'):
+            del filter_params['new_price__gte']
+        sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(id__in=pricemaster.values_list('sku_id', flat=True)).filter(**            filter_params)
+        sku_master = sku_master1 | sku_master2
+        sku_prices = dict(sku_master.values_list('id', 'new_price'))
+        pricemaster_prices = dict(pricemaster.values_list('sku_id', 'new_price'))
+        prices_dict = dict(sku_prices.items() + pricemaster_prices.items())
+    else:
+        all_pricing_ids = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).values_list('sku_id', flat=True)
+        pricemaster = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).\
+                                                 annotate(new_price=F('price') + Value(custom_margin)).filter(**filter_params1)
+        sku_master1 = SKUMaster.objects.exclude(sku_class='').annotate(new_price=F('price') + Value(custom_margin)).\
+                                            filter(**filter_params).exclude(id__in=all_pricing_ids)
+        if filter_params.has_key('new_price__lte'):
+            del filter_params['new_price__lte']
+        if filter_params.has_key('new_price__gte'):
+            del filter_params['new_price__gte']
+        sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(id__in=pricemaster.values_list('sku_id', flat=True)).filter(**filter_params)
+        sku_master = sku_master1 | sku_master2
+        sku_prices = dict(sku_master.values_list('id', 'new_price'))
+        pricemaster_prices = dict(pricemaster.values_list('sku_id', 'new_price'))
+        prices_dict = dict(sku_prices.items() + pricemaster_prices.items())
     size_dict = request_data.get('size_filter', '')
     query_string = 'sku__sku_code'
     if size_dict:
@@ -2278,7 +2346,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if is_file:
         start, stop = 0, len(product_styles)
 
-    data = get_styles_data(user, product_styles, sku_master, start, stop, customer_id=customer_id, customer_data_id=customer_data_id, is_file=is_file)
+    data = get_styles_data(user, product_styles, sku_master, start, stop, customer_id=customer_id, customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict)
     return data, start, stop
 
 def get_user_sku_data(user):
@@ -3028,7 +3096,7 @@ def get_categories_list(request, user = ""):
         categories_list = sku_master.filter(**filter_params).exclude(sku_category='').values_list('sku_category', flat=True).distinct()
     return HttpResponse(json.dumps(list(categories_list)))
 
-def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='', customer_data_id='', is_file=''):
+def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='', customer_data_id='', is_file='', prices_dict={}):
     data = []
     from rest_api.views.outbound import get_style_variants
     get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size',
@@ -3052,7 +3120,8 @@ def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='
             total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
-            sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity, customer_data_id=customer_data_id)
+            sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity,
+                                              customer_data_id=customer_data_id, prices_dict=prices_dict)
             sku_styles[0]['variants'] = sku_variants
             sku_styles[0]['style_quantity'] = total_quantity
 

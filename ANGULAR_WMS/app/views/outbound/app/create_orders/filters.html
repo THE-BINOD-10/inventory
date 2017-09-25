@@ -1,0 +1,74 @@
+  <div class="toggle-filter" ng-if="showCase.showFilter">
+    <div class="toggle-header">
+      <span>Filters</span>
+      <span class="pull-right" ng-click="showCase.showFilter = false" style="cursor: pointer"> X </span>
+    </div>
+    <div class="toggle-body">
+      <div class="filter-box">
+        <div class="box-header">
+          <span><b>Brands: </b></span>
+        </div>
+        <div class="box-body">
+            <span ng-repeat="brand in showCase.filterData.brands" ng-hide="!showCase.filterData.brandShow && $index > 5"><input type="checkbox" ng-model="showCase.filterData.selectedBrands[brand]" ng-click="showCase.checkFilters(brand, showCase.filterData.selectedBrands)">{{brand}}</br></span>
+            <a href="" ng-click="showCase.filterData.brandShow = true" ng-if="showCase.filterData.brands.length > 5" ng-hide="showCase.filterData.brandShow" style="text-decoration: underline;">Show More...</a>
+        </div>
+      </div>
+
+      <div class="filter-box">
+        <div class="box-header">
+          <span><b>Categories: </b></span>
+        </div>
+        <div class="box-body">
+            <span ng-repeat="cate in showCase.filterData.categories" ng-hide="!showCase.filterData.catShow && $index > 5"><input type="checkbox" ng-model="showCase.filterData.selectedCats[cate]" ng-click="showCase.checkFilters(cate, showCase.filterData.selectedCats)">{{cate}}</br></span>
+            <a href="" ng-click="showCase.filterData.catShow = true" ng-if="showCase.filterData.categories.length > 5" ng-hide="showCase.filterData.catShow" style="text-decoration: underline;">Show More...</a>
+        </div>
+      </div>
+
+      <div class="filter-box">
+        <div class="box-header">
+          <span><b>Colours: </b></span>
+        </div>
+        <div class="box-body">
+            <span ng-repeat="color in showCase.filterData.colors"  ng-hide="!showCase.filterData.colorShow && $index > 5"><input type="checkbox" ng-model="showCase.filterData.selectedColors[color]" ng-click="showCase.checkFilters(color, showCase.filterData.selectedColors)">{{color}}</br></span>
+            <a href="" ng-click="showCase.filterData.colorShow = true" ng-if="showCase.filterData.colors.length > 5" ng-hide="showCase.filterData.colorShow" style="text-decoration: underline;">Show More...</a>
+        </div>
+      </div>
+
+      <div class="filter-box">
+        <div class="box-header">
+          <span><b>Price Ranges: </b></span>
+        </div>
+        <div class="box-body mt10" style="overflow: auto;">
+          <input type="number" class="form-control pull-left" style="width:70px" ng-model="showCase.filterData.fromPrice">
+          <span class="pull-left mt5 ml5 mr5"> To </span>
+          <input type="number" class="form-control pull-left" style="width:70px" ng-model="showCase.filterData.toPrice">
+        </div>
+      </div>
+
+      <div class="filter-box">
+        <div class="box-header">
+          <span><b>Sizes: </b></span>
+        </div>
+        <div class="box-body mt10" style="overflow: auto;">
+          <table class="table table-bordered filter-table">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th>Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="sizewise in showCase.filterData.brand_size_data">
+                <td style="text-align:center">{{sizewise}}</td>
+                <td style="text-align:center"><input name="{{sizewise}}" class="form-control number" type="string" placeholder="Stock Quantity" ng-model="showCase.filterData.size_filter[sizewise]"/></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <button type="button" class="btn btn-danger pull-right" ng-click="showCase.applyFilters();">Apply</button>
+        <button type="button" class="btn btn-default pull-right mr10" ng-click="showCase.clearFilters();">Clear</button>
+      </div>
+    </div>
+  </div>

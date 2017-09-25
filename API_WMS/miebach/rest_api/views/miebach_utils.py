@@ -1243,7 +1243,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
         search_parameters[param_keys['sku_code']] = search_params['sku_code']
     if 'customer_id' in search_params:
         search_parameters['order__customer_id'] = search_params['customer_id']
-    if 'imei_number' in search_params:
+    if 'imei_number' in search_params and serial_view:
         search_parameters['po_imei__imei_number'] = search_params['imei_number']
     if 'order_id' in search_params:
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={},all_order_objs = [])

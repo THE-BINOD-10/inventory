@@ -739,6 +739,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'V Neck T Shirt': 'software-catagaies-final_37.png',
                            //'T Shirt': 'software-catagaies-final_06.png',
                            'Sleeve Less Jacket': 'software-catagaies-final_13.png',
+                           'Sleeveless': 'software-catagaies-final_13.png',
                            'Round Neck T Shirt': 'software-catagaies-final_35.png',
                            'Slub Round Neck': 'software-catagaies-final_32.png'};
 

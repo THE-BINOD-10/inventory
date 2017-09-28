@@ -731,7 +731,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'Hoodie - 300 GSM': 'software-catagaies-final_21.png',
                            'Hoodie - 300 GSM ZIP': 'software-catagaies-final_24.png',
                            'Hoodie - 400 GSM': 'software-catagaies-final_22.png',
-                           'Hoodie - 400 GSM ZIP': 'software-catagaies-final_24.png',
+                           'Hoodie - 400 GSM ZIP': 'software-catagaies-final_25.png',
                            'Ladies Polo': 'software-catagaies-final_06.png',
                            'Polo': 'software-catagaies-final_52.png', 
                            'Round Neck': 'software-catagaies-final_46.png',

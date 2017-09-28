@@ -862,6 +862,16 @@ def po_serial_mapping_form(request, user=''):
     return xls_to_response(wb, '%s.po_serial_mapping_form.xls' % str(user.id))
 
 @csrf_exempt
+@get_admin_user
+def job_order_form(request, user=''):
+    label_file = request.GET['job-order-file']
+    if label_file:
+        return error_file_download(label_file)
+
+    wb, ws = get_work_sheet('Job Order', JOB_ORDER_EXCEL_HEADERS)
+    return xls_to_response(wb, '%s.job_order_form.xls' % str(user.id))
+
+@csrf_exempt
 def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls'):
     sku_data = []
     wms_data = []
@@ -3251,7 +3261,7 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                                   'sku_id':''}
         seller_order_details = {'creation_date': datetime.datetime.now(), 'status': 1}
         customer_order_summary = {'issue_type': 'order', 'creation_date': datetime.datetime.now()}
-        
+
         sku_code = ''
         seller_id = ''
         for key, val in order_mapping.iteritems():
@@ -3613,3 +3623,140 @@ def po_serial_mapping_upload(request, user=''):
         log.debug(traceback.format_exc())
         log.info('PO Serial Mapping Upload failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("PO Serial Mapping Upload Failed")
+
+def get_job_order_mapping(reader, file_type):
+
+    order_mapping = {}
+    if get_cell_data(0, 0, reader, file_type) == 'Product SKU Code' and get_cell_data(0, 1, reader, file_type) == 'Product SKU Quantity':
+        order_mapping = copy.deepcopy(JOB_ORDER_EXCEL_MAPPING)
+
+    return order_mapping
+
+def validate_job_order(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
+    log.info("Job order upload started")
+    st_time = datetime.datetime.now()
+    index_status = {}
+
+    order_mapping = get_job_order_mapping(reader, file_type)
+    if not order_mapping:
+        return 'Invalid File'
+
+    count = 0
+    log.info("Validation Started %s" %datetime.datetime.now())
+    all_data_list = []
+    duplicate_products = []
+    for row_idx in range(1, no_of_rows):
+        if not order_mapping:
+            break
+
+        count += 1
+        sku_code = ''
+
+        job_order_dict = {}
+        for key, val in order_mapping.iteritems():
+            value = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+
+            if key == 'product_code':
+                if isinstance(value, float):
+                    value = str(int(value))
+                if not value:
+                    index_status.setdefault(count, set()).add('Product Code should not be empty')
+                elif value:
+                    sku_id = check_and_return_mapping_id(value, '', user)
+                    if not sku_id:
+                        index_status.setdefault(count, set()).add('Invalid Product Code')
+                    else:
+                        sku_master = SKUMaster.objects.get(id=sku_id)
+                        if not sku_master.sku_type in ['FG', 'RM']:
+                            index_status.setdefault(count, set()).add('Product code sku type should be FG or RM')
+                        sku_code = value
+                        job_order_dict['product_code_id'] = sku_id
+                        bom_master = BOMMaster.objects.filter(product_sku__user=user.id, product_sku__sku_code=sku_code)
+                        if bom_master:
+                            job_order_dict['bom_objs'] = bom_master
+                        else:
+                             index_status.setdefault(count, set()).add('BOM Master is not defined')
+                        if not sku_code in duplicate_products:
+                            duplicate_products.append(sku_code)
+                        else:
+                            index_status.setdefault(count, set()).add('Product Code repeated in File')
+
+            elif key == 'product_quantity':
+                try:
+                    value = float(value)
+                except:
+                    value = 0
+                if value:
+                    job_order_dict['product_quantity'] = value
+                else:
+                    index_status.setdefault(count, set()).add('Product Quantity should be number')
+
+        all_data_list.append(job_order_dict)
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+
+    create_job_order_bulk(all_data_list, user)
+    return 'Success'
+
+def create_job_order_bulk(all_data_list, user):
+    jo_reference = get_jo_reference(user.id)
+    NOW = datetime.datetime.now()
+    for data_dict in all_data_list:
+        job_order = JobOrder.objects.create(product_code_id=data_dict['product_code_id'], product_quantity=data_dict['product_quantity'],
+                                            jo_reference=jo_reference, job_code=0, status='open', creation_date=NOW)
+
+        for bom_obj in data_dict['bom_objs']:
+            unit_material = float(bom_obj.material_quantity) + ((float(bom_obj.material_quantity)/100) * float(bom_obj.wastage_percent))
+            material_quantity = unit_material * float(data_dict['product_quantity'])
+            measurement_type = bom_obj.unit_of_measurement.upper()
+            JOMaterial.objects.create(material_code_id=bom_obj.material_sku_id, material_quantity=material_quantity,
+                                      job_order_id=job_order.id, unit_measurement_type=measurement_type, creation_date=NOW,
+                                      status=1)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def job_order_upload(request, user=''):
+    fname = request.FILES['files']
+    if (fname.name).split('.')[-1] == 'csv':
+        reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
+        no_of_rows = len(reader)
+        file_type = 'csv'
+    elif (fname.name).split('.')[-1] == 'xls' or (fname.name).split('.')[-1] == 'xlsx':
+        try:
+            data = fname.read()
+            if '<table' in data:
+                open_book, open_sheet = html_excel_data(data, fname)
+            else:
+                open_book = open_workbook(filename=None, file_contents=data)
+                open_sheet = open_book.sheet_by_index(0)
+        except:
+            return HttpResponse("Invalid File")
+        reader = open_sheet
+        no_of_rows = reader.nrows
+        file_type = 'xls'
+    else:
+        return HttpResponse('Invalid File')
+
+    try:
+        status  = validate_job_order(request, reader, user, no_of_rows, fname, file_type=file_type)
+        return HttpResponse(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Job Order Upload failed for %s and params are %s and error statement is %s' % (str(user.username),
+                  str(request.POST. dict()), str(e)))
+        return HttpResponse("Job Order Upload Failed")

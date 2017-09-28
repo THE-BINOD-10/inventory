@@ -450,15 +450,6 @@ def save_jo(request, user=''):
         status = "Added Successfully"
     return HttpResponse(status)
 
-
-def get_jo_reference(user):
-    jo_code = JobOrder.objects.filter(product_code__user=user).order_by('-jo_reference')
-    if jo_code:
-        jo_reference = int(jo_code[0].jo_reference) + 1
-    else:
-        jo_reference = 1
-    return jo_reference
-
 def validate_jo(all_data, user, jo_reference, vendor_id=''):
 
     _user = User.objects.get(id = user)

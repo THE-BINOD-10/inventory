@@ -2267,16 +2267,21 @@ def confirm_sales_return(request, user=''):
     mp_return_data = {}
     for i in range(0, len(data_dict['id'])):
         all_data = []
+        check_seller_order = True
         if not data_dict['id'][i]:
             data_dict['id'][i], status, seller_order_ids = create_return_order(data_dict, i , user.id)
             if seller_order_ids:
                 mp_return_data.setdefault(seller_order_ids[0], {}).setdefault(
                     'imeis', []).append(data_dict['returns_imeis'][i])
+                check_seller_order = False
             if status:
                 return HttpResponse(status)
         order_returns = OrderReturns.objects.filter(id = data_dict['id'][i], status = 1)
         if not order_returns:
             continue
+        if check_seller_order and order_returns[0].seller_order:
+            mp_return_data.setdefault(order_returns[0].seller_order_id, {}).setdefault(
+                    'imeis', []).append(data_dict['returns_imeis'][i])
         if 'returns_imeis' in data_dict.keys() and data_dict['returns_imeis'][i]:
             save_return_imeis(user, order_returns[0], 'return', data_dict['returns_imeis'][i])
         if 'damaged_imeis_reason' in data_dict.keys() and data_dict['damaged_imeis_reason'][i]:

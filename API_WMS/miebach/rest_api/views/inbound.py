@@ -1969,7 +1969,7 @@ def confirm_grn(request, confirm_returns = '', user=''):
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict,
                                    'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,
-                                   'seller_name': seller_name,
+                                   'seller_name': seller_name, 'company_name': profile.company_name,
                                    'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
                                    'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class}
 
@@ -2267,16 +2267,21 @@ def confirm_sales_return(request, user=''):
     mp_return_data = {}
     for i in range(0, len(data_dict['id'])):
         all_data = []
+        check_seller_order = True
         if not data_dict['id'][i]:
             data_dict['id'][i], status, seller_order_ids = create_return_order(data_dict, i , user.id)
             if seller_order_ids:
                 mp_return_data.setdefault(seller_order_ids[0], {}).setdefault(
                     'imeis', []).append(data_dict['returns_imeis'][i])
+                check_seller_order = False
             if status:
                 return HttpResponse(status)
         order_returns = OrderReturns.objects.filter(id = data_dict['id'][i], status = 1)
         if not order_returns:
             continue
+        if check_seller_order and order_returns[0].seller_order:
+            mp_return_data.setdefault(order_returns[0].seller_order_id, {}).setdefault(
+                    'imeis', []).append(data_dict['returns_imeis'][i])
         if 'returns_imeis' in data_dict.keys() and data_dict['returns_imeis'][i]:
             save_return_imeis(user, order_returns[0], 'return', data_dict['returns_imeis'][i])
         if 'damaged_imeis_reason' in data_dict.keys() and data_dict['damaged_imeis_reason'][i]:
@@ -3472,8 +3477,13 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     username = user.username
     if username == 'shotang':
         username = 'SHProc'
+    company_name = username
+    if not user.username == 'shotang':
+        cmp_name = UserProfile.objects.get(user_id=user.id).company_name
+        if cmp_name:
+            company_name = cmp_name
     if supplier_email or internal or internal_mail:
-        send_mail_attachment(receivers, '%s %s' % (username, report_type), 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name), files=[{'path': path + pdf_file, 'name': pdf_file}])
+        send_mail_attachment(receivers, '%s %s' % (company_name, report_type), 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name), files=[{'path': path + pdf_file, 'name': pdf_file}])
 
     if phone_no:
         if report_type == 'Purchase Order':
@@ -4383,7 +4393,7 @@ def confirm_receive_qc(request, user=''):
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict,
                                    'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,
-                                   'seller_name': seller_name,
+                                   'seller_name': seller_name, 'company_name': profile.company_name,
                                    'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
                                    'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class}
 

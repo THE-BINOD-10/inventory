@@ -4202,3 +4202,11 @@ def get_purchase_order_id(user):
     else:
         po_id = int(order_ids[0]) + 1
     return po_id
+
+def get_jo_reference(user):
+    jo_code = JobOrder.objects.filter(product_code__user=user).order_by('-jo_reference')
+    if jo_code:
+        jo_reference = int(jo_code[0].jo_reference) + 1
+    else:
+        jo_reference = 1
+    return jo_reference

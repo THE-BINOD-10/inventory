@@ -963,12 +963,64 @@ def update_order_cancel(orders_data, user='', company_name=''):
 
 def update_order_returns(orders_data, user='', company_name=''):
     NOW = datetime.datetime.now()
+    insert_status = []
     try:
+        all_data_list = []
         for key, order_dict in orders_data.iteritems():
             original_order_id = order_dict['order_details']['original_order_id']
             filter_params = {'user': user.id, 'original_order_id': original_order_id, 'sku_id': order_dict['order_details']['sku_id'],
                              'order_id': order_dict['order_details']['order_id'], 'order_code': order_dict['order_details']['order_code']}
+            order_objs = OrderDetail.objects.filter(**filter_params)
+            seller_parent_item_id = ''
+            for swx in order_dict.get('swx_mappings', []):
+                if swx['swx_type'] == 'seller_parent_item_id':
+                    seller_parent_item_id = swx['swx_id']
+                    break
+            if not order_objs:
+                insert_status.append({'parentLineitemId': seller_parent_item_id, 'error': 'Order Does not exists'})
+                continue
+            order_obj = order_objs[0]
+            if int(order_obj.status) == 4:
+                insert_status.append({'parentLineitemId': seller_parent_item_id, 'error': 'Order Returned already'})
+            return_total = OrderTracking.objects.filter(order_id=order_obj.id, order__user=user.id,
+                                                          status='returned').aggregate(Sum('quantity'))['quantity__sum']
+            if not return_total:
+                return_total = 0
+            if (float(order_obj.quantity) - float(return_total)) - float(order_dict['order_details']['quantity'])< 0:
+                insert_status.append({'parentLineitemId': seller_parent_item_id, 'error': 'Return quantity exceeding order quantity'})
+                continue
+            seller_order = SellerOrder.objects.filter(order_id=order_obj.id, sor_id=order_dict['seller_order_dict']['sor_id'])
+            if not seller_order:
+                insert_status.append({'parentLineitemId': seller_parent_item_id, 'error': 'Return quantity exceeding order quantity'})
+                continue
+            if not insert_status:
+                returns_dict = {'quantity': order_dict['order_details']['quantity'], 'return_date': datetime.datetime.now(),
+                                'sku_id': order_dict['order_details']['sku_id'], 'seller_order_id': seller_order[0].id,
+                                'creation_date': datetime.datetime.now(), 'status': 1, 'order_id': order_obj.id, 'order_obj': order_obj
+                               }
+                all_data_list.append(returns_dict)
 
-        return "Success"
-    except:
-        traceback.print_exc()
+        if insert_status:
+            return insert_status, ''
+        for data_dict in all_data_list:
+            order_obj = data_dict['order_obj']
+            save_order_tracking_data(order_obj, quantity=data_dict['quantity'], status='returned', imei='')
+            del data_dict['order_obj']
+            tot_sum = OrderTracking.objects.filter(order_id=order_obj.id, order__user=user.id,
+                                            status='returned').aggregate(Sum('quantity'))['quantity__sum']
+            if not tot_sum:
+                tot_sum = 0
+            if float(order_obj.quantity) <= tot_sum:
+                order_obj.status = 4
+                order_obj.save()
+            order_return = OrderReturns(**data_dict)
+            order_return.save()
+            order_return.return_id = 'MN%s' % order_return.id
+            order_return.save()
+
+        return insert_status, "Success"
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('Update Order Returns API failed for %s and params are %s and error statement is %s' % (str(user.username), str(orders_dataorders_data), str(e)))

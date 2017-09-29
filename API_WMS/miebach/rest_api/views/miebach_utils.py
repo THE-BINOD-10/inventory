@@ -960,6 +960,10 @@ PO_SERIAL_EXCEL_HEADERS = ['Supplier ID', 'SKU Code', 'Location', 'Unit Price', 
 PO_SERIAL_EXCEL_MAPPING = OrderedDict(( ('supplier_id', 0), ('sku_code', 1), ('location', 2), ('unit_price', 3),
                                         ('imei_number', 4)))
 
+JOB_ORDER_EXCEL_HEADERS = ['Product SKU Code', 'Product SKU Quantity']
+
+JOB_ORDER_EXCEL_MAPPING = OrderedDict(( ('product_code', 0), ('product_quantity', 1)))
+
 #Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg'}
 

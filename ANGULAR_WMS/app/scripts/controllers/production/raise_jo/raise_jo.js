@@ -77,6 +77,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
                     vm.title = "Update Job Order";
                     vm.update = true;
                     angular.copy(data.data, vm.model_data);
+                    angular.forEach(vm.model_data.results, function(product_data) {
+                      angular.forEach(product_data.data, function(material_data) {
+                        material_data.temp_qty = material_data.material_quantity;
+                        material_data.material_quantity = material_data.temp_qty/product_data.product_description;
+                      })
+                    })
                     vm.vendor_produce = (aData["Order Type"] == "Vendor Produce") ? true: false;
                     $state.go('app.production.RaiseJO.JO');
                   }

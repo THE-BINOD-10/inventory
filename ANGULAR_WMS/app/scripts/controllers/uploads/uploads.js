@@ -191,6 +191,15 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "po-serial-mapping-form",
                    value: "",
                    show: Session.roles.permissions.use_imei
+                 }, {
+                   title: "Job Order Download/ Upload",
+                   download: "Download Job Order Form",
+                   upload: "Upload Job Order Form",
+                   durl: "job_order_form/",
+                   uurl: "job_order_upload/",
+                   dparam: "job-order-file",
+                   value: "",
+                   show: Session.roles.permissions.add_jomaterial
                  }
                  ]
 

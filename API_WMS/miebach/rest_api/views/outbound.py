@@ -850,6 +850,7 @@ def get_picklist_data(data_id,user_id):
             customer_name = ''
             remarks = ''
             load_unit_handle = ''
+            category = ''
             if order.stock:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.order:
@@ -861,12 +862,14 @@ def get_picklist_data(data_id,user_id):
                 remarks = order.order.remarks
                 order_id = str(order.order.order_id)
                 load_unit_handle = order.order.sku.load_unit_handle
+                category = order.order.sku.sku_category
             else:
                 st_order = STOrder.objects.filter(picklist_id=order.id)
                 sku_code = ''
                 title = st_order[0].stock_transfer.sku.sku_desc
                 invoice = st_order[0].stock_transfer.invoice_amount
                 load_unit_handle = st_order[0].stock_transfer.sku.load_unit_handle
+                category = st_order[0].stock_transfer.sku.sku_category
                 marketplace = ""
                 order_id = ''
 
@@ -891,6 +894,7 @@ def get_picklist_data(data_id,user_id):
                 image = stock_id.sku.image_url
                 wms_code = stock_id.sku.wms_code
                 load_unit_handle = stock_id.sku.load_unit_handle
+                category = stock_id.sku.sku_category
 
             match_condition = (location, pallet_detail, wms_code, sku_code, title)
             if match_condition not in batch_data:
@@ -904,7 +908,7 @@ def get_picklist_data(data_id,user_id):
                                                      flat=True).distinct()[:2]
                     last_picked_locs = ','.join(last_picked)
 
-                batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'picked_quantity': order.reserved_quantity, 'id': order.id, 'invoice_amount': invoice, 'price': invoice * order.reserved_quantity, 'image': image, 'order_id': str(order.order_id), 'status': order.status, 'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs, 'customer_name': customer_name, 'marketplace': marketplace, 'order_no': order_id, 'remarks': remarks, 'load_unit_handle': load_unit_handle}
+                batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'picked_quantity': order.reserved_quantity, 'id': order.id, 'invoice_amount': invoice, 'price': invoice * order.reserved_quantity, 'image': image, 'order_id': str(order.order_id), 'status': order.status, 'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs, 'customer_name': customer_name, 'marketplace': marketplace, 'order_no': order_id, 'remarks': remarks, 'load_unit_handle': load_unit_handle, 'category': category}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
@@ -929,6 +933,7 @@ def get_picklist_data(data_id,user_id):
             customer_name = ''
             remarks = ''
             load_unit_handle = ''
+            category = ''
             if order.order:
                 wms_code = order.order.sku.wms_code
                 if order.order_type == 'combo' and order.sku_code:
@@ -941,6 +946,7 @@ def get_picklist_data(data_id,user_id):
                 marketplace = order.order.marketplace
                 remarks = order.order.remarks
                 load_unit_handle = order.order.sku.load_unit_handle
+                category = order.order.sku.sku_category
             else:
                 wms_code = order.stock.sku.wms_code
                 invoice_amount = 0
@@ -949,6 +955,7 @@ def get_picklist_data(data_id,user_id):
                 title = order.stock.sku.sku_desc
                 marketplace = ""
                 load_unit_handle = order.stock.sku.load_unit_handle
+                category = order.stock.sku.sku_category
             if order.stock_id:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.reserved_quantity == 0:
@@ -978,7 +985,7 @@ def get_picklist_data(data_id,user_id):
                                                  flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
 
-            data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'order_id': str(order.order_id), 'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': invoice_amount, 'price': invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'order_no': order_id,'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs, 'customer_name': customer_name, 'marketplace' : marketplace, 'remarks': remarks, 'load_unit_handle': load_unit_handle})
+            data.append({'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity, 'picklist_number': data_id, 'stock_id': st_id, 'order_id': str(order.order_id), 'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence, 'invoice_amount': invoice_amount, 'price': invoice_amount * order.reserved_quantity, 'image': image, 'status': order.status, 'order_no': order_id,'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs, 'customer_name': customer_name, 'marketplace' : marketplace, 'remarks': remarks, 'load_unit_handle': load_unit_handle, 'category': category})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -1006,6 +1013,7 @@ def get_picklist_data(data_id,user_id):
             pallet_code = ''
             image = ''
             load_unit_handle = ''
+            category = ''
             if stock_id:
                 zone = stock_id.location.zone.zone
                 st_id = order.stock_id
@@ -1013,6 +1021,7 @@ def get_picklist_data(data_id,user_id):
                 location = stock_id.location.location
                 image = stock_id.sku.image_url
                 load_unit_handle = stock_id.sku.load_unit_handle
+                category = stock_id.sku.sku_category
 
             customer_name = ''
             if order.order:
@@ -1035,7 +1044,7 @@ def get_picklist_data(data_id,user_id):
                          'invoice_amount': order.order.invoice_amount, 'price': order.order.invoice_amount * order.reserved_quantity,
                          'image': image, 'status': order.status, 'pallet_code': pallet_code, 'sku_code': order.order.sku_code,
                          'title': order.order.title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
-                         'customer_name': customer_name, 'remarks': remarks, 'load_unit_handle': load_unit_handle,
+                         'customer_name': customer_name, 'remarks': remarks, 'load_unit_handle': load_unit_handle, 'category': category,
                          'marketplace' :marketplace })
 
             if wms_code in sku_total_quantities.keys():

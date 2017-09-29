@@ -336,7 +336,7 @@ SKU_EXCEL = ('wms_code', 'sku_desc', 'sku_group', 'sku_type', 'sku_category', 's
 PICKLIST_FIELDS = { 'order_id': '', 'picklist_number': '', 'reserved_quantity': '', 'picked_quantity': 0, 'remarks': '', 'status': 'open'}
 PICKLIST_HEADER = ('ORDER ID', 'WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
 
-PRINT_OUTBOUND_PICKLIST_HEADERS = ('WMS Code', 'Title','Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
+PRINT_OUTBOUND_PICKLIST_HEADERS = ('WMS Code', 'Title', 'Category', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
 
 PRINT_PICKLIST_HEADERS = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity', 'Units Of Measurement')
 
@@ -479,7 +479,8 @@ ADD_USER_DICT = {'username': '', 'first_name': '', 'last_name': '', 'password': 
 ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', u'state': '', 'pin_code': '', 'address': '',
                       'phone_number': '', 'prefix': '', 'location': ''}
 
-PICKLIST_EXCEL = OrderedDict(( ('WMS Code', 'wms_code'), ('Title', 'title'), ('Zone', 'zone'), ('Location', 'location'),
+PICKLIST_EXCEL = OrderedDict(( ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'), ('Zone', 'zone'),
+                               ('Location', 'location'),
                                ('Reserved Quantity', 'reserved_quantity'), ('Stock Left', 'stock_left'),
                                ('Last Picked Location', 'last_picked_locs')
                             ))

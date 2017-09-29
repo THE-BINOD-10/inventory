@@ -3514,9 +3514,9 @@ def validate_po_serial_mapping(request, reader, user, no_of_rows, fname, file_ty
             elif key == 'imei_number':
                 imei_number = ''
                 try:
-                    imei_number = int(value)
+                    imei_number = str(int(value))
                 except:
-                    imei_number = value
+                    imei_number = str(value)
                 if not imei_number:
                     index_status.setdefault(count, set()).add('Serial Number is Mandatory')
                 elif imei_number in all_imeis:

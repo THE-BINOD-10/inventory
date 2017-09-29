@@ -1969,7 +1969,7 @@ def confirm_grn(request, confirm_returns = '', user=''):
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict,
                                    'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,
-                                   'seller_name': seller_name,
+                                   'seller_name': seller_name, 'company_name': profile.company_name,
                                    'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
                                    'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class}
 
@@ -4383,7 +4383,7 @@ def confirm_receive_qc(request, user=''):
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict,
                                    'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty, 'total_price': total_price,
-                                   'seller_name': seller_name,
+                                   'seller_name': seller_name, 'company_name': profile.company_name,
                                    'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id),
                                    'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id, 'btn_class': btn_class}
 

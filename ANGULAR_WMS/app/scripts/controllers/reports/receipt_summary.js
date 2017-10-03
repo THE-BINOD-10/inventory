@@ -39,6 +39,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   else {
     vm.dtColumns.push(DTColumnBuilder.newColumn('Received Quantity').withTitle('Received Quantity'));
   }
+  vm.dtColumns.push(DTColumnBuilder.newColumn('Received Date').withTitle('Received Date'))
   vm.dtInstance = {};
 
   vm.empty_data = {
@@ -50,10 +51,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     };
 
   vm.model_data = {};
-  angular.copy(vm.empty_data, vm.model_data); 
+  angular.copy(vm.empty_data, vm.model_data);
 
   vm.suppliers = {};
-  
+
   vm.service.apiCall('get_supplier_list/').then(function(data){
       if(data.message) {
         vm.suppliers = data.data.suppliers;

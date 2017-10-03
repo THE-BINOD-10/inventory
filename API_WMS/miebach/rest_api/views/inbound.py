@@ -731,7 +731,8 @@ def switches(request, user=''):
                         'barcode_generate_opt': 'barcode_generate_opt',
                         'grn_scan_option': 'grn_scan_option',
                         'invoice_titles': 'invoice_titles',
-                        'show_imei_invoice': 'show_imei_invoice'
+                        'show_imei_invoice': 'show_imei_invoice',
+                        'display_remarks_mail': 'display_remarks_mail'
                       }
 
         toggle_field, selection = "", ""
@@ -803,6 +804,7 @@ def confirm_po(request, user=''):
     total = 0
     total_qty = 0
     myDict = dict(request.GET.iterlists())
+    display_remarks = get_misc_value('display_remarks_mail', user.id)
     ean_data = SKUMaster.objects.filter(wms_code__in=myDict['wms_code'],user=user.id).values_list('ean_number').exclude(ean_number=0)
     if ean_data:
         ean_flag = True
@@ -914,11 +916,15 @@ def confirm_po(request, user=''):
         else:
             wms_code = purchase_order.sku.wms_code
 
+        po_temp_data = [wms_code, value['supplier_code'], purchase_order.sku.sku_desc, purchase_order.order_quantity,
+                        value['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax,
+                        purchase_order.igst_tax, purchase_order.utgst_tax]
         if ean_flag:
-            po_data.append(( wms_code, purchase_order.sku.ean_number, value['supplier_code'], purchase_order.sku.sku_desc, purchase_order.order_quantity, value['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
-        else:
-            po_data.append(( wms_code, value['supplier_code'], purchase_order.sku.sku_desc, purchase_order.order_quantity, value['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
+            po_temp_data.insert(1, purchase_order.sku.ean_number)
+        if display_remarks == 'true':
+            po_temp_data.append(purchase_order.remarks)
 
+        po_data.append(po_temp_data)
         suggestion = OpenPO.objects.get(id=sup_id, sku__user=user.id)
         setattr(suggestion, 'status', 0)
         suggestion.save()
@@ -952,12 +958,12 @@ def confirm_po(request, user=''):
     if request.GET.get('seller_id', '') and str(request.GET.get('seller_id').split(":")[1]).lower() == 'shproc':
         company_name = 'SHPROC'
 
+    table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',
+                     'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)']
     if ean_flag:
-        table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
-                         'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
-    else:
-        table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
-                         'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
+        table_headers.insert(1, 'EAN Number')
+    if display_remarks == 'true':
+        table_headers.append('Remarks')
 
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'company_name': company_name,
@@ -3268,6 +3274,7 @@ def confirm_add_po(request, sales_data = '', user=''):
         return HttpResponse('Updated Successfully')
     sku_id = ''
     data = copy.deepcopy(PO_DATA)
+    display_remarks = get_misc_value('display_remarks_mail', user.id)
     if not sales_data:
         po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by("-order_id")
         if not po_data:
@@ -3393,10 +3400,14 @@ def confirm_add_po(request, sales_data = '', user=''):
         else:
             wms_code = purchase_order.sku.wms_code
 
+        po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,po_suggestions['measurement_unit'],
+                        purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax, purchase_order.igst_tax,
+                        purchase_order.utgst_tax]
         if ean_flag:
-            po_data.append(( wms_code, ean_number, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, po_suggestions['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
-        else:
-            po_data.append(( wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, po_suggestions['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
+            po_temp_data.insert(1, ean_number)
+        if display_remarks == 'true':
+            po_temp_data.append(purchase_order.remarks)
+        po_data.append(po_temp_data)
         suggestion = OpenPO.objects.get(id = sup_id,sku__user=user.id)
         setattr(suggestion, 'status', 0)
         suggestion.save()
@@ -3422,12 +3433,12 @@ def confirm_add_po(request, sales_data = '', user=''):
     gstin_no = purchase_order.supplier.tin_number
     order_date = get_local_date(request.user, order.creation_date)
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+    table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',
+                     'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)']
     if ean_flag:
-        table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
-                         'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
-    else:
-        table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
-                         'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
+        table_headers.insert(1, 'EAN Number')
+    if display_remarks == 'true':
+        table_headers.append('Remarks')
 
     profile = UserProfile.objects.get(user=user.id)
 
@@ -3472,8 +3483,6 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     if supplier_email:
         receivers.append(supplier_email)
 
-    if request.user.email:
-        receivers.append(request.user.email)
     username = user.username
     if username == 'shotang':
         username = 'SHProc'
@@ -3508,6 +3517,7 @@ def confirm_po1(request, user=''):
     status_dict = {'Self Receipt': 'SR', 'Vendor Receipt': 'VR', 'Hosted Warehouse': 'HW'}
     myDict = dict(request.GET.iterlists())
     ean_flag = False
+    display_remarks = get_misc_value('display_remarks_mail', user.id)
     for key, value in myDict.iteritems():
         for val in value:
             purchase_orders = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated'], order_type=status_dict[key],
@@ -3546,10 +3556,14 @@ def confirm_po1(request, user=''):
                 if sku_supplier:
                     supplier_code = sku_supplier[0].supplier_code
 
+                po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
+                                purchase_order.sku.measurement_type, purchase_order.price, amount, purchase_order.sgst_tax,
+                                purchase_order.cgst_tax, purchase_order.igst_tax,purchase_order.utgst_tax]
                 if ean_flag:
-                    po_data.append(( wms_code, purchase_order.sku.ean_number, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, purchase_order.sku.measurement_type, purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
-                else:
-                    po_data.append(( wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity, purchase_order.sku.measurement_type, purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.utgst_tax, purchase_order.remarks))
+                    po_temp_data.insert(1, purchase_order.sku.ean_number)
+                if display_remarks == 'true':
+                    po_temp_data.append(purchase_order.remarks)
+                po_data.append(po_temp_data)
 
                 suggestion = OpenPO.objects.get(id=data_id, sku__user=user.id)
                 setattr(suggestion, 'status', 0)
@@ -3575,12 +3589,12 @@ def confirm_po1(request, user=''):
             po_reference = '%s%s_%s' %(str(profile.prefix), str(order_date).split(' ')[0].replace('-', ''), order_id)
             #table_headers = ('WMS CODE', 'Supplier Name', 'Description', 'Quantity', 'Unit Price', 'Amount')
 
+            table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',
+                                 'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)']
             if ean_flag:
-                table_headers = ('WMS Code', 'EAN Number', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
-                                 'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
-            else:
-                table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',\
-                                 'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Remarks')
+                table_headers.insert(1, 'EAN Number')
+            if display_remarks == 'true':
+                table_headers.append('Remarks')
             data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                          'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
                          'company_name': profile.company_name, 'location': profile.location, 'po_reference': po_reference,

@@ -4326,7 +4326,7 @@ def check_return_imei(request, user=''):
                 return_data['data'] = {'sku_code': order_imei[0].order.sku.sku_code, 'invoice_number': invoice_number,
                                        'order_id': order_id, 'sku_desc': order_imei[0].order.title, 'shipping_quantity': 1,
                                        'sor_id': order_imei[0].sor_id}
-                order_return = OrderReturns.objects.filter(order_id=order_imei[0].order.id, sku__user=user.id)
+                order_return = OrderReturns.objects.filter(order_id=order_imei[0].order.id, sku__user=user.id, status=1)
                 if order_return:
                     return_data['data'].update({'id': order_return[0].id, 'return_id': order_return[0].return_id,
                                                 'return_type': order_return[0].return_type, 'sor_id': ''})

@@ -1979,6 +1979,7 @@ def check_imei(request, user=''):
     status = ''
     is_shipment = request.GET.get('is_shipment', False)
     order_id = request.GET.get('order_id', '')
+    sku_code = ''
     for key, value in request.GET.iteritems():
         if key in ['is_shipment', 'order_id']:
             continue
@@ -2022,7 +2023,7 @@ def check_imei(request, user=''):
                 status = 'Success'
             return HttpResponse(json.dumps({'status': status, 'data': {'sku_code': sku_code}}))
 
-    return HttpResponse(json.dumps({'status': status, 'data': {}}))
+    return HttpResponse(json.dumps({'status': status, 'data': {'sku_code': sku_code}}))
 
 @get_admin_user
 def print_picklist_excel(request, user=''):

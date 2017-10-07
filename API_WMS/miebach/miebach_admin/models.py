@@ -221,7 +221,7 @@ class OrderDetail(models.Model):
                           ('customer_id', 'order_code', 'marketplace', 'original_order_id', 'order_id', 'customer_name'))
 
     def __unicode__(self):
-        return str(self.sku) + str(self.original_order_id)
+        return str(self.sku) + ':' +str(self.original_order_id)
 
 class OrderCharges(models.Model):
     id = BigAutoField(primary_key=True)

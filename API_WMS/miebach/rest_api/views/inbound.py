@@ -2607,7 +2607,8 @@ def putaway_data(request, user=''):
                     stock_data.save()
                     #create_update_seller_stock(data, value, user, stock_data, exc_loc, use_value=True)
                     update_details = create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
-                    marketplace_data += update_details
+                    if update_details:
+                        marketplace_data += update_details
                 else:
                     record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
                                    'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
@@ -2620,7 +2621,8 @@ def putaway_data(request, user=''):
                     stock_detail = StockDetail(**record_data)
                     stock_detail.save()
                     update_details = create_update_seller_stock(data, value, user, stock_detail, old_loc)
-                    marketplace_data += update_details
+                    if update_details:
+                        marketplace_data += update_details
                     #create_update_seller_stock(data, value, user, stock_detail, exc_loc)
                 consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 

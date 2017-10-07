@@ -1763,6 +1763,7 @@ def check_and_update_marketplace_stock(stock_updates, user):
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
         for update in stock_updates:
             try:
+                init_log.info('Stock Sync API request data for the user ' + str(user.username) + ' is ' + str(update))
                 response = obj.update_sku_count(
                     data=[update], user=user, method_put=False, individual_update=True)
                 init_log.info('Stock Sync API response for the user ' + str(user.username) + ' is ' + str(response))

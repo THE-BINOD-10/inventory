@@ -108,8 +108,8 @@ def get_generated_jo(start_index, stop_index, temp_data, search_term, order_term
 
 
 def get_user_stages(user, sub_user):
-    stages = list(ProductionStages.objects.filter(user=user.id).values_list('stage_name',flat=True))
-    
+    stages = list(ProductionStages.objects.filter(user=user.id).values_list('stage_name',flat=True).order_by('order'))
+
     if not sub_user.is_staff:
         group_ids = list(sub_user.groups.all().exclude(name=user.username).values_list('id', flat=True))
         stages = list(GroupStages.objects.filter(group_id__in=group_ids).values_list('stages_list__stage_name',flat=True))
@@ -117,7 +117,7 @@ def get_user_stages(user, sub_user):
         #for obj in stages_objs:
         #    name = sub_user.groups.filter(name=obj.group.name)
         #    if name:
-        #        group_obj = name[0]	
+        #        group_obj = name[0]
         #stages = GroupStages.objects.get(group=group_obj).stages_list.values_list('stage_name',flat=True)
 
     return stages
@@ -889,7 +889,9 @@ def confirm_rm_no_stock(picklist, picking_count, count, raw_loc, request, user):
         picklist.picked_quantity = picking_count
     if picklist.picked_quantity > 0 and picklist.jo_material.job_order.status in ['order-confirmed', 'picklist_gen']:
         if stages:
-            stat_obj = StatusTracking(status_id=picklist.jo_material.job_order.id, status_value=stages[0], status_type='JO')
+            stat_obj = StatusTracking(status_id=picklist.jo_material.job_order.id, status_value=stages[0], status_type='JO',
+                                      quantity=picklist.jo_material.job_order.product_quantity,
+                                      original_quantity=picklist.jo_material.job_order.product_quantity)
             stat_obj.save()
         picklist.jo_material.job_order.status = 'partial_pick'
         picklist.jo_material.job_order.save()
@@ -1034,7 +1036,9 @@ def rm_picklist_confirmation(request, user=''):
                     picklist.status = 'picked'
                 if picklist.picked_quantity > 0 and picklist.jo_material.job_order.status in ['order-confirmed', 'picklist_gen']:
                     if stages:
-                        stat_obj = StatusTracking(status_id=picklist.jo_material.job_order.id, status_value=stages[0], status_type='JO')
+                        stat_obj = StatusTracking(status_id=picklist.jo_material.job_order.id, status_value=stages[0], status_type='JO',
+                                                  quantity=picklist.jo_material.job_order.product_quantity,
+                                                  original_quantity=picklist.jo_material.job_order.product_quantity)
                         stat_obj.save()
                     picklist.jo_material.job_order.status = 'partial_pick'
                     picklist.jo_material.job_order.save()
@@ -1387,70 +1391,141 @@ def save_status_track_summary(stats_track, user, processed_quantity=0, processed
         StatusTrackingSummary.objects.create(status_tracking_id=stats_track.id, processed_stage=processed_stage,
                                             processed_quantity=processed_quantity, creation_date=datetime.datetime.now())
 
+def group_stage_dict(all_data):
+    new_dict = {}
+    for key, value in all_data.iteritems():
+        for data in value:
+            new_dict.setdefault(key, {})
+            pallet_number = ''
+            grouping_key = data[2]
+            if data[1].get('pallet_number', ''):
+                grouping_key = str(data[2]) + '<<>>' + str(data[1]['pallet_number'])
+            new_dict[key].setdefault(grouping_key, {'quantity': 0, 'pallet_list': [], 'exist_ids': []})
+            new_dict[key][grouping_key]['quantity'] = float(new_dict[key][grouping_key]['quantity']) + float(data[0])
+            new_dict[key][grouping_key]['pallet_list'].append({'quantity': data[0], 'pallet_dict': data[1]})
+            if data[3]:
+                new_dict[key][grouping_key]['exist_ids'].append(data[3])
+    return new_dict
+
+def update_status_tracking(status_trackings, quantity, user, to_add=False, save_summary=True):
+    processed_quantity = quantity
+    for status_tracking in status_trackings:
+        if not quantity:
+            break
+        if to_add:
+            status_tracking.original_quantity = float(status_tracking.original_quantity) + quantity
+            status_tracking.quantity = float(status_tracking.quantity) + quantity
+            quantity = 0
+        else:
+           if float(status_tracking.original_quantity) <= quantity:
+               temp_quantity = float(status_tracking.original_quantity)
+               quantity -= temp_quantity
+           else:
+               temp_quantity = quantity
+               quantity = 0
+           status_tracking.original_quantity = float(status_tracking.original_quantity) - temp_quantity
+           status_tracking.quantity = float(status_tracking.quantity) - temp_quantity
+           if save_summary:
+               save_status_track_summary(status_tracking, user, temp_quantity, processed_stage=status_tracking.status_value)
+        status_tracking.save()
+
+def build_jo_data(data_list):
+    new_dict = {}
+    for key in data_list:
+        job_order = JobOrder.objects.get(id=key)
+        pallet_mapping = PalletMapping.objects.filter(pallet_detail__user=job_order.product_code.user,
+                                                      po_location__job_order__job_code=job_order.job_code,
+                                                      po_location__job_order__product_code__wms_code=job_order.product_code.wms_code,
+                                                      status=2)
+        pallet_ids = pallet_mapping.values_list('id', flat=True)
+        status_trackings = StatusTracking.objects.filter(Q(status_id=key, status_type='JO') |
+                                                       Q(status_id__in=pallet_ids, status_type='JO-PALLET'), quantity__gt=0)
+        for status_tracking in status_trackings:
+            new_dict.setdefault(key, [])
+            pallet_dict = {}
+            if status_tracking.status_type == 'JO-PALLET':
+                pallet = pallet_mapping.get(id=status_tracking.status_id)
+                pallet_dict = {'pallet_number': pallet.pallet_detail.pallet_code, 'pallet_id': pallet.id}
+            new_dict[key].append([float(status_tracking.quantity), pallet_dict, status_tracking.status_value, status_tracking.id])
+    return new_dict
+
+def update_tracking_data(status_id, status_type, job_order, stage, stage_data, stages, is_grn, user, final_update_data=[]):
+    if status_type == 'JO-PALLET':
+        jo_status_trackings = StatusTracking.objects.filter(status_id=job_order.id, status_type='JO',status_value=stage, quantity__gt=0)
+        to_reduce = jo_status_trackings.aggregate(Sum('quantity'))['quantity__sum']
+        if jo_status_trackings:
+            update_status_tracking(jo_status_trackings, abs(to_reduce), user, to_add=False, save_summary=False)
+    status_trackings = StatusTracking.objects.filter(status_id=status_id, status_type=status_type,status_value=stage)
+    exist_quantity = status_trackings.aggregate(Sum('quantity'))['quantity__sum']
+    existing_objs = StatusTracking.objects.filter(id__in=stage_data['exist_ids'])
+    processed_stage = ''
+    if existing_objs:
+        processed_stage = existing_objs[0].status_value
+    if not exist_quantity:
+        exist_quantity = 0
+    if not float(exist_quantity) == float(stage_data['quantity']):
+        to_reduce = float(exist_quantity) - float(stage_data['quantity'])
+        if to_reduce < 0:
+            if not status_trackings:
+                status_trackings = [save_status_tracking(status_id, status_type, stage, abs(to_reduce))]
+            else:
+                update_status_tracking(status_trackings, abs(to_reduce), user, to_add=True)
+            if existing_objs.exclude(status_value=stage):
+                update_status_tracking(existing_objs.exclude(status_value=stage), abs(to_reduce), user, to_add=False)
+        else:
+            update_status_tracking(status_trackings, abs(to_reduce), user, to_add=False)
+        if is_grn and stages and stages[-1] == stage:
+            final_update_data.append([status_trackings, abs(to_reduce), user, False])
+    return final_update_data
+
+
 def save_receive_pallet(all_data,user, is_grn=False):
+    all_data1 = copy.deepcopy(all_data)
+    all_data = group_stage_dict(all_data)
+    final_update_data = []
+    stages = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     for key,value in all_data.iteritems():
         job_order = JobOrder.objects.get(id=key)
-        for val_ind, val in enumerate(value):
-            if not val[0]:
-                continue
-            status_type = 'JO'
-            stages = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
-            if val[1].get('pallet_id') or val[1].get('pallet_number', ''):
-                status_type = 'JO-PALLET'
-                if val[1]['pallet_id']:
-                    update_pallet_data(val[1], val[0])
-                    pallet_id = val[1]['pallet_id']
+        for stage, stage_data in value.iteritems():
+            grouping_key = stage
+            pallet_num = ''
+            if '<<>>' in stage:
+                stage, pallet_num = stage.split('<<>>')
+            for val_ind, pal_dict in enumerate(stage_data.get('pallet_list', [])):
+                pallet_dict = pal_dict['pallet_dict']
+                if pallet_dict.get('pallet_id') or (pallet_dict.get('pallet_number', '')):
+                    status_type = 'JO-PALLET'
+                    if pallet_dict['pallet_id']:
+                        update_pallet_data(pallet_dict, pal_dict['quantity'])
+                        pallet_id = pallet_dict['pallet_id']
+                        final_update_data = update_tracking_data(pallet_id, 'JO-PALLET', job_order, stage, stage_data, stages,
+                                                                 is_grn, user, final_update_data=final_update_data)
+                    else:
+                        status = 2
+                        location_data = {'job_order_id': job_order.id, 'location_id': None, 'status': status,
+                                        'quantity': float(pal_dict['quantity']),
+                                        'original_quantity': float(pal_dict['quantity']), 'creation_date': datetime.datetime.now()}
+                        po_location = POLocation(**location_data)
+                        po_location.save()
+                        pallet_dict2 = {'pallet_number': pallet_dict['pallet_number'], 'received_quantity': float(pal_dict['quantity']),
+                                    'user': user.id}
+                        pallet_id = insert_pallet_data(pallet_dict2, po_location, 2)
+                        all_data[key][grouping_key]['pallet_list'][val_ind]['pallet_dict']['pallet_id'] = pallet_id
+                        stage_data['quantity'] = float(pal_dict['quantity'])
+                        stage_data['pallet_list'][val_ind]['pallet_dict']['pallet_id'] = pallet_id
+                        final_update_data = update_tracking_data(pallet_id, 'JO-PALLET', job_order, stage, stage_data, stages,
+                                                                 is_grn, user, final_update_data=final_update_data)
+
                 else:
-                    status = 2
-                    location_data = {'job_order_id': job_order.id, 'location_id': None, 'status': status, 'quantity': float(val[0]),
-                                     'original_quantity': float(val[0]), 'creation_date': datetime.datetime.now()}
-                    po_location = POLocation(**location_data)
-                    po_location.save()
-                    pallet_dict = {'pallet_number': val[1]['pallet_number'], 'received_quantity': float(val[0]), 'user': user.id}
-                    pallet_id = insert_pallet_data(pallet_dict, po_location, 2)
-                    all_data[key][val_ind][1]['pallet_id'] = pallet_id
+                    job_order.saved_quantity = float(stage_data['quantity'])
+                    job_order.save()
+                    final_update_data = update_tracking_data(key, 'JO', job_order, stage, stage_data, stages,
+                                                             is_grn, user, final_update_data=final_update_data)
 
-            else:
-                job_order.saved_quantity = float(val[0])
-                job_order.save()
-            if val[3]:
-                processed_stage, processed_quantity = '', 0
-                prev_status = StatusTracking.objects.get(id=val[3])
-                if not (prev_status.status_type == status_type):
-                    prev_status.original_quantity = float(prev_status.original_quantity) - float(val[0])
-                prev_status.status_type = status_type
-                if not (prev_status.status_value == val[2]):
-                    processed_stage = prev_status.status_value
-                    processed_quantity = prev_status.quantity
-                elif not (prev_status.quantity == float(val[0])):
-                    processed_stage = prev_status.status_value
-                    processed_quantity = prev_status.quantity - float(val[0])
-
-                if processed_stage:
-                    save_status_track_summary(prev_status, user, processed_quantity, processed_stage=processed_stage)
-                prev_status.quantity = float(val[0])
-                prev_status.status_value = val[2]
-                prev_status.save()
-                if is_grn and stages and stages[-1] == val[2]:
-                    save_status_track_summary(prev_status, user, float(val[0]), processed_stage=val[2])
-                continue
-
-            if val[2]:
-                status_id = key
-                if status_type=='JO-PALLET':
-                    status_id = pallet_id
-
-                stats_track = StatusTracking.objects.filter(status_id=status_id, status_type__in=['JO', 'JO-PALLET'], status_value=val[2])
-                if not stats_track:
-                    stats_track = save_status_tracking(status_id, status_type, val[2], float(val[0]))
-                else:
-                    stats_track = stats_track[0]
-                    stats_track.quantity = float(stats_track.quantity) + float(val[0])
-                    stats_track.original_quantity = float(stats_track.original_quantity) + float(val[0])
-                    stats_track.save()
-                if is_grn and stages and stages[-1] == val[2]:
-                    save_status_track_summary(stats_track, user, float(val[0]), processed_stage=val[2])
-                all_data[key][val_ind][3] = stats_track.id
+        new_data = build_jo_data(all_data.keys())
+        for final_data in final_update_data:
+            update_status_tracking(*final_data)
+        return new_data
     return all_data
 
 @csrf_exempt

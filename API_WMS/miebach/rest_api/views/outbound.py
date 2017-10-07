@@ -1979,6 +1979,7 @@ def check_imei(request, user=''):
     status = ''
     is_shipment = request.GET.get('is_shipment', False)
     order_id = request.GET.get('order_id', '')
+    sku_code = ''
     for key, value in request.GET.iteritems():
         if key in ['is_shipment', 'order_id']:
             continue
@@ -2022,7 +2023,7 @@ def check_imei(request, user=''):
                 status = 'Success'
             return HttpResponse(json.dumps({'status': status, 'data': {'sku_code': sku_code}}))
 
-    return HttpResponse(json.dumps({'status': status, 'data': {}}))
+    return HttpResponse(json.dumps({'status': status, 'data': {'sku_code': sku_code}}))
 
 @get_admin_user
 def print_picklist_excel(request, user=''):
@@ -2305,6 +2306,23 @@ def validate_order_form(myDict, request, user):
     direct_dispatch = request.POST.get('direct_dispatch', '')
     if not myDict['shipment_date'][0]:
         status = 'Shipment Date should not be empty'
+    seller_id = request.POST.get('seller_id', '')
+    seller_status = ""
+    sor_id_status = ""
+    if request.POST.has_key('seller_id'):
+        if not seller_id:
+            seller_status = 'Seller should not be emtpy'
+        else:
+            seller_data = SellerMaster.objects.filter(user = user.id, seller_id = seller_id)
+            if not seller_data:
+                seller_status = 'Seller not found'
+        sor_id = request.POST.get('sor_id', '')
+        if not sor_id:
+            sor_id_status = 'SOR ID should not be emtpy'
+        else:
+            seller_order = SellerOrder.objects.filter(order__user = user.id, sor_id = sor_id)
+            if seller_order:
+                sor_id_status = 'SOR ID already userd'
     sku_masters = SKUMaster.objects.filter(user=user.id).values('sku_code', 'wms_code', 'id', 'sku_desc')
     all_sku_codes = {}
     for i in range(0, len(myDict['sku_id'])):
@@ -2334,6 +2352,10 @@ def validate_order_form(myDict, request, user):
         status += " Quantities missing sku codes are " + ",".join(invalid_quantities)
     if less_stocks:
         status += " Insufficient stock combindations are " + ",".join(less_stocks)
+    if seller_status:
+        status += " "+seller_status
+    if sor_id_status:
+        status += " "+sor_id_status
     return status, all_sku_codes
 
 def create_order_json(order_detail, json_dat={}, ex_image_url={}):
@@ -2409,6 +2431,8 @@ def insert_order_data(request, user=''):
     telephone = request.POST.get('telephone', '')
     custom_order = request.POST.get('custom_order', '')
     user_type = request.POST.get('user_type', '')
+    seller_id = request.POST.get('seller_id', '')
+    sor_id = request.POST.get('sor_id', '')
 
     created_order_id = ''
     ex_image_url = {}
@@ -2419,7 +2443,7 @@ def insert_order_data(request, user=''):
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
 
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount', 'description',
-                     'extra_data', 'location', 'serials', 'direct_dispatch']
+                     'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id']
     try:
         for i in range(0, len(myDict['sku_id'])):
             order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
@@ -2520,6 +2544,9 @@ def insert_order_data(request, user=''):
                     order_data['original_order_id'] = str(order_data['order_code']) + str(order_data['order_id'])
                 order_detail = OrderDetail(**order_data)
                 order_detail.save()
+                if seller_id:
+                    SellerOrder.objects.create(seller_id=seller_id, sor_id=sor_id, order_id=order_detail.id, quantity=order_detail.quantity,\
+                                order_status='PENDING', creation_date=datetime.datetime.now()) 
 
                 order_objs.append(order_detail)
                 order_sku.update({order_detail.sku : order_data['quantity']})
@@ -2537,8 +2564,12 @@ def insert_order_data(request, user=''):
                     dispatch_orders[order_detail.id] = {'order_instance': order_detail, 'data': [{'quantity': order_data['quantity'],
                                                         'location': myDict['location'][i], 'serials': serials}]}
                 extra_data = request.POST.get('extra_data', '')
-                if custom_order == 'true' and extra_data:
-                    ex_image_url = create_order_json(order_detail, eval(extra_data), ex_image_url)
+                from_custom_order = request.POST.get('from_custom_order', '')
+                if from_custom_order == 'true':
+                    if extra_data:
+                        OrderJson.objects.create(order_id=order_detail.id, json_data=extra_data, creation_date=datetime.datetime.now())
+                elif custom_order == 'true' and extra_data:
+                    ex_image_url = create_order_json(order_detail, json.loads(extra_data), ex_image_url)
             elif order_obj and order_data['sku_id'] in created_skus:
                 order_det = order_obj[0]
                 order_det.quantity += float(order_data['quantity'])
@@ -3228,8 +3259,9 @@ def print_shipment(request, user=''):
 def get_sku_categories(request, user=''):
     brands, categories, sizes, colors, categories_details = get_sku_categories_data(request, user)
     stages_list = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
-    return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,\
-                                    'colors': colors, 'categories_details': categories_details}))
+    sub_categories = list(SKUMaster.objects.filter(user=user.id).exclude(sub_category='').values_list('sub_category', flat=True).distinct())
+    return HttpResponse(json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,
+                                    'sub_categories': sub_categories})) 
 
 def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id='', prices_dict={}):
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku_id').distinct().annotate(in_stock=Sum('quantity'))
@@ -3838,7 +3870,7 @@ def get_view_order_details(request, user=''):
 
             order_json = OrderJson.objects.filter(order_id=one_order.id)
             if order_json:
-                sku_extra_data = eval(order_json[0].json_data)
+                sku_extra_data = json.loads(order_json[0].json_data)
 
         order_details_data.append({'product_title':product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
                       'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone,'email': email, 'address': address, 'city': city, 
@@ -4460,7 +4492,8 @@ def update_order_data(request, user = ""):
         complete_id = myDict['order id'][0]
         order_id = ''.join(re.findall('\d+', complete_id))
         order_code = ''.join(re.findall('\D+', complete_id))
-        older_objs = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id)
+        older_objs = OrderDetail.objects.filter(Q(order_id = order_id, order_code = order_code) | Q(original_order_id=complete_id),
+                                                user= user.id)
         old_cust_obj = ""
         order_creation_date = datetime.datetime.now()
 
@@ -5708,4 +5741,147 @@ def get_order_labels(request, user=''):
 
     return HttpResponse(json.dumps({'message': 'Success', 'data': data}))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sub_category_styles(request, user=''):
 
+    resp = {'message': 'Success', 'data': []}
+    sub_category = request.GET.get('sub_category', '')
+
+    if not sub_category:
+        resp['message'] = 'Fail'
+        return HttpResponse(json.dumps(resp))
+    product_styles = SKUMaster.objects.exclude(sku_class='').filter(user=user.id, sub_category=sub_category).values_list('sku_class', flat=True).distinct()
+
+    if not product_styles:
+        resp['message'] = 'date empty'
+        return HttpResponse(json.dumps(resp))
+
+    sku_data = []
+    sku_master = SKUMaster.objects.filter(user=user.id)
+    for product in product_styles:
+        sku_object = sku_master.filter(sku_class=product)
+        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id').\
+                                       order_by('-image_url')
+        sku_data.append(sku_styles[0])
+
+    resp['data'] = sku_data
+    return HttpResponse(json.dumps(resp))
+
+def get_incremental(user, type_name):
+    #custom sku counter
+    default = 1000
+    data = IncrementalTable.objects.filter(user = user.id, type_name = type_name)
+    if data:
+        data = data[0]
+        count = data.value + 1
+        data.value = data.value + 1
+        data.save()
+    else:
+        IncrementalTable.objects.create(user_id = user.id, type_name = type_name, value = 1001)
+        count = default
+    return count
+
+def save_custom_order_images(user, request, sku_class):
+    path = 'static/images/custom'
+    if not os.path.exists(path):
+        os.makedirs(path)
+    folder = user.id
+    if not os.path.exists(path + "/" + str(folder)):
+        os.makedirs(path + "/" + str(folder))
+    image_data = {}
+    if len(request.FILES):
+        for file_name, file_data in request.FILES.iteritems():
+            extension = file_data.name.split('.')[-1]
+            full_filename = os.path.join(path, str(folder), str(sku_class)+ "_" +file_name + '.' +str(extension))
+            fout = open(full_filename, 'wb+')
+            file_content = ContentFile( file_data.read() )
+
+            try:
+                # Iterate through the chunks.
+                file_contents = file_content.chunks()
+                for chunk in file_contents:
+                    fout.write(chunk)
+                fout.close()
+                image_data[file_name] = "/"+full_filename
+            except:
+                print 'not saved'
+            print file_name
+    return image_data
+    '''
+    import base64
+    for work_type, work_data in image_data.iteritems():
+        for place, data in work_data.iteritems():
+            with open(path + place + ".png", "wb") as fh:
+                fh.write(base64.decodestring(data + "=="))
+            #fh = open(path + place + ".png", "wb")
+            #fh.write(data.decode('base64'))
+            #fh.close()
+    '''
+@csrf_exempt
+@login_required
+@get_admin_user
+def create_custom_skus(request, user=''):
+    #it will create new skus and returns the data
+
+    resp = {'message': 'Success', 'data': []}
+    data = request.POST.get('model', '')
+
+    if not data:
+        resp['message'] = "Fail"
+        return HttpResponse(json.dumps(resp))
+
+    order_data = []
+
+    image_data = {}
+    image_status = True
+    data = json.loads(json.loads(data))
+    for size_name, value in data['sizeEnable'].iteritems():
+        if value and data['sizeTotals'][size_name]:
+            sku = get_incremental(user, "sku_code")
+            if image_status:
+                image_status = False
+                image_data = save_custom_order_images(user, request, sku)
+                ''''if data['printEmbroidery']:
+                    for place, image in data['print']['places'].iteritems():
+                        name = ""
+                        if image:
+                            name = str(sku)+"_print_"+place
+                            image_data['print'][name] = data['print']['placeImgs'][place]
+                        data['print']['placeImgs'][place] = name
+                    for place, image in data['embroidery']['places'].iteritems():
+                        name = ""
+                        if image:
+                            name = str(sku)+"_emboidery_"+place
+                            image_data['embroidery'][name] = data['embroidery']['placeImgs'][place]
+                        data['embroidery']['placeImgs'][place] = name
+                else:
+                    data['print']['placeImgs'] = {}
+                    data['embroidery']['placeImgs'] = {}
+                '''
+                data['image_data'] = image_data
+                data['sku_class'] = sku
+            for size, quantity in data['sizeValues'][size_name].iteritems():
+                if quantity:
+                    data_dict = copy.deepcopy(SKU_DATA)
+                    data_dict['user'] = user.id
+                    data_dict['sku_code'] = "CS"+str(sku)+"-"+size
+                    data_dict['wms_code'] = data_dict['sku_code']
+                    data_dict['sku_class'] = str(sku)+"-"+size_name
+                    data_dict['sku_size'] = size
+                    data_dict['sku_type'] = "CS"
+
+                    sku_desc = size_name + "_" + size
+                    if data['bodyStyle'].get('sku_class', ''):
+                        sku_desc = data['bodyStyle'].get('sku_class', '') + "_" + sku_desc
+                        data_dict['image_url'] = data['bodyStyle'].get('image_url', '')
+
+                    data_dict['sku_desc'] = sku_desc
+                    sku_master = SKUMaster(**data_dict)
+                    sku_master.save()
+                    SKUJson.objects.create(sku_id = sku_master.id, json_data = json.dumps(data))
+                    order_data.append({'sku_id': data_dict['sku_code'], 'sku_desc': data_dict['sku_desc'],\
+                                       'quantity': quantity, 'extra': data})
+    resp['data'] = order_data
+    return HttpResponse(json.dumps(resp))

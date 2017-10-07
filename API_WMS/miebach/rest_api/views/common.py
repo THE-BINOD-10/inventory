@@ -301,9 +301,9 @@ def get_search_params(request):
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date', 'wms_code': 'wms_code',
                     'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category', 'sku_category': 'sku_category', 'sku_type': 'sku_type',
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po', 'marketplace': 'marketplace',
-                    'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'job_code', 'sku_class': 'sku_class', 'sku_size':'sku_size',
+                    'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'jo_code', 'sku_class': 'sku_class', 'sku_size':'sku_size',
                     'order_report_status': 'order_report_status', 'customer_id': 'customer_id', 'imei_number': 'imei_number',
-                    'order_id': 'order_id'}
+                    'order_id': 'order_id', 'job_code': 'job_code'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = { 'search0': 'search_0', 'search1': 'search_1',
                        'search2': 'search_2', 'search3': 'search_3',
@@ -595,6 +595,8 @@ def configurations(request, user=''):
     grn_scan_option = get_misc_value('grn_scan_option', user.id)
     invoice_titles = get_misc_value('invoice_titles', user.id)
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
+    display_remarks_mail = get_misc_value('display_remarks_mail', user.id)
+    create_seller_order = get_misc_value('create_seller_order', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
@@ -704,7 +706,8 @@ def configurations(request, user=''):
                                     'display_customer_sku': display_customer_sku, 'marketplace_model': marketplace_model,
                                     'label_generation': label_generation, 'barcode_generate_options': BARCODE_OPTIONS,
                                     'barcode_generate_opt': barcode_generate_opt, 'grn_scan_option': grn_scan_option,
-                                    'invoice_titles': invoice_titles, 'show_imei_invoice': show_imei_invoice}))
+                                    'invoice_titles': invoice_titles, 'show_imei_invoice': show_imei_invoice,
+                                    'display_remarks_mail': display_remarks_mail, 'create_seller_order':create_seller_order}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -1761,6 +1764,7 @@ def check_and_update_marketplace_stock(stock_updates, user):
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
         for update in stock_updates:
             try:
+                init_log.info('Stock Sync API request data for the user ' + str(user.username) + ' is ' + str(update))
                 response = obj.update_sku_count(
                     data=[update], user=user, method_put=False, individual_update=True)
                 init_log.info('Stock Sync API response for the user ' + str(user.username) + ' is ' + str(response))
@@ -1777,7 +1781,7 @@ def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_i
     for jo_mapping in jo_order_mapping:
         order_json = OrderJson.objects.filter(order_id=jo_mapping.order_id)
         if order_json:
-            extra_data = eval(order_json[0].json_data)
+            extra_data = json.loads(order_json[0].json_data)
         if jo_mapping.order:
             order_id = str(jo_mapping.order.order_code) + str(jo_mapping.order.order_id)
             if jo_mapping.order.original_order_id:
@@ -2233,6 +2237,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     is_margin_percentage = request.GET.get('is_margin_percentage', 'false')
     customer_data_id = request_data.get('customer_data_id', '')
     price_type = ''
+    customer_id = ''
     if not customer_data_id:
         request_user = ''
         if request:

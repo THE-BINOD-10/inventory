@@ -957,6 +957,19 @@ var app = angular.module('urbanApp')
              url: '/customer',
              templateUrl: 'views/outbound/toggle/customer.html'
            })
+        .state('app.outbound.CreateCustomOrder', {
+          url: '/CreateCustomOrder',
+          permission: 'add_orderdetail',
+          templateUrl: 'views/outbound/create_custom_order.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/controllers/outbound/create_custom_order.js');
+            }]
+          },
+          data: {
+            title: 'Customize Your Orders',
+          }
+        })
         .state('app.outbound.ViewOrders', {
           url: '/ViewOrders',
           permission: 'add_picklist',

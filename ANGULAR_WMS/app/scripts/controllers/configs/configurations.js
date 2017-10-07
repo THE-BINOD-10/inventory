@@ -17,7 +17,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '',
                     'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
-                    'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false
+                    'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -28,7 +28,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      23: 'detailed_invoice', 24: 'scan_picklist_option', 25: 'stock_display_warehouse', 26: 'view_order_status',
                      27: 'seller_margin', 28: 'style_headers', 29: 'receive_process', 30: 'tally_config', 31: 'tax_details',
                      32: 'hsn_summary', 33: 'display_customer_sku', 34: 'marketplace_model', 35: 'label_generation',
-                     36: 'barcode_generate_opt', 37: 'grn_scan_option', 38: 'invoice_titles', 39: 'show_imei_invoice'}
+                     36: 'barcode_generate_opt', 37: 'grn_scan_option', 38: 'invoice_titles', 39: 'show_imei_invoice',
+                     40: 'display_remarks_mail', 41: 'create_seller_order'}
 
   vm.check_box_data = [
     {
@@ -188,17 +189,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     {
       name: "Display IMEI Numbers In Invoice",
       model_name: "show_imei_invoice",
-      param_no: 39, 
+      param_no: 39,
       class_name: "fa fa-refresh",
       display: vm.marketplace_user
     },
     {
+      name: "Create Seller Order",
+      model_name: "create_seller_order",
+      param_no: 41,
+      class_name: "fa fa-server",
+      display: vm.marketplace_user
+    }, 
+    {
+      name: "Display Remarks in Mail",
+      model_name: "display_remarks_mail",
+      param_no: 40,
+      class_name: "fa fa-envelope",
+      display: true
+    },
+    { 
       name: "Decimal Quantity",
       model_name: "float_switch",
       param_no: 15,
       class_name: "fa fa-server",
       display: true
-     }
+    },
 ]
 
   vm.empty = {};

@@ -17,6 +17,20 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
                     tax_type: "", blind_order: false};
 
   angular.copy(empty_data, vm.model_data);
+
+  vm.from_custom_order = false;
+  if(Data.create_orders.custom_order_data.length > 0) {
+    vm.model_data.data = [];
+    angular.forEach(Data.create_orders.custom_order_data, function(sku_data){
+      vm.model_data.data.push({sku_id: sku_data.sku_id, quantity: sku_data.quantity, description: sku_data.sku_desc,
+                               invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: "",location: "",
+                               serials: [], serial: "", capacity: 0, extra: sku_data.extra})
+    })
+    Data.create_orders.custom_order_data = [];
+    vm.from_custom_order = true;
+    vm.custom_order = true;
+  }
+
   vm.isLast = isLast;
     function isLast(check) {
 
@@ -100,7 +114,8 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         if(data.message) {
           if(data.data.indexOf("Success") != -1) {
             angular.copy(empty_data, vm.model_data);
-            vm.final_data = {total_quantity:0,total_amount:0}
+            vm.final_data = {total_quantity:0,total_amount:0};
+            vm.from_custom_order = false;
           }
           colFilters.showNoty(data.data);
         }
@@ -1303,7 +1318,9 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
           if(data.message) {
             if(data.data.status == "") {
-              if(vm.checkAndAdd(scan)) {
+              if (data.data.data.sku_code != sku_data.sku_id) {
+                vm.service.showNoty("IMEI Code not matching with SKU code");
+              } else if(vm.checkAndAdd(scan)) {
                 vm.service.showNoty("Already Scanned")
               } else {
                 sku_data.serials.push(scan);

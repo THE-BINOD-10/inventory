@@ -93,6 +93,7 @@ class SKUMaster(models.Model):
     ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default = 0)
     load_unit_handle = models.CharField(max_length=32, default='unit', db_index=True)
     hsn_code = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default = 0)
+    sub_category = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -114,6 +115,34 @@ class SKUMaster(models.Model):
                 'threshold_quantity': self.threshold_quantity, 'online_percentage': self.online_percentage,
                 'discount_percentage': self.discount_percentage, 'price': self.price, 'image_url': self.image_url,
                 'qc_check': self.qc_check, 'status': self.status, 'relation_type': self.relation_type}
+
+class SKUJson(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster)
+    json_data = models.TextField()
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SKU_JSON'
+
+    def __unicode__(self):
+        return self.sku
+
+class IncrementalTable(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    type_name = models.CharField(max_length=64)
+    value = models.PositiveIntegerField()
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'INCREMENTAL_TABLE'
+
+    def __unicode__(self):
+        return self.value
 
 class LocationMaster(models.Model):
     id = BigAutoField(primary_key=True)
@@ -221,7 +250,7 @@ class OrderDetail(models.Model):
                           ('customer_id', 'order_code', 'marketplace', 'original_order_id', 'order_id', 'customer_name'))
 
     def __unicode__(self):
-        return str(self.sku) + str(self.original_order_id)
+        return str(self.sku) + ':' +str(self.original_order_id)
 
 class OrderCharges(models.Model):
     id = BigAutoField(primary_key=True)
@@ -1153,7 +1182,7 @@ class SKUFields(models.Model):
 
 class OrderJson(models.Model):
     order = models.ForeignKey(OrderDetail)
-    json_data = models.CharField(max_length=1000, default='')
+    json_data = models.TextField()
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

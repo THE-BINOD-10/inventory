@@ -43,7 +43,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
   self.create_orders= { fields:{
                           'other':{ unit_price: true, amount: true, tax: true, total_amount: true, remarks: true },
                           'Subhas Publications': {unit_price: false, amount: false, tax: false, total_amount: false, remarks: false}
-                        }
+                        },
+                        custom_order_data: []
                       }
 
   //create shipment

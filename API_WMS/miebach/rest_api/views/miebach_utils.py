@@ -25,6 +25,8 @@ SKU_GROUP_FIELDS = {'group': '', 'user': ''}
 
 ADJUST_INVENTORY_EXCEL_HEADERS = ['WMS Code', 'Location', 'Physical Quantity', 'Reason']
 
+SUB_CATEGORIES = {'round_neck': 'ROUND NECK', 'v_neck': 'V NECK', 'polo': 'POLO', 'chinese_collar': 'CHINESE COLLAR', 'henley': 'HENLEY'}
+
 DECLARATIONS = {'default': 'We declare that this invoice shows actual price of the goods described inclusive of taxes and that all particulars are true and correct.',
                 'TranceHomeLinen': 'Certify that the particulars given above are true and correct and the amount indicated represents the price actually charged and that there is no flow of additional consideration directly or indirectly.\n Subject to Banglore Jurisdication'}
 
@@ -38,6 +40,7 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sku_desc': '', 'sku_group': '', 'sku_type': '', 'mix_sku': '',
             'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'color': '', 'mrp': 0,
             'status': 1, 'online_percentage': 0, 'qc_check': 0, 'sku_brand': '', 'sku_size': '', 'style_name': '', 'price': 0,
+             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': '',
              'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': ''}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(), 'st_po_id': '', 'sku_id': '', 'status': 1}
@@ -136,7 +139,7 @@ SUPPLIER_FIELDS = ( (('Supplier Id *', 'id',60), ('Supplier Name *', 'name',256)
                     (('Address *', 'address'), ('Status', 'status',11)), )
 
 SKU_SUPPLIER_FIELDS = ( (('Supplier ID *', 'supplier_id',60), ('WMS Code *', 'wms_id','')),
-                        (('Supplier Code','supplier_code'), ('Priority *', 'preference',32) ), 
+                        (('Supplier Code','supplier_code'), ('Priority *', 'preference',32) ),
                         (('MOQ', 'moq',256,0), ('Price', 'price'), ) )
 
 RAISE_PO_FIELDS = ( (('Supplier ID', 'supplier_id',11), ('PO Name', 'po_name',30)),
@@ -145,7 +148,7 @@ RAISE_PO_FIELDS = ( (('Supplier ID', 'supplier_id',11), ('PO Name', 'po_name',30
 
 CUSTOM_ORDER_STATUS = {'Cleared': 'clear', 'Blocked': 'block', 'PO Raised - Yet to Recieve': 'po_rais',
                         'In Production Stage': 'prdctn', 'In Printing Stage': 'prnt', 'In Embroidery Stage': 'embrdry',
-                        'Completed': 'cmpltd'}
+                        'Completed': 'cmpltd', 'Approved': 'approved', 'Disapproved': 'disapproved'}
 
 
 RAISE_PO_FIELDS1 = OrderedDict([('WMS Code *','wms_code'), ('Supplier Code', 'supplier_code'), ('Quantity *','order_quantity'),('Price','price')])
@@ -268,8 +271,8 @@ RECEIPT_SUMMARY = {('receipt_summary_form', 'summaryTable', 'Receipt Summary', '
 DISPATCH_SUMMARY = {('dispatch_summary_form', 'dispatchTable', 'Dispatch Summary', 'dispatch-wise', 13, 14, 'dispatch-report'): (['Order ID', 'WMS Code', 'Description', 'Quantity', 'Date'], ( (('From Date', 'from_date'),('To Date', 'to_date')), (('WMS Code', 'wms_code'),('SKU Code','sku_code') )) ),}
 
 ORDER_SUMMARY_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'}, {'label': 'To Date', 'name': 'to_date',
-'type': 'date'}, {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}, {'label': 'Marketplace', 'name': 'marketplace', 'type': 'select'}, {'label': 'City', 'name': 'city', 'type': 'input'}, {'label': 'State', 'name': 'state', 'type': 'input'}, {'label': 'SKU Category', 'name': 'sku_category', 'type': 'select'}, {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'}, {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'}, {'label': 'SKU Size', 'name': 'sku_size', 'type': 'input'}, {'label': 'Status', 'name': 'order_report_status', 'type': 'select'}],
-                        'dt_headers': ['Order Date', 'Order ID', 'Customer Name' ,'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Size', 'SKU Description', 'SKU Code', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'City', 'State', 'Marketplace', 'Invoice Amount', 'Status'],
+'type': 'date'}, {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}, {'label': 'Marketplace', 'name': 'marketplace', 'type': 'select'}, {'label': 'City', 'name': 'city', 'type': 'input'}, {'label': 'State', 'name': 'state', 'type': 'input'}, {'label': 'SKU Category', 'name': 'sku_category', 'type': 'select'}, {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'}, {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'}, {'label': 'SKU Size', 'name': 'sku_size', 'type': 'input'}, {'label': 'Status', 'name': 'order_report_status', 'type': 'select'}, {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
+                        'dt_headers': ['Order Date', 'Order ID', 'Customer Name' ,'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Size', 'SKU Description', 'SKU Code', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'City', 'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks'],
                       'dt_url': 'get_order_summary_filter', 'excel_name': 'order_summary_report', 'print_url': 'print_order_summary_report',
                      }
 
@@ -543,7 +546,7 @@ SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('product_type',
                               ('size_type', 10), ('zone_id', 11), ('price', 12),
                               ('mrp', 13), ('sequence', 14), ('image_url', 15), ('threshold_quantity', 16), ('measurement_type', 17),
                               ('sale_through', 18), ('color', 19), ('ean_number', 20), ('load_unit_handle', 21), ('hsn_code', 22),
-                              ('status', 23)
+                              ('sub_category', 23), ('status', 24)
                            ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
@@ -933,7 +936,7 @@ SUMMARY_INTER_STATE_STATUS = {0: 'intra_state', 1: 'inter_state', '2': 'default'
 GSTIN_USER_MAPPING = {'sagar_fab': '29ABEFS4899J1ZA', 'adam_clothing1': '2788OFB3466F1ZB', 'adam_abstract': '2788OFB3466F1ZB',
                       'dazzle_export': '26AHQPP2057B1ZB', 'legends_overseas': '27AAGFL3290D1ZF', 'TranceHomeLinen': '29ADOPS6189BIZX',
                       'demo': 'ABC12345678', 'sjpmg': '07BDBPS8474F1Z7', 'tshirt_inc': '36AAHFT9169L1ZC',
-                      'scholar_clothing': '29AMPPN7507A1ZW', 'campus_sutra': '29AAIFC4655P1ZQ'}
+                      'scholar_clothing': '29AMPPN7507A1ZW', 'campus_sutra': '29AAIFC4655P1ZQ', 'book_publications': '29AABHS0537D1ZD'}
 
 #End of Username and GST Tin Mapping
 
@@ -966,7 +969,7 @@ JOB_ORDER_EXCEL_HEADERS = ['Product SKU Code', 'Product SKU Quantity']
 JOB_ORDER_EXCEL_MAPPING = OrderedDict(( ('product_code', 0), ('product_quantity', 1)))
 
 #Company logo names
-COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg'}
+COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'book_publications': 'book_publications.png'}
 
 def fn_timer(function):
     @wraps(function)
@@ -1145,16 +1148,17 @@ def get_location_stock_data(search_params, user, sub_user):
 
 def get_receipt_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
-    from rest_api.views.common import get_sku_master, get_misc_value
+    from rest_api.views.common import get_sku_master, get_misc_value, get_local_date
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
     use_imei = get_misc_value('use_imei', user.id)
     query_prefix = ''
-    lis = ['open_po__supplier__name', 'order_id', 'open_po__sku__wms_code', 'open_po__sku__sku_desc', 'received_quantity']
+    lis = ['open_po__supplier__name', 'order_id', 'open_po__sku__wms_code', 'open_po__sku__sku_desc', 'received_quantity',
+           'updation_date']
     model_obj = PurchaseOrder
     if use_imei:
         lis = ['purchase_order__open_po__supplier__name', 'purchase_order__order_id', 'purchase_order__open_po__sku__wms_code',
-               'purchase_order__open_po__sku__sku_desc', 'imei_number']
+               'purchase_order__open_po__sku__sku_desc', 'imei_number', 'creation_date']
         query_prefix = 'purchase_order__'
         model_obj = POIMEIMapping
     temp_data = copy.deepcopy( AJAX_DATA )
@@ -1201,14 +1205,16 @@ def get_receipt_filter_data(search_params, user, sub_user):
         purchase_order = purchase_order[start_index:stop_index]
     for data in purchase_order:
         serial_number = ''
+        received_date = get_local_date(user, data.updation_date)
         if use_imei:
             serial_number = data.imei_number
             data = data.purchase_order
+            received_date = get_local_date(user, data.creation_date)
         po_reference = '%s%s_%s' %(data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), data.order_id)
         temp_data['aaData'].append(OrderedDict(( ('PO Reference', po_reference), ('WMS Code', data.open_po.sku.wms_code), ('Description', data.open_po.sku.sku_desc),
                                     ('Supplier', '%s (%s)' % (data.open_po.supplier.name, data.open_po.supplier_id)),
                                     ('Receipt Number', data.open_po_id), ('Received Quantity', data.received_quantity),
-                                    ('Serial Number', serial_number) )))
+                                    ('Serial Number', serial_number), ('Received Date', received_date) )))
     return temp_data
 
 def get_dispatch_data(search_params, user, sub_user, serial_view=False):
@@ -1254,6 +1260,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={},all_order_objs = [])
         if order_detail:
             search_parameters['order_id__in'] = order_detail.values_list('id', flat=True)
+        else:
+            search_parameters['order_id__in'] = []
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -1278,8 +1286,11 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
             if data.stock.location.zone.zone == 'DEFAULT':
                 picked_quantity = 0
             date = get_local_date(user, data.updation_date).split(' ')
+            order_id = data.order.original_order_id
+            if not order_id:
+                order_id = str(data.order.order_code) + str(data.order.order_id)
 
-            temp_data['aaData'].append(OrderedDict(( ('Order ID', data.order.order_id), ('WMS Code', data.stock.sku.wms_code),
+            temp_data['aaData'].append(OrderedDict(( ('Order ID', order_id), ('WMS Code', data.stock.sku.wms_code),
                                                     ('Description', data.stock.sku.sku_desc), ('Location', data.stock.location.location),
                                                     ('Quantity', data.picked_quantity), ('Picked Quantity', picked_quantity),
                                                     ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5]))  )))
@@ -1687,10 +1698,11 @@ def get_daily_production_data(search_params, user, sub_user):
                                   ('Reduced Quantity', all_data[key]),('Stage', key[8])
                    )))
 
-    if order_term == 'asc' and order_index:
-        data = sorted(data, key=itemgetter(data[0].keys()[order_index]))
-    elif order_index or (order_index == 0 and order_term == 'desc'):
-        data = sorted(data, key=itemgetter(data[0].keys()[order_index]), reverse=True)
+    if data:
+        if order_term == 'asc' and order_index:
+            data = sorted(data, key=itemgetter(data[0].keys()[order_index]))
+        elif order_index or (order_index == 0 and order_term == 'desc'):
+            data = sorted(data, key=itemgetter(data[0].keys()[order_index]), reverse=True)
 
     temp_data['aaData'] = data
     if stop_index:
@@ -1807,7 +1819,7 @@ def get_openjo_details(search_params, user, sub_user):
 def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    from rest_api.views.common import get_sku_master
+    from rest_api.views.common import get_sku_master, get_order_detail_objs
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['creation_date', 'order_id', 'customer_name' ,'sku__sku_brand', 'sku__sku_category', 'sku__sku_class', 'sku__sku_size', 'sku__sku_desc', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp', 'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount', 'order_id'];
     #lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
@@ -1836,6 +1848,10 @@ def get_order_summary_data(search_params, user, sub_user):
         search_parameters['city'] = search_params['city']
     if 'city' in search_params:
         search_parameters['state'] = search_params['state']
+    if 'order_id' in search_params:
+        order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={},all_order_objs = [])
+        if order_detail:
+            search_parameters['id__in'] = order_detail.values_list('id', flat=True)
 
     status_search = search_params.get('order_report_status', "")
 
@@ -1935,21 +1951,34 @@ def get_order_summary_data(search_params, user, sub_user):
         vat = 5.5
         discount = 0
         mrp_price = data.sku.mrp
+        order_status = ''
+        remarks = ''
         order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data.id)
         if order_summary:
             tax = order_summary[0].tax_value
             vat = order_summary[0].vat
             mrp_price = order_summary[0].mrp
             discount = order_summary[0].discount
+            order_status = order_summary[0].status
+            remarks = order_summary[0].central_remarks
         else:
             tax = float(float(data.invoice_amount)/100) * vat
 
+        if order_status == 'None':
+            order_status = ''
         unit_price = ((float(data.invoice_amount)/ float(data.quantity))) - discount - (tax/float(data.quantity))
         unit_price = "%.2f" % unit_price
 
-
-
-        temp_data['aaData'].append( OrderedDict(( ('Order Date', ''.join(date[0:3])), ('Order ID', order_id), ('Customer Name', data.customer_name), ('SKU Brand', data.sku.sku_brand),  ('SKU Category', data.sku.sku_category), ('SKU Class', data.sku.sku_class), ('SKU Size', data.sku.sku_size), ('SKU Description', data.sku.sku_desc), ('SKU Code', data.sku.sku_code), ('Order Qty', int(data.quantity)),  ('MRP', int(data.sku.mrp)), ('Unit Price', unit_price), ('Discount', data.sku.discount_percentage), ('City', data.city), ('State', data.state), ('Marketplace', data.marketplace), ('Invoice Amount', data.invoice_amount), ('Price', data.sku.price), ('Status', status) )) )
+        temp_data['aaData'].append( OrderedDict(( ('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
+                                                  ('Customer Name', data.customer_name), ('SKU Brand', data.sku.sku_brand),
+                                                  ('SKU Category', data.sku.sku_category), ('SKU Class', data.sku.sku_class),
+                                                  ('SKU Size', data.sku.sku_size), ('SKU Description', data.sku.sku_desc),
+                                                  ('SKU Code', data.sku.sku_code), ('Order Qty', int(data.quantity)),
+                                                  ('MRP', int(data.sku.mrp)), ('Unit Price', unit_price),
+                                                  ('Discount', data.sku.discount_percentage), ('City', data.city),
+                                                  ('State', data.state), ('Marketplace', data.marketplace),
+                                                  ('Invoice Amount', data.invoice_amount), ('Price', data.sku.price),
+                                                  ('Status', status), ('Order Status', order_status), ('Remarks', remarks))) )
 
     return temp_data
 

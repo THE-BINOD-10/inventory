@@ -2308,20 +2308,21 @@ def validate_order_form(myDict, request, user):
         status = 'Shipment Date should not be empty'
     seller_id = request.POST.get('seller_id', '')
     seller_status = ""
-    if not seller_id:
-        seller_status = 'Seller should not be emtpy'
-    else:
-        seller_data = SellerMaster.objects.filter(user = user.id, seller_id = seller_id)
-        if not seller_data:
-            seller_status = 'Seller not found'
     sor_id_status = ""
-    sor_id = request.POST.get('sor_id', '')
-    if not sor_id:
-        sor_id_status = 'SOR ID should not be emtpy'
-    else:
-        seller_order = SellerOrder.objects.filter(order__user = user.id, sor_id = sor_id)
-        if seller_order:
-            sor_id_status = 'SOR ID already userd'
+    if request.POST.has_key('seller_id'):
+        if not seller_id:
+            seller_status = 'Seller should not be emtpy'
+        else:
+            seller_data = SellerMaster.objects.filter(user = user.id, seller_id = seller_id)
+            if not seller_data:
+                seller_status = 'Seller not found'
+        sor_id = request.POST.get('sor_id', '')
+        if not sor_id:
+            sor_id_status = 'SOR ID should not be emtpy'
+        else:
+            seller_order = SellerOrder.objects.filter(order__user = user.id, sor_id = sor_id)
+            if seller_order:
+                sor_id_status = 'SOR ID already userd'
     sku_masters = SKUMaster.objects.filter(user=user.id).values('sku_code', 'wms_code', 'id', 'sku_desc')
     all_sku_codes = {}
     for i in range(0, len(myDict['sku_id'])):
@@ -2568,7 +2569,7 @@ def insert_order_data(request, user=''):
                     if extra_data:
                         OrderJson.objects.create(order_id=order_detail.id, json_data=extra_data, creation_date=datetime.datetime.now())
                 elif custom_order == 'true' and extra_data:
-                    ex_image_url = create_order_json(order_detail, eval(extra_data), ex_image_url)
+                    ex_image_url = create_order_json(order_detail, json.loads(extra_data), ex_image_url)
             elif order_obj and order_data['sku_id'] in created_skus:
                 order_det = order_obj[0]
                 order_det.quantity += float(order_data['quantity'])
@@ -3869,7 +3870,7 @@ def get_view_order_details(request, user=''):
 
             order_json = OrderJson.objects.filter(order_id=one_order.id)
             if order_json:
-                sku_extra_data = eval(order_json[0].json_data)
+                sku_extra_data = json.loads(order_json[0].json_data)
 
         order_details_data.append({'product_title':product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
                       'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone,'email': email, 'address': address, 'city': city, 

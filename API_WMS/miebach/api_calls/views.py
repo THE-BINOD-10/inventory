@@ -1045,7 +1045,10 @@ def cancel_order(request):
         validation_dict, final_data_dict = validate_orders(orders, user=request.user, company_name='mieone', is_cancelled=True)
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
-        status = update_order_cancel(final_data_dict, user=request.user, company_name='mieone')
+        validation_dict2, status = update_order_cancel(final_data_dict, user=request.user, company_name='mieone')
+        if validation_dict2:
+            return HttpResponse(json.dumps({'messages': validation_dict2, 'status': 0}))
+        status = {'status': 1, 'messages': ['Success']}
         log.info(status)
     except Exception as e:
         import traceback

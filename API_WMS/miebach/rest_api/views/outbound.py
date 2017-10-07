@@ -4460,7 +4460,8 @@ def update_order_data(request, user = ""):
         complete_id = myDict['order id'][0]
         order_id = ''.join(re.findall('\d+', complete_id))
         order_code = ''.join(re.findall('\D+', complete_id))
-        older_objs = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id)
+        older_objs = OrderDetail.objects.filter(Q(order_id = order_id, order_code = order_code) | Q(original_order_id=complete_id),
+                                                user= user.id)
         old_cust_obj = ""
         order_creation_date = datetime.datetime.now()
 

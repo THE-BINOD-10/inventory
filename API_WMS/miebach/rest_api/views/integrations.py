@@ -9,6 +9,7 @@ import datetime
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read('rest_api/views/configuration.cfg')
+log = init_logger('logs/integrations.log')
 
 def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, is_list=False):
     final_data_dict.setdefault(grouping_key, {})
@@ -919,47 +920,175 @@ def insert_message(messages, seller_id, message):
         return False
     return True
 
+def update_lineitem_ids(seller_order, swx_mappings):
+    for swx_mapping in swx_mappings:
+        if not swx_mapping['swx_type'] == 'seller_item_id':
+            continue
+        mapping_obj = SWXMapping.objects.filter(swx_type=swx_mapping['swx_type'], app_host=swx_mapping['app_host'],
+                                                swx_id=swx_mapping['swx_id'], imei='')
+        if mapping_obj:
+            mapping_obj.update(imei='None')
+            line_item_objs = SWXMapping.objects.filter(local_id=seller_order.id, app_host=swx_mapping['app_host'],
+                                                       swx_type='seller_item_id', imei='')
+            if not line_item_objs:
+                SWXMapping.objects.filter(local_id=seller_order.id, app_host=swx_mapping['app_host'],
+                                          swx_type='seller_parent_item_id').update(imei='None')
+
+
+def validate_lineitem_ids(swx_mappings, seller_parent_id, insert_status=[]):
+    for swx_mapping in swx_mappings:
+        if not swx_mapping['swx_type'] == 'seller_item_id':
+            continue
+        mapping_obj = SWXMapping.objects.filter(swx_type=swx_mapping['swx_type'], app_host=swx_mapping['app_host'],
+                                                swx_id=swx_mapping['swx_id'])
+        if mapping_obj and mapping_obj[0].imei == 'None':
+            insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': swx_mapping['swx_id'],
+                                  'error': 'Order Cancelled already'})
+        elif mapping_obj and mapping_obj[0].imei:
+            insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': swx_mapping['swx_id'],
+                                  'error': 'Order Dispatched'})
+    return insert_status
+
+def update_cancelled_quantity(order_det, seller_order, picklist, cancel_quantity, order_dict, user, field_name):
+    if getattr(picklist, field_name) > 0:
+        reduced_quantity = 0
+        if float(getattr(picklist, field_name)) <= cancel_quantity:
+            reduced_quantity = float(getattr(picklist, field_name))
+            cancel_quantity -= reduced_quantity
+        else:
+            reduced_quantity = cancel_quantity
+            cancel_quantity = 0
+        setattr(picklist, field_name, float(getattr(picklist, field_name)) - reduced_quantity)
+        order_det.quantity = float(order_det.quantity) - reduced_quantity
+        if order_det.quantity <= 0:
+            order_det.status = 3
+        order_det.save()
+        if seller_order:
+            seller_order.quantity = float(seller_order.quantity) - reduced_quantity
+            if seller_order.quantity <= 0:
+                seller_order.status = 0
+            seller_order.save()
+        if picklist.reserved_quantity <= 0 and not picklist.picked_quantity:
+            picklist.status = 'cancelled'
+        elif picklist.reserved_quantity <= 0:
+            pick_status = 'picked'
+            if 'batch' in picklist.status:
+                pick_status = 'batch_picked'
+            picklist.status = pick_status
+        picklist.save()
+        if field_name == 'picked_quantity':
+            if picklist.stock:
+                seller_id = order_dict['seller_order_dict']['seller_id']
+                cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id, picklist__order__user=user.id,
+                                                                  seller_id=seller_id, status=1)
+                if not cancel_location:
+                    CancelledLocation.objects.create(picklist_id=picklist.id, quantity=reduced_quantity,
+                                    location_id=picklist.stock.location_id, creation_date=datetime.datetime.now(), status=1,
+                                    seller_id=seller_id)
+                else:
+                    cancel_location = cancel_location[0]
+                    cancel_location.quantity = float(cancel_location.quantity) + reduced_quantity
+                    cancel_location.save()
+        picklist_locations = PicklistLocation.objects.filter(picklist_id=picklist.id, picklist__order__user = user.id,
+                                                                status=1)
+        for pick_location in picklist_locations:
+            if not reduced_quantity:
+                break
+            if float(pick_location.quantity) <= reduced_quantity:
+                reduced_quantity -= float(pick_location.quantity)
+                pick_location.quantity = 0
+                if not field_name == 'picked_quantity':
+                    pick_location.reserved = float(pick_location.reserved) - reduced_quantity
+            else:
+                pick_location.quantity = float(pick_location.quantity) - reduced_quantity
+                reduced_quantity = 0
+                if not field_name == 'picked_quantity':
+                    pick_location.reserved = 0
+            if pick_location.quantity <= 0:
+                pick_location.status = 0
+            pick_location.save()
+    return cancel_quantity
+
 def update_order_cancel(orders_data, user='', company_name=''):
     NOW = datetime.datetime.now()
+    insert_status = []
     try:
+        update_data_list = []
         for key, order_dict in orders_data.iteritems():
+            seller_parent_id = ''
+            for swx in order_dict.get('swx_mappings', []):
+                if swx['swx_type'] == 'seller_parent_item_id':
+                    seller_parent_id = swx['swx_id']
+                    break
+            insert_status= validate_lineitem_ids(order_dict['swx_mappings'], seller_parent_id, insert_status=insert_status)
             original_order_id = order_dict['order_details']['original_order_id']
             filter_params = {'user': user.id, 'original_order_id': original_order_id, 'sku_id': order_dict['order_details']['sku_id'],
                              'order_id': order_dict['order_details']['order_id'], 'order_code': order_dict['order_details']['order_code']}
 
             order_det = OrderDetail.objects.exclude(status=3).filter(**filter_params)
-            if order_det:
-                order_det = order_det[0]
-                if int(order_det.status) == 1:
+            if not order_det:
+                for swx_mapping in order_dict['swx_mappings']:
+                    insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': swx_mapping['swx_id'],
+                                          'error': 'Invalid Order'})
+            elif Picklist.objects.filter(order_id=order_det[0].id, order__user=user.id, status=2):
+                for swx_mapping in order_dict['swx_mappings']:
+                    insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': swx_mapping['swx_id'],
+                                          'error': 'Order Dispatched'})
+            else:
+                update_data_list.append({'order_det': order_det, 'order_dict': order_dict})
+
+        if insert_status:
+            return insert_status, ''
+        for update_data in update_data_list:
+            order_det = update_data['order_det']
+            order_dict = update_data['order_dict']
+            order_det = order_det[0]
+            seller_order = None
+            if order_dict.get('seller_order_dict', {}):
+                seller_orders = SellerOrder.objects.filter(sor_id=order_dict['seller_order_dict']['sor_id'],
+                                                            order_id=order_det.id)
+                if seller_orders:
+                    seller_order = seller_orders[0]
+            if int(order_det.status) == 1:
+                if float(order_det.quantity) <= float(order_dict['order_details']['quantity']):
                     order_det.status = 3
                     order_det.save()
-                    if order_dict.get('seller_order_dict', {}):
-                        seller_order = SellerOrder.objects.filter(sor_id=order_dict['seller_order_dict']['sor_id'], order_id=order_det.id)
-                        if seller_order:
-                            seller_order.update(status=0)
+                    if seller_order:
+                        seller_order.status = 0
+                        seller_order.save()
                 else:
-                    picklists = Picklist.objects.filter(order_id=order_det.id, order__user=user.id)
-                    for picklist in picklists:
-                        if picklist.picked_quantity <= 0:
-                            picklist.delete()
-                        elif picklist.stock:
-                            cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id, picklist__order__user=user.id)
-                            if not cancel_location:
-                                seller_id = order_dict['seller_order_dict']['seller_id']
-                                CancelledLocation.objects.create(picklist_id=picklist.id, quantity=picklist.picked_quantity,
-                                             location_id=picklist.stock.location_id, creation_date=datetime.datetime.now(), status=1,
-                                             seller_id=seller_id)
-                                picklist.status = 'cancelled'
-                                picklist.save()
-                        else:
-                            picklist.status = 'cancelled'
-                            picklist.save()
-                    order_det.status = 3
+                    cancel_quantity = float(order_dict['order_details']['quantity'])
+                    order_det.quantity = float(order_det.quantity) - cancel_quantity
+                    if order_det.quantity <= 0:
+                        order_det.status = 3
                     order_det.save()
-                save_order_tracking_data(order_det, quantity=order_dict['order_details'].get('quantity', 0), status='cancelled', imei='')
-        return "Success"
-    except:
-        traceback.print_exc()
+                    if seller_order:
+                        seller_order.quantity = seller_order.quantity - cancel_quantity
+                        seller_order.save()
+
+            else:
+                picklists = Picklist.objects.filter(order_id=order_det.id, order__user=user.id)
+                cancel_quantity = float(order_dict['order_details']['quantity'])
+                for picklist in picklists:
+                    if not cancel_quantity:
+                        break
+                    if picklist.reserved_quantity > 0:
+                        cancel_quantity = update_cancelled_quantity(order_det, seller_order, picklist, cancel_quantity, order_dict,
+                                                                    user, 'reserved_quantity')
+                    if cancel_quantity and picklist.picked_quantity > 0:
+                        cancel_quantity = update_cancelled_quantity(order_det, seller_order, picklist, cancel_quantity,
+                                                                    order_dict, user, 'picked_quantity')
+            if seller_order and order_dict['swx_mappings']:
+                update_lineitem_ids(seller_order, order_dict['swx_mappings'])
+            save_order_tracking_data(order_det, quantity=order_dict['order_details'].get('quantity', 0), status='cancelled', imei='')
+        return insert_status, "Success"
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('Update Order Cancellation API failed for %s and params are %s and error statement is %s' %\
+                 (str(user.username), str(orders_data), str(e)))
+        return ['Internal Server Error'], ''
 
 def update_order_returns(orders_data, user='', company_name=''):
     NOW = datetime.datetime.now()
@@ -1023,4 +1152,4 @@ def update_order_returns(orders_data, user='', company_name=''):
         import traceback
         log.debug(traceback.format_exc())
         result_data = []
-        log.info('Update Order Returns API failed for %s and params are %s and error statement is %s' % (str(user.username), str(orders_dataorders_data), str(e)))
+        log.info('Update Order Returns API failed for %s and params are %s and error statement is %s' % (str(user.username), str(orders_data), str(e)))

@@ -74,6 +74,7 @@ urlpatterns = [
     url(r'^get_tax_data/$', get_tax_data),
     url(r'^add_or_update_tax/$', add_or_update_tax),
     url(r'^get_zone_data/$', get_zone_data),
+    url(r'^search_seller_data/$', search_seller_data),
 
     # Inbound
     url(r'^generated_po_data/$',generated_po_data),
@@ -224,6 +225,8 @@ urlpatterns = [
     url('^get_seller_order_details/$',get_seller_order_details),
     url(r'^get_stock_transfer_details/$', get_stock_transfer_details),
     url(r'^get_order_labels/$', get_order_labels),
+    url(r'get_sub_category_styles/$', get_sub_category_styles),
+    url(r'^create_custom_skus/$', create_custom_skus),
 
     # Reports
     #url(r'^location_wise_filter/$',location_wise_filter),

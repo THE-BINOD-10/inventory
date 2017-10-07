@@ -12,9 +12,12 @@ Installing requirements:
   commands : source MIEBACH/bin/activate
              pip install -r requirements.pip
 
-3.For New Database.
+3.If there is any problem to install Mysql-python.Execute the following command
+   command: sudo apt-get install build-essential libssl-dev libffi-dev python-dev
+
+4.For New Database.
   commands : python manage.py makemigrations miebach_admin
              python manage.py migrate
              python manage.py migrate oauth2_provider
 
-4.Check the Database settings and change if it is not Production setup.
+5.Check the Database settings and change if it is not Production setup.

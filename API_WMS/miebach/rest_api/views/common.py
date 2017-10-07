@@ -1780,7 +1780,7 @@ def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_i
     for jo_mapping in jo_order_mapping:
         order_json = OrderJson.objects.filter(order_id=jo_mapping.order_id)
         if order_json:
-            extra_data = eval(order_json[0].json_data)
+            extra_data = json.loads(order_json[0].json_data)
         if jo_mapping.order:
             order_id = str(jo_mapping.order.order_code) + str(jo_mapping.order.order_id)
             if jo_mapping.order.original_order_id:

@@ -128,6 +128,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.sizes_list =  data.sizes_list;
                   vm.model_data.combo_data = data.combo_data;
                   vm.model_data.product_types = data.product_types;
+                  vm.model_data.sub_categories = data.sub_categories;
                   var index = vm.model_data.zones.indexOf(vm.model_data.sku_data.zone);
                   vm.model_data.sku_data.zone = vm.model_data.zones[index];
                   

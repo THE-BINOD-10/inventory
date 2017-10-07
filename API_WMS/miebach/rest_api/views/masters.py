@@ -458,6 +458,7 @@ def get_sku_data(request,user=''):
     sku_data['color'] = data.color
     sku_data['load_unit_handle'] = load_unit_dict.get(data.load_unit_handle, 'unit')
     sku_data['hsn_code'] = data.hsn_code
+    sku_data['sub_category'] = data.sub_category
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -471,7 +472,7 @@ def get_sku_data(request,user=''):
     product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
     return  HttpResponse(json.dumps({'sku_data': sku_data,'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                                      'market_data':market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
-                                     'product_types': product_types}, cls=DjangoJSONEncoder))
+                                     'sub_categories': SUB_CATEGORIES, 'product_types': product_types}, cls=DjangoJSONEncoder))
 
 @csrf_exempt
 def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -1474,7 +1475,7 @@ def get_zones_list(request, user=''):
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
     return HttpResponse(json.dumps({'zones': zones_list, 'sku_groups': all_groups, 'market_places': market_places, 'sizes_list': sizes_list,
-                                    'product_types': product_types}))
+                                    'product_types': product_types, 'sub_categories': SUB_CATEGORIES}))
 
 @csrf_exempt
 @login_required

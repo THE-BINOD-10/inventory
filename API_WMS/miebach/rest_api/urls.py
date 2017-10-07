@@ -224,6 +224,8 @@ urlpatterns = [
     url('^get_seller_order_details/$',get_seller_order_details),
     url(r'^get_stock_transfer_details/$', get_stock_transfer_details),
     url(r'^get_order_labels/$', get_order_labels),
+    url(r'get_sub_category_styles/$', get_sub_category_styles),
+    url(r'^create_custom_skus/$', create_custom_skus),
 
     # Reports
     #url(r'^location_wise_filter/$',location_wise_filter),

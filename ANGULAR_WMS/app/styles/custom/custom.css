@@ -416,6 +416,58 @@ h1 small {
 .detail-list .detail-black {
   color: black;
 }
+.sagar-custom .shaded-title {
+  background: -webkit-linear-gradient(left, transparent, #e2e2e2, transparent);
+  font-size: 18px;
+  height: 34px;
+  line-height: 34px;
+}
+.sagar-custom .shaded-title .toggle {
+  float: right;
+}
+.sagar-custom .c-file {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 100%;
+  min-height: 100%;
+  font-size: 100px;
+  text-align: right;
+  filter: alpha(opacity=0);
+  opacity: 0;
+  outline: none;
+  background: white;
+  cursor: inherit;
+  display: block;
+}
+.sagar-custom .toggle-center {
+  margin: auto;
+  display: block;
+}
+.sagar-custom .toggle-160 {
+  width: 160px !important;
+}
+.sagar-custom .item-check {
+  position: absolute;
+  font-size: 20px;
+  right: 15px;
+  top: 15px;
+  color: #29b765;
+}
+.sagar-custom .custom-colors .color-box {
+  width: 18px;
+  height: 18px;
+  margin: 5px;
+  display: inline-block;
+  cursor: pointer;
+}
+.sagar-custom .custom-colors .colors-label {
+  float: left;
+  line-height: 28px;
+}
+.sagar-custom .custom-colors .color-selected {
+  box-shadow: 0px 0px 4px black;
+}
 body {
   background: #fff;
 }
@@ -1316,4 +1368,14 @@ pre {
   white-space: pre-line;
   margin-bottom: 0px;
   font-family: "Source Sans Pro", sans-serif;
+}
+.custom-order-details {
+  color: black;
+  text-transform: capitalize !Important;
+}
+.custom-order-details p {
+  color: black;
+}
+.custom-order-details .table td {
+  padding: 5px 10px !important;
 }

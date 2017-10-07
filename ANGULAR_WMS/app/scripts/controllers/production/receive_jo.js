@@ -171,7 +171,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         clone.received_quantity = data.product_quantity - total;
         clone.received_quantity = clone.received_quantity.toFixed(2);
         clone.pallet_id = "";
-        clone.status_track_id = "";
+        //clone.status_track_id = "";
         data.sub_data.push(clone);
       }
     } else {

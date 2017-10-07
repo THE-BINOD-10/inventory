@@ -139,10 +139,8 @@ def is_outbound(user):
 def get_image_code(image_url):
     if not os.path.exists(image_url):
         if os.path.exists(image_url.strip("/")):
-            ur = "%s%s" % (settings.BASE_DIR, image_url)
-            print ur
-            return ur
-            image_url = image_url.strip("/")
+            image_url = os.path.realpath('.') +  image_url
+            return image_url
             with open(image_url, "rb") as image_file:
                 image = base64.b64encode(image_file.read())
             return image

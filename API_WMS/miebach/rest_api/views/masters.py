@@ -2302,3 +2302,23 @@ def add_or_update_tax(request, user=''):
         return HttpResponse("Add or Update failed")
 
     return HttpResponse("success")
+
+@get_admin_user
+def search_seller_data(request, user=''):
+
+    search_key = request.GET.get('q', '')
+    total_data = []
+
+    if not search_key:
+      return HttpResponse(json.dumps(total_data))
+
+    master_data = SellerMaster.objects.filter(Q(phone_number__icontains = search_key) | Q(name__icontains = search_key) |
+                                                Q(seller_id__icontains = search_key), user=user.id)
+
+    for data in master_data[:30]:
+        status = 'Inactive'
+        if data.status:
+            status = 'Active'
+
+        total_data.append(data.json())
+    return HttpResponse(json.dumps(total_data))

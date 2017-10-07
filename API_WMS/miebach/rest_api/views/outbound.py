@@ -2305,6 +2305,22 @@ def validate_order_form(myDict, request, user):
     direct_dispatch = request.POST.get('direct_dispatch', '')
     if not myDict['shipment_date'][0]:
         status = 'Shipment Date should not be empty'
+    seller_id = request.POST.get('seller_id', '')
+    seller_status = ""
+    if not seller_id:
+        seller_status = 'Seller should not be emtpy'
+    else:
+        seller_data = SellerMaster.objects.filter(user = user.id, seller_id = seller_id)
+        if not seller_data:
+            seller_status = 'Seller not found'
+    sor_id_status = ""
+    sor_id = request.POST.get('sor_id', '')
+    if not sor_id:
+        sor_id_status = 'SOR ID should not be emtpy'
+    else:
+        seller_order = SellerOrder.objects.filter(order__user = user.id, sor_id = sor_id)
+        if seller_order:
+            sor_id_status = 'SOR ID already userd'
     sku_masters = SKUMaster.objects.filter(user=user.id).values('sku_code', 'wms_code', 'id', 'sku_desc')
     all_sku_codes = {}
     for i in range(0, len(myDict['sku_id'])):
@@ -2334,6 +2350,10 @@ def validate_order_form(myDict, request, user):
         status += " Quantities missing sku codes are " + ",".join(invalid_quantities)
     if less_stocks:
         status += " Insufficient stock combindations are " + ",".join(less_stocks)
+    if seller_status:
+        status += " "+seller_status
+    if sor_id_status:
+        status += " "+sor_id_status
     return status, all_sku_codes
 
 def create_order_json(order_detail, json_dat={}, ex_image_url={}):
@@ -2409,6 +2429,8 @@ def insert_order_data(request, user=''):
     telephone = request.POST.get('telephone', '')
     custom_order = request.POST.get('custom_order', '')
     user_type = request.POST.get('user_type', '')
+    seller_id = request.POST.get('seller_id', '')
+    sor_id = request.POST.get('sor_id', '')
 
     created_order_id = ''
     ex_image_url = {}
@@ -2419,7 +2441,7 @@ def insert_order_data(request, user=''):
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
 
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount', 'description',
-                     'extra_data', 'location', 'serials', 'direct_dispatch']
+                     'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id']
     try:
         for i in range(0, len(myDict['sku_id'])):
             order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
@@ -2520,6 +2542,9 @@ def insert_order_data(request, user=''):
                     order_data['original_order_id'] = str(order_data['order_code']) + str(order_data['order_id'])
                 order_detail = OrderDetail(**order_data)
                 order_detail.save()
+                if seller_id:
+                    SellerOrder.objects.create(seller_id=seller_id, sor_id=sor_id, order_id=order_detail.id, quantity=order_detail.quantity,\
+                                order_status='PENDING', creation_date=datetime.datetime.now()) 
 
                 order_objs.append(order_detail)
                 order_sku.update({order_detail.sku : order_data['quantity']})

@@ -1318,7 +1318,9 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
           if(data.message) {
             if(data.data.status == "") {
-              if(vm.checkAndAdd(scan)) {
+              if (data.data.data.sku_code != sku_data.sku_id) {
+                vm.service.showNoty("IMEI Code not matching with SKU code");
+              } else if(vm.checkAndAdd(scan)) {
                 vm.service.showNoty("Already Scanned")
               } else {
                 sku_data.serials.push(scan);

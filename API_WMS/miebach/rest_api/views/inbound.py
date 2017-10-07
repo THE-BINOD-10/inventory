@@ -732,7 +732,8 @@ def switches(request, user=''):
                         'grn_scan_option': 'grn_scan_option',
                         'invoice_titles': 'invoice_titles',
                         'show_imei_invoice': 'show_imei_invoice',
-                        'display_remarks_mail': 'display_remarks_mail'
+                        'display_remarks_mail': 'display_remarks_mail',
+                        'create_seller_order': 'create_seller_order',
                       }
 
         toggle_field, selection = "", ""

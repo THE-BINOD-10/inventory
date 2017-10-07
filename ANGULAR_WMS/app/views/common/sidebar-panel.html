@@ -287,6 +287,11 @@
           <a ui-sref="app.outbound.CustomerInvoices">
             <span>Customer Invoices</span>
           </a>
+        </li>
+        <li ui-sref-active="active" ng-if="user.userName == 'sagar_fab'">
+          <a ui-sref="app.outbound.CreateCustomOrder">
+            <span>Create Custom Order</span>
+          </a>
         </li> 
       </ul>
     </li>

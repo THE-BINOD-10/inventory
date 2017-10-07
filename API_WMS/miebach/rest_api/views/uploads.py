@@ -967,6 +967,9 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
             elif key == 'load_unit_handle':
                 if cell_data and cell_data.lower() not in LOAD_UNIT_HANDLE_DICT.keys():
                     index_status.setdefault(row_idx, set()).add('Invalid option for Load Unit Handling')
+            elif key == 'sub_category' and user.username == 'sagar_fab':
+                if str(cell_data).upper() not in SUB_CATEGORIES.values():
+                    index_status.setdefault(row_idx, set()).add('Sub Category Incorrect')
 
     master_sku = SKUMaster.objects.filter(user=user.id)
     master_sku = [data.sku_code for data in master_sku]

@@ -596,6 +596,7 @@ def configurations(request, user=''):
     invoice_titles = get_misc_value('invoice_titles', user.id)
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     display_remarks_mail = get_misc_value('display_remarks_mail', user.id)
+    create_seller_order = get_misc_value('create_seller_order', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
@@ -706,7 +707,7 @@ def configurations(request, user=''):
                                     'label_generation': label_generation, 'barcode_generate_options': BARCODE_OPTIONS,
                                     'barcode_generate_opt': barcode_generate_opt, 'grn_scan_option': grn_scan_option,
                                     'invoice_titles': invoice_titles, 'show_imei_invoice': show_imei_invoice,
-                                    'display_remarks_mail': display_remarks_mail}))
+                                    'display_remarks_mail': display_remarks_mail, 'create_seller_order':create_seller_order}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -1780,7 +1781,7 @@ def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_i
     for jo_mapping in jo_order_mapping:
         order_json = OrderJson.objects.filter(order_id=jo_mapping.order_id)
         if order_json:
-            extra_data = eval(order_json[0].json_data)
+            extra_data = json.loads(order_json[0].json_data)
         if jo_mapping.order:
             order_id = str(jo_mapping.order.order_code) + str(jo_mapping.order.order_id)
             if jo_mapping.order.original_order_id:

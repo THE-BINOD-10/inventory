@@ -1,0 +1,496 @@
+<div class="page-layout" data-ng-controller="CreateCustomOrder as showCase">
+  <div class="layout-header">
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body sagar-custom" style="background: #fff;padding:10px 10px">
+    <div class="container-fluid form-horizontal">
+
+      <div class="row mb10 mt20">
+        <div class="col-md-6 col-sm-6 col-xs-6">
+          <span>JO Ref.No- 0004567</span>
+        </div>
+        <div class="col-md-6 col-sm-6 col-xs-6">
+          <span class="pull-right">Delivery Date- 16-8-2017</span>
+        </div>
+      </div>
+
+      <div class="row mb10 mt20">
+        <div class="col-md-3 col-sm-2 col-xs-2"></div>
+        <div class="col-md-3 col-sm-4 col-xs-5 control-label">
+          <span>Have A Sample ?</span>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-5">
+          <span class="btn btn-default" style="position: relative;overflow: hidden;width: 100%">Choose File
+            <input class="c-file" data="sampleImg" value="" type="file" id="imgInp" multiple="" image-upload>
+          </span>
+          <!--<img id="blah" alt="your image" ng-src="{{showCase.customData.sampleImg}}"/>-->
+        </div>
+      </div>
+
+      <div class="row mb10 mt20">
+        <div class="col-md-12">
+          <toggle ng-model="showCase.customData.alteration" ng-change="showCase.changed(showCase.customData.alteration)" on="Sample as sample" off="Alteration" onstyle="btn-success" offstyle="btn-success" style="toggle-center toggle-160" data-width="200"></toggle>
+        </div>
+      </div>
+
+      <div class="row mb10 mt20">
+        <div class="col-md-12">
+          <div class="shaded-title">
+            <p align="center">Style</p>
+          </div>
+        </div>
+      </div>
+      <div class="row" ng-if="showCase.customData.styles.length != 0" ui-jq="checkBo">
+        <div class="col-md-2 col-sm-3 col-xs-6" ng-repeat="style in showCase.customData.styles">
+          <label class="cb-radio cb-sm" ng-click="showCase.styleChange(style)">
+            <input type="radio" ng-checked="(showCase.customData.style == style)?'checked': '';" name="default-radio-name" ng-value="style" ng-model="showCase.customData.style"/>{{style}}
+          </label>
+        </div>
+      </div>
+
+      <div class="row shaded-title mb10 mt10">
+        <div class="col-md-4 col-sm-4"></div>
+        <div class="col-md-4 col-sm-4 col-xs-8">
+          <p align="center">Fabric</p>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-4">
+          <toggle ng-model="showCase.customData.fabric.fabric" ng-change="showCase.fabricChanged(showCase.customData.fabric.fabric)" on="Single Fab" off="Multi Fab" onstyle="btn-success" offstyle="btn-success" class="toggle"></toggle>
+        </div>
+      </div>
+      <div class="row mb10">
+        <div class="col-md-3 col-sm-3 col-xs-6" ng-repeat="(key, value) in showCase.customData.fabric.fabrics">
+          <select name="material" class="form-control" ng-model="showCase.customData.fabric.fabrics[key]" ng-disabled="!$first && showCase.customData.fabric.fabric">
+            <option ng-selected="value == option" ng-repeat="option in showCase.customData.fabric.fabricOptions">{{option}}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Body Colour -->
+      <div class="row mb10 mt20">
+        <div class="col-md-12">
+          <div class="shaded-title">
+            <p align="center">Body Colour</p>
+          </div>
+        </div>
+      </div>
+      <div class="row mb10" style="padding: 0px 30px;border: 1px solid #ccc;margin-right:0px;margin-left:0px;">
+        <div ng-if="showCase.customData.styleData.length > 0">
+          <slick lazy-load='ondemand' slides-to-show=5 slides-to-scroll=4 class="slider lazy" infinite="false">
+            <div ng-repeat="item in showCase.customData.styleData" style="padding:5px;position:relative" ng-click="showCase.selectBodyStyle(item)">
+              <i class="item-check fa fa-check-circle-o" ng-show="showCase.customData.bodyStyle.sku_class == item.sku_class"></i>
+              <div class="image" style="width:100%;margin-right:0px;cursor: pointer">
+                <img data-lazy="{{service.check_image_url(item.image_url)}}" style="width:100%"/>
+                <!--<div style="text-align: center;">
+                  <span class="style_name" title="jean101">{{item.sku_class}}</span><br>
+                  <span class="style_name" style="font-size: 14px">{{ showCase.service.price_format(item.variants[0].price)}}</span>
+                  <p class="style_name" style="font-size: 12px;" title="jean101">{{ item.variants[0].style_name }}</p>
+                  <span style="font-size: 14px; padding:2px 15px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</span><br>
+                  <span style="font-size: 20px;">&#8377; {{ item.variants[0].mrp }}</span><br>
+                </div>-->
+              </div>
+            </div>
+          </slick>
+        </div>
+        <div ng-if="showCase.styles_loading">
+          <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+        </div>
+      </div>
+
+      <div class="row shaded-title mb10 mt20">
+        <div class="col-md-4 col-sm-4"></div>
+        <div class="col-md-4 col-sm-4 col-xs-8">
+          <p align="center">Design</p>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-4">
+          <toggle ng-model="showCase.customData.design.designType" ng-change="changed()" on="Plain" off="Panel" onstyle="btn-success" offstyle="btn-success" class="toggle"></toggle>
+        </div>
+      </div>
+      <div class="row mb10" ui-jq="checkBo" ng-if="!showCase.customData.design.designType">
+        <div class="col-md-1 col-sm-4 col-xs-5">
+          <span>Front</span>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-3">
+          <label class="cb-radio"  ng-click="showCase.customData.design.place.front_design = 'plain'">
+            <input type="radio" name="front_design" ng-checked="showCase.customData.design.place.front_design == 'plain'" ng-model="showCase.customData.design.place.front_design"/>Plain
+          </label>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-3">
+          <label class="cb-radio" ng-click="showCase.customData.design.place.front_design = 'panel'">
+            <input type="radio" name="front_design" ng-checked="showCase.customData.design.place.front_design == 'panel'" ng-model="showCase.customData.design.place.front_design"/>Panel
+          </label>
+        </div>
+        <div class="col-md-7 col-sm-12 col-xs-12">
+          <div class="custom-colors">
+            <p class="colors-label">Select Panel Colour</p>
+            <div class="color-box" ng-repeat="color in showCase.customData.colors" ng-style="{'background-color': color}" ng-class="(color==showCase.customData.design.place.front_color)? 'color-selected': '';" ng-click="showCase.customData.design.place.front_color = color"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row mb10" ui-jq="checkBo" ng-if="!showCase.customData.design.designType">
+        <div class="col-md-1 col-sm-4 col-xs-5">
+          <span>Back</span>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-3">
+          <label class="cb-radio" ng-click="showCase.customData.design.place.front_design = 'plain'">
+            <input type="radio" name="back_design" ng-checked="showCase.customData.design.place.front_design == 'plain'" ng-model="showCase.customData.design.place.back_design"/>Plain
+          </label>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-3">
+          <label class="cb-radio" ng-click="showCase.customData.design.place.front_design = 'panel'">
+            <input type="radio" name="back_design" ng-checked="showCase.customData.design.place.front_design == 'panel'" ng-model="showCase.customData.design.place.back_design"/>Panel
+          </label>
+        </div>
+        <div class="col-md-7 col-sm-12 col-xs-12">
+          <div class="custom-colors">
+            <p class="colors-label">Select Plain Colour</p>
+            <div class="color-box" ng-repeat="color in showCase.customData.colors" ng-style="{'background-color': color}" ng-class="(color==showCase.customData.design.place.back_color)? 'color-selected': '';" ng-click="showCase.customData.design.place.back_color = color"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row shaded-title mb10 mt20">
+        <div class="col-md-4 col-sm-4 col-xs-12"></div>
+        <div class="col-md-4 col-sm-4 col-xs-8">
+          <p align="center" class="mb0">Piping</p>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-4">
+          <toggle ng-model="showCase.customData.piping.piping" ng-change="showCase.pipingChanged(showCase.customData.piping.piping)" on="Yes" off="No" onstyle="btn-success" offstyle="btn-success" class="toggle"></toggle>
+        </div>
+      </div>
+      <div class="row mb10" ui-jq="checkBo" ng-if="showCase.customData.piping.piping">
+        <div class="col-md-1 col-sm-4 col-xs-4">
+          <span>Type</span>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="cb-radio" ng-click="showCase.pipingDesignChange('regular')">
+            <input type="radio" name="piping_design" value="regular" ng-checked="showCase.customData.piping.piping_design == 'regular'" ng-model="showCase.customData.piping.piping_design"/>Regular
+          </label>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <label class="cb-radio" ng-click="showCase.pipingDesignChange('reglan')">
+            <input type="radio" name="piping_design" value="reglan" ng-checked="showCase.customData.piping.piping_design == 'reglan'" ng-model="showCase.customData.piping.piping_design"/>Reglan
+          </label>
+        </div>
+        <div class="col-md-7">
+        </div>
+      </div>
+      <div class="row mb10" ng-if="showCase.customData.piping.piping && showCase.customData.piping.piping_design == 'reglan'">
+        <div class="col-md-3 col-sm-5 col-xs-8 mt10">
+          <span>Reglan Piping</span>
+          <toggle ng-model="showCase.customData.piping.reglanPiping.piping" ng-change="changed()" on="Yes" off="No" onstyle="btn-success" offstyle="btn-success" class="pull-right"></toggle>
+        </div>
+        <div class="col-md-9 col-sm-12 col-xs-12 mt10" ng-if="showCase.customData.piping.reglanPiping.piping">
+          <div class="custom-colors">
+            <p class="colors-label">Choose Piping Colour</p>
+            <div class="color-box" ng-repeat="color in showCase.customData.colors" ng-style="{'background-color': color}" ng-class="(color==showCase.customData.piping.reglanPiping.color)? 'color-selected': '';" ng-click="showCase.customData.piping.reglanPiping.color = color"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row mb10" ng-if="showCase.customData.piping.piping">
+        <div class="col-md-3 col-sm-5 col-xs-8 mt10">
+          <span>Shoulder Piping</span>
+          <toggle ng-model="showCase.customData.piping.shoulderPiping.piping" ng-change="changed()" on="Yes" off="No" onstyle="btn-success" offstyle="btn-success" class="pull-right"></toggle>
+        </div>
+        <div class="col-md-9 col-sm-12 col-xs-12 mt10" ng-if="showCase.customData.piping.shoulderPiping.piping">
+          <div class="custom-colors">
+            <p class="colors-label">Choose Piping Colour</p>
+            <div class="color-box" ng-repeat="color in showCase.customData.colors" ng-style="{'background-color': color}" ng-class="(color==showCase.customData.piping.shoulderPiping.color)? 'color-selected': '';" ng-click="showCase.customData.piping.shoulderPiping.color = color"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row mt20 mb10">
+        <div class="col-md-12">
+          <div class="shaded-title">
+            <p align="center">Sleeve</p>
+            <div style="position: absolute;top: 0px;right: 10px;width: 125px;">
+              <select name="sleeve_name" class="form-control" ng-model="showCase.customData.sleeve.sleeve">
+                <option ng-selected="showCase.customData.sleeve.sleeve == opt" ng-repeat="opt in showCase.customData.sleeve.sleeves" value="{{opt}}">{{opt}}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row mb10" ui-jq="checkBo">
+
+        <div class="col-md-2 col-sm-4 col-xs-4" ng-repeat="colorType in showCase.customData.sleeve.colorTypes">
+          <label class="cb-radio" ng-click="showCase.sleeveColorChange(colorType)">
+            <input type="radio" name="piping_design" value="colorType" ng-checked="showCase.customData.sleeve.colorType == colorType" ng-model="showCase.customData.customData.sleeve.colorType"/>{{colorType}}
+          </label>
+        </div>
+
+        <!--<div class="col-md-4 col-sm-4 col-xs-6">
+          <label class="cb-checkbox pull-right ml10">
+            <input type="checkbox" name="default-checkbox-name" value="default-checkbox-val" />
+          </label>
+          <span class="pull-right">Choose Colour</span>
+        </div>-->
+        <div class="col-md-8 col-sm-12 col-xs-12" ng-if="showCase.customData.sleeve.colorType == 'Choose Colour'">
+          <div class="custom-colors">
+            <p class="colors-label">Choose Colour</p>
+            <div class="color-box" ng-repeat="color in showCase.customData.colors" ng-style="{'background-color': color}" ng-class="(color==showCase.customData.sleeve.color)? 'color-selected': '';" ng-click="showCase.customData.sleeve.color = color"></div>
+          </div>
+        </div>
+      </div>
+      <!--<div class="row mb10" ui-jq="checkBo">
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <label class="cb-checkbox pull-right ml10">
+            <input type="checkbox" name="default-checkbox-name" value="default-checkbox-val" />
+          </label>
+          <span class="pull-right">Body Colour</span>
+        </div>
+      </div>-->
+
+      <div class="row mb10 mt20 shaded-title">
+        <div class="col-md-4 col-sm-4 col-xs-4"></div>
+        <div class="col-md-4 col-sm-4 col-xs-4">
+          <p align="center">Pocket</p>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-4">
+          <toggle ng-model="showCase.customData.pocket.pocket" on="Yes" off="No" onstyle="btn-success" offstyle="btn-success" class="toggle"></toggle>
+        </div>
+      </div>
+      <div class="row mb10" ui-jq="checkBo" ng-if="showCase.customData.pocket.pocket">
+        <div class="col-md-3 col-sm-3 col-xs-2"></div>
+        <div class="col-md-3 col-sm-3 col-xs-4" ng-repeat="pocket in showCase.customData.pocket.pockets">
+          <label class="cb-radio" ng-click="showCase.pocketChange(pocket)">
+            <input type="radio" name="pocket_design" value="{{pocket}}" ng-model="showCase.customData.pocket.pocketDesign" ng-checked="showCase.customData.pocket.pocketDesign == pocket"/>{{pocket}}
+          </label>
+        </div>
+      </div>
+
+      <div class="row mb10 mt20">
+        <div class="col-md-12">
+          <div class="shaded-title">
+            <p align="center">Placket</p>
+          </div>
+        </div>
+      </div>
+      <div class="row mb10">
+        <div class="col-md-3 col-sm-3"></div>
+        <div class="col-md-3 col-sm-3 col-xs-6">
+          <span class="pull-left fs14">Button</span>
+          <toggle ng-model="showCase.customData.placket.button" ng-change="changed()" on="Yes" off="NO" onstyle="btn-success" offstyle="btn-success" style="toggle-center"></toggle>
+        </div>
+        <div class="col-md-3 col-sm-3 col-xs-6">
+          <toggle ng-model="showCase.customData.placket.placketType" ng-change="changed()" on="Box type" off="Crushed" onstyle="btn-success" offstyle="btn-success" style="toggle-center"></toggle>
+        </div>
+      </div>
+      <div class="row mb10" ui-jq="checkBo">
+        <div class="col-md-3 col-sm-2"></div>
+        <div class="col-md-2 col-sm-3 col-xs-4" ng-repeat="design in showCase.customData.placket.designs">
+          <label class="cb-radio" ng-click="showCase.placketChange(design)">
+            <input type="radio" name="placket_design" ng-value="design" ng-checked="customData.placket.placketDesign == design" ng-model="showCase.customData.placket.placketDesign"/>{{design}}
+          </label>
+        </div>
+      </div>
+
+      <div class="row shaded-title mb10 mt20">
+        <div class="col-md-4 col-sm-4"></div>
+        <div class="col-md-4 col-sm-4 col-xs-8">
+          <p align="center">Print & Embroidary</p>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-4">
+          <toggle ng-model="showCase.customData.printEmbroidery" ng-change="changed()" on="Yes" off="No" onstyle="btn-success" offstyle="btn-success" class="toggle"></toggle>
+        </div>
+      </div>
+    <div ng-if="showCase.customData.printEmbroidery">
+      <div class="row mb10" ui-jq="checkBo">
+        <div class="col-md-4 col-sm-3"></div>
+        <div class="col-md-2 col-sm-3 col-xs-6">
+          <input type="checkbox" name="print" value="print" ng-model="showCase.customData.print.print" style="width: 20px;height: 20px;margin-right: 5px;" ng-change="showCase.checkData('print', showCase.customData.print.print)"/> Print
+        </div>
+        <div class="col-md-2 col-sm-3 col-xs-6">
+          <input type="checkbox" name="print" value="embroidery" ng-model="showCase.customData.embroidery.embroidery" style="width: 20px;height: 20px;margin-right: 5px;" ng-change="showCase.checkData('embroidery', showCase.customData.embroidery.embroidery)"/> Embroidary
+        </div>
+      </div>
+      <div class="row mb10" ng-if="showCase.customData.print.print">
+        <div class="col-md-6 col-sm-6 col-xs-6">
+          <span class="pull-right" style="line-height: 32px;">Print Type :</span>
+        </div>
+        <div class="col-md-3 col-sm-4 col-xs-5">
+          <select name="print_type" class="form-control" ng-model="showCase.customData.print.printOption">
+            <option value="{{opt}}" ng-selected="opt == showCase.customData.print.printOption" ng-repeat="opt in showCase.customData.print.printOptions">{{opt}}</option>
+            <option>
+          </select>
+        </div>
+      </div>
+      <div class="row mt10 mb10" ng-if="showCase.customData.print.print">
+        <div class="col-md-12">
+          <toggle ng-model="showCase.customData.print.singlePrint" on="Single Print" off="Multi Print" onstyle="btn-success" offstyle="btn-success" style="toggle-center" ng-click="showCase.checkData('print', true)"></toggle>
+        </div>
+      </div>
+      <div class="row" ui-jq="checkBo" ng-if="showCase.customData.print.print">
+        <div class="col-md-6 col-sm-12 col-xs-12" ng-repeat="place in showCase.customData.embroidery.attachments">
+          <div class="col-md-4 col-sm-4 col-xs-4">
+            <span>{{place}}</span>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-4">
+            <span class="btn btn-default" style="position: relative;overflow: hidden;width: 100%;padding:2px">Choose File
+              <input class="c-file" name="{{'print_'+place}}" value="" type="file" multiple="" data="{{place+':print'}}" image-upload ng-disabled="!showCase.customData.print.places[place]">
+            </span>
+          </div>
+          <div class="col-md-2 col-sm-4 col-xs-4">
+            <input type="checkbox" name="{{place}}" value="{{place}}" ng-model="showCase.customData.print.places[place]" style="width: 20px;height: 20px;" ng-change="showCase.removeImage(showCase.customData.print, 'print', place)"/>
+          </div>
+        </div>
+      </div>
+      <div class="row mt20 mb10" ng-if="showCase.customData.embroidery.embroidery">
+        <div class="col-md-12">
+          <toggle ng-model="showCase.customData.embroidery.singleEmbroidery" on="Single Embroidary" off="Multi Embroidary" onstyle="btn-success" offstyle="btn-success" style="toggle-center toggle-160" ng-change="showCase.checkData('embroidery', true)"></toggle>
+        </div>
+      </div>
+      <div class="row mb10" ui-jq="checkBo" ng-if="showCase.customData.embroidery.embroidery">
+        <div class="col-md-6 col-sm-12 col-xs-12" ng-repeat="place in showCase.customData.embroidery.attachments">
+          <div class="col-md-4 col-sm-4 col-xs-4">
+            <span>{{place}}</span>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-4">
+            <span class="btn btn-default" style="position: relative;overflow: hidden;width: 100%;padding:2px">Choose File
+              <input class="c-file" name="{{'embroidery_'+place}}" data="{{place+':embroidery'}}" value="" type="file" multiple="" image-upload ng-disabled="!showCase.customData.embroidery.places[place]">
+            </span>
+          </div>
+          <div class="col-md-2 col-sm-4 col-xs-4">
+            <input type="checkbox" name="{{place}}" value="{{place}}" ng-model="showCase.customData.embroidery.places[place]" style="width: 20px;height: 20px;"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+      <!-- Collar Tip -->
+      <div class="row shaded-title mb10 mt20">
+        <div class="col-md-4 col-sm-4"></div>
+        <div class="col-md-4 col-sm-4 col-xs-4">
+          <p align="center">Collar Tip</p>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-4">
+          <toggle ng-model="showCase.customData.collarTip.collarTip" ng-change="changed()" on="Yes" off="No" onstyle="btn-success" offstyle="btn-success" class="toggle"></toggle>
+        </div>
+      </div>
+      <div class="row mb10" ng-if="showCase.customData.collarTip.collarTip">
+        <div class="col-md-2 col-sm-4 col-xs-5 control-label mt10">
+          <span class="pull-right">Rib :</span>
+        </div>
+        <div class="col-md-2 col-sm-3 col-xs-5 mt10">
+           <select name="rib_name" class="form-control" ng-model="showCase.customData.collarTip.collarRib">
+            <option ng-selected="opt == showCase.customData.collarTip.collarRib" ng-repeat="opt in showCase.customData.collarTip.collarRibs">{{opt}}</option>
+          </select>
+        </div>
+        <div class="col-md-8 col-sm-12 col-xs-12 mt10" ng-if="showCase.customData.collarTip.collarRib != 'No Tipping'">
+          <div class="custom-colors">
+            <p class="colors-label">Tipping Colour</p>
+            <div class="color-box" ng-repeat="color in showCase.customData.colors" ng-style="{'background-color': color}" ng-class="(color==showCase.customData.collarTip.color)? 'color-selected': '';" ng-click="showCase.customData.collarTip.color = color"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row shaded-title mb10 mt20">
+        <div class="col-md-4"></div>
+        <div class="col-md-4">
+          <p align="center">Neck Tape</p>
+        </div>
+      </div>
+      <div class="row mb10">
+        <div class="col-md-6 col-sm-6 col-xs-6 control-label">
+          <span class="pull-right">Neck Tape Material :</span>
+        </div>
+        <div class="col-md-2 col-sm-3 col-xs-5">
+           <select name="neck_type" class="form-control" ng-model="showCase.customData.neckType.type">
+            <option value="{{type}}" ng-selected="type == showCase.customData.neckType.type" ng-repeat="type in showCase.customData.neckType.types">{{type}}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row shaded-title mb10 mt20">
+        <div class="col-md-4"></div>
+        <div class="col-md-4">
+          <p align="center">Bottom</p>
+        </div>
+      </div>
+      <div class="row mb10">
+        <div class="col-md-6 col-sm-6 col-xs-6 control-label">
+          <span class="pull-right">T-shirt Slit Style :</span>
+        </div>
+        <div class="col-md-2 col-sm-3 col-xs-5">
+           <select name="rib_name" class="form-control" ng-model="showCase.customData.bottom.bottom">
+            <option value="{{bottom}}" ng-selected="bottom == showCase.customData.bottom.bottom" ng-repeat="bottom in showCase.customData.bottom.bottoms">{{bottom}}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row shaded-title mb10 mt20">
+        <div class="col-md-4"></div>
+        <div class="col-md-4">
+          <p align="center">Slit Type</p>
+        </div>
+      </div>
+      <div class="row mb10" ui-jq="checkBo">
+        <div class="col-md-2 col-sm-1"></div>
+        <div class="col-md-2 col-sm-3 col-xs-4" ng-repeat="design in showCase.customData.slit.slitTypes">
+          <label class="cb-radio">
+            <input type="radio" name="slit_design" ng-value="design" ng-checked="design == showCase.customData.slit.slitType" ng-model="showCase.customData.slit.slitType"/>{{design}}
+          </label>
+        </div>
+      </div>
+      <div class="row mb10">
+        <div class="col-md-2 col-sm-2"></div>
+        <div class="col-md-2 col-sm-3 col-xs-5 mt10">
+          Bottom Piping
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-5 mt10">
+          <toggle ng-model="showCase.customData.slit.bottom" ng-change="changed()" on="Yes" off="No" onstyle="btn-success" offstyle="btn-success"></toggle>
+        </div>
+        <div class="col-md-6 col-sm-5 col-xs-12 mt10" ng-if="showCase.customData.slit.bottom">
+          <div class="custom-colors">
+            <p class="colors-label">Piping Colour</p>
+            <div class="color-box" ng-repeat="color in showCase.customData.colors" ng-style="{'background-color': color}" ng-class="(color==showCase.customData.slit.bottomColor)? 'color-selected': '';" ng-click="showCase.customData.slit.bottomColor = color"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row shaded-title mb10 mt20">
+        <div class="col-md-4"></div>
+        <div class="col-md-4">
+          <p align="center">Label</p>
+        </div>
+      </div>
+      <div class="row mb10">
+        <div class="col-md-12">
+          <select name="label" class="form-control" style="margin: auto;width: 150px;display: block;" ng-model="showCase.customData.label.label">
+            <option value="{{label}}" ng-selected="label == showCase.customData.label.label" ng-repeat="label in showCase.customData.label.labels">{{label}}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row shaded-title mb10 mt20">
+        <div class="col-md-4"></div>
+        <div class="col-md-4">
+          <p align="center">Size</p>
+        </div>
+      </div>
+      <div class="row mb10" ng-repeat="size in ['Men', 'Women', 'Kids']">
+        <div class="col-md-1"></div>
+        <div class="col-md-2 col-sm-3 col-xs-12">
+          <input type="checkbox" name="{{size}}" value="{{size}}" checked="{{(showCase.customData.sizeEnable[size] == size)? 'checked': '';}}" ng-model="showCase.customData.sizeEnable[size]" style="width: 20px; height: 20px;margin-right: 10px;"/>{{size}}
+        </div>
+        <div class="col-md-9 col-sm-9 col-xs-12" style="overflow-x: auto;">
+          <table>
+            <tr>
+              <td ng-repeat="(name, value) in showCase.customData.sizes[size]" class="text-center">{{name}} ({{value}})</td>
+              <td class="text-center">Total</td>
+            </tr>
+            <tr>
+              <td ng-repeat="(name, value) in showCase.customData.sizes[size]"><input type="number" name="{{name}}_{{value}}" style="width: 60px;" ng-model="showCase.customData.sizeValues[size][name]" ng-change="showCase.calTotals(size,name)"/></td>
+              <td><input type="text" name="total" style="width: 80px;" readonly ng-model="showCase.customData.sizeTotals[size]"/></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <div class="row mt20">
+        <div class="col-md-12">
+          <button class="btn btn-primary pull-right mr20" style="width 100px;" ng-click="showCase.confirmData()">Confirm</button>
+          <button class="btn btn-info pull-right mr20" style="width 100px;" ng-click="showCase.showPreview()">Preview</button>
+          <button class="btn btn-danger pull-right mr20" style="width 100px;" ng-disabled="showCase.confirming" ng-click="showCase.clearData()">Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

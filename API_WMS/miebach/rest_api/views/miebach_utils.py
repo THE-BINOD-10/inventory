@@ -1156,7 +1156,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
     lis = ['open_po__supplier__name', 'order_id', 'open_po__sku__wms_code', 'open_po__sku__sku_desc', 'received_quantity',
            'updation_date']
     model_obj = PurchaseOrder
-    if use_imei:
+    if use_imei == 'true':
         lis = ['purchase_order__open_po__supplier__name', 'purchase_order__order_id', 'purchase_order__open_po__sku__wms_code',
                'purchase_order__open_po__sku__sku_desc', 'imei_number', 'creation_date']
         query_prefix = 'purchase_order__'
@@ -1206,7 +1206,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
     for data in purchase_order:
         serial_number = ''
         received_date = get_local_date(user, data.updation_date)
-        if use_imei:
+        if use_imei == 'true':
             serial_number = data.imei_number
             data = data.purchase_order
             received_date = get_local_date(user, data.creation_date)

@@ -3697,6 +3697,7 @@ def get_return_seller_id(returns_id, user):
 @get_admin_user
 def returns_putaway_data(request, user=''):
     return_wms_codes = []
+    user_profile = UserProfile.objects.get(user_id=user.id)
     stock = StockDetail.objects.filter(sku__user=user.id).order_by('-receipt_number')
     if stock:
         receipt_number = int(stock[0].receipt_number) + 1
@@ -3704,6 +3705,7 @@ def returns_putaway_data(request, user=''):
         receipt_number = 1
     myDict = dict(request.POST.iterlists())
     mod_locations = []
+    marketplace_data = []
     for i in range(0, len(myDict['id'])):
         status = ''
         data_id = myDict['id'][i]
@@ -3751,6 +3753,9 @@ def returns_putaway_data(request, user=''):
                                          'creation_date': datetime.datetime.now()}
                     seller_stock = SellerStock(**seller_stock_dict)
                     seller_stock.save()
+                if seller_stock.stock.location.zone.zone not in ['DAMAGED_ZONE']:
+                    marketplace_data.append({'sku_code' : str(seller_stock.stock.sku.sku_code),
+                                             'seller_id': int(seller_stock.seller.seller_id), 'quantity' : int(quantity)})
             returns_data.quantity = float(returns_data.quantity) - float(quantity)
             if returns_data.quantity <= 0:
                 returns_data.status = 0
@@ -3760,7 +3765,11 @@ def returns_putaway_data(request, user=''):
             status = 'Updated Successfully'
 
     return_wms_codes = list(set(return_wms_codes))
-    check_and_update_stock(return_wms_codes, user)
+    if user_profile.user_type == 'marketplace_user':
+        if marketplace_data:
+            check_and_update_marketplace_stock(marketplace_data, user)
+    else:
+        check_and_update_stock(return_wms_codes, user)
     update_filled_capacity(mod_locations, user.id)
     return HttpResponse(status)
 

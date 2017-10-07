@@ -1257,6 +1257,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={},all_order_objs = [])
         if order_detail:
             search_parameters['order_id__in'] = order_detail.values_list('id', flat=True)
+        else:
+            search_parameters['order_id__in'] = []
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -1281,8 +1283,11 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
             if data.stock.location.zone.zone == 'DEFAULT':
                 picked_quantity = 0
             date = get_local_date(user, data.updation_date).split(' ')
+            order_id = data.order.original_order_id
+            if not order_id:
+                order_id = str(data.order.order_code) + str(data.order.order_id)
 
-            temp_data['aaData'].append(OrderedDict(( ('Order ID', data.order.order_id), ('WMS Code', data.stock.sku.wms_code),
+            temp_data['aaData'].append(OrderedDict(( ('Order ID', order_id), ('WMS Code', data.stock.sku.wms_code),
                                                     ('Description', data.stock.sku.sku_desc), ('Location', data.stock.location.location),
                                                     ('Quantity', data.picked_quantity), ('Picked Quantity', picked_quantity),
                                                     ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5]))  )))

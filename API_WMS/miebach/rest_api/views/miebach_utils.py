@@ -835,16 +835,15 @@ R1_RETURN_ORDER_MAPPING = {'order_id': 'order_id', 'items': 'items', 'return_id'
 #BARCODE_FORMATS = {'adam_clothing': {'format1': ['sku_master'], 'format2': ['sku_master'], 'format3': ['sku_master']}}
 
 BARCODE_DICT = {'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Style': ''},
-                'format2': {'SKUCode': '', 'SKUDes': '', 'color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '',
+                'format2': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '',
                             'DesignNo': '', 'Qty': '1', 'Gender': '', 'MRP': '', 'Packed on': '', 'Manufactured By': '', 'Marketed By': ''},
-                'format3': {'SKUCode': '', 'SKUDes': '', 'color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '', 'DesignNo': '',
+                'format3': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '','DesignNo': '',
                             'Qty': '1', 'Gender': '', 'MRP': '', 'MFD': '', 'Manufactured By': '', 'Marketed By': ''},
-                'format4': {'SKUCode': '', 'color': '', 'Size': '', 'SKUPrintQty': '',
-                            'Qty': '1', 'MRP': '', 'Manufactured By': '', 'Marketed By': '', 'Phone': '',
-                            'Vendor SKU': '', 'PO No': '', 'Email': ''}
+                'Bulk Barcode': {'SKUCode': '', 'Color': '', 'SKUPrintQty': '1', 'Qty': '1', 
+                            'DesignNo': '', 'UOM': '', 'Product': ''}
                }
 
-BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'format4': 'Details'}
+BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'format4': 'Details', 'Bulk Barcode': 'Details'}
 
 BARCODE_ADDRESS_DICT = {'adam_clothing1': 'Adam Exports 401, 4th Floor,\n Pratiek Plazza, S.V.Road,\n Goregaon West, Mumbai - 400062.\n MADE IN INDIA'}
 

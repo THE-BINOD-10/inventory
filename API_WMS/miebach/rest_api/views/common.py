@@ -3417,11 +3417,19 @@ def generate_barcode_dict(pdf_format, myDict, user):
             single['SKUPrintQty'] = quant
             single['Brand'] = sku_data.sku_brand.replace("'",'')
             single['SKUDes'] = sku_data.sku_desc.replace("'",'')
-            if pdf_format == 'format1':
+            if single.has_key('UOM'):
+                single['UOM'] = sku_data.measurement_type.replace("'",'')
+            if single.has_key('Style'):
                 single['Style'] = str(sku_data.style_name).replace("'",'')
+            if single.has_key('Color'):
                 single['Color'] = sku_data.color.replace("'",'')
+            if single.has_key('Product'):
+                single['Product'] = sku_data.sku_desc
+                if len(sku_data.sku_desc) >= 25:
+                    single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
+            if single.has_key('DesignNo'):
+                single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
             if pdf_format in ['format3', 'format2', 'format4']:
-                single['color'] = sku_data.color.replace("'",'')
                 present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
                 if pdf_format == 'format2':
                     single["Packed on"] = str(present).replace("'",'')
@@ -3435,7 +3443,6 @@ def generate_barcode_dict(pdf_format, myDict, user):
                     single['Contact No'] = phone_number
                     single['Email'] = user.email
                 single["Gender"] = str(sku_data.style_name).replace("'",'')
-                single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
                 single['MRP'] = str(sku_data.price).replace("'",'')
                 order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
                 if order_label:
@@ -3454,8 +3461,9 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 if BARCODE_ADDRESS_DICT.get(user.username, ''):
                     address = BARCODE_ADDRESS_DICT.get(user.username)
                 single['Manufactured By'] = address.replace("'",'')
-                if len(sku_data.sku_desc) >= 25:
-                    single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
+            elif pdf_format == 'Bulk Barcode':
+                single['Qty'] = single['SKUPrintQty']
+                single['SKUPrintQty'] = "1"
             barcodes_list.append(single)
     constructed_url = barcode_service(BARCODE_KEYS[pdf_format], barcodes_list, pdf_format)
     return constructed_url
@@ -3463,12 +3471,13 @@ def generate_barcode_dict(pdf_format, myDict, user):
 def barcode_service(key, data_to_send, format_name=''):
     url = 'http://sandhani-001-site1.htempurl.com/Webservices/BarcodeServices.asmx/GetBarCode'
     payload = ''
-    print data_to_send
     if data_to_send:
         if format_name == 'format3':
             payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Adam', 'argBarcodeFormate' : key }
         elif format_name == 'format4':
             payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Campus_Sutra', 'argBarcodeFormate' : key }
+        elif format_name == 'Bulk Barcode':
+            payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Scholar_Clothing', 'argBarcodeFormate' : key }
         else:
             payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Brilhante', 'argBarcodeFormate' : key }
 

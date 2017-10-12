@@ -13,6 +13,9 @@
           <li ng-if="!(showCase.g_data.stock_2d)">
             <a href="javascript:;" ng-click="showCase.easyops_excel()">Custom Format-1</a>
           </li>
+          <li ng-if="!(showCase.g_data.stock_2d) && showCase.permissions.use_imei">
+            <a href="javascript:;" ng-click="showCase.serials_excel()">Serial Number Download</a>
+          </li>
         </ul>
       </div>
       <button type="button" class="btn btn-primary pull-right mr15" ng-click="showCase.open('md')" ng-if="user.user_profile['user_type'] == 'marketplace_user'">Seller Stock</button>

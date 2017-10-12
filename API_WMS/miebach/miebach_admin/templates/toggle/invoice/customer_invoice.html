@@ -16,6 +16,9 @@
                     <th><center>Description</center></th>
                     <th class="w7"><center>Unit</br>Rate</center></th>
                     <th class="w5"><center>Qty</center></th>
+                    {% if show_disc_invoice == 'true' %}
+                    <th class="w5"><center>Disc</center></th>
+                    {% endif %}
                     <!--<th class="w9"><center>Base</br>Price</center></th>-->
                     <th class="w9"><center>Taxable</br>Value</center></th>
                     <th class="w7"><center>CGST</center></th>
@@ -33,6 +36,9 @@
                     <td class="text-left"><div class="wrap">{{record.title}}</div></td>
                     <td class="text-right">{{record.unit_price}}</td>
                     <td class="text-right">{{record.quantity}}</td>
+                    {% if show_disc_invoice == 'true' %}
+                    <td class="text-right">{{record.discount}}</td>
+                    {% endif %}
                     <!--<td class="text-right">{{record.base_price}}</td>-->
                     <td class="text-right"> {{record.amt}} </td>
                     <td class="text-right">{{record.taxes.cgst_amt}}<br><span class="tax-percentage">@{{record.taxes.cgst_tax}}%</span></td>
@@ -43,7 +49,7 @@
 
                   {% if record.imeis %}
                   <tr class="fs14">
-                    <td colspan="10">
+                    <td colspan="{{html_data.columns}}">
                       <div class="row">
                         <div class="col-md-12">
                           <b class="pull-left">IMEI Numbers List:</b>
@@ -62,7 +68,7 @@
                   {% endfor %}
                   {% for empty in page.empty_data %}
                   <tr class="rm-border" style="height: 47px;" ng-repeat="empty in page.empty_data">
-                    {% for td in empty_tds %}
+                    {% for td in html_data.empty_tds %}
                     <td ng-repeat="item in [1,2,3,4,5,6,7,8,9,10]"><p style="height:10px"></p></td>
                     {% endfor %}
                   </tr>
@@ -72,7 +78,7 @@
                   <tr class="fs14" style="border-top: 1px solid black" ng-if="perm_hsn_summary && $last">
                     <td></td>
                     <td></td>
-                    <td colspan='3'><b>Summary</b></td>
+                    <td colspan='{{html_data.hsn_summary_span}}'><b>Summary</b></td>
                     <td><b>Taxable</br>Value</b></td>
                     <td><b>CGST</b></td>
                     <td><b>SGST</b></td>
@@ -83,7 +89,7 @@
                   <tr class="fs14 text-right rm-border" ng-repeat="(hsn, data) in showCase.pdf_data.hsn_summary" ng-if="permissions.hsn_summary && $parent.$last">
                     <td></td>
                     <td></td>
-                    <td colspan='3' class="text-left">{{hsn}}</td>
+                    <td colspan='{{html_data.hsn_summary_span}}' class="text-left">{{hsn}}</td>
                     <td class="text-right">{{data.taxable}}</td>
                     <td class="text-right">{{data.cgst_amt}}</td>
                     <td class="text-right">{{data.sgst_amt}}</td>
@@ -98,6 +104,9 @@
                     <td colspan="3" style="text-align:left"><b>Total: </b></td>
                     <td></td>
                     <td>{{total_quantity}}</td>
+                    {% if show_disc_invoice == 'true' %}
+                    <td class="text-right">{{record.discount}}</td>
+                    {% endif %} 
                     <!--<td></td>-->
                     <td>{{total_taxable_amt}}</td>
                     <td>{{total_taxes.cgst_amt}}</td>
@@ -106,65 +115,77 @@
                     <td>{{total_invoice}}</td>
                   </tr>
                   <tr ng-if="$last">
-                    <td colspan='10' class="fs14">
-                      {% if order_charges %}
-                      {% for charge in order_charges %}
-                      <div class="row" ng-repeat="charge in showCase.pdf_data.order_charges" ng-if="showCase.pdf_data.order_charges">
-                        <div class="col-xs-6 text-right">
-                          {{charge.charge_name}}
+                    <td colspan='{{html_data.columns}}' class="fs14">
+                      <div class="row no-margin" style="position:relative">
+                        {% if invoice_remarks != 'false' %}
+                        <div style="position: absolute;left: 25%;top: -3px;bottom: -3px;width: 1px;background-color: black;"></div> 
+                        <div class="col-xs-3 no-padding">
+                          <p class="pre-custom fs14">{{invoice_remarks}}</p>
                         </div>
-                        <div class="col-xs-6 text-right">
-                          {{charge.charge_amount}}
-                        </div>
-                      </div>
-                      {% endfor %}
-                      {% endif %}
-                      <div class="row">
-                        <div class="col-xs-6 text-right">
-                          Taxable Amount
-                        </div>
-                        <div class="col-xs-6 text-right">
-                         Rs {{total_taxable_amt}}
-                        </div>
-                      </div>
-                      <div class="row">
-                        <div class="col-xs-6 text-right">
-                          Total Tax *
-                        </div>
-                        <div class="col-xs-6 text-right">
-                          Rs {{total_tax}}
-                        </div>
-                      </div>
-                      <div class="row">
-                        <div class="col-xs-6 text-right">
-                          Total Tax(In Words)
-                        </div>
-                        <div class="col-xs-6 text-right" style="text-transform: capitalize;">
-                          {{total_tax_words}} Only
-                        </div>
-                      </div>
-                      <div class="row">
-                        <div class="col-xs-6 text-right">
-                        Invoice Total
-                        </div>
-                        <div class="col-xs-6 text-right">
-                          Rs {{total_invoice_amount}}
-                        </div>
-                      </div>
-                      <div class="row" style="font-weight:bold">
-                        <div class="col-xs-6 text-right">
-                          Invoice Total (After rounding)
-                        </div>
-                        <div class="col-xs-6 text-right">
-                          Rs {{rounded_invoice_amount}}
-                        </div>
-                      </div>
-                      <div class="row" style="font-weight:bold">
-                        <div class="col-xs-6 text-right">
-                          Invoice Total(In Words)
-                        </div>
-                        <div class="col-xs-6 text-right" style="text-transform: capitalize;">
-                          {{price_in_words}} Only
+                        <div class="col-xs-9 no-padding" style="border-left: 1px solid black; padding-left:4px !important;">
+                        {% else %}
+                        <div class="col-xs-12 no-padding">
+                        {% endif %}
+                          {% if order_charges %}
+                          {% for charge in order_charges %}
+                          <div class="row" ng-repeat="charge in showCase.pdf_data.order_charges" ng-if="showCase.pdf_data.order_charges">
+                            <div class="col-xs-{{html_data.totals_data.label_width}} text-right no-padding">
+                              {{charge.charge_name}}
+                            </div>
+                            <div class="col-xs-{{html_data.totals_data.value_width}} text-right">
+                              {{charge.charge_amount}}
+                            </div>
+                          </div>
+                          {% endfor %}
+                          {% endif %}
+                          <div class="row">
+                            <div class="col-xs-{{html_data.totals_data.label_width}} text-right no-padding">
+                              Taxable Amount
+                            </div>
+                            <div class="col-xs-{{html_data.totals_data.value_width}} text-right">
+                             Rs {{total_taxable_amt}}
+                            </div>
+                          </div>
+                          <div class="row">
+                            <div class="col-xs-{{html_data.totals_data.label_width}} text-right no-padding">
+                              Total Tax *
+                            </div>
+                            <div class="col-xs-{{html_data.totals_data.value_width}} text-right">
+                              Rs {{total_tax}}
+                            </div>
+                          </div>
+                          <div class="row">
+                            <div class="col-xs-{{html_data.totals_data.label_width}} text-right no-padding">
+                            Total Tax(In Words)
+                            </div>
+                            <div class="col-xs-{{html_data.totals_data.value_width}} text-right" style="text-transform: capitalize;">
+                              {{total_tax_words}} Only
+                            </div>
+                          </div>
+                          <div class="row">
+                            <div class="col-xs-{{html_data.totals_data.label_width}} text-right no-padding">
+                            Invoice Total
+                            </div>
+                            <div class="col-xs-{{html_data.totals_data.value_width}} text-right">
+                              Rs {{total_invoice_amount}}
+                            </div>
+                          </div>
+                          <div class="row" style="font-weight:bold">
+                            <div class="col-xs-{{html_data.totals_data.label_width}} text-right no-padding">
+                              Invoice Total (After rounding)
+                            </div>
+                            <div class="col-xs-{{html_data.totals_data.value_width}} text-right">
+                            Rs {{rounded_invoice_amount}}
+                            </div>
+                          </div>
+                          <div class="row" style="font-weight:bold">
+                            <div class="col-xs-{{html_data.totals_data.label_width}} text-right no-padding">
+                              Invoice Total(In Words)
+                            </div>
+                            <div class="col-xs-{{html_data.totals_data.value_width}} text-right" style="text-transform: capitalize;">
+                              {{price_in_words}} Only
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -174,7 +195,7 @@
                       <span><b class="fs16">DECLARATION:</b></span><br>
                       <p class="pre-custom fs14">{{declaration}}</p>
                     </td>
-                    <td colspan='3'>
+                    <td colspan='{{html_data.hsn_summary_span}}'>
                       <p align="center"><b class="fs16 m0">{{company_name}}</b></p>
                       </br></br>
                       <p align="center" class="fs14 m0">Authorised Signatory</p>

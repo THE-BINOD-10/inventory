@@ -440,7 +440,6 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
                 if order_id:
                     order_data['order_id'] = int(order_id)
-                    order_data['order_code'] = 'OD'
                     if order_code:
                         order_data['order_code'] = order_code
                 else:
@@ -968,8 +967,9 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
                 if cell_data and cell_data.lower() not in LOAD_UNIT_HANDLE_DICT.keys():
                     index_status.setdefault(row_idx, set()).add('Invalid option for Load Unit Handling')
             elif key == 'sub_category' and user.username == 'sagar_fab':
-                if str(cell_data).upper() not in SUB_CATEGORIES.values():
-                    index_status.setdefault(row_idx, set()).add('Sub Category Incorrect')
+                if cell_data:
+		    if str(cell_data).upper() not in SUB_CATEGORIES.values():
+		        index_status.setdefault(row_idx, set()).add('Sub Category Incorrect')
 
     master_sku = SKUMaster.objects.filter(user=user.id)
     master_sku = [data.sku_code for data in master_sku]
@@ -1072,7 +1072,12 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                 if sku_data and cell_data:
                     sku_data.sku_desc = cell_data
                 data_dict[key] = cell_data
-
+            elif key == 'sub_category':
+                if cell_data  and isinstance(cell_data, (int, float)):
+                    cell_data = str(int(cell_data))
+                if sku_data and cell_data:
+                    sku_data.sub_category = cell_data.upper()
+                data_dict[key] = cell_data.upper()
             elif key == 'threshold_quantity':
                 if not cell_data:
                     cell_data = 0

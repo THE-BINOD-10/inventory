@@ -581,9 +581,9 @@ def generated_po_data(request, user=''):
 @login_required
 @get_admin_user
 def validate_wms(request, user=''):
-    myDict = dict(request.GET.iterlists())
+    myDict = dict(request.POST.iterlists())
     wms_list = ''
-    receipt_type = request.GET.get('receipt_type', '')
+    receipt_type = request.POST.get('receipt_type', '')
     supplier_master = SupplierMaster.objects.filter(id=myDict['supplier_id'][0], user=user.id)
     if not supplier_master and not receipt_type == 'Hosted Warehouse':
         return HttpResponse("Invalid Supplier " + myDict['supplier_id'][0])
@@ -612,7 +612,7 @@ def validate_wms(request, user=''):
 @login_required
 @get_admin_user
 def modify_po_update(request, user=''):
-    myDict = dict(request.GET.iterlists())
+    myDict = dict(request.POST.iterlists())
     wrong_wms = []
 
     all_data = get_raisepo_group_data(user, myDict)
@@ -734,6 +734,8 @@ def switches(request, user=''):
                         'show_imei_invoice': 'show_imei_invoice',
                         'display_remarks_mail': 'display_remarks_mail',
                         'create_seller_order': 'create_seller_order',
+                        'invoice_remarks': 'invoice_remarks',
+                        'show_disc_invoice': 'show_disc_invoice'
                       }
 
         toggle_field, selection = "", ""
@@ -804,7 +806,7 @@ def confirm_po(request, user=''):
     po_data = []
     total = 0
     total_qty = 0
-    myDict = dict(request.GET.iterlists())
+    myDict = dict(request.POST.iterlists())
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     ean_data = SKUMaster.objects.filter(wms_code__in=myDict['wms_code'],user=user.id).values_list('ean_number').exclude(ean_number=0)
     if ean_data:
@@ -953,11 +955,11 @@ def confirm_po(request, user=''):
 
     company_name = profile.company_name
     title = 'Purchase Order'
-    receipt_type = request.GET.get('receipt_type', '')
+    receipt_type = request.POST.get('receipt_type', '')
     if receipt_type == 'Hosted Warehouse':
         title = 'Stock Transfer Note'
-    if request.GET.get('seller_id', '') and str(request.GET.get('seller_id').split(":")[1]).lower() == 'shproc':
-        company_name = 'SHPROC'
+    if request.POST.get('seller_id', '') and str(request.POST.get('seller_id').split(":")[1]).lower() == 'shproc':
+        company_name = 'SHPROC Procurement Pvt. Ltd.'
 
     table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',
                      'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)']
@@ -1145,7 +1147,7 @@ def get_raisepo_group_data(user, myDict):
 @get_admin_user
 def add_po(request, user=''):
     status = 'Failed to Add PO'
-    myDict = dict(request.GET.iterlists())
+    myDict = dict(request.POST.iterlists())
     all_data = get_raisepo_group_data(user, myDict)
 
     for key, value in all_data.iteritems():
@@ -3273,7 +3275,7 @@ def confirm_add_po(request, sales_data = '', user=''):
     po_order_id = ''
     status = ''
     suggestion = ''
-    if not request.GET:
+    if not request.POST:
         return HttpResponse('Updated Successfully')
     sku_id = ''
     data = copy.deepcopy(PO_DATA)
@@ -3301,7 +3303,7 @@ def confirm_add_po(request, sales_data = '', user=''):
     total_qty = 0
     supplier_code = ''
     if not sales_data:
-        myDict = dict(request.GET.iterlists())
+        myDict = dict(request.POST.iterlists())
     else:
         myDict = sales_data
     ean_data = SKUMaster.objects.filter(wms_code__in=myDict['wms_code'],user=user.id).values_list('ean_number').exclude(ean_number=0)
@@ -3450,8 +3452,8 @@ def confirm_add_po(request, sales_data = '', user=''):
     receipt_type = request.GET.get('receipt_type', '')
     #if receipt_type == 'Hosted Warehouse':
     title = 'Stock Transfer Note'
-    if request.GET.get('seller_id', '') and 'shproc' in str(request.GET.get('seller_id').split(":")[1]).lower():
-        company_name = 'SHPROC'
+    if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
+        company_name = 'SHPROC Procurement Pvt. Ltd.'
         title = 'Purchase Order'
 
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),

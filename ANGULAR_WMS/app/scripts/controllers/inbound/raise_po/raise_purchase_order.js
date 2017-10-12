@@ -322,10 +322,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('validate_wms/', 'GET', elem, true).then(function(data){
+      vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {
-            vm.service.apiCall('modify_po_update/', 'GET', elem, true).then(function(data){
+            vm.service.apiCall('modify_po_update/', 'POST', elem, true).then(function(data){
               if(data.message){
                 if(data.data == 'Updated Successfully') {
                   vm.close();
@@ -370,7 +370,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.common_confirm = function(url, elem) {
 
-      vm.service.apiCall('validate_wms/', 'GET', elem, true).then(function(data){
+      vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "success") {
             vm.raise_po(url, elem);
@@ -385,7 +385,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
       vm.service.alert_msg("Do you want to Raise PO").then(function(msg) {
         if (msg == "true") {
-          vm.service.apiCall(url, 'GET', elem).then(function(data){
+          vm.service.apiCall(url, 'POST', elem).then(function(data){
             if(data.message) {
               vm.service.pop_msg(data.data);
               vm.service.refresh(vm.dtInstance);
@@ -521,10 +521,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('validate_wms/', 'GET', elem, true).then(function(data){
+      vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
         if(data.message){
           if(data.data == 'success') {
-            vm.service.apiCall('add_po/', 'GET', elem, true).then(function(data){
+            vm.service.apiCall('add_po/', 'POST', elem, true).then(function(data){
               if(data.message){
                 if(data.data == 'Added Successfully') {
                   vm.close();
@@ -585,7 +585,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
       temp = temp.toLowerCase()
       if (temp.indexOf('shproc') != -1) {
-        vm.model_data.company = 'SHPROC'
+        vm.model_data.company = 'SHPROC Procurement Pvt. Ltd.'
       } else {
         vm.model_data.company = Session.user_profile.company_name
       }

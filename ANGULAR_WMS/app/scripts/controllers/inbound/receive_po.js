@@ -592,9 +592,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       })
 
-      vm.model_data['format_types'] = ['format1', 'format2', 'format3']
+      vm.model_data['format_types'] = ['format1', 'format2', 'format3', 'Bulk Barcode']
 
-      var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
+      var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'}
 
       var modalInstance = $modal.open({
         templateUrl: 'views/outbound/toggle/barcodes.html',
@@ -634,8 +634,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       })
 
-      vm.model_data['format_types'] = ['format1', 'format2', 'format3']
-      var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
+      vm.model_data['format_types'] = ['format1', 'format2', 'format3', 'Bulk Barcode']
+      var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'}
       vm.model_data.have_data = true;
       //$state.go('app.inbound.RevceivePo.barcode');
       var modalInstance = $modal.open({

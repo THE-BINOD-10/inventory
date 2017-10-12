@@ -166,7 +166,14 @@ def dashboard(request, user=''):
     #picklist_inprogress = Picklist.objects.filter(order__user=user.id, order__status=0, status__icontains='open').\
     #                                       values('order__order_id').distinct().count()
 
-    orders = {'open': pie_picking['Picklist not generated'] + pie_picking['In-progres'], 'picked': pie_picking['Picked']}
+    view_orders_qty = OrderDetail.objects.filter(user=user_id, status= 1, quantity__gt=0).aggregate(Sum('quantity'))['quantity__sum']
+    if not view_orders_qty:
+        view_orders_qty = 0
+    open_picklists_qty = Picklist.objects.filter(status__contains='open', order__user=user_id, reserved_quantity__gt=0).\
+                                          aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
+    if not open_picklists_qty:
+        open_picklists_qty = 0
+    orders = {'open': int(view_orders_qty) + int(open_picklists_qty), 'picked': pie_picking['Picked']}
 
     pending_confirmation = OpenPO.objects.filter(sku__user=user.id, order_quantity__gt=0, status__in=[1, 'Manual']).values('supplier_id').distinct().count()
 

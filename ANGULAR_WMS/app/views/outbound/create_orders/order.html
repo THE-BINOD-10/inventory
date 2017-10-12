@@ -88,6 +88,12 @@
             <textarea rows="4" class="form-control" cols="27" name="address" ng-model="showCase.model_data.address" readonly></textarea>
           </div>
         </div>
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="form-group">
+            <label class="control-label">Ship To Address</label>
+            <textarea rows="4" class="form-control" cols="27" name="ship_to" ng-model="showCase.model_data.ship_to"></textarea>
+          </div>
+        </div> 
       </div>
       <div class="row" ng-if="showCase.permissions.create_seller_order"><hr></div>
       <div class="row" ng-if="showCase.permissions.create_seller_order">
@@ -152,6 +158,7 @@
               <th class="w10">Quantity</th>
               <th ng-show="showCase.fields.indexOf('Unit Price') == -1">Unit Price</th>
               <th ng-show="showCase.fields.indexOf('Amount') == -1">Amount</th>
+              <th class="w10" ng-show="showCase.fields.indexOf('Discount') == -1">Discount</th>
               <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'" class="w10">SGST(%)</th>
               <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'" class="w10">CGST(%)</th>
               <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'inter_state'" class="w10">IGST(%)</th>
@@ -187,6 +194,9 @@
 	      <td ng-show="showCase.fields.indexOf('Amount') == -1">
 	        <input type="text" class="form-control" ng-model="data.invoice_amount"  ng-change="showCase.cal_percentage(data)" name="invoice_amount" decimal-number>
 	      </td>
+              <td ng-show="showCase.fields.indexOf('Discount') == -1">
+                <input type="text" name="discount" class="form-control" ng-model="data.discount" ng-change="showCase.discountChange(data)" decimal-number>
+              </td>
               <td ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'">
                 <input type="text" name="sgst_tax" class="form-control" ng-model="data.sgst_tax" decimal-number ng-change="showCase.cal_percentage(data)" readonly>
               </td>

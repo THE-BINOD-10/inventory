@@ -1249,3 +1249,54 @@ def change_imei_status(request, user=''):
         log.debug(traceback.format_exc())
         log.info('Change Imei status failed for %s and params are %s and error statement is %s' % (str(user.username), str(request_data.dict()), str(e)))
     return HttpResponse(json.dumps(resp))
+
+@csrf_exempt
+def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, request):
+    """ This function delivers the excel of serial numbers which are in stock """
+    log.info(" ------------Stock Summary Serials excel download started ------------------")
+    st_time = datetime.datetime.now()
+    import xlsxwriter
+    try:
+        headers, search_params, filter_params = get_search_params(request)
+        search_term = search_params.get('search_term', '')
+        path = 'static/excel_files/' + str(user.id)  +'.Stock_Summary_Serials.xlsx'
+        if not os.path.exists('static/excel_files/'):
+            os.makedirs('static/excel_files/')
+        workbook = xlsxwriter.Workbook(path)
+        worksheet = workbook.add_worksheet("Stock Serials")
+        bold = workbook.add_format({'bold': True})
+        exc_headers = ['SKU Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Serial Number']
+        for n, header in enumerate(exc_headers):
+            worksheet.write(0, n, header, bold)
+        dict_list = ['purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
+                     'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category', 'imei_number']
+
+        dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user.id).values_list('po_imei_id', flat=True)
+        if search_term:
+            imei_data = POIMEIMapping.objects.filter(Q(purchase_order__open_po__sku__sku_code__icontains=search_term) |
+                                                     Q(purchase_order__open_po__sku__sku_desc__icontains=search_term) |
+                                                     Q(purchase_order__open_po__sku__sku_brand__icontains=search_term) |
+                                                     Q(purchase_order__open_po__sku__sku_category),
+                                                     status=1, purchase_order__open_po__sku__user=user.id).\
+                                              exclude(id__in=dispatched_imeis).values_list(*dict_list)
+        else:
+            imei_data = POIMEIMapping.objects.filter(status=1, purchase_order__open_po__sku__user=user.id).\
+                                              exclude(id__in=dispatched_imeis).values_list(*dict_list)
+        row = 1
+        for imei in imei_data:
+            for col, data in enumerate(imei):
+                worksheet.write(row, col, data)
+            row += 1
+
+        workbook.close()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info(e)
+
+    end_time = datetime.datetime.now()
+    duration= end_time - st_time
+    log.info("total time -- %s" %(duration))
+    log.info("process completed")
+    return '../' + path
+

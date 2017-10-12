@@ -3427,6 +3427,8 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 single['Product'] = sku_data.sku_desc
                 if len(sku_data.sku_desc) >= 25:
                     single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
+            if single.has_key('Company'):
+                single['Company'] = user_prf.company_name.replace("'",'')
             if single.has_key('DesignNo'):
                 single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
             if pdf_format in ['format3', 'format2', 'format4']:
@@ -3988,14 +3990,15 @@ def check_and_update_order_status(shipped_orders_dict, user):
                         order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
                         order_status_dict[order_detail_id]['subOrders'][index]['lineItems'].append(imei_dict)
             final_data = order_status_dict.values()
+            init_log.info("Order Update request params for %s is %s" % (str(user.username), str(final_data)))
             call_response = obj.confirm_order_status(final_data, user=user)
-            init_log.info(str(call_response))
+            init_log.info("Order Update response for %s is %s" % (str(user.username), str(call_response)))
             if isinstance(call_response, dict) and call_response.get('status') == 1:
                 init_log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
         except Exception as e:
             import traceback
-            log.debug(traceback.format_exc())
-            log.info('Update Order status failed for %s and params are %s and error statement is %s' % (str(user.username), str(shipped_orders_dict), str(e)))
+            init_log.debug(traceback.format_exc())
+            init_log.info('Update Order status failed for %s and params are %s and error statement is %s' % (str(user.username), str(shipped_orders_dict), str(e)))
             continue
 
 def get_returns_seller_order_id(order_detail_id, sku_code, user, sor_id=''):

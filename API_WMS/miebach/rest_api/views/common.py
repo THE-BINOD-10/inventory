@@ -597,6 +597,8 @@ def configurations(request, user=''):
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     display_remarks_mail = get_misc_value('display_remarks_mail', user.id)
     create_seller_order = get_misc_value('create_seller_order', user.id)
+    invoice_remarks = get_misc_value('invoice_remarks', user.id)
+    show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
@@ -707,7 +709,8 @@ def configurations(request, user=''):
                                     'label_generation': label_generation, 'barcode_generate_options': BARCODE_OPTIONS,
                                     'barcode_generate_opt': barcode_generate_opt, 'grn_scan_option': grn_scan_option,
                                     'invoice_titles': invoice_titles, 'show_imei_invoice': show_imei_invoice,
-                                    'display_remarks_mail': display_remarks_mail, 'create_seller_order':create_seller_order}))
+                                    'display_remarks_mail': display_remarks_mail, 'create_seller_order': create_seller_order,
+                                    'invoice_remarks': invoice_remarks, 'show_disc_invoice': show_disc_invoice}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -1859,6 +1862,11 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     hsn_summary = {}
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
+    invoice_remarks = get_misc_value('invoice_remarks', user.id)
+    show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
+    if len(invoice_remarks.split("<<>>")) > 1:
+        invoice_remarks = invoice_remarks.split("<<>>")
+        invoice_remarks = "\n".join(invoice_remarks)
     if display_customer_sku == 'true':
         customer_sku_codes = CustomerSKU.objects.filter(sku__user=user.id).exclude(customer_sku_code='').values('sku__sku_code',
                                                         'customer__customer_id', 'customer_sku_code')
@@ -2078,7 +2086,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                     'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes, 'image': image,
                     'total_tax_words': number_in_words(_total_tax), 'declaration': declaration, 'hsn_summary': hsn_summary,
                     'hsn_summary_display': get_misc_value('hsn_summary', user.id), 'seller_address': seller_address,
-                    'customer_address': customer_address}
+                    'customer_address': customer_address, 'invoice_remarks': invoice_remarks, 'show_disc_invoice': show_disc_invoice}
 
     return invoice_data
 
@@ -3611,6 +3619,18 @@ def update_seller_order(seller_order_dict, order, user):
         seller_order.status = 1
         seller_order.save()
 
+def get_invoice_html_data(invoice_data):
+    data = {'totals_data': {'label_width': 6, 'value_width': 6}, 'columns': 10, 'emty_tds': [], 'hsn_summary_span': 3}
+    if invoice_data['invoice_remarks'] != 'false':
+        data['totals_data']['label_width'] = 4
+        data['totals_data']['value_width'] = 8
+
+    if invoice_data['show_disc_invoice'] == 'true':
+        data['columns'] = 11
+        data['hsn_summary_span'] = 4
+    data['empty_tds'] = [i for i in range(data['columns'])]
+    return data
+
 def build_invoice(invoice_data, user, css=False):
     #it will create invoice template
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -3623,6 +3643,7 @@ def build_invoice(invoice_data, user, css=False):
         title_dat = get_misc_value('invoice_titles', user.id)
         if not title_dat == 'false':
             titles = title_dat.split(",")
+    invoice_data['html_data'] = get_invoice_html_data(invoice_data)
 
     invoice_data['user_type'] = user_profile.user_type
 
@@ -3746,6 +3767,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
         if not title_dat == 'false':
             titles = title_dat.split(",")
 
+    invoice_data['html_data'] = get_invoice_html_data(invoice_data)
     invoice_data['user_type'] = user_profile.user_type
 
     invoice_data['titles'] = titles

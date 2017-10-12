@@ -11,7 +11,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.permissions = Session.roles.permissions;
   vm.model_data = {}
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: "",
-                            location: "", serials: [], serial: "", capacity: 0
+                            location: "", serials: [], serial: "", capacity: 0, discount: ""
                           }],
                     customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: "",
                     tax_type: "", blind_order: false};
@@ -24,7 +24,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     angular.forEach(Data.create_orders.custom_order_data, function(sku_data){
       vm.model_data.data.push({sku_id: sku_data.sku_id, quantity: sku_data.quantity, description: sku_data.sku_desc,
                                invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: "",location: "",
-                               serials: [], serial: "", capacity: 0, extra: sku_data.extra})
+                               serials: [], serial: "", capacity: 0, extra: sku_data.extra, discount: ""})
     })
     Data.create_orders.custom_order_data = [];
     vm.from_custom_order = true;
@@ -45,7 +45,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
       return false;
     }
     if (last) {
-      vm.model_data.data.push({sku_id: "", quantity: "", invoice_amount: "", price: "", tax: vm.tax, total_amount: "", unit_price: ""});
+      vm.model_data.data.push({sku_id: "", quantity: "", invoice_amount: "", price: "", tax: vm.tax, total_amount: "", unit_price: "", discount: ""});
     } else {
       vm.model_data.data.splice(index,1);
       vm.cal_total();
@@ -470,7 +470,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     }
     angular.forEach(data, function(record, index){
 
-      var temp = {sku_id: record.sku_code, description: record.description, quantity: Number(record.quantity), invoice_amount: "", price: Number(sizes.unit_price), tax: vm.tax, total_amount: '', extra: record, remarks: record.remarks};
+      var temp = {sku_id: record.sku_code, description: record.description, quantity: Number(record.quantity), invoice_amount: "", price: Number(sizes.unit_price), tax: vm.tax, total_amount: '', extra: record, remarks: record.remarks, discount: ""};
       temp.invoice_amount = temp.quantity*temp.price;
       temp.total_amount = ((temp.invoice_amount/100)*temp.tax)+temp.invoice_amount;
       vm.model_data.data.push(temp);
@@ -674,7 +674,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
     vm.get_tax_value(data);
     var per = Number(data.tax);
-    data.total_amount = ((Number(data.invoice_amount)/100)*per)+Number(data.invoice_amount);
+    data.total_amount = ((Number(data.invoice_amount - Number(data.discount))/100)*per)+(Number(data.invoice_amount)-Number(data.discount));
 
     if(!no_total) {
       vm.cal_total();
@@ -684,6 +684,11 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.change_unit_price = function(data) {
     data.invoice_amount = Number(data.price)*Number(data.quantity);
     vm.cal_percentage(data);
+  }
+
+  vm.discountChange = function(data) {
+
+    vm.cal_percentage(data, false); 
   }
 
   vm.lions = false;

@@ -54,6 +54,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         }
                   });
                   vm.final_data = {};
+                  vm.total_data = {quantity: 0};
                   for (var i=0; i<skus_list.length; i++){
                     var sku_one = skus_list[i];
                     vm.final_data[sku_one] = 0;
@@ -61,6 +62,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       if (record.wms_code == sku_one){
                         vm.final_data[sku_one] = vm.final_data[sku_one] + record.product_quantity;
                       }
+                      vm.total_data.quantity += record.product_quantity;
                     });
                   }
 

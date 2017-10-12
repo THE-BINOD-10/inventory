@@ -321,7 +321,7 @@ LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequenc
 SKU_HEADERS = ['WMS Code','SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category', 'SKU Class',
                'SKU Brand', 'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url',
                'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
-               'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Status']
+               'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Status']
 
 MARKET_USER_SKU_HEADERS = ['WMS Code','SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category',
                            'SKU Class', 'SKU Brand', 'Style Name', 'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Put Zone',
@@ -811,7 +811,7 @@ SELLER_ORDER_STATES = {0: 'Seller Order Picklist generated', 1: 'Newly Created',
 PAYMENT_MODES = ['Credit Card', 'Debit Card', 'Cash', 'NEFT', 'RTGS', 'IMPS', 'Online Transfer', 'Cash Remittance', 'Cheque']
 
 ORDER_HEADERS_d = OrderedDict(( ('Unit Price', 'unit_price'), ('Amount', 'amount'), ('Tax', 'tax'), ('Total Amount', 'total_amount'),
-                                       ( 'Remarks', 'remarks') ))
+                                       ( 'Remarks', 'remarks') , ( 'Discount', 'discount')))
 
 STYLE_DETAIL_HEADERS = OrderedDict(( ('SKU Code', 'wms_code'), ('SKU Description', 'sku_desc'), ('Size', 'sku_size'),
                                      ('1-Day Stock', 'physical_stock'), ('3-Day Stock', 'all_quantity')

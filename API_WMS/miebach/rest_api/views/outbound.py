@@ -1728,6 +1728,31 @@ def create_shipment_entry(picklist):
     picklist.order.status = 2
     picklist.order.save()
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_invoice(request, user=''):
+    """ update invoice data """
+    resp = {"msg": "success", "data": {}}
+    order_ids = request.POST.get("order_id", "")
+    consignee = request.POST.get("ship_to", "")
+    invoice_date = request.POST.get("invoice_date", "")
+    if invoice_date:
+        invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
+    order_id_val = ''.join(re.findall('\d+', order_ids))
+    order_code = ''.join(re.findall('\D+', order_ids))
+    ord_ids = OrderDetail.objects.filter(Q(order_id = order_id_val, order_code = order_code) | Q(original_order_id=order_ids),
+                                         user = user.id).values_list('id', flat = True)
+    for order_id in ord_ids:
+        cust_objs = CustomerOrderSummary.objects.filter(order__user = user.id, order__id = order_id)
+        if cust_objs:
+            cust_obj = cust_objs[0]
+            cust_obj.consignee = consignee
+            if invoice_date:
+                cust_obj.invoice_date = invoice_date
+            cust_obj.save()
+    return HttpResponse(json.dumps(resp))
+    
 
 @csrf_exempt
 @login_required
@@ -2435,6 +2460,7 @@ def insert_order_data(request, user=''):
     user_type = request.POST.get('user_type', '')
     seller_id = request.POST.get('seller_id', '')
     sor_id = request.POST.get('sor_id', '')
+    ship_to = request.POST.get('ship_to', '')
 
     created_order_id = ''
     ex_image_url = {}
@@ -2445,7 +2471,7 @@ def insert_order_data(request, user=''):
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
 
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount', 'description',
-                     'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id']
+                     'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id', 'ship_to']
     try:
         for i in range(0, len(myDict['sku_id'])):
             order_data = copy.deepcopy(UPLOAD_ORDER_DATA)
@@ -2518,6 +2544,12 @@ def insert_order_data(request, user=''):
                     order_summary_dict['order_taken_by'] = value
                 elif key == 'shipment_time_slot':
                     order_summary_dict['shipment_time_slot'] = value
+                elif key == 'discount':
+                    try:
+                        discount = float(myDict[key][i])
+                    except:
+                        discount = 0
+                    order_summary_dict['discount'] = discount
                 else:
                     order_data[key] = value
 
@@ -2555,6 +2587,7 @@ def insert_order_data(request, user=''):
                 created_order_id = order_detail.order_code + str(order_detail.order_id)
 
                 order_summary_dict['order_id'] = order_detail.id
+                order_summary_dict['consignee'] = ship_to
                 order_summary = CustomerOrderSummary(**order_summary_dict)
                 order_summary.save()
 
@@ -5282,7 +5315,11 @@ def generate_customer_invoice(request, user=''):
         if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
-        if get_misc_value('show_imei_invoice', user.id) == 'true':
+        invoice_data = add_consignee_data(invoice_data, ord_ids, user)
+        return_data = request.GET.get('data', '')
+        if return_data:
+            invoice_data = json.dumps(invoice_data) 
+        elif get_misc_value('show_imei_invoice', user.id) == 'true':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
             invoice_data = build_invoice(invoice_data, user, False)

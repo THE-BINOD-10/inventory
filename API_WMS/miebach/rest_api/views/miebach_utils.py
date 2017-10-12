@@ -811,7 +811,7 @@ SELLER_ORDER_STATES = {0: 'Seller Order Picklist generated', 1: 'Newly Created',
 PAYMENT_MODES = ['Credit Card', 'Debit Card', 'Cash', 'NEFT', 'RTGS', 'IMPS', 'Online Transfer', 'Cash Remittance', 'Cheque']
 
 ORDER_HEADERS_d = OrderedDict(( ('Unit Price', 'unit_price'), ('Amount', 'amount'), ('Tax', 'tax'), ('Total Amount', 'total_amount'),
-                                       ( 'Remarks', 'remarks') ))
+                                       ( 'Remarks', 'remarks') , ( 'Discount', 'discount')))
 
 STYLE_DETAIL_HEADERS = OrderedDict(( ('SKU Code', 'wms_code'), ('SKU Description', 'sku_desc'), ('Size', 'sku_size'),
                                      ('1-Day Stock', 'physical_stock'), ('3-Day Stock', 'all_quantity')

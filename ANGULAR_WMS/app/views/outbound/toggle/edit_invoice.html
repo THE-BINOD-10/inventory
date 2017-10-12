@@ -1,0 +1,32 @@
+<div id="page-pop">
+  <form name="form" role="form" ui-jq="validate" ui-options="pop.validationOpt">
+    <div class="model-custom">
+      <div ng-include="'views/common/loader.html'"></div>
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="pop.ok()"><span aria-hidden="true">×</span>
+        </button>
+        <h4 class="modal-title" id="myLargeModalLabel">Picklist</h4>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="order_id" value="{{pop.model_data.order_id}}">
+        <div class="row">
+          <div class="col-md-6 col-sm-6 col-xs-6">
+            <div class="form-group">
+              <label class="control-label">Invoice Date</label>
+              <input name="invoice_date" ui-jq="datepicker" ng-model="pop.model_data.inv_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
+            </div>
+          </div>
+          <div class="col-md-6 col-sm-6 col-xs-6">
+            <div class="form-group">
+              <label class="control-label">Ship To Address</label>
+              <textarea rows="4" class="form-control" cols="27" name="ship_to" ng-model="pop.model_data.consignee"></textarea>
+            </div>
+          </div> 
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12 pull-right" style="margin-left:0px;" ng-disabled="pop.process" ng-click="pop.save()">Save</button>
+      </div>
+    </div>
+  </form>
+</div>

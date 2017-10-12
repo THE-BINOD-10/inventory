@@ -17,7 +17,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'mail_inputs':[], 'report_freq':'0', 'float_switch': false, 'automate_invoice': false, 'all_stages': '',
                     'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
-                    'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false
+                    'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
+                    'invoice_remarks': 'invoice_remarks', 'show_disc_invoice': false
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -29,7 +30,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      27: 'seller_margin', 28: 'style_headers', 29: 'receive_process', 30: 'tally_config', 31: 'tax_details',
                      32: 'hsn_summary', 33: 'display_customer_sku', 34: 'marketplace_model', 35: 'label_generation',
                      36: 'barcode_generate_opt', 37: 'grn_scan_option', 38: 'invoice_titles', 39: 'show_imei_invoice',
-                     40: 'display_remarks_mail', 41: 'create_seller_order'}
+                     40: 'display_remarks_mail', 41: 'create_seller_order', 42: 'invoice_remarks', 43: 'show_disc_invoice'}
 
   vm.check_box_data = [
     {
@@ -67,6 +68,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "glyphicon glyphicon-sort",
       display: true
     },
+    { 
+      name: "Display Discount In Invoice",
+      model_name: "show_disc_invoice",
+      param_no: 43,
+      class_name: "glyphicon glyphicon-sort",
+      display: true
+    }, 
     {
       name: "Display Customer SKU In Invoice",
       model_name: "display_customer_sku",
@@ -306,8 +314,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }, 500);
       $(".sku_groups").importTags(vm.model_data.all_groups);
       $(".stages").importTags(vm.model_data.all_stages);
-      $(".titles").importTags(vm.model_data.invoice_titles);
+      if (vm.model_data.invoice_titles) {
+        $(".titles").importTags(vm.model_data.invoice_titles);
+      }
       $('#my-select').multiSelect();
+      vm.getRemarks(vm.model_data.invoice_remarks)
     }
   })
 
@@ -586,4 +597,43 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.model_data.tax_new = true;
   }
 
+  vm.update_invoice_remarks = function(invoice_remarks) {
+
+    var data = $("[name='invoice_remarks']").val().split("\n").join("<<>>");
+    vm.switches(data, 42);
+    Auth.status();
+  }
+
+  vm.getRemarks = function(remarks) {
+
+    $timeout(function() {
+    if(remarks.split("<<>>").length > 1) {
+      $("[name='invoice_remarks']").val( remarks.split("<<>>").join("\n") )
+    } else {
+      $("[name='invoice_remarks']").val( remarks );
+    } 
+    }, 1000);
+  }
+      var keynum = "";
+      vm.limitLines = function(rows, e) {
+        var lines = $(e.target).val().split('\n').length;
+        //if(lines > rows && e.keyCode != 8) {
+        //  e.preventDefault();
+        //  return false;
+        //}
+        if(window.event) {
+          keynum = e.keyCode;
+        } else if(e.which) {
+          keynum = e.which;
+        }
+
+        if(keynum == 13) {
+          if(lines == rows) {
+            e.preventDefault();
+            return false;
+          }else{
+            lines++;
+          }
+        }
+      } 
 }

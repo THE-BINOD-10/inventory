@@ -597,6 +597,8 @@ def configurations(request, user=''):
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     display_remarks_mail = get_misc_value('display_remarks_mail', user.id)
     create_seller_order = get_misc_value('create_seller_order', user.id)
+    invoice_remarks = get_misc_value('invoice_remarks', user.id)
+    show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
@@ -707,7 +709,8 @@ def configurations(request, user=''):
                                     'label_generation': label_generation, 'barcode_generate_options': BARCODE_OPTIONS,
                                     'barcode_generate_opt': barcode_generate_opt, 'grn_scan_option': grn_scan_option,
                                     'invoice_titles': invoice_titles, 'show_imei_invoice': show_imei_invoice,
-                                    'display_remarks_mail': display_remarks_mail, 'create_seller_order':create_seller_order}))
+                                    'display_remarks_mail': display_remarks_mail, 'create_seller_order': create_seller_order,
+                                    'invoice_remarks': invoice_remarks, 'show_disc_invoice': show_disc_invoice}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -1859,6 +1862,11 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
     hsn_summary = {}
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
+    invoice_remarks = get_misc_value('invoice_remarks', user.id)
+    show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
+    if len(invoice_remarks.split("<<>>")) > 1:
+        invoice_remarks = invoice_remarks.split("<<>>")
+        invoice_remarks = "\n".join(invoice_remarks)
     if display_customer_sku == 'true':
         customer_sku_codes = CustomerSKU.objects.filter(sku__user=user.id).exclude(customer_sku_code='').values('sku__sku_code',
                                                         'customer__customer_id', 'customer_sku_code')
@@ -2078,7 +2086,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                     'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes, 'image': image,
                     'total_tax_words': number_in_words(_total_tax), 'declaration': declaration, 'hsn_summary': hsn_summary,
                     'hsn_summary_display': get_misc_value('hsn_summary', user.id), 'seller_address': seller_address,
-                    'customer_address': customer_address}
+                    'customer_address': customer_address, 'invoice_remarks': invoice_remarks, 'show_disc_invoice': show_disc_invoice}
 
     return invoice_data
 
@@ -3417,11 +3425,21 @@ def generate_barcode_dict(pdf_format, myDict, user):
             single['SKUPrintQty'] = quant
             single['Brand'] = sku_data.sku_brand.replace("'",'')
             single['SKUDes'] = sku_data.sku_desc.replace("'",'')
-            if pdf_format == 'format1':
+            if single.has_key('UOM'):
+                single['UOM'] = sku_data.measurement_type.replace("'",'')
+            if single.has_key('Style'):
                 single['Style'] = str(sku_data.style_name).replace("'",'')
+            if single.has_key('Color'):
                 single['Color'] = sku_data.color.replace("'",'')
+            if single.has_key('Product'):
+                single['Product'] = sku_data.sku_desc
+                if len(sku_data.sku_desc) >= 25:
+                    single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
+            if single.has_key('Company'):
+                single['Company'] = user_prf.company_name.replace("'",'')
+            if single.has_key('DesignNo'):
+                single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
             if pdf_format in ['format3', 'format2', 'format4']:
-                single['color'] = sku_data.color.replace("'",'')
                 present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
                 if pdf_format == 'format2':
                     single["Packed on"] = str(present).replace("'",'')
@@ -3435,7 +3453,6 @@ def generate_barcode_dict(pdf_format, myDict, user):
                     single['Contact No'] = phone_number
                     single['Email'] = user.email
                 single["Gender"] = str(sku_data.style_name).replace("'",'')
-                single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
                 single['MRP'] = str(sku_data.price).replace("'",'')
                 order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
                 if order_label:
@@ -3454,8 +3471,9 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 if BARCODE_ADDRESS_DICT.get(user.username, ''):
                     address = BARCODE_ADDRESS_DICT.get(user.username)
                 single['Manufactured By'] = address.replace("'",'')
-                if len(sku_data.sku_desc) >= 25:
-                    single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
+            elif pdf_format == 'Bulk Barcode':
+                single['Qty'] = single['SKUPrintQty']
+                single['SKUPrintQty'] = "1"
             barcodes_list.append(single)
     constructed_url = barcode_service(BARCODE_KEYS[pdf_format], barcodes_list, pdf_format)
     return constructed_url
@@ -3463,12 +3481,13 @@ def generate_barcode_dict(pdf_format, myDict, user):
 def barcode_service(key, data_to_send, format_name=''):
     url = 'http://sandhani-001-site1.htempurl.com/Webservices/BarcodeServices.asmx/GetBarCode'
     payload = ''
-    print data_to_send
     if data_to_send:
         if format_name == 'format3':
             payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Adam', 'argBarcodeFormate' : key }
         elif format_name == 'format4':
             payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Campus_Sutra', 'argBarcodeFormate' : key }
+        elif format_name == 'Bulk Barcode':
+            payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Scholar_Clothing', 'argBarcodeFormate' : key }
         else:
             payload = { 'argJsonData': json.dumps(data_to_send), 'argCompany' : 'Brilhante', 'argBarcodeFormate' : key }
 
@@ -3611,6 +3630,18 @@ def update_seller_order(seller_order_dict, order, user):
         seller_order.status = 1
         seller_order.save()
 
+def get_invoice_html_data(invoice_data):
+    data = {'totals_data': {'label_width': 6, 'value_width': 6}, 'columns': 10, 'emty_tds': [], 'hsn_summary_span': 3}
+    if invoice_data['invoice_remarks'] != 'false':
+        data['totals_data']['label_width'] = 4
+        data['totals_data']['value_width'] = 8
+
+    if invoice_data['show_disc_invoice'] == 'true':
+        data['columns'] = 11
+        data['hsn_summary_span'] = 4
+    data['empty_tds'] = [i for i in range(data['columns'])]
+    return data
+
 def build_invoice(invoice_data, user, css=False):
     #it will create invoice template
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -3623,6 +3654,7 @@ def build_invoice(invoice_data, user, css=False):
         title_dat = get_misc_value('invoice_titles', user.id)
         if not title_dat == 'false':
             titles = title_dat.split(",")
+    invoice_data['html_data'] = get_invoice_html_data(invoice_data)
 
     invoice_data['user_type'] = user_profile.user_type
 
@@ -3746,6 +3778,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
         if not title_dat == 'false':
             titles = title_dat.split(",")
 
+    invoice_data['html_data'] = get_invoice_html_data(invoice_data)
     invoice_data['user_type'] = user_profile.user_type
 
     invoice_data['titles'] = titles
@@ -3979,14 +4012,15 @@ def check_and_update_order_status(shipped_orders_dict, user):
                         order_status_dict[order_detail_id]['subOrders'][index].setdefault('lineItems', [])
                         order_status_dict[order_detail_id]['subOrders'][index]['lineItems'].append(imei_dict)
             final_data = order_status_dict.values()
+            init_log.info("Order Update request params for %s is %s" % (str(user.username), str(final_data)))
             call_response = obj.confirm_order_status(final_data, user=user)
-            init_log.info(str(call_response))
+            init_log.info("Order Update response for %s is %s" % (str(user.username), str(call_response)))
             if isinstance(call_response, dict) and call_response.get('status') == 1:
                 init_log.info('Order Update status for username ' + str(user.username) +  ' the data ' + str(final_data) + ' is Successfull')
         except Exception as e:
             import traceback
-            log.debug(traceback.format_exc())
-            log.info('Update Order status failed for %s and params are %s and error statement is %s' % (str(user.username), str(shipped_orders_dict), str(e)))
+            init_log.debug(traceback.format_exc())
+            init_log.info('Update Order status failed for %s and params are %s and error statement is %s' % (str(user.username), str(shipped_orders_dict), str(e)))
             continue
 
 def get_returns_seller_order_id(order_detail_id, sku_code, user, sor_id=''):

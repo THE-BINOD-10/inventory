@@ -1467,15 +1467,16 @@ def update_tracking_data(status_id, status_type, job_order, stage, stage_data, s
         to_reduce = float(exist_quantity) - float(stage_data['quantity'])
         if to_reduce < 0:
             if not status_trackings:
-                status_trackings = [save_status_tracking(status_id, status_type, stage, abs(to_reduce))]
+                status_trackings = save_status_tracking(status_id, status_type, stage, abs(to_reduce))
+                status_trackings = StatusTracking.objects.filter(id=status_trackings.id)
             else:
                 update_status_tracking(status_trackings, abs(to_reduce), user, to_add=True)
             if existing_objs.exclude(status_value=stage):
                 update_status_tracking(existing_objs.exclude(status_value=stage), abs(to_reduce), user, to_add=False)
         else:
             update_status_tracking(status_trackings, abs(to_reduce), user, to_add=False)
-        if is_grn and stages and stages[-1] == stage:
-            final_update_data.append([status_trackings, abs(to_reduce), user, False])
+        if is_grn and stages and stages[-1] == stage and status_trackings.filter(quantity__gt=0):
+            final_update_data.append([status_trackings.filter(quantity__gt=0), abs(to_reduce), user, False])
     return final_update_data
 
 
@@ -1522,11 +1523,10 @@ def save_receive_pallet(all_data,user, is_grn=False):
                     final_update_data = update_tracking_data(key, 'JO', job_order, stage, stage_data, stages,
                                                              is_grn, user, final_update_data=final_update_data)
 
-        new_data = build_jo_data(all_data.keys())
-        for final_data in final_update_data:
-            update_status_tracking(*final_data)
-        return new_data
-    return all_data
+    new_data = build_jo_data(all_data.keys())
+    for final_data in final_update_data:
+        update_status_tracking(*final_data)
+    return new_data
 
 @csrf_exempt
 @login_required

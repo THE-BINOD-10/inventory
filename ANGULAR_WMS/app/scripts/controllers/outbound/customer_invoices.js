@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('CustomerInvoiceCtrl',['$scope', '$http', '$state', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('CustomerInvoiceCtrl',['$scope', '$http', '$state', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', '$modal', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, $modal) {
 
     var vm = this;
     vm.apply_filters = colFilters;
@@ -74,6 +74,43 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.close = function() {
 
       $state.go("app.outbound.CustomerInvoices")
+    }
+
+    vm.edit_invoice = function() {
+
+      var data = [];
+      angular.forEach(vm.selected, function(value, key) {
+        if(value) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
+          data.push(temp['id']);
+        }
+      });
+      var ids = data.join(",");
+      var send = {seller_summary_id: ids, data: true};
+      vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
+
+        if (data.message) {
+        console.log(data.data);
+        var mod_data = data.data;
+        var modalInstance = $modal.open({
+          templateUrl: 'views/outbound/toggle/edit_invoice.html',
+          controller: 'EditInvoice',
+          controllerAs: 'pop',
+          size: 'md',
+          backdrop: 'static',
+          keyboard: false,
+          resolve: {
+            items: function () {
+              return mod_data; 
+            }
+          }
+        });
+
+        modalInstance.result.then(function (selectedItem) {
+          var data = selectedItem;
+        })
+        }
+      })
     }
 
     vm.pdf_data = {};
@@ -203,3 +240,42 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
   }
 
+function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
+
+  var vm = this;
+  vm.service = Service;
+  vm.permissions = Session.roles.permissions;
+
+  vm.model_data = items;
+
+  $timeout(function() {
+    $('.stk-readonly').datepicker("setDate", new Date(vm.model_data.inv_date) );
+  },1000);
+  vm.ok = function () {
+    $modalInstance.close("close");
+  };
+
+  vm.process = false;
+  vm.save = function() {
+
+    vm.process = true;
+    var data = $("form:visible").serializeArray()
+    Service.apiCall("update_invoice/", "POST", data).then(function(data) {
+      console.log(data);
+      if(data.message) {
+        if(data.data.msg == 'success') {
+          Service.showNoty("Updated Successfully");
+          $modalInstance.close("saved");
+        } else {
+          Service.showNoty("Update fail")
+        }
+      } else {
+        Service.showNoty("Update fail");
+      }
+      vm.process = false;
+    })
+  } 
+}
+angular
+  .module('urbanApp')
+  .controller('EditInvoice', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', EditInvoice]);

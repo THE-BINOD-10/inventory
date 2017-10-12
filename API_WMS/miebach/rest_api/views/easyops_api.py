@@ -78,6 +78,8 @@ class EasyopsAPI:
                     response = self.get_response(url, data, put, is_first=False)
                     response = response.json()
                 except Exception as e:
+                    import traceback
+                    log.debug(traceback.format_exc())
                     response = {'status': 'Internal Server Error'}
         return response
 

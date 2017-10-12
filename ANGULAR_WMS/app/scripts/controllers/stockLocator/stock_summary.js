@@ -114,6 +114,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       colFilters.search.datatable = "StockSummaryEasyops";
       colFilters.download_excel();
     }
+    vm.serials_excel = function() {
+      angular.copy(vm.dtColumns,colFilters.headers);
+      angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
+      colFilters.search.datatable = "StockSummarySerials";
+      colFilters.download_excel();
+    }
     vm.change_datatable = function() {
       Data.stock_summary.view = (vm.g_data.stock_2d)? 'StockSummaryAlt': 'StockSummary';
       $state.go($state.current, {}, {reload: true});

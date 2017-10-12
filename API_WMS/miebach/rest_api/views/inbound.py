@@ -959,7 +959,7 @@ def confirm_po(request, user=''):
     if receipt_type == 'Hosted Warehouse':
         title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and str(request.POST.get('seller_id').split(":")[1]).lower() == 'shproc':
-        company_name = 'SHPROC'
+        company_name = 'SHPROC Procurement Pvt. Ltd.'
 
     table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',
                      'SGST(%)' , 'CGST(%)', 'IGST(%)', 'UTGST(%)']
@@ -3453,7 +3453,7 @@ def confirm_add_po(request, sales_data = '', user=''):
     #if receipt_type == 'Hosted Warehouse':
     title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
-        company_name = 'SHPROC'
+        company_name = 'SHPROC Procurement Pvt. Ltd.'
         title = 'Purchase Order'
 
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),

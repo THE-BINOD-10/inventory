@@ -2785,7 +2785,7 @@ def get_size_names(requst, user = ""):
 @login_required
 @get_admin_user
 def get_sellers_list(request, user=''):
-    sellers = SellerMaster.objects.filter(user=user.id)
+    sellers = SellerMaster.objects.filter(user=user.id).order_by('seller_id')
     seller_list = []
     seller_supplier = {}
     for seller in sellers:

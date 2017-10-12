@@ -585,7 +585,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
       temp = temp.toLowerCase()
       if (temp.indexOf('shproc') != -1) {
-        vm.model_data.company = 'SHPROC'
+        vm.model_data.company = 'SHPROC Procurement Pvt. Ltd.'
       } else {
         vm.model_data.company = Session.user_profile.company_name
       }

@@ -29,7 +29,8 @@
                 </thead>
                 <tbody>
                   {% for record in page.data %}
-                  <tr ng-repeat="record in page.data" {% if record.imeis %} class="fs14" {% else %} class="fs14 rm-border" {% endif %}>
+                  {% if not record.continue %}
+                  <tr ng-repeat="record in page.data" {% if record.imeis %} class="fs14 rm-border" {% else %} class="fs14" {% endif %}>
                     <td class="text-left">
                       <div style="overflow: hidden;width: 100px;text-overflow: ellipsis;">{{record.sku_code}}</td>
                     <td class="text-left">{{record.hsn_code}}</td>
@@ -46,22 +47,23 @@
                     <td class="text-right">{{record.taxes.igst_amt}}<br><span class="tax-percentage">@{{record.taxes.igst_tax}}%</span></td>
                     <td class="text-right">{{record.invoice_amount}}</td>
                   </tr>
-
+                  {% endif %}
                   {% if record.imeis %}
                   <tr class="fs14">
-                    <td colspan="{{html_data.columns}}">
-                      <div class="row">
-                        <div class="col-md-12">
-                          <b class="pull-left">IMEI Numbers List:</b>
-                          <b class="pull-right">Sub Quantity: {{record.imei_quantity}}</b>
-                        </div></br>
+                    <td></td>
+                    <td></td>
+                    <td>
+                      <div style="font-size: 13px;line-height:16px;">
+                        <span class="pull-left"><b>IMEI List: </b></span></br>
                         {% for imei in record.imeis %}
-                        <div class="col-md-3 col-sm-3" style="width:25%; display:block; float:left">
-                           {{forloop.counter}}. {{imei}}
+                        <div {% if not forloop.counter|divisibleby:2 %} style="display: block;float: left;" {% else %} style="display: block;float: right;" {% endif %}>
+                          <i>{{imei}}</i>
                         </div>
+                          {% if forloop.counter|divisibleby:2 %}</br>{% endif %}
                         {% endfor %}
                       </div>
                     </td>
+                    <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                   </tr>
                   {% endif %}
 

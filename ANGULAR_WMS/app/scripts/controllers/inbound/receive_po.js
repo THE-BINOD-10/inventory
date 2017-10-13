@@ -514,7 +514,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   if(data.message) {
                     if(data.data.message == 'Success') {
                       var sku_code = data.data.data.sku_code;
-                      if (data.wms_code != sku_code) {
+                      if (data1.wms_code != sku_code) {
                         Service.showNoty("Scanned label belongs to "+sku_code);
                         data1.imei_number = "";
                         return false;

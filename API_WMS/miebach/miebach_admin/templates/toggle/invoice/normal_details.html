@@ -23,7 +23,11 @@
                         <div class="col-md-12 col-sm-10 col-xs-10 fs14 p0">
                         {% endif %}
                           <div class="col-md-12 p0">
+                            {% if seller_company %}
+                            <span><b class="fs16">{{seller_company}}</b></span>
+                            {% else %}
                             <span><b class="fs16">{{company_name}}</b></span>
+                            {% endif %}
                           </div>
                           <div class="col-md-12 p0" ng-if="showCase.pdf_data.company_address">
                             <span class="pre-custom rm-padding padding-none">{{company_address}}</span>

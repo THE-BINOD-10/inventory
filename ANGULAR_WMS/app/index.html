@@ -6,6 +6,19 @@
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1, minimal-ui">
 
+    <script src="https://www.gstatic.com/firebasejs/4.3.1/firebase.js"></script>
+    <script>
+    // Initialize Firebase
+    var config = {
+      apiKey: "AIzaSyAfP-oqTRxaKWJ7Fe6xT1zvfTsxcvsxdvE",
+      authDomain: "stockonedev2.firebaseapp.com",
+      databaseURL: "https://stockonedev2.firebaseio.com",
+      projectId: "stockonedev2",
+      storageBucket: "",
+      messagingSenderId: "1055350952390"
+    };
+    firebase.initializeApp(config);
+    </script>
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
     <!-- oclazyload stylesheets before this tag -->
@@ -52,21 +65,6 @@
     <!--<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>-->
 
     <!-- service worker -->
-
-
-    <script src="https://www.gstatic.com/firebasejs/4.3.1/firebase.js"></script>
-        <script>
-        // Initialize Firebase
-          var config = {
-            apiKey: "AIzaSyD0BXgvVcfpjStXzTRIR9YTpU7mBnKWMkM",
-            authDomain: "stockone-ccfa1.firebaseapp.com",
-            databaseURL: "https://stockone-ccfa1.firebaseio.com",
-            projectId: "stockone-ccfa1",
-            storageBucket: "stockone-ccfa1.appspot.com",
-            messagingSenderId: "967746739975"
-          };
-          firebase.initializeApp(config);
-        </script>
 
     <!-- build:js({.tmp,app}) scripts/app.min.js -->
     <script src="scripts/extentions/modernizr.js"></script>

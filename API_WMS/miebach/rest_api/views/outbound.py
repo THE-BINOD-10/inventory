@@ -2579,8 +2579,9 @@ def insert_order_data(request, user=''):
                 order_detail = OrderDetail(**order_data)
                 order_detail.save()
                 if seller_id:
-                    SellerOrder.objects.create(seller_id=seller_id, sor_id=sor_id, order_id=order_detail.id, quantity=order_detail.quantity,\
-                                order_status='PENDING', creation_date=datetime.datetime.now()) 
+                    seller_master_id = SellerMaster.objects.filter(seller_id=seller_id, user=user.id)
+                    SellerOrder.objects.create(seller_id=seller_master_id[0].id, sor_id=sor_id, order_id=order_detail.id,
+                                               quantity=order_detail.quantity, order_status='PENDING', creation_date=datetime.datetime.now()) 
 
                 order_objs.append(order_detail)
                 order_sku.update({order_detail.sku : order_data['quantity']})

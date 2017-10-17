@@ -12,6 +12,12 @@
           </div>
           <div class="modal-body">
             <div class="row">
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+                <div class="form-group">
+                  <label class="control-label">Seller ID *</label>
+                  <input type="text" autocomplete="off" name="seller_id" class="form-control" placeholder="Search Seller ID/Name/Number" typeahead="address.seller_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_seller_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.seller_id" typeahead-on-select="showCase.model_data.seller_id=$item.seller_id" required>
+                </div>
+              </div> 
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> WMS Code * </label>

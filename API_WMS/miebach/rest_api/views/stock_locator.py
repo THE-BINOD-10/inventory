@@ -1257,7 +1257,7 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
     st_time = datetime.datetime.now()
     import xlsxwriter
     try:
-        headers, search_params, filter_params = get_search_params(request)
+        headers, search_params, filters = get_search_params(request)
         search_term = search_params.get('search_term', '')
         path = 'static/excel_files/' + str(user.id)  +'.Stock_Summary_Serials.xlsx'
         if not os.path.exists('static/excel_files/'):
@@ -1271,16 +1271,17 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
         dict_list = ['purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                      'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category', 'imei_number']
 
+        filter_params = get_filtered_params(filters, dict_list)
         dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user.id).values_list('po_imei_id', flat=True)
         if search_term:
             imei_data = POIMEIMapping.objects.filter(Q(purchase_order__open_po__sku__sku_code__icontains=search_term) |
                                                      Q(purchase_order__open_po__sku__sku_desc__icontains=search_term) |
                                                      Q(purchase_order__open_po__sku__sku_brand__icontains=search_term) |
-                                                     Q(purchase_order__open_po__sku__sku_category),
-                                                     status=1, purchase_order__open_po__sku__user=user.id).\
+                                                     Q(purchase_order__open_po__sku__sku_category__icontains=search_term),
+                                                     status=1, purchase_order__open_po__sku__user=user.id, **filter_params).\
                                               exclude(id__in=dispatched_imeis).values_list(*dict_list)
         else:
-            imei_data = POIMEIMapping.objects.filter(status=1, purchase_order__open_po__sku__user=user.id).\
+            imei_data = POIMEIMapping.objects.filter(status=1, purchase_order__open_po__sku__user=user.id, **filter_params).\
                                               exclude(id__in=dispatched_imeis).values_list(*dict_list)
         row = 1
         for imei in imei_data:

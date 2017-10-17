@@ -1818,7 +1818,7 @@ def get_openjo_details(search_params, user, sub_user):
 def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    from rest_api.views.common import get_sku_master, get_order_detail_objs
+    from rest_api.views.common import get_sku_master, get_order_detail_objs, get_local_date
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['creation_date', 'order_id', 'customer_name' ,'sku__sku_brand', 'sku__sku_category', 'sku__sku_class', 'sku__sku_size', 'sku__sku_desc', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp', 'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount', 'order_id'];
     #lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
@@ -1922,6 +1922,10 @@ def get_order_summary_data(search_params, user, sub_user):
 
     status = ''
     for data in orders:
+        is_gst_invoice = False
+        invoice_date = get_local_date(user, data.creation_date, send_date='true')
+        if datetime.datetime.strptime('2017-07-01', '%Y-%m-%d').date() <= invoice_date.date():
+            is_gst_invoice = True
         date = get_local_date(user, data.creation_date).split(' ')
         order_id = str(data.order_code) + str(data.order_id)
         if data.original_order_id:
@@ -1953,19 +1957,30 @@ def get_order_summary_data(search_params, user, sub_user):
         order_status = ''
         remarks = ''
         order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data.id)
+        unit_price = data.unit_price
         if order_summary:
-            tax = order_summary[0].tax_value
-            vat = order_summary[0].vat
             mrp_price = order_summary[0].mrp
             discount = order_summary[0].discount
             order_status = order_summary[0].status
             remarks = order_summary[0].central_remarks
+            if not is_gst_invoice:
+                tax = order_summary[0].tax_value
+                vat = order_summary[0].vat
+                if not unit_price:
+                    unit_price = ((float(data.invoice_amount)/ float(data.quantity))) - float(discount) - (tax/float(data.quantity))
+            else:
+                amt = unit_price * float(data.quantity)
+                cgst_amt = float(order_summary[0].cgst_tax) * (float(amt)/100)
+                sgst_amt = float(order_summary[0].sgst_tax) * (float(amt)/100)
+                igst_amt = float(order_summary[0].igst_tax) * (float(amt)/100)
+                utgst_amt = float(order_summary[0].utgst_tax) * (float(amt)/100)
+                tax = cgst_amt + sgst_amt + igst_amt + utgst_amt
         else:
             tax = float(float(data.invoice_amount)/100) * vat
 
         if order_status == 'None':
             order_status = ''
-        unit_price = ((float(data.invoice_amount)/ float(data.quantity))) - discount - (tax/float(data.quantity))
+        invoice_amount = "%.2f" % ((float(unit_price) * float(data.quantity)) + tax - discount)
         unit_price = "%.2f" % unit_price
 
         temp_data['aaData'].append( OrderedDict(( ('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
@@ -1976,7 +1991,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                   ('MRP', int(data.sku.mrp)), ('Unit Price', unit_price),
                                                   ('Discount', data.sku.discount_percentage), ('City', data.city),
                                                   ('State', data.state), ('Marketplace', data.marketplace),
-                                                  ('Invoice Amount', data.invoice_amount), ('Price', data.sku.price),
+                                                  ('Invoice Amount', invoice_amount), ('Price', data.sku.price),
                                                   ('Status', status), ('Order Status', order_status), ('Remarks', remarks))) )
 
     return temp_data

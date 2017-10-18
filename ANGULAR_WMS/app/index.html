@@ -6,6 +6,22 @@
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1, minimal-ui">
 
+    <!--register service worker-->
+    <script src="sw_reg.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/4.3.1/firebase.js"></script>
+    <script>
+      // Initialize Firebase
+      var config = {
+        apiKey: "AIzaSyBKOm_IbQa6_I1rEOwMM2jOKzf9shtEHR8",
+        authDomain: "mieone-f7e9d.firebaseapp.com",
+        databaseURL: "https://mieone-f7e9d.firebaseio.com",
+        projectId: "mieone-f7e9d",
+        storageBucket: "mieone-f7e9d.appspot.com",
+        messagingSenderId: "283150537292"
+      };
+      firebase.initializeApp(config);
+    </script>
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
     <!-- oclazyload stylesheets before this tag -->
@@ -52,22 +68,6 @@
     <!--<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>-->
 
     <!-- service worker -->
-
-
-
-    <script src="https://www.gstatic.com/firebasejs/4.3.1/firebase.js"></script>
-    <script>
-      // Initialize Firebase
-      var config = {
-        apiKey: "AIzaSyBKOm_IbQa6_I1rEOwMM2jOKzf9shtEHR8",
-        authDomain: "mieone-f7e9d.firebaseapp.com",
-        databaseURL: "https://mieone-f7e9d.firebaseio.com",
-        projectId: "mieone-f7e9d",
-        storageBucket: "mieone-f7e9d.appspot.com",
-        messagingSenderId: "283150537292"
-      };
-      firebase.initializeApp(config);
-    </script>
 
     <!-- build:js({.tmp,app}) scripts/app.min.js -->
     <script src="scripts/extentions/modernizr.js"></script>
@@ -171,9 +171,6 @@
     <script src="scripts/services/wms_service.js"></script>
     <script src="scripts/services/table_service.js"></script>
     <!-- endbuild -->
-
-    <!--register service worker-->
-    <script src="sw_reg.js"></script>
 
     <!-- common controllers -->
     <script src="scripts/controllers/outbound/pop_js/common_backorder_po.js"></script>

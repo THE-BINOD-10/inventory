@@ -1218,7 +1218,34 @@ def save_location_group(data_id, value, user):
         elif loc_map:
             loc_map.delete()
 
-def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user):
+def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec'):
+    #it will create or update seller stock
+    if seller_id:
+        quantity = float(quantity)
+        seller_stock_data = SellerStock.objects.filter(stock_id = stock.id, seller__user = user.id)
+        if seller_stock_data:
+            
+            temp_quantity = quantity
+            for seller_stock in seller_stock_data:
+                if status == 'inc':
+                    seller_stock.quantity += quantity
+                    temp_quantity = 0
+                    seller_stock.save()
+                elif status == 'dec':
+                    if seller_stock.quantity > temp_quantity:
+                        seller_stock.quantity -= temp_quantity
+                        temp_quantity = 0
+                        seller_stock.save()
+                    elif seller_stock.quantity <= temp_quantity:
+                        temp_quantity -= seller_stock.quantity
+                        seller_stock.quantity = 0
+                        seller_stock.save()
+                if temp_quantity == 0:
+                    break 
+        else:
+            SellerStock.objects.create(seller_id=seller_id, stock_id=stock.id, quantity=quantity)
+
+def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id=''):
     #sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     sku = check_and_return_mapping_id(wms_code, "", user, False)
     if sku:
@@ -1236,6 +1263,13 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         move_quantity = float(quantity)
     else:
         return 'Quantity should not be empty'
+
+    if seller_id:
+        seller_id = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+        if not seller_id:
+            return 'Seller Not Found'
+        seller_id = seller_id[0].id
+
     stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=source[0].id, sku__user=user.id)
     stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
     reserved_quantity = PicklistLocation.objects.exclude(stock=None).filter(stock__sku_id=sku_id, stock__sku__user=user.id, status=1,
@@ -1246,12 +1280,15 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
     for stock in stocks:
         if stock.quantity > move_quantity:
             stock.quantity -= move_quantity
+            change_seller_stock(seller_id, stock, user, move_quantity, 'dec')
             move_quantity = 0
             stock.save()
         elif stock.quantity <= move_quantity:
+
             move_quantity -= stock.quantity
             stock.quantity = 0
             stock.save()
+            change_seller_stock(seller_id, stock, user, move_quantity, 'dec')
         if move_quantity == 0:
             break
 
@@ -1261,10 +1298,12 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
                                   creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now(), location_id=dest[0].id,
                                   sku_id=sku_id)
         dest_stocks.save()
+        change_seller_stock(seller_id, dest_stocks, user, float(quantity), 'create')
     else:
         dest_stocks = dest_stocks[0]
         dest_stocks.quantity += float(quantity)
-    dest_stocks.save()
+        dest_stocks.save()
+        change_seller_stock(seller_id, dest_stocks, user, quantity, 'inc')
 
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
     data_dict['cycle'] = cycle_id

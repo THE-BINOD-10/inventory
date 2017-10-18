@@ -672,6 +672,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   }
   vm.cal_percentage = function(data, no_total) {
 
+    vm.discountPercentageChange(data, false);
     vm.get_tax_value(data);
     var per = Number(data.tax);
     data.total_amount = ((Number(data.invoice_amount - Number(data.discount))/100)*per)+(Number(data.invoice_amount)-Number(data.discount));
@@ -689,6 +690,18 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.discountChange = function(data) {
 
     vm.cal_percentage(data, false); 
+  }
+
+  vm.discountPercentageChange = function(data, status) {
+
+    if(vm.fields.indexOf('Discount Percentage') != -1) {
+      return false;
+    }
+    if(!data.discount_percentage) {
+      data.discount_percentage = "";
+    }
+    var temp_perc = Number(data.discount_percentage);
+    data.discount = (Number(data.invoice_amount)*temp_perc)/100;
   }
 
   vm.lions = false;

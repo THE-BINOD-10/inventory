@@ -62,9 +62,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       if (record.wms_code == sku_one){
                         vm.final_data[sku_one] = vm.final_data[sku_one] + record.product_quantity;
                       }
-                      vm.total_data.quantity += record.product_quantity;
                     });
                   }
+                  angular.forEach(vm.final_data, function(value, key){
+                    vm.total_data.quantity += value;
+                  });
 
 
 		  vm.order_ids_list = data.data.order_ids.toString();

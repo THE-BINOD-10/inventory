@@ -776,7 +776,8 @@ def insert_move_inventory(request, user=''):
     source_loc = request.GET['source_loc']
     dest_loc = request.GET['dest_loc']
     quantity = request.GET['quantity']
-    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user)
+    seller_id = request.GET.get('seller_id', '')
+    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id)
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
 

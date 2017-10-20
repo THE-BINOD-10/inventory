@@ -1870,6 +1870,8 @@ def get_invoice_number(user, order_no, invoice_date):
         invoice_number = user.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
     elif user.user.username == 'TranceHomeLinen':
         invoice_number = user.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(order_no)
+    elif user.user.username == 'Subhas_Publishing':
+        invoice_number = user.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
     else:
         invoice_number = 'TI/%s/%s' %(invoice_date.strftime('%m%y'), order_no)
     return invoice_number

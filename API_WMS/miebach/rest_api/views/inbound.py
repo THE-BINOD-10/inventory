@@ -4329,6 +4329,7 @@ def check_imei_qc(request, user=''):
 @get_admin_user
 def check_return_imei(request, user=''):
     return_data = {'status': '', 'data': {}}
+    user_profile = UserProfile.objects.get(user_id=user.id)
     try:
         for key, value in request.GET.iteritems():
             sku_code = ''
@@ -4351,12 +4352,14 @@ def check_return_imei(request, user=''):
                     invoice_number = shipment_info[0].invoice_number
                 return_data['data'] = {'sku_code': order_imei[0].order.sku.sku_code, 'invoice_number': invoice_number,
                                        'order_id': order_id, 'sku_desc': order_imei[0].order.title, 'shipping_quantity': 1,
-                                       'sor_id': order_imei[0].sor_id}
+                                       'sor_id': order_imei[0].sor_id, 'quantity': 0}
                 order_return = OrderReturns.objects.filter(order_id=order_imei[0].order.id, sku__user=user.id, status=1)
                 if order_return:
                     return_data['data'].update({'id': order_return[0].id, 'return_id': order_return[0].return_id,
-                                                'return_type': order_return[0].return_type, 'sor_id': ''})
+                                                'return_type': order_return[0].return_type, 'sor_id': '', 'quantity': order_return[0].quantity})
                 log.info(return_data)
+        if user_profile.user_type == 'marketplace_user' and not return_data['data'].get('id', ''):
+            return_data['status'] = 'Return is not initiated'
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

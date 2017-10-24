@@ -70,13 +70,13 @@
                   <tr ng-repeat="item in data.data">
                     <td>
                       <input type="hidden" name="id" value="{{item.id}}">
-                      <input type="text" autocomplete="off" ng-readonly="showCase.update && (!(item.new_sku))" ng-show="$first" name="product_code" class="form-control" placeholder="Search Product SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="data.product_code" ng-blur="showCase.service.checkSearchValue(data.product_code,'search_wms_codes?', $event, 'RM', 'Product SKU Code');showCase.get_product_data(data.product_code, data, $parent.$index)">
+                      <input type="text" autocomplete="off" ng-readonly="showCase.update && (!(data.new_sku))" ng-show="$first" name="product_code" class="form-control" placeholder="Search Product SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="data.product_code" typeahead-on-select="showCase.get_product_data(data.product_code, data, $parent.$index)">
                     </td>
                     <td>
                       <input ng-show="$first" type="text" d-perm="true" name="product_quantity" ng-model="data.product_description" ng-change="showCase.change_quantity(data)" class="form-control" ng-class="service.get_decimal_perm()">
                     </td>
                     <td>
-                      <input type="text" autocomplete="off" name="material_code" class="form-control" placeholder="Search Material SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?','RM')" typeahead-loading="loadingLocations" ng-model="item.material_code" ng-blur="showCase.service.checkSearchValue(item.material_code,'search_wms_codes?', $event, 'RM', 'Material SKU Code')">
+                      <input type="text" autocomplete="off" name="material_code" class="form-control" placeholder="Search Material SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?','RM')" typeahead-loading="loadingLocations" ng-model="item.material_code">
                     </td>
                     <td>
                       <input type="text" name="material_quantity" d-perm="true" class="form-control" ng-model="item.temp_qty" ng-class="service.get_decimal_perm()">                      </td>

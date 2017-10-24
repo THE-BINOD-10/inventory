@@ -1301,7 +1301,7 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
                 else:
                     log.info("No telephone no for this order")
 
-def create_seller_order_summary(picklist, picked_count, pick_number, picks_all, stock=None):
+def create_seller_order_summary(picklist, picked_count, pick_number, picks_all, stocks=[]):
     #seller_orders = SellerOrder.objects.filter(order_id=picklist.order_id, order__user=picklist.order.user, status=1)
     seller_order_details = SellerOrderDetail.objects.filter(picklist_id=picklist.id, picklist__order__user=picklist.order.user)
     for seller_detail in seller_order_details:
@@ -1342,14 +1342,19 @@ def create_seller_order_summary(picklist, picked_count, pick_number, picks_all, 
                                                   seller_order_id=seller_detail.seller_order.id, creation_date=datetime.datetime.now())
 
 
-        if stock:
-            seller_stock = SellerStock.objects.filter(seller_id=seller_detail.seller_order.seller_id, stock_id=stock.id, seller__user=picklist.order.user)
-            if seller_stock:
-                seller_stock = seller_stock[0]
-                update_quan = int(seller_stock.quantity) - insert_quan
-                if update_quan < 0:
-                    update_quan = 0
-                seller_stock.quantity = update_quan
+        for stock in stocks:
+            seller_stocks = SellerStock.objects.filter(seller_id=seller_detail.seller_order.seller_id, stock_id=stock.id, seller__user=picklist.order.user)
+            for seller_stock in seller_stocks:
+                if insert_quan <= 0:
+                    break
+                if float(seller_stock.quantity) < insert_quan:
+                    update_quan = float(seller_stock.quantity)
+                    insert_quan -= update_quan
+                    seller_stock.quantity = 0
+                else:
+                    update_quan = insert_quan
+                    seller_stock.quantity = float(seller_stock.quantity) - insert_quan
+                    insert_quan = 0
                 seller_stock.save()
 
 def create_order_summary(picklist, picked_count, pick_number, picks_all):
@@ -1534,6 +1539,7 @@ def picklist_confirmation(request, user=''):
                     #if tot_quan < reserved_quantity1:
                         #total_stock = create_temp_stock(picklist.stock.sku.sku_code, picklist.stock.location.zone, abs(reserved_quantity1 - tot_quan), list(total_stock), user.id)
 
+                    seller_stock_objs = []
                     for stock in total_stock:
 
                         pre_stock = float(stock.quantity)
@@ -1570,12 +1576,13 @@ def picklist_confirmation(request, user=''):
                         if stock.pallet_detail:
                             update_picklist_pallet(stock, picking_count1)
                         stock.save()
+                        seller_stock_objs.append(stock)
                         mod_locations.append(stock.location.location)
                     picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
                     if not seller_pick_number:
                         seller_pick_number = get_seller_pick_id(picklist, user)
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
-                        create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all, stock)
+                        create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all, seller_stock_objs)
                     else:
                         create_order_summary(picklist, picking_count1, seller_pick_number, picks_all)
                     if picklist.reserved_quantity == 0:
@@ -1937,7 +1944,7 @@ def get_customer_sku(request, user=''):
     order_shipment = OrderShipment.objects.filter(shipment_number = ship_no)
     all_orders = OrderDetail.objects.filter(**search_params)
     customer_dict = all_orders.values('customer_id', 'customer_name').distinct()
-    filter_list = ['sku__sku_code', 'id', 'order_id', 'sku__sku_desc']
+    filter_list = ['sku__sku_code', 'id', 'order_id', 'sku__sku_desc', 'original_order_id']
     if sku_grouping == 'true':
         filter_list = ['sku__sku_code', 'sku__sku_desc']
 
@@ -5100,6 +5107,7 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
         creation_date = datetime.datetime.now()
         if order_pick:
             creation_date = order_pick[0].creation_date
+            data['total_picked'] = order_pick.aggregate(Sum('picked_quantity'))['picked_quantity__sum']
         creation_date = get_local_date(user, creation_date)
         order_id = data['order__original_order_id']
         if not order_id:
@@ -5144,7 +5152,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     if user_profile.user_type == 'marketplace_user':
-        lis = ['seller_order__order__order_id', 'seller_order__order__order_id', 'seller_order__sor_id', 'seller_order__seller__id',
+        lis = ['seller_order__order__order_id', 'seller_order__order__order_id', 'seller_order__sor_id', 'seller_order__seller__seller_id',
                'seller_order__order__customer_name', 'quantity', 'quantity', 'date_only', 'id']
         user_filter= {'seller_order__seller__user': user.id}
         result_values = ['seller_order__order__order_id', 'seller_order__seller__name', 'pick_number', 'seller_order__sor_id']
@@ -5222,7 +5230,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
 
         if is_marketplace:
             data_dict = OrderedDict(( ('UOR ID', order_id), ('SOR ID', summary.seller_order.sor_id),
-                                      ('Seller ID', summary.seller_order.seller_id), ('id', str(data['seller_order__order__order_id']) + \
+                                      ('Seller ID', summary.seller_order.seller.seller_id), ('id', str(data['seller_order__order__order_id']) + \
                                       ":" + str(data['pick_number']) + ":" + data['seller_order__seller__name']),
                                       ('check_field', 'SOR ID')
                                    ))

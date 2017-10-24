@@ -10,6 +10,7 @@ import traceback
 import ConfigParser
 import datetime
 from rest_api.views.miebach_utils  import *
+from utils import *
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read('rest_api/views/configuration.cfg')
 

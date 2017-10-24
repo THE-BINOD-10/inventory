@@ -3796,10 +3796,7 @@ def check_imei_exists(request, user=''):
     imei = request.GET.get('imei', '')
     sku_code = request.GET.get('sku_code', '')
     if imei and sku_code:
-        if get_serial_limit(user) == len(imei):
-            po_mapping, status, imei_data = check_get_imei_details(imei, sku_code, user.id, check_type='purchase_check')
-        else:
-            status = "Serial Number Length Should Be "+str(get_serial_limit(user))
+        po_mapping, status, imei_data = check_get_imei_details(imei, sku_code, user.id, check_type='purchase_check')
     else:
         status = "Missing Serial or SKU Code"
 

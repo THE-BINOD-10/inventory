@@ -25,6 +25,7 @@
           <input ng-if="showCase.model_data.create_login && !(showCase.model_data.login_created)" type="hidden" name="create_login" value="{{showCase.model_data.create_login}}">
           <input type="hidden" name="data-id" value="{{showCase.model_data.data-id}}">
           <div class="row">
+            <input name="login_created" type="hidden" value="{{showCase.model_data.login_created}}">
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Customer ID * </label>

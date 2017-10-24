@@ -554,163 +554,77 @@ def add_extra_permissions(user):
 @login_required
 @get_admin_user
 def configurations(request, user=''):
-    display_none = 'display: block;'
-    fifo_switch = get_misc_value('fifo_switch', user.id)
-    batch_switch = get_misc_value('batch_switch', user.id)
-    send_message = get_misc_value('send_message', user.id)
-    use_imei = get_misc_value('use_imei', user.id)
-    back_order = get_misc_value('back_order', user.id)
-    show_image = get_misc_value('show_image', user.id)
-    online_percentage = get_misc_value('online_percentage', user.id)
-    pallet_switch = get_misc_value('pallet_switch', user.id)
-    production_switch = get_misc_value('production_switch', user.id)
-    mail_alerts = get_misc_value('mail_alerts', user.id)
-    pos_switch = get_misc_value('pos_switch', user.id)
-    auto_po_switch = get_misc_value('auto_po_switch', user.id)
-    no_stock_switch = get_misc_value('no_stock_switch', user.id)
-    float_switch = get_misc_value('float_switch', user.id)
-    automate_invoice = get_misc_value('automate_invoice', user.id)
-    show_mrp = get_misc_value('show_mrp', user.id)
-    decimal_limit = get_misc_value('decimal_limit', user.id)
-    picklist_sort_by = get_misc_value('picklist_sort_by', user.id)
-    stock_sync = get_misc_value('stock_sync', user.id)
-    auto_generate_picklist = get_misc_value('auto_generate_picklist', user.id)
-    detailed_invoice = get_misc_value('detailed_invoice', user.id)
+    config_dict = copy.deepcopy(CONFIG_DEF_DICT)
+    config_dict['display_none'] = 'display: block;'
+    for key, value in CONFIG_SWITCHES_DICT.iteritems():
+        config_dict[key] = get_misc_value(value, user.id)
+    for key, value in CONFIG_INPUT_DICT.iteritems():
+        config_dict[key] = ''
+        value = get_misc_value(value, user.id)
+        if not value == 'false':
+            config_dict[key] = value
     all_groups = SKUGroups.objects.filter(user=user.id).values_list('group', flat=True)
-    internal_mails = get_misc_value('Internal Emails', user.id)
-    all_groups = str(','.join(all_groups))
-    sku_sync = get_misc_value('sku_sync', user.id)
-    order_manage = get_misc_value('order_manage', user.id)
-    stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
-    view_order_status = get_misc_value('view_order_status', user.id)
-    style_headers = get_misc_value('style_headers', user.id)
-    seller_margin = get_misc_value('seller_margin', user.id)
-    receive_process = get_misc_value('receive_process', user.id)
-    tally_config = get_misc_value('tally_config', user.id)
-    hsn_summary = get_misc_value('hsn_summary', user.id)
-    display_customer_sku = get_misc_value('display_customer_sku', user.id)
-    label_generation = get_misc_value('label_generation', user.id)
-    marketplace_model = get_misc_value('marketplace_model', user.id)
-    barcode_generate_opt = get_misc_value('barcode_generate_opt', user.id)
-    grn_scan_option = get_misc_value('grn_scan_option', user.id)
-    invoice_titles = get_misc_value('invoice_titles', user.id)
-    show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
-    display_remarks_mail = get_misc_value('display_remarks_mail', user.id)
-    create_seller_order = get_misc_value('create_seller_order', user.id)
-    invoice_remarks = get_misc_value('invoice_remarks', user.id)
-    show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
-    if receive_process == 'false':
+    config_dict['all_groups'] = str(','.join(all_groups))
+    if config_dict['receive_process'] == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
-        receive_process = '2-step-receive'
+        config_dict['receive_process'] = '2-step-receive'
 
-    receive_options =  dict(RECEIVE_OPTIONS)
     total_groups = request.user.groups.all()
     if not get_permission(request.user, 'add_qualitycheck', groups=total_groups):
-        del receive_options['One step Receipt + Qc']
+        del config_dict['receive_options']['One step Receipt + Qc']
 
-    view_order_status = view_order_status.split(',')
-    style_headers = style_headers.split(',')
+    config_dict['view_order_status'] = config_dict['view_order_status'].split(',')
+    config_dict['style_headers'] = config_dict['style_headers'].split(',')
 
-    if stock_display_warehouse and stock_display_warehouse != "false":
-        stock_display_warehouse = stock_display_warehouse.split(',')
-        stock_display_warehouse = map(int, stock_display_warehouse)
-        #stock_display_warehouse = list(eval(stock_display_warehouse))
+    if config_dict['stock_display_warehouse'] and config_dict['stock_display_warehouse'] != "false":
+        config_dict['stock_display_warehouse'] = config_dict['stock_display_warehouse'].split(',')
+        config_dict['stock_display_warehouse'] = map(int, config_dict['stock_display_warehouse'])
     else:
-        stock_display_warehouse = []
+        config_dict['stock_display_warehouse'] = []
+
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
-    all_stages = str(','.join(all_stages))
+    config_dict['all_stages'] = str(','.join(all_stages))
 
-    if mail_alerts == 'false':
-        mail_alerts = 0
-    if production_switch == 'false':
-        display_none = 'display:none;'
-    mail_inputs = []
+    if config_dict['mail_alerts'] == 'false':
+        config_dict['mail_alerts'] = 0
+    if config_dict['production_switch'] == 'false':
+        config_dict['display_none'] = 'display:none;'
+    config_dict['mail_inputs'] = []
 
     for key, val in MAIL_REPORTS_DATA.iteritems():
         temp_value = get_misc_value(val, user.id)
         if temp_value == 'true':
-            mail_inputs.append(val)
+            config_dict['mail_inputs'].append(val)
 
-    if online_percentage == "false":
-        online_percentage = 0
+    if config_dict['online_percentage'] == "false":
+        config_dict['online_percentage'] = 0
     user_profile = UserProfile.objects.filter(user_id=user.id)
-    prefix = ''
+    config_dict['prefix'] = ''
     if user_profile:
-        prefix = user_profile[0].prefix
+        config_dict['prefix'] = user_profile[0].prefix
 
     enabled_reports = MiscDetail.objects.filter(misc_type__contains='report', misc_value='true', user=request.user.id)
-    reports_data = []
+    config_dict['reports_data'] = []
     for reports in enabled_reports:
-        reports_data.append(str(reports.misc_type.replace('report_', '')))
+        config_dict['reports_data'].append(str(reports.misc_type.replace('report_', '')))
 
-    mail_listing = MiscDetail.objects.filter(misc_type='email', user=request.user.id)
-    email = ''
-    if mail_listing:
-        email = mail_listing[0].misc_value
-
-    report_frequency = MiscDetail.objects.filter(misc_type='report_frequency', user=request.user.id)
-    report_freq = ''
-    if report_frequency:
-         report_freq = report_frequency[0].misc_value
-
-    scan_picklist_option = MiscDetail.objects.filter(misc_type='scan_picklist_option', user=user.id)
-    _pick_option = "scan_sku_location"
-    if scan_picklist_option:
-        _pick_option = scan_picklist_option[0].misc_value
 
     all_related_warehouse_id = get_related_users(user.id)
-    all_related_warehouse = dict(User.objects.filter(id__in = all_related_warehouse_id).exclude(id = user.id).values_list('first_name','id'))
-    all_related_warehouse.update({"Intransit of Current Warehouse" : user.id})
+    config_dict['all_related_warehouse'] = dict(User.objects.filter(id__in = all_related_warehouse_id).exclude(id = user.id).values_list('first_name','id'))
+    config_dict['all_related_warehouse'].update({"Intransit of Current Warehouse" : user.id})
 
-    all_view_order_status = CUSTOM_ORDER_STATUS
-
-    report_data_range = MiscDetail.objects.filter(misc_type='report_data_range', user=request.user.id)
-    data_range = ''
-    if report_data_range:
-        data_range = report_data_range[0].misc_value
-    display_pos = ''
-    if pos_switch == 'false':
-        display_pos = 'display:none'
+    config_dict['display_pos'] = ''
+    if config_dict['pos_switch'] == 'false':
+        config_dict['display_pos'] = 'display:none'
 
     tax_details = MiscDetail.objects.filter(misc_type__istartswith='tax_', user=request.user.id)
-    tax_data = []
+    config_dict['tax_data'] = []
     if tax_details:
        for tax in tax_details:
-           tax_data.append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_value})
+           config_dict['tax_data'].append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_value})
 
-    return HttpResponse(json.dumps({'batch_switch': batch_switch, 'fifo_switch': fifo_switch, 'pos_switch': pos_switch,
-                                    'send_message': send_message, 'use_imei': use_imei, 'back_order': back_order,
-                                    'show_image': show_image, 'online_percentage': online_percentage,
-                                    'prefix': prefix, 'pallet_switch': pallet_switch,
-                                    'production_switch': production_switch, 'mail_alerts': mail_alerts,
-                                    'mail_inputs': mail_inputs, 'mail_options': MAIL_REPORTS_DATA,
-                                    'mail_reports': MAIL_REPORTS, 'data_range': data_range,
-                                    'report_freq': report_freq, 'email': email,
-                                    'reports_data': reports_data, 'display_none': display_none,
-                                    'internal_mails' : internal_mails, 'style_detail_headers': STYLE_DETAIL_HEADERS,
-                                    'scan_picklist_option': _pick_option, "picklist_options": PICKLIST_OPTIONS,
-                                    'is_config': 'true', 'order_headers': ORDER_HEADERS_d,
-                                    'all_groups': all_groups, 'display_pos': display_pos,
-                                    'auto_po_switch': auto_po_switch, 'no_stock_switch': no_stock_switch,
-                                    'float_switch': float_switch, 'all_stages': all_stages,
-                                    'automate_invoice': automate_invoice, 'show_mrp': show_mrp,
-                                    'decimal_limit': decimal_limit, 'picklist_sort_by': picklist_sort_by,
-                                    'stock_sync': stock_sync, 'auto_generate_picklist': auto_generate_picklist,
-                                    'order_management' : order_manage, 'detailed_invoice': detailed_invoice,
-                                    'all_related_warehouse' : all_related_warehouse,
-                                    'stock_display_warehouse':  stock_display_warehouse,
-                                    'all_view_order_status': all_view_order_status,
-                                    'view_order_status': view_order_status, 'style_headers': style_headers,
-                                    'sku_sync': sku_sync, 'seller_margin': seller_margin,
-                                    'receive_process': receive_process, 'receive_options': receive_options,
-                                    'tally_config': tally_config, 'tax_data': tax_data, 'hsn_summary': hsn_summary,
-                                    'display_customer_sku': display_customer_sku, 'marketplace_model': marketplace_model,
-                                    'label_generation': label_generation, 'barcode_generate_options': BARCODE_OPTIONS,
-                                    'barcode_generate_opt': barcode_generate_opt, 'grn_scan_option': grn_scan_option,
-                                    'invoice_titles': invoice_titles, 'show_imei_invoice': show_imei_invoice,
-                                    'display_remarks_mail': display_remarks_mail, 'create_seller_order': create_seller_order,
-                                    'invoice_remarks': invoice_remarks, 'show_disc_invoice': show_disc_invoice}))
+    return HttpResponse(json.dumps(config_dict))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -1870,6 +1784,8 @@ def get_invoice_number(user, order_no, invoice_date):
         invoice_number = user.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
     elif user.user.username == 'TranceHomeLinen':
         invoice_number = user.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(order_no)
+    elif user.user.username == 'Subhas_Publishing':
+        invoice_number = user.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
     else:
         invoice_number = 'TI/%s/%s' %(invoice_date.strftime('%m%y'), order_no)
     return invoice_number
@@ -2085,6 +2001,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                          'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis})
 
     _invoice_no = get_invoice_number(user_profile, order_no, invoice_date)
+    invoice_no_gen = get_misc_value('increment_invoice', user.id)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
     order_charges = {}
@@ -2761,13 +2678,13 @@ def check_and_return_mapping_id(sku_code, title, user, check = True):
         if not check:
             if sku_code:
                 market_mapping = MarketplaceMapping.objects.filter(marketplace_code=sku_code, sku__user=user.id)
-            if not market_mapping and title:
-                market_mapping = MarketplaceMapping.objects.filter(description=title, sku__user=user.id)
+            #if not market_mapping and title:
+            #    market_mapping = MarketplaceMapping.objects.filter(description=title, sku__user=user.id)
         else:
             if sku_code:
                 market_mapping = MarketplaceMapping.objects.filter(marketplace_code=sku_code, sku__user=user.id, sku__status=1)
-            if not market_mapping and title:
-                market_mapping = MarketplaceMapping.objects.filter(description=title, sku__user=user.id, sku__status=1)
+            #if not market_mapping and title:
+            #    market_mapping = MarketplaceMapping.objects.filter(description=title, sku__user=user.id, sku__status=1)
 
         if market_mapping:
             sku_id = market_mapping[0].sku_id

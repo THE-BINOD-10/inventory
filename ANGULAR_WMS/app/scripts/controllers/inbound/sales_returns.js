@@ -309,11 +309,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.service.apiCall('check_return_imei/', 'GET', {imei: field}).then(function(data){
             if(data.message) {
               if ('Success'==data.data.status) {
-                vm.scan_imeis.push(field);
-                //vm.return_serials(field);
-                if(vm.scan_skus.indexOf(data.data.data.sku_code) == -1){
-                    vm.scan_skus.push(data.data.data.sku_code);
-                }
                 status = "true";
                 for(var i = 0; i < vm.model_data.data.length; i++) {
                   var temp = vm.model_data.data[i]
@@ -325,6 +320,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       vm.model_data.data[i].return_quantity += 1;
                       vm.model_data.data[i].returns_imeis.push(field);
                       vm.imei_data["index"] = vm.model_data.data.length-1;
+                      vm.scan_imeis.push(field);
+                      //vm.return_serials(field);
+                      if(vm.scan_skus.indexOf(data.data.data.sku_code) == -1){
+                        vm.scan_skus.push(data.data.data.sku_code);
+                      }
                     }
                     status = "false";
                     break;
@@ -332,6 +332,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 }
                 if(status == "true"){
                   vm.add_new_imei(data.data, field);
+                  vm.scan_imeis.push(field);
+                  //vm.return_serials(field);
+                  if(vm.scan_skus.indexOf(data.data.data.sku_code) == -1){
+                    vm.scan_skus.push(data.data.data.sku_code);
+                  }
                 }
                 vm.imei_data.scanning = true;
 

@@ -695,7 +695,6 @@ def switches(request, user=''):
                         'batch_switch': 'batch_switch',
                         'send_message': 'send_message',
                         'show_image': 'show_image',
-                        'stock_sync': 'sync_switch',
                         'back_order': 'back_order',
                         'online_percentage': 'online_percentage',
                         'use_imei': 'use_imei',
@@ -735,7 +734,8 @@ def switches(request, user=''):
                         'display_remarks_mail': 'display_remarks_mail',
                         'create_seller_order': 'create_seller_order',
                         'invoice_remarks': 'invoice_remarks',
-                        'show_disc_invoice': 'show_disc_invoice'
+                        'show_disc_invoice': 'show_disc_invoice',
+                        'increment_invoice': 'increment_invoice'
                       }
 
         toggle_field, selection = "", ""

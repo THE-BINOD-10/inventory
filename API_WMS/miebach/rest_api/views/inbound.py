@@ -735,7 +735,8 @@ def switches(request, user=''):
                         'display_remarks_mail': 'display_remarks_mail',
                         'create_seller_order': 'create_seller_order',
                         'invoice_remarks': 'invoice_remarks',
-                        'show_disc_invoice': 'show_disc_invoice'
+                        'show_disc_invoice': 'show_disc_invoice',
+                        'serial_limit': 'serial_limit'
                       }
 
         toggle_field, selection = "", ""
@@ -3783,7 +3784,10 @@ def check_imei_exists(request, user=''):
     imei = request.GET.get('imei', '')
     sku_code = request.GET.get('sku_code', '')
     if imei and sku_code:
-        po_mapping, status, imei_data = check_get_imei_details(imei, sku_code, user.id, check_type='purchase_check')
+        if get_serial_limit(user) == len(imei):
+            po_mapping, status, imei_data = check_get_imei_details(imei, sku_code, user.id, check_type='purchase_check')
+        else:
+            status = "Serial Number Length Should Be "+str(get_serial_limit(user))
     else:
         status = "Missing Serial or SKU Code"
 

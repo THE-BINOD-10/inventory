@@ -599,6 +599,7 @@ def configurations(request, user=''):
     create_seller_order = get_misc_value('create_seller_order', user.id)
     invoice_remarks = get_misc_value('invoice_remarks', user.id)
     show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
+    serial_limit = get_misc_value('serial_limit', user.id)
     if receive_process == 'false':
         MiscDetail.objects.create(user=user.id, misc_type='receive_process', misc_value='2-step-receive', creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         receive_process = '2-step-receive'
@@ -679,6 +680,12 @@ def configurations(request, user=''):
        for tax in tax_details:
            tax_data.append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_value})
 
+    if invoice_remarks == 'false':
+        invoice_remarks = ''
+
+    if serial_limit == 'false':
+         serial_limit = 15
+
     return HttpResponse(json.dumps({'batch_switch': batch_switch, 'fifo_switch': fifo_switch, 'pos_switch': pos_switch,
                                     'send_message': send_message, 'use_imei': use_imei, 'back_order': back_order,
                                     'show_image': show_image, 'online_percentage': online_percentage,
@@ -710,7 +717,8 @@ def configurations(request, user=''):
                                     'barcode_generate_opt': barcode_generate_opt, 'grn_scan_option': grn_scan_option,
                                     'invoice_titles': invoice_titles, 'show_imei_invoice': show_imei_invoice,
                                     'display_remarks_mail': display_remarks_mail, 'create_seller_order': create_seller_order,
-                                    'invoice_remarks': invoice_remarks, 'show_disc_invoice': show_disc_invoice}))
+                                    'invoice_remarks': invoice_remarks, 'show_disc_invoice': show_disc_invoice,
+                                    'serial_limit': serial_limit}))
 
 @csrf_exempt
 def get_work_sheet(sheet_name, sheet_headers, f_name=''):
@@ -4302,3 +4310,12 @@ def get_jo_reference(user):
     else:
         jo_reference = 1
     return jo_reference
+
+def get_serial_limit(user):
+    ''' it will return serial limit '''
+
+    serial_limit = get_misc_value('serial_limit', user.id)
+    if serial_limit == 'false':
+        return 15
+    else:
+        return int(serial_limit)

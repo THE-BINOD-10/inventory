@@ -2324,7 +2324,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
 def get_user_sku_data(user):
     request = {}
     #user = User.objects.get(id=sku.user)
-    _brand, _categories, _size, _colors = get_sku_categories_data(request, user, request_data={'file': True}, is_catalog='true')
+    _brand, _categories, _size, _colors, category_details = get_sku_categories_data(request, user, request_data={'file': True}, is_catalog='true')
     brands_data = [_brand, _categories]
     skus_data = get_sku_catalogs_data(request, user, request_data={'file': True}, is_catalog='true')
     path = 'static/text_files'
@@ -4202,6 +4202,7 @@ def insert_po_mapping(imei_nos, data, user_id):
         imei_list.append(imei)
 
 def get_purchase_order_id(user):
+    '''  Provides New Purchase Order ID '''
     po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).values_list('order_id', flat=True).order_by("-order_id")
     st_order = STPurchaseOrder.objects.filter(open_st__sku__user=user.id).values_list('po__order_id', flat=True).order_by("-po__order_id")
     order_ids = list(chain(po_data, st_order))
@@ -4213,9 +4214,61 @@ def get_purchase_order_id(user):
     return po_id
 
 def get_jo_reference(user):
+    ''' It Provides New Jo Reference Number '''
     jo_code = JobOrder.objects.filter(product_code__user=user).order_by('-jo_reference')
     if jo_code:
         jo_reference = int(jo_code[0].jo_reference) + 1
     else:
         jo_reference = 1
     return jo_reference
+
+def get_shipment_quantity(user, all_orders, sku_grouping=False):
+    ''' Provides picked quantities needed for shipment '''
+    data = []
+    log.info('Request Params for Get Shipment quantity for user %s is %s' % (user.username, str(all_orders)))
+    try:
+        customer_dict = all_orders.values('customer_id', 'customer_name').distinct()
+        filter_list = ['sku__sku_code', 'id', 'order_id', 'sku__sku_desc', 'original_order_id']
+        if sku_grouping == 'true':
+            filter_list = ['sku__sku_code', 'sku__sku_desc']
+
+        for customer in customer_dict:
+            customer_picklists = Picklist.objects.filter(order__customer_id=customer['customer_id'], order__customer_name=customer['customer_name'],
+                                                         status__in=['open', 'picked', 'batch_open', 'batch_picked'], picked_quantity__gt=0,
+                                                         order__user=user.id)
+            picklist_order_ids = list(customer_picklists.values_list('order_id', flat=True))
+            customer_orders = all_orders.filter(id__in=picklist_order_ids)
+
+            all_data = list(customer_orders.values(*filter_list).distinct().annotate(picked=Sum('quantity'), ordered=Sum('quantity')))
+
+            for ind,dat in enumerate(all_data):
+                if sku_grouping == 'true':
+                    ship_dict = {'order__sku__sku_code': dat['sku__sku_code'], 'order__sku__user': user.id,
+                                 'order__customer_id': customer['customer_id'], 'order__customer_name': customer['customer_name']}
+                    all_data[ind]['id'] = list(customer_picklists.filter(**ship_dict).values_list('order_id', flat=True).distinct())
+                else:
+                    ship_dict = {'order_id': dat['id']}
+                seller_order = SellerOrder.objects.filter(order_id=dat['id'], order_status='DELIVERY_RESCHEDULED')
+                dis_quantity = 0
+                if seller_order:
+                    dis_pick = Picklist.objects.filter(order_id=dat['id'], status='dispatched')
+                    if dis_pick:
+                        dis_quantity = dis_pick[0].order.quantity
+                if customer_picklists.filter(**ship_dict).exclude(order_type='combo'):
+                    all_data[ind]['picked'] = customer_picklists.filter(**ship_dict).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+                shipped = ShipmentInfo.objects.filter(**ship_dict).aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
+                if shipped:
+                    shipped = shipped - dis_quantity
+                    all_data[ind]['picked'] = float(dat['picked']) - shipped
+                    if all_data[ind]['picked'] < 0:
+                        del all_data[ind]
+
+            data = list(chain(data, all_data))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Get Shipment quantity failed for %s and params are %s and error statement is %s' % (str(user.username), str(search_params), str(e)))
+
+    return data
+
+

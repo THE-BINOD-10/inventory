@@ -1907,22 +1907,11 @@ def get_picked_data(data_id, user, marketplace=''):
 @csrf_exempt
 @get_admin_user
 def get_customer_sku(request, user=''):
-    temp1 = []
-    order_shipments = []
-    all_data = {}
+
     data = []
     sku_grouping = request.GET.get('sku_grouping', 'false')
     datatable_view = request.GET.get('view', '')
     search_params = {'user': user.id}
-    headers = ('', 'SKU Code', 'Order Quantity', 'Shipping Quantity', 'Pack Reference', '')
-    #c_id = request.GET['customer_id']
-    #marketplace = request.GET['marketplace']
-    #if c_id:
-    #    c_id = c_id.split(':')
-    #    search_params['customer_id'] = c_id[0]
-    #    search_params['customer_name'] = c_id[1]
-    #if marketplace:
-    #    search_params['marketplace'] = marketplace.replace('Default','')
 
     request_data = dict(request.GET.iterlists())
     if 'order_id' in request_data.keys() and not datatable_view == 'ShipmentPickedAlternative':
@@ -1939,70 +1928,13 @@ def get_customer_sku(request, user=''):
         if filter_order_ids:
             search_params['id__in'] = filter_order_ids
     ship_no = get_shipment_number(user)
-    data_dict = copy.deepcopy(ORDER_SHIPMENT_DATA)
-    data_dict['shipment_number'] = ship_no
-    order_shipment = OrderShipment.objects.filter(shipment_number = ship_no)
+
     all_orders = OrderDetail.objects.filter(**search_params)
-    customer_dict = all_orders.values('customer_id', 'customer_name').distinct()
-    filter_list = ['sku__sku_code', 'id', 'order_id', 'sku__sku_desc', 'original_order_id']
-    if sku_grouping == 'true':
-        filter_list = ['sku__sku_code', 'sku__sku_desc']
+    data = get_shipment_quantity(user, all_orders, sku_grouping)
 
-    for customer in customer_dict:
-        customer_picklists = Picklist.objects.filter(order__customer_id=customer['customer_id'], order__customer_name=customer['customer_name'],
-                                                     status__in=['open', 'picked', 'batch_open', 'batch_picked'], picked_quantity__gt=0,
-                                                     order__user=user.id)
-        picklist_order_ids = list(customer_picklists.values_list('order_id', flat=True))
-        customer_orders = all_orders.filter(id__in=picklist_order_ids)
-
-        all_data = list(customer_orders.values(*filter_list).distinct().annotate(picked=Sum('quantity'), ordered=Sum('quantity')))
-
-        for ind,dat in enumerate(all_data):
-            if sku_grouping == 'true':
-                ship_dict = {'order__sku__sku_code': dat['sku__sku_code'], 'order__sku__user': user.id,
-                             'order__customer_id': customer['customer_id'], 'order__customer_name': customer['customer_name']}
-                all_data[ind]['id'] = list(customer_picklists.filter(**ship_dict).values_list('order_id', flat=True).distinct())
-            else:
-                ship_dict = {'order_id': dat['id']}
-            seller_order = SellerOrder.objects.filter(order_id=dat['id'], order_status='DELIVERY_RESCHEDULED')
-            dis_quantity = 0
-            if seller_order:
-                dis_pick = Picklist.objects.filter(order_id=dat['id'], status='dispatched')
-                if dis_pick:
-                    dis_quantity = dis_pick[0].order.quantity
-            if customer_picklists.filter(**ship_dict).exclude(order_type='combo'):
-                all_data[ind]['picked'] = customer_picklists.filter(**ship_dict).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
-            shipped = ShipmentInfo.objects.filter(**ship_dict).aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
-            if shipped:
-                shipped = shipped - dis_quantity
-                all_data[ind]['picked'] = float(dat['picked']) - shipped
-                if all_data[ind]['picked'] < 0:
-                    del all_data[ind]
-
-        data = list(chain(data, all_data))
-        '''if not order_shipment and all_data:
-            for key, value in request.GET.iteritems():
-                if key in ('customer_id', 'marketplace'):
-                    continue
-                elif key == 'shipment_date':
-                    ship_date = value.split('/')
-                    data_dict[key] = datetime.date(int(ship_date[2]), int(ship_date[0]), int(ship_date[1]))
-                elif key in ORDER_SHIPMENT_DATA.keys():
-                    data_dict[key] = value
-
-            data_dict['user'] = user.id
-            data = OrderShipment(**data_dict)
-            data.save()
-            order_shipment = [data]
-            order_shipments.append(data)'''
     if data:
-        #order_data = all_data
-        #display_fields = ['Customer ID', 'Customer Name']
-        #if not c_id:
-        #    display_fields = ['Market Place']
-        #    customer_dict = {'marketplace': marketplace}
         return HttpResponse(json.dumps({'data': data,
-                                  'shipment_id': '',#order_shipment[0].id,
+                                  'shipment_id': '',
                                   'display_fields': '',
                                   'marketplace': '', 'shipment_number': ship_no}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
@@ -2010,54 +1942,84 @@ def get_customer_sku(request, user=''):
 @login_required
 @get_admin_user
 def check_imei(request, user=''):
+    ''' Check IMEI status and serial number mapping with order if it is shipment '''
     status = ''
+    sku_code = ''
+    quantity = 0
+    shipped_orders_dict = {}
     is_shipment = request.GET.get('is_shipment', False)
     order_id = request.GET.get('order_id', '')
-    sku_code = ''
-    for key, value in request.GET.iteritems():
-        if key in ['is_shipment', 'order_id']:
-            continue
-        sku_code = ''
-        order = None
-        imei_filter = {'imei_number': value, 'purchase_order__open_po__sku__user': user.id}
-        if not is_shipment and not key == 'serial':
-            picklist = Picklist.objects.get(id=key)
-            if not picklist.order:
+    #scanned_qty = request.GET.get('scanned_qty', 0)
+    log.info('Request params for Check IMEI ' + user.username + ' is ' + str(request.GET.dict()))
+    try:
+        for key, value in request.GET.iteritems():
+            if key in ['is_shipment', 'order_id', 'scanned_qty']:
                 continue
-            sku_code = picklist.order.sku.sku_code
-            order = picklist.order
-            #imei_filter['purchase_order__open_po__sku__sku_code'] = sku_code
+            sku_code = ''
+            order = None
+            imei_filter = {'imei_number': value, 'purchase_order__open_po__sku__user': user.id}
+            if not is_shipment and not key == 'serial':
+                picklist = Picklist.objects.get(id=key)
+                if not picklist.order:
+                    continue
+                sku_code = picklist.order.sku.sku_code
+                order = picklist.order
+                #imei_filter['purchase_order__open_po__sku__sku_code'] = sku_code
 
-        po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping', order=order)
-        if imei_data.get('wms_code', ''):
-            sku_code = imei_data['wms_code']
+            po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping', order=order)
+            if imei_data.get('wms_code', ''):
+                sku_code = imei_data['wms_code']
 
-        if not sku_code and po_mapping and po_mapping[0].purchase_order.open_po:
-            sku_code = po_mapping[0].purchase_order.open_po.sku.sku_code
-        if not po_mapping:
-            status = str(value) + ' is invalid Imei number'
-        order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, order__user=user.id, status=1)
-        if order_mapping:
-            if order and order_mapping[0].order_id == order.id:
-                status = str(value) + ' is already mapped with this order'
-            else:
-                status = str(value) + ' is already mapped with another order'
-        if is_shipment and po_mapping:
-            seller_id = ''
-            seller_po = SellerPO.objects.filter(open_po_id=po_mapping[0].purchase_order.open_po_id)
-            if seller_po:
-                seller_id = seller_po[0].seller_id
-            order_detail_objs = get_order_detail_objs(order_id, user, search_params={},all_order_objs = [])
-            if order_detail_objs and seller_id:
-                seller_order = SellerOrder.objects.filter(seller__user=user.id, order_id__in=order_detail_objs.values_list('id'),
-                                           seller_id=seller_id)
-                if not seller_order:
-                    status = 'IMEI Mapped to another Seller'
-            if not status:
-                status = 'Success'
-            return HttpResponse(json.dumps({'status': status, 'data': {'sku_code': sku_code}}))
+            if not sku_code and po_mapping and po_mapping[0].purchase_order.open_po:
+                sku_code = po_mapping[0].purchase_order.open_po.sku.sku_code
+            if not po_mapping:
+                status = str(value) + ' is invalid Imei number'
+            order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, order__user=user.id, status=1)
+            if order_mapping:
+                if order and order_mapping[0].order_id == order.id:
+                    status = str(value) + ' is already mapped with this order'
+                else:
+                    status = str(value) + ' is already mapped with another order'
+            if is_shipment and po_mapping:
+                seller_id = ''
+                seller_po = SellerPO.objects.filter(open_po_id=po_mapping[0].purchase_order.open_po_id)
+                if seller_po:
+                    seller_id = seller_po[0].seller_id
+                order_detail_objs = get_order_detail_objs(order_id, user, search_params={},all_order_objs = [])
+                order_details = order_detail_objs.filter(sku__sku_code=sku_code)
+                if order_detail_objs and seller_id:
+                    seller_order = SellerOrder.objects.filter(seller__user=user.id, order_id__in=order_detail_objs.values_list('id'),
+                                               seller_id=seller_id)
+                    if not seller_order:
+                        status = 'IMEI Mapped to another Seller'
+                if order_details:
+                    qty_data = get_shipment_quantity(user, order_details, False)
+                    if qty_data:
+                        quntity = qty_data[0]['picked']
+                        #if float(scanned_qty) > quntity:
+                        #status = 'Scanned Quantity exceeding the Picked quantity'
 
-    return HttpResponse(json.dumps({'status': status, 'data': {'sku_code': sku_code}}))
+                    if not int(order_details[0].sku_id) == int(po_mapping[0].purchase_order.open_po.sku_id):
+                        status = 'IMEI Mapped to the another SKU ' + str(po_mapping[0].purchase_order.open_po.sku.sku_code)
+                    #if not status:
+                    #    order = order_details[0]
+                    #    shipped_orders_dict = insert_order_serial([], {'wms_code': order.sku.wms_code,
+                    #                                                   'imei': po_mapping[0].imei_number}, order=order,
+                    #                                                   shipped_orders_dict=shipped_orders_dict)
+                    #    shipped_orders_dict.setdefault(int(order.id), {}).setdefault('quantity', 0)
+                    #    shipped_orders_dict[int(order.id)]['quantity'] += 1
+                if not status:
+                    status = 'Success'
+
+        if shipped_orders_dict:
+            log.info('Order Status update call for user '+ str(user.username) + ' is ' + str(shipped_orders_dict))
+            check_and_update_order_status(shipped_orders_dict, user)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Check IMEI failed for params ' + str(request.POST.dict()) + ' error statement is ' +str(e))
+    return HttpResponse(json.dumps({'status': status, 'data': {'sku_code': sku_code, 'quantity': quantity}}))
+
 
 @get_admin_user
 def print_picklist_excel(request, user=''):
@@ -3127,7 +3089,7 @@ def insert_shipment_info(request, user=''):
         log.info('Create shipment failed for params ' + str(request.POST.dict()) + ' error statement is ' +str(e))
         return HttpResponse('Create shipment Failed')
     try:
-        shipped_orders_dict = {}
+        #shipped_orders_dict = {}
         for i in range(0, len(myDict['sku_code'])):
 
             if not myDict['shipping_quantity'][i]:
@@ -3151,9 +3113,9 @@ def insert_shipment_info(request, user=''):
                     if key in shipment_data and key !='id':
                         shipment_data[key] = value[i]
 
-                if 'imei_number' in myDict.keys() and myDict['imei_number'][i]:
-                    shipped_orders_dict = insert_order_serial([], {'wms_code': order_detail.sku.wms_code, 'imei': myDict['imei_number'][i]},
-                                                              order=order_detail, shipped_orders_dict=shipped_orders_dict)
+                #if 'imei_number' in myDict.keys() and myDict['imei_number'][i]:
+                #    shipped_orders_dict = insert_order_serial([], {'wms_code': order_detail.sku.wms_code, 'imei': myDict['imei_number'][i]},
+                #                                              order=order_detail, shipped_orders_dict=shipped_orders_dict)
                 order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id,
                                                                     package_reference=myDict['package_reference'][i], order_shipment__user=user.id)
                 if not order_pack_instance:
@@ -3180,12 +3142,12 @@ def insert_shipment_info(request, user=''):
                 shipment_data['invoice_number'] = invoice_number
                 ship_data = ShipmentInfo(**shipment_data)
                 ship_data.save()
-                if shipped_orders_dict.has_key(int(order_id)):
-                    shipped_orders_dict[int(order_id)].setdefault('quantity', 0)
-                    shipped_orders_dict[int(order_id)]['quantity'] += float(shipped_quantity)
-                else:
-                    shipped_orders_dict[int(order_id)] = {}
-                    shipped_orders_dict[int(order_id)]['quantity'] = float(shipped_quantity)
+                #if shipped_orders_dict.has_key(int(order_id)):
+                #    shipped_orders_dict[int(order_id)].setdefault('quantity', 0)
+                #    shipped_orders_dict[int(order_id)]['quantity'] += float(shipped_quantity)
+                #else:
+                #    shipped_orders_dict[int(order_id)] = {}
+                #    shipped_orders_dict[int(order_id)]['quantity'] = float(shipped_quantity)
 
 
                 log.info('Shipemnt Info dict is '+ str(shipment_data))
@@ -3197,9 +3159,9 @@ def insert_shipment_info(request, user=''):
                     for pick_order in picked_orders:
                         setattr(pick_order, 'status', 'dispatched')
                         pick_order.save()
-        if shipped_orders_dict:
-            log.info('Order Status update call for user '+ str(user.username) + ' is ' + str(shipped_orders_dict))
-            check_and_update_order_status(shipped_orders_dict, user)
+        # if shipped_orders_dict:
+        #     log.info('Order Status update call for user '+ str(user.username) + ' is ' + str(shipped_orders_dict))
+        #     check_and_update_order_status(shipped_orders_dict, user)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -3867,9 +3829,9 @@ def get_view_order_details(request, user=''):
             attr_list = attr_list.get('attribute_data', '')
         else:
             attr_list = []
-	for attr in attr_list:
-	    tuple_data = (attr['attribute_name'],attr['attribute_value'])
-	    cus_data.append(tuple_data)
+    for attr in attr_list:
+        tuple_data = (attr['attribute_name'],attr['attribute_value'])
+        cus_data.append(tuple_data)
     for one_order in order_details:
         order_id = one_order.order_id
         _order_id = order_id

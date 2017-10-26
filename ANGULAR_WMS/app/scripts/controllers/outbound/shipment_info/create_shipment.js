@@ -103,6 +103,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.close = close;
     function close() {
       $state.go('app.outbound.ShipmentInfo');
+      if(vm.permissions.use_imei) {
+        fb.stop_listening(vm.model_data.order_id);
+      }
       angular.copy(vm.empty_data, vm.model_data);
       get_data();
     }
@@ -158,6 +161,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
               angular.forEach(vm.model_data.data, function(temp) {
 
                 var shipping_quantity = (vm.mk_user)? 0 : temp.picked;
+                if(vm.permissions.use_imei && temp.shipping_quantity) {
+                  shipping_quantity = temp.shipping_quantity;
+                }
                 temp["sub_data"] = [{"shipping_quantity": shipping_quantity, "pack_reference":""}]
               });
               if(vm.mk_user) {
@@ -167,7 +173,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
               $timeout(function() {
                 $('#shipment_date').datepicker('setDate', vm.today_date);
               }, 1000)
-              vm.serial_numbers = [];
+              //vm.serial_numbers = [];
               if(vm.permissions.use_imei) {
                 fb.start(vm.model_data);
               }
@@ -236,7 +242,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     } else {
       vm.remove_serials(data.sub_data[index]['imei_list']);
       data.sub_data.splice(index,1);
-      //vm.check_equal(data);
     }
   }
 
@@ -300,33 +305,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.check_imei_exists = function(event, imei) {
       event.stopPropagation();
       if (event.keyCode == 13 && imei.length > 0) {
-        if (vm.serial_numbers.indexOf(imei) != -1){
-            service.showNoty("IMEI Number Already Exist");
-            vm.imei_number = "";
-        } else {
-          var imei_order_id = ''
-          if(vm.model_data.data.length > 0 && vm.model_data.data[0].order_id)
-          {
-              if(vm.model_data.data[0].original_order_id != '')
-              {
-                imei_order_id = vm.model_data.data[0].original_order_id;
-              }
-              else {
-                imei_order_id = vm.model_data.data[0].order_id;
-              }
+        var imei_order_id = ''
+        if(vm.model_data.data.length > 0 && vm.model_data.data[0].order_id) {
+
+          if(vm.model_data.data[0].original_order_id != '') {
+
+            imei_order_id = vm.model_data.data[0].original_order_id;
+          } else {
+
+            imei_order_id = vm.model_data.data[0].order_id;
           }
-          vm.service.apiCall('check_imei/', 'GET',{is_shipment: true, imei: imei, order_id: imei_order_id}).then(function(data){
-            if(data.message) {
-              if (data.data.status == "Success") {
-                vm.update_imei_data(data.data, imei);
-                //vm.check_equal(data2);
-              } else {
-                service.showNoty(data.data.status);
-              }
-              vm.imei_number = "";
-            }
-          });
         }
+        vm.service.apiCall('check_imei/', 'GET',{is_shipment: true, imei: imei, order_id: imei_order_id}).then(function(data){
+          if(data.message) {
+            if (data.data.status == "Success") {
+              vm.update_imei_data(data.data, imei);
+            } else {
+              service.showNoty(data.data.status);
+            }
+            vm.imei_number = "";
+          }
+        });
       }
     }
 
@@ -337,38 +336,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       for(var i = 0; i < vm.model_data.data.length; i++) {
 
         if(vm.model_data.data[i].sku__sku_code == data.data.sku_code) {
-
+          vm.model_data.data[i].picked = data.data.quantity;
+          vm.model_data.data[i]['sub_data'][0].shipping_quantity = data.data.shipping_quantity;
+          fb.change_quantities(vm.model_data.data[i]);
           sku_status = true;
-          if(vm.model_data.data[i].picked > vm.model_data.data[i]['sub_data'][0].shipping_quantity) {
-            vm.model_data.data[i]['sub_data'][0].shipping_quantity += 1;
-            vm.model_data.data[i]['sub_data'][0].imei_list.push(imei);
-            vm.serial_numbers.push(imei);
-            fb.push_serial(vm.model_data.data[i],imei);
-            status = true;
-            break;
-          }
+          status = true;
+          break;
         }
       }
-      if(sku_status && (!status)) {
-
-        service.showNoty(data.data.sku_code+" SKU picked quantity equal shipped quantity");
-      } else if(!status) {
-
-        service.showNoty("Entered Imei Number Not Matched With Any SKU's");
-      }
     }
-
-    /*vm.check_equal = function(data) {
-
-      data["equal"] = false;
-      var total = 0;
-      for(var i=0; i < data.sub_data.length; i++) {
-        total = total + parseInt(data.sub_data[i].shipping_quantity);
-      }
-      if(data.picked == total){
-        data["equal"] = true;
-      }
-    }*/
 
     vm.remove_serials = function(serials) {
 
@@ -406,28 +382,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     angular.forEach(vm.model_data.data, function(data){
       var name= data.sku__sku_code;
       if(fb.orderData[name]) {
-        if(!fb.orderData[name]['serials']){fb.orderData[name]['serials'] = {}}
-        data.sub_data[0].shipping_quantity = Object.keys(fb.orderData[name]['serials']).length;
-        data.sub_data[0].imei_list = Object.values(fb.orderData[name]['serials']);
-        vm.serial_numbers = vm.serial_numbers.concat(data.sub_data[0].imei_list);
+        data.sub_data[0].shipping_quantity = fb.orderData[name]['shiped'];
+        data.sub_data[0].picked = fb.orderData[name]['picked'];
         $timeout(function() {$scope.$apply();}, 500);
       }
     })
     fb.add_new = true;
     fb.data_update(data);
     fb.order_delete_event();
-  } 
+  }
 
   fb.push = function(data){
     var order_data = {};
     order_data['order_id'] = data.data[0].order_id
-    
+
     angular.forEach(data.data, function(sku){
       var name = sku.sku__sku_code;
       order_data[name] = {};
       order_data[name]["sku_code"] = name;
-      order_data[name]["serials"] = "";
-    }) 
+      order_data[name]["picked"] = sku.picked;
+      order_data[name]["shipping_quantity"] = 0;
+    })
     console.log(order_data);
     firebase.database().ref("/ShipmentInfo/"+Session.parent.userId+"/"+order_data.order_id+"/").push(order_data).then(function(data){
       fb.orderData = order_data;
@@ -453,7 +428,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         }
       });
       return d.promise;
-    }
+  }
 
   fb.start = function(data) {
 
@@ -463,28 +438,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         fb.push(data);
       } else {
         fb.orderData = po.data;
-        fb.change_order_data(fb.orderData);
+        fb.data_update(fb.orderData);
+        fb.order_delete_event();
       }
     })
   }
 
-  fb.push_serial = function(data, serial) {
-    firebase.database().ref("/ShipmentInfo/"+Session.parent.userId+"/"+fb.orderData.order_id+"/"+fb.orderData.key+"/"+ data.sku__sku_code +"/serials/").push(serial).then(function(snapshot){
+  fb.change_quantities = function(data) {
 
-      console.log(snapshot);
-    });
+    firebase.database().ref().child("/ShipmentInfo/"+Session.parent.userId+"/"+fb.orderData.order_id+"/"+fb.orderData.key+"/"+ data.sku__sku_code+ "/")
+     .update({ picked: data.picked, shipping_quantity: data.sub_data[0].shipping_quantity });
   }
 
   fb.data_update = function(order_data) {
     angular.forEach(vm.model_data.data, function(data) {
-      firebase.database().ref("/ShipmentInfo/"+Session.parent.userId+"/"+order_data.order_id+"/"+order_data.key+"/"+data.sku__sku_code+"/serials/").on("child_added", function(snapshot) {
+      firebase.database().ref("/ShipmentInfo/"+Session.parent.userId+"/"+order_data.order_id+"/"+order_data.key+"/"+data.sku__sku_code+"/").on("child_changed", function(snapshot) {
         console.log("changes", data.sku__sku_code);
-        if (data.sub_data[0].imei_list.indexOf(snapshot.val()) == -1) {
-          data.sub_data[0].imei_list.push(snapshot.val());
-          data.sub_data[0].shipping_quantity = Number(data.sub_data[0].shipping_quantity) + 1;
-        }
-        if(vm.serial_numbers.indexOf(snapshot.val()) == -1) {
-          vm.serial_numbers.push(snapshot.val());
+        if (snapshot.key == 'shipping_quantity') {
+          data.sub_data[0].shipping_quantity = snapshot.val();
+        } else {
+          data.picked = snapshot.val();
         }
         $timeout(function() {$scope.$apply();}, 500);
       });
@@ -514,10 +487,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     })
   }
 
+  fb.stop_listening = function(order_id) {
+    firebase.database().ref("/ShipmentInfo/"+Session.parent.userId+"/"+fb.orderData.order_id+"/").off();
+  }
+
   fb.delete_order = function(order_id) {
 
       if(order_id) {
-        firebase.database().ref("/ShipmentInfo/"+Session.parent.userId+"/"+fb.orderData.order_id+"/").off();
+        fb.stop_listening(order_id);
         firebase.database().ref("/ShipmentInfo/"+Session.parent.userId+"/"+order_id).once("value", function(data){
           data.ref.remove()
             .then(function() {
@@ -530,7 +507,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           console.log(data.ref.remove())
         })
       }
-    } 
+    }
 
   }
 

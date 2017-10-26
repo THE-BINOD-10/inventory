@@ -935,12 +935,16 @@ def update_lineitem_ids(seller_order, swx_mappings):
                                           swx_type='seller_parent_item_id').update(imei='None')
 
 
-def validate_lineitem_ids(swx_mappings, seller_parent_id, insert_status=[]):
+def validate_lineitem_ids(swx_mappings, seller_parent_id, order_det, insert_status=[]):
+    seller_id = 0
+    seller_order_ins = SellerOrder.objects.filter(order_id__in=order_det.values_list('id', flat=True))
+    if seller_order_ins:
+        seller_id = seller_order_ins[0].id
     for swx_mapping in swx_mappings:
         if not swx_mapping['swx_type'] == 'seller_item_id':
             continue
         mapping_obj = SWXMapping.objects.filter(swx_type=swx_mapping['swx_type'], app_host=swx_mapping['app_host'],
-                                                swx_id=swx_mapping['swx_id'])
+                                                swx_id=swx_mapping['swx_id'], local_id=seller_id)
         if mapping_obj and mapping_obj[0].imei == 'None':
             insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': swx_mapping['swx_id'],
                                   'error': 'Order Cancelled already'})
@@ -1020,12 +1024,12 @@ def update_order_cancel(orders_data, user='', company_name=''):
                 if swx['swx_type'] == 'seller_parent_item_id':
                     seller_parent_id = swx['swx_id']
                     break
-            insert_status= validate_lineitem_ids(order_dict['swx_mappings'], seller_parent_id, insert_status=insert_status)
             original_order_id = order_dict['order_details']['original_order_id']
             filter_params = {'user': user.id, 'original_order_id': original_order_id, 'sku_id': order_dict['order_details']['sku_id'],
                              'order_id': order_dict['order_details']['order_id'], 'order_code': order_dict['order_details']['order_code']}
 
             order_det = OrderDetail.objects.exclude(status=3).filter(**filter_params)
+            insert_status= validate_lineitem_ids(order_dict['swx_mappings'], seller_parent_id, order_det, insert_status=insert_status)
             if not order_det:
                 for swx_mapping in order_dict['swx_mappings']:
                     insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': swx_mapping['swx_id'],

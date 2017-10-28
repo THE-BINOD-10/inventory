@@ -584,10 +584,8 @@ def configurations(request, user=''):
 
     # Invoice Marketplaces list and selected Option
     config_dict['marketplaces'] = get_marketplace_names(user, 'all_marketplaces')
-    if config_dict['invoice_marketplaces'] and config_dict['invoice_marketplaces'] != "false":
-        config_dict['invoice_marketplaces'] = config_dict['invoice_marketplaces'].split(',')
-    else:
-        config_dict['invoice_marketplaces'] = []
+    config_dict['prefix_data'] = list(InvoiceSequence.objects.filter(user=user.id, status=1).exclude(marketplace='').\
+                                                values('marketplace', 'prefix'))
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     config_dict['all_stages'] = str(','.join(all_stages))
@@ -1788,9 +1786,10 @@ def get_invoice_number(user, order_no, invoice_date, order_ids):
     invoice_number = ""
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
-        if invoice_no_gen[0].misc_type == 'true':
-            seller_order_summary = SellerOrderSummary.objects.filter(Q(order__user=user.id, order__order_id__in=order_ids)|
-                                                                     Q(seller_order__user=user.id, seller_order__order_id__in=order_ids))
+        if invoice_no_gen[0].misc_value == 'true':
+            seller_order_summary = SellerOrderSummary.objects.filter(Q(order__user=user.id, order_id__in=order_ids)|
+                                                                     Q(seller_order__order__user=user.id,
+                                                                    seller_order__order_id__in=order_ids))
             if seller_order_summary and invoice_no_gen[0].creation_date < seller_order_summary[0].creation_date:
                 check_dict = {}
                 prefix_key = 'order__'
@@ -1799,7 +1798,7 @@ def get_invoice_number(user, order_no, invoice_date, order_ids):
                     prefix_key = 'seller_order__order__'
                 else:
                     order = seller_order_summary[0].order
-                check_dict = {prefix_key + 'order_id': order.order_id, 'order_code': order.order_code,
+                check_dict = {prefix_key + 'order_id': order.order_id, prefix_key + 'order_code': order.order_code,
                                   prefix_key + 'original_order_id': order.original_order_id, prefix_key + 'user': user.id}
                 invoice_ins = SellerOrderSummary.objects.filter(**check_dict).exclude(invoice_number='')
 
@@ -1807,7 +1806,18 @@ def get_invoice_number(user, order_no, invoice_date, order_ids):
                     order_no = invoice_ins[0].invoice_number
                     seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
                 else:
-                    increment_ins = IncrementalTable.objects.filter(user=user.id, type_name='')
+                    invoice_sequence = InvoiceSequence.objects.filter(user=user.id, status=1, marketplace=order.marketplace)
+                    if not invoice_sequence:
+                        invoice_sequence = InvoiceSequence.objects.filter(user=user.id, marketplace='')
+                    if invoice_sequence:
+                        invoice_sequence = invoice_sequence[0]
+                        inv_no = int(invoice_sequence.value)
+                        order_no = invoice_sequence.prefix + str(inv_no).zfill(3)
+                        seller_order_summary.update(invoice_number=order_no)
+                        invoice_sequence.value = inv_no + 1
+                        invoice_sequence.save()
+        else:
+            seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
     if user.user_type == 'marketplace_user':
         invoice_number = user.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
     elif user.user.username == 'TranceHomeLinen':
@@ -4258,3 +4268,40 @@ def get_marketplace_names(user, status_type):
         marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user = user.id, quantity__gt=0).\
 						values_list('marketplace', flat=True).distinct())
     return marketplace
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_invoice_sequence(request, user=''):
+    ''' Create or Update Invoice Sequences '''
+
+    log.info('Request Params for Update Invoice Sequences for %s is %s' % (user.username, str(request.GET.dict())))
+    status = ''
+    try:
+        marketplace_name = request.GET.get('marketplace_name', '')
+        if not marketplace_name:
+            status = 'Marketplace Name Should not be empty'
+        marketplace_prefix = request.GET.get('marketplace_prefix', '')
+        delete_status = request.GET.get('delete', '')
+        if not status:
+            invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace_name)
+            if invoice_sequence:
+                invoice_sequence = invoice_sequence[0]
+                invoice_sequence.prefix = marketplace_prefix
+                if delete_status:
+                    invoice_sequence.status = 0
+                else:
+                    invoice_sequence.status = 1
+                invoice_sequence.save()
+            else:
+                InvoiceSequence.objects.create(marketplace=marketplace_name, prefix=marketplace_prefix, value=1, status=1,
+                                                user_id=user.id, creation_date=datetime.datetime.now())
+            status = 'Success'
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update Invoice Sequence failed for %s and params are %s and error statement is %s' %
+                    (str(user.username), str(request.GET.dict()), str(e)))
+        status = 'Update Invoice Number Sequence Failed'
+    return HttpResponse(json.dumps({'status': status}))

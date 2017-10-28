@@ -1524,7 +1524,7 @@ def picklist_confirmation(request, user=''):
                         picking_count = float(val['picked_quantity'])
                     else:
                         picking_count = float(picklist.reserved_quantity)
-                    picking_count1 = picking_count
+                    picking_count1 = 0 #picking_count
                     wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'],user=user.id)
                     total_stock = StockDetail.objects.filter(**pic_check_data)
 
@@ -1542,42 +1542,46 @@ def picklist_confirmation(request, user=''):
                     seller_stock_objs = []
                     for stock in total_stock:
 
+                        update_picked = 0
                         pre_stock = float(stock.quantity)
                         if picking_count == 0:
                             break
 
                         if picking_count > stock.quantity:
+                            update_picked = float(stock.quantity)
                             picking_count -= stock.quantity
                             picklist.reserved_quantity -= stock.quantity
 
                             stock.quantity = 0
                         else:
+                            update_picked = picking_count
                             stock.quantity -= picking_count
                             picklist.reserved_quantity -= picking_count
-
-                            if float(stock.location.filled_capacity) - picking_count >= 0:
-                                setattr(stock.location,'filled_capacity',(float(stock.location.filled_capacity) - picking_count))
-                                stock.location.save()
-
-                            pick_loc = all_pick_locations.filter(picklist_id=picklist.id,stock__location_id=stock.location_id,status=1)
-                            update_picked = picking_count1
-                            if pick_loc:
-                                update_picklist_locations(pick_loc, picklist, update_picked)
-                            else:
-                                data = PicklistLocation(picklist_id=picklist.id, stock=stock, quantity=picking_count1, reserved=0, status = 0,
-                                                        creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
-                                data.save()
-                                exist_pics = all_pick_locations.exclude(id=data.id).filter(picklist_id=picklist.id, status=1, reserved__gt=0)
-                                update_picklist_locations(exist_pics, picklist, update_picked, 'true')
                             picking_count = 0
+
+                        if float(stock.location.filled_capacity) - update_picked >= 0:
+                            setattr(stock.location,'filled_capacity',(float(stock.location.filled_capacity) - update_picked))
+                            stock.location.save()
+
+                        pick_loc = all_pick_locations.filter(picklist_id=picklist.id,stock__location_id=stock.location_id,status=1)
+                        #update_picked = picking_count1
+                        if pick_loc:
+                            update_picklist_locations(pick_loc, picklist, update_picked)
+                        else:
+                            data = PicklistLocation(picklist_id=picklist.id, stock=stock, quantity=update_picked, reserved=0, status = 0,
+                                                    creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+                            data.save()
+                            exist_pics = all_pick_locations.exclude(id=data.id).filter(picklist_id=picklist.id, status=1, reserved__gt=0)
+                            update_picklist_locations(exist_pics, picklist, update_picked, 'true')
                         if stock.location.zone.zone == 'BAY_AREA':
-                            reduce_putaway_stock(stock, picking_count1, user.id)
+                            reduce_putaway_stock(stock, update_picked, user.id)
                         dec_quantity = pre_stock - float(stock.quantity)
                         if stock.pallet_detail:
-                            update_picklist_pallet(stock, picking_count1)
+                            update_picklist_pallet(stock, update_picked)
                         stock.save()
                         seller_stock_objs.append(stock)
                         mod_locations.append(stock.location.location)
+                        picking_count1 += update_picked
                     picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
                     if not seller_pick_number:
                         seller_pick_number = get_seller_pick_id(picklist, user)
@@ -5610,6 +5614,9 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='',
 
         item.reserved_quantity -= float(consumed_qty)
         item.save()
+        if consumed_qty:
+            exist_pics = PicklistLocation.objects.filter(picklist_id=item.id, status=1, reserved__gt=0)
+            update_picklist_locations(exist_pics, item, consumed_qty, 'true')
         if item.reserved_quantity == 0 and not item.picked_quantity:
             item.delete()
     return new_pc_locs_list

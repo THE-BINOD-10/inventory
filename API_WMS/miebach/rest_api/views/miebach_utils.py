@@ -989,7 +989,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                      }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency', 'scan_picklist_option': 'scan_picklist_option',
-                     'data_range': 'report_data_range'
+                     'data_range': 'report_data_range', 'invoice_marketplaces': 'invoice_marketplaces'
                     }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS), 'all_view_order_status': CUSTOM_ORDER_STATUS, 'mail_options': MAIL_REPORTS_DATA,

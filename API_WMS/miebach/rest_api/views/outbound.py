@@ -2934,7 +2934,8 @@ def get_purchase_order_id(user):
 @get_admin_user
 def get_marketplaces_list(request, user=''):
     status_type = request.GET.get('status', '')
-    if status_type == 'picked':
+    marketplace = get_marketplace_names(user, status_type)
+    '''if status_type == 'picked':
         marketplace = list(Picklist.objects.exclude(order__marketplace='').filter(picked_quantity__gt=0, order__user = user.id).\
                                             values_list('order__marketplace', flat=True).distinct())
     elif status_type == 'all_marketplaces':
@@ -2942,7 +2943,7 @@ def get_marketplaces_list(request, user=''):
                                                        distinct())
     else:
         marketplace = list(OrderDetail.objects.exclude(marketplace='').filter(status=1, user = user.id, quantity__gt=0).values_list('marketplace', flat=True).\
-                                               distinct())
+                                               distinct())'''
     return HttpResponse(json.dumps({'marketplaces': marketplace}))
 
 @csrf_exempt

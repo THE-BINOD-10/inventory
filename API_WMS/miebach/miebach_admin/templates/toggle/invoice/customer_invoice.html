@@ -30,7 +30,7 @@
                 <tbody>
                   {% for record in page.data %}
                   {% if not record.continue %}
-                  <tr ng-repeat="record in page.data" {% if record.imeis %} class="fs14 rm-border" {% else %} class="fs14" {% endif %}>
+                  <tr ng-repeat="record in page.data" class="fs14 rm-border">
                     <td class="text-left">
                       <div style="overflow: hidden;width: 100px;text-overflow: ellipsis;">{{record.sku_code}}</td>
                     <td class="text-left">{{record.hsn_code}}</td>

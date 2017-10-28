@@ -2054,7 +2054,7 @@ def check_returns(request, user=''):
             all_data.setdefault(cond, 0)
             all_data[cond] += picklist.picked_quantity
         for key, value in all_data.iteritems():
-            data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'ship_quantity': value, 'return_quantity': value,
+            data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'ship_quantity': value, 'return_quantity': 0,
                          'damaged_quantity': 0 })
     elif request_return_id:
         order_returns = OrderReturns.objects.filter(return_id=request_return_id, sku__user=user.id)
@@ -2267,14 +2267,100 @@ def save_return_imeis(user, returns, status, imei_numbers):
             ReturnsIMEIMapping.objects.create(order_imei_id=order_imei[0].id, status=status, reason=reason,
                                               creation_date=datetime.datetime.now(), order_return_id=returns.id)
 
+def sales_return_sku_codes(data, user, request):
+    ''' it will return sku wise grouping '''
+    message = ''
+    return_type = request.POST.get('return_type', '')
+    return_process = request.POST.get('return_process')
+    sku_data_grouping = {}
+    for i in range(0, len(data['id'])):
+        sku_id = SKUMaster.objects.filter(sku_code = data['sku_code'][i], user = user.id)
+        if not sku_id:
+            return "SKU Code doesn't exist", sku_data_grouping
+        sku_group = {'data':[], 'details': {}}
+
+        sor_id = ''
+        if data.has_key('sor_id') and data['sor_id'][i]:
+            sor_id = data['sor_id'][i]
+        marketplace = ''
+        if 'marketplace' in data.keys() and data['marketplace'][i]:
+            marketplace = data['marketplace'][i]
+
+        if return_process == 'sku_code':
+
+            group_name = str(sku_id[0].id)+'<<>>'+marketplace
+        elif return_process == 'order_id' && return_process == 'return_id':
+            if not data['order_id'][i]:
+                return "Order ID Should Not Be Empty", sku_data_grouping
+            order_detail = get_order_detail_objs(data['order_id'][i], user, search_params={'sku_id': sku_id[0].id, 'user': user.id})
+                if not order_detail
+                    return str(data['order_id'][i])+" Order ID doesn't exist", sku_data_grouping
+            group_name = str(sku_id[0].id)+'<<>>'+str(data['order_id'][i])
+        elif return_proce == 'scan_imei':
+
+            group_name = str(sku_id[0].id)
+        else:
+            return "please send process name", sku_data_grouping
+
+        return_quantity = data['return'][i]
+        if not return_quantity:
+            return_quantity = 0
+        damaged_quantity = data['damaged'][i]
+        if not damaged_quantity:
+            damaged_quantity = 0
+        if not (return_quantity and damaged_quantity):
+            return "Quantity Should Be Greater Than Zero", sku_data_grouping
+
+        if sku_data_grouping.get(group_name, ''):
+            if return_quantity:
+                sku_data_grouping[group_name]['details']['quantity'] += int(return_quantity)
+                sku_data_grouping[group_name]['data'].append({'quantity': return_quantity, 'status': status, 'reason': data['reason'][i]})
+            if damaged_quantity:
+                sku_data_grouping[group_name]['details']['damaged_quantity'] += int(damaged_quantity)
+                sku_data_grouping[group_name]['data'].append({'quantity': damaged_quantity, 'status': status, 'reason': data['reason'][i]})
+
+        else:
+
+              sku_group['seller_order_ids'] = []
+            return_details = {'return_id': '', 'return_date': datetime.datetime.now(), 'quantity': int(return_quantity),\
+                              'damaged_quantity': int(damaged_quantity), 'status': 1, 'marketplace': marketplace,\
+                              'return_type': return_type}
+            if return_process == 'order_id':
+                order_detail = get_order_detail_objs(data['order_id'][i], user, search_params={'sku_id': sku_id[0].id, 'user': user.id})
+                if not order_detail:
+                    return str(data['order_id'][i])+" Order ID doesn't exist", sku_data_grouping
+                return_details['order_id'] = order_detail[0].id
+
+                seller_order_id = get_returns_seller_order_id(return_details['order_id'], sku_id[0].sku_code, user_obj, sor_id=sor_id)
+                if seller_order_id:
+                    return_details['seller_order_id'] = seller_order_id
+                    seller_order_ids = [seller_order_id]
+            elif return_proce == 'scan_imei':
+                if 'returns_imeis' in data.keys() and data['returns_imeis'][i]:
+                    return_details['return_imeis'] = data['returns_imeis'][i]
+                if 'damaged_imeis_reason' in data_dict.keys() and data_dict['damaged_imeis_reason'][i]:
+                    return_details['damaged_imeis'] = data_dict['damaged_imeis_reason'][i]
+
+            sku_group['details'] = return_details
+            sku_group['seller_order_ids'].append(seller_order_ids)
+            if return_quantity:
+                sku_group['data'].append({'quantity': return_quantity, 'status': status, 'reason': data['reason'][i]})
+            if damaged_quantity:
+                sku_group['data'].append({'quantity': damaged_quantity, 'status': status, 'reason': data['reason'][i]})
+            sku_data_grouping[group_name] = sku_group
+    return "", sku_data_grouping
 @csrf_exempt
 @login_required
 @get_admin_user
 def confirm_sales_return(request, user=''):
     data_dict = dict(request.POST.iterlists())
     return_type = request.POST.get('return_type', '')
+    return_process = request.POST.get('return_process')
     mp_return_data = {}
-    for i in range(0, len(data_dict['id'])):
+    message, return_skus = sales_return_sku_codes(data_dict, user, request)
+    if message:
+        return HttpResponse(message)
+    '''for i in range(0, len(data_dict['id'])):
         all_data = []
         check_seller_order = True
         if not data_dict['id'][i]:
@@ -2318,6 +2404,7 @@ def confirm_sales_return(request, user=''):
             return HttpResponse(locations_status)
     if user.userprofile.user_type == 'marketplace_user':
         check_and_update_order_status_data(mp_return_data, user, status='RETURNED')
+    '''
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt

@@ -1602,6 +1602,18 @@ class OrderReturns(models.Model):
     class Meta:
         db_table = 'ORDER_RETURNS'
 
+class OrderReturnReasons(models.Model):
+    id = BigAutoField(primary_key=True)
+    order_return = models.ForeignKey(OrderReturns, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    reason = models.CharField(max_length=256,default='')
+    status = models.CharField(max_length=64)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_RETURN_REASONS'
+
 class ReturnsIMEIMapping(models.Model):
     id = BigAutoField(primary_key = True)
     order_imei = models.ForeignKey(OrderIMEIMapping, blank=True, null=True)

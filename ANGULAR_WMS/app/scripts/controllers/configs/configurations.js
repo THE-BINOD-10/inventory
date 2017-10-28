@@ -526,7 +526,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
 
   vm.marketplace_add_show = false;
 
-  vm.saveTax = function(name, value) {
+  vm.saveMarketplace = function(name, value) {
 
     if(!name) {
 

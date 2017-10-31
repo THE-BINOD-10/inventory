@@ -1,7 +1,7 @@
 from django.contrib import admin
 
-from models import SKURelation, SKUMaster, UserBrand, Brands, GroupStage, ProductionStages, UserStages, UserProfile, ProductionStages, AdminGroups,\
-	GroupBrand, GroupStages, OrderDetail
+from models import SKURelation, SKUMaster, UserBrand, Brands, GroupStage, ProductionStages, UserStages, UserProfile, ProductionStages,\
+    AdminGroups, GroupBrand, GroupStages, OrderDetail
 
 # Register your models here.
 

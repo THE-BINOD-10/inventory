@@ -764,6 +764,9 @@ def switches(request, user=''):
                 data[0].save()
             if toggle_field == 'sku_sync' and value == 'true':
                 insert_skus(user.id)
+            elif toggle_field == 'increment_invoice' and value == 'true':
+                InvoiceSequence.objects.get_or_create(user_id=user.id, marketplace='', defaults={'status': 1, 'prefix': '',
+                                                        'creation_date': datetime.datetime.now(), 'value': 1})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

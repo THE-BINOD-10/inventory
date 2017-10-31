@@ -1651,6 +1651,7 @@ class SellerOrderSummary(models.Model):
     order = models.ForeignKey(OrderDetail, blank=True, null=True, db_index=True)
     picklist = models.ForeignKey(Picklist, blank=True, null=True, db_index=True)
     quantity = models.FloatField(default=0)
+    invoice_number = models.CharField(max_length=64,default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1899,6 +1900,21 @@ class OrderTracking(models.Model):
     class Meta:
         db_table = 'ORDER_TRACKING'
         index_together = ('order', 'quantity')
+
+class InvoiceSequence(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    marketplace = models.CharField(max_length=64)
+    prefix = models.CharField(max_length=64)
+    value = models.PositiveIntegerField()
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'INVOICE_SEQUENCE'
+        index_together = ('user', 'marketplace')
+        unique_together = ('user', 'marketplace')
 
 import django
 from django.core.validators import MaxLengthValidator

@@ -126,38 +126,51 @@
           </select>
         </div>
       </div>
-      <!--<div class="row col-md-12" style="padding-bottom: 15px">
+      <div class="row col-md-12" style="padding-bottom: 15px" ng-if="showCase.model_data.increment_invoice">
         <div class="col-md-5 col-sm-8 col-xs-12">
-          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
-          <strong style="line-height: 34px;" class="pull-left ml20"> Tax Details </strong>
+          <i class="fa fa-server fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Invoice Number Generation Marketplaces</strong>
         </div>
-        <div class="col-md-2 col-sm-4 col-xs-4">
-          <select class="show-menu-arrow form-control pull-left" ng-model="showCase.tax_selected" ng-change="showCase.taxSelected(showCase.tax_selected)">
-            <option value="">Select</option>
-            <option ng-repeat="tax in showCase.model_data.tax_data" value="{{tax.tax_name}}"> {{tax.tax_name}}</option>
+        <div class="col-md-2 col-sm-3 col-xs-4">
+          <select id="marketplaces_config" class="selectpicker show-menu-arrow form-control" ng-model="showCase.invoice_marketplaces" multiple ng-change="showCase.multi_select_switch('#marketplaces', 44)">
+            <option ng-selected="showCase.check_selected(value, 'invoice_marketplaces')" ng-repeat="key in showCase.model_data.marketplaces" value="{{key}}"> {{key}}</option>
           </select>
         </div>
-        <div class="col-md-1 col-sm-1 col-xs-2" ng-if="!showCase.tax_add_show">
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Marketplace Prefix Details </strong>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <select class="show-menu-arrow form-control pull-left" ng-model="showCase.marketplace_selected" ng-change="showCase.marketplaceSelected(showCase.marketplace_selected)">
+            <option value="">Select</option>
+            <option ng-repeat="marketplace in showCase.model_data.prefix_data" value="{{marketplace.marketplace_name}}"> {{marketplace.marketplace_name}}</option>
+          </select>
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2" ng-if="!showCase.marketplace_add_show">
           <div class="btn-group pull-left">
-            <button type="button" class="btn btn-warning" ng-click="showCase.tax_add_show = true;showCase.model_data.tax_new = true;">
+            <button type="button" class="btn btn-warning" ng-click="showCase.marketplace_add_show = true;showCase.model_data.marketplace_new = true;showCase.filterMarkeplaces();">
               <span class="icon-plus"></span>
             </button>
           </div>
         </div>
       </div>
-      <div class="row col-md-12" style="padding-bottom: 15px" ng-if="showCase.tax_add_show">
+      <div class="row col-md-12" style="padding-bottom: 15px" ng-if="showCase.marketplace_add_show">
         <div class="col-md-5 col-sm-8 col-xs-12">
         </div>
         <div class="col-md-2 col-sm-2 col-xs-3">
-          <input type="text" class="form-control" ng-model="showCase.model_data.tax_name" placeholder="name" ng-readonly="!showCase.model_data.tax_new">
+          <select class="show-menu-arrow form-control pull-left" ng-model="showCase.model_data.marketplace_name" ng-disabled="!showCase.model_data.marketplace_new">
+            <option ng-repeat="marketplace in showCase.model_data.marketplaces" ng-if="showCase.saved_marketplaces.indexOf(marketplace) == -1" value="{{marketplace}}"> {{marketplace}} </option>
+          </select>
+          <!--<input type="text" class="form-control" ng-model="showCase.model_data.marketplace_name" placeholder="Marketplace" ng-readonly="!showCase.model_data.marketplace_new">-->
         </div>
         <div class="col-md-2 col-sm-2 col-xs-3">
-          <input type="text" class="form-control" ng-model="showCase.model_data.tax_value" placeholder="value" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-class="service.get_decimal_perm()">
+          <input type="text" class="form-control" ng-model="showCase.model_data.marketplace_prefix" placeholder="Prefix">
         </div>
-        <button type="button" class="btn btn-success" ng-click="showCase.saveTax(showCase.model_data.tax_name, showCase.model_data.tax_value)">Save</button>
-        <button type="button" class="btn btn-danger hide" ng-click="showCase.deleteTax(showCase.model_data.tax_name, showCase.model_data.tax_value)" ng-if="!showCase.model_data.tax_new">Delete</button>
+        <button type="button" class="btn btn-success" ng-click="showCase.saveMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix)">Save</button>
+        <button type="button" class="btn btn-danger" ng-click="showCase.updateMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix, 'delete')" ng-if="!showCase.model_data.marketplace_new">Delete</button>
       </div>
-      -->
       <div class="row col-md-12" style="padding-bottom: 15px" ng-repeat="config in showCase.check_box_data" ng-if="config.display">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa-15px pull-left" ng-class="config.class_name" style="line-height: 34px;"></i>

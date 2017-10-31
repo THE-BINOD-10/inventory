@@ -250,6 +250,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
             if(data.message) {
               if(data.data != "No Data Found") {
                 sku_data.data = data.data;
+                sku_data.product_description = 1;
+                vm.change_quantity(sku_data);
               } else {
                 sku_data.data = [{"material_code": "", "material_quantity": '', "id": ''}];
               }

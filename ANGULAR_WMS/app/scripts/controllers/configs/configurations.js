@@ -18,7 +18,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
-                    'invoice_remarks': 'invoice_remarks', 'show_disc_invoice': false
+                    'invoice_remarks': 'invoice_remarks', 'show_disc_invoice': false, 'increment_invoice': false,
+                    'invoice_marketplaces': 'invoice_marketplaces'
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -30,7 +31,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      27: 'seller_margin', 28: 'style_headers', 29: 'receive_process', 30: 'tally_config', 31: 'tax_details',
                      32: 'hsn_summary', 33: 'display_customer_sku', 34: 'marketplace_model', 35: 'label_generation',
                      36: 'barcode_generate_opt', 37: 'grn_scan_option', 38: 'invoice_titles', 39: 'show_imei_invoice',
-                     40: 'display_remarks_mail', 41: 'create_seller_order', 42: 'invoice_remarks', 43: 'show_disc_invoice'}
+                     40: 'display_remarks_mail', 41: 'create_seller_order', 42: 'invoice_remarks', 43: 'show_disc_invoice',
+                     44: 'increment_invoice'}
 
   vm.check_box_data = [
     {
@@ -222,6 +224,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
+    {
+      name: "Invoice number generation",
+      model_name: "increment_invoice",
+      param_no: 44,
+      class_name: "fa fa-server",
+      display: true
+    },
 ]
 
   vm.empty = {};
@@ -262,6 +271,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     if(data.message) {
       angular.copy(data.data, vm.model_data);
       vm.model_data["tax_details"] = {'CST': {}};
+      vm.model_data['prefix_data'] = [];
+      angular.forEach(data.data.prefix_data, function(data){
+        vm.model_data.prefix_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
+      })
       angular.forEach(vm.model_data, function(value, key) {
         if (value == "true") {
           vm.model_data[key] = Boolean(true);
@@ -511,9 +524,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   };
 
 
-  vm.tax_add_show = false;
+  vm.marketplace_add_show = false;
 
-  vm.saveTax = function(name, value) {
+  vm.saveMarketplace = function(name, value) {
 
     if(!name) {
 
@@ -521,87 +534,97 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       return false;
     } else if(!value) {
 
-      Service.showNoty("Please Enter Value");
+      Service.showNoty("Please Enter Prefix");
       return false;
     } else {
-
-      vm.switches("{'tax_"+name+"':'"+value+"'}", 31);
+      vm.updateMarketplace(name, value, 'save')
+      //vm.switches("{'tax_"+name+"':'"+value+"'}", 31);
       var found = false;
-      for(var i = 0; i < vm.model_data.tax_data.length; i++) {
+      for(var i = 0; i < vm.model_data.prefix_data.length; i++) {
 
-        if(vm.model_data.tax_data[i].tax_name == vm.model_data.tax_name) {
+        if(vm.model_data.prefix_data[i].marketplace_name == vm.model_data.marketplace_name) {
 
-          vm.model_data.tax_data[i].tax_name = vm.model_data.tax_name;
-          vm.model_data.tax_data[i].tax_value = vm.model_data.tax_value;
+          vm.model_data.prefix_data[i].marketplace_name = vm.model_data.marketplace_name;
+          vm.model_data.prefix_data[i].marketplace_prefix = vm.model_data.marketplace_prefix;
           found = true;
           break;
         }
       }
       if(!found) {
 
-        vm.model_data.tax_data.push({tax_name: vm.model_data.tax_name, tax_value: vm.model_data.tax_value});
+        vm.model_data.prefix_data.push({marketplace_name: vm.model_data.marketplace_name, marketplace_prefix: vm.model_data.marketplace_prefix});
       }
-      vm.tax_add_show = false;
-      vm.tax_selected = "";
-      vm.model_data.tax_name = "";
-      vm.model_data.tax_value = "";
-      vm.model_data.tax_new = true;
+      vm.marketplace_add_show = false;
+      vm.marketplace_selected = "";
+      vm.model_data.marketplace_name = "";
+      vm.model_data.marketplace_prefix = "";
+      vm.model_data.marketplace_new = true;
     }
   }
 
-  vm.model_data.tax_new = true;
-  vm.taxSelected = function(name) {
+  vm.model_data.marketplace_new = true;
+  vm.marketplaceSelected = function(name) {
 
     if (name) {
 
-      for(var i = 0; i < vm.model_data.tax_data.length; i++) {
+      for(var i = 0; i < vm.model_data.prefix_data.length; i++) {
 
-        if(vm.model_data.tax_data[i].tax_name == name) {
+        if(vm.model_data.prefix_data[i].marketplace_name == name) {
 
-          vm.model_data.tax_name = vm.model_data.tax_data[i].tax_name;
-          vm.model_data.tax_value = vm.model_data.tax_data[i].tax_value;
-          vm.model_data["tax_new"] = false;
-          vm.tax_add_show = true;
+          vm.model_data.marketplace_name = vm.model_data.prefix_data[i].marketplace_name;
+          vm.model_data.marketplace_prefix = vm.model_data.prefix_data[i].marketplace_prefix;
+          vm.model_data["marketplace_new"] = false;
+          vm.marketplace_add_show = true;
           break;
         }
       }
     } else {
 
-      vm.model_data["tax_new"] = true;
-      vm.tax_add_show = false;
-      vm.model_data.tax_name = "";
-      vm.model_data.tax_value = "";
+      vm.model_data["marketplace_new"] = true;
+      vm.marketplace_add_show = false;
+      vm.model_data.marketplace_name = "";
+      vm.model_data.marketplace_prefix = "";
     }
   }
 
-  vm.deleteTax = function(name, value) {
+  vm.updateMarketplace = function(name, value, type) {
 
-      vm.service.apiCall("delete_tax/", "GET", {tax_name : name, tax_value: value}).then(function(data) {
+      var send = {marketplace_name : name, marketplace_prefix: value}
+      if (type != 'save') {
+        send['delete'] = true;
+
+        for(var i = 0; i < vm.model_data.prefix_data.length; i++) {
+
+          if(vm.model_data.prefix_data[i].marketplace_name == vm.model_data.marketplace_name) {
+
+            vm.model_data.prefix_data.splice(i, 1);
+            break;
+          }
+        }
+        vm.marketplace_add_show = false;
+        vm.marketplace_selected = "";
+        vm.model_data.marketplace_name = "";
+        vm.model_data.marketplace_prefix = "";
+        vm.model_data.marketplace_new = true;
+      }
+      vm.service.apiCall("update_invoice_sequence/", "GET", send).then(function(data) {
 
         console.log(data);
       })
-
-      for(var i = 0; i < vm.model_data.tax_data.length; i++) {
-
-        if(vm.model_data.tax_data[i].tax_name == vm.model_data.tax_name) {
-
-          vm.model_data.tax_data.splice(i, 1);
-          break;
-        }
-      }
-
-      vm.tax_add_show = false;
-      vm.tax_selected = "";
-      vm.model_data.tax_name = "";
-      vm.model_data.tax_value = "";
-      vm.model_data.tax_new = true;
   }
 
-  vm.update_invoice_remarks = function(invoice_remarks) {
-
-    var data = $("[name='invoice_remarks']").val().split("\n").join("<<>>");
-    vm.switches(data, 42);
-    Auth.status();
+  vm.saved_marketplaces = [];
+  vm.filterMarkeplaces = function() {
+    vm.saved_marketplaces = [];
+    angular.forEach(vm.model_data.prefix_data, function(data){
+      vm.saved_marketplaces.push(data.marketplace_name);
+    })
+    for(var i=0; i < vm.model_data.marketplaces.length; i++) {
+      if (vm.saved_marketplaces.indexOf(vm.model_data.marketplaces[i]) == -1) {
+        vm.model_data.marketplace_name = vm.model_data.marketplaces[i];
+        break;
+      }
+    }
   }
 
   vm.getRemarks = function(remarks) {

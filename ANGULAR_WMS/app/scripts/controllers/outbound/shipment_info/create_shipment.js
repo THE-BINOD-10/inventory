@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('CreateShipmentCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', 'colFilters', '$timeout', 'Data', ServerSideProcessingCtrl]);
+  .controller('CreateShipmentCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', 'colFilters', '$timeout', 'Data', '$q', 'SweetAlert', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, service, colFilters, $timeout, Data) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, service, colFilters, $timeout, Data, $q, SweetAlert) {
 
     var vm = this;
     vm.service = service;
@@ -103,6 +103,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.close = close;
     function close() {
       $state.go('app.outbound.ShipmentInfo');
+      if(vm.permissions.use_imei) {
+        fb.stop_listening(vm.model_data.order_id);
+      }
       angular.copy(vm.empty_data, vm.model_data);
       get_data();
     }
@@ -110,7 +113,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.today_date = new Date();
     vm.customer_details = false;
     vm.add = function (data) {
-        vm.bt_disable = true;
         var table = vm.dtInstance.DataTable.data()
 
         var data = []
@@ -146,6 +148,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
             return;
           }
         }
+        vm.bt_disable = true;
         data.push({name:'view', value:vm.g_data.view});
         service.apiCall("get_customer_sku/", "GET", data).then(function(data){
           if(data.message) {
@@ -158,6 +161,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
               angular.forEach(vm.model_data.data, function(temp) {
 
                 var shipping_quantity = (vm.mk_user)? 0 : temp.picked;
+                if(vm.permissions.use_imei && temp.shipping_quantity) {
+                  shipping_quantity = temp.shipping_quantity;
+                }
                 temp["sub_data"] = [{"shipping_quantity": shipping_quantity, "pack_reference":""}]
               });
               if(vm.mk_user) {
@@ -167,7 +173,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
               $timeout(function() {
                 $('#shipment_date').datepicker('setDate', vm.today_date);
               }, 1000)
-              vm.serial_numbers = [];
+              //vm.serial_numbers = [];
+              if(vm.permissions.use_imei) {
+                fb.start(vm.model_data);
+              }
             }
             vm.bt_disable = false;
           }
@@ -233,7 +242,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     } else {
       vm.remove_serials(data.sub_data[index]['imei_list']);
       data.sub_data.splice(index,1);
-      //vm.check_equal(data);
     }
   }
 
@@ -277,6 +285,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
             if(data.data.indexOf("Success") != -1) {
               vm.close();
               vm.reloadData();
+              if(vm.permissions.use_imei) {
+                fb.delete_order(fb.orderData.order_id);
+              }
             }
             vm.bt_disable = false;
           };
@@ -294,27 +305,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.check_imei_exists = function(event, imei) {
       event.stopPropagation();
       if (event.keyCode == 13 && imei.length > 0) {
-        if (vm.serial_numbers.indexOf(imei) != -1){
-            service.showNoty("IMEI Number Already Exist");
-            vm.imei_number = "";
-        } else {
-          var imei_order_id = ''
-          if(vm.model_data.data.length > 0 && vm.model_data.data[0].order_id)
-          {
-              imei_order_id = vm.model_data.data[0].order_id
+        var imei_order_id = ''
+        if(vm.model_data.data.length > 0 && vm.model_data.data[0].order_id) {
+
+          if(vm.model_data.data[0].original_order_id != '') {
+
+            imei_order_id = vm.model_data.data[0].original_order_id;
+          } else {
+
+            imei_order_id = vm.model_data.data[0].order_id;
           }
-          vm.service.apiCall('check_imei/', 'GET',{is_shipment: true, imei: imei, order_id: imei_order_id}).then(function(data){
-            if(data.message) {
-              if (data.data.status == "Success") {
-                vm.update_imei_data(data.data, imei);
-                //vm.check_equal(data2);
-              } else {
-                service.showNoty(data.data.status);
-              }
-              vm.imei_number = "";
-            }
-          });
         }
+        vm.service.apiCall('check_imei/', 'GET',{is_shipment: true, imei: imei, order_id: imei_order_id}).then(function(data){
+          if(data.message) {
+            if (data.data.status == "Success") {
+              vm.update_imei_data(data.data, imei);
+            } else {
+              service.showNoty(data.data.status);
+            }
+            vm.imei_number = "";
+          }
+        });
       }
     }
 
@@ -325,37 +336,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       for(var i = 0; i < vm.model_data.data.length; i++) {
 
         if(vm.model_data.data[i].sku__sku_code == data.data.sku_code) {
-
+          vm.model_data.data[i].picked = data.data.quantity;
+          vm.model_data.data[i]['sub_data'][0].shipping_quantity = data.data.shipping_quantity;
+          fb.change_quantities(vm.model_data.data[i]);
           sku_status = true;
-          if(vm.model_data.data[i].picked > vm.model_data.data[i]['sub_data'][0].shipping_quantity) {
-            vm.model_data.data[i]['sub_data'][0].shipping_quantity += 1;
-            vm.model_data.data[i]['sub_data'][0].imei_list.push(imei);
-            vm.serial_numbers.push(imei);
-            status = true;
-            break;
-          }
+          status = true;
+          break;
         }
       }
-      if(sku_status && (!status)) {
-
-        service.showNoty(data.data.sku_code+" SKU picked quantity equal shipped quantity");
-      } else if(!status) {
-
-        service.showNoty("Entered Imei Number Not Matched With Any SKU's");
-      }
     }
-
-    /*vm.check_equal = function(data) {
-
-      data["equal"] = false;
-      var total = 0;
-      for(var i=0; i < data.sub_data.length; i++) {
-        total = total + parseInt(data.sub_data[i].shipping_quantity);
-      }
-      if(data.picked == total){
-        data["equal"] = true;
-      }
-    }*/
 
     vm.remove_serials = function(serials) {
 
@@ -382,5 +371,143 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
       $('.shipment-date').datepicker('update');
     }
+
+  //firebase
+  var fb = {}
+  fb.orderData = {};
+
+  fb.change_order_data = function(data) {
+
+    vm.serial_numbers = [];
+    angular.forEach(vm.model_data.data, function(data){
+      var name= data.sku__sku_code;
+      if(fb.orderData[name]) {
+        data.sub_data[0].shipping_quantity = fb.orderData[name]['shiped'];
+        data.sub_data[0].picked = fb.orderData[name]['picked'];
+        $timeout(function() {$scope.$apply();}, 500);
+      }
+    })
+    fb.add_new = true;
+    fb.data_update(data);
+    fb.order_delete_event();
+  }
+
+  fb.push = function(data){
+    var order_data = {};
+    order_data['order_id'] = data.data[0].order_id
+
+    angular.forEach(data.data, function(sku){
+      var name = sku.sku__sku_code;
+      order_data[name] = {};
+      order_data[name]["sku_code"] = name;
+      order_data[name]["picked"] = sku.picked;
+      order_data[name]["shipping_quantity"] = 0;
+    })
+    console.log(order_data);
+    firebase.database().ref("/ShipmentInfo/"+Session.parent.userId+"/"+order_data.order_id+"/").push(order_data).then(function(data){
+      fb.orderData = order_data;
+      fb.orderData['key'] = data.key;
+      fb.data_update(fb.orderData);
+      fb.order_delete_event();
+    })
+  }
+
+  fb.exists = function(data) {
+      var d = $q.defer();
+      firebase.database().ref("/ShipmentInfo/"+Session.parent.userId+"/"+data.data[0].order_id+"/").once("value", function(snapshot) {
+        if(snapshot.val()) {
+          var order_data = {};
+          angular.forEach(snapshot.val(), function(data,v){
+            order_data = data;
+            order_data['key'] = v;
+          })
+          order_data.order_id = data.data[0].order_id;
+          d.resolve({status: true, data: order_data});
+        } else {
+          d.resolve({status: false});
+        }
+      });
+      return d.promise;
+  }
+
+  fb.start = function(data) {
+
+    fb.exists(data).then(function(po){
+      console.log(po);
+      if(!po.status) {
+        fb.push(data);
+      } else {
+        fb.orderData = po.data;
+        fb.data_update(fb.orderData);
+        fb.order_delete_event();
+      }
+    })
+  }
+
+  fb.change_quantities = function(data) {
+
+    firebase.database().ref().child("/ShipmentInfo/"+Session.parent.userId+"/"+fb.orderData.order_id+"/"+fb.orderData.key+"/"+ data.sku__sku_code+ "/")
+     .update({ picked: data.picked, shipping_quantity: data.sub_data[0].shipping_quantity });
+  }
+
+  fb.data_update = function(order_data) {
+    angular.forEach(vm.model_data.data, function(data) {
+      firebase.database().ref("/ShipmentInfo/"+Session.parent.userId+"/"+order_data.order_id+"/"+order_data.key+"/"+data.sku__sku_code+"/").on("child_changed", function(snapshot) {
+        console.log("changes", data.sku__sku_code);
+        if (snapshot.key == 'shipping_quantity') {
+          data.sub_data[0].shipping_quantity = snapshot.val();
+        } else {
+          data.picked = snapshot.val();
+        }
+        $timeout(function() {$scope.$apply();}, 500);
+      });
+    });
+  }
+
+  fb.order_delete_event = function() {
+
+    firebase.database().ref("/ShipmentInfo/"+Session.parent.userId+"/"+fb.orderData.order_id+"/").on("child_removed", function(order) {
+      console.log("deleted", order, fb.orderData);
+      if(order.key == fb.orderData.key) {
+        fb.orderData = {};
+        SweetAlert.swal({
+          title: '',
+          text: 'Shipment Created Successfully',
+          type: 'success',
+          showCancelButton: false,
+          confirmButtonColor: '#33cc66',
+          confirmButtonText: 'Ok',
+          closeOnConfirm: true,
+          },
+          function (status) {
+           vm.close();
+          }
+        );
+      }
+    })
+  }
+
+  fb.stop_listening = function(order_id) {
+    firebase.database().ref("/ShipmentInfo/"+Session.parent.userId+"/"+fb.orderData.order_id+"/").off();
+  }
+
+  fb.delete_order = function(order_id) {
+
+      if(order_id) {
+        fb.stop_listening(order_id);
+        firebase.database().ref("/ShipmentInfo/"+Session.parent.userId+"/"+order_id).once("value", function(data){
+          data.ref.remove()
+            .then(function() {
+              console.log("Remove succeeded.");
+              fb.orderData = {};
+            })
+            .catch(function(error) {
+              console.log("Remove failed: " + error.message)
+            });
+          console.log(data.ref.remove())
+        })
+      }
+    }
+
   }
 

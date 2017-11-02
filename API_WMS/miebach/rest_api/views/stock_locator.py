@@ -1266,7 +1266,7 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
         workbook = xlsxwriter.Workbook(path)
         worksheet = workbook.add_worksheet("Stock Serials")
         bold = workbook.add_format({'bold': True})
-        exc_headers = ['SKU Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Serial Number']
+        exc_headers = ['SKU Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Serial Number', 'Status', 'Reason']
         for n, header in enumerate(exc_headers):
             worksheet.write(0, n, header, bold)
         dict_list = ['purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
@@ -1274,6 +1274,11 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
 
         filter_params = get_filtered_params(filters, dict_list)
         dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user.id).values_list('po_imei_id', flat=True)
+        damaged_returns = dict(ReturnsIMEIMapping.objects.filter(status='damaged', order_imei__order__user=user.id).\
+                                                        values_list('order_imei__po_imei__imei_number','reason'))
+        qc_damaged = dict(QCSerialMapping.objects.filter(serial_number__purchase_order__open_po__sku__user=user.id,
+                                                    status='rejected').values_list('serial_number__imei_number', 'reason'))
+        qc_damaged.update(damaged_returns)
         if search_term:
             imei_data = POIMEIMapping.objects.filter(Q(purchase_order__open_po__sku__sku_code__icontains=search_term) |
                                                      Q(purchase_order__open_po__sku__sku_desc__icontains=search_term) |
@@ -1286,8 +1291,18 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
                                               exclude(id__in=dispatched_imeis).values_list(*dict_list)
         row = 1
         for imei in imei_data:
+            col_count = 0
             for col, data in enumerate(imei):
-                worksheet.write(row, col, data)
+                worksheet.write(row, col_count, data)
+                col_count += 1
+            imei_status = 'Accepted'
+            reason = ''
+            if imei[-1] in qc_damaged:
+                imei_status = 'Damaged'
+                reason = qc_damaged.get(imei[-1], '')
+            worksheet.write(row, col_count, imei_status)
+            col_count += 1
+            worksheet.write(row, col_count, reason)
             row += 1
 
         workbook.close()

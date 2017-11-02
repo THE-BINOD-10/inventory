@@ -19,7 +19,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
                     'invoice_remarks': 'invoice_remarks', 'show_disc_invoice': false, 'increment_invoice': false,
-                    'invoice_marketplaces': 'invoice_marketplaces'
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -627,6 +626,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     }
   }
 
+  vm.update_invoice_remarks = function(invoice_remarks) {
+
+    var data = $("[name='invoice_remarks']").val().split("\n").join("<<>>");
+    vm.switches(data, 42);
+    Auth.status();
+  }
+
   vm.getRemarks = function(remarks) {
 
     $timeout(function() {
@@ -634,7 +640,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $("[name='invoice_remarks']").val( remarks.split("<<>>").join("\n") )
     } else {
       $("[name='invoice_remarks']").val( remarks );
-    } 
+    }
     }, 1000);
   }
       var keynum = "";

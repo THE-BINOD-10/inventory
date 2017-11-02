@@ -626,6 +626,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     }
   }
 
+  vm.update_invoice_remarks = function(invoice_remarks) {
+
+    var data = $("[name='invoice_remarks']").val().split("\n").join("<<>>");
+    vm.switches(data, 42);
+    Auth.status();
+  }
+
   vm.getRemarks = function(remarks) {
 
     $timeout(function() {
@@ -633,7 +640,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $("[name='invoice_remarks']").val( remarks.split("<<>>").join("\n") )
     } else {
       $("[name='invoice_remarks']").val( remarks );
-    } 
+    }
     }, 1000);
   }
       var keynum = "";

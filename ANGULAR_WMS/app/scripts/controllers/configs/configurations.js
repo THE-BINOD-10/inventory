@@ -19,7 +19,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
                     'invoice_remarks': 'invoice_remarks', 'show_disc_invoice': false, 'increment_invoice': false,
-                    'invoice_marketplaces': 'invoice_marketplaces'
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',

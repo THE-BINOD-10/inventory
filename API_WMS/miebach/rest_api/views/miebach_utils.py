@@ -839,6 +839,9 @@ BARCODE_DICT = {'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': ''
                             'DesignNo': '', 'Qty': '1', 'Gender': '', 'MRP': '', 'Packed on': '', 'Manufactured By': '', 'Marketed By': ''},
                 'format3': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '','DesignNo': '',
                             'Qty': '1', 'Gender': '', 'MRP': '', 'MFD': '', 'Manufactured By': '', 'Marketed By': ''},
+                'format4': {'SKUCode': '', 'color': '', 'Size': '', 'SKUPrintQty': '',
+                            'Qty': '1', 'MRP': '', 'Manufactured By': '', 'Marketed By': '', 'Phone': '',
+                            'Vendor SKU': '', 'PO No': '', 'Email': ''},
                 'Bulk Barcode': {'SKUCode': '', 'Color': '', 'SKUPrintQty': '1', 'Qty': '1', 
                             'DesignNo': '', 'UOM': '', 'Product': '', 'Company': ''}
                }

@@ -1142,7 +1142,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
         quantity = float(quantity)
         seller_stock_data = SellerStock.objects.filter(stock_id = stock.id, seller__user = user.id)
         if seller_stock_data:
-            
+
             temp_quantity = quantity
             for seller_stock in seller_stock_data:
                 if status == 'inc':
@@ -1159,7 +1159,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
                         seller_stock.quantity = 0
                         seller_stock.save()
                 if temp_quantity == 0:
-                    break 
+                    break
         else:
             SellerStock.objects.create(seller_id=seller_id, stock_id=stock.id, quantity=quantity)
 
@@ -1181,7 +1181,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         move_quantity = float(quantity)
     else:
         return 'Quantity should not be empty'
-
+    import pdb;pdb.set_trace();
     if seller_id:
         seller_id = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller_id:
@@ -1204,9 +1204,9 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         elif stock.quantity <= move_quantity:
 
             move_quantity -= stock.quantity
+            change_seller_stock(seller_id, stock, user, stock.quantity, 'dec')
             stock.quantity = 0
             stock.save()
-            change_seller_stock(seller_id, stock, user, move_quantity, 'dec')
         if move_quantity == 0:
             break
 

@@ -735,6 +735,7 @@ def switches(request, user=''):
                         'create_seller_order': 'create_seller_order',
                         'invoice_remarks': 'invoice_remarks',
                         'show_disc_invoice': 'show_disc_invoice',
+                        'serial_limit': 'serial_limit',
                         'increment_invoice': 'increment_invoice'
                       }
 

@@ -3188,25 +3188,26 @@ def get_sku_stock_check(request, user=''):
     if request.GET.get('pallet_code', ''):
         search_params['pallet_detail__pallet_code'] = request.GET.get('pallet_code')
         stock_detail = StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).\
-                            filter(location__location=request.GET.get('location', ''), sku__user=user.id, quantity__gt=0,
+                            filter(location__location=request.GET.get('location', ''), sku__user=user.id,
                                    sku__sku_code=search_params['sku__sku_code'],
                                    pallet_detail__pallet_code=request.GET['pallet_code'])
         if not stock_detail:
             return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location and Pallet code Combination'}))
     stock_data = StockDetail.objects.exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).\
-                                     filter(quantity__gt=0, **search_params)
+                                     filter( **search_params)
     load_unit_handle = ''
     if stock_data:
         load_unit_handle = stock_data[0].sku.load_unit_handle
     else:
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
     zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
-    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': available_quantity}))
+    avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
+    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': avail_qty}))
 
 def get_sku_stock_summary(stock_data, load_unit_handle, user):
     zones_data = {}
     pallet_switch = get_misc_value('pallet_switch', user.id)
-    availabe_quantity = 0
+    availabe_quantity = {}
     for stock in stock_data:
         res_qty = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id).\
                                            aggregate(Sum('reserved'))['reserved__sum']
@@ -3227,8 +3228,8 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
         zones_data.setdefault(cond, {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0, 'reserved_quantity': 0})
         zones_data[cond]['total_quantity'] += stock.quantity
         zones_data[cond]['reserved_quantity'] += res_qty
-        if (stock.quantity - res_qty) > 0:
-            availabe_quantity += stock.quantity - res_qty
+        availabe_quantity.setdefault(location, 0)
+        availabe_quantity[location] += (stock.quantity - res_qty)
 
     return zones_data, availabe_quantity
 

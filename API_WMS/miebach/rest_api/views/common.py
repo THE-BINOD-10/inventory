@@ -1140,7 +1140,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
     #it will create or update seller stock
     if seller_id:
         quantity = float(quantity)
-        seller_stock_data = SellerStock.objects.filter(stock_id = stock.id, seller__user = user.id)
+        seller_stock_data = SellerStock.objects.filter(stock_id = stock.id, seller__user = user.id, seller_id=seller_id)
         if seller_stock_data:
 
             temp_quantity = quantity
@@ -1181,7 +1181,6 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         move_quantity = float(quantity)
     else:
         return 'Quantity should not be empty'
-    import pdb;pdb.set_trace();
     if seller_id:
         seller_id = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller_id:
@@ -1195,11 +1194,18 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
     if reserved_quantity:
         if (stock_count - reserved_quantity) < float(quantity):
             return 'Source Quantity reserved for Picklist'
+    if seller_id:
+        stock_filter_ids = stocks.filter(quantity__gt=0).values_list('id', flat=True)
+        seller_stock = SellerStock.objects.filter(stock_id__in=stock_filter_ids, seller_id=seller_id)
+        if not seller_stock:
+            return 'Seller Stock Not Found'
     for stock in stocks:
         if stock.quantity > move_quantity:
             stock.quantity -= move_quantity
             change_seller_stock(seller_id, stock, user, move_quantity, 'dec')
             move_quantity = 0
+            if stock.quantity < 0:
+                stock.quantity = 0
             stock.save()
         elif stock.quantity <= move_quantity:
 
@@ -3578,8 +3584,12 @@ def get_purchase_order_data(order):
 def check_get_imei_details(imei, wms_code, user_id, check_type='', order=''):
     status = ''
     data = {}
+    po_mapping = []
     log.info('Get IMEI Details data for user id ' + str(user_id) + ' for imei ' + str(imei))
     try:
+        status = get_serial_limit(user_id, imei)
+        if status:
+            return po_mapping, status, data
         check_params = {'imei_number': imei, 'purchase_order__open_po__sku__user': user_id}
         st_purchase = STPurchaseOrder.objects.filter(open_st__sku__user=user_id, open_st__sku__wms_code=wms_code).\
                                               values_list('po_id', flat=True)
@@ -4259,6 +4269,19 @@ def get_jo_reference(user):
     else:
         jo_reference = 1
     return jo_reference
+
+def get_serial_limit(user_id, imei):
+    ''' it will return serial limit '''
+
+    serial_limit = get_misc_value('serial_limit', user_id)
+    if serial_limit == 'false' or not serial_limit:
+        return ""
+    else:
+        serial_limit = int(serial_limit)
+        if serial_limit == len(imei):
+            return ""
+        else:
+            return "Serial Number Length Should Be "+str(serial_limit)
 
 def get_shipment_quantity(user, all_orders, sku_grouping=False):
     ''' Provides picked quantities needed for shipment '''

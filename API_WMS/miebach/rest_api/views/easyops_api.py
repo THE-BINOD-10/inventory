@@ -14,6 +14,8 @@ from utils import *
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read('rest_api/views/configuration.cfg')
 
+log = init_logger('logs/integrations.log')
+
 class EasyopsAPI:
     def __init__(self, company_name='', warehouse='', token='', user=''):
         self.company_name = company_name

@@ -1998,22 +1998,22 @@ def check_imei(request, user=''):
                         status = 'IMEI Mapped to another Seller'
                 if order_details:
                     qty_data = get_shipment_quantity(user, order_details, False)
-                    if qty_data:
-                        quantity = qty_data[0]['picked']
-                        shipping_quantity = qty_data[0].get('shipping_quantity', 0)
-                        if (float(shipping_quantity) + 1) > quantity:
-                            status = 'Scanned Quantity exceeding the Picked quantity'
+                    #if qty_data:
+                    #    quantity = qty_data[0]['picked']
+                    #    shipping_quantity = qty_data[0].get('shipping_quantity', 0)
+                    #    if (float(shipping_quantity) + 1) > quantity:
+                    #        status = 'Scanned Quantity exceeding the Picked quantity'
 
                     if not int(order_details[0].sku_id) == int(po_mapping[0].purchase_order.open_po.sku_id):
                         status = 'IMEI Mapped to the another SKU ' + str(po_mapping[0].purchase_order.open_po.sku.sku_code)
-                    if not status:
-                        order = order_details[0]
-                        shipped_orders_dict = insert_order_serial([], {'wms_code': order.sku.wms_code,
-                                                                       'imei': po_mapping[0].imei_number}, order=order,
-                                                                       shipped_orders_dict=shipped_orders_dict)
-                        shipped_orders_dict.setdefault(int(order.id), {}).setdefault('quantity', 0)
-                        shipped_orders_dict[int(order.id)]['quantity'] += 1
-                        shipping_quantity += 1
+                    #if not status:
+                    #    order = order_details[0]
+                    #    shipped_orders_dict = insert_order_serial([], {'wms_code': order.sku.wms_code,
+                    #                                                   'imei': po_mapping[0].imei_number}, order=order,
+                    #                                                   shipped_orders_dict=shipped_orders_dict)
+                    #    shipped_orders_dict.setdefault(int(order.id), {}).setdefault('quantity', 0)
+                    #    shipped_orders_dict[int(order.id)]['quantity'] += 1
+                    #    shipping_quantity += 1
                 if not status:
                     status = 'Success'
 
@@ -3097,7 +3097,7 @@ def insert_shipment_info(request, user=''):
         log.info('Create shipment failed for params ' + str(request.POST.dict()) + ' error statement is ' +str(e))
         return HttpResponse('Create shipment Failed')
     try:
-        #shipped_orders_dict = {}
+        shipped_orders_dict = {}
         for i in range(0, len(myDict['sku_code'])):
 
             if not myDict['shipping_quantity'][i]:
@@ -3121,9 +3121,11 @@ def insert_shipment_info(request, user=''):
                     if key in shipment_data and key !='id':
                         shipment_data[key] = value[i]
 
-                #if 'imei_number' in myDict.keys() and myDict['imei_number'][i]:
-                #    shipped_orders_dict = insert_order_serial([], {'wms_code': order_detail.sku.wms_code, 'imei': myDict['imei_number'][i]},
-                #                                              order=order_detail, shipped_orders_dict=shipped_orders_dict)
+                # Need to comment below 3 lines if shipment scan is ready
+                if 'imei_number' in myDict.keys() and myDict['imei_number'][i]:
+                    shipped_orders_dict = insert_order_serial([], {'wms_code': order_detail.sku.wms_code, 'imei': myDict['imei_number'][i]},
+                                                              order=order_detail, shipped_orders_dict=shipped_orders_dict)
+                #Until Here
                 order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id,
                                                                     package_reference=myDict['package_reference'][i], order_shipment__user=user.id)
                 if not order_pack_instance:
@@ -3150,13 +3152,15 @@ def insert_shipment_info(request, user=''):
                 shipment_data['invoice_number'] = invoice_number
                 ship_data = ShipmentInfo(**shipment_data)
                 ship_data.save()
-                #if shipped_orders_dict.has_key(int(order_id)):
-                #    shipped_orders_dict[int(order_id)].setdefault('quantity', 0)
-                #    shipped_orders_dict[int(order_id)]['quantity'] += float(shipped_quantity)
-                #else:
-                #    shipped_orders_dict[int(order_id)] = {}
-                #    shipped_orders_dict[int(order_id)]['quantity'] = float(shipped_quantity)
 
+                # Need to comment below lines if shipment scan is ready
+                if shipped_orders_dict.has_key(int(order_id)):
+                    shipped_orders_dict[int(order_id)].setdefault('quantity', 0)
+                    shipped_orders_dict[int(order_id)]['quantity'] += float(shipped_quantity)
+                else:
+                    shipped_orders_dict[int(order_id)] = {}
+                    shipped_orders_dict[int(order_id)]['quantity'] = float(shipped_quantity)
+                # Until Here
 
                 log.info('Shipemnt Info dict is '+ str(shipment_data))
                 ship_quantity = ShipmentInfo.objects.filter(order_id=order_id).\
@@ -3167,9 +3171,11 @@ def insert_shipment_info(request, user=''):
                     for pick_order in picked_orders:
                         setattr(pick_order, 'status', 'dispatched')
                         pick_order.save()
-        # if shipped_orders_dict:
-        #     log.info('Order Status update call for user '+ str(user.username) + ' is ' + str(shipped_orders_dict))
-        #     check_and_update_order_status(shipped_orders_dict, user)
+        # Need to comment below lines if shipment scan is ready
+        if shipped_orders_dict:
+            log.info('Order Status update call for user '+ str(user.username) + ' is ' + str(shipped_orders_dict))
+            check_and_update_order_status(shipped_orders_dict, user)
+        # Until Here
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

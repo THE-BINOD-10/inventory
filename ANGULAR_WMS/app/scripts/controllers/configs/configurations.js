@@ -18,7 +18,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
-                    'invoice_remarks': 'invoice_remarks', 'show_disc_invoice': false, 'increment_invoice': false,
+                    'invoice_remarks': '', 'show_disc_invoice': false, 'serial_limit': '',
+                    'increment_invoice': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -31,7 +32,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      32: 'hsn_summary', 33: 'display_customer_sku', 34: 'marketplace_model', 35: 'label_generation',
                      36: 'barcode_generate_opt', 37: 'grn_scan_option', 38: 'invoice_titles', 39: 'show_imei_invoice',
                      40: 'display_remarks_mail', 41: 'create_seller_order', 42: 'invoice_remarks', 43: 'show_disc_invoice',
-                     44: 'increment_invoice'}
+                     44: 'increment_invoice', 45: 'serial_limit'}
 
   vm.check_box_data = [
     {
@@ -636,7 +637,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.getRemarks = function(remarks) {
 
     $timeout(function() {
-    if(remarks.split("<<>>").length > 1) {
+    if(remarks && remarks.split("<<>>").length > 1) {
       $("[name='invoice_remarks']").val( remarks.split("<<>>").join("\n") )
     } else {
       $("[name='invoice_remarks']").val( remarks );

@@ -3578,8 +3578,12 @@ def get_purchase_order_data(order):
 def check_get_imei_details(imei, wms_code, user_id, check_type='', order=''):
     status = ''
     data = {}
+    po_mapping = []
     log.info('Get IMEI Details data for user id ' + str(user_id) + ' for imei ' + str(imei))
     try:
+        status = get_serial_limit(user_id, imei)
+        if status:
+            return po_mapping, status, data
         check_params = {'imei_number': imei, 'purchase_order__open_po__sku__user': user_id}
         st_purchase = STPurchaseOrder.objects.filter(open_st__sku__user=user_id, open_st__sku__wms_code=wms_code).\
                                               values_list('po_id', flat=True)
@@ -4259,6 +4263,19 @@ def get_jo_reference(user):
     else:
         jo_reference = 1
     return jo_reference
+
+def get_serial_limit(user_id, imei):
+    ''' it will return serial limit '''
+
+    serial_limit = get_misc_value('serial_limit', user_id)
+    if serial_limit == 'false' or not serial_limit:
+        return ""
+    else:
+        serial_limit = int(serial_limit)
+        if serial_limit == len(imei):
+            return ""
+        else:
+            return "Serial Number Length Should Be "+str(serial_limit)
 
 def get_shipment_quantity(user, all_orders, sku_grouping=False):
     ''' Provides picked quantities needed for shipment '''

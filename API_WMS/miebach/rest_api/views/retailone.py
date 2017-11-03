@@ -27,9 +27,9 @@ from dateutil import parser
 
 from utils import *
 
-#retail_orders_url = 'http://176.9.181.39:8000/orders/'
-#HOST = 'http://dev.retail.one'
-#HOST = 'http://176.9.181.43:9111'
+# retail_orders_url = 'http://176.9.181.39:8000/orders/'
+# HOST = 'http://dev.retail.one'
+# HOST = 'http://176.9.181.43:9111'
 HOST = 'http://beta.retail.one'
 
 retail_orders_url = '/api/v1/channels/orders/sync'
@@ -38,6 +38,7 @@ EXTRA_INFO_FIELDS = ['merchant_id', 'auth_token', 'secret_key']
 IGNORE_MARKETPLACE = []
 
 log = init_logger('logs/retailone.log')
+
 
 @csrf_exempt
 def update_orders(orders, user='', from_returns=False):
@@ -60,17 +61,18 @@ def update_orders(orders, user='', from_returns=False):
                 order_details = copy.deepcopy(ORDER_DATA)
                 data = order
 
-                order_det = OrderDetail.objects.filter(order_id=order_id,user=user.id)
+                order_det = OrderDetail.objects.filter(order_id=order_id, user=user.id)
                 if order_det:
                     order_det = order_det[0]
-                    swx_mapping = SWXMapping.objects.filter(local_id = order_det.id, swx_type='order')
+                    swx_mapping = SWXMapping.objects.filter(local_id=order_det.id, swx_type='order')
                     if swx_mapping:
                         for mapping in swx_mapping:
                             mapping.swx_id = order['id']
                             mapping.updation_date = NOW
                             mapping.save()
                     else:
-                        mapping = SWXMapping(local_id=order_det.id, swx_id=order['id'], swx_type='order', creation_date=NOW,updation_date=NOW)
+                        mapping = SWXMapping(local_id=order_det.id, swx_id=order['id'], swx_type='order',
+                                             creation_date=NOW, updation_date=NOW)
                         mapping.save()
                     continue
                 if not data['sku']: continue
@@ -78,10 +80,12 @@ def update_orders(orders, user='', from_returns=False):
                 sku_code = SKUMaster.objects.filter(sku_code=data['sku'], user=user.id)
                 log.info('sku_code: %s', sku_code)
                 if not sku_code:
-                    orders_track = OrdersTrack.objects.filter(order_id=order_details['order_id'], sku_code=data['sku'], user=user.id)
+                    orders_track = OrdersTrack.objects.filter(order_id=order_details['order_id'], sku_code=data['sku'],
+                                                              user=user.id)
                     if not orders_track:
-                        OrdersTrack.objects.create(order_id=order_details['order_id'], sku_code=data['sku'], status=1, user=user.id,
-                                                   reason = "SKU Mapping doesn't exists", creation_date=NOW)
+                        OrdersTrack.objects.create(order_id=order_details['order_id'], sku_code=data['sku'], status=1,
+                                                   user=user.id,
+                                                   reason="SKU Mapping doesn't exists", creation_date=NOW)
                     continue
 
                 order_details['order_code'] = ''.join(re.findall('\D+', data['order_id']))
@@ -102,14 +106,16 @@ def update_orders(orders, user='', from_returns=False):
                 order_detail = OrderDetail(**order_details)
                 order_detail.save()
 
-                swx_mapping = SWXMapping.objects.filter(local_id = order_detail.id, swx_type='order')
+                swx_mapping = SWXMapping.objects.filter(local_id=order_detail.id, swx_type='order')
                 if not swx_mapping:
-                    mapping = SWXMapping(local_id=order_detail.id, swx_id=order['id'], swx_type='order', creation_date=NOW,updation_date=NOW)
+                    mapping = SWXMapping(local_id=order_detail.id, swx_id=order['id'], swx_type='order',
+                                         creation_date=NOW, updation_date=NOW)
                     mapping.save()
             except:
                 log.error('%s', traceback.format_exc())
     except:
         log.error('%s', traceback.format_exc())
+
 
 def update_returns(orders, user=''):
     try:
@@ -122,14 +128,14 @@ def update_returns(orders, user=''):
                 return_date = order['return_date']
                 return_date = parser.parse(return_date) if return_date else ''
                 return_id = order['return_id']
-                #filter_params = {'user': user.id, 'order_id': order_id}
+                # filter_params = {'user': user.id, 'order_id': order_id}
                 filter_params = {'order_id': order_id}
                 if order_code:
                     filter_params['order_code'] = order_code
-                #if order_mapping.get('order_items', ''):
+                # if order_mapping.get('order_items', ''):
                 #    order_items = eval(order_mapping['order_items'])
 
-                #for order in order_items:
+                # for order in order_items:
                 sku_code = order['sku']
                 if not sku_code:
                     continue
@@ -139,7 +145,8 @@ def update_returns(orders, user=''):
                 if not order_data:
                     continue
                 order_data = order_data[0]
-                return_instance = OrderReturns.objects.filter(return_id=return_id, order_id=order_data.id, order__user=user.id)
+                return_instance = OrderReturns.objects.filter(return_id=return_id, order_id=order_data.id,
+                                                              order__user=user.id)
                 if return_instance:
                     continue
                 return_data = copy.deepcopy(RETURN_DATA)
@@ -158,6 +165,7 @@ def update_returns(orders, user=''):
     except:
         log.error('%s', traceback.format_exc())
 
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -165,6 +173,7 @@ def get_marketplace_data(request, user=''):
     obj = RetailoneAPI()
     resp_data = obj.get_seller_channels(user=user)
     return HttpResponse(json.dumps(resp_data))
+
 
 @csrf_exempt
 @login_required
@@ -174,32 +183,35 @@ def update_market_status(request, user=''):
     data_id = request.POST.get('data_id', '')
     status = request.POST.get('status', '')
     obj = RetailoneAPI()
-    data_dict = {'id': data_id, 'is_active': status_dict[status], 'form' : 'status'}
+    data_dict = {'id': data_id, 'is_active': status_dict[status], 'form': 'status'}
 
-    #user_details
+    # user_details
     data_dict.setdefault('user_details', {})
     data_dict['user_details']['user_id'] = str(user.id)
-    data_dict['user_details']['source'] = "stockone" 
+    data_dict['user_details']['source'] = "stockone"
 
-    resp_data = obj.add_update_marketplace(data_dict, user = user.id)
+    resp_data = obj.add_update_marketplace(data_dict, user=user.id)
     return HttpResponse("Updated Successfully")
+
 
 def _pull_market_data(user, account_id, marketplace):
     obj = RetailoneAPI()
-    user_details = 'user='+ str(user.id) + '&username=' + str(user.username)
-    url_string = marketplace+'/orders/pull?mp_info_id='+account_id+'&'+user_details
+    user_details = 'user=' + str(user.id) + '&username=' + str(user.username)
+    url_string = marketplace + '/orders/pull?mp_info_id=' + account_id + '&' + user_details
 
     if marketplace:
-        resp_data = obj.pull_marketplace_data(url_string, user = user)
+        resp_data = obj.pull_marketplace_data(url_string, user=user)
         if 'errorCode' in resp_data.keys() or 'error_message' in resp_data.keys():
-            return HttpResponse(json.dumps({ 'status' : 'Pull Now Failed', 'errorMessage' : resp_data }))
+            return HttpResponse(json.dumps({'status': 'Pull Now Failed', 'errorMessage': resp_data}))
 
     try:
         log.info('calling sync orders')
-        resp = requests.post(urljoin(HOST, retail_orders_url), data=json.dumps({"sync_token": 0, 'user' : user.id, "mp_info_id": int(account_id) if account_id else '', 'states': ['APPROVED', 'UnShipped', 'Pending'], 'source' : 'stockone', 'marketplace' : marketplace }))
+        resp = requests.post(urljoin(HOST, retail_orders_url), data=json.dumps(
+            {"sync_token": 0, 'user': user.id, "mp_info_id": int(account_id) if account_id else '',
+             'states': ['APPROVED', 'UnShipped', 'Pending'], 'source': 'stockone', 'marketplace': marketplace}))
     except:
         log.error('%s', traceback.format_exc())
-        return HttpResponse(json.dumps({ 'status' :  '500', 'errorMessage': 'Pull Now Failed' }))
+        return HttpResponse(json.dumps({'status': '500', 'errorMessage': 'Pull Now Failed'}))
 
     resp = resp.json()
     log.info('resp: %s', len(resp))
@@ -211,10 +223,12 @@ def _pull_market_data(user, account_id, marketplace):
 
     try:
         log.info('calling sync orders for RETURNS')
-        resp = requests.post(urljoin(HOST, retail_orders_url), data=json.dumps({"sync_token": 0, 'user' : user.id, "mp_info_id": int(account_id) if account_id else '', 'states': ['RETURNS'], 'source' : 'stockone', 'marketplace' : marketplace }))
+        resp = requests.post(urljoin(HOST, retail_orders_url), data=json.dumps(
+            {"sync_token": 0, 'user': user.id, "mp_info_id": int(account_id) if account_id else '',
+             'states': ['RETURNS'], 'source': 'stockone', 'marketplace': marketplace}))
     except:
         log.error('%s', traceback.format_exc())
-        return HttpResponse(({ 'status' : '500', 'errorMessage': 'Pull Now Failed' }))
+        return HttpResponse(({'status': '500', 'errorMessage': 'Pull Now Failed'}))
 
     resp = resp.json()
     log.info("resp: %s", len(resp))
@@ -235,9 +249,10 @@ def pull_market_data(request, user=''):
 
     _pull_market_data(user, account_id, marketplace)
 
-    status_resp = json.dumps({ 'status' : 'Pull Successfully' })
+    status_resp = json.dumps({'status': 'Pull Successfully'})
 
     return HttpResponse(status_resp)
+
 
 @csrf_exempt
 @login_required
@@ -255,7 +270,7 @@ def add_market_credentials(request, user=''):
     log.info('user: %s', user)
     data_dict['user'] = user.id
 
-    #user_details
+    # user_details
     data_dict.setdefault('user_details', {})
     data_dict['user_details']['first_name'] = str(user.first_name)
     data_dict['user_details']['last_name'] = str(user.last_name)
@@ -268,25 +283,29 @@ def add_market_credentials(request, user=''):
     resp_data = obj.add_update_marketplace(data_dict)
 
     if resp_data.get('data', ''):
-	marketplace = form_data['market_place']
-	account_name = resp_data['data'].get('name', '')
-	if data_dict['form'] == "update":
-    	    status = {'auth_url' : '', 'message': 'Updated '+marketplace+' of Name "'+ account_name +'"', 'marketplace' : marketplace}
-	if data_dict['form'] == "add":
-	    if marketplace == "flipkart":
-		auth_url = resp_data['data'].get('auth_url', '')
-		if auth_url:
-		    status = { 'auth_url' : auth_url, 'message': 'Redirecting to '+marketplace, 'marketplace' : marketplace }
-		else:
-		    status = {'auth_url' : '', 'message': 'Something Went Wrong', 'marketplace' : marketplace }
-	    else:
-	        account_name = resp_data['data']['data'].get('name', '')
-	        status = {'auth_url' : '', 'message': 'Added '+marketplace+' of Name "'+ account_name +'"', 'marketplace' : marketplace}
+        marketplace = form_data['market_place']
+        account_name = resp_data['data'].get('name', '')
+        if data_dict['form'] == "update":
+            status = {'auth_url': '', 'message': 'Updated ' + marketplace + ' of Name "' + account_name + '"',
+                      'marketplace': marketplace}
+        if data_dict['form'] == "add":
+            if marketplace == "flipkart":
+                auth_url = resp_data['data'].get('auth_url', '')
+                if auth_url:
+                    status = {'auth_url': auth_url, 'message': 'Redirecting to ' + marketplace,
+                              'marketplace': marketplace}
+                else:
+                    status = {'auth_url': '', 'message': 'Something Went Wrong', 'marketplace': marketplace}
+            else:
+                account_name = resp_data['data']['data'].get('name', '')
+                status = {'auth_url': '', 'message': 'Added ' + marketplace + ' of Name "' + account_name + '"',
+                          'marketplace': marketplace}
 
     elif resp_data['errorCode'] == 'dataInconsistency':
-	status = { 'auth_url' : '', 'message': resp_data['errorMessage'] }
+        status = {'auth_url': '', 'message': resp_data['errorMessage']}
 
     return HttpResponse(json.dumps(status))
+
 
 @csrf_exempt
 def get_marketplace_logo(request, user=''):
@@ -294,17 +313,19 @@ def get_marketplace_logo(request, user=''):
     resp_data = obj.get_all_channel_data()
     return HttpResponse(json.dumps(resp_data))
 
+
 @csrf_exempt
 @login_required
 @get_admin_user
 def order_management_toggle(request, user=''):
     toggle = request.GET.get('order_manage', '')
     if toggle:
-        config_obj, created = MiscDetail.objects.get_or_create( user = user.id, misc_type="order_manage" )
+        config_obj, created = MiscDetail.objects.get_or_create(user=user.id, misc_type="order_manage")
         config_obj.misc_value = toggle
         config_obj.save()
 
-        integrations_obj, is_created = Integrations.objects.get_or_create(user=user.id, name='retailone', api_instance='EasyopsAPI')
+        integrations_obj, is_created = Integrations.objects.get_or_create(user=user.id, name='retailone',
+                                                                          api_instance='EasyopsAPI')
         integrations_obj.status = 1 if toggle == 'true' else 0
         integrations_obj.save()
     return HttpResponse(toggle)

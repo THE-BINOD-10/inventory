@@ -126,6 +126,40 @@
           </select>
         </div>
       </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Marketplace Prefix Details </strong>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <select class="show-menu-arrow form-control pull-left" ng-model="showCase.marketplace_selected" ng-change="showCase.marketplaceSelected(showCase.marketplace_selected)">
+            <option value="">Select</option>
+            <option ng-repeat="marketplace in showCase.model_data.prefix_data" value="{{marketplace.marketplace_name}}"> {{marketplace.marketplace_name}}</option>
+          </select>
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2" ng-if="!showCase.marketplace_add_show">
+          <div class="btn-group pull-left">
+            <button type="button" class="btn btn-warning" ng-click="showCase.marketplace_add_show = true;showCase.model_data.marketplace_new = true;showCase.filterMarkeplaces();">
+              <span class="icon-plus"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px" ng-if="showCase.marketplace_add_show">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-3">
+          <select class="show-menu-arrow form-control pull-left" ng-model="showCase.model_data.marketplace_name" ng-disabled="!showCase.model_data.marketplace_new">
+            <option ng-repeat="marketplace in showCase.model_data.marketplaces" ng-if="showCase.saved_marketplaces.indexOf(marketplace) == -1" value="{{marketplace}}"> {{marketplace}} </option>
+          </select>
+          <!--<input type="text" class="form-control" ng-model="showCase.model_data.marketplace_name" placeholder="Marketplace" ng-readonly="!showCase.model_data.marketplace_new">-->
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-3">
+          <input type="text" class="form-control" ng-model="showCase.model_data.marketplace_prefix" placeholder="Prefix">
+        </div>
+        <button type="button" class="btn btn-success" ng-click="showCase.saveMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix)">Save</button>
+        <button type="button" class="btn btn-danger" ng-click="showCase.updateMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix, 'delete')" ng-if="!showCase.model_data.marketplace_new">Delete</button>
+      </div>
       <div class="row col-md-12" style="padding-bottom: 15px" ng-repeat="config in showCase.check_box_data" ng-if="config.display">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa-15px pull-left" ng-class="config.class_name" style="line-height: 34px;"></i>
@@ -179,7 +213,7 @@
         <div class="col-md-1 col-sm-2 col-xs-3">
             <input type="text" class="form-control number" id="serial_limit" ng-model="showCase.model_data.serial_limit">
         </div>
-        <div class="col-md-1 col-sm-1 col-xs-1"><i ng-click="showCase.switches(showCase.model_data.serial_limit, 44)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
+        <div class="col-md-1 col-sm-1 col-xs-1"><i ng-click="showCase.switches(showCase.model_data.serial_limit, 45)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
       </div>
       <div class="row col-md-12" style="padding-bottom: 15px" ng-init="showCase.online_enable_save = false">
         <div class="col-md-5 col-sm-8 col-xs-12">

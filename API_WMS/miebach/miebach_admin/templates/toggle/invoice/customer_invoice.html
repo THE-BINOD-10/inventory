@@ -30,7 +30,7 @@
                 <tbody>
                   {% for record in page.data %}
                   {% if not record.continue %}
-                  <tr ng-repeat="record in page.data" {% if record.imeis %} class="fs14 rm-border" {% else %} class="fs14" {% endif %}>
+                  <tr ng-repeat="record in page.data" class="fs14 rm-border">
                     <td class="text-left">
                       <div style="overflow: hidden;width: 100px;text-overflow: ellipsis;">{{record.sku_code}}</td>
                     <td class="text-left">{{record.hsn_code}}</td>
@@ -120,7 +120,7 @@
                     <td colspan='{{html_data.columns}}' class="fs14">
                       <div class="row no-margin" style="position:relative">
                         {% if invoice_remarks != 'false' %}
-                        <div style="position: absolute;left: 25%;top: -3px;bottom: -3px;width: 1px;background-color: black;"></div> 
+                        <div style="position: absolute;left: 25%;top: -3px;bottom: -3px;width: 1px;background-color: black !important;"></div> 
                         <div class="col-xs-3 no-padding">
                           <p class="pre-custom fs14">{{invoice_remarks}}</p>
                         </div>

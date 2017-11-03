@@ -1331,7 +1331,7 @@ def confirmed_jo_data(request, user=''):
 
             if tracking.status_type == 'JO-PALLET':
                 pallet = pallet_mapping.get(id=tracking.status_id)
-                all_data.append({'id': rec.id, 'wms_code': rec.product_code.wms_code,
+                all_data.append({'id': rec.id, 'wms_code': rec.product_code.wms_code, 'sku_desc': rec.product_code.sku_desc,
                                  'product_quantity': jo_quantity, 'received_quantity': pallet.pallet_detail.quantity,
                                  'pallet_number': pallet.pallet_detail.pallet_code, 'stages_list': rem_stages,
                                  'sub_data': [{'received_quantity': jo_quantity,
@@ -1339,7 +1339,7 @@ def confirmed_jo_data(request, user=''):
                                  'status_track_id': tracking.id}], 'sku_extra_data': sku_extra_data, 'product_images': product_images,
                                  'load_unit_handle': rec.product_code.load_unit_handle})
             else:
-                all_data.append({'id': rec.id, 'wms_code': rec.product_code.wms_code,
+                all_data.append({'id': rec.id, 'wms_code': rec.product_code.wms_code, 'sku_desc': rec.product_code.sku_desc,
                                  'product_quantity': jo_quantity, 'received_quantity': tracking.quantity, 'pallet_number': '',
                                  'stages_list': rem_stages, 'sub_data': [{'received_quantity': jo_quantity, 'pallet_number': '',
                                  'stages_list': rem_stages, 'pallet_id': '', 'status_track_id': tracking.id}],
@@ -1356,7 +1356,7 @@ def confirmed_jo_data(request, user=''):
 
             if pallet_mapping:
                 for pallet in pallet_mapping:
-                    all_data.append({'id': rec.id, 'wms_code': rec.product_code.wms_code,
+                    all_data.append({'id': rec.id, 'wms_code': rec.product_code.wms_code, 'sku_desc': rec.product_code.sku_desc,
                                      'product_quantity': jo_quantity, 'received_quantity': pallet.pallet_detail.quantity,
                                      'pallet_number': pallet.pallet_detail.pallet_code, 'stages_list': stages_list, 'pallet_id': pallet.id,
                                      'status_track_id': '', 'sub_data': [{'received_quantity': jo_quantity,
@@ -1365,7 +1365,7 @@ def confirmed_jo_data(request, user=''):
                                      'sku_extra_data': sku_extra_data, 'product_images': product_images,
                                      'load_unit_handle': rec.product_code.load_unit_handle})
             else:
-                all_data.append({'id': rec.id, 'wms_code': rec.product_code.wms_code,
+                all_data.append({'id': rec.id, 'wms_code': rec.product_code.wms_code, 'sku_desc': rec.product_code.sku_desc,
                                  'product_quantity': jo_quantity, 'received_quantity': jo_quantity, 'pallet_number': '',
                                  'stages_list': stages_list, 'status_track_id': '', 'sub_data': [{'received_quantity': jo_quantity,
                                  'pallet_number': '', 'stages_list': stages_list, 'pallet_id': '', 'status_track_id': ''}],

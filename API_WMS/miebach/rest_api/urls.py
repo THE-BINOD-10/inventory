@@ -326,6 +326,7 @@ urlpatterns += [
     url(r'^save_tally_data/$',save_tally_data),
     url(r'^delete_tally_data/$',delete_tally_data),
     url(r'^delete_tax/$', delete_tax),
+    url(r'^update_invoice_sequence/$', update_invoice_sequence),
 
     #manage users
     url(r'^add_user/$',add_user),

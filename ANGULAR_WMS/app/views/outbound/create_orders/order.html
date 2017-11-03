@@ -152,6 +152,7 @@
             <tr>
               <th>SKU Code *</th>
               <th> Description </th>
+              <th> Available Quantity </th>
               <th ng-if="showCase.model_data.blind_order" class="w10">Location</th>
               <th ng-if="showCase.model_data.blind_order && showCase.permissions.use_imei">Serial Scan</th>
               <!--<th class="w10">Selected Quantity</th>-->
@@ -159,6 +160,7 @@
               <th ng-show="showCase.fields.indexOf('Unit Price') == -1">Unit Price</th>
               <th ng-show="showCase.fields.indexOf('Amount') == -1">Amount</th>
               <th class="w10" ng-show="showCase.fields.indexOf('Discount') == -1">Discount</th>
+              <th class="w10" ng-show="showCase.fields.indexOf('Discount Percentage') == -1">Discount(%)</th>
               <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'" class="w10">SGST(%)</th>
               <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'" class="w10">CGST(%)</th>
               <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'inter_state'" class="w10">IGST(%)</th>
@@ -178,6 +180,7 @@
               <td>
                 <input type="text" class="form-control" ng-model="data.description" name="description">
               </td>
+              <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{data.capacity}}</span> </td>
               <td ng-if="showCase.model_data.blind_order">
                 <input type="text" class="form-control" ng-model="data.location" name="location" ng-blur="showCase.checkCapacity($index, data, 'location', $event)" ng-required="data.sku_id.length > 0">
               </td>
@@ -197,6 +200,10 @@
               <td ng-show="showCase.fields.indexOf('Discount') == -1">
                 <input type="text" name="discount" class="form-control" ng-model="data.discount" ng-change="showCase.discountChange(data)" decimal-number>
               </td>
+              <td ng-show="showCase.fields.indexOf('Discount Percentage') == -1">
+                <input type="text" class="form-control" ng-model="data.discount_percentage" ng-change="showCase.cal_percentage(data, false)" decimal-number>
+                <input type="hidden" name="discount" class="form-control" ng-model="data.discount">
+              </td> 
               <td ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'">
                 <input type="text" name="sgst_tax" class="form-control" ng-model="data.sgst_tax" decimal-number ng-change="showCase.cal_percentage(data)" readonly>
               </td>

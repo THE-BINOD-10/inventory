@@ -586,6 +586,7 @@ body {
 }
 .dataTables_wrapper {
   overflow-x: auto;
+  min-height: 200px;
 }
 .dataTables_wrapper > .row {
   margin-left: 0px !important;

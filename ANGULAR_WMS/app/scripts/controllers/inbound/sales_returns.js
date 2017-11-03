@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
+    vm.user_type = Session.user_profile.user_type
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -292,7 +293,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                                'return_quantity': 1, 'damaged_quantity': '', 'track_id_enable': false,
                                'is_new': true, 'marketplace': '', 'return_type': '', 'sku_desc': data.data.sku_desc,
                                'invoice_number': data.data.invoice_number, 'returns_imeis': [field], 'damaged_imeis': [],
-                               'damaged_imeis_reason': [], 'id': data.data.id, 'sor_id': data.data.sor_id});
+                               'damaged_imeis_reason': [], 'id': data.data.id, 'sor_id': data.data.sor_id, 'quantity': data.data.quantity});
       vm.imei_data["index"] = vm.model_data.data.length-1;
     }
 
@@ -308,24 +309,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.service.apiCall('check_return_imei/', 'GET', {imei: field}).then(function(data){
             if(data.message) {
               if ('Success'==data.data.status) {
-                vm.scan_imeis.push(field);
-                //vm.return_serials(field);
-                if(vm.scan_skus.indexOf(data.data.data.sku_code) == -1){
-                    vm.scan_skus.push(data.data.data.sku_code);
-                }
                 status = "true";
                 for(var i = 0; i < vm.model_data.data.length; i++) {
                   var temp = vm.model_data.data[i]
                   if(data.data.data.sku_code == temp.sku_code && temp.is_new && data.data.data.invoice_number == temp.invoice_number && data.data.data.order_id == temp.order_id) {
-                    vm.model_data.data[i].return_quantity += 1;
-                    vm.model_data.data[i].returns_imeis.push(field);
-                    vm.imei_data["index"] = vm.model_data.data.length-1;
+                    if(vm.user_type == 'marketplace_user' && temp.quantity < (vm.model_data.data[i].return_quantity + 1)) {
+                      pop_msg("Quantity Exceeding the return quantity");
+                    }
+                    else {
+                      vm.model_data.data[i].return_quantity += 1;
+                      vm.model_data.data[i].returns_imeis.push(field);
+                      vm.imei_data["index"] = vm.model_data.data.length-1;
+                      vm.scan_imeis.push(field);
+                      //vm.return_serials(field);
+                      if(vm.scan_skus.indexOf(data.data.data.sku_code) == -1){
+                        vm.scan_skus.push(data.data.data.sku_code);
+                      }
+                    }
                     status = "false";
                     break;
                   }
                 }
                 if(status == "true"){
                   vm.add_new_imei(data.data, field);
+                  vm.scan_imeis.push(field);
+                  //vm.return_serials(field);
+                  if(vm.scan_skus.indexOf(data.data.data.sku_code) == -1){
+                    vm.scan_skus.push(data.data.data.sku_code);
+                  }
                 }
                 vm.imei_data.scanning = true;
 

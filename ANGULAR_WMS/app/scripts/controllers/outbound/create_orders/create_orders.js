@@ -672,6 +672,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   }
   vm.cal_percentage = function(data, no_total) {
 
+    vm.discountPercentageChange(data, false);
     vm.get_tax_value(data);
     var per = Number(data.tax);
     data.total_amount = ((Number(data.invoice_amount - Number(data.discount))/100)*per)+(Number(data.invoice_amount)-Number(data.discount));
@@ -689,6 +690,18 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.discountChange = function(data) {
 
     vm.cal_percentage(data, false); 
+  }
+
+  vm.discountPercentageChange = function(data, status) {
+
+    if(vm.fields.indexOf('Discount Percentage') != -1) {
+      return false;
+    }
+    if(!data.discount_percentage) {
+      data.discount_percentage = "";
+    }
+    var temp_perc = Number(data.discount_percentage);
+    data.discount = (Number(data.invoice_amount)*temp_perc)/100;
   }
 
   vm.lions = false;
@@ -907,6 +920,21 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     return true;
   }
 
+  vm.update_availabe_stock = function(sku_data) {
+
+     var send = {sku_code: sku_data.sku_id, location: ""}
+     vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
+      sku_data["capacity"] = 0
+      if(data.message) {
+
+        if(data.data.available_quantity) {
+
+          sku_data["capacity"] = data.data.available_quantity;
+        }
+      }
+    });
+  }
+
   vm.get_sku_data = function(record, item, index) {
 
     record.sku_id = item.wms_code;
@@ -930,6 +958,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         record["taxes"] = data.taxes;
         record.invoice_amount = Number(record.price)*Number(record.quantity)
         vm.cal_percentage(record);
+        vm.update_availabe_stock(record)
       }
     })
   }
@@ -1250,12 +1279,12 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         if(data.data.status == 0) {
 
           vm.service.showNoty(data.data.message);
-
           sku_data.location = "";
           angular.element(element.target).focus();
           sku_data.quantity = 0;
           sku_data.serials = [];
           sku_data["orig_location"] = "";
+          sku_data["capacity"] = 0;
           sku_data.invoice_amount = 0;
         } else {
 

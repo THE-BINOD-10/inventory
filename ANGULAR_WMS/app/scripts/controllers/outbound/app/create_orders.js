@@ -56,12 +56,38 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 	}
         vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'bio-wash.jpg', 
 	'Scala': 'scala.jpg','Scott International': 'scott.jpg', 'Scott Young': 'scott-young.jpg', 'Spark': 'spark.jpg', 
-	'Star - 11': 'star-11.jpg','Super Sigma': 'super-sigma-dryfit.jpg', 'Sulphur Cotton': 'sulphur-cottnt.jpg', 'Sulphur Dryfit': 'sulphur-dryfit.jpg', 'Spring': 'spring.jpg', '100% Cotton': '100cotton.jpg', 'Sprint': 'sprint.jpg', 'Supreme': 'supreme.jpg', 'Sport': 'sport.jpg', 'Swiss Military': 'sm-brand.jpg'}
+	'Star - 11': 'star-11.jpg','Super Sigma': 'super-sigma-dryfit.jpg', 'Sulphur Cotton': 'sulphur-cottnt.jpg', 'Sulphur Dryfit': 'sulphur-dryfit.jpg', 'Spring': 'spring.jpg', '100% Cotton': '100cotton.jpg', 'Sprint': 'sprint.jpg', 'Supreme': 'supreme.jpg', 'Sport': 'sport.jpg', 'Swiss Military': 'sm-brand.jpg',
+        'A-one gold': 'A-ONE.jpg',
+        'Agni': 'AGNI.jpg',
+        'Apex': 'APEX.jpg',
+        'Beekay': 'BEEKAY.jpg',
+        'Bhuwalka': 'BHUWALKA.jpg',
+        'I Steel Gold': 'I STEEL GOLD.jpg',
+        'Indus': 'INDUS.jpg',
+        'Primegold': 'PRIME GOLD.jpg',
+        'FE500':'FE500.jpg',
+        'FE500D':'FE500D.jpg',
+        'FE550':'FE550.jpg',
+        'FE600':'FE600.jpg',
+        }
 
         vm.brands_logos = {'6 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
         'Scala': 'scala-1.png','Scott International': 'scott-1.png', 'Scott Young': 'scott-young-1.png', 'Spark': 'spark-1.png',
         'Star - 11': 'star-11-1.png','Super Sigma': 'super-sigma-dryfit-1.png', 'Sulphur Cotton': 'sulphur-cottnt-1.png',                             'Sulphur Dryfit': 'sulphur-dryfit-1.png', 'Spring': 'spring-1.png', '100% Cotton': '100-cotton-1.png', 'Sprint': 'sprint-1.png',
-        'Supreme': 'supreme-1.png', 'Sport': 'sport-1.png', 'Swiss Military': 'sm-brand.jpg'}
+        'Supreme': 'supreme-1.png', 'Sport': 'sport-1.png', 'Swiss Military': 'sm-brand.jpg',
+        'A-one gold': 'A-ONE.jpg',
+        'Agni': 'AGNI.jpg',
+        'Apex': 'APEX.jpg',
+        'Beekay': 'BEEKAY.jpg',
+        'Bhuwalka': 'BHUWALKA.jpg',
+        'I Steel Gold': 'I STEEL GOLD.jpg',
+        'Indus': 'INDUS.jpg',
+        'Primegold': 'PRIME GOLD.jpg',
+        'FE500':'FE500.jpg',
+        'FE500D':'FE500D.jpg',
+        'FE550':'FE550.jpg',
+        'FE600':'FE600.jpg', 
+        }
         //vm.change_brand('');
       }
     });
@@ -750,7 +776,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'Sunglasses ': 'sunglasses.jpg',
                            'Travel Accessories ': 'travel-acc.jpg',
                            'Travel Gear ': 'travel-gear.jpg',
-                           'Writing Instruments ': 'writing.jpg'
+                           'Writing Instruments ': 'writing.jpg',
+                           'TMT Steel': 'TMT_category.jpg',
                            };
 
   vm.get_category_image = function(category) {

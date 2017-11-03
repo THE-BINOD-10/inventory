@@ -6,6 +6,23 @@
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1, minimal-ui">
 
+    <!--register service worker-->
+    <script src="sw_reg.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/4.3.1/firebase.js"></script>
+
+    <script>
+      // Initialize Firebase
+      var config = {
+        apiKey: "AIzaSyDSETifu7Xev7XZoltCG9Q0fB8pwn-cp74",
+        authDomain: "stockonedev.firebaseapp.com",
+        databaseURL: "https://stockonedev.firebaseio.com",
+        projectId: "stockonedev",
+        storageBucket: "stockonedev.appspot.com",
+        messagingSenderId: "973221107596"
+      };
+      firebase.initializeApp(config);
+    </script>
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
     <!-- oclazyload stylesheets before this tag -->
@@ -52,20 +69,6 @@
     <!--<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>-->
 
     <!-- service worker -->
-
-    <script src="https://www.gstatic.com/firebasejs/3.7.3/firebase.js"></script>
-    <script>
-      // Initialize Firebase
-      var config = {
-        apiKey: "AIzaSyDSETifu7Xev7XZoltCG9Q0fB8pwn-cp74",
-        authDomain: "stockonedev.firebaseapp.com",
-        databaseURL: "https://stockonedev.firebaseio.com",
-        projectId: "stockonedev",
-        storageBucket: "stockonedev.appspot.com",
-        messagingSenderId: "973221107596"
-      };
-      firebase.initializeApp(config);
-    </script>
 
     <!-- build:js({.tmp,app}) scripts/app.min.js -->
     <script src="scripts/extentions/modernizr.js"></script>
@@ -169,9 +172,6 @@
     <script src="scripts/services/wms_service.js"></script>
     <script src="scripts/services/table_service.js"></script>
     <!-- endbuild -->
-
-    <!--register service worker-->
-    <script src="sw_reg.js"></script>
 
     <!-- common controllers -->
     <script src="scripts/controllers/outbound/pop_js/common_backorder_po.js"></script>

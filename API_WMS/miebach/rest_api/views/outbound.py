@@ -5069,7 +5069,7 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
-    picklist = Picklist.objects.filter(order__user=user.id, picked_quantity__gt=0).exclude(order__status__in=[1, 3, 5])
+    picklist = Picklist.objects.filter(**data_dict).exclude(order__status__in=[1, 3, 5])
     #tot_order_qtys = OrderDetail.objects.filter(user=user.id, quantity__gt=0).values_list('order_id', 'quantity')
     tot_order_qtys = dict(OrderDetail.objects.filter(user=user.id, quantity__gt=0).values_list('order_id').distinct().annotate(ordered=Sum('quantity')))
     all_seller_orders = SellerOrder.objects.filter(seller__user=user.id, order_status='DELIVERY_RESCHEDULED')

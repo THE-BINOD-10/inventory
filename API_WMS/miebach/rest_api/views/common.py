@@ -1140,7 +1140,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
     #it will create or update seller stock
     if seller_id:
         quantity = float(quantity)
-        seller_stock_data = SellerStock.objects.filter(stock_id = stock.id, seller__user = user.id)
+        seller_stock_data = SellerStock.objects.filter(stock_id = stock.id, seller__user = user.id, seller_id=seller_id)
         if seller_stock_data:
 
             temp_quantity = quantity
@@ -1181,7 +1181,6 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         move_quantity = float(quantity)
     else:
         return 'Quantity should not be empty'
-    import pdb;pdb.set_trace();
     if seller_id:
         seller_id = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
         if not seller_id:
@@ -1195,11 +1194,18 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
     if reserved_quantity:
         if (stock_count - reserved_quantity) < float(quantity):
             return 'Source Quantity reserved for Picklist'
+    if seller_id:
+        stock_filter_ids = stocks.filter(quantity__gt=0).values_list('id', flat=True)
+        seller_stock = SellerStock.objects.filter(stock_id__in=stock_filter_ids, seller_id=seller_id)
+        if not seller_stock:
+            return 'Seller Stock Not Found'
     for stock in stocks:
         if stock.quantity > move_quantity:
             stock.quantity -= move_quantity
             change_seller_stock(seller_id, stock, user, move_quantity, 'dec')
             move_quantity = 0
+            if stock.quantity < 0:
+                stock.quantity = 0
             stock.save()
         elif stock.quantity <= move_quantity:
 

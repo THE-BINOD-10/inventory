@@ -924,7 +924,7 @@ def stock_summary_data(request, user=''):
     load_unit_handle = ""
     if stock_data:
         load_unit_handle = stock_data[0].sku.load_unit_handle
-    zones_data = get_sku_stock_summary(stock_data, load_unit_handle, user)
+    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
 
     job_order = JobOrder.objects.filter(product_code__user=user.id, product_code__wms_code=wms_code,
                                         status__in=['grn-generated', 'pick_confirm', 'partial_pick'])

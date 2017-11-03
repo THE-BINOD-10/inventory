@@ -3200,13 +3200,13 @@ def get_sku_stock_check(request, user=''):
         load_unit_handle = stock_data[0].sku.load_unit_handle
     else:
         return HttpResponse(json.dumps({'status': 0, 'message': 'No Stock Found'}))
-    zones_data = get_sku_stock_summary(stock_data, load_unit_handle, user)
-    return HttpResponse(json.dumps({'status': 1, 'data': zones_data}))
+    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
+    return HttpResponse(json.dumps({'status': 1, 'data': zones_data, 'available_quantity': available_quantity}))
 
 def get_sku_stock_summary(stock_data, load_unit_handle, user):
     zones_data = {}
     pallet_switch = get_misc_value('pallet_switch', user.id)
-
+    availabe_quantity = 0
     for stock in stock_data:
         res_qty = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id).\
                                            aggregate(Sum('reserved'))['reserved__sum']
@@ -3227,8 +3227,10 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
         zones_data.setdefault(cond, {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0, 'reserved_quantity': 0})
         zones_data[cond]['total_quantity'] += stock.quantity
         zones_data[cond]['reserved_quantity'] += res_qty
+        if (stock.quantity - res_qty) > 0:
+            availabe_quantity += stock.quantity - res_qty
 
-    return zones_data
+    return zones_data, availabe_quantity
 
 def check_ean_number(sku_code, ean_number, user):
     ''' Check ean number exists'''

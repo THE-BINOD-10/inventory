@@ -1477,7 +1477,7 @@ def build_jo_data(data_list):
             new_dict[key].append([float(status_tracking.quantity), pallet_dict, status_tracking.status_value, status_tracking.id])
     return new_dict
 
-def update_tracking_data(status_id, status_type, job_order, stage, stage_data, stages, is_grn, user, final_update_data=[]):
+def update_tracking_data(status_id, status_type, job_order, stage, stage_data, stages, is_grn, user, final_update_data=[],updated_status_ids=[]):
     if status_type == 'JO-PALLET':
         jo_status_trackings = StatusTracking.objects.filter(status_id=job_order.id, status_type='JO',status_value=stage, quantity__gt=0)
         to_reduce = jo_status_trackings.aggregate(Sum('quantity'))['quantity__sum']
@@ -1485,7 +1485,7 @@ def update_tracking_data(status_id, status_type, job_order, stage, stage_data, s
             update_status_tracking(jo_status_trackings, abs(to_reduce), user, to_add=False, save_summary=False)
     status_trackings = StatusTracking.objects.filter(status_id=status_id, status_type=status_type,status_value=stage)
     exist_quantity = status_trackings.aggregate(Sum('quantity'))['quantity__sum']
-    existing_objs = StatusTracking.objects.filter(id__in=stage_data['exist_ids'])
+    existing_objs = StatusTracking.objects.filter(id__in=list(chain(stage_data['exist_ids'], updated_status_ids)))
     processed_stage = ''
     if existing_objs:
         processed_stage = existing_objs[0].status_value
@@ -1513,6 +1513,7 @@ def save_receive_pallet(all_data,user, is_grn=False):
     all_data = group_stage_dict(all_data)
     final_update_data = []
     stages = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
+    updated_status_ids = []
     for key,value in all_data.iteritems():
         job_order = JobOrder.objects.get(id=key)
         for stage, stage_data in value.iteritems():
@@ -1543,13 +1544,15 @@ def save_receive_pallet(all_data,user, is_grn=False):
                         stage_data['quantity'] = float(pal_dict['quantity'])
                         stage_data['pallet_list'][val_ind]['pallet_dict']['pallet_id'] = pallet_id
                         final_update_data = update_tracking_data(pallet_id, 'JO-PALLET', job_order, stage, stage_data, stages,
-                                                                 is_grn, user, final_update_data=final_update_data)
+                                                                 is_grn, user, final_update_data=final_update_data,
+                                                                 updated_status_ids=updated_status_ids)
 
                 else:
                     job_order.saved_quantity = float(stage_data['quantity'])
                     job_order.save()
                     final_update_data = update_tracking_data(key, 'JO', job_order, stage, stage_data, stages,
-                                                             is_grn, user, final_update_data=final_update_data)
+                                                             is_grn, user, final_update_data=final_update_data,
+                                                             updated_status_ids=updated_status_ids)
 
     new_data = build_jo_data(all_data.keys())
     for final_data in final_update_data:

@@ -1806,6 +1806,8 @@ def get_openjo_details(search_params, user, sub_user):
                 for sing_stage in stages_list:
                     stage = sing_stage[1]
                     quantity = sing_stage[0]
+                    if quantity == 0:
+                        continue
                     final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
             else:
                 stage = 'Picked'

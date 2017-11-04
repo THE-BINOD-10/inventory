@@ -1485,7 +1485,7 @@ def update_tracking_data(status_id, status_type, job_order, stage, stage_data, s
             update_status_tracking(jo_status_trackings, abs(to_reduce), user, to_add=False, save_summary=False)
     status_trackings = StatusTracking.objects.filter(status_id=status_id, status_type=status_type,status_value=stage)
     exist_quantity = status_trackings.aggregate(Sum('quantity'))['quantity__sum']
-    existing_objs = StatusTracking.objects.filter(id__in=list(chain(stage_data['exist_ids'], updated_status_ids)))
+    existing_objs = StatusTracking.objects.filter(id__in=stage_data['exist_ids']).exclude(id__in=updated_status_ids)
     processed_stage = ''
     if existing_objs:
         processed_stage = existing_objs[0].status_value
@@ -1499,13 +1499,16 @@ def update_tracking_data(status_id, status_type, job_order, stage, stage_data, s
                 status_trackings = StatusTracking.objects.filter(id=status_trackings.id)
             else:
                 update_status_tracking(status_trackings, abs(to_reduce), user, to_add=True)
+                updated_status_ids = list(chain(list(status_trackings.values_list('id', flat=True)), updated_status_ids))
             if existing_objs.exclude(status_value=stage):
                 update_status_tracking(existing_objs.exclude(status_value=stage), abs(to_reduce), user, to_add=False)
+                updated_status_ids = list(chain(list(status_trackings.values_list('id', flat=True)), updated_status_ids))
         else:
             update_status_tracking(status_trackings, abs(to_reduce), user, to_add=False)
+            updated_status_ids = list(chain(list(status_trackings.values_list('id', flat=True)), updated_status_ids))
         if is_grn and stages and stages[-1] == stage and status_trackings.filter(quantity__gt=0):
             final_update_data.append([status_trackings.filter(quantity__gt=0), abs(to_reduce), user, False])
-    return final_update_data
+    return final_update_data, updated_status_ids
 
 
 def save_receive_pallet(all_data,user, is_grn=False):
@@ -1528,8 +1531,9 @@ def save_receive_pallet(all_data,user, is_grn=False):
                     if pallet_dict['pallet_id']:
                         update_pallet_data(pallet_dict, pal_dict['quantity'])
                         pallet_id = pallet_dict['pallet_id']
-                        final_update_data = update_tracking_data(pallet_id, 'JO-PALLET', job_order, stage, stage_data, stages,
-                                                                 is_grn, user, final_update_data=final_update_data)
+                        final_update_data, updated_status_ids = update_tracking_data(pallet_id, 'JO-PALLET', job_order, stage, stage_data,
+                                                                stages, is_grn, user, final_update_data=final_update_data,
+                                                                updated_status_ids=updated_status_ids)
                     else:
                         status = 2
                         location_data = {'job_order_id': job_order.id, 'location_id': None, 'status': status,
@@ -1543,14 +1547,14 @@ def save_receive_pallet(all_data,user, is_grn=False):
                         all_data[key][grouping_key]['pallet_list'][val_ind]['pallet_dict']['pallet_id'] = pallet_id
                         stage_data['quantity'] = float(pal_dict['quantity'])
                         stage_data['pallet_list'][val_ind]['pallet_dict']['pallet_id'] = pallet_id
-                        final_update_data = update_tracking_data(pallet_id, 'JO-PALLET', job_order, stage, stage_data, stages,
-                                                                 is_grn, user, final_update_data=final_update_data,
+                        final_update_data, updated_status_ids = update_tracking_data(pallet_id, 'JO-PALLET', job_order, stage, stage_data,
+                                                                stages, is_grn, user, final_update_data=final_update_data,
                                                                  updated_status_ids=updated_status_ids)
 
                 else:
                     job_order.saved_quantity = float(stage_data['quantity'])
                     job_order.save()
-                    final_update_data = update_tracking_data(key, 'JO', job_order, stage, stage_data, stages,
+                    final_update_data, updated_status_ids = update_tracking_data(key, 'JO', job_order, stage, stage_data, stages,
                                                              is_grn, user, final_update_data=final_update_data,
                                                              updated_status_ids=updated_status_ids)
 

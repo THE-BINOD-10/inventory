@@ -278,7 +278,7 @@ ORDER_SUMMARY_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 't
 
 OPEN_JO_REP_DICT = {'filters': [{'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}, {'label': 'SKU Class','name': 'class',
                                  'type': 'input'}, {'label': 'SKU Category', 'name': 'category','type': 'select'}, {'label': 'SKU Brand',
-                                 'name': 'brand', 'type': 'select'}, {'label': 'JO Code','name': 'jo_code', 'type': 'input'},
+                                 'name': 'brand', 'type': 'select'}, {'label': 'JO Code','name': 'job_code', 'type': 'input'},
                                  {'label': 'Stages', 'name': 'stage', 'type': 'select'}],
                     'dt_headers': ['JO Code', 'Jo Creation Date', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Code', 'Stage', 'Quantity'],
                     'dt_url': 'get_openjo_report_details', 'excel_name': 'open_jo_report', 'print_url': 'print_open_jo_report',

@@ -152,6 +152,7 @@
             <tr>
               <th>SKU Code *</th>
               <th> Description </th>
+              <th> Available Quantity </th>
               <th ng-if="showCase.model_data.blind_order" class="w10">Location</th>
               <th ng-if="showCase.model_data.blind_order && showCase.permissions.use_imei">Serial Scan</th>
               <!--<th class="w10">Selected Quantity</th>-->
@@ -179,6 +180,7 @@
               <td>
                 <input type="text" class="form-control" ng-model="data.description" name="description">
               </td>
+              <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{data.capacity}}</span> </td>
               <td ng-if="showCase.model_data.blind_order">
                 <input type="text" class="form-control" ng-model="data.location" name="location" ng-blur="showCase.checkCapacity($index, data, 'location', $event)" ng-required="data.sku_id.length > 0">
               </td>

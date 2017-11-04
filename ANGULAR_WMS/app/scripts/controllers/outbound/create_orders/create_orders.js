@@ -920,6 +920,21 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     return true;
   }
 
+  vm.update_availabe_stock = function(sku_data) {
+
+     var send = {sku_code: sku_data.sku_id, location: ""}
+     vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
+      sku_data["capacity"] = 0
+      if(data.message) {
+
+        if(data.data.available_quantity) {
+
+          sku_data["capacity"] = data.data.available_quantity;
+        }
+      }
+    });
+  }
+
   vm.get_sku_data = function(record, item, index) {
 
     record.sku_id = item.wms_code;
@@ -943,6 +958,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         record["taxes"] = data.taxes;
         record.invoice_amount = Number(record.price)*Number(record.quantity)
         vm.cal_percentage(record);
+        vm.update_availabe_stock(record)
       }
     })
   }
@@ -1263,12 +1279,12 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         if(data.data.status == 0) {
 
           vm.service.showNoty(data.data.message);
-
           sku_data.location = "";
           angular.element(element.target).focus();
           sku_data.quantity = 0;
           sku_data.serials = [];
           sku_data["orig_location"] = "";
+          sku_data["capacity"] = 0;
           sku_data.invoice_amount = 0;
         } else {
 

@@ -5015,7 +5015,8 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
         marketplace = user_dict['market_place'].split(',')
         data_dict['order__marketplace__in'] = marketplace
     if user_dict.get('customer', ''):
-        data_dict['order__customer_id'], data_dict['order__customer_name'] = user_dict['customer'].split(':')
+        #data_dict['order__customer_id'], data_dict['order__customer_name'] = user_dict['customer'].split(':')
+        data_dict['order__customer_id'] = user_dict['customer']
     if user_dict.get('order_id', ''):
         order_id_filter = ''.join(re.findall('\d+', user_dict['order_id']))
         order_code_filter = ''.join(re.findall('\D+', user_dict['order_id']))

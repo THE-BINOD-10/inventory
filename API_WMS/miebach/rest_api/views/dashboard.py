@@ -77,6 +77,7 @@ def sales_return_data(user, input_param=''):
 @fn_timer
 def get_orders_statistics(user):
     order_stats = OrderedDict()
+    NOW = get_local_date(user, datetime.datetime.now(), True)
     all_orders = OrderDetail.objects.filter(user=user.id, creation_date__range=[NOW - relativedelta(months=1), NOW])
     all_picks = Picklist.objects.filter(creation_date__range=[NOW - relativedelta(months=1), NOW], order__user=user.id)
     for i in range(30):
@@ -105,8 +106,9 @@ def dashboard(request, user=''):
         return HttpResponse("fail")
 
     user_id = user.id
-    today_start = datetime.datetime.combine(datetime.datetime.now(), datetime.time())
-    today_end = datetime.datetime.combine(datetime.datetime.now() + relativedelta(days=1), datetime.time())
+    datetime_now = get_local_date(user, datetime.datetime.now(), True)
+    today_start = datetime.datetime.combine(datetime_now, datetime.time())
+    today_end = datetime.datetime.combine(datetime_now + relativedelta(days=1), datetime.time())
     today_range = [today_start,  today_end]
     top_skus = OrderDetail.objects.filter(user=user_id, creation_date__range=[today_start - relativedelta(months=1), today_start]).\
                                    values('sku__sku_code').distinct().annotate(Sum('quantity')).order_by('-quantity__sum')[:5]

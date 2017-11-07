@@ -25,7 +25,8 @@ angular
     'oitozero.ngSweetAlert',
     'datatables',
     'slick',
-    'ui.toggle'
+    'ui.toggle',
+    'ezplus'
   ])
   .constant('COLORS', {
     'default': '#e2e2e2',

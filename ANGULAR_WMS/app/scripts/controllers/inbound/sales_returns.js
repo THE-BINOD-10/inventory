@@ -293,7 +293,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                                'return_quantity': 1, 'damaged_quantity': '', 'track_id_enable': false,
                                'is_new': true, 'marketplace': '', 'return_type': '', 'sku_desc': data.data.sku_desc,
                                'invoice_number': data.data.invoice_number, 'returns_imeis': [field], 'damaged_imeis': [],
-                               'damaged_imeis_reason': [], 'id': data.data.id, 'sor_id': data.data.sor_id, 'quantity': data.data.quantity});
+                               'damaged_imeis_reason': [], 'id': data.data.id, 'sor_id': data.data.sor_id, 'quantity': data.data.quantity,
+                               'order_imei_id': data.data.order_imei_id});
       vm.imei_data["index"] = vm.model_data.data.length-1;
     }
 
@@ -313,10 +314,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 for(var i = 0; i < vm.model_data.data.length; i++) {
                   var temp = vm.model_data.data[i]
                   if(data.data.data.sku_code == temp.sku_code && temp.is_new && data.data.data.invoice_number == temp.invoice_number && data.data.data.order_id == temp.order_id) {
-                    if(vm.user_type == 'marketplace_user' && temp.quantity < (vm.model_data.data[i].return_quantity + 1)) {
+                    /*if(vm.user_type == 'marketplace_user' && temp.quantity < (vm.model_data.data[i].return_quantity + 1)) {
                       pop_msg("Quantity Exceeding the return quantity");
                     }
-                    else {
+                    else {*/
                       vm.model_data.data[i].return_quantity += 1;
                       vm.model_data.data[i].returns_imeis.push(field);
                       vm.imei_data["index"] = vm.model_data.data.length-1;
@@ -325,7 +326,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       if(vm.scan_skus.indexOf(data.data.data.sku_code) == -1){
                         vm.scan_skus.push(data.data.data.sku_code);
                       }
-                    }
+                    //}
                     status = "false";
                     break;
                   }

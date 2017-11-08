@@ -312,6 +312,8 @@ urlpatterns += [
     url(r'^po_serial_mapping_upload/$', po_serial_mapping_upload),
     url(r'^job_order_form/$', job_order_form),
     url(r'^job_order_upload/$', job_order_upload),
+    url(r'^marketplace_serial_form/$', marketplace_serial_form),
+    url(r'^marketplace_serial_upload/$', marketplace_serial_upload),
 
     #configurations
     url(r'^configurations/$',configurations),

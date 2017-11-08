@@ -1274,7 +1274,7 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
                 order_ids = [str(int(i)) for i in order_ids_list]
                 order_ids = ','.join(order_ids)
 
-            nv_data = get_invoice_data(order_ids, request.user, picklists_send_mail[order_id])
+            nv_data = get_invoice_data(order_ids, user, picklists_send_mail[order_id])
             nv_data = modify_invoice_data(nv_data, user)
             ord_ids = order_ids.split(",")
             nv_data = add_consignee_data(nv_data, ord_ids, user)
@@ -1953,11 +1953,12 @@ def check_imei(request, user=''):
     shipped_orders_dict = {}
     is_shipment = request.GET.get('is_shipment', False)
     order_id = request.GET.get('order_id', '')
+    groupby = request.GET.get('groupby', '')
     log.info('Request params for Check IMEI ' + user.username + ' is ' + str(request.GET.dict()))
     shipping_quantity = 0
     try:
         for key, value in request.GET.iteritems():
-            if key in ['is_shipment', 'order_id']:
+            if key in ['is_shipment', 'order_id', 'groupby']:
                 continue
             sku_code = ''
             order = None
@@ -1997,7 +1998,7 @@ def check_imei(request, user=''):
                     if not seller_order:
                         status = 'IMEI Mapped to another Seller'
                 if order_details:
-                    qty_data = get_shipment_quantity(user, order_details, False)
+                    #qty_data = get_shipment_quantity(user, order_details, False)
                     #if qty_data:
                     #    quantity = qty_data[0]['picked']
                     #    shipping_quantity = qty_data[0].get('shipping_quantity', 0)
@@ -3837,6 +3838,7 @@ def get_view_order_details(request, user=''):
     cus_data = []
     order_details_data = []
     sku_id_list = []
+    attr_list = []
     if custom_data:
         attr_list = json.loads(custom_data[0].json_data)
         if isinstance(attr_list, dict):

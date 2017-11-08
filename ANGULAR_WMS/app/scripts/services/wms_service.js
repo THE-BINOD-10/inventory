@@ -2,12 +2,17 @@
 
 var app = angular.module('urbanApp')
 
-app.service('Service',['$rootScope', '$compile','$q', '$http', '$state', '$timeout', 'Session', 'colFilters', 'SweetAlert', 'COLORS', 'DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', '$window', Service]); 
+app.service('Service',['$rootScope', '$compile','$q', '$http', '$state', '$timeout', 'Session', 'colFilters', 'SweetAlert', 'COLORS', 'DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'DTDefaultOptions', '$window', Service]);
 
-function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, colFilters, SweetAlert, COLORS, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, $window) {
+function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, colFilters, SweetAlert, COLORS, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, DTDefaultOptions, $window) {
 
     var vm = this;
     vm.colFilters = colFilters
+
+    DTDefaultOptions.setLanguage({
+    // ...
+      sProcessing: '<div class="spinner"><div></div><div></div><div></div><div></div></div>'//'<img src="images/loader.gif" style="width:50px;">'
+    });
 
     vm.stock_transfer = "";
 

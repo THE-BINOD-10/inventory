@@ -586,7 +586,7 @@ body {
 }
 .dataTables_wrapper {
   overflow-x: auto;
-  min-height: 200px;
+  min-height: 100px;
 }
 .dataTables_wrapper > .row {
   margin-left: 0px !important;
@@ -606,8 +606,10 @@ body {
   vertical-align: middle;
 }
 .dataTables_wrapper .dataTables_processing {
-  margin-top: 36px !important;
+  margin-top: 0px !important;
   padding-top: 0px !important;
+  top: 100px;
+  height: 0px;
 }
 .no_click_tb tbody tr:hover {
   cursor: text !important;
@@ -1379,4 +1381,34 @@ pre {
 }
 .custom-order-details .table td {
   padding: 5px 10px !important;
+}
+.spinner div {
+  width: 15px;
+  height: 15px;
+  position: absolute;
+  left: -20px;
+  top: 40px;
+  background-color: #2ecc71;
+  border-radius: 50%;
+  animation: move 4s infinite cubic-bezier(0.2, 0.64, 0.81, 0.23);
+}
+.spinner div:nth-child(2) {
+  animation-delay: 150ms;
+}
+.spinner div:nth-child(3) {
+  animation-delay: 300ms;
+}
+.spinner div:nth-child(4) {
+  animation-delay: 450ms;
+}
+@keyframes move {
+  0% {
+    left: 0%;
+  }
+  75% {
+    left: 100%;
+  }
+  100% {
+    left: 100%;
+  }
 }

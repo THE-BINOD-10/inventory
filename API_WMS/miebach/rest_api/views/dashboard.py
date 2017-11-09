@@ -35,14 +35,25 @@ def get_quantity(data_dict, key_pair, no_date=False):
         if len(value) > 2:
             model_data = model_data.exclude(**value[2])
         if value[0] == OrderDetail:
-            results = model_data.filter(**value[1]).values('order_id', 'sku_id').distinct()
+            #results = model_data.filter(**value[1]).values('order_id', 'sku_id').distinct()
+            data_dict[key] = model_data.filter(**value[1]).aggregate(Sum('quantity'))['quantity__sum']
         elif value[0] == PurchaseOrder:
-            results = model_data.filter(**value[1]).values('order_id').distinct()
+            #results = model_data.filter(**value[1]).values('order_id').distinct()
+            data_dict[key] = model_data.filter(**value[1]).values('order_id').aggregate(Sum('open_po__order_quantity'), Sum('received_quantity'))
+            data_dict[key] = data_dict[key]['open_po__order_quantity__sum'] - data_dict[key]['received_quantity__sum']
         elif value[0] == POLocation:
-            results = model_data.filter(**value[1]).values('purchase_order__order_id').distinct()
+            #results = model_data.filter(**value[1]).values('purchase_order__order_id').distinct()
+            data_dict[key] = model_data.filter(**value[1]).aggregate(Sum('original_quantity'))['original_quantity__sum']
         else:
-            results = model_data.filter(**value[1]).values('order__order_id', 'order__sku_id').distinct()
-        data_dict[key] = results.count()
+            #results = model_data.filter(**value[3]).values('order__order_id', 'order__sku_id').distinct()
+            if key == 'Picked':
+                data_dict[key] = model_data.filter(**value[1]).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+            else:
+                data_dict[key] = model_data.filter(**value[1]).aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
+        #data_dict[key] = results.count()
+        #data_dict[key] = results.aggregate(Sum('quantity'))['quantity__sum']
+        if not data_dict[key]:
+            data_dict[key] = 0
 
 def sales_return_data(user, input_param=''):
     returns_data = OrderReturns.objects.filter(sku__user = user.id , creation_date__year = NOW.year,
@@ -66,16 +77,24 @@ def sales_return_data(user, input_param=''):
 @fn_timer
 def get_orders_statistics(user):
     order_stats = OrderedDict()
+    NOW = get_local_date(user, datetime.datetime.now(), True)
     all_orders = OrderDetail.objects.filter(user=user.id, creation_date__range=[NOW - relativedelta(months=1), NOW])
     all_picks = Picklist.objects.filter(creation_date__range=[NOW - relativedelta(months=1), NOW], order__user=user.id)
     for i in range(30):
         cur_date = NOW - datetime.timedelta(days = i)
         cur_date = cur_date.date().strftime('%Y-%m-%d')
         order_stats.setdefault(cur_date, {'Received': 0, 'Picked': 0})
-        order_stats[cur_date]['Received'] = all_orders.filter(creation_date__regex=cur_date, user=user.id).values('order_id').\
-                                                       distinct().count()
+        #order_stats[cur_date]['Received'] = all_orders.filter(creation_date__regex=cur_date, user=user.id).values('order_id').\
+        #                                               distinct().count()
+        order_stats[cur_date]['Received'] = all_orders.filter(creation_date__regex=cur_date, user=user.id).aggregate(Sum('quantity'))['quantity__sum']
+        if not order_stats[cur_date]['Received']:
+            order_stats[cur_date]['Received'] = 0
+        #order_stats[cur_date]['Picked'] = all_picks.filter(creation_date__regex=cur_date, status__icontains='picked').\
+        #                                            values('order__order_id').distinct().count()
         order_stats[cur_date]['Picked'] = all_picks.filter(creation_date__regex=cur_date, status__icontains='picked').\
-                                                    values('order__order_id').distinct().count()
+                                          aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+        if not order_stats[cur_date]['Picked']:
+            order_stats[cur_date]['Picked'] = 0
     return order_stats
 
 
@@ -87,8 +106,9 @@ def dashboard(request, user=''):
         return HttpResponse("fail")
 
     user_id = user.id
-    today_start = datetime.datetime.combine(datetime.datetime.now(), datetime.time())
-    today_end = datetime.datetime.combine(datetime.datetime.now() + relativedelta(days=1), datetime.time())
+    datetime_now = get_local_date(user, datetime.datetime.now(), True)
+    today_start = datetime.datetime.combine(datetime_now, datetime.time())
+    today_end = datetime.datetime.combine(datetime_now + relativedelta(days=1), datetime.time())
     today_range = [today_start,  today_end]
     top_skus = OrderDetail.objects.filter(user=user_id, creation_date__range=[today_start - relativedelta(months=1), today_start]).\
                                    values('sku__sku_code').distinct().annotate(Sum('quantity')).order_by('-quantity__sum')[:5]
@@ -146,7 +166,7 @@ def dashboard(request, user=''):
                                         order_by('-quantity__sum')[:10])
 
     pie_putaway = {'executed':0, 'In-progress':0, 'Putaway not generated':0}
-    results_dict = {'executed': (PurchaseOrder, {'status': 'confirmed-putaway', 'open_po__sku__user': user_id,
+    results_dict = {'executed': (POLocation, {'status': 0, 'purchase_order__open_po__sku__user': user_id,
                                 'updation_date__range': today_range}),
                     'In-progress': (POLocation, {'purchase_order__status__in': ['grn-generated', 'location-assigned'], 'purchase_order__open_po__sku__user': user_id, 'status__in': [1,2]}, {'location__isnull': True}),
                     'Putaway not generated': (PurchaseOrder, {'open_po__sku__user': user_id,
@@ -174,23 +194,50 @@ def dashboard(request, user=''):
     if not open_picklists_qty:
         open_picklists_qty = 0
     orders = {'open': int(view_orders_qty) + int(open_picklists_qty), 'picked': pie_picking['Picked']}
-
-    pending_confirmation = OpenPO.objects.filter(sku__user=user.id, order_quantity__gt=0, status__in=[1, 'Manual']).values('supplier_id').distinct().count()
-
+    #pending_confirmation = OpenPO.objects.filter(sku__user=user.id, order_quantity__gt=0, status__in=[1, 'Manual']).values('supplier_id').distinct().count()
+    pending_confirmation = OpenPO.objects.filter(sku__user=user.id, order_quantity__gt=0, status__in=[1, 'Manual']).\
+                           aggregate(Sum('order_quantity'))['order_quantity__sum']
+    if not pending_confirmation:
+        pending_confirmation = 0
 
     all_pos = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
+    #pending_month = all_pos.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id,
+    #                                received_quantity__lt=F('open_po__order_quantity'), po_date__lte=today_start - relativedelta(months=1)).\
+    #                        values('order_id').distinct().count()
+    #pending_month = all_pos.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id,
+    #                                received_quantity__lt=F('open_po__order_quantity'), po_date__lte=today_start - relativedelta(months=1)).\
+    #                                aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']
     pending_month = all_pos.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id,
-                                    received_quantity__lt=F('open_po__order_quantity'), po_date__lte=today_start - relativedelta(months=1)).\
-                            values('order_id').distinct().count()
+                    received_quantity__lt=F('open_po__order_quantity'), po_date__lte=today_start - relativedelta(months=1)).\
+                    aggregate(Sum('open_po__order_quantity'), Sum('received_quantity'))
+    pending_month = pending_month['open_po__order_quantity__sum'] - pending_month['received_quantity__sum']
+    if not pending_month:
+        pending_month = 0
+    #received_today = all_pos.filter(open_po__sku__user=user.id, status__in=['grn-generated', 'location-assigned',
+    #                                             'confirmed-putaway'], updation_date__startswith=datetime.datetime.now().strftime('%Y-%m-%d')).\
+    #                         values('order_id').distinct().count()
     received_today = all_pos.filter(open_po__sku__user=user.id, status__in=['grn-generated', 'location-assigned',
                                                  'confirmed-putaway'], updation_date__startswith=datetime.datetime.now().strftime('%Y-%m-%d')).\
-                             values('order_id').distinct().count()
+                                                 aggregate(Sum('received_quantity'))['received_quantity__sum']
+    if not received_today:
+        received_today = 0
+    #putaway_pending = POLocation.objects.filter(purchase_order__status__in=['grn-generated', 'location-assigned'], quantity__gt=0,
+    #                                            status=1, purchase_order__open_po__sku__user=user.id).values('purchase_order__order_id').\
+    #                                            distinct().count()
     putaway_pending = POLocation.objects.filter(purchase_order__status__in=['grn-generated', 'location-assigned'], quantity__gt=0,
-                                                status=1, purchase_order__open_po__sku__user=user.id).values('purchase_order__order_id').\
-                                                distinct().count()
-
-    yet_to_receive = all_pos.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id,
-                                     received_quantity__lt=F('open_po__order_quantity')).values('order_id').distinct().count()
+                                                status=1, purchase_order__open_po__sku__user=user.id).\
+                                                aggregate(Sum('quantity'))['quantity__sum']
+    if not putaway_pending:
+        putaway_pending = 0
+    #yet_to_receive = all_pos.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id,
+    #                                 received_quantity__lt=F('open_po__order_quantity')).values('order_id').distinct().count()
+    # order quantity - receive quantity
+    #yet_to_receive = all_pos.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id,
+    #                 received_quantity__lt=F('open_po__order_quantity')).aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']
+    yet_to_receive = all_pos.aggregate(Sum('open_po__order_quantity'), Sum('received_quantity'))
+    yet_to_receive = yet_to_receive['open_po__order_quantity__sum'] - yet_to_receive['received_quantity__sum']
+    if not yet_to_receive:
+        yet_to_receive = 0
     purchase_orders = {'pending_confirmation': pending_confirmation, 'yet_to_receive': yet_to_receive,
                        'pending_month': pending_month, 'received_today': received_today, 'putaway_pending': putaway_pending}
 

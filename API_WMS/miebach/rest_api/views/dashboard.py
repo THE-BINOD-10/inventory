@@ -59,6 +59,7 @@ def get_quantity(data_dict, key_pair, no_date=False):
         #data_dict[key] = results.aggregate(Sum('quantity'))['quantity__sum']
         if not data_dict[key]:
             data_dict[key] = 0
+        data_dict[key] = round(data_dict[key])
 
 def sales_return_data(user, input_param=''):
     returns_data = OrderReturns.objects.filter(sku__user = user.id , creation_date__year = NOW.year,
@@ -100,6 +101,9 @@ def get_orders_statistics(user):
                                                 'dispatched']).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
         if not order_stats[cur_date]['Picked']:
             order_stats[cur_date]['Picked'] = 0
+
+        order_stats[cur_date]['Received'] = round(order_stats[cur_date]['Received'])
+        order_stats[cur_date]['Picked'] = round(order_stats[cur_date]['Picked'])
     return order_stats
 
 

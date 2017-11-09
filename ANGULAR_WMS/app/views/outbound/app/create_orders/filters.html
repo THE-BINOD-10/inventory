@@ -6,9 +6,11 @@
     <div class="toggle-body">
       <div class="filter-box">
         <div class="box-header">
-          <span><b>Brands: </b></span>
+          <span><b>Brands: </b>
+            <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.brand_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.brand_open = (showCase.brand_open)? false: true;"></i>
+          </span>
         </div>
-        <div class="box-body">
+        <div class="box-body" ng-if="showCase.brand_open">
             <span ng-repeat="brand in showCase.filterData.brands" ng-hide="!showCase.filterData.brandShow && $index > 5"><input type="checkbox" ng-model="showCase.filterData.selectedBrands[brand]" ng-click="showCase.checkFilters(brand, showCase.filterData.selectedBrands)">{{brand}}</br></span>
             <a href="" ng-click="showCase.filterData.brandShow = true" ng-if="showCase.filterData.brands.length > 5" ng-hide="showCase.filterData.brandShow" style="text-decoration: underline;">Show More...</a>
         </div>
@@ -17,18 +19,39 @@
       <div class="filter-box">
         <div class="box-header">
           <span><b>Categories: </b></span>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.category_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.category_open = (showCase.category_open)? false: true;"></i>
         </div>
-        <div class="box-body">
+        <div class="box-body" ng-if="showCase.category_open">
+          <div ng-repeat="(key, value_list) in showCase.filterData.primary_details.data">
+            <span><input type="checkbox" ng-model="showCase.filterData.selectedCats[key]" ng-change="showCase.checkPrimaryFilter(key)"> {{key}}</br></span>
+            <div class="filter-box ml10" ng-if="value_list.length > 0 && showCase.filterData.selectedCats[key]">
+              <div class="box-header">
+              </div>
+              <div class="box-body">
+                <span>
+                  <input type="checkbox" ng-model="showCase.filterData.subCats[key]['All']" ng-change="showCase.checkFilters('All', showCase.filterData.subCats[key])">
+                  All</br>
+                </span>
+                <span ng-repeat="value in value_list">
+                  <input type="checkbox" ng-model="showCase.filterData.sub_cats[key][value]" ng-change="showCase.checkFilters(value, showCase.filterData.subCats[key])">
+                  {{value}}</br>
+                </span>
+              </div>
+          </div>
+          <!--<a href="" ng-click="showCase.filterData.catShow = true" ng-if="showCase.filterData.categories.length > 5" ng-hide="showCase.filterData.catShow" style="text-decoration: underline;">Show More...</a>-->
+        </div>
+        <!--<div class="box-body">
             <span ng-repeat="cate in showCase.filterData.categories" ng-hide="!showCase.filterData.catShow && $index > 5"><input type="checkbox" ng-model="showCase.filterData.selectedCats[cate]" ng-click="showCase.checkFilters(cate, showCase.filterData.selectedCats)">{{cate}}</br></span>
             <a href="" ng-click="showCase.filterData.catShow = true" ng-if="showCase.filterData.categories.length > 5" ng-hide="showCase.filterData.catShow" style="text-decoration: underline;">Show More...</a>
-        </div>
+        </div>-->
       </div>
 
       <div class="filter-box">
         <div class="box-header">
           <span><b>Colours: </b></span>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.color_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.color_open = (showCase.color_open)? false: true;"></i>
         </div>
-        <div class="box-body">
+        <div class="box-body" ng-if="showCase.color_open">
             <span ng-repeat="color in showCase.filterData.colors"  ng-hide="!showCase.filterData.colorShow && $index > 5"><input type="checkbox" ng-model="showCase.filterData.selectedColors[color]" ng-click="showCase.checkFilters(color, showCase.filterData.selectedColors)">{{color}}</br></span>
             <a href="" ng-click="showCase.filterData.colorShow = true" ng-if="showCase.filterData.colors.length > 5" ng-hide="showCase.filterData.colorShow" style="text-decoration: underline;">Show More...</a>
         </div>
@@ -37,8 +60,9 @@
       <div class="filter-box">
         <div class="box-header">
           <span><b>Price Ranges: </b></span>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.price_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.price_open = (showCase.price_open)? false: true;"></i>
         </div>
-        <div class="box-body mt10" style="overflow: auto;">
+        <div class="box-body mt10" style="overflow: auto;" ng-if="showCase.price_open">
           <input type="number" class="form-control pull-left" style="width:70px" ng-model="showCase.filterData.fromPrice">
           <span class="pull-left mt5 ml5 mr5"> To </span>
           <input type="number" class="form-control pull-left" style="width:70px" ng-model="showCase.filterData.toPrice">
@@ -48,8 +72,9 @@
       <div class="filter-box">
         <div class="box-header">
           <span><b>Sizes: </b></span>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.size_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.size_open = (showCase.size_open)? false: true;"></i>
         </div>
-        <div class="box-body mt10" style="overflow: auto;">
+        <div class="box-body mt10" style="overflow: auto;" ng-if="showCase.size_open">
           <table class="table table-bordered filter-table">
             <thead>
               <tr>

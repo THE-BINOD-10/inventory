@@ -36,7 +36,7 @@ def get_quantity(data_dict, key_pair, no_date=False):
             model_data = model_data.exclude(**value[2])
         if value[0] == OrderDetail:
             #results = model_data.filter(**value[1]).values('order_id', 'sku_id').distinct()
-            data_dict[key] = round(model_data.filter(**value[1]).aggregate(Sum('quantity'))['quantity__sum'])
+            data_dict[key] = model_data.filter(**value[1]).aggregate(Sum('quantity'))['quantity__sum']
         elif value[0] == PurchaseOrder:
             #results = model_data.filter(**value[1]).values('order_id').distinct()
             data_dict[key] = model_data.filter(**value[1]).values('order_id').\

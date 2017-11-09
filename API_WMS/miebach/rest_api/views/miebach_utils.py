@@ -993,13 +993,17 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency', 'scan_picklist_option': 'scan_picklist_option',
                      'data_range': 'report_data_range', 'imei_limit': 'imei_limit', 'invoice_remarks': 'invoice_remarks',
-                     'invoice_marketplaces': 'invoice_marketplaces'
+                     'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit'
                     }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS), 'all_view_order_status': CUSTOM_ORDER_STATUS, 'mail_options': MAIL_REPORTS_DATA,
                    'mail_reports': MAIL_REPORTS, 'style_detail_headers': STYLE_DETAIL_HEADERS, 'picklist_options': PICKLIST_OPTIONS,
                    'order_headers': ORDER_HEADERS_d, 'barcode_generate_options': BARCODE_OPTIONS
                   }
+
+MARKETPLACE_SERIAL_EXCEL_HEADERS = ['Order Reference', 'Marketplace', 'Serial Number']
+
+MARKETPLACE_SERIAL_EXCEL_MAPPING = OrderedDict(( ('order_reference', 0), ('marketplace', 1), ('serial_number', 2)))
 
 def fn_timer(function):
     @wraps(function)
@@ -1292,6 +1296,10 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
             search_parameters['order_id__in'] = order_detail.values_list('id', flat=True)
         else:
             search_parameters['order_id__in'] = []
+        if serial_view:
+            order_ids = OrderIMEIMapping.objects.filter(order__user=user.id, status=1, order_reference=search_params['order_id']).\
+                                                    values_list('order_id', flat=True)
+            search_parameters['order_id__in'] = list(chain(search_parameters['order_id__in'], order_ids))
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -1328,6 +1336,10 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
             order_id = data.order.original_order_id
             if not order_id:
                 order_id = str(data.order.order_code) + str(data.order.order_id)
+
+            # Overriding Order Id with Order Reference
+            if data.order_reference:
+                order_id = data.order_reference
             serial_number = ''
             if data.po_imei:
                 serial_number = data.po_imei.imei_number

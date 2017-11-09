@@ -29,11 +29,11 @@
               </div>
               <div class="box-body">
                 <span>
-                  <input type="checkbox" ng-model="showCase.filterData.subCats[key]['All']" ng-change="showCase.checkFilters('All', showCase.filterData.subCats[key])">
+                  <input type="checkbox" ng-model="showCase.filterData.subCats[key]['All']" ng-change="showCase.checkFilters('All', showCase.filterData.subCats[key], key)">
                   All</br>
                 </span>
                 <span ng-repeat="value in value_list">
-                  <input type="checkbox" ng-model="showCase.filterData.sub_cats[key][value]" ng-change="showCase.checkFilters(value, showCase.filterData.subCats[key])">
+                  <input type="checkbox" ng-model="showCase.filterData.subCats[key][value]" ng-change="showCase.checkFilters(value, showCase.filterData.subCats[key], key)">
                   {{value}}</br>
                 </span>
               </div>

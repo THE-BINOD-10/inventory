@@ -206,8 +206,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
                 to_price: vm.toPrice, is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin}
 
-    data['primary_data'] = (vm.from_cats)? "": vm.primary_data;
-
     if(status) {
       angular.copy([], vm.catlog_data.data);
     }
@@ -564,14 +562,14 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       }
     });
 
-    var temp_primary_data = {};
+    var temp_primary_data = [];
     angular.forEach(vm.filterData.selectedCats, function(value, key) {
       if (value) {
         category.push(key);
         temp_primary_data[key] = [];
         angular.forEach(vm.filterData.subCats[key], function(stat, sub_cat){
-          if(stat) {
-            temp_primary_data[key].push(sub_cat);
+          if(stat && sub_cat != 'All') {
+            temp_primary_data.push(sub_cat);
           }
         })
       }
@@ -595,10 +593,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     vm.catlog_data.index = "";
     vm.brand = brand.join(",");
-    vm.category = category.join(",");
+    vm.category = temp_primary_data.join(","); //category.join(",");
     vm.color = color.join(",");
     vm.size_filter_data = vm.filterData.size_filter
-    vm.primary_data = JSON.stringify(temp_primary_data);
+    //vm.primary_data = JSON.stringify(temp_primary_data);
     vm.fromPrice = vm.filterData.fromPrice;
     vm.toPrice = vm.filterData.toPrice;
     vm.showFilter = false;
@@ -668,11 +666,23 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     $window.scrollTo(0, angular.element(".app_body").offsetTop);
   }
 
-  vm.checkFilters = function(value, data) {
+  vm.checkFilters = function(value, data, primary) {
 
     var all = data['All'];
     if (value != 'All') {
       data['All'] = false;
+      var all_true = true;
+      for(var i=0;i<vm.filterData.primary_details.data[primary].length; i++) {
+        if(!data[vm.filterData.primary_details.data[primary][i]]) {
+          all_true = false;
+          break;
+        }
+      }
+      data['All'] = (all_true)? true: false;
+    } else if(value == 'All' && data['All']) {
+      angular.forEach(vm.filterData.primary_details.data[primary], function(key) {
+        data[key] = true;
+      })
     } else {
       angular.forEach(data, function(value, key) {
         if(key != 'All') {

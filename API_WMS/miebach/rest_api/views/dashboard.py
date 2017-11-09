@@ -39,7 +39,12 @@ def get_quantity(data_dict, key_pair, no_date=False):
             data_dict[key] = model_data.filter(**value[1]).aggregate(Sum('quantity'))['quantity__sum']
         elif value[0] == PurchaseOrder:
             #results = model_data.filter(**value[1]).values('order_id').distinct()
-            data_dict[key] = model_data.filter(**value[1]).values('order_id').aggregate(Sum('open_po__order_quantity'), Sum('received_quantity'))
+            data_dict[key] = model_data.filter(**value[1]).values('order_id').\
+                                        aggregate(Sum('open_po__order_quantity'), Sum('received_quantity'))
+            if not data_dict[key]['open_po__order_quantity__sum']:
+                data_dict[key]['open_po__order_quantity__sum'] = 0
+            if not data_dict[key]['received_quantity__sum']:
+                data_dict[key]['received_quantity__sum'] = 0
             data_dict[key] = data_dict[key]['open_po__order_quantity__sum'] - data_dict[key]['received_quantity__sum']
         elif value[0] == POLocation:
             #results = model_data.filter(**value[1]).values('purchase_order__order_id').distinct()
@@ -54,6 +59,7 @@ def get_quantity(data_dict, key_pair, no_date=False):
         #data_dict[key] = results.aggregate(Sum('quantity'))['quantity__sum']
         if not data_dict[key]:
             data_dict[key] = 0
+        data_dict[key] = round(data_dict[key])
 
 def sales_return_data(user, input_param=''):
     returns_data = OrderReturns.objects.filter(sku__user = user.id , creation_date__year = NOW.year,
@@ -91,10 +97,13 @@ def get_orders_statistics(user):
             order_stats[cur_date]['Received'] = 0
         #order_stats[cur_date]['Picked'] = all_picks.filter(creation_date__regex=cur_date, status__icontains='picked').\
         #                                            values('order__order_id').distinct().count()
-        order_stats[cur_date]['Picked'] = all_picks.filter(creation_date__regex=cur_date, status__icontains='picked').\
-                                          aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+        order_stats[cur_date]['Picked'] = all_picks.filter(creation_date__regex=cur_date, status__in=['picked', 'batch_picked',
+                                                'dispatched']).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
         if not order_stats[cur_date]['Picked']:
             order_stats[cur_date]['Picked'] = 0
+
+        order_stats[cur_date]['Received'] = round(order_stats[cur_date]['Received'])
+        order_stats[cur_date]['Picked'] = round(order_stats[cur_date]['Picked'])
     return order_stats
 
 
@@ -179,7 +188,7 @@ def dashboard(request, user=''):
 
     results_dict = {'Picklist not generated': (OrderDetail, {'user': user_id, 'status': 1, 'quantity__gt': 0 }),
                     'In-progres': (Picklist, {'status__contains': 'open', 'order__user': user_id, 'reserved_quantity__gt': 0}),
-                    'Picked': (Picklist, {'status__icontains': 'picked', 'order__user': user_id, 'updation_date__range': today_range})}
+                    'Picked': (Picklist, {'status__in': ['picked', 'batch_picked', 'dispatched'], 'order__user': user_id, 'updation_date__range': today_range})}
     get_quantity(pie_picking, results_dict, True)
 
     sales_returns = sales_return_data(user, input_param={'sku__user': user.id, 'return_date__range': [datetime.datetime.now() - relativedelta(months=1), today_start]})
@@ -210,9 +219,11 @@ def dashboard(request, user=''):
     pending_month = all_pos.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id,
                     received_quantity__lt=F('open_po__order_quantity'), po_date__lte=today_start - relativedelta(months=1)).\
                     aggregate(Sum('open_po__order_quantity'), Sum('received_quantity'))
+    if not pending_month['open_po__order_quantity__sum']:
+        pending_month['open_po__order_quantity__sum'] = 0
+    if not pending_month['received_quantity__sum']:
+        pending_month['received_quantity__sum'] = 0
     pending_month = pending_month['open_po__order_quantity__sum'] - pending_month['received_quantity__sum']
-    if not pending_month:
-        pending_month = 0
     #received_today = all_pos.filter(open_po__sku__user=user.id, status__in=['grn-generated', 'location-assigned',
     #                                             'confirmed-putaway'], updation_date__startswith=datetime.datetime.now().strftime('%Y-%m-%d')).\
     #                         values('order_id').distinct().count()
@@ -238,8 +249,8 @@ def dashboard(request, user=''):
     yet_to_receive = yet_to_receive['open_po__order_quantity__sum'] - yet_to_receive['received_quantity__sum']
     if not yet_to_receive:
         yet_to_receive = 0
-    purchase_orders = {'pending_confirmation': pending_confirmation, 'yet_to_receive': yet_to_receive,
-                       'pending_month': pending_month, 'received_today': received_today, 'putaway_pending': putaway_pending}
+    purchase_orders = {'pending_confirmation': round(pending_confirmation), 'yet_to_receive': round(yet_to_receive),
+                       'pending_month': round(pending_month), 'received_today': round(received_today), 'putaway_pending': round(putaway_pending)}
 
     orders_stats = get_orders_statistics(user)
 

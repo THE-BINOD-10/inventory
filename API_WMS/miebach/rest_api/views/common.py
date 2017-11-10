@@ -2119,6 +2119,14 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
     sizes = list(sku_master.exclude(sku_brand='').values_list('sku_size', flat=True).order_by('sequence').distinct())
     sizes = list(OrderedDict.fromkeys(sizes))
     colors = list(sku_master.exclude(sku_brand='').exclude(color='').values_list('color', flat=True).distinct())
+
+    primary_details = {'data': {}}
+    primary_details['primary_categories'] = list(sku_master.exclude(primary_category='').filter(**filter_params).\
+                                            values_list('primary_category', flat=True).distinct())
+
+    for primary in primary_details['primary_categories']:
+        primary_details['data'][primary] = list(sku_master.exclude(sku_category='').filter(primary_category=primary).\
+                                              values_list('sku_category', flat=True).distinct())
     _sizes = {}
     integer = []
     character = []
@@ -2140,7 +2148,8 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
         except:
             character.append(size)
     _sizes = {'type2': integer, 'type1': character}
-    return brands, sorted(categories), _sizes, colors, categories_details
+    category_data = {'categories_details': categories_details, 'primary_details': primary_details}
+    return brands, sorted(categories), _sizes, colors, category_data
 
 
 def get_sku_available_stock(user, sku_masters, query_string, size_dict):

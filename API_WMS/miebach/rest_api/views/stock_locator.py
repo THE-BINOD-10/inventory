@@ -776,7 +776,8 @@ def insert_move_inventory(request, user=''):
     source_loc = request.GET['source_loc']
     dest_loc = request.GET['dest_loc']
     quantity = request.GET['quantity']
-    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user)
+    seller_id = request.GET.get('seller_id', '')
+    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id)
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
 
@@ -923,7 +924,7 @@ def stock_summary_data(request, user=''):
     load_unit_handle = ""
     if stock_data:
         load_unit_handle = stock_data[0].sku.load_unit_handle
-    zones_data = get_sku_stock_summary(stock_data, load_unit_handle, user)
+    zones_data, available_quantity = get_sku_stock_summary(stock_data, load_unit_handle, user)
 
     job_order = JobOrder.objects.filter(product_code__user=user.id, product_code__wms_code=wms_code,
                                         status__in=['grn-generated', 'pick_confirm', 'partial_pick'])
@@ -1257,7 +1258,7 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
     st_time = datetime.datetime.now()
     import xlsxwriter
     try:
-        headers, search_params, filter_params = get_search_params(request)
+        headers, search_params, filters = get_search_params(request)
         search_term = search_params.get('search_term', '')
         path = 'static/excel_files/' + str(user.id)  +'.Stock_Summary_Serials.xlsx'
         if not os.path.exists('static/excel_files/'):
@@ -1265,27 +1266,43 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
         workbook = xlsxwriter.Workbook(path)
         worksheet = workbook.add_worksheet("Stock Serials")
         bold = workbook.add_format({'bold': True})
-        exc_headers = ['SKU Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Serial Number']
+        exc_headers = ['SKU Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Serial Number', 'Status', 'Reason']
         for n, header in enumerate(exc_headers):
             worksheet.write(0, n, header, bold)
         dict_list = ['purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                      'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category', 'imei_number']
 
+        filter_params = get_filtered_params(filters, dict_list)
         dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user.id).values_list('po_imei_id', flat=True)
+        damaged_returns = dict(ReturnsIMEIMapping.objects.filter(status='damaged', order_imei__order__user=user.id).\
+                                                        values_list('order_imei__po_imei__imei_number','reason'))
+        qc_damaged = dict(QCSerialMapping.objects.filter(serial_number__purchase_order__open_po__sku__user=user.id,
+                                                    status='rejected').values_list('serial_number__imei_number', 'reason'))
+        qc_damaged.update(damaged_returns)
         if search_term:
             imei_data = POIMEIMapping.objects.filter(Q(purchase_order__open_po__sku__sku_code__icontains=search_term) |
                                                      Q(purchase_order__open_po__sku__sku_desc__icontains=search_term) |
                                                      Q(purchase_order__open_po__sku__sku_brand__icontains=search_term) |
-                                                     Q(purchase_order__open_po__sku__sku_category),
-                                                     status=1, purchase_order__open_po__sku__user=user.id).\
+                                                     Q(purchase_order__open_po__sku__sku_category__icontains=search_term),
+                                                     status=1, purchase_order__open_po__sku__user=user.id, **filter_params).\
                                               exclude(id__in=dispatched_imeis).values_list(*dict_list)
         else:
-            imei_data = POIMEIMapping.objects.filter(status=1, purchase_order__open_po__sku__user=user.id).\
+            imei_data = POIMEIMapping.objects.filter(status=1, purchase_order__open_po__sku__user=user.id, **filter_params).\
                                               exclude(id__in=dispatched_imeis).values_list(*dict_list)
         row = 1
         for imei in imei_data:
+            col_count = 0
             for col, data in enumerate(imei):
-                worksheet.write(row, col, data)
+                worksheet.write(row, col_count, data)
+                col_count += 1
+            imei_status = 'Accepted'
+            reason = ''
+            if imei[-1] in qc_damaged:
+                imei_status = 'Damaged'
+                reason = qc_damaged.get(imei[-1], '')
+            worksheet.write(row, col_count, imei_status)
+            col_count += 1
+            worksheet.write(row, col_count, reason)
             row += 1
 
         workbook.close()

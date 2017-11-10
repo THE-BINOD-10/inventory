@@ -6,6 +6,23 @@
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1, minimal-ui">
 
+    <!--register service worker-->
+    <script src="sw_reg.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/4.3.1/firebase.js"></script>
+
+    <script>
+    // Initialize Firebase
+    var config = {
+      apiKey: "AIzaSyAfP-oqTRxaKWJ7Fe6xT1zvfTsxcvsxdvE",
+      authDomain: "stockonedev2.firebaseapp.com",
+      databaseURL: "https://stockonedev2.firebaseio.com",
+      projectId: "stockonedev2",
+      storageBucket: "",
+      messagingSenderId: "1055350952390"
+    };
+    firebase.initializeApp(config);
+    </script>
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
     <!-- oclazyload stylesheets before this tag -->
@@ -71,6 +88,10 @@
     <script src="scripts/extentions/modernizr.js"></script>
     <script src="vendor/jquery/dist/jquery.min.js"></script>
     <script src="vendor/angular/angular.min.js"></script>
+
+    <!-- zoom plus -->
+    <script src="vendor/ez-plus/src/jquery.ez-plus.js"></script>
+    <script src="vendor/angular-ez-plus/js/angular-ezplus.js"></script>
 
     <!-- push notifications -->
     <script src="scripts/extentions/plugins/notifications/Notification.js"></script> 
@@ -169,9 +190,6 @@
     <script src="scripts/services/wms_service.js"></script>
     <script src="scripts/services/table_service.js"></script>
     <!-- endbuild -->
-
-    <!--register service worker-->
-    <script src="sw_reg.js"></script>
 
     <!-- common controllers -->
     <script src="scripts/controllers/outbound/pop_js/common_backorder_po.js"></script>

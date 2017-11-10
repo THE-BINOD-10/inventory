@@ -72,6 +72,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         ws.write(data_count, excel_mapping['sku_group'], data.sku_group)
         ws.write(data_count, excel_mapping['sku_type'], data.sku_type)
         ws.write(data_count, excel_mapping['sku_category'], data.sku_category)
+        ws.write(data_count, excel_mapping['primary_category'], data.primary_category)
         ws.write(data_count, excel_mapping['sku_class'], data.sku_class)
         ws.write(data_count, excel_mapping['sku_brand'], data.sku_brand)
         ws.write(data_count, excel_mapping['style_name'], data.style_name)
@@ -97,7 +98,8 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         if excel_mapping.has_key('load_unit_handle'):
             ws.write(data_count, excel_mapping['load_unit_handle'], rev_load_units.get(data.load_unit_handle, '').capitalize())
         ws.write(data_count, excel_mapping['hsn_code'], data.hsn_code)
-        ws.write(data_count, excel_mapping['sub_category'], data.sub_category)
+        if excel_mapping.has_key('sub_category'):
+            ws.write(data_count, excel_mapping['sub_category'], data.sub_category)
         ws.write(data_count, excel_mapping['status'], status_dict[str(int(data.status))])
         market_map = master_data.filter(sku_id=data.id).values('sku_id', 'sku_type').distinct()
         for dat in market_map:

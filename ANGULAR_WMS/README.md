@@ -12,9 +12,13 @@ Installing requirements:
   command : npm install
 
 4.Run bower install.
-  commang : bower install
+  command : bower install
 
 5.After installing bower it will install all dependencies in "bower_components" directory.Move bower_components folder into app directory with the name "vendor".
+
+6.to install sweetalert please run below command
+  command : npm install sweetalert@1.1.0
+  after that move sweetalert directory from nodemodules directory to vendor directory.
 
 6.Change api url in following directory.
   directory : 'app/scripts/extentions/auth/session.js'

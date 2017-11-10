@@ -459,6 +459,7 @@ def get_sku_data(request,user=''):
     sku_data['load_unit_handle'] = load_unit_dict.get(data.load_unit_handle, 'unit')
     sku_data['hsn_code'] = data.hsn_code
     sku_data['sub_category'] = data.sub_category
+    sku_data['primary_category'] = data.primary_category
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value

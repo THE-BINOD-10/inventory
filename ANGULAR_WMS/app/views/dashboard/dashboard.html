@@ -32,34 +32,13 @@
     <div class="col-md-8 col-sm-12">
       <section class="widget bg-primary text-center">
         <div class="col-md-12 col-xs-12 col-sm-12">
-        <h4 class="card-title" style="
-    color: #fff;
-    margin: 0px;
-    text-align: left;
-    margin-bottom: 10px;float:left
-      ">PURCHASE ORDERS</h4>
+        <h4 class="card-title" style="color: #fff;margin: 0px;text-align: left;margin-bottom: 10px;float:left">PURCHASE ORDERS</h4>
         <a href="#/inbound/RaisePO" style="color:#fff;float:right; padding-left: 10px;"><i class="fa fa-plus"></i></a>
         <a href="#/inbound/ReceivePO" style="color:#fff;float:right"><i class="fa fa-eye"></i></a>
         </div>
-        <div class="widget-details col-xs-3" style="width:20%;height: 60px">
-          <h2 class="no-margin">{{d_data.purchase_orders.pending_confirmation}}</h2>
-          <small class="text-uppercase">PENDING CONFIRMATION</small>
-        </div>
-        <div class="widget-details col-xs-3" style="width:20%;height: 60px">
-          <h2 class="no-margin">{{d_data.purchase_orders.yet_to_receive}}</h2>
-          <small class="text-uppercase">YET TO RECEIVE</small>
-        </div>
-        <div class="widget-details col-xs-3" style="width:20%;height: 60px">
-          <h2 class="no-margin">{{d_data.purchase_orders.pending_month}}</h2>
-          <small class="text-uppercase">PENDING >1 MONTH</small>
-        </div>
-        <div class="widget-details col-xs-3" style="width:20%;height: 60px">
-          <h2 class="no-margin">{{d_data.purchase_orders.received_today}}</h2>
-          <small class="text-uppercase">RECEIVED TODAY</small>
-        </div>
-        <div class="widget-details col-xs-3" style="width:20%;height: 60px">
-          <h2 class="no-margin">{{d_data.purchase_orders.putaway_pending}}</h2>
-          <small class="text-uppercase">PUTAWAY PENDING</small>
+        <div class="widget-details col-md-3 col-sm-4 col-xs-4 po-item" ng-repeat="po in po_data">
+          <h2 class="no-margin">{{d_data.purchase_orders[po.key]}}</h2>
+          <small class="text-uppercase">{{po.value}}</small>
         </div>
       </section>
     </div>

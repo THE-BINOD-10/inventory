@@ -27,7 +27,7 @@ function AppBrands($scope, $http, $q, Session, colFilters, Service, $state, $win
   }
 
   vm.get_order_type = function() {
-      
+
     if(vm.order_type) {
       vm.order_type_value = "Online"
     } else {

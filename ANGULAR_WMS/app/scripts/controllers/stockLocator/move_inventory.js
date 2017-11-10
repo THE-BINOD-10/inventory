@@ -140,7 +140,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
               vm.close()
               angular.extend(vm.model_data, vm.empty_data);
             } else {
-              vm.message = data.data;
+              Service.showNoty(data.data, 'warning');
             }
           }
         });

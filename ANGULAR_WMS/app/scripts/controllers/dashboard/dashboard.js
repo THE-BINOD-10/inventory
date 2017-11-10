@@ -5,8 +5,8 @@ function dashboardCtrl($scope, $state, $http, $interval, COLORS, Session, $timeo
   $scope.session = Session;
 
   $scope.po_data = {pending_confirmation: "PENDING CONFIRMATION", yet_to_receive: "YET TO RECEIVE",
-                    pending_month: "PENDING >1 MONTH", received_today: "YET TO RECEIVE",
-                    putaway_pending: "YET TO RECEIVE"}
+                    pending_month: "PENDING >1 MONTH", received_today: "RECEIVED TODAY",
+                    putaway_pending: "PUTAWAY PENDING"}
 
    function render_top_skus(graph_d) {
 

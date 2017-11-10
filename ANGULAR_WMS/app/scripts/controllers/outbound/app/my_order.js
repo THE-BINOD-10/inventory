@@ -14,7 +14,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
     vm.orders_loading = true;
 
-    vm.index = vm.order_data.data.length  + ':' + (vm.order_data.data.length + 100)
+    vm.index = vm.order_data.data.length  + ':' + (vm.order_data.data.length + 20)
     var data = {index: vm.index}
     Service.apiCall("get_customer_orders/", 'GET', data).then(function(data){
       if(data.message) {

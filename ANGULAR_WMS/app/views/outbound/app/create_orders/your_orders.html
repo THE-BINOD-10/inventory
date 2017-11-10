@@ -17,14 +17,11 @@
     </div>
   </div>
 
-  <div class="clearfix app_body" style="padding-top: 40px; padding-bottom:20px;">
+  <div class="clearfix app_body" scrolly="orders.scroll(e)" style="padding-top: 40px; padding-bottom:20px;">
     <div class="row">
       <div class="col-md-3 col-sm-2 col-xs-hidden">
       </div>
       <div class="col-md-6 col-sm-8 col-xs-12">
-        <div class="order-list" ng-if="orders.orders_loading">
-          <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
-        </div>
         <div class="order-list">
           <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data" ng-click="$state.go('user.App.OrderDetails', {orderId: order.order_id})" style="cursor: pointer"> <!--ng-click="showCase.open_order_detail(order)">-->
             <div class="row">
@@ -58,6 +55,12 @@
               </section>
             </div>
           </div>
+        </div>
+        <div class="order-list" ng-if="orders.orders_loading">
+          <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+        </div>
+        <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="orders.show_no_data" style="color:Red;text-align:center;">
+          <h5>------ END OF DATA ------</h5>
         </div>
       </div>
     </div>

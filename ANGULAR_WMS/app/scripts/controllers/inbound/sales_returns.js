@@ -218,9 +218,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       }
 
-      vm.model_data['format_types'] = ['format1', 'format2', 'format3']
 
-      var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'}
+      vm.model_data['format_types'] = [];
+      var key_obj =  {};
+      vm.service.apiCall('get_format_types/').then(function(data){
+        $.each(data['data']['data'], function(ke, val){
+          vm.model_data['format_types'].push(ke);
+          });
+          key_obj = data['data']['data'];
+      });
+
+
 
       $state.go('app.inbound.SalesReturns.barcode');
     }

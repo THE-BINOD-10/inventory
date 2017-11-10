@@ -1900,6 +1900,24 @@ class OrderTracking(models.Model):
         db_table = 'ORDER_TRACKING'
         index_together = ('order', 'quantity')
 
+class BarcodeSettings(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    format_type = models.CharField(max_length=256)
+    size = models.CharField(max_length=256, blank=True, null=True)
+    show_fields = models.CharField(max_length=256, blank=True, null=True)
+    rows_columns = models.CharField(max_length=64, blank=True, null=True)
+    styles = models.TextField(blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'BARCODE_SETTINGS_TABLE'
+        unique_together = (('user', 'format_type'),)
+
+    def __unicode__(self):
+        return "%s, %s %s" %(self.user, self.show_fields, self.rows_columns)
+
 import django
 from django.core.validators import MaxLengthValidator
 from django.utils.translation import ugettext as _

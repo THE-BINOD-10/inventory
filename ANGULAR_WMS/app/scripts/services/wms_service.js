@@ -899,8 +899,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
         if(data.message) {
 
-            var href_url = data.data;
-
+            var href_url = Session.host.concat(data.data.slice(1, -1));
+            console.log(href_url);
             var downloadpdf = $('<a id="downloadpdf" target="_blank" href='+href_url+' >');
 
             $('body').append(downloadpdf);

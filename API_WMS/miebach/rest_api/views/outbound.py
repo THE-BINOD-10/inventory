@@ -1274,7 +1274,7 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
                 order_ids = [str(int(i)) for i in order_ids_list]
                 order_ids = ','.join(order_ids)
 
-            nv_data = get_invoice_data(order_ids, request.user, picklists_send_mail[order_id])
+            nv_data = get_invoice_data(order_ids, user, picklists_send_mail[order_id])
             nv_data = modify_invoice_data(nv_data, user)
             ord_ids = order_ids.split(",")
             nv_data = add_consignee_data(nv_data, ord_ids, user)
@@ -1953,11 +1953,12 @@ def check_imei(request, user=''):
     shipped_orders_dict = {}
     is_shipment = request.GET.get('is_shipment', False)
     order_id = request.GET.get('order_id', '')
+    groupby = request.GET.get('groupby', '')
     log.info('Request params for Check IMEI ' + user.username + ' is ' + str(request.GET.dict()))
     shipping_quantity = 0
     try:
         for key, value in request.GET.iteritems():
-            if key in ['is_shipment', 'order_id']:
+            if key in ['is_shipment', 'order_id', 'groupby']:
                 continue
             sku_code = ''
             order = None
@@ -1997,7 +1998,7 @@ def check_imei(request, user=''):
                     if not seller_order:
                         status = 'IMEI Mapped to another Seller'
                 if order_details:
-                    qty_data = get_shipment_quantity(user, order_details, False)
+                    #qty_data = get_shipment_quantity(user, order_details, False)
                     #if qty_data:
                     #    quantity = qty_data[0]['picked']
                     #    shipping_quantity = qty_data[0].get('shipping_quantity', 0)
@@ -3838,6 +3839,7 @@ def get_view_order_details(request, user=''):
     cus_data = []
     order_details_data = []
     sku_id_list = []
+    attr_list = []
     if custom_data:
         attr_list = json.loads(custom_data[0].json_data)
         if isinstance(attr_list, dict):
@@ -4759,6 +4761,11 @@ def get_only_date(request, date):
 @get_admin_user
 def get_customer_orders(request, user=""):
     """ Return customer orders  """
+    index = request.GET.get('index', '')
+    start_index, stop_index = 0,20
+    if index:
+        start_index = int(index.split(':')[0])
+        stop_index = int(index.split(':')[1])
     response_data = {'data': []}
     customer = CustomerUserMapping.objects.filter(user = request.user.id)
 
@@ -4769,6 +4776,7 @@ def get_customer_orders(request, user=""):
         picklist = Picklist.objects.filter(order__customer_id = customer_id, order__user=user.id)
         response_data['data'] = list(orders.values('order_id', 'order_code', 'original_order_id').distinct().annotate(total_quantity=Sum('quantity'), total_inv_amt=Sum('invoice_amount'), date_only=Cast('creation_date', DateField())).order_by('-date_only'))
 
+        response_data['data'] = response_data['data'][start_index:stop_index]
         for record in response_data['data']:
             data = orders.filter(order_id = int(record['order_id']), order_code = record['order_code'])
             data_status = data.filter(status=1)
@@ -5016,7 +5024,8 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
         marketplace = user_dict['market_place'].split(',')
         data_dict['order__marketplace__in'] = marketplace
     if user_dict.get('customer', ''):
-        data_dict['order__customer_id'], data_dict['order__customer_name'] = user_dict['customer'].split(':')
+        #data_dict['order__customer_id'], data_dict['order__customer_name'] = user_dict['customer'].split(':')
+        data_dict['order__customer_id'] = user_dict['customer']
     if user_dict.get('order_id', ''):
         order_id_filter = ''.join(re.findall('\d+', user_dict['order_id']))
         order_code_filter = ''.join(re.findall('\D+', user_dict['order_id']))

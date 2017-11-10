@@ -733,6 +733,8 @@ class OrderIMEIMapping(models.Model):
     po_imei = models.ForeignKey(POIMEIMapping, blank=True, null=True)
     imei_number =  models.CharField(max_length = 64, default = '')
     sor_id = models.CharField(max_length=128, default='')
+    order_reference = models.CharField(max_length=128, default='')
+    marketplace = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

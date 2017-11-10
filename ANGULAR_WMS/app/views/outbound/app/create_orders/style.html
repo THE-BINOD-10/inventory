@@ -29,7 +29,7 @@
     <div class="style-body">
       <div class="row">
         <div class="col-md-4" ng-if="Style.style_data.length > 0">
-          <img ng-src="{{ showCase.service.check_image_url(Style.style_data[0]['image_url']) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail">
+          <img ng-src="{{ showCase.service.check_image_url(Style.style_data[0]['image_url']) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail" ez-plus ezp-model="{thumb: showCase.service.check_image_url(Style.style_data[0]['image_url']) , small: showCase.service.check_image_url(Style.style_data[0]['image_url']), large:showCase.service.check_image_url(Style.style_data[0]['image_url'])}" ezp-options="{scrollZoom: true, easing: true, zoomWindowWidth: 600, zoomWindowHeight: 600}" id="zoom_01">
           <h5 align="center"><b>{{Style.style_data[0].sku_class}}</b></h5>
           <h5 align="center" ng-if="Style.style_data[0].pricing_price"><b>{{showCase.service.price_format(Style.style_data[0].pricing_price)}}</b></h5>
           <h5 align="center" ng-if="!(Style.style_data[0].pricing_price) && Style.style_data[0].price"><b>{{showCase.service.price_format(Style.style_data[0].price)}}</b></h5>

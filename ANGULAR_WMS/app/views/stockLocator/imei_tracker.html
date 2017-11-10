@@ -31,15 +31,19 @@
                   <div class="col-md-2 col-sm-2 col-xs-2">
                     <img ng-src="{{service.check_image_url(showCase.model_data.sku_details.image_url)}}" height="15" alt="" style="width: 60px;height: 100%;">
                   </div>
+                  <div class="col-md-2 col-sm-2 col-xs-2">
+                    <b>Serial</b></br></br>
+                    {{showCase.model_data.imei}}
+                  </div>
                   <div class="col-md-3 col-sm-3 col-xs-3">
                     <b>SKU Code</b></br></br>
                     {{showCase.model_data.sku_details.sku_code}}
                   </div>
-                  <div class="col-md-4 col-sm-4 col-xs-4">
+                  <div class="col-md-3 col-sm-3 col-xs-3">
                     <b>SKU Description</b></br></br>
                     {{showCase.model_data.sku_details.sku_desc}}
                   </div>
-                  <div class="col-md-3 col-sm-3 col-xs-3">
+                  <div class="col-md-2 col-sm-2 col-xs-2">
                     <b>Status</b></br></br>
                      {{showCase.model_data.imei_status}}
                   </div>

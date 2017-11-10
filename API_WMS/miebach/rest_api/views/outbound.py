@@ -3352,7 +3352,7 @@ def all_whstock_quant(sku_master, user):
 
     stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
 
-    if stock_display_warehouse != "false":
+    if stock_display_warehouse and stock_display_warehouse != "false":
         stock_display_warehouse = stock_display_warehouse.split(',')
         stock_display_warehouse = map(int, stock_display_warehouse)
     else:

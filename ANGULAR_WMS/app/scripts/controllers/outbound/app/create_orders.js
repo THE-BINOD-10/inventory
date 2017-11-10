@@ -408,14 +408,16 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     vm.catlog_data.index = "";
     vm.get_order_type();
-    var data = {is_catalog: true, sale_through: vm.order_type_value};
+    vm.showFilter = false;
+    change_filter_data();
+    /*var data = {is_catalog: true, sale_through: vm.order_type_value};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
 
       if(data.message) {
 
         vm.brands = data.data.brands;
       }
-    })
+    })*/
   }
   vm.get_order_type = function() {
 

@@ -40,8 +40,8 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sku_desc': '', 'sku_group': '', 'sku_type': '', 'mix_sku': '',
             'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'color': '', 'mrp': 0,
             'status': 1, 'online_percentage': 0, 'qc_check': 0, 'sku_brand': '', 'sku_size': '', 'style_name': '', 'price': 0,
-             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': '',
-             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': ''}
+            'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': '',
+            'sub_category': '', 'primary_category': ''}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(), 'st_po_id': '', 'sku_id': '', 'status': 1}
 OPEN_ST_FIELDS = {'warehouse_id': '', 'order_quantity': 0, 'price': 0, 'sku_id': '', 'status': 1, 'creation_date': datetime.datetime.now()}
@@ -318,8 +318,8 @@ SALES_RETURN_REPORT = {('sales_return_form','salesreturnTable','Sales Return Rep
 
 LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequence', 'SKU Group']
 
-SKU_HEADERS = ['WMS Code','SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category', 'SKU Class',
-               'SKU Brand', 'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url',
+SKU_HEADERS = ['WMS Code','SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category', 'Primary Category',
+               'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url',
                'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
                'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Status']
 
@@ -542,11 +542,11 @@ EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 9, 'invoice_amount': 3, 'chann
 
 # SKU Master Upload Templates
 SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
-                              ('sku_category', 5), ('sku_class', 6), ('sku_brand', 7), ('style_name', 8), ('sku_size', 9),
-                              ('size_type', 10), ('zone_id', 11), ('price', 12),
-                              ('mrp', 13), ('sequence', 14), ('image_url', 15), ('threshold_quantity', 16), ('measurement_type', 17),
-                              ('sale_through', 18), ('color', 19), ('ean_number', 20), ('load_unit_handle', 21), ('hsn_code', 22),
-                              ('sub_category', 23), ('status', 24)
+                              ('sku_category', 5), ('primary_category', 6), ('sku_class', 7), ('sku_brand', 8), ('style_name', 9),
+                              ('sku_size', 10), ('size_type', 11), ('zone_id', 12), ('price', 13),
+                              ('mrp', 14), ('sequence', 15), ('image_url', 16), ('threshold_quantity', 17), ('measurement_type', 18),
+                              ('sale_through', 19), ('color', 20), ('ean_number', 21), ('load_unit_handle', 22), ('hsn_code', 23),
+                              ('sub_category', 24), ('status', 25)
                            ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),

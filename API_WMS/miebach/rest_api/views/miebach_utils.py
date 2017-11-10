@@ -1823,10 +1823,10 @@ def get_openjo_details(search_params, user, sub_user):
             stage = 'Partially Picked'
             quantity = data.product_quantity
             final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
-        else:
-            stage = 'Picked'
-            quantity = data.product_quantity
-            final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
+        #else:
+        #    stage = 'Picked'
+        #    quantity = data.product_quantity
+        #    final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
         stages_list = StatusTracking.objects.filter(status_id = data.id).values_list('original_quantity', 'status_value')
         if 'stage' in search_params:
             stages_list = StatusTracking.objects.filter(status_id = data.id, **stage_filter).values_list('original_quantity', 'status_value')

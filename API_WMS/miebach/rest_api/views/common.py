@@ -30,12 +30,11 @@ import datetime
 from utils import *
 from django.core.files.base import ContentFile
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Max, Min
 from requests import post
 import math
-from django.db.models import Max
-from django.db.models.functions import Cast
-from django.db.models.fields import DateField
+from django.db.models.functions import Cast, Concat
+from django.db.models.fields import DateField, CharField
 import re
 
 from django.template import loader, Context

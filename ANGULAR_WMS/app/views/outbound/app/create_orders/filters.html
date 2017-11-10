@@ -11,7 +11,7 @@
           </span>
         </div>
         <div class="box-body" ng-if="showCase.brand_open">
-            <span ng-repeat="brand in showCase.filterData.brands" ng-hide="!showCase.filterData.brandShow && $index > 5"><input type="checkbox" ng-model="showCase.filterData.selectedBrands[brand]" ng-click="showCase.checkFilters(brand, showCase.filterData.selectedBrands)">{{brand}}</br></span>
+            <span ng-repeat="brand in showCase.filterData.brands" ng-hide="!showCase.filterData.brandShow && $index > 5"><input type="checkbox" ng-model="showCase.filterData.selectedBrands[brand]" ng-change="showCase.checkFilterBrands(brand, showCase.filterData.selectedBrands)">{{brand}}</br></span>
             <a href="" ng-click="showCase.filterData.brandShow = true" ng-if="showCase.filterData.brands.length > 5" ng-hide="showCase.filterData.brandShow" style="text-decoration: underline;">Show More...</a>
         </div>
       </div>

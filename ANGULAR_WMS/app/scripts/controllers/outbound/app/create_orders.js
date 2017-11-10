@@ -666,6 +666,20 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     $window.scrollTo(0, angular.element(".app_body").offsetTop);
   }
 
+  vm.checkFilterBrands = function(value, data) {
+
+    var all = data['All'];
+    if (value != 'All') {
+      data['All'] = false;
+    } else {
+      angular.forEach(data, function(value, key) {
+        if(key != 'All') {
+          data[key] = false;
+        }
+      })
+    }
+  }
+
   vm.checkFilters = function(value, data, primary) {
 
     var all = data['All'];

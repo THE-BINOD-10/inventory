@@ -30,12 +30,11 @@ import datetime
 from utils import *
 from django.core.files.base import ContentFile
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Max, Min
 from requests import post
 import math
-from django.db.models import Max
-from django.db.models.functions import Cast
-from django.db.models.fields import DateField
+from django.db.models.functions import Cast, Concat
+from django.db.models.fields import DateField, CharField
 import re
 
 from django.template import loader, Context
@@ -1788,7 +1787,7 @@ def get_financial_year(date):
     else:
         return str(financial_year_start_date.year)[2:] + '-' + str(financial_year_start_date.year+1)[2:]
 
-def get_invoice_number(user, order_no, invoice_date, order_ids):
+def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile):
     invoice_number = ""
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
@@ -1823,13 +1822,13 @@ def get_invoice_number(user, order_no, invoice_date, order_ids):
                     invoice_sequence.save()
             else:
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-    if user.user_type == 'marketplace_user':
-        invoice_number = user.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
-    elif user.user.username == 'TranceHomeLinen':
-        invoice_number = user.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(order_no)
-    elif user.user.username == 'Subhas_Publishing':
-        invoice_number = user.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
-    elif user.user.username == 'campus_sutra':
+    if user_profile.user_type == 'marketplace_user':
+        invoice_number = user_profile.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
+    elif user.username == 'TranceHomeLinen':
+        invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(order_no)
+    elif user.username == 'Subhas_Publishing':
+        invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
+    elif user.username == 'campus_sutra':
         invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
     else:
         invoice_number = 'TI/%s/%s' %(invoice_date.strftime('%m%y'), order_no)
@@ -2045,7 +2044,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
                          'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis})
 
-    _invoice_no = get_invoice_number(user_profile, order_no, invoice_date, order_ids)
+    _invoice_no = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
     order_charges = {}
@@ -2119,6 +2118,14 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
     sizes = list(sku_master.exclude(sku_brand='').values_list('sku_size', flat=True).order_by('sequence').distinct())
     sizes = list(OrderedDict.fromkeys(sizes))
     colors = list(sku_master.exclude(sku_brand='').exclude(color='').values_list('color', flat=True).distinct())
+
+    primary_details = {'data': {}}
+    primary_details['primary_categories'] = list(sku_master.exclude(primary_category='').filter(**filter_params).\
+                                            values_list('primary_category', flat=True).distinct())
+
+    for primary in primary_details['primary_categories']:
+        primary_details['data'][primary] = list(sku_master.exclude(sku_category='').filter(primary_category=primary).\
+                                              values_list('sku_category', flat=True).distinct())
     _sizes = {}
     integer = []
     character = []
@@ -2140,7 +2147,8 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
         except:
             character.append(size)
     _sizes = {'type2': integer, 'type1': character}
-    return brands, sorted(categories), _sizes, colors, categories_details
+    category_data = {'categories_details': categories_details, 'primary_details': primary_details}
+    return brands, sorted(categories), _sizes, colors, category_data
 
 
 def get_sku_available_stock(user, sku_masters, query_string, size_dict):
@@ -3367,6 +3375,8 @@ def get_imei_data(request, user=''):
                 order_id = order_mapping.order.original_order_id
                 if not order_id:
                     order_id = str(order_mapping.order.order_code) + str(order_mapping.order.order_id)
+                if order_mapping.order_reference:
+                    order_id = order_mapping.order_reference
 
                 customer_id = order_mapping.order.customer_id
                 customer_name = order_mapping.order.customer_name
@@ -3378,7 +3388,9 @@ def get_imei_data(request, user=''):
                         customer_address = customer_master[0].address
                 imei_data['order_details'] = {'order_id': order_id, 'order_date': get_local_date(user, order_mapping.order.creation_date),
                                               'customer_id': str(customer_id), 'customer_name': customer_name,'customer_address': customer_address,
-                                              'dispatch_date': get_local_date(user, order_mapping.creation_date)
+                                              'dispatch_date': get_local_date(user, order_mapping.creation_date),
+                                              'order_reference': order_mapping.order_reference,
+                                              'order_marketplace': order_mapping.marketplace
                                              }
                 return_mapping = ReturnsIMEIMapping.objects.filter(order_imei_id=order_mapping.id, order_imei__order__user=user.id)
                 if not return_mapping:
@@ -3590,9 +3602,10 @@ def check_get_imei_details(imei, wms_code, user_id, check_type='', order=''):
     po_mapping = []
     log.info('Get IMEI Details data for user id ' + str(user_id) + ' for imei ' + str(imei))
     try:
-        status = get_serial_limit(user_id, imei)
-        if status:
-            return po_mapping, status, data
+        if check_type == 'purchase_check':
+            status = get_serial_limit(user_id, imei)
+            if status:
+                return po_mapping, status, data
         check_params = {'imei_number': imei, 'purchase_order__open_po__sku__user': user_id}
         st_purchase = STPurchaseOrder.objects.filter(open_st__sku__user=user_id, open_st__sku__wms_code=wms_code).\
                                               values_list('po_id', flat=True)
@@ -3622,6 +3635,10 @@ def check_get_imei_details(imei, wms_code, user_id, check_type='', order=''):
                         status = str(imei) + ' is already mapped with this order'
                     else:
                         status = str(imei) + ' is already mapped with another order'
+            elif check_type == 'shipped_check':
+                order_imei_mapping = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, status=1)
+                if order_imei_mapping:
+                    data['order_imei_obj'] = order_imei_mapping[0]
         elif not po_mapping and check_type == 'order_mapping':
              status = str(imei) + ' is invalid Imei number'
     except Exception as e:
@@ -4277,7 +4294,7 @@ def get_serial_limit(user_id, imei):
     ''' it will return serial limit '''
 
     serial_limit = get_misc_value('serial_limit', user_id)
-    if serial_limit == 'false' or not serial_limit:
+    if serial_limit == 'false' or serial_limit == '0' or not serial_limit:
         return ""
     else:
         serial_limit = int(serial_limit)

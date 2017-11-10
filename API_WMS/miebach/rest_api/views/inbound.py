@@ -493,26 +493,30 @@ def get_order_returns(start_index, stop_index, temp_data, search_term, order_ter
 
 @csrf_exempt
 def get_seller_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['id', 'id', 'seller_po__seller__name', 'creation_date', 'seller_po__seller_quantity', 'quantity', 'id']
+    lis = ['seller_po__open_po_id', 'seller_po__open_po_id', 'seller_po__seller__name', 'creation_date', 'seller_po__seller_quantity', 'quantity', 'id']
     seller_po_summary = SellerPOSummary.objects.filter(seller_po__seller__user=user.id).exclude(seller_po__receipt_type='Hosted Warehouse')
     if search_term:
-        order_id_search = ''.join(re.findall('\d+', search_term))
-        open_po_ids = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id__icontains=order_id_search).\
-                                            values_list('open_po__id', flat=True)
+        order_id_search = ''
+        if '_' in search_term:
+           order_id_search = ''.join(re.findall('\d+', search_term.split('_')[-1]))
+        open_po_ids = []
+        if order_id_search:
+            open_po_ids = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id__icontains=order_id_search).\
+                                                values_list('open_po__id', flat=True)
         master_data = seller_po_summary.filter(Q(quantity__icontains=search_term) |
                                                      Q(seller_po__seller__name__icontains=search_term) |
                                                      Q(seller_po__seller_quantity__icontains=search_term) |
                                                      Q(seller_po__open_po_id__in=open_po_ids),
                                                      seller_po__seller__user=user.id).values('purchase_order__order_id',
-                                                     'receipt_number').distinct().\
+                                                     'receipt_number', 'seller_po__seller__name').distinct().\
                                               annotate(total_quantity=Sum('quantity'))
     elif order_term:
         if order_term == 'asc' and (col_num or col_num == 0):
-            master_data = seller_po_summary.filter(seller_po__seller__user=user.id).order_by(lis[col_num]).values('purchase_order__order_id', 'seller_po__seller__name', 'receipt_number').distinct().annotate(total_quantity=Sum('quantity'))
+            master_data = seller_po_summary.order_by(lis[col_num]).values('purchase_order__order_id', 'seller_po__seller__name', 'receipt_number').distinct().annotate(total_quantity=Sum('quantity'))
         else:
-            master_data = seller_po_summary.filter(seller_po__seller__user=user.id).order_by('-%s' % lis[col_num]).values('purchase_order__order_id', 'seller_po__seller__name', 'receipt_number').distinct().annotate(total_quantity=Sum('quantity'))
+            master_data = seller_po_summary.order_by('-%s' % lis[col_num]).values('purchase_order__order_id', 'seller_po__seller__name', 'receipt_number').distinct().annotate(total_quantity=Sum('quantity'))
     else:
-        master_data = seller_po_summary.filter(seller_po__seller__user=user.id).order_by('-%s' % lis[col_num]).values('purchase_order__order_id', 'seller_po__seller__name', 'receipt_number').distinct().annotate(total_quantity=Sum('quantity'))
+        master_data = seller_po_summary.order_by('-%s' % lis[col_num]).values('purchase_order__order_id', 'seller_po__seller__name', 'receipt_number').distinct().annotate(total_quantity=Sum('quantity'))
 
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -2145,6 +2149,11 @@ def create_return_order(data, i, user):
         sor_id = ''
         if data.has_key('sor_id') and data['sor_id'][i]:
             sor_id = data['sor_id'][i]
+        if data.get('order_imei_id', '') and data['order_imei_id'][i]:
+            order_map_ins = OrderIMEIMapping.objects.get(id=data['order_imei_id'][i])
+            data['order_id'][i] = order_map_ins.order.original_order_id
+            if not data['order_id'][i]:
+                data['order_id'][i] = str(order_map_ins.order.order_code) + str(order_map_ins.order.order_id)
         return_details = {'return_id': '', 'return_date': datetime.datetime.now(), 'quantity': quantity,
                           'sku_id': sku_id[0].id, 'status': 1, 'marketplace': marketplace, 'return_type': return_type}
         if data.has_key('order_id') and data['order_id'][i]:
@@ -4346,6 +4355,7 @@ def check_return_imei(request, user=''):
         for key, value in request.GET.iteritems():
             sku_code = ''
             order = None
+            order_imei_id = ''
             order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, order__user=user.id, status=1)
             if not order_imei:
                 return_data['status'] = 'Imei Number is invalid'
@@ -4359,19 +4369,22 @@ def check_return_imei(request, user=''):
                 order_id = order_imei[0].order.original_order_id
                 if not order_id:
                     order_id = order_imei[0].order.order_code + str(order_imei[0].order.order_id)
+                if order_imei[0].order_reference:
+                    order_id = order_imei[0].order_reference
+                    order_imei_id = order_imei[0].id
                 shipment_info = ShipmentInfo.objects.filter(order_id=order_imei[0].order_id, order__user=user.id)
                 if shipment_info:
                     invoice_number = shipment_info[0].invoice_number
                 return_data['data'] = {'sku_code': order_imei[0].order.sku.sku_code, 'invoice_number': invoice_number,
                                        'order_id': order_id, 'sku_desc': order_imei[0].order.title, 'shipping_quantity': 1,
-                                       'sor_id': order_imei[0].sor_id, 'quantity': 0}
+                                       'sor_id': order_imei[0].sor_id, 'quantity': 0, 'order_imei_id': order_imei_id}
                 order_return = OrderReturns.objects.filter(order_id=order_imei[0].order.id, sku__user=user.id, status=1)
                 if order_return:
                     return_data['data'].update({'id': order_return[0].id, 'return_id': order_return[0].return_id,
                                                 'return_type': order_return[0].return_type, 'sor_id': '', 'quantity': order_return[0].quantity})
                 log.info(return_data)
-        if user_profile.user_type == 'marketplace_user' and not return_data['data'].get('id', ''):
-            return_data['status'] = 'Return is not initiated'
+        #if user_profile.user_type == 'marketplace_user' and not return_data['data'].get('id', ''):
+        #    return_data['status'] = 'Return is not initiated'
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

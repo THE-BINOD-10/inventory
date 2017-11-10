@@ -493,26 +493,30 @@ def get_order_returns(start_index, stop_index, temp_data, search_term, order_ter
 
 @csrf_exempt
 def get_seller_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['id', 'id', 'seller_po__seller__name', 'creation_date', 'seller_po__seller_quantity', 'quantity', 'id']
+    lis = ['seller_po__open_po_id', 'seller_po__open_po_id', 'seller_po__seller__name', 'creation_date', 'seller_po__seller_quantity', 'quantity', 'id']
     seller_po_summary = SellerPOSummary.objects.filter(seller_po__seller__user=user.id).exclude(seller_po__receipt_type='Hosted Warehouse')
     if search_term:
-        order_id_search = ''.join(re.findall('\d+', search_term))
-        open_po_ids = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id__icontains=order_id_search).\
-                                            values_list('open_po__id', flat=True)
+        order_id_search = ''
+        if '_' in search_term:
+           order_id_search = ''.join(re.findall('\d+', search_term.split('_')[-1]))
+        open_po_ids = []
+        if order_id_search:
+            open_po_ids = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id__icontains=order_id_search).\
+                                                values_list('open_po__id', flat=True)
         master_data = seller_po_summary.filter(Q(quantity__icontains=search_term) |
                                                      Q(seller_po__seller__name__icontains=search_term) |
                                                      Q(seller_po__seller_quantity__icontains=search_term) |
                                                      Q(seller_po__open_po_id__in=open_po_ids),
                                                      seller_po__seller__user=user.id).values('purchase_order__order_id',
-                                                     'receipt_number').distinct().\
+                                                     'receipt_number', 'seller_po__seller__name').distinct().\
                                               annotate(total_quantity=Sum('quantity'))
     elif order_term:
         if order_term == 'asc' and (col_num or col_num == 0):
-            master_data = seller_po_summary.filter(seller_po__seller__user=user.id).order_by(lis[col_num]).values('purchase_order__order_id', 'seller_po__seller__name', 'receipt_number').distinct().annotate(total_quantity=Sum('quantity'))
+            master_data = seller_po_summary.order_by(lis[col_num]).values('purchase_order__order_id', 'seller_po__seller__name', 'receipt_number').distinct().annotate(total_quantity=Sum('quantity'))
         else:
-            master_data = seller_po_summary.filter(seller_po__seller__user=user.id).order_by('-%s' % lis[col_num]).values('purchase_order__order_id', 'seller_po__seller__name', 'receipt_number').distinct().annotate(total_quantity=Sum('quantity'))
+            master_data = seller_po_summary.order_by('-%s' % lis[col_num]).values('purchase_order__order_id', 'seller_po__seller__name', 'receipt_number').distinct().annotate(total_quantity=Sum('quantity'))
     else:
-        master_data = seller_po_summary.filter(seller_po__seller__user=user.id).order_by('-%s' % lis[col_num]).values('purchase_order__order_id', 'seller_po__seller__name', 'receipt_number').distinct().annotate(total_quantity=Sum('quantity'))
+        master_data = seller_po_summary.order_by('-%s' % lis[col_num]).values('purchase_order__order_id', 'seller_po__seller__name', 'receipt_number').distinct().annotate(total_quantity=Sum('quantity'))
 
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']

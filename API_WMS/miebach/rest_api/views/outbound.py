@@ -4760,6 +4760,11 @@ def get_only_date(request, date):
 @get_admin_user
 def get_customer_orders(request, user=""):
     """ Return customer orders  """
+    index = request.GET.get('index', '')
+    start_index, stop_index = 0,20
+    if index:
+        start_index = int(index.split(':')[0])
+        stop_index = int(index.split(':')[1])
     response_data = {'data': []}
     customer = CustomerUserMapping.objects.filter(user = request.user.id)
 
@@ -4770,6 +4775,7 @@ def get_customer_orders(request, user=""):
         picklist = Picklist.objects.filter(order__customer_id = customer_id, order__user=user.id)
         response_data['data'] = list(orders.values('order_id', 'order_code', 'original_order_id').distinct().annotate(total_quantity=Sum('quantity'), total_inv_amt=Sum('invoice_amount'), date_only=Cast('creation_date', DateField())).order_by('-date_only'))
 
+        response_data['data'] = response_data['data'][start_index:stop_index]
         for record in response_data['data']:
             data = orders.filter(order_id = int(record['order_id']), order_code = record['order_code'])
             data_status = data.filter(status=1)

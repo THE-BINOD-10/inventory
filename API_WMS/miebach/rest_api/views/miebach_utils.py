@@ -40,8 +40,8 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'sku_desc': '', 'sku_group': '', 'sku_type': '', 'mix_sku': '',
             'sku_category': '', 'sku_class': '', 'threshold_quantity': 0, 'color': '', 'mrp': 0,
             'status': 1, 'online_percentage': 0, 'qc_check': 0, 'sku_brand': '', 'sku_size': '', 'style_name': '', 'price': 0,
-             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': '',
-             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': ''}
+            'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': '',
+            'sub_category': '', 'primary_category': ''}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(), 'st_po_id': '', 'sku_id': '', 'status': 1}
 OPEN_ST_FIELDS = {'warehouse_id': '', 'order_quantity': 0, 'price': 0, 'sku_id': '', 'status': 1, 'creation_date': datetime.datetime.now()}
@@ -278,7 +278,7 @@ ORDER_SUMMARY_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 't
 
 OPEN_JO_REP_DICT = {'filters': [{'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}, {'label': 'SKU Class','name': 'class',
                                  'type': 'input'}, {'label': 'SKU Category', 'name': 'category','type': 'select'}, {'label': 'SKU Brand',
-                                 'name': 'brand', 'type': 'select'}, {'label': 'JO Code','name': 'jo_code', 'type': 'input'},
+                                 'name': 'brand', 'type': 'select'}, {'label': 'JO Code','name': 'job_code', 'type': 'input'},
                                  {'label': 'Stages', 'name': 'stage', 'type': 'select'}],
                     'dt_headers': ['JO Code', 'Jo Creation Date', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Code', 'Stage', 'Quantity'],
                     'dt_url': 'get_openjo_report_details', 'excel_name': 'open_jo_report', 'print_url': 'print_open_jo_report',
@@ -318,8 +318,8 @@ SALES_RETURN_REPORT = {('sales_return_form','salesreturnTable','Sales Return Rep
 
 LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequence', 'SKU Group']
 
-SKU_HEADERS = ['WMS Code','SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category', 'SKU Class',
-               'SKU Brand', 'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url',
+SKU_HEADERS = ['WMS Code','SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category', 'Primary Category',
+               'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Price', 'MRP Price', 'Sequence', 'Image Url',
                'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
                'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Status']
 
@@ -542,11 +542,11 @@ EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 9, 'invoice_amount': 3, 'chann
 
 # SKU Master Upload Templates
 SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
-                              ('sku_category', 5), ('sku_class', 6), ('sku_brand', 7), ('style_name', 8), ('sku_size', 9),
-                              ('size_type', 10), ('zone_id', 11), ('price', 12),
-                              ('mrp', 13), ('sequence', 14), ('image_url', 15), ('threshold_quantity', 16), ('measurement_type', 17),
-                              ('sale_through', 18), ('color', 19), ('ean_number', 20), ('load_unit_handle', 21), ('hsn_code', 22),
-                              ('sub_category', 23), ('status', 24)
+                              ('sku_category', 5), ('primary_category', 6), ('sku_class', 7), ('sku_brand', 8), ('style_name', 9),
+                              ('sku_size', 10), ('size_type', 11), ('zone_id', 12), ('price', 13),
+                              ('mrp', 14), ('sequence', 15), ('image_url', 16), ('threshold_quantity', 17), ('measurement_type', 18),
+                              ('sale_through', 19), ('color', 20), ('ean_number', 21), ('load_unit_handle', 22), ('hsn_code', 23),
+                              ('sub_category', 24), ('status', 25)
                            ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(( ('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
@@ -839,6 +839,9 @@ BARCODE_DICT = {'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': ''
                             'DesignNo': '', 'Qty': '1', 'Gender': '', 'MRP': '', 'Packed on': '', 'Manufactured By': '', 'Marketed By': ''},
                 'format3': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '','DesignNo': '',
                             'Qty': '1', 'Gender': '', 'MRP': '', 'MFD': '', 'Manufactured By': '', 'Marketed By': ''},
+                'format4': {'SKUCode': '', 'color': '', 'Size': '', 'SKUPrintQty': '',
+                            'Qty': '1', 'MRP': '', 'Manufactured By': '', 'Marketed By': '', 'Phone': '',
+                            'Vendor SKU': '', 'PO No': '', 'Email': ''},
                 'Bulk Barcode': {'SKUCode': '', 'Color': '', 'SKUPrintQty': '1', 'Qty': '1', 
                             'DesignNo': '', 'UOM': '', 'Product': '', 'Company': ''}
                }
@@ -978,7 +981,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                       'no_stock_switch': 'no_stock_switch', 'show_disc_invoice': 'show_disc_invoice',
                       'production_switch': 'production_switch', 'sku_sync': 'sku_sync', 'display_remarks_mail': 'display_remarks_mail',
                       'stock_sync': 'stock_sync', 'float_switch': 'float_switch', 'automate_invoice': 'automate_invoice',
-                      'invoice_remarks': 'invoice_remarks', 'pos_switch': 'pos_switch', 'create_seller_order': 'create_seller_order',
+                      'pos_switch': 'pos_switch', 'create_seller_order': 'create_seller_order',
                       'marketplace_model': 'marketplace_model', 'decimal_limit': 'decimal_limit', 'batch_switch': 'batch_switch',
                       'view_order_status': 'view_order_status', 'label_generation': 'label_generation', 'grn_scan_option': 'grn_scan_option',
                       'show_imei_invoice': 'show_imei_invoice', 'style_headers': 'style_headers', 'picklist_sort_by': 'picklist_sort_by',
@@ -989,13 +992,18 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                      }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency', 'scan_picklist_option': 'scan_picklist_option',
-                     'data_range': 'report_data_range'
+                     'data_range': 'report_data_range', 'imei_limit': 'imei_limit', 'invoice_remarks': 'invoice_remarks',
+                     'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit'
                     }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS), 'all_view_order_status': CUSTOM_ORDER_STATUS, 'mail_options': MAIL_REPORTS_DATA,
                    'mail_reports': MAIL_REPORTS, 'style_detail_headers': STYLE_DETAIL_HEADERS, 'picklist_options': PICKLIST_OPTIONS,
                    'order_headers': ORDER_HEADERS_d, 'barcode_generate_options': BARCODE_OPTIONS
                   }
+
+MARKETPLACE_SERIAL_EXCEL_HEADERS = ['Order Reference', 'Marketplace', 'Serial Number']
+
+MARKETPLACE_SERIAL_EXCEL_MAPPING = OrderedDict(( ('order_reference', 0), ('marketplace', 1), ('serial_number', 2)))
 
 def fn_timer(function):
     @wraps(function)
@@ -1288,6 +1296,10 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
             search_parameters['order_id__in'] = order_detail.values_list('id', flat=True)
         else:
             search_parameters['order_id__in'] = []
+        if serial_view:
+            order_ids = OrderIMEIMapping.objects.filter(order__user=user.id, status=1, order_reference=search_params['order_id']).\
+                                                    values_list('order_id', flat=True)
+            search_parameters['order_id__in'] = list(chain(search_parameters['order_id__in'], order_ids))
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -1324,6 +1336,10 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
             order_id = data.order.original_order_id
             if not order_id:
                 order_id = str(data.order.order_code) + str(data.order.order_id)
+
+            # Overriding Order Id with Order Reference
+            if data.order_reference:
+                order_id = data.order_reference
             serial_number = ''
             if data.po_imei:
                 serial_number = data.po_imei.imei_number
@@ -1741,6 +1757,7 @@ def get_openjo_details(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master
+    from rest_api.views.production import get_user_stages
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['jo_id', 'jo_creation_date', 'sku__brand', 'sku__sku_category', 'sku__sku_class', 'sku__sku_code', 'stage', 'quantity']
     temp_data = copy.deepcopy( AJAX_DATA )
@@ -1774,15 +1791,21 @@ def get_openjo_details(search_params, user, sub_user):
         elif search_params['stage'] == 'Picked':
             jos = jos.filter(status = 'pick_confirm')
         else:
-            jos = jos.filter(status = 'pick_confirm')
+            #jos = jos.filter(status = 'pick_confirm')
             jos = list(jos.filter(**search_parameters).values_list('id', flat=True))
             jos = StatusTracking.objects.filter(status_id__in = jos, status_value = search_params['stage'], status_type='JO').values_list('status_id', flat=True)
             jos = JobOrder.objects.filter(id__in=jos)
     else:
         jos = JobOrder.objects.filter(**search_parameters).exclude(status = 'confirmed-putaway')
 
+    putaway_qtys = dict(POLocation.objects.filter(status=1, quantity__gt=0, job_order__product_code__user=user.id).values_list('job_order_id').\
+                                        distinct().annotate(tsum=Sum('quantity')))
+    all_stages = get_user_stages(user, user)
     for data in jos:
-        if (data.status == 'open') or (data.status == 'order-confirmed'):
+        stage_filter = {}
+        if search_params.get('stage', '') in all_stages:
+            stage_filter['status_value'] = search_params.get('stage', '')
+        elif (data.status == 'open') or (data.status == 'order-confirmed'):
             stage = 'Created'
             quantity = data.product_quantity
             final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
@@ -1792,26 +1815,28 @@ def get_openjo_details(search_params, user, sub_user):
             final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
         elif (data.status == 'location-assigned') or (data.status == 'grn-generated'):
             stage = 'Putaway pending'
-            quantity = data.product_quantity
+            quantity = putaway_qtys.get(data.id, 0)
             final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
-        elif (data.status == 'pick_confirm'):
-            stages_list = StatusTracking.objects.filter(status_id = data.id).values_list('original_quantity', 'status_value')
-            if 'stage' in search_params:
-                stages_list = StatusTracking.objects.filter(status_id = data.id, status_value = search_params['stage']).values_list('original_quantity', 'status_value')
-            if stages_list:
-                for sing_stage in stages_list:
-                    stage = sing_stage[1]
-                    quantity = sing_stage[0]
-                    final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
-            else:
-                stage = 'Picked'
-                quantity = data.product_quantity
-                final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
+        #elif (data.status == 'pick_confirm'):
         elif (data.status == 'partial_pick'):
             MaterialPicklist.objects.filter(jo_material__job_order__job_code= data.id)
             stage = 'Partially Picked'
             quantity = data.product_quantity
             final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
+        else:
+            stage = 'Picked'
+            quantity = data.product_quantity
+            final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
+        stages_list = StatusTracking.objects.filter(status_id = data.id).values_list('original_quantity', 'status_value')
+        if 'stage' in search_params:
+            stages_list = StatusTracking.objects.filter(status_id = data.id, **stage_filter).values_list('original_quantity', 'status_value')
+        if stages_list and search_params.get('stage', '') in ([''] + all_stages):
+            for sing_stage in stages_list:
+                stage = sing_stage[1]
+                quantity = sing_stage[0]
+                if quantity == 0:
+                    continue
+                final_data.append({'stage': stage, 'quantity': quantity, 'data': data})
 
     temp_data['recordsTotal'] = len(final_data)
     temp_data['recordsFiltered'] = len(final_data)

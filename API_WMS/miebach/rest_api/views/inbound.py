@@ -735,6 +735,7 @@ def switches(request, user=''):
                         'create_seller_order': 'create_seller_order',
                         'invoice_remarks': 'invoice_remarks',
                         'show_disc_invoice': 'show_disc_invoice',
+                        'serial_limit': 'serial_limit',
                         'increment_invoice': 'increment_invoice'
                       }
 
@@ -764,6 +765,9 @@ def switches(request, user=''):
                 data[0].save()
             if toggle_field == 'sku_sync' and value == 'true':
                 insert_skus(user.id)
+            elif toggle_field == 'increment_invoice' and value == 'true':
+                InvoiceSequence.objects.get_or_create(user_id=user.id, marketplace='', defaults={'status': 1, 'prefix': '',
+                                                        'creation_date': datetime.datetime.now(), 'value': 1})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -2141,6 +2145,11 @@ def create_return_order(data, i, user):
         sor_id = ''
         if data.has_key('sor_id') and data['sor_id'][i]:
             sor_id = data['sor_id'][i]
+        if data.get('order_imei_id', '') and data['order_imei_id'][i]:
+            order_map_ins = OrderIMEIMapping.objects.get(id=data['order_imei_id'][i])
+            data['order_id'][i] = order_map_ins.order.original_order_id
+            if not data['order_id'][i]:
+                data['order_id'][i] = str(order_map_ins.order.order_code) + str(order_map_ins.order.order_id)
         return_details = {'return_id': '', 'return_date': datetime.datetime.now(), 'quantity': quantity,
                           'sku_id': sku_id[0].id, 'status': 1, 'marketplace': marketplace, 'return_type': return_type}
         if data.has_key('order_id') and data['order_id'][i]:
@@ -2274,50 +2283,58 @@ def confirm_sales_return(request, user=''):
     data_dict = dict(request.POST.iterlists())
     return_type = request.POST.get('return_type', '')
     mp_return_data = {}
-    for i in range(0, len(data_dict['id'])):
-        all_data = []
-        check_seller_order = True
-        if not data_dict['id'][i]:
-            data_dict['id'][i], status, seller_order_ids = create_return_order(data_dict, i , user.id)
-            if seller_order_ids:
-                imeis = (data_dict['returns_imeis'][i]).split(',')
-                for imei in imeis:
-                    mp_return_data.setdefault(seller_order_ids[0], {}).setdefault(
-                           'imeis', []).append(imei)
-                check_seller_order = False
-            if status:
-                return HttpResponse(status)
-        order_returns = OrderReturns.objects.filter(id = data_dict['id'][i], status = 1)
-        if not order_returns:
-            continue
-        if 'returns_imeis' in data_dict.keys() and data_dict['returns_imeis'][i]:
-            save_return_imeis(user, order_returns[0], 'return', data_dict['returns_imeis'][i])
-            if check_seller_order and order_returns[0].seller_order:
-                imeis = (data_dict['returns_imeis'][i]).split(',')
-                for imei in imeis:
-                    mp_return_data.setdefault(order_returns[0].seller_order_id, {}).setdefault(
-                           'imeis', []).append(imei)
-        if 'damaged_imeis_reason' in data_dict.keys() and data_dict['damaged_imeis_reason'][i]:
-            save_return_imeis(user, order_returns[0], 'damaged', data_dict['damaged_imeis_reason'][i])
-            if check_seller_order and order_returns[0].seller_order:
-                imeis = (data_dict['damaged_imeis_reason'][i]).split(',')
-                for imei in imeis:
-                    imei = imei.split('<<>>')
-                    if imei:
-                        imei = imei[0]
+    log.info('Request params for Confirm Sales Return for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        for i in range(0, len(data_dict['id'])):
+            all_data = []
+            check_seller_order = True
+            if not data_dict['id'][i]:
+                data_dict['id'][i], status, seller_order_ids = create_return_order(data_dict, i , user.id)
+                if seller_order_ids:
+                    imeis = (data_dict['returns_imeis'][i]).split(',')
+                    for imei in imeis:
+                        mp_return_data.setdefault(seller_order_ids[0], {}).setdefault(
+                               'imeis', []).append(imei)
+                    check_seller_order = False
+                if status:
+                    return HttpResponse(status)
+            order_returns = OrderReturns.objects.filter(id = data_dict['id'][i], status = 1)
+            if not order_returns:
+                continue
+            if 'returns_imeis' in data_dict.keys() and data_dict['returns_imeis'][i]:
+                save_return_imeis(user, order_returns[0], 'return', data_dict['returns_imeis'][i])
+                if check_seller_order and order_returns[0].seller_order:
+                    imeis = (data_dict['returns_imeis'][i]).split(',')
+                    for imei in imeis:
                         mp_return_data.setdefault(order_returns[0].seller_order_id, {}).setdefault(
                                'imeis', []).append(imei)
-        return_loc_params = {'order_returns': order_returns, 'all_data': all_data, 'damaged_quantity': data_dict['damaged'][i],
-                             'request': request, 'user': user}
-        if return_type:
-            return_type = RETURNS_TYPE_MAPPING.get(return_type.lower(), '')
-        if return_type == 'rto':
-            return_loc_params.update({'is_rto':True})
-        locations_status = save_return_locations(**return_loc_params)
-        if not locations_status == 'Success':
-            return HttpResponse(locations_status)
-    if user.userprofile.user_type == 'marketplace_user':
-        check_and_update_order_status_data(mp_return_data, user, status='RETURNED')
+            if 'damaged_imeis_reason' in data_dict.keys() and data_dict['damaged_imeis_reason'][i]:
+                save_return_imeis(user, order_returns[0], 'damaged', data_dict['damaged_imeis_reason'][i])
+                if check_seller_order and order_returns[0].seller_order:
+                    imeis = (data_dict['damaged_imeis_reason'][i]).split(',')
+                    for imei in imeis:
+                        imei = imei.split('<<>>')
+                        if imei:
+                            imei = imei[0]
+                            mp_return_data.setdefault(order_returns[0].seller_order_id, {}).setdefault(
+                                   'imeis', []).append(imei)
+            return_loc_params = {'order_returns': order_returns, 'all_data': all_data, 'damaged_quantity': data_dict['damaged'][i],
+                                 'request': request, 'user': user}
+            if return_type:
+                return_type = RETURNS_TYPE_MAPPING.get(return_type.lower(), '')
+            if return_type == 'rto':
+                return_loc_params.update({'is_rto':True})
+            locations_status = save_return_locations(**return_loc_params)
+            if not locations_status == 'Success':
+                return HttpResponse(locations_status)
+        if user.userprofile.user_type == 'marketplace_user':
+            log.info('Update Marketplace User Returns Information for %s is %s' % (str(user.username), str(mp_return_data)))
+            check_and_update_order_status_data(mp_return_data, user, status='RETURNED')
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Confirm Sales return for ' + str(user.username) + ' is failed for ' + str(request.POST.dict()) + ' error statement is ' + str(e))
+
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt
@@ -4334,6 +4351,7 @@ def check_return_imei(request, user=''):
         for key, value in request.GET.iteritems():
             sku_code = ''
             order = None
+            order_imei_id = ''
             order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, order__user=user.id, status=1)
             if not order_imei:
                 return_data['status'] = 'Imei Number is invalid'
@@ -4347,19 +4365,22 @@ def check_return_imei(request, user=''):
                 order_id = order_imei[0].order.original_order_id
                 if not order_id:
                     order_id = order_imei[0].order.order_code + str(order_imei[0].order.order_id)
+                if order_imei[0].order_reference:
+                    order_id = order_imei[0].order_reference
+                    order_imei_id = order_imei[0].id
                 shipment_info = ShipmentInfo.objects.filter(order_id=order_imei[0].order_id, order__user=user.id)
                 if shipment_info:
                     invoice_number = shipment_info[0].invoice_number
                 return_data['data'] = {'sku_code': order_imei[0].order.sku.sku_code, 'invoice_number': invoice_number,
                                        'order_id': order_id, 'sku_desc': order_imei[0].order.title, 'shipping_quantity': 1,
-                                       'sor_id': order_imei[0].sor_id, 'quantity': 0}
+                                       'sor_id': order_imei[0].sor_id, 'quantity': 0, 'order_imei_id': order_imei_id}
                 order_return = OrderReturns.objects.filter(order_id=order_imei[0].order.id, sku__user=user.id, status=1)
                 if order_return:
                     return_data['data'].update({'id': order_return[0].id, 'return_id': order_return[0].return_id,
                                                 'return_type': order_return[0].return_type, 'sor_id': '', 'quantity': order_return[0].quantity})
                 log.info(return_data)
-        if user_profile.user_type == 'marketplace_user' and not return_data['data'].get('id', ''):
-            return_data['status'] = 'Return is not initiated'
+        #if user_profile.user_type == 'marketplace_user' and not return_data['data'].get('id', ''):
+        #    return_data['status'] = 'Return is not initiated'
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

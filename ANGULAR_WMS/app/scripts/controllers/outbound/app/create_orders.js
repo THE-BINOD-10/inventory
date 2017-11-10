@@ -48,7 +48,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.filterData.brands.push("All");
         vm.filterData.categories.push("All");
         vm.filterData.colors.push("All");
-        //vm.filterData.colors = ['red','white', 'yellow', 'All'];
+        vm.filterData.primary_details = data.data.primary_details;
+        vm.filterData.selectedBrands = {};
+        vm.filterData.subCats = {};
 
 	vm.brands = data.data.brands;
 	if (vm.brands.length === 0){
@@ -98,18 +100,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.catlog_data = {data: [], index: ""}
 
   vm.loading = true;
-
-  vm.size_form_data = function() {
-    var formdata = $('#size_form').serializeArray();
-    var size_stock = {};
-    $(formdata).each(function(index, obj) {
-        if(obj.value) {
-          size_stock[obj.name] = obj.value;
-        }
-    });
-    size_stock = JSON.stringify(size_stock);
-    return size_stock;
-  }
 
   vm.tag_details = function(cat_name, brand) {
 
@@ -215,6 +205,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
                 to_price: vm.toPrice, is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin}
+
     if(status) {
       angular.copy([], vm.catlog_data.data);
     }
@@ -320,42 +311,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       }
       vm.pdfDownloading = false;
     })
-
-    //vm.sizeform('clear');
-    /*    $('#size_form').trigger('reset');
-        vm.size_filter = ""; 
-        vm.size_filter_show = false;
-        vm.size_filter_data = {}; 
-        vm.catlog_data.index = ""; 
-        vm.catlog_data.data = []; 
-        var size_stock = {}; 
-        var stock_qty = {}; 
-        var formdata = $('#size_form').serializeArray();
-        $(formdata).each(function(index, obj) {
-          if(obj.value) {
-            size_stock[obj.name] = obj.value;
-          }
-        })
-    */
-    //    vm.size_filter = size_stock;
-        //stock_qty['size_filter'] = JSON.stringify(size_stock);
-
-
-    /*var all = $(".cat-tags");
-    var data = {brand: vm.brand, sale_through: vm.order_type_value, size_filter: JSON.stringify(size_stock)}
-    vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
-      if(data.message) {
-
-        vm.all_cate = data.data.categories;
-        if(vm.all_cate.length> 0) {
-          vm.all_cate.push("All")
-          vm.category = "All"
-          vm.get_category(true);
-        }
-        vm.brand_size_collect = data.data.size;
-        vm.brand_size_data = $.unique(data.data.size.type1)
-      }
-    })*/
   }
 
   vm.change_category = function(category) {
@@ -368,6 +323,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.filterData.selectedCats[category] = true;
     }
     vm.showFilter = false;
+    vm.from_cats = true;
     vm.get_category(true);
   }
 
@@ -452,14 +408,16 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     vm.catlog_data.index = "";
     vm.get_order_type();
-    var data = {is_catalog: true, sale_through: vm.order_type_value};
+    vm.showFilter = false;
+    change_filter_data();
+    /*var data = {is_catalog: true, sale_through: vm.order_type_value};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
 
       if(data.message) {
 
         vm.brands = data.data.brands;
       }
-    })
+    })*/
   }
   vm.get_order_type = function() {
 
@@ -483,7 +441,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
      Auth.logout().then(function(){
        $state.go("user.sagarfab");
-     })  
+     })
    }
 
   vm.date_changed = function(){
@@ -606,9 +564,16 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       }
     });
 
+    var temp_primary_data = [];
     angular.forEach(vm.filterData.selectedCats, function(value, key) {
       if (value) {
         category.push(key);
+        temp_primary_data[key] = [];
+        angular.forEach(vm.filterData.subCats[key], function(stat, sub_cat){
+          if(stat && sub_cat != 'All') {
+            temp_primary_data.push(sub_cat);
+          }
+        })
       }
     });
 
@@ -630,12 +595,14 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     vm.catlog_data.index = "";
     vm.brand = brand.join(",");
-    vm.category = category.join(",");
+    vm.category = temp_primary_data.join(","); //category.join(",");
     vm.color = color.join(",");
     vm.size_filter_data = vm.filterData.size_filter
+    //vm.primary_data = JSON.stringify(temp_primary_data);
     vm.fromPrice = vm.filterData.fromPrice;
     vm.toPrice = vm.filterData.toPrice;
     vm.showFilter = false;
+    vm.from_cats = false;
     vm.get_category(true);
     if( $state.$current.name == "user.App.Brands") {
       $state.go('user.App.Products');
@@ -654,6 +621,16 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.showFilter = true;
   }
 
+  vm.checkPrimaryFilter = function(primary_cat) {
+
+    if(!vm.filterData.selectedCats[primary_cat]) {
+
+      angular.forEach(vm.filterData.subCats[primary_cat], function(value ,sub_cat){
+        vm.filterData.subCats[primary_cat][sub_cat] = false;
+      })
+    }
+  }
+
   vm.clearFilters = function(data) {
 
       angular.forEach(vm.filterData.size_filter, function(value, key) {
@@ -666,6 +643,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
       angular.forEach(vm.filterData.selectedCats, function(value, key) {
         vm.filterData.selectedCats[key] = false;
+        vm.checkPrimaryFilter(key);
       });
 
       angular.forEach(vm.filterData.selectedColors, function(value, key) {
@@ -690,14 +668,42 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     $window.scrollTo(0, angular.element(".app_body").offsetTop);
   }
 
-  vm.checkFilters = function(value, data) {
+  vm.checkFilterBrands = function(value, data) {
 
     var all = data['All'];
     if (value != 'All') {
       data['All'] = false;
     } else {
       angular.forEach(data, function(value, key) {
-        data[key] = false;
+        if(key != 'All') {
+          data[key] = false;
+        }
+      })
+    }
+  }
+
+  vm.checkFilters = function(value, data, primary) {
+
+    var all = data['All'];
+    if (value != 'All') {
+      data['All'] = false;
+      var all_true = true;
+      for(var i=0;i<vm.filterData.primary_details.data[primary].length; i++) {
+        if(!data[vm.filterData.primary_details.data[primary][i]]) {
+          all_true = false;
+          break;
+        }
+      }
+      data['All'] = (all_true)? true: false;
+    } else if(value == 'All' && data['All']) {
+      angular.forEach(vm.filterData.primary_details.data[primary], function(key) {
+        data[key] = true;
+      })
+    } else {
+      angular.forEach(data, function(value, key) {
+        if(key != 'All') {
+          data[key] = false;
+        }
       })
     }
   }

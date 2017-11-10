@@ -7,21 +7,36 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   //you orders
   vm.you_orders = false;
   vm.orders_loading = false
-  vm.order_data = {}
+  vm.order_data = {data: []}
+  vm.index = ''
+  vm.show_no_data = false
   vm.get_orders = function(){
 
     vm.orders_loading = true;
-    vm.order_data = {}
-    Service.apiCall("get_customer_orders/").then(function(data){
+
+    vm.index = vm.order_data.data.length  + ':' + (vm.order_data.data.length + 100)
+    var data = {index: vm.index}
+    Service.apiCall("get_customer_orders/", 'GET', data).then(function(data){
       if(data.message) {
 
         console.log(data.data);
-        angular.copy(data.data, vm.order_data);
+        vm.order_data.data = vm.order_data.data.concat(data.data.data)
+        if(data.data.data.length == 0) {
+          vm.show_no_data = true
+        }
       }
       vm.orders_loading = false;
     })
   }
   vm.get_orders();
+
+  // Scrolling Event Function
+  vm.scroll = function(e) {
+    console.log("scroll")
+    if($(".your_orders:visible").length && !vm.orders_loading && !vm.show_no_data) {
+        vm.get_orders();
+    }
+  }
 }
 
 angular

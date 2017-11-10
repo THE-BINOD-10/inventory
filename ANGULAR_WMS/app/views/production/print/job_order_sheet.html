@@ -46,6 +46,7 @@
       <tr class="text-center">
         <th><center>S.No</center></th>
         <th><center>SKU Code</center></th>
+        <th><center>SKU Description</center></th>
         <th><center>Job Order </br> Quantity</center></th>
         <th><center>DT</center></th>
         <th><center>DT</center></th>
@@ -60,11 +61,12 @@
       <tr ng-repeat="(key, value) in showCase.final_data">
         <td><center>{{$index+1}}</center></td>
         <td><center>{{key}}</center></td>
-        <td><center>{{value}}</center></td>
+        <td><center>{{value.sku_desc}}</center></td>
+        <td><center>{{value.quantity}}</center></td>
         <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
       </tr>
       <tr>
-        <td colspan="2"><b>Totals:</b></td>
+        <td colspan="2"><b>Totals:</b></td><td></td>
         <td><center>{{showCase.total_data.quantity}}</center></td>
         <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
       </tr> 

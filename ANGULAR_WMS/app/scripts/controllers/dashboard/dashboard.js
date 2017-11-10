@@ -4,6 +4,13 @@ function dashboardCtrl($scope, $state, $http, $interval, COLORS, Session, $timeo
 
   $scope.session = Session;
 
+  $scope.po_data = [{key: 'pending_confirmation', value: 'PENDING CONFIRMATION'},
+                    {key: 'yet_to_receive', value: 'YET TO RECEIVE'},
+                    {key: 'pending_month', value: 'PENDING >1 MONTH'},
+                    {key: 'received_today', value: 'RECEIVED TODAY'},
+                    {key: 'putaway_pending', value: 'PUTAWAY PENDING'}
+                   ]
+
    function render_top_skus(graph_d) {
 
     var categories = [];

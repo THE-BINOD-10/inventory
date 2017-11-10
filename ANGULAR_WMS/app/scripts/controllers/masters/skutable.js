@@ -62,6 +62,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         zone:"",
                         sku_class:"",
                         sku_category:"",
+                        sub_category: "",
+                        primary_category: "",
                         threshold_quantity:"",
                         online_percentage:"",
                         status:0,
@@ -108,7 +110,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.files.push(args.file);
         });
     });
-    vm.isEmptyMarket = false 
+    vm.isEmptyMarket = false;
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
@@ -131,7 +133,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.sub_categories = data.sub_categories;
                   var index = vm.model_data.zones.indexOf(vm.model_data.sku_data.zone);
                   vm.model_data.sku_data.zone = vm.model_data.zones[index];
-                  
+
                   for (var j=0; j<vm.model_data.market_data.length; j++) {
                     var index = vm.model_data.market_list.indexOf(vm.model_data.market_data[j].market_sku_type);
                     vm.model_data.market_data[j].market_sku_type = vm.model_data.market_list[index];
@@ -280,6 +282,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.sku_data.sku_group = '';
         vm.model_data.market_list = data.market_places;
         vm.model_data.sizes_list = data.sizes_list;
+        vm.model_data.sub_categories = data.sub_categories;
         vm.model_data.sku_data.sku_size = vm.model_data.sizes_list[0];
         vm.model_data.sku_data.size_type = "Default";
         vm.change_size_type();

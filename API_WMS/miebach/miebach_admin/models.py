@@ -94,6 +94,7 @@ class SKUMaster(models.Model):
     load_unit_handle = models.CharField(max_length=32, default='unit', db_index=True)
     hsn_code = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default = 0)
     sub_category = models.CharField(max_length=64, default='')
+    primary_category = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

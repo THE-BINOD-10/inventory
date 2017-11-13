@@ -6,7 +6,7 @@ self.importScripts('./scripts/App/offlineDB.js');
    "use strict";
 
 
- var version        = "0.0.1-build03.0.99",
+ var version        = "0.0.1-build03.0.117",
       cacheName     = "stock1-app-" + version,
       Directory     ="";
  var APICALL        ="https://api.stockone.in/rest_api/";

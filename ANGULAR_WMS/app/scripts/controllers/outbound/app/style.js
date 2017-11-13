@@ -116,6 +116,27 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   }
   vm.get_create_order_data();*/
 
+  vm.includeDesktopTemplate = false;
+  vm.includeMobileTemplate = false;
+  vm.screenSize = function() {
+
+    var screenWidth = $window.innerWidth;
+
+    if (screenWidth < 768){
+
+      vm.includeMobileTemplate = true;
+      vm.includeDesktopTemplate = false;
+    }else{
+
+      vm.includeDesktopTemplate = true;
+      vm.includeMobileTemplate = false;
+    }
+  }
+  vm.screenSize();
+  angular.element($window).bind('resize', function(){
+
+    vm.screenSize();
+  });
 }
 
 angular

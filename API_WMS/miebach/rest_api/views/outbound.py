@@ -4811,6 +4811,7 @@ def get_customer_order_detail(request, user=""):
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
     response_data['data'] = list(order.values('id','order_id','creation_date', 'status', 'quantity', 'invoice_amount', 'sku__sku_code', 'sku__image_url', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class'))
+    total_picked_quantity = 0
 
     for record in response_data['data']:
         tax_data = CustomerOrderSummary.objects.filter(order__id = record['id'], order__user = user.id)
@@ -4818,6 +4819,7 @@ def get_customer_order_detail(request, user=""):
         if not picked_quantity:
             picked_quantity = 0
         record['picked_quantity'] = picked_quantity
+        total_picked_quantity += picked_quantity
         if tax_data:
             tax_data = tax_data[0]
             record['invoice_amount'] = record['invoice_amount'] - tax_data.tax_value
@@ -4828,6 +4830,7 @@ def get_customer_order_detail(request, user=""):
 
     order_ids = order.values_list('id', flat=True)
     sum_data = order.aggregate(amount = Sum('invoice_amount'), quantity = Sum('quantity'))
+    sum_data['picked_quantity'] = total_picked_quantity
     response_data['sum_data'] = sum_data
     data_status = order.filter(status=1)
     if data_status:

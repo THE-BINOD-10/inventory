@@ -2,7 +2,7 @@
   <div class="page-layout">
     <div class='layout-header'>
       <div class="pull-left" ng-include="'views/common/title.html'"></div>
-      <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.print_enable">Download Excel</button>
+      <div ng-include="'views/common/excel.html'"></div>
     </div>
     <div class="layout-body">
       <div class="panel">

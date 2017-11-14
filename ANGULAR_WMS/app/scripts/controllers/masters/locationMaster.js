@@ -81,7 +81,7 @@ function LocationMasterCtrl($scope, $state, $http, $timeout, Session, Service) {
           location_data();
           vm.close();
         } else {
-          vm.service.pop_msg(data);
+          vm.service.pop_msg(data.data);
         }
       })
     } else {

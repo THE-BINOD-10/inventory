@@ -245,7 +245,9 @@ def dashboard(request, user=''):
     # order quantity - receive quantity
     #yet_to_receive = all_pos.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id,
     #                 received_quantity__lt=F('open_po__order_quantity')).aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']
-    yet_to_receive = all_pos.aggregate(Sum('open_po__order_quantity'), Sum('received_quantity'))
+    yet_to_receive = all_pos.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
+                            filter(received_quantity__lt=F('open_po__order_quantity')).\
+                            aggregate(Sum('open_po__order_quantity'), Sum('received_quantity'))
     if not yet_to_receive['open_po__order_quantity__sum']:
         yet_to_receive['open_po__order_quantity__sum'] = 0
     if not yet_to_receive['received_quantity__sum']:

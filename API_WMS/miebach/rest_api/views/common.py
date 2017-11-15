@@ -1798,7 +1798,7 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile):
             check_dict = {}
             prefix_key = 'order__'
             if seller_order_summary[0].seller_order:
-                order = seller_order_summary[0].seller_order
+                order = seller_order_summary[0].seller_order.order
                 prefix_key = 'seller_order__order__'
             else:
                 order = seller_order_summary[0].order

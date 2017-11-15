@@ -38,7 +38,7 @@
                     <td class="text-right">{{record.unit_price}}</td>
                     <td class="text-right">{{record.quantity}}</td>
                     {% if show_disc_invoice == 'true' %}
-                    <td class="text-right">{{record.discount}}</td>
+                    <td class="text-right">{{record.discount}}<br><span class="tax-percentage">@{{record.discount_percentage}}%</span></td>
                     {% endif %}
                     <!--<td class="text-right">{{record.base_price}}</td>-->
                     <td class="text-right"> {{record.amt}} </td>

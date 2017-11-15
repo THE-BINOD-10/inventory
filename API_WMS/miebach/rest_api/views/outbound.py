@@ -1803,6 +1803,8 @@ def edit_invoice(request, user=''):
 
 
 def add_consignee_data(invoice_data, order_ids, user):
+    """ Add Ship to Address and Payment terms"""
+
     cust_ord_objs = CustomerOrderSummary.objects.filter(order__id__in = order_ids)
     if not cust_ord_objs:
         return invoice_data
@@ -5303,7 +5305,7 @@ def generate_customer_invoice(request, user=''):
             else:
                 merge_data[detail[field_mapping['sku_code']]] += detail['total_quantity']
 
-        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, is_seller_order=True)
+        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, is_seller_order=True, sell_ids=sell_ids)
         invoice_data = modify_invoice_data(invoice_data, user)
         ord_ids = order_ids.split(",")
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
@@ -5322,7 +5324,8 @@ def generate_customer_invoice(request, user=''):
         invoice_no = invoice_data['invoice_no']
         if is_marketplace:
             #invoice_no = user_profile.prefix + '/' + str(inv_month_year) + '/' + 'A-' + str(order.order_id)
-            invoice_data['order_id'] = sor_id
+            #invoice_data['order_id'] = sor_id
+            invoice_data['sor_id'] = sor_id
         if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no

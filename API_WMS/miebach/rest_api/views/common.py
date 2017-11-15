@@ -1834,50 +1834,66 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile):
         invoice_number = 'TI/%s/%s' %(invoice_date.strftime('%m%y'), order_no)
     return invoice_number
 
-def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
-    data = []
-    imei_data = []
-    customer_details = []
-    user_profile = UserProfile.objects.get(user_id=user.id)
-    order_date = ''
-    order_id = ''
-    marketplace = ''
-    consignee = ''
-    order_no = ''
-    purchase_type = ''
-    seller_address = ''
-    customer_address = ''
-    total_quantity = 0
-    total_amt = 0
-    total_taxable_amt = 0
-    total_invoice = 0
-    total_tax = 0
-    total_mrp = 0
-    _total_tax = 0
+def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids = ''):
+    summary_filter = {}
+    start_index = ''
+    stop_index = ''
+    order_seller_summary = seller_summary.filter(Q(seller_order__order_id=dat.id) | Q(order_id=dat.id))
+    if sell_ids and sell_ids.get('pick_number__in'):
+        summary_filter['pick_number__lt'] = int(min(sell_ids['pick_number__in']))
+        start_index = order_seller_summary.filter(**summary_filter).aggregate(Sum('quantity'))['quantity__sum']
+        if not start_index:
+            start_index = 0
+        stop_index = order_seller_summary.filter(pick_number__in=sell_ids['pick_number__in']).aggregate(Sum('quantity'))['quantity__sum']
+        if not stop_index:
+            stop_index = 0
+        print start_index, stop_index
+    imeis = list(OrderIMEIMapping.objects.filter(order__user = user.id, order_id = dat.id, sor_id = sor_id).order_by('creation_date').\
+                                    values_list('po_imei__imei_number', flat=True))
+    if start_index or stop_index:
+        stop_index = int(start_index) + int(stop_index)
+        imeis = imeis[int(start_index): stop_index]
+    return imeis
+
+def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, sell_ids=''):
+    """ Build Invoice Json Data"""
+
+    # Initializing Default Values
+    data, imei_data, customer_details  = [], [], []
+    order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address = '', '', '', '', '', '', '', ''
+    tax_type, seller_company = '', ''
+    total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0}
-    is_gst_invoice = False
-    gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
-    invoice_date = datetime.datetime.now()
     hsn_summary = {}
+    is_gst_invoice = False
+    invoice_date = datetime.datetime.now()
+    gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
+
+    # Getting the values from database
+    user_profile = UserProfile.objects.get(user_id=user.id)
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     invoice_remarks = get_misc_value('invoice_remarks', user.id)
     show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
-    seller_company = ''
+
     if len(invoice_remarks.split("<<>>")) > 1:
         invoice_remarks = invoice_remarks.split("<<>>")
         invoice_remarks = "\n".join(invoice_remarks)
+
     if display_customer_sku == 'true':
         customer_sku_codes = CustomerSKU.objects.filter(sku__user=user.id).exclude(customer_sku_code='').values('sku__sku_code',
                                                         'customer__customer_id', 'customer_sku_code')
     if order_ids:
+        sor_id = ''
         order_ids = order_ids.split(',')
         order_data = OrderDetail.objects.filter(id__in=order_ids)
-        seller_summary = SellerOrderSummary.objects.filter(seller_order__order_id__in=order_ids)
+        seller_summary = SellerOrderSummary.objects.filter(Q(seller_order__order_id__in=order_ids) | Q(order_id__in=order_ids))
         if seller_summary:
-            seller = seller_summary[0].seller_order.seller
-            seller_company = seller.name
-            seller_address = seller.name + '\n' + seller.address + "\nCall: " \
+            if seller_summary[0].seller_order:
+                seller = seller_summary[0].seller_order.seller
+                sor_id = seller_summary[0].seller_order.sor_id
+                seller_company = seller.name
+                seller_address = seller.name + '\n' + seller.address + "\nCall: " \
                                     + seller.phone_number + "\nEmail: " + seller.email_id \
                                     + "\nGSTIN No: " + seller.tin_number
 
@@ -1887,11 +1903,14 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                                                       values('customer_id', 'name', 'email_id', 'tin_number', 'address',
                                                              'credit_period', 'phone_number'))
             if customer_details:
-                consignee = customer_details[0]['name'] + '\n' + customer_details[0]['address'] + "\nCall: " \
-                            + customer_details[0]['phone_number'] + "\nEmail: " + customer_details[0]['email_id']
-                customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address'] + "\nCall: " \
-                                 + customer_details[0]['phone_number'] + "\nEmail: " + customer_details[0]['email_id'] \
-                                 + "\nGSTIN No: " + customer_details[0]['tin_number']
+                customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address']
+                if customer_details[0]['phone_number']:
+                    customer_address += ("\nCall: " + customer_details[0]['phone_number'])
+                if customer_details[0]['email_id']:
+                    customer_address += ("\nEmail: " + customer_details[0]['email_id'])
+                if customer_details[0]['tin_number']:
+                    customer_address += ("\nGSTIN No: " + customer_details[0]['tin_number'])
+                consignee = customer_address
             else:
                 customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                    + str(dat.telephone) + "\nEmail: " + str(dat.email_id)
@@ -1901,13 +1920,13 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                             + dat.telephone + "\nEmail: " + dat.email_id
 
         picklist = Picklist.objects.filter(order_id__in=order_ids).order_by('-updation_date')
-        picklist_obj = picklist
         if picklist:
             invoice_date = picklist[0].updation_date
         invoice_date = get_local_date(user, invoice_date, send_date='true')
 
         if datetime.datetime.strptime('2017-07-01', '%Y-%m-%d').date() <= invoice_date.date():
             is_gst_invoice = True
+
         for dat in order_data:
             order_id = dat.original_order_id
             order_no = str(dat.order_id)
@@ -2013,6 +2032,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
             else:
                 _tax = (amt * (vat / 100))
 
+            discount_percentage = "%.1f" % (float((discount * 100)/(quantity * unit_price)))
             unit_price = "%.2f" % unit_price
             total_quantity += quantity
             _total_tax += _tax
@@ -2026,23 +2046,22 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
                 if customer_sku_code_ins:
                     sku_code = customer_sku_code_ins[0]['customer_sku_code']
 
-            sor_id = ''
-            sor_data = SellerOrder.objects.filter(order_id = dat.id)
-            if sor_data:
-                sor_id = sor_data[0].sor_id
-            imeis = OrderIMEIMapping.objects.filter(order__user = user.id, order_id = dat.id, sor_id = sor_id)
-            temp_imeis = []
-            if imeis and show_imei_invoice == 'true':
-                for imei in imeis:
-                    if imei:
-                        temp_imeis.append(imei.po_imei.imei_number)
-            imei_data.append(temp_imeis)
+            if show_imei_invoice == 'true':
+                temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
+                # imeis = OrderIMEIMapping.objects.filter(order__user = user.id, order_id = dat.id, sor_id = sor_id)
+                # temp_imeis = []
+                # if imeis:
+                #     for imei in imeis:
+                #         if imei:
+                #             temp_imeis.append(imei.po_imei.imei_number)
+                imei_data.append(temp_imeis)
 
             data.append({'order_id': order_id, 'sku_code': sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
                          'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
                          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
                          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
-                         'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis})
+                         'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
+                         'discount_percentage': discount_percentage})
 
     _invoice_no = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile)
     inv_date = invoice_date.strftime("%m/%d/%Y")
@@ -2073,7 +2092,6 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False):
         company_address = seller.address
         email = seller.email_id
         gstin_no = seller.tin_number
-        company_name = seller.name
         company_address = company_address.replace("\n", " ")
         company_name = 'SHPROC Procurement Pvt. Ltd.'
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name, 'company_address': company_address,

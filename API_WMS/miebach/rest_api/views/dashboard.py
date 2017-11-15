@@ -245,10 +245,14 @@ def dashboard(request, user=''):
     # order quantity - receive quantity
     #yet_to_receive = all_pos.exclude(status__in=['location-assigned', 'confirmed-putaway']).filter(open_po__sku__user=user.id,
     #                 received_quantity__lt=F('open_po__order_quantity')).aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']
-    yet_to_receive = all_pos.aggregate(Sum('open_po__order_quantity'), Sum('received_quantity'))
+    yet_to_receive = all_pos.exclude(status__in=['location-assigned', 'confirmed-putaway']).\
+                            filter(received_quantity__lt=F('open_po__order_quantity')).\
+                            aggregate(Sum('open_po__order_quantity'), Sum('received_quantity'))
+    if not yet_to_receive['open_po__order_quantity__sum']:
+        yet_to_receive['open_po__order_quantity__sum'] = 0
+    if not yet_to_receive['received_quantity__sum']:
+        yet_to_receive['received_quantity__sum'] = 0
     yet_to_receive = yet_to_receive['open_po__order_quantity__sum'] - yet_to_receive['received_quantity__sum']
-    if not yet_to_receive:
-        yet_to_receive = 0
     purchase_orders = {'pending_confirmation': round(pending_confirmation), 'yet_to_receive': round(yet_to_receive),
                        'pending_month': round(pending_month), 'received_today': round(received_today), 'putaway_pending': round(putaway_pending)}
 

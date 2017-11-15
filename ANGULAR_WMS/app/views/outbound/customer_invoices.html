@@ -2,14 +2,14 @@
   <div class="page-layout">
     <div class='layout-header'>
       <div class="pull-left" ng-include="'views/common/title.html'"></div>
-      <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.print_enable">Download Excel</button>
+      <div ng-include="'views/common/excel.html'"></div>
     </div>
     <div class="layout-body">
       <div class="panel">
         <div ng-if="showCase.display" ng-include="'views/common/datatable.html'"></div>
         <div class="panel-footer">
-          <button type="button" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_invoice()" ng-disabled="showCase.bt_disable">Generate Invoice</button>
-          <button type="button" class="btn btn-warning pull-right mr20" ng-click="showCase.edit_invoice()" ng-disabled="showCase.bt_disable" ng-if="user.user_profile['user_type'] == 'warehouse_user'">Edit Invoice</button> 
+          <button type="button" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_invoice('generate')" ng-disabled="showCase.bt_disable">Generate Invoice</button>
+          <button type="button" class="btn btn-warning pull-right mr20" ng-click="showCase.generate_invoice('edit')" ng-disabled="showCase.bt_disable">Edit Invoice</button>
         </div>
       </div>
     </div>

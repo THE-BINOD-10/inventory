@@ -2558,6 +2558,7 @@ def validate_jo_vendor_stock(all_data, user, job_code):
     return status
 
 def consume_vendor_stock(all_data, user, job_code):
+    stages = get_user_stages(user, user)
     for key,value in all_data.iteritems():
         job_order = JobOrder.objects.filter(job_code=job_code, product_code__wms_code=key, product_code__user=user.id)
         for val in value:
@@ -2588,6 +2589,11 @@ def consume_vendor_stock(all_data, user, job_code):
                 jo_material.save()
                 jo_material.job_order.status = 'pick_confirm'
                 jo_material.job_order.save()
+        if stages:
+            stat_obj = StatusTracking(status_id=jo_material.job_order.id, status_value=stages[0], status_type='JO',
+                                        quantity=jo_material.job_order.product_quantity,
+                                        original_quantity=jo_material.job_order.product_quantity)
+            stat_obj.save()
     return "Confirmed Successfully"
 
 

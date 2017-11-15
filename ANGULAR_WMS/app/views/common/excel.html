@@ -1,1 +1,3 @@
-<button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.print_enable">Download Excel</button>
+<button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']]">
+{{ (showCase.service.excel_downloading[showCase.dtInstance.DataTable.context[0].ajax.data['datatable']])? 'Downloading Excel' : 'Download Excel'; }}
+</button>

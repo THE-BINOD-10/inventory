@@ -38,7 +38,7 @@ from django.db.models.fields import DateField, CharField
 import re
 
 from django.template import loader, Context
-
+from barcodes import *
 log = init_logger('logs/common.log')
 init_log = init_logger('logs/integrations.log')
 # Create your views here.
@@ -3448,71 +3448,77 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 sku_data = SKUMaster.objects.filter(Q(ean_number = sku) | Q(wms_code = sku), user=user.id)[0]
             else:
                 sku_data = SKUMaster.objects.filter(sku_code = sku, user=user.id)[0]
-            single = copy.deepcopy(BARCODE_DICT[pdf_format])
-            single['SKUCode'] = sku
-            single['Label'] = label
+            single = {}#copy.deepcopy(BARCODE_DICT[pdf_format])
+            single['SKUCode'] = sku if sku else label
+            single['Label'] = label if label else sku
+
             if barcode_opt == 'sku_ean' and sku_data.ean_number:
                 single['Label'] = str(sku_data.ean_number)
-            if not single['Label']:
-                single['Label'] = sku
-            if not sku:
-                single['SKUCode'] = label
+
             single['Size'] = str(sku_data.sku_size).replace("'",'')
             single['SKUPrintQty'] = quant
             single['Brand'] = sku_data.sku_brand.replace("'",'')
             single['SKUDes'] = sku_data.sku_desc.replace("'",'')
-            if single.has_key('UOM'):
-                single['UOM'] = sku_data.measurement_type.replace("'",'')
-            if single.has_key('Style'):
-                single['Style'] = str(sku_data.style_name).replace("'",'')
-            if single.has_key('Color'):
-                single['Color'] = sku_data.color.replace("'",'')
-            if single.has_key('Product'):
-                single['Product'] = sku_data.sku_desc
-                if len(sku_data.sku_desc) >= 25:
-                    single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
-            if single.has_key('Company'):
-                single['Company'] = user_prf.company_name.replace("'",'')
-            if single.has_key('DesignNo'):
-                single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
-            if pdf_format in ['format3', 'format2', 'format4']:
-                present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
-                if pdf_format == 'format2':
-                    single["Packed on"] = str(present).replace("'",'')
-                    single['Marketed By'] = user_prf.company_name.replace("'",'')
-                if pdf_format == 'format3':
-                    single['MFD'] = str(present).replace("'",'')
-                    single['Marketed By'] = user_prf.company_name.replace("'",'')
-                    phone_number = user_prf.phone_number
-                    if not phone_number:
-                        phone_number = ''
-                    single['Contact No'] = phone_number
-                    single['Email'] = user.email
-                single["Gender"] = str(sku_data.style_name).replace("'",'')
-                single['MRP'] = str(sku_data.price).replace("'",'')
-                order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
-                if order_label:
-                    order_label = order_label[0]
-                    single["Vendor SKU"] = order_label.vendor_sku
-                    single["SKUCode"] = order_label.item_sku
-                    single['MRP'] = order_label.mrp
-                    single['Phone'] = user_prf.phone_number
-                    single['Email'] = user.email
-                    single["PO No"] = order_label.order.original_order_id
-                    single['Color'] = order_label.color.replace("'",'')
-                    single['Size'] = str(order_label.size).replace("'",'')
-                    if not single["PO No"]:
-                        single["PO No"] = str(order_label[0].order.order_code) + str(order_label[0].order.order_id)
+	    single['UOM'] = sku_data.measurement_type.replace("'",'')
+	    single['Style'] = str(sku_data.style_name).replace("'",'')
+	    single['Color'] = sku_data.color.replace("'",'')
+	    single['Product'] = sku_data.sku_desc
+	    if len(sku_data.sku_desc) >= 25:
+		single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
+            single['Company'] = user_prf.company_name.replace("'",'')
+            single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
+            present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
+	    single["Packed on"] = str(present).replace("'",'')
+	    single['Marketed By'] = user_prf.company_name.replace("'",'')
+	    single['MFD'] = str(present).replace("'",'')
+	    phone_number = user_prf.phone_number
+	    if not phone_number:
+		phone_number = ''
+	    single['Contact No'] = phone_number
+	    single['Email'] = user.email
+	    single["Gender"] = str(sku_data.style_name).replace("'",'')
+	    single['MRP'] = str(sku_data.price).replace("'",'')
+	    order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
+
+	    if order_label:
+		order_label = order_label[0]
+		single["Vendor SKU"] = order_label.vendor_sku
+		single["SKUCode"] = order_label.item_sku
+		single['MRP'] = order_label.mrp
+		single['Phone'] = user_prf.phone_number
+		single['Email'] = user.email
+		single["PO No"] = order_label.order.original_order_id
+		single['Color'] = order_label.color.replace("'",'')
+		single['Size'] = str(order_label.size).replace("'",'')
+		if not single["PO No"]:
+		    single["PO No"] = str(order_label[0].order.order_code) + str(order_label[0].order.order_id)
                 address = user_prf.address
-                if BARCODE_ADDRESS_DICT.get(user.username, ''):
-                    address = BARCODE_ADDRESS_DICT.get(user.username)
+	    if BARCODE_ADDRESS_DICT.get(user.username, ''):
+		address = BARCODE_ADDRESS_DICT.get(user.username)
                 single['Manufactured By'] = address.replace("'",'')
-            elif pdf_format == 'Bulk Barcode':
+            if "bulk" in pdf_format.lower():
                 single['Qty'] = single['SKUPrintQty']
                 single['SKUPrintQty'] = "1"
             barcodes_list.append(single)
-    constructed_url = barcode_service(BARCODE_KEYS[pdf_format], barcodes_list, pdf_format)
-    return constructed_url
+    return get_barcodes1(make_data_dict(barcodes_list, user_prf, pdf_format))
+
+def make_data_dict(barcodes_list, user_prf, pdf_format):
+
+    format_type, size  = pdf_format.split("_") if "_" in pdf_format else (1, '60X30')
+    objs = BarcodeSettings.objects.filter(user=user_prf.user, format_type=str(format_type))
+    if not objs:
+        data_dict = {'customer': user_prf.user.username, 'info': barcodes_list}
+        data_dict.update(settings.BARCODE_DEFAULT)
+    else:
+        data_dict = {'customer': user_prf.user.username,
+                 'info': barcodes_list,
+                 'type': objs[0].format_type if objs[0].format_type else settings.BARCODE_DEFAULT.get('format_type'),
+                 'size': eval(objs[0].size) if objs[0].size else settings.BARCODE_DEFAULT.get('size'),
+                 'show_fields': eval(objs[0].show_fields) if objs[0].show_fields else settings.BARCODE_DEFAULT.get('show_fields'),
+                 'rows_columns' : eval(objs[0].rows_columns) if objs[0].rows_columns else settings.BARCODE_DEFAULT.get('rows_columns'),
+                 'styles' : eval(objs[0].styles) if objs[0].styles not in ('{}', '', None) else settings.BARCODE_DEFAULT.get('styles'),
+                    }
+    return data_dict
 
 def barcode_service(key, data_to_send, format_name=''):
     url = 'http://sandhani-001-site1.htempurl.com/Webservices/BarcodeServices.asmx/GetBarCode'
@@ -4169,7 +4175,6 @@ def check_and_update_order_status_data(shipped_orders_dict, user, status=''):
                     order_status_dict[order_detail_id]['subOrders'][index]['lineItems'].append(imei_dict)
 
             final_data = order_status_dict.values()
-            print final_data
             call_response = obj.set_return_order_status(final_data, user=user, status=status)
             init_log.info(str(call_response))
             if isinstance(call_response, dict) and call_response.get('status') == 1:
@@ -4307,6 +4312,22 @@ def get_jo_reference(user):
     else:
         jo_reference = 1
     return jo_reference
+
+def get_barcodes(request):
+    return  HttpResponse(get_barcodes2())
+
+def get_format_types(request):
+    format_types = {}
+    for i in BarcodeSettings.objects.filter(user=request.user).order_by('-format_type'):
+        if i.size:
+            try:
+                size = "%sX%s" % eval(i.size)
+            except:
+                size = i.size
+            format_t = "_".join([i.format_type, size])
+            format_types.update({format_t: i.format_type})
+
+    return HttpResponse(json.dumps({'data': format_types}))
 
 def get_serial_limit(user_id, imei):
     ''' it will return serial limit '''

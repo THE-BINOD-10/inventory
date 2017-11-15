@@ -194,20 +194,49 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.close_po = close_po;
+    vm.closed_po = {};
     function close_po(data) {
         var elem = angular.element($('form'));
-        elem = elem[0];
-        elem = $(elem).serializeArray();
-        //elem.push({name: "new_sku", value: vm.new_sku});
-        vm.service.apiCall('close_po/', 'GET', elem, true).then(function(data){
-          if(data.message) {
-            pop_msg(data.data)
-            if(data.data == 'Updated Successfully') {
-              vm.close();
-              vm.service.refresh(vm.dtInstance);
-            }
-          }
+        vm.closed_po['elem'] = $(elem[0]).serializeArray();
+        swal2({
+          title: 'Do you want to close the PO',
+          text: '',
+          input: 'text',
+          confirmButtonColor: '#d33',
+          // cancelButtonColor: '#d33',
+          confirmButtonText: 'Confirm',
+          cancelButtonText: 'Cancel',
+          showLoaderOnConfirm: true,
+          inputOptions: 'Testing',
+          inputPlaceholder: 'Type Reason',
+          confirmButtonClass: 'btn btn-danger',
+          cancelButtonClass: 'btn btn-default',
+          showCancelButton: true,
+          preConfirm: function (text) {
+            return new Promise(function (resolve, reject) {
+              vm.closed_po.elem.push({name: 'remarks', value: text});
+              vm.service.apiCall('close_po/', 'GET', vm.closed_po.elem, true).then(function(data){
+                if(data.message) {
+                  pop_msg(data.data)
+                  if(data.data == 'Updated Successfully') {
+                    vm.close();
+                    vm.service.refresh(vm.dtInstance);
+                  }
+                }
+              });
+              resolve();
+            })
+          },
+          allowOutsideClick: false,
+          // buttonsStyling: false
+        }).then(function (text) {
+            swal2({
+              type: 'success',
+              title: 'Receved PO is Deleted!',
+              // html: 'Submitted text is: ' + text
+            })
         });
+
     }
 
     function pop_msg(msg) {
@@ -1379,4 +1408,5 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       return index;
     }
+
 }

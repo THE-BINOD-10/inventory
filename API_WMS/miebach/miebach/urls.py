@@ -6,6 +6,7 @@ from django.conf import settings
 from miebach_admin.views import *
 from api_calls import urls as api_calls_urls
 from rest_api import urls as rest_api_urls
+
 admin.autodiscover()
 
 #urlpatterns = patterns('miebach_admin.views',

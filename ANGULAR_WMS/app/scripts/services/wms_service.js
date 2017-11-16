@@ -2,12 +2,17 @@
 
 var app = angular.module('urbanApp')
 
-app.service('Service',['$rootScope', '$compile','$q', '$http', '$state', '$timeout', 'Session', 'colFilters', 'SweetAlert', 'COLORS', 'DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', '$window', Service]); 
+app.service('Service',['$rootScope', '$compile','$q', '$http', '$state', '$timeout', 'Session', 'colFilters', 'SweetAlert', 'COLORS', 'DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'DTDefaultOptions', '$window', Service]);
 
-function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, colFilters, SweetAlert, COLORS, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, $window) {
+function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, colFilters, SweetAlert, COLORS, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, DTDefaultOptions, $window) {
 
     var vm = this;
     vm.colFilters = colFilters
+
+    DTDefaultOptions.setLanguage({
+    // ...
+      sProcessing: '<div class="spinner"><div></div><div></div><div></div><div></div></div>'//'<img src="images/loader.gif" style="width:50px;">'
+    });
 
     vm.stock_transfer = "";
 
@@ -385,6 +390,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       angular.copy(from, to);
     }
 
+    /*** Excel Download ***/
+
+    vm.excel_downloading = {};
+
     vm.download_excel = function download_excel(headers, search) {
 
       vm.print_enable = true;
@@ -399,13 +408,23 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       data['search[value]'] = $(".dataTables_filter").find("input").val();
       data = $.param(data);
       $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-      $http({  
-               method: 'POST',
-               url: Session.url+"results_data/",
-               data: data}).success(function(data, status, headers, config) {
-           window.location = Session.url+data;
-           vm.print_enable = false;
-      });
+      vm.showNoty("Download Excel started");
+      vm.excel_downloading[search['datatable']] = true;
+      $http({
+        method: 'POST',
+        url: Session.url+"results_data/",
+        data: data})
+        .then(function(data) {
+          window.location = Session.url+data.data;
+          vm.print_enable = false;
+          vm.showNoty("Downloaded Excel Successfully")
+          vm.excel_downloading[search['datatable']] = false;
+        }, function(response) {
+          vm.print_enable = false;
+          vm.showNoty("Downloading Fail");
+          vm.excel_downloading[search['datatable']] = false;
+        }
+      );
     }
 
     vm.show_tab = function(data) {
@@ -899,8 +918,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
         if(data.message) {
 
-            var href_url = data.data;
-
+            var href_url = Session.host.concat(data.data.slice(1, -1));
+            console.log(href_url);
             var downloadpdf = $('<a id="downloadpdf" target="_blank" href='+href_url+' >');
 
             $('body').append(downloadpdf);

@@ -101,6 +101,7 @@
                    <input type="hidden" value="{{data_split.id}}" name="id">
                    <input type="hidden" value="" name="track_id">
                    <input type="hidden" value="{{ data_split.sor_id }}" name="sor_id">
+                   <input type="hidden" value="{{ data_split.order_imei_id }}" name="order_imei_id">
                  </td>
                  <td ng-if="user.user_profile['user_type'] != 'marketplace_user' && showCase.return_process == 'sku_code'">
                    <input type="text" name="marketplace" class="form-control" ng-model="data_split.marketplace">

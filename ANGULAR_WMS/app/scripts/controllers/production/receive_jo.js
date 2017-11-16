@@ -48,24 +48,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 if(data.message) {
                   angular.copy(data.data, vm.model_data);
                   var skus_list = [];
+                  vm.final_data = {};
                   angular.forEach(vm.model_data.data, function(record){
                     if (skus_list.indexOf(record.wms_code) == -1){
                         skus_list.push(record.wms_code);
+                        vm.final_data[record.wms_code] = {quantity: 0, sku_desc: record.sku_desc}
                         }
                   });
-                  vm.final_data = {};
                   vm.total_data = {quantity: 0};
                   for (var i=0; i<skus_list.length; i++){
                     var sku_one = skus_list[i];
-                    vm.final_data[sku_one] = 0;
                     angular.forEach(vm.model_data.data, function(record){
                       if (record.wms_code == sku_one){
-                        vm.final_data[sku_one] = vm.final_data[sku_one] + record.product_quantity;
+                        vm.final_data[sku_one].quantity += record.product_quantity;
                       }
                     });
                   }
                   angular.forEach(vm.final_data, function(value, key){
-                    vm.total_data.quantity += value;
+                    vm.total_data.quantity += value.quantity;
                   });
 
 

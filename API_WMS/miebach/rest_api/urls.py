@@ -312,6 +312,8 @@ urlpatterns += [
     url(r'^po_serial_mapping_upload/$', po_serial_mapping_upload),
     url(r'^job_order_form/$', job_order_form),
     url(r'^job_order_upload/$', job_order_upload),
+    url(r'^marketplace_serial_form/$', marketplace_serial_form),
+    url(r'^marketplace_serial_upload/$', marketplace_serial_upload),
 
     #configurations
     url(r'^configurations/$',configurations),
@@ -326,6 +328,7 @@ urlpatterns += [
     url(r'^save_tally_data/$',save_tally_data),
     url(r'^delete_tally_data/$',delete_tally_data),
     url(r'^delete_tax/$', delete_tax),
+    url(r'^update_invoice_sequence/$', update_invoice_sequence),
 
     #manage users
     url(r'^add_user/$',add_user),
@@ -407,4 +410,7 @@ urlpatterns += [
     #update_picklist_loc
     url(r'update_picklist_loc/',update_picklist_loc),
 
+    #Barcodes
+    url('^GetBarcodes/$', get_barcodes),
+    url('^get_format_types/', get_format_types)
 ]

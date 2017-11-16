@@ -200,7 +200,16 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "job-order-file",
                    value: "",
                    show: Session.roles.permissions.add_jomaterial
-                 }
+                 }, {
+                   title: "Marketplace Order Serial Download/ Upload",
+                   download: "Download Marketplace Serial Form",
+                   upload: "Upload Marketplace Serial Form",
+                   durl: "marketplace_serial_form/",
+                   uurl: "marketplace_serial_upload/",
+                   dparam: "marketplace-serial-file",
+                   value: "",
+                   show: Session.roles.permissions.use_imei
+                 },
                  ]
 
   $scope.download = function(data) {

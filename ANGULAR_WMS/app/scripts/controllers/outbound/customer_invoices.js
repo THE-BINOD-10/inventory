@@ -114,7 +114,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.pdf_data = {};
-    vm.generate_invoice = function(){
+    vm.generate_invoice = function(click_type){
 
       var po_number = '';
       var status = false;
@@ -142,22 +142,47 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         if(po_number && field_name == 'SOR ID') {
           send['sor_id'] = po_number;
         }
+        if(click_type == 'edit'){
+          send['data'] = true;
+        }
         vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 
           if(data.message) {
             console.log(data.data);
-            vm.pdf_data = data.data;
-            if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
-              $state.go("app.outbound.CustomerInvoices.InvoiceE");
-              $timeout(function () {
-                $(".modal-body:visible").html(vm.pdf_data)
-              }, 3000);
-            } else if(Session.user_profile.user_type == "marketplace_user") {
-              $state.go("app.outbound.CustomerInvoices.InvoiceM");
-            } else if(vm.permissions.detailed_invoice) {
-              $state.go("app.outbound.CustomerInvoices.InvoiceD");
-            } else {
-              $state.go("app.outbound.CustomerInvoices.InvoiceN");
+            if(click_type == 'generate') {
+              vm.pdf_data = data.data;
+              if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
+                $state.go("app.outbound.CustomerInvoices.InvoiceE");
+                $timeout(function () {
+                  $(".modal-body:visible").html(vm.pdf_data)
+                }, 3000);
+              } else if(Session.user_profile.user_type == "marketplace_user") {
+                $state.go("app.outbound.CustomerInvoices.InvoiceM");
+              } else if(vm.permissions.detailed_invoice) {
+                $state.go("app.outbound.CustomerInvoices.InvoiceD");
+              } else {
+                $state.go("app.outbound.CustomerInvoices.InvoiceN");
+              }
+            }
+            else {
+              var mod_data = data.data;
+              var modalInstance = $modal.open({
+              templateUrl: 'views/outbound/toggle/edit_invoice.html',
+              controller: 'EditInvoice',
+              controllerAs: 'pop',
+              size: 'md',
+              backdrop: 'static',
+              keyboard: false,
+              resolve: {
+                items: function () {
+                  return mod_data;
+                }
+              }
+          });
+
+          modalInstance.result.then(function (selectedItem) {
+            var data = selectedItem;
+          })
             }
           }
         });

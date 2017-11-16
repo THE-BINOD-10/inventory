@@ -7,7 +7,7 @@
   <tab heading="PO Putaway">
     <div class="panel" ng-controller="POPutawayCtrl as showCase">
       <div class="panel-header">
-        <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.print_enable">Download Excel</button>
+        <div ng-include="'views/common/excel.html'"></div>
       </div>
       <div ng-include="'views/common/datatable.html'"></div>
     </div> 
@@ -15,7 +15,7 @@
   <tab heading="Return Putaway">
     <div class="panel" ng-controller="ReturnsPutawayCtrl as showCase">
       <div class="panel-header">
-        <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.print_enable">Download Excel</button>
+        <div ng-include="'views/common/excel.html'"></div>
       </div>
       <div ng-include="'views/common/no-onclick-table.html'"></div>
       <div class="panel-footer">
@@ -26,7 +26,7 @@
   <tab heading="Pull To Locate">
     <div class="panel" ng-controller="PullToLocateCtrl as showCase">
       <div class="panel-header">
-        <button type="button" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.print_enable">Download Excel</button>
+        <div ng-include="'views/common/excel.html'"></div>
       </div>
       <div ng-include="'views/common/no-onclick-table.html'"></div>
       <div class="panel-footer">

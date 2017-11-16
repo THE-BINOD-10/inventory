@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from models import SKURelation, SKUMaster, UserBrand, Brands, GroupStage, ProductionStages, UserStages, UserProfile, ProductionStages, AdminGroups,\
-	GroupBrand, GroupStages, OrderDetail
+	GroupBrand, GroupStages, OrderDetail, BarcodeSettings
 
 # Register your models here.
 
@@ -29,4 +29,4 @@ admin.site.register(ProductionStages)
 admin.site.register(AdminGroups)
 admin.site.register(GroupBrand)
 admin.site.register(GroupStages)
-
+admin.site.register(BarcodeSettings)

@@ -309,7 +309,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                 imei_order_id = vm.model_data.data[0].order_id;
               }
           }
-          vm.service.apiCall('check_imei/', 'GET',{is_shipment: true, imei: imei, order_id: imei_order_id}).then(function(data){
+          var check_imei_dict = {is_shipment: true, imei: imei, order_id: imei_order_id, groupby: vm.group_by}
+          vm.service.apiCall('check_imei/', 'GET', check_imei_dict).then(function(data){
             if(data.message) {
               if (data.data.status == "Success") {
                 vm.update_imei_data(data.data, imei);

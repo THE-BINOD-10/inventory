@@ -86,13 +86,17 @@
                           {% if customer_details.0.address %}
                           <p class="fs14 p0 m0 pre-custom" ng-if="showCase.pdf_data.customer_details[0].address">{{customer_details.0.address}}</p>
                           {% endif %}
-                          {% if customer_details.0.tin_number %}
-                          <p class="fs14 m0" ng-if="showCase.pdf_data.customer_details[0].tin_number">
-                            <b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
+                          {% if customer_details.0.phone_number %}
+                          <p class="fs14 m0" ng-if="showCase.pdf_data.customer_details[0].phone_number">
+                            <b>GSTIN No: </b>{{customer_details.0.phone_number}}</p>
                           {% endif %}
                           {% if customer_details.0.email_id %}
                           <p class="fs14 m0" m0 ng-if="showCase.pdf_data.customer_details[0].email_id">
                             <b>Email: </b>{{customer_details.0.email_id}}</p>
+                          {% endif %}
+                          {% if customer_details.0.tin_number %}
+                          <p class="fs14 m0" ng-if="showCase.pdf_data.customer_details[0].tin_number">
+                            <b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
                           {% endif %}
                         </div>
                         {% endif %}
@@ -111,7 +115,7 @@
                           <span><b>Ship To:</b></span>
                         </div>
                         <div class="col-md-12 p0 fs14">
-                          <p class="pre-custom p0">{{customer_address}}</p>
+                          <p class="pre-custom p0">{{consignee}}</p>
                         </div>
                       </div>
                       {% else %}

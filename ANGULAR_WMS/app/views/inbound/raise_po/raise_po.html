@@ -1,7 +1,7 @@
 <div class="panel" ng-controller="RaisePurchaseOrderCtrl as showCase">
   <div class="panel-header">
-    <button type="button" class="btn btn-success pull-right" ng-click="showCase.add()">New Purchase Order</button>
-    <button type="button" style="margin-right: 10px;" class="btn btn-primary pull-right" ng-click="showCase.service.download_excel(showCase.dtColumns,showCase.dtInstance.DataTable.context[0].ajax.data)" ng-disabled="showCase.service.print_enable">Download Excel</button>
+    <button type="button" class="btn btn-success pull-right ml10" ng-click="showCase.add()">New Purchase Order</button>
+    <div ng-include="'views/common/excel.html'"></div>
   </div>
   <div ng-include="'views/common/datatable.html'"></div>
   <div class="panel-footer">

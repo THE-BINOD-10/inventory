@@ -92,7 +92,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'WMS_DEV',
         'USER': 'root',
-        'PASSWORD': '1234',
+        'PASSWORD': '123',
         'TEST_MIRROR': 'default',
     }
 }

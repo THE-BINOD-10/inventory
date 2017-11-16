@@ -14,6 +14,7 @@ Installing requirements:
 
 3.If there is any problem to install Mysql-python.Execute the following command
    command: sudo apt-get install build-essential libssl-dev libffi-dev python-dev
+            sudo apt-get install libmysqlclient-dev
 
 4.For New Database.
   commands : python manage.py makemigrations miebach_admin
@@ -21,3 +22,6 @@ Installing requirements:
              python manage.py migrate oauth2_provider
 
 5.Check the Database settings and change if it is not Production setup.
+
+6.Create Logs Folder
+  Command: mkdir logs

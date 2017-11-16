@@ -2118,33 +2118,33 @@ def get_returns_location(put_zone, request, user):
     return location
 
 
-def create_return_order(data, i, user):
+def create_return_order(data, user):
     seller_order_ids = []
     status = ''
     user_obj = User.objects.get(id=user)
-    sku_id = SKUMaster.objects.filter(sku_code = data['sku_code'][i], user = user)
+    sku_id = SKUMaster.objects.filter(sku_code = data['sku_code'], user = user)
     if not sku_id:
         return "", "SKU Code doesn't exist"
     return_details = copy.deepcopy(RETURN_DATA)
     user_obj = User.objects.get(id=user)
-    if (data['return'][i] or data['damaged'][i]) and sku_id:
+    if (data['return'] or data['damaged']) and sku_id:
         #order_details = OrderReturns.objects.filter(return_id = data['return_id'][i])
-        quantity = data['return'][i]
+        quantity = data['return']
         if not quantity:
-            quantity = data['damaged'][i]
+            quantity = data['damaged']
         return_type = ''
-        if 'return_type' in data.keys() and data['return_type'][0]:
-            return_type = data['return_type'][0]
+        if data.get('return_type', ''):
+            return_type = data['return_type']
         marketplace = ''
-        if 'marketplace' in data.keys() and data['marketplace'][i]:
-            marketplace = data['marketplace'][i]
+        if data.get('marketplace', ''):
+            marketplace = data['marketplace']
         sor_id = ''
-        if data.has_key('sor_id') and data['sor_id'][i]:
-            sor_id = data['sor_id'][i]
+        if data.get('sor_id', ''):
+            sor_id = data['sor_id']
         return_details = {'return_id': '', 'return_date': datetime.datetime.now(), 'quantity': quantity,
                           'sku_id': sku_id[0].id, 'status': 1, 'marketplace': marketplace, 'return_type': return_type}
-        if data.has_key('order_id') and data['order_id'][i]:
-            order_detail = get_order_detail_objs(data['order_id'][i], user_obj, search_params={'sku_id': sku_id[0].id, 'user': user})
+        if data.get('order_id', ''):
+            order_detail = get_order_detail_objs(data['order_id'], user_obj, search_params={'sku_id': sku_id[0].id, 'user': user})
             if order_detail:
                 return_details['order_id'] = order_detail[0].id
                 if order_detail[0].status == int(2):
@@ -2267,144 +2267,130 @@ def save_return_imeis(user, returns, status, imei_numbers):
             ReturnsIMEIMapping.objects.create(order_imei_id=order_imei[0].id, status=status, reason=reason,
                                               creation_date=datetime.datetime.now(), order_return_id=returns.id)
 
-def sales_return_sku_codes(data, user, request):
-    ''' it will return sku wise grouping '''
-    message = ''
-    return_type = request.POST.get('return_type', '')
-    return_process = request.POST.get('return_process')
-    sku_data_grouping = {}
-    for i in range(0, len(data['id'])):
-        sku_id = SKUMaster.objects.filter(sku_code = data['sku_code'][i], user = user.id)
-        if not sku_id:
-            return "SKU Code doesn't exist", sku_data_grouping
-        sku_group = {'data':[], 'details': {}}
+def group_sales_return_data(data_dict, return_process):
+    """ Group Sales Return Data """
 
-        sor_id = ''
-        if data.has_key('sor_id') and data['sor_id'][i]:
-            sor_id = data['sor_id'][i]
-        marketplace = ''
-        if 'marketplace' in data.keys() and data['marketplace'][i]:
-            marketplace = data['marketplace'][i]
+    returns_dict = {}
+    grouping_dict = {'order_id': '[str(data_dict["order_id"][ind]), str(data_dict["sku_code"][ind])]',
+                     'sku_code': 'data_dict["sku_code"][ind]', 'return_id': 'data_dict["id"][ind]',
+                     'scan_imei': 'data_dict["id"][ind]'}
+    grouping_key = grouping_dict[return_process]
+    zero_index_list = ['scan_order_id', 'return_process', 'return_type']
+    number_fields = ['return', 'damaged']
 
-        if return_process == 'sku_code':
+    for ind in range(0, len(data_dict['sku_code'])):
+        temp_key = ':'.join(eval(grouping_key))
+        if not temp_key:
+            temp_key = ':'.join(eval(grouping_dict['order_id']))
+        if returns_dict.get(temp_key, ''):
+            # Adding quantity and reasons if grouping data exists
 
-            group_name = str(sku_id[0].id)+'<<>>'+marketplace
-        elif return_process == 'order_id' && return_process == 'return_id':
-            if not data['order_id'][i]:
-                return "Order ID Should Not Be Empty", sku_data_grouping
-            order_detail = get_order_detail_objs(data['order_id'][i], user, search_params={'sku_id': sku_id[0].id, 'user': user.id})
-                if not order_detail
-                    return str(data['order_id'][i])+" Order ID doesn't exist", sku_data_grouping
-            group_name = str(sku_id[0].id)+'<<>>'+str(data['order_id'][i])
-        elif return_proce == 'scan_imei':
+            if not data_dict['return'][ind]:
+                data_dict['return'][ind] = 0
+            if not data_dict['damaged'][ind]:
+                data_dict['damaged'][ind] = 0
+            returns_dict[temp_key]['return'] = int(returns_dict[temp_key]['return']) + int(data_dict['return'][ind])
+            returns_dict[temp_key]['damaged'] = int(returns_dict[temp_key]['damaged']) + int(data_dict['damaged'][ind])
+            returns_dict[temp_key]['reason'].append({'return': int(data_dict['return'][ind]),
+                                                     'damaged': int(data_dict['damaged'][ind]),
+                                                     'reason': data_dict['reason'][ind]})
+            continue
 
-            group_name = str(sku_id[0].id)
-        else:
-            return "please send process name", sku_data_grouping
+        # Creating the Returns Dictionary
+        for key, value in data_dict.iteritems():
+            if key == 'reason':
+                continue
+            returns_dict.setdefault(temp_key, {})
+            returns_dict[temp_key].setdefault('reason', [])
+            if key in zero_index_list:
+                returns_dict[temp_key][key] = data_dict[key][0]
+            else:
+                if key in number_fields and not data_dict[key][ind]:
+                    data_dict[key][ind] = 0
+                returns_dict[temp_key][key] = data_dict[key][ind]
+        if data_dict['reason'][ind]:
+            returns_dict[temp_key]['reason'].append({'return': int(returns_dict[temp_key]['return']),
+                                                     'damaged': int(returns_dict[temp_key]['damaged']),
+                                                     'reason': data_dict['reason'][ind]})
 
-        return_quantity = data['return'][i]
-        if not return_quantity:
-            return_quantity = 0
-        damaged_quantity = data['damaged'][i]
-        if not damaged_quantity:
-            damaged_quantity = 0
-        if not (return_quantity and damaged_quantity):
-            return "Quantity Should Be Greater Than Zero", sku_data_grouping
+    return returns_dict.values()
 
-        if sku_data_grouping.get(group_name, ''):
-            if return_quantity:
-                sku_data_grouping[group_name]['details']['quantity'] += int(return_quantity)
-                sku_data_grouping[group_name]['data'].append({'quantity': return_quantity, 'status': status, 'reason': data['reason'][i]})
-            if damaged_quantity:
-                sku_data_grouping[group_name]['details']['damaged_quantity'] += int(damaged_quantity)
-                sku_data_grouping[group_name]['data'].append({'quantity': damaged_quantity, 'status': status, 'reason': data['reason'][i]})
+def update_return_reasons(order_return, reasons_list=[]):
+    """ Creating Multiple reasons For Sales Return """
 
-        else:
+    for reason_dict in reasons_list:
+        if reason_dict.get('damaged', 0):
+            OrderReturnReasons.objects.create(order_return_id=order_return.id, quantity=reason_dict['damaged'],
+                                              status='damaged', reason=reason_dict['reason'],
+                                              creation_date=datetime.datetime.now())
+            reason_dict['return'] -= reason_dict['damaged']
+        if reason_dict['return']:
+            OrderReturnReasons.objects.create(order_return_id=order_return.id, quantity=reason_dict['return'],
+                                              status='return', reason=reason_dict['reason'],creation_date=datetime.datetime.now())
 
-              sku_group['seller_order_ids'] = []
-            return_details = {'return_id': '', 'return_date': datetime.datetime.now(), 'quantity': int(return_quantity),\
-                              'damaged_quantity': int(damaged_quantity), 'status': 1, 'marketplace': marketplace,\
-                              'return_type': return_type}
-            if return_process == 'order_id':
-                order_detail = get_order_detail_objs(data['order_id'][i], user, search_params={'sku_id': sku_id[0].id, 'user': user.id})
-                if not order_detail:
-                    return str(data['order_id'][i])+" Order ID doesn't exist", sku_data_grouping
-                return_details['order_id'] = order_detail[0].id
-
-                seller_order_id = get_returns_seller_order_id(return_details['order_id'], sku_id[0].sku_code, user_obj, sor_id=sor_id)
-                if seller_order_id:
-                    return_details['seller_order_id'] = seller_order_id
-                    seller_order_ids = [seller_order_id]
-            elif return_proce == 'scan_imei':
-                if 'returns_imeis' in data.keys() and data['returns_imeis'][i]:
-                    return_details['return_imeis'] = data['returns_imeis'][i]
-                if 'damaged_imeis_reason' in data_dict.keys() and data_dict['damaged_imeis_reason'][i]:
-                    return_details['damaged_imeis'] = data_dict['damaged_imeis_reason'][i]
-
-            sku_group['details'] = return_details
-            sku_group['seller_order_ids'].append(seller_order_ids)
-            if return_quantity:
-                sku_group['data'].append({'quantity': return_quantity, 'status': status, 'reason': data['reason'][i]})
-            if damaged_quantity:
-                sku_group['data'].append({'quantity': damaged_quantity, 'status': status, 'reason': data['reason'][i]})
-            sku_data_grouping[group_name] = sku_group
-    return "", sku_data_grouping
 @csrf_exempt
 @login_required
 @get_admin_user
 def confirm_sales_return(request, user=''):
+    """ Creating and Confirming the Sales Returns"""
+
     data_dict = dict(request.POST.iterlists())
     return_type = request.POST.get('return_type', '')
     return_process = request.POST.get('return_process')
     mp_return_data = {}
-    message, return_skus = sales_return_sku_codes(data_dict, user, request)
-    if message:
-        return HttpResponse(message)
-    '''for i in range(0, len(data_dict['id'])):
+
+    # Group the Input Data Based on the Group Type
+    final_data_list = group_sales_return_data(data_dict, return_process)
+
+    for return_dict in final_data_list:
         all_data = []
         check_seller_order = True
-        if not data_dict['id'][i]:
-            data_dict['id'][i], status, seller_order_ids = create_return_order(data_dict, i , user.id)
+        if not return_dict['id']:
+            return_dict['id'], status, seller_order_ids = create_return_order(return_dict, user.id)
             if seller_order_ids:
-                imeis = (data_dict['returns_imeis'][i]).split(',')
+                imeis = (return_dict['returns_imeis']).split(',')
                 for imei in imeis:
                     mp_return_data.setdefault(seller_order_ids[0], {}).setdefault(
-                           'imeis', []).append(imei)
+                        'imeis', []).append(imei)
                 check_seller_order = False
             if status:
                 return HttpResponse(status)
-        order_returns = OrderReturns.objects.filter(id = data_dict['id'][i], status = 1)
+
+        order_returns = OrderReturns.objects.filter(id=return_dict['id'], status=1)
         if not order_returns:
             continue
-        if 'returns_imeis' in data_dict.keys() and data_dict['returns_imeis'][i]:
-            save_return_imeis(user, order_returns[0], 'return', data_dict['returns_imeis'][i])
+        if return_dict.get('reason', ''):
+            update_return_reasons(order_returns[0], return_dict['reason'])
+        if data_dict.get('returns_imeis', ''):
+            save_return_imeis(user, order_returns[0], 'return', return_dict['returns_imeis'])
             if check_seller_order and order_returns[0].seller_order:
-                imeis = (data_dict['returns_imeis'][i]).split(',')
+                imeis = (return_dict['returns_imeis']).split(',')
                 for imei in imeis:
                     mp_return_data.setdefault(order_returns[0].seller_order_id, {}).setdefault(
-                           'imeis', []).append(imei)
-        if 'damaged_imeis_reason' in data_dict.keys() and data_dict['damaged_imeis_reason'][i]:
-            save_return_imeis(user, order_returns[0], 'damaged', data_dict['damaged_imeis_reason'][i])
+                        'imeis', []).append(imei)
+        if data_dict.get('damaged_imeis_reason', ''):
+            save_return_imeis(user, order_returns[0], 'damaged', return_dict['damaged_imeis_reason'])
             if check_seller_order and order_returns[0].seller_order:
-                imeis = (data_dict['damaged_imeis_reason'][i]).split(',')
+                imeis = (return_dict['damaged_imeis_reason']).split(',')
                 for imei in imeis:
                     imei = imei.split('<<>>')
                     if imei:
                         imei = imei[0]
                         mp_return_data.setdefault(order_returns[0].seller_order_id, {}).setdefault(
-                               'imeis', []).append(imei)
-        return_loc_params = {'order_returns': order_returns, 'all_data': all_data, 'damaged_quantity': data_dict['damaged'][i],
+                            'imeis', []).append(imei)
+        return_loc_params = {'order_returns': order_returns, 'all_data': all_data,
+                             'damaged_quantity': return_dict['damaged'],
                              'request': request, 'user': user}
         if return_type:
             return_type = RETURNS_TYPE_MAPPING.get(return_type.lower(), '')
         if return_type == 'rto':
-            return_loc_params.update({'is_rto':True})
+            return_loc_params.update({'is_rto': True})
         locations_status = save_return_locations(**return_loc_params)
         if not locations_status == 'Success':
             return HttpResponse(locations_status)
     if user.userprofile.user_type == 'marketplace_user':
         check_and_update_order_status_data(mp_return_data, user, status='RETURNED')
-    '''
+
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt

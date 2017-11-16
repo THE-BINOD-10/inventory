@@ -69,7 +69,7 @@ class SKUMaster(models.Model):
     sku_desc = models.CharField(max_length=350, default='')
     sku_group = models.CharField(max_length=64, default='')
     sku_type = models.CharField(max_length=64, default='')
-    sku_category = models.CharField(max_length=64, default='')
+    sku_category = models.CharField(max_length=128, default='')
     sku_class = models.CharField(max_length=64, default='')
     sku_brand = models.CharField(max_length=64, default='')
     style_name = models.CharField(max_length=256, default='')

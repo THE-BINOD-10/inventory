@@ -471,12 +471,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.return_processes = {return_id: 'Return ID', order_id: 'Order ID'};
+    vm.return_process = 'order_id';
     if(vm.permissions.use_imei) {
       vm.return_processes['scan_imei'] = 'Scan IMEI';
+      vm.return_process = 'scan_imei';
     }
     if(Session.user_profile.user_type != "marketplace_user") {
       vm.return_processes['sku_code'] = 'SKU Code';
     }
-    vm.return_process = 'order_id';
   }
 

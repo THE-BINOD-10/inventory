@@ -53,7 +53,7 @@
                 </div>
               </div>
               <div class="col-md-6 col-sm-6 col-xs-3">
-                <span class="label pull-right text-uppercase" ng-class="(order.order_details.status == 'open')? 'label-success': 'label-danger';" style="font-size: 12px;">{{order.order_details.status}}</span>
+                <span class="label pull-right text-uppercase" ng-class="(order.order_details.status == 'open')? 'label-success': 'label-danger';" style="font-size: 12px;">{{order.getStatus(order.order_details.sum_data.quantity, order.order_details.sum_data.picked_quantity)}}</span>
               </div>
             </div>
           </div>
@@ -63,25 +63,38 @@
           <div class="detail-item border-grey" style="cursor: pointer" ng-repeat="data in order.order_details.data">
             <div class="row">
               <section class="widget text-center no-margin">
-                <div class="widget-details col-md-2 col-sm-2 col-xs-2 text-right">
+                <div class="col-md-5 col-sm-5 col-xs-12 no-padding">
+                <div class="row">
+                <div class="widget-details col-md-5 col-sm-5 col-xs-4 text-right">
                   <small class="order-label"></small>
                   <img  style="width: 100%;"ng-src="{{showCase.service.check_image_url(data.sku__image_url)}}">
                   <p class="text-center detail-black order-bold" style="font-size:12px;overflow-wrap: break-word;">{{data.sku__sku_code}}</p>
                 </div>
-                <div class="widget-details col-md-4 col-sm-4 col-xs-4 text-left">
+                <div class="widget-details col-md-7 col-sm-7 col-xs-8 text-left">
                   <small class="order-label">SKU Description</small>
-                  <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.sku__sku_desc}}</p></div>
-                <div class="widget-details col-md-2 col-sm-2 col-xs-2 text-center">
+                  <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.sku__sku_desc}}</p>
+                </div>
+                </div>
+                </div>
+                <div class="col-md-7 col-sm-7 col-xs-12 no-padding">
+                <div class="row">
+                <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-center">
                   <small class="order-label">Ordered Qty</small>
                   <p class="no-margin order-bold detail-black">{{data.quantity}}</p>
                 </div>
-                <div class="widget-details col-md-2 col-sm-2 col-xs-2 text-center">
-                  <small class="order-label">Picked Qty</small>
+                <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-center">
+                  <small class="order-label">Delivered Qty</small>
                   <p class="no-margin order-bold detail-black">{{data.picked_quantity}}</p>
                 </div>
-                <div class="widget-details col-md-2 col-sm-2 col-xs-2 text-right">
+                <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-center">
+                  <small class="order-label">Delta Qty</small>
+                  <p class="no-margin order-bold detail-black">{{data.quantity - data.picked_quantity}}</p>
+                </div>
+                <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-right">
                   <small class="order-label">Amt</small>
                   <p class="no-margin order-bold detail-black">Rs. {{data.invoice_amount | number : 2}}</p>
+                </div>
+                </div>
                 </div>
               </section>
             </div>

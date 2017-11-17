@@ -73,7 +73,8 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         ws.write(data_count, excel_mapping['sku_group'], data.sku_group)
         ws.write(data_count, excel_mapping['sku_type'], data.sku_type)
         ws.write(data_count, excel_mapping['sku_category'], data.sku_category)
-        ws.write(data_count, excel_mapping['primary_category'], data.primary_category)
+        if excel_mapping.has_key('primary_category'):
+            ws.write(data_count, excel_mapping['primary_category'], data.primary_category)
         ws.write(data_count, excel_mapping['sku_class'], data.sku_class)
         ws.write(data_count, excel_mapping['sku_brand'], data.sku_brand)
         ws.write(data_count, excel_mapping['style_name'], data.style_name)

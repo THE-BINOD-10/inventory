@@ -70,7 +70,7 @@ UPLOAD_ORDER_DATA = {'order_id': '', 'title': '','user': '',
              'sku_id': '', 'status': 1, 'shipment_date': datetime.datetime.now()}
 
 UPLOAD_SALES_ORDER_DATA = {'quantity': 0, 'damaged_quantity': 0, 'return_id': '', 'order_id': '', 'sku_id': '', 'return_date': '',
-                            'status': 1}
+                            'status': 1, 'reason': ''}
 
 LOCATION_GROUP_FIELDS = {'group': '', 'location_id': ''}
 
@@ -328,7 +328,7 @@ MARKET_USER_SKU_HEADERS = ['WMS Code','SKU Description', 'Product Type', 'SKU Gr
                            'Price', 'MRP Price', 'Sequence', 'Image Url','Threshold Quantity', 'Measurment Type', 'Sale Through',
                            'Color', 'EAN Number', 'HSN Code', 'Status']
 
-SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity', 'Return Date(YYYY-MM-DD)']
+SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity', 'Return Date(YYYY-MM-DD)', 'Reason']
 
 EXCEL_HEADERS = ['Receipt Number', 'Receipt Date(YYYY-MM-DD)',  'WMS SKU', 'Location', 'Quantity', 'Receipt Type']
 EXCEL_RECORDS = ('receipt_number', 'receipt_date', 'wms_code', 'location', 'wms_quantity', 'receipt_type')
@@ -612,7 +612,7 @@ UNI_COMMERCE_EXCEL = {'order_id': 12, 'title': 19, 'channel_name': 2, 'sku_code'
 
 # ---  Returns Default headers --
 GENERIC_RETURN_EXCEL = OrderedDict((('sku_id', 2), ('order_id', 1), ('quantity', 3), ('damaged_quantity', 4),
-                                   ('return_id', 0),  ('return_date', 5)))
+                                   ('return_id', 0),  ('return_date', 5), ('reason', 6)))
 
 # ---  Shotang Returns headers --
 SHOTANG_RETURN_EXCEL = OrderedDict((('sku_id', 2), ('order_id', 1), ('quantity', 3), ('return_date', 4), ('seller_order_id', 0),

@@ -480,6 +480,11 @@ def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, 
     search_params1 = {}
     search_params2 = {}
     lis  = ['username', 'first_name', 'email', 'id']
+
+    warehouse_admin = get_warehouse_admin(user)
+    exclude_admin = {}
+    if warehouse_admin.id == user.id:
+        exclude_admin = {'admin_user_id': user.id}
     search_params = get_filtered_params(filters, lis)
     for key, value in search_params.iteritems():
         search_params1['user__' + key] = value
@@ -490,23 +495,28 @@ def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, 
     if order_term == 'desc':
         order_data = '-%s' % order_data
         order_data1 = '-%s' % order_data1
+
+    all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)
     if search_term:
-        master_data1 = UserGroups.objects.filter(Q(user__first_name__icontains=search_term) | Q(user__email__icontains=search_term),
-                                                 admin_user__username__iexact=user.username, **search_params2).\
-                                                 order_by(order_data, order_data).values_list('user__username', 'user__first_name',
+        master_data1 = all_user_groups.filter(Q(user__first_name__icontains=search_term) | Q(user__email__icontains=search_term),
+                                                 **search_params1).exclude(user_id=user.id).\
+                                                 order_by(order_data).values_list('user__username', 'user__first_name',
                                                  'user__email')
-        master_data2 = UserGroups.objects.filter(Q(admin_user__first_name__icontains=search_term) |
-                                                 Q(admin_user__email__icontains=search_term), user__username__iexact=user.username,
-                                                 **search_params1).\
-                                                 order_by(order_data, order_data).values_list('admin_user__username',
-                                                'admin_user__first_name', 'admin_user__email')
+
+        master_data2 = all_user_groups.exclude(**exclude_admin).filter(Q(admin_user__first_name__icontains=search_term) |
+                                                 Q(admin_user__email__icontains=search_term), **search_params2).\
+                                                 order_by(order_data1).values_list('admin_user__username',
+                                                'admin_user__first_name', 'admin_user__email').distinct()
         master_data = list(chain(master_data1, master_data2))
+
     elif order_term:
-        master_data1 = UserGroups.objects.filter(admin_user__username__iexact=user.username, **search_params1).\
-                                          order_by(order_data, order_data).values_list('user__username', 'user__first_name', 'user__email')
-        master_data2 = UserGroups.objects.filter(user__username__iexact=user.username, **search_params2).values_list('admin_user__username',
-                                                'admin_user__first_name', 'admin_user__email')
+        master_data1 = all_user_groups.filter(**search_params1).exclude(user_id=user.id).\
+                                          order_by(order_data).values_list('user__username', 'user__first_name', 'user__email')
+        master_data2 = all_user_groups.exclude(**exclude_admin).filter(**search_params2).order_by(order_data1).\
+                                            values_list('admin_user__username',
+                                                'admin_user__first_name', 'admin_user__email').distinct()
         master_data = list(chain(master_data1, master_data2))
+
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
@@ -1225,7 +1235,8 @@ def add_warehouse_user(request, user=''):
         admin_group  = AdminGroups(**admin_dict)
         admin_group.save()
         new_user.groups.add(group)
-        UserGroups.objects.create(admin_user_id=user.id, user_id=new_user.id)
+        warehouse_admin = get_warehouse_admin(user)
+        UserGroups.objects.create(admin_user_id=warehouse_admin.id, user_id=new_user.id)
         status = 'Added Successfully'
     else:
         status = 'Username already exists'

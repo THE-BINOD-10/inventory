@@ -612,7 +612,7 @@ def configurations(request, user=''):
     for reports in enabled_reports:
         config_dict['reports_data'].append(str(reports.misc_type.replace('report_', '')))
 
-
+    import pdb;pdb.set_trace()
     all_related_warehouse_id = get_related_users(user.id)
     config_dict['all_related_warehouse'] = dict(User.objects.filter(id__in = all_related_warehouse_id).exclude(id = user.id).values_list('first_name','id'))
     config_dict['all_related_warehouse'].update({"Intransit of Current Warehouse" : user.id})
@@ -4443,3 +4443,13 @@ def update_invoice_sequence(request, user=''):
                     (str(user.username), str(request.GET.dict()), str(e)))
         status = 'Update Invoice Number Sequence Failed'
     return HttpResponse(json.dumps({'status': status}))
+
+def get_warehouse_admin(user):
+    """ Check and Return Admin user of current """
+
+    is_admin_exists = UserGroups.objects.filter(Q(user=user) | Q(admin_user=user))
+    if is_admin_exists:
+        admin_user = is_admin_exists[0].admin_user
+    else:
+        admin_user = user
+    return admin_user

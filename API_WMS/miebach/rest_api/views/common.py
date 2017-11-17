@@ -2031,7 +2031,9 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
             else:
                 _tax = (amt * (vat / 100))
 
-            discount_percentage = "%.1f" % (float((discount * 100)/(quantity * unit_price)))
+            discount_percentage = 0
+            if (quantity * unit_price):
+                discount_percentage = "%.1f" % (float((discount * 100)/(quantity * unit_price)))
             unit_price = "%.2f" % unit_price
             total_quantity += quantity
             _total_tax += _tax
@@ -2045,6 +2047,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
                 if customer_sku_code_ins:
                     sku_code = customer_sku_code_ins[0]['customer_sku_code']
 
+            temp_imeis = []
             if show_imei_invoice == 'true':
                 temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
                 # imeis = OrderIMEIMapping.objects.filter(order__user = user.id, order_id = dat.id, sor_id = sor_id)

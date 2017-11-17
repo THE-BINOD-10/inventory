@@ -142,7 +142,9 @@ def get_barcodes1(data_dict):
 
     doc.addPageTemplates(pages)
     doc.build(story)
-    return data_dict['file_name'].replace(settings.BASE_DIR, '').strip('/')
+    if data_dict['file_name'].startswith("./"): url = data_dict['file_name'].lstrip("./")
+    else: url = data_dict['file_name'].replace(settings.BASE_DIR, '').strip('/')
+    return url
 def myFirstPage(canvas, doc):
             canvas.saveState()
             canvas.rotate(90)

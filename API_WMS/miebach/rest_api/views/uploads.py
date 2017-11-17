@@ -1002,6 +1002,10 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
                 if cell_data:
 		    if str(cell_data).upper() not in SUB_CATEGORIES.values():
 		        index_status.setdefault(row_idx, set()).add('Sub Category Incorrect')
+            elif key == 'hot_release':
+                if cell_data:
+                    if not str(cell_data).lower() in ['enable', 'disable']:
+                        index_status.setdefault(row_idx, set()).add('Hot Release Should be Enable or Disable')
 
     master_sku = SKUMaster.objects.filter(user=user.id)
     master_sku = [data.sku_code for data in master_sku]
@@ -1043,6 +1047,7 @@ def get_sku_file_mapping(reader, file_type, user=''):
 def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 
     from masters import check_update_size_type
+    from masters import check_update_hot_release
     all_sku_masters = []
     zone_master = ZoneMaster.objects.filter(user=user.id).values('id', 'zone')
     zones = map(lambda d: d['zone'], zone_master)
@@ -1059,6 +1064,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
         wms_code = ''
         sku_data = None
         _size_type = ''
+        hot_release = 0
         for key, value in sku_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, sku_file_mapping[key], reader, file_type)
 
@@ -1152,6 +1158,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             elif key == 'size_type':
                 continue
 
+            elif key == 'hot_release':
+                hot_release = str(cell_data).lower()
+
             elif cell_data:
                 data_dict[key] = cell_data
                 if sku_data:
@@ -1169,6 +1178,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 
         if _size_type:
             check_update_size_type(sku_data, _size_type)
+        if hot_release:
+            hot_release = 1 if (hot_release == 'enable') else 0
+            check_update_hot_release(sku_data, hot_release)
 
     #get_user_sku_data(user)
     insert_update_brands(user)

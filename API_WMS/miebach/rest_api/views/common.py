@@ -2266,6 +2266,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     to_price = request_data.get('to_price', '')
     color = request_data.get('color', '')
     custom_margin = request.GET.get('margin', 0)
+    hot_release = request.GET.get('hot_release', '')
     try:
         custom_margin = float(custom_margin)
     except:
@@ -2336,6 +2337,10 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if to_price:
         filter_params['new_price__lte'] = int(to_price)
         filter_params1['new_price__lte'] = int(to_price)
+    if hot_release == 'true':
+        hot_release_data = SKUFields.objects.filter(sku__user=user.id, field_type='hot_release', field_value = '1').values_list('sku_id', flat=True)
+        filter_params['id__in'] = hot_release_data
+        filter_params1['id__in'] = hot_release_data
 
     start, stop = indexes.split(':')
     start, stop = int(start), int(stop)

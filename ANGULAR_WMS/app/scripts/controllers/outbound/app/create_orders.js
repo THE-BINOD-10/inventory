@@ -204,7 +204,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
-                to_price: vm.toPrice, is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin}
+                to_price: vm.toPrice, is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
+                hot_release: vm.hot_release}
 
     if(status) {
       angular.copy([], vm.catlog_data.data);
@@ -262,6 +263,17 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.category = '';
     var all = $(".cat-tags");
     vm.get_category(true);
+  }
+
+  vm.hot_release = false;
+  vm.get_hot_release = function() {
+
+    vm.clearFilterData();
+    vm.hot_release = true;
+    vm.showFilter = false;
+    vm.filterData.hotRelease = vm.hot_release;
+    vm.get_category(true);
+    $state.go('user.App.Products');
   }
 
   vm.catDisplay = false;
@@ -603,6 +615,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.toPrice = vm.filterData.toPrice;
     vm.showFilter = false;
     vm.from_cats = false;
+    vm.hot_release = vm.filterData.hotRelease;
     vm.get_category(true);
     if( $state.$current.name == "user.App.Brands") {
       $state.go('user.App.Products');
@@ -631,9 +644,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
-  vm.clearFilters = function(data) {
+  vm.clearFilterData = function() {
 
-      angular.forEach(vm.filterData.size_filter, function(value, key) {
+    angular.forEach(vm.filterData.size_filter, function(value, key) {
         vm.filterData.size_filter[key] = "";
       })
 
@@ -654,11 +667,18 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.color = "";
       vm.filterData.fromPrice = "";
       vm.filterData.toPrice = "";
+      vm.filterData.hotRelease = false;
+      vm.hot_release = vm.filterData.hotRelease;
       vm.fromPrice = vm.filterData.fromPrice;
       vm.toPrice = vm.filterData.toPrice;
 
     vm.catlog_data.index = "";
     vm.size_filter_data = vm.filterData.size_filter
+  }
+
+  vm.clearFilters = function(data) {
+
+    vm.clearFilterData();
     if( $state.$current.name == "user.App.Brands") {
       return false;
     } else {
@@ -714,7 +734,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
                 sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true,
                 color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice,
-                is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin}
+                is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
+                hot_release: vm.hot_release}
     vm.pdfDownloading = true;
     vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(response) {
       if(response.message) {

@@ -61,6 +61,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
     data_count = 0
     rev_load_units = dict(zip(LOAD_UNIT_HANDLE_DICT.values(), LOAD_UNIT_HANDLE_DICT.keys()))
     sku_fields = dict(SKUFields.objects.filter(sku__user=user.id, field_type='size_type').values_list('sku_id', 'field_value'))
+    hot_releases = dict(SKUFields.objects.filter(sku__user=user.id, field_type='hot_release').values_list('sku_id', 'field_value'))
     for data in sku_master:
         data_count += 1
         zone = ''
@@ -81,6 +82,9 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
             ws.write(data_count, excel_mapping['sku_size'], data.sku_size)
         if excel_mapping.has_key('size_type'):
             ws.write(data_count, excel_mapping['size_type'], sku_fields.get(data.id, ''))
+        if excel_mapping.has_key('hot_release'):
+            hot_release = 'Enable' if (hot_releases.get(data.id, '')) else 'Disable'
+            ws.write(data_count, excel_mapping['hot_release'], hot_release)
         if excel_mapping.has_key('mix_sku'):
             ws.write(data_count, excel_mapping['mix_sku'], MIX_SKU_ATTRIBUTES.get(data.mix_sku, ''))
         ws.write(data_count, excel_mapping['zone_id'], zone)

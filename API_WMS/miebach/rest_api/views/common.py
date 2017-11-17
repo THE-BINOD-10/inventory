@@ -612,7 +612,6 @@ def configurations(request, user=''):
     for reports in enabled_reports:
         config_dict['reports_data'].append(str(reports.misc_type.replace('report_', '')))
 
-    import pdb;pdb.set_trace()
     all_related_warehouse_id = get_related_users(user.id)
     config_dict['all_related_warehouse'] = dict(User.objects.filter(id__in = all_related_warehouse_id).exclude(id = user.id).values_list('first_name','id'))
     config_dict['all_related_warehouse'].update({"Intransit of Current Warehouse" : user.id})

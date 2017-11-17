@@ -734,7 +734,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
                 sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true,
                 color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice,
-                is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin}
+                is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
+                hot_release: vm.hot_release}
     vm.pdfDownloading = true;
     vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(response) {
       if(response.message) {

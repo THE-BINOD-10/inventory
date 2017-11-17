@@ -282,6 +282,7 @@ h1 small {
 }
 .toggle-filter .toggle-body .filter-box .box-header {
   border-bottom: 1px solid #e4e4e4;
+  font-size: 16px;
 }
 .toggle-filter .toggle-body .filter-box .box-body > span {
   padding: 3px 5px;

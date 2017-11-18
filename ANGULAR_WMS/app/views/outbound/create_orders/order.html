@@ -93,6 +93,22 @@
             <label class="control-label">Ship To Address</label>
             <textarea rows="4" class="form-control" cols="27" name="ship_to" ng-model="showCase.model_data.ship_to"></textarea>
           </div>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <span class="pull-left" align="right">AUTO SHIPMENT</span>
+          <!-- <label class="control-label">Auto Shipment</label> -->
+          <label class="switch switch-sm square ml10 mr20">
+            <div>
+              <input type="checkbox" ng-model="showCase.auto_shipment">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+          <div class="form-group">
+            <input ng-if="showCase.auto_shipment" ng-show="showCase.auto_shipment" placeholder="PO Numebr" name="auto_shipment" class="form-control" type="text" ng-model="showCase.model_data.auto_shipment" required>
+            <input ng-if="!showCase.auto_shipment" ng-show="showCase.auto_shipment" placeholder="PO Numebr" name="auto_shipment" class="form-control" type="text" ng-model="showCase.model_data.auto_shipment">
+          </div>
         </div> 
       </div>
       <div class="row" ng-if="showCase.permissions.create_seller_order"><hr></div>

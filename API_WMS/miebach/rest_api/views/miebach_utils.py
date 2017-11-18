@@ -515,8 +515,8 @@ FLIPKART_EXCEL4 = {'original_order_id': 2, 'order_id': 2, 'quantity': 19, 'title
                    'marketplace': 'Flipkart', 'sku_code': 16}
 
 #Campus Sutra
-PAYTM_EXCEL = {'original_order_id': 0, 'order_id': 0, 'quantity': 9, 'title': 5, 'unit_price': 8, 'address': 12, 'customer_name': 10,
-               'marketplace': 'Paytm', 'sku_code': 3}
+LIMEROAD_EXCEL = {'original_order_id': 0, 'order_id': 0, 'quantity': 9, 'title': 5, 'unit_price': 8, 'address': 12, 'customer_name': 10,
+               'marketplace': 'Lime Road', 'sku_code': 3}
 
 FYND_EXCEL = {'original_order_id': 1, 'order_id': 1, 'title': 4, 'unit_price': 7, 'address': 16, 'customer_name': 14,
                'marketplace': 'Fynd', 'sku_code': 9}
@@ -584,7 +584,7 @@ CAMPUS_SUTRA_EXCEL = {'order_id': 2, 'invoice_amount': 14, 'marketplace': 'Campu
                       'address': 5, 'telephone': 10, 'email_id': 7, 'shipment_date': 1}
 
 #Campus Sutra
-LIMEROAD_EXCEL = {'original_order_id': 0, 'order_id': 0, 'unit_price': 20, 'marketplace': 'Lime Road', 'sku_code': 14,
+PAYTM_EXCEL = {'original_order_id': 0, 'order_id': 0, 'unit_price': 20, 'marketplace': 'Paytm', 'sku_code': 14,
                   'quantity': 21, 'customer_name': 3, 'address': 7, 'telephone': 6,  'shipment_date': 23}
 
 #Craftsvilla

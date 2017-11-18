@@ -183,7 +183,7 @@ def get_order_mapping(reader, file_type):
          and get_cell_data(0, 16, reader, file_type) == 'SKU Code':
         order_mapping = copy.deepcopy(FLIPKART_EXCEL4)
     elif get_cell_data(0, 1, reader, file_type) == 'Date Time' and get_cell_data(0, 3, reader, file_type) == 'Vendor Code':
-        order_mapping = copy.deepcopy(PAYTM_EXCEL)
+        order_mapping = copy.deepcopy(LIMEROAD_EXCEL)
     #elif get_cell_data(0, 1, reader, file_type) == 'item_name':
     #    order_mapping = copy.deepcopy(PAYTM_EXCEL2)
     elif get_cell_data(0, 1, reader, file_type) == 'Order Item ID':
@@ -219,7 +219,7 @@ def get_order_mapping(reader, file_type):
     elif get_cell_data(0, 1, reader, file_type) == 'AMB Order No':
         order_mapping = copy.deepcopy(ASKMEBAZZAR_EXCEL)
     elif get_cell_data(0, 3, reader, file_type) == 'customer_firstname' and get_cell_data(0, 4, reader, file_type) == 'customer_lastname':
-        order_mapping = copy.deepcopy(LIMEROAD_EXCEL)
+        order_mapping = copy.deepcopy(PAYTM_EXCEL)
     elif get_cell_data(0, 1, reader, file_type) == 'Uniware Created At' and get_cell_data(0, 0, reader, file_type) == 'Order #':
         order_mapping = copy.deepcopy(UNI_COMMERCE_EXCEL1)
     elif get_cell_data(0, 0, reader, file_type) == 'Order Date' and get_cell_data(0, 3, reader, file_type) == 'Total Value':

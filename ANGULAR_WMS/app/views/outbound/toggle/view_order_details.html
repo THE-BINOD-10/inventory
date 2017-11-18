@@ -210,20 +210,20 @@
               <input type="text" class="form-control" name="quantity" ng-model="data.quantity" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">
             </td>
             <td>
-              <input type="text" class="form-control" name="unit_price" ng-model="data.unit_price" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">
+              <input type="text" class="form-control" name="unit_price" ng-model="data.unit_price" ng-change="showCase.changeInvoiceAmt(data)" ng-class="service.get_decimal_perm()" ng-readonly="showCase.input_status">
             </td>
             <td>
-              <input type="text" class="form-control" ng-model="data.discount_per" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">
-              <input type="hidden" class="form-control" name="discount" ng-model="data.discount">
+              <input type="text" class="form-control" ng-model="data.discount_per" ng-change="showCase.changeInvoiceAmt(data)" ng-class="service.get_decimal_perm()" ng-readonly="showCase.input_status">
+              <input type="hidden" class="form-control" ng-class="service.get_decimal_perm()" name="discount" ng-model="data.discount">
             </td>
             <td ng-if="showCase.model_data.tax_type == 'intra_state'">
-              <input type="text" class="form-control" name="sgst" ng-model="data.sgst" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">
+              <input type="text" class="form-control" ng-class="service.get_decimal_perm()" name="sgst" ng-model="data.sgst" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">
             </td>
             <td ng-if="showCase.model_data.tax_type == 'intra_state'">
-              <input type="text" class="form-control" name="cgst" ng-model="data.cgst" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">
+              <input type="text" class="form-control" ng-class="service.get_decimal_perm()" name="cgst" ng-model="data.cgst" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">
             </td>
             <td ng-if="showCase.model_data.tax_type == 'inter_state'">
-              <input type="text" class="form-control" name="igst" ng-model="data.igst" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">
+              <input type="text" class="form-control" ng-class="service.get_decimal_perm()" name="igst" ng-model="data.igst" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">
             </td>
             <td>
               <input type="text" class="form-control" ng-model="data.invoice_amount" disabled="disabled">

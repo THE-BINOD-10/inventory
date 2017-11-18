@@ -95,19 +95,20 @@
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
-          <span class="pull-left" align="right">AUTO SHIPMENT</span>
-          <!-- <label class="control-label">Auto Shipment</label> -->
-          <label class="switch switch-sm square ml10 mr20">
-            <div>
-              <input type="checkbox" ng-model="showCase.auto_shipment">
-              <span>
-                <i class="handle"></i>
-              </span>
+          <div class="row">
+            <div class="col-md-7">
+              <span class="pull-left" align="right">AUTO&nbsp;SHIPMENT</span>
+                <label class="switch switch-sm square pull-right ml10 mr20">
+                  <div>
+                    <input type="checkbox" ng-model="showCase.auto_shipment">
+                    <span><i class="handle"></i></span>
+                  </div>
+                </label>
             </div>
-          </label>
-          <div class="form-group">
-            <input ng-if="showCase.auto_shipment" ng-show="showCase.auto_shipment" placeholder="PO Numebr" name="auto_shipment" class="form-control" type="text" ng-model="showCase.model_data.auto_shipment" required>
-            <input ng-if="!showCase.auto_shipment" ng-show="showCase.auto_shipment" placeholder="PO Numebr" name="auto_shipment" class="form-control" type="text" ng-model="showCase.model_data.auto_shipment">
+            <div class="col-md-5" style="margin-top: -5px">
+                <input ng-if="showCase.auto_shipment" ng-show="showCase.auto_shipment" placeholder="PO Numebr" name="auto_shipment" class="form-control" size="15px" type="text" ng-model="showCase.model_data.auto_shipment" required>
+                <input ng-if="!showCase.auto_shipment" ng-show="showCase.auto_shipment" placeholder="PO Numebr" name="auto_shipment" class="form-control" type="text" ng-model="showCase.model_data.auto_shipment">
+            </div>
           </div>
         </div> 
       </div>

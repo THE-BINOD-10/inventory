@@ -3873,6 +3873,7 @@ def get_view_order_details(request, user=''):
         sku_id_list.append(sku_id)
         product_title = one_order.title
         quantity = one_order.quantity
+        unit_price = one_order.unit_price
         invoice_amount = one_order.invoice_amount
         remarks = one_order.remarks
         sku_code = one_order.sku.sku_code
@@ -3895,6 +3896,17 @@ def get_view_order_details(request, user=''):
             order_json = OrderJson.objects.filter(order_id=one_order.id)
             if order_json:
                 sku_extra_data = json.loads(order_json[0].json_data)
+        customer_order = customer_order_summary.filter(order_id = one_order.id)
+        sgst_tax = 0
+        cgst_tax = 0
+        igst_tax = 0
+        discount_percentage = 0
+        if customer_order:
+            sgst_tax = customer_order[0].sgst_tax
+            cgst_tax = customer_order[0].cgst_tax
+            igst_tax = customer_order[0].igst_tax
+            discount_percentage = float("%.1f" % (float((customer_order[0].discount * 100)/(quantity * unit_price))))
+
 
         order_details_data.append({'product_title':product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
                       'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone,'email': email, 'address': address, 'city': city, 
@@ -3902,9 +3914,16 @@ def get_view_order_details(request, user=''):
                       'image_url': one_order.sku.image_url, 'market_place': one_order.marketplace,
                       'order_id_code': one_order.order_code + str(one_order.order_id), 'print_vendor' : vend_dict['printing_vendor'],
                       'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
-                      'sku_extra_data': sku_extra_data})
+                      'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
+                      'unit_price': unit_price, 'discount_percentage': discount_percentage})
+    tax_type = ''
+    if customer_order_summary:
+        if customer_order_summary[0].inter_state == 2:
+            tax_type = 'intra_state'
+        elif customer_order_summary[0].inter_state == 1:
+            tax_type = 'inter_state'
     data_dict.append({'cus_data': cus_data,'status': status_obj, 'ord_data': order_details_data,
-                      'central_remarks': central_remarks, 'all_status': all_status})
+                      'central_remarks': central_remarks, 'all_status': all_status, 'tax_type': tax_type})
 
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 
@@ -4513,6 +4532,7 @@ def update_order_data(request, user = ""):
     myDict = dict(request.GET.iterlists())
     log.info('Order update request params for ' + user.username + ' is ' + str(request.GET.dict()))
     try:
+        import pdb;pdb.set_trace();
         complete_id = myDict['order id'][0]
         order_id = ''.join(re.findall('\d+', complete_id))
         order_code = ''.join(re.findall('\D+', complete_id))
@@ -4540,7 +4560,8 @@ def update_order_data(request, user = ""):
                             'user': user.id, 'customer_id': older_order.customer_id, 'customer_name': older_order.customer_name,
                             'telephone': older_order.telephone, 'email_id': older_order.email_id, 'address': older_order.address,
                             'shipment_date' : older_order.shipment_date, 'status': 1, "marketplace" : older_order.marketplace,
-                            'remarks': myDict['remarks'][i], 'original_order_id': older_order.original_order_id}
+                            'remarks': myDict['remarks'][i], 'original_order_id': older_order.original_order_id,
+                            'unit_price': myDict['unit_price'][i]}
 
             order_obj, created = OrderDetail.objects.update_or_create(
                 order_id = order_id, order_code = order_code, sku = sku_id, defaults = default_dict

@@ -145,6 +145,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         if(click_type == 'edit'){
           send['data'] = true;
         }
+        vm.bt_disable = true;
         vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 
           if(data.message) {
@@ -163,14 +164,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               } else {
                 $state.go("app.outbound.CustomerInvoices.InvoiceN");
               }
-            }
-            else {
+            } else {
               var mod_data = data.data;
               var modalInstance = $modal.open({
               templateUrl: 'views/outbound/toggle/edit_invoice.html',
               controller: 'EditInvoice',
               controllerAs: 'pop',
-              size: 'md',
+              size: 'lg',
               backdrop: 'static',
               keyboard: false,
               resolve: {
@@ -178,13 +178,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                   return mod_data;
                 }
               }
-          });
+              });
 
-          modalInstance.result.then(function (selectedItem) {
-            var data = selectedItem;
-          })
+              modalInstance.result.then(function (selectedItem) {
+                var data = selectedItem;
+              })
             }
           }
+          vm.bt_disable = false;
         });
       }
     }
@@ -281,8 +282,12 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   };
 
   vm.process = false;
-  vm.save = function() {
+  vm.save = function(form) {
 
+    if (!form.$valid) {
+      Service.showNoty("Fill Unit Price");
+      return false;
+    }
     vm.process = true;
     var data = $("form:visible").serializeArray()
     Service.apiCall("update_invoice/", "POST", data).then(function(data) {
@@ -292,14 +297,36 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
           Service.showNoty("Updated Successfully");
           $modalInstance.close("saved");
         } else {
-          Service.showNoty("Update fail")
+          Service.showNoty(data.data.msg)
         }
       } else {
         Service.showNoty("Update fail");
       }
       vm.process = false;
     })
-  } 
+  }
+
+  vm.changeUnitPrice = function(data) {
+
+    data.base_price = data.quantity * Number(data.unit_price);
+    data.discount = (data.base_price/100)*Number(data.discount_percentage);
+    data.amt = data.base_price - data.discount;
+    var taxes = {cgst_amt: 'cgst_tax', sgst_amt: 'sgst_tax', igst_amt: 'igst_tax', utgst_amt: 'utgst_tax'};
+    data.total_tax_amount = 0;
+
+    angular.forEach(taxes, function(tax_name, tax_amount){
+
+      if (data.taxes[tax_name] > 0){
+
+        data.taxes[tax_amount] = (data.amt/100)*data.taxes[tax_name];
+      } else {
+
+        data.taxes[tax_amount] = 0;
+      }
+       data.total_tax_amount += data.taxes[tax_amount];
+    })
+    data.invoice_amount = (data.amt + data.total_tax_amount);
+  }
 }
 angular
   .module('urbanApp')

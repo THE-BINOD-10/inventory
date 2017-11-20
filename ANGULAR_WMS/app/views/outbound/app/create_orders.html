@@ -6,11 +6,19 @@
       <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
     </div>
     <div>
-      <div class="layout-header" ng-if="$state.current.name != 'user.App.Products'" style="min-height: initial;padding: 0px;position:relative">
-        <div ng-include="'views/App/create_orders/company_name.html'"></div>
-        <a href="" class="pull-right" ng-click="$state.go('user.App.Cart')" style="position:absolute;right:10px;top:5px;" ng-if="$state.current.name != 'user.App.Cart'">
-          <i class="fa fa-cart-plus fa-2x" style="color:#ed1c24;padding-right: 10px;" title="Go To Cart Page"></i>
-        </a>
+      <div class="layout-header" ng-if="$state.current.name != 'user.App.Products'" style="min-height: 19px;padding: 0px;position:relative">
+        <div class="row">
+        <div class="col-md-4 col-sm-4"></div>
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <div ng-include="'views/App/create_orders/company_name.html'"></div>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <a href="" class="pull-right" ng-click="$state.go('user.App.Cart')" style="padding-top:5px;" ng-if="$state.current.name != 'user.App.Cart'">
+            <i class="fa fa-cart-plus fa-2x" style="color:#ed1c24;padding-right: 10px;" title="Go To Cart Page"></i>
+          </a>
+          <span ng-if="$state.current.name == 'user.App.Brands'" style="float: right;font-style: italic;font-weight: 700;font-size: 16px;line-height: 39px;color: #ed1c24;opacity: 0;animation: blinking 1s linear infinite;margin-right:20px;cursor: pointer;text-decoration:underline" ng-click="showCase.get_hot_release();">Hot Releases</span>
+        </div>
+        </div>
       </div>
       <div class="layout-body" style="background-color: white;">
         <div>

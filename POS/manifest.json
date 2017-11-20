@@ -1,0 +1,16 @@
+{
+  "name": "POS",
+  "short_name": "POS",
+  "icons": [
+		{
+			"src": "../faviocn.ico",
+			"sizes": "192x192",
+			"type": "image\/png"
+		}
+	],
+  "start_url": "/#/App/createorder",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "orientation":"potrait",
+  "gcm_sender_id": "895549824441"
+}

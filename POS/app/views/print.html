@@ -1,0 +1,97 @@
+<link rel="stylesheet" href="/app/css/receipt.css"/>
+<div class="receipt">
+  <span class="shop-name">{{user.company}}</span>
+  <span class="shop-name">{{user.address}}</span>
+  <hr>
+  <div class="title">
+    <div>
+        <!--<span class="hide shop-title">Sales Person Name: {{urlService.userData.user_name}}</span>-->
+      <div>
+          <span class="pull-right">DC Number: {{data.order_id}}</span>
+      </div>
+      <div>
+          <span class="pull-right">DC Type: {{data.summary.issue_type}}</span>
+      </div>
+      <div>
+          <span class="pull-right">DC Type: {{date}}</span>
+      </div>
+    </div>
+  </div>
+  <hr>
+    <p align="center">Customer Details</p>
+  <hr>
+  <div class="customer">
+    <p>Name : {{data.customer_data.FirstName}}</p>
+    <p>Email : {{data.customer_data.Email}}</p>
+    <p>Cell Number: {{data.customer_data.Number}} </p>
+  </div>
+
+  <hr>
+  <div class="products table-pro">
+    <table>
+      <thead>
+        <tr>
+          <th>Products</th>
+          <th>Qty</th>
+          <th>Rate</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="item in data.sku_data">
+          <td> {{item.name}} </td>
+          <td> {{item.quantity}} </td>
+          <td> {{item.selling_price}} </td>
+          <td> {{item.price}} </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <hr>
+    <div class="product-total">
+       <span>Items: {{data.sku_data.length}}</span>
+       <span>Qty: {{data.summary.total_quantity}} </span>
+       <span>Amt: {{data.summary.subtotal}}</span>
+       <!--<span>Amt: {{(data.summary.total_amount*100)/(100+user.VAT)}}</span>-->
+    </div>
+  <hr>
+    <p align="center">TAX Details</p>
+  <hr>
+  <div class="vat-cal table-pro">
+    <table>
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Sales Value</th>
+          <th>Total Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td> GST: {{data.summary.sgst + data.summary.cgst}} </td>
+          <td> {{data.summary.subtotal}}</td>
+          <td> {{data.summary.total_amount}} </td>
+          <!--<td> {{(data.summary.total_amount*100)/(100+user.VAT)}} </td>
+          <td> {{(((data.summary.total_amount*100)/(100+user.VAT))/100)*user.VAT}} </td>-->
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <hr>
+  <div class="total">
+    <div class="product-total">
+       <span>Total ...</span>
+       <span></span>
+       <span>Amt: {{data.summary.total_amount}}</span>
+    </div>
+  </div>
+  <hr>
+  <div ng-if="data.summary.issue_type == 'sample'">
+      <b>Note:Not for Sale</b>
+      <hr>
+  </div>
+  <p align="left">Computer Generated DC, Hence Signature not required.</p>
+  <hr>
+  <p align="left">{{print}}</p>
+</div>
+

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>POS</title>
+    <!-- Bootstrap CSS -->
+    <!--<link href="dependencies/bootstrap.min.css" rel="stylesheet">-->
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <!-- material.angular.js -->
+    <link href="dependencies/node_modules/angular-material/angular-material.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- customer css -->
+    <link href="app/css/login.css" rel="stylesheet">
+    <link href="/app/css/menu.css" rel="stylesheet">
+    <link href="app/css/pos.css" rel="stylesheet">
+    <link href="/app/css/sku.css" rel="stylesheet">
+
+  <script src="dependencies/jquery.js"></script>
+  <!-- Bootstrap -->
+  <script src="dependencies/bootstrap.min.js"></script>
+    <!-- Angular -->
+  <script src="dependencies/new/angular.min.js"></script>
+  <script src="dependencies/angular-animate.min.js"></script>
+  <script src="dependencies/angular-aria.min.js"></script>
+  <script src="dependencies/angular-messages.min.js"></script>
+  <script src="dependencies//node_modules/angular-material/angular-material.min.js"></script>
+  <script src="dependencies/simple-autocomplete.js"></script>
+  <script src="dependencies/fullscreen/angular-fullscreen.js"></script>
+  <script src="dependencies/angular-ui-router.min.js"></script>
+
+  <script src="dependencies/new/ui-bootstrap-tpls-1.3.3.js"></script>
+
+  <script src="dependencies/print/print.js"></script>
+
+  <script src="/app/customer/customer.module.js"></script>
+  <script src="/app/customer/customer.component.js"></script>
+
+  <script src="/app/sku/sku.module.js"></script>
+  <script src="/app/sku/sku.component.js"></script>
+
+  <script src="/app/cal_money/money.module.js"></script>
+  <script src="/app/cal_money/money.component.js"></script>
+
+  <script src="/app/login/login.module.js"></script>
+  <script src="/app/login/login.component.js"></script>
+
+  <script src="/app/order_summary/summary.module.js"></script>
+  <script src="/app/order_summary/summary.component.js"></script>
+
+  <script src="/app/pending/pending.module.js"></script>
+  <script src="/app/pending/pending.component.js"></script>
+
+  <script src="/app/order/order.module.js"></script>
+  <script src="/app/order/order.component.js"></script>
+
+  <!-- app -->
+  <script src="/app/app.js"></script>
+  <!-- <script src="/app/app.config.js"></script> -->
+
+</head>
+
+<body>
+  <div ng-app="App" class="content-wrapper">
+    <!--<div ng-controller="posController">
+      <button class="hide" ng-click="goFullscreen()" style="float: right;">FullScreen</button>
+    </div>-->
+      <div ui-view></div>
+  </div>
+</body>
+
+</html>

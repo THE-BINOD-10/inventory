@@ -51,7 +51,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         var columns = data.data.headers;
         var not_sort = ['Order Quantity', 'Picked Quantity']
         vm.dtColumns = vm.service.build_colums(columns, not_sort);
-        vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+        vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle('').notSortable().withOption('width', '20px')
                .renderWith(function(data, type, full, meta) {
                  if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
                    vm.selected = {};
@@ -284,8 +284,13 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   vm.process = false;
   vm.save = function(form) {
 
-    if (!form.$valid) {
-      Service.showNoty("Fill Unit Price");
+    if (form.invoice_number.$invalid) {
+
+      Service.showNoty("Please Fill Invoice Number");
+      return false;
+    } else if (!form.$valid) {
+
+      Service.showNoty("Please Fill Unit Price");
       return false;
     }
     vm.process = true;

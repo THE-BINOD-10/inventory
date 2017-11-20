@@ -1764,10 +1764,10 @@ def update_invoice(request, user=''):
         invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace)
         if not invoice_sequence:
             invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace='')
-        if int(invoice_number) >= invoice_sequence[0].value:
+        if int(invoice_number) >= int(invoice_sequence[0].value)-1:
             seller_orders = SellerOrderSummary.objects.filter(order_id__in=ord_ids, order__user=user.id)
             if seller_orders and int(seller_orders[0].invoice_number) != int(invoice_number):
-                seller_orders.update(invoice_number=invoice_number)
+                seller_orders.update(invoice_number=str(invoice_number).zfill(3))
                 invoice_sequence = invoice_sequence[0]
                 invoice_sequence.value = int(invoice_number) + 1
                 invoice_sequence.save();

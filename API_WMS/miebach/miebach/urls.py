@@ -212,6 +212,7 @@ urlpatterns =  [
 
     # Orders
     #url(r'^orders/$', orders),
+    url(r'^print_order_data/$', print_order_data),
 
     # Uploads
     url(r'^sku_upload/$', sku_upload),
@@ -327,6 +328,7 @@ urlpatterns += [
     url('^search_customer_data/$', search_customer_data),
     url('^get_sku_total_data/$', get_sku_total_data),
     url('^search_product_data/$', search_product_data),
+    url('^get_current_order_id/$', get_current_order_id),
     url('^customer_order/$', customer_order),
     url('^validate_sales_person/$', validate_sales_person),
     url('^get_pos_user_data/$', get_pos_user_data),

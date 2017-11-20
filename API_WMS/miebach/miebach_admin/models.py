@@ -69,7 +69,7 @@ class SKUMaster(models.Model):
     sku_desc = models.CharField(max_length=350, default='')
     sku_group = models.CharField(max_length=64, default='')
     sku_type = models.CharField(max_length=64, default='')
-    sku_category = models.CharField(max_length=64, default='')
+    sku_category = models.CharField(max_length=128, default='')
     sku_class = models.CharField(max_length=64, default='')
     sku_brand = models.CharField(max_length=64, default='')
     style_name = models.CharField(max_length=256, default='')
@@ -1604,6 +1604,18 @@ class OrderReturns(models.Model):
 
     class Meta:
         db_table = 'ORDER_RETURNS'
+
+class OrderReturnReasons(models.Model):
+    id = BigAutoField(primary_key=True)
+    order_return = models.ForeignKey(OrderReturns, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    reason = models.CharField(max_length=256,default='')
+    status = models.CharField(max_length=64)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_RETURN_REASONS'
 
 class ReturnsIMEIMapping(models.Model):
     id = BigAutoField(primary_key = True)

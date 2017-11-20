@@ -5,9 +5,17 @@
     </div>
     <div class="layout-body">
       <div class="panel">
+        <div class="panel-header mt10 mb10" style="overflow: visible;">
+          <div class="col-md-2 col-sm-4 col-xs-6 mt10 mb20 pull-right">
+            <select ng-model="showCase.return_process" class="form-control">
+              <option ng-repeat="(type, value) in showCase.return_processes" ng-selected="showCase.return_process == type" value="{{type}}">{{value}}</option>
+            </select>
+          </div>
+          <div class="col-md-2 col-sm-4 col-xs-6 mt10 mb20 text-right pull-right" style="line-height: 30px;">Return Process: </div>
+        </div>
         <div ng-include="'views/common/no-onclick-table.html'"></div>
         <div class="panel-footer">
-          <button class="btn btn-danger pull-right scan-returns" type="submit" ng-click="showCase.scan_pop()">Scan Returns</button>
+          <button class="btn btn-danger pull-right scan-returns mb20" type="submit" ng-click="showCase.scan_pop()">Scan Returns</button>
         </div>
       </div>
     </div>

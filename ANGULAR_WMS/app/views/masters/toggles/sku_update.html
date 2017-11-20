@@ -179,6 +179,15 @@
                 <input type="text" name="hsn_code" class="form-control" ng-model="showCase.model_data.sku_data.hsn_code" decimal-number>
               </div>
             </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Hot Release </label>
+                <select class="form-control" name="hot_release" ng-model="showCase.model_data.sku_data.hot_release">
+                  <option ng-selected="showCase.model_data.sku_data.hot_release == 1" value="Enable">Enable</option>
+                  <option ng-selected="showCase.model_data.sku_data.hot_release == 0" value="Disable">Disable</option>
+                </select>
+              </div>
+            </div>
           </div>
           <div class="row">
             <div class="col-md-12"><hr></div>

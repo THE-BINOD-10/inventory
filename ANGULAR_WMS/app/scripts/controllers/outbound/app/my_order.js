@@ -37,6 +37,20 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
         vm.get_orders();
     }
   }
+
+  vm.getStatus = function(order_qty, pick_qty) {
+
+    if(pick_qty == 0) {
+
+      return "Open";
+    } else if ((order_qty - pick_qty) == 0) {
+
+      return "Dispatched";
+    } else {
+
+      return "Partially Dispatched";
+    }
+  }
 }
 
 angular

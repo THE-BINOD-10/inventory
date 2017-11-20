@@ -10,6 +10,7 @@
 sudo python get-pip.py
 sudo apt-get install python-virtualenv
 virtualenv MIEBACH
+mkdir ../logs
 #source MIEBACH/bin/activate
 #pip install -r requirements.pip
 

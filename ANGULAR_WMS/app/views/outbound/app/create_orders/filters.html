@@ -6,6 +6,16 @@
     <div class="toggle-body">
       <div class="filter-box">
         <div class="box-header">
+          <span>
+            <input type="checkbox" ng-model="showCase.filterData.hotRelease">
+            <b class="mrl10">Hot Release </b>
+          </span>
+          <span class="ml10 mr20">
+          </span>
+        </div>
+      </div>
+      <div class="filter-box">
+        <div class="box-header">
           <span><b>Brands: </b>
             <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.brand_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.brand_open = (showCase.brand_open)? false: true;"></i>
           </span>

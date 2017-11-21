@@ -243,6 +243,7 @@ class OrderDetail(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     unit_price = models.FloatField(default=0)
+    order_type = models.CharField(max_length=64, default='Normal')
 
     class Meta:
         db_table = 'ORDER_DETAIL'
@@ -1572,7 +1573,6 @@ class SellerOrder(models.Model):
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
     order_status = models.CharField(max_length=64, default='')
-    order_type = models.CharField(max_length=64, default='')
     invoice_no = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)

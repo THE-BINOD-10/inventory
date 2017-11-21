@@ -10,6 +10,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.company_name = Session.user_profile.company_name;
   vm.permissions = Session.roles.permissions;
   vm.model_data = {}
+  vm.auto_shipment = false;
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: "",
                             location: "", serials: [], serial: "", capacity: 0, discount: ""
                           }],

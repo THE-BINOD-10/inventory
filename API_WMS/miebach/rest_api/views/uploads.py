@@ -3348,7 +3348,7 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                 if value not in ['Transit', 'Normal']:
                     index_status.setdefault(count, set()).add('Invalid Order Type')
                 else:
-                    seller_order_details['order_type'] = value
+                    order_details['order_type'] = value
 
         if order_details.get('sku_id', ''):
             order_detail_obj = OrderDetail.objects.filter(Q(original_order_id=order_details['original_order_id']) |

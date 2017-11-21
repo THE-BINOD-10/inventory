@@ -3848,6 +3848,16 @@ def get_view_order_details(request, user=''):
             attr_list = attr_list.get('attribute_data', '')
         else:
             attr_list = []
+
+    tax_type = ''
+    inter_state = 2
+    if customer_order_summary:
+        inter_state = customer_order_summary[0].inter_state
+        if customer_order_summary[0].inter_state == 0:
+            tax_type = 'intra_state'
+        elif customer_order_summary[0].inter_state == 1:
+            tax_type = 'inter_state'
+
     for attr in attr_list:
         tuple_data = (attr['attribute_name'],attr['attribute_value'])
         cus_data.append(tuple_data)
@@ -3896,7 +3906,8 @@ def get_view_order_details(request, user=''):
             order_json = OrderJson.objects.filter(order_id=one_order.id)
             if order_json:
                 sku_extra_data = json.loads(order_json[0].json_data)
-        customer_order = customer_order_summary.filter(order_id = one_order.id)
+
+        customer_order = CustomerOrderSummary.objects.filter(order_id = one_order.id)
         sgst_tax = 0
         cgst_tax = 0
         igst_tax = 0
@@ -3905,7 +3916,14 @@ def get_view_order_details(request, user=''):
             sgst_tax = customer_order[0].sgst_tax
             cgst_tax = customer_order[0].cgst_tax
             igst_tax = customer_order[0].igst_tax
-            discount_percentage = float("%.1f" % (float((customer_order[0].discount * 100)/(quantity * unit_price))))
+            discount_percentage = 0
+            if (quantity * unit_price):
+                discount_percentage = float("%.1f" % (float((customer_order[0].discount * 100)/(quantity * unit_price))))
+
+        tax_masters = TaxMaster.objects.filter(user_id=user.id, product_type=one_order.sku.product_type, inter_state=inter_state)
+        taxes_data = []
+        for tax_master in tax_masters:
+            taxes_data.append(tax_master.json())
 
 
         order_details_data.append({'product_title':product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
@@ -3915,13 +3933,8 @@ def get_view_order_details(request, user=''):
                       'order_id_code': one_order.order_code + str(one_order.order_id), 'print_vendor' : vend_dict['printing_vendor'],
                       'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
                       'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
-                      'unit_price': unit_price, 'discount_percentage': discount_percentage})
-    tax_type = ''
-    if customer_order_summary:
-        if customer_order_summary[0].inter_state == 2:
-            tax_type = 'intra_state'
-        elif customer_order_summary[0].inter_state == 1:
-            tax_type = 'inter_state'
+                      'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data})
+
     data_dict.append({'cus_data': cus_data,'status': status_obj, 'ord_data': order_details_data,
                       'central_remarks': central_remarks, 'all_status': all_status, 'tax_type': tax_type})
 
@@ -4529,21 +4542,25 @@ def update_order_data(request, user = ""):
     """ This code will update data if order is updated """
     st_time = datetime.datetime.now()
     log.info("updation of order process started")
-    myDict = dict(request.GET.iterlists())
+    myDict = dict(request.POST.iterlists())
     log.info('Order update request params for ' + user.username + ' is ' + str(request.GET.dict()))
     try:
-        import pdb;pdb.set_trace();
-        complete_id = myDict['order id'][0]
+        complete_id = myDict['order_id'][0]
         order_id = ''.join(re.findall('\d+', complete_id))
         order_code = ''.join(re.findall('\D+', complete_id))
         older_objs = OrderDetail.objects.filter(Q(order_id = order_id, order_code = order_code) | Q(original_order_id=complete_id),
                                                 user= user.id)
         old_cust_obj = ""
         order_creation_date = datetime.datetime.now()
+        tax_type = 2
+        tax_name = request.POST.get('tax_type', '')
+        if tax_name == 'intra_state':
+            tax_type = 0
+        elif tax_name == 'inter_state':
+            tax_type = 1
 
         if older_objs:
             older_order = older_objs[0]
-            old_cust_obj = CustomerOrderSummary.objects.filter(order = older_order.id)
             order_creation_date = older_order.creation_date
         else:
             return HttpResponse("Order Creation Failed")
@@ -4566,23 +4583,40 @@ def update_order_data(request, user = ""):
             order_obj, created = OrderDetail.objects.update_or_create(
                 order_id = order_id, order_code = order_code, sku = sku_id, defaults = default_dict
                 )
+            sgst_tax = myDict['sgst'][i]
+            cgst_tax = myDict['cgst'][i]
+            igst_tax = myDict['igst'][i]
+            discount = myDict['discount'][i]
+            if not sgst_tax:
+                sgst_tax = 0
+            if not cgst_tax:
+                cgst_tax = 0
+            if not igst_tax:
+                igst_tax = 0
+            if not discount:
+                discount = 0
 
+            old_cust_obj = CustomerOrderSummary.objects.filter(order = order_obj.id)
             if created:
                 order_obj.creation_date = order_creation_date
                 order_obj.save()
                 if old_cust_obj:
-                    CustomerOrderSummary.objects.create(order = order_obj, discount = old_cust_obj[0].discount, vat = old_cust_obj[0].vat, tax_value = old_cust_obj[0].tax_value, order_taken_by = old_cust_obj[0].order_taken_by, mrp  = old_cust_obj[0].mrp, tax_type = old_cust_obj[0].tax_type, status = old_cust_obj[0].status, central_remarks = old_cust_obj[0].central_remarks)
+                    CustomerOrderSummary.objects.create(order = order_obj, discount = discount, vat = old_cust_obj[0].vat, tax_value = old_cust_obj[0].tax_value, order_taken_by = old_cust_obj[0].order_taken_by, mrp  = old_cust_obj[0].mrp, tax_type = old_cust_obj[0].tax_type, status = old_cust_obj[0].status, central_remarks = old_cust_obj[0].central_remarks, sgst_tax=sgst_tax, cgst_tax=cgst_tax, igst_tax=igst_tax)
                 else:
-                    CustomerOrderSummary.objects.create(order = order_obj, status = myDict['status_type'][0], central_remarks = myDict['central_remarks'][0])
+                    CustomerOrderSummary.objects.create(order = order_obj, status = myDict['status_type'][0], central_remarks = myDict['central_remarks'][0], sgst_tax=sgst_tax, cgst_tax=cgst_tax, igst_tax=igst_tax, discount=discount, tax_type=tax_type)
             else:
-                status_obj = CustomerOrderSummary.objects.filter(order = order_obj.id)
+                status_obj = old_cust_obj
                 if not status_obj:
                     status_obj = CustomerOrderSummary.objects.create(order = order_obj, status = myDict['status_type'][0])
                 else:
                     status_obj = status_obj[0]
                 status_obj.status = myDict['status_type'][0]
                 status_obj.central_remarks = myDict['central_remarks'][0]
-
+                status_obj.sgst_tax = sgst_tax
+                status_obj.cgst_tax = cgst_tax
+                status_obj.igst_tax = igst_tax
+                status_obj.discount = discount
+                status_obj.tax_type = tax_type
                 status_obj.save()
 
                 vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']

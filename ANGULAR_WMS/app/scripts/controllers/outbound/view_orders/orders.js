@@ -126,11 +126,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     if (elem[0].value == '? string: ?'){
         elem[0].value = '';
     }
-    elem.push({name: 'order id', value: vm.order_id}, {name: 'customer_id', value: vm.customer_id}, 
+    elem.push({name: 'order_id', value: vm.order_id}, {name: 'customer_id', value: vm.customer_id}, 
               {name: 'customer_name', value: vm.customer_name},
               {name: 'phone', value: vm.phone}, {name: 'email', value: vm.email}, {name: 'address', value: vm.address},
               {name: 'shipment_date', value: vm.shipment_date}, {name: 'market_place', value: vm.market_place})
-    vm.service.apiCall('update_order_data/', 'GET', elem).then(function(data){
+    vm.service.apiCall('update_order_data/', 'POST', elem).then(function(data){
         console.log(data);
         vm.reloadData();
         colFilters.showNoty('Saved sucessfully');
@@ -160,46 +160,61 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   vm.get_sku_data = function(record, item){
 
     var sku = item.wms_code;
+    var value_exested = false;
 
-    if (sku === vm.item_code){
-        colFilters.showNoty('WMS code already existed');
-    }
-    else {
-
-      for (var i = 0; i < vm.model_data.data.length; i++) {
-
-        if(vm.model_data.data[i].item_code == item.wms_code){
-          record.item_code = '';
-          record.product_title = '';
-          record.quantity = 0;
-          record.unit_price = 0;
-          vm.service.showNoty(item.sku_desc+" is already existed. Please try it another one.", "success", "topRight");
-        } else {
-          record.item_code = sku;
-          record.product_title = item.sku_desc;
-          
-          vm.service.apiCall("get_sku_variants/", "GET", {sku_code: sku, customer_id: vm.model_data.customer_id, is_catalog: true}).then(function(data) {
-
-            if(data.message) {
-              if(data.data.data.length == 1) {
-                // record.invoice_amount = data.data.data[0].invoice_amount;
-                if(!(record.quantity)) {
-                  record.quantity = 1;
-                }
-                record.unit_price = data.data.data[0].price;
-                record.cgst = 0;
-                record.default_status = false;
-                record.discount_per = 0;
-                record.igst = 0;
-                record.invoice_amount = record.quantity * record.unit_price;
-                record.remarks = "";
-                record.sgst = 0;
-              }
-            }
-          });
-        }
+    for (var i = 0; i < vm.model_data.data.length; i++) {
+      if (sku === vm.model_data.data[i].item_code){
+        value_exested = true;
         break;
       }
+    }
+
+    if(value_exested){
+
+      record.item_code = '';
+      record.product_title = '';
+      record.quantity = 0;
+      record.unit_price = 0;
+
+      vm.service.showNoty(item.sku_desc+" is already existed. Please try it another one.", "success", "topRight");
+    } else {
+      record.item_code = sku;
+      record.product_title = item.sku_desc;
+      
+      var data = {sku_codes: sku, cust_id: vm.model_data.customer_id, tax_type: vm.model_data.tax_type}
+
+      vm.service.apiCall("get_customer_sku_prices/", "POST", data).then(function(data) {
+        if(data.message) {
+          if(data.data.length == 1) {
+
+            if(!(record.quantity)) {
+              record.quantity = 1;
+            }
+            record.unit_price = data.data[0].price;
+            record.default_status = false;
+            record.discount_per = 0;
+            record.invoice_amount = record.quantity * record.unit_price;
+            record.remarks = "";
+            record.taxes = data.data[0].taxes;
+
+            if (data.data[0].taxes.length) {
+              for (var i = 0; i < data.data[0].taxes.length; i++) {
+
+                if(data.data[0].price >= data.data[0].taxes[i].min_amt && data.data[0].price <= data.data[0].taxes[i].max_amt) {
+                  record.igst = data.data[0].taxes[i].igst_tax;
+                  record.cgst = data.data[0].taxes[i].cgst_tax;
+                  record.sgst = data.data[0].taxes[i].sgst_tax;
+                  break;
+                }
+              }
+            } else {
+              record.igst = 0;
+              record.cgst = 0;
+              record.sgst = 0;
+            }
+          }
+        }
+      });
     }
   }
 
@@ -270,16 +285,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 	          vm.order_id = value.order_id;
 	          vm.market_place = value.market_place;
             vm.unit_price = value.unit_price;
-            vm.discount_per = value.discount_percentage;
             vm.sgst = value.sgst_tax;
             vm.cgst = value.cgst_tax;
             vm.igst = value.igst_tax;
+            vm.taxes = value.taxes;
 
-            // var total = (vm.quantity * vm.unit_price);
-            // var tax = Number(vm.sgst)+Number(vm.cgst)+Number(vm.igst);
-            // var discount_amt = (total*vm.discount_per)/100;
-            // var invoice_amount_dis = Number(total - discount_amt);
-            // vm.invoice_amount = (invoice_amount_dis + (invoice_amount_dis*tax)/100);
+            // if (value.discount_percentage <= 99.99) {
+              vm.discount_per = value.discount_percentage;
+            // }
 
 	          var image_url = value.image_url;
 	          vm.img_url = vm.service.check_image_url(image_url);
@@ -294,9 +307,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 	            var img_url = custom_data[0][3];
 	            vm.img_url = vm.service.check_image_url(img_url)
 	          }*/
-              console.log(vm.model_data);
+
               var record = vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
-              image_url: vm.img_url, remarks: vm.remarks, unit_price: vm.unit_price,
+              image_url: vm.img_url, remarks: vm.remarks, unit_price: vm.unit_price, taxes: vm.taxes,
               discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, default_status: true})
               var record = vm.model_data.data[index]
               vm.changeInvoiceAmt(record);
@@ -320,12 +333,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.reloadData();
     });
 
-    vm.changeInvoiceAmt = function(data){
+    vm.changeInvoiceAmt = function(data, flag){
 
       var total = (data.quantity * data.unit_price);
-      var tax = Number(data.sgst)+Number(data.cgst)+Number(data.igst);
       var discount_amt = (total*data.discount_per)/100;
       var invoice_amount_dis = Number(total - discount_amt);
+      
+      if (flag) { // Used to execute taxes for unitprice change only 
+        if (data.taxes.length) {
+          for (var i = 0; i < data.taxes.length; i++) {
+
+            if (data.unit_price >= data.taxes[i].min_amt && data.unit_price <= data.taxes[i].max_amt) {
+              data.igst = data.taxes[i].igst_tax;
+              data.cgst = data.taxes[i].cgst_tax;
+              data.sgst = data.taxes[i].sgst_tax;
+              break;
+            }
+          }
+        } else {
+          data.igst = 0;
+          data.cgst = 0;
+          data.sgst = 0;
+        }
+      }
+      
+      var tax = Number(data.sgst)+Number(data.cgst)+Number(data.igst);
 
       data.discount = discount_amt;
       data.invoice_amount = (invoice_amount_dis + (invoice_amount_dis*tax)/100);

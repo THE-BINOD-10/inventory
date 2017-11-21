@@ -7,7 +7,7 @@ importScripts('/app/data/offlineData.js');
 (function(){
 	"use strict";
 	//service worker version number
-	var VERSION="0.0.0.9-build-0.9.0.15"
+	var VERSION="0.0.0.91-build-0.9.0.17"
 	//service worker version name
 	var CACHE_NAME="POS"+VERSION;
 	//directory path 
@@ -16,30 +16,30 @@ importScripts('/app/data/offlineData.js');
 	var FILECACHEDLIST=[
         "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css",
         "https://fonts.googleapis.com/icon?family=Material+Icons",
-        "dependencies/bootstrap.min.js",
-        "dependencies/node_modules/angular-material/angular-material.min.css",
+        "bower_components/bootstrap/dist/js/bootstrap.min.js",
+        "bower_components/angular-material/angular-material.min.css",
         "app/css/login.css",
         "app/css/menu.css",
         "app/css/pos.css",
         "app/css/sku.css",
         "app/css/redirect.css",
-        "dependencies/jquery.js",
-        "dependencies/new/angular.min.js",
-        "dependencies/angular-animate.min.js",
-        "dependencies/angular-aria.min.js",
-        "dependencies/angular-messages.min.js",
-        "dependencies//node_modules/angular-material/angular-material.min.js",
+        "bower_components/jquery/dist/jquery.min.js",
+        "bower_components/angular/angular.min.js",
+        "bower_components/angular-animate/angular-animate.min.js",
+        "bower_components/angular-aria/angular-aria.min.js",
+        "bower_components/angular-messages/angular-messages.min.js",
+        "bower_components/angular-material/angular-material.min.js",
         "dependencies/simple-autocomplete.js",
-        "dependencies/fullscreen/angular-fullscreen.js",
-        "dependencies/angular-ui-router.min.js",
-        "dependencies/new/ui-bootstrap-tpls-1.3.3.js",
+        "bower_components/angular-fullscreen/src/angular-fullscreen.js",
+        "bower_components/angular-ui-router/release/angular-ui-router.min.js",
+        "bower_components/angular-bootstrap/ui-bootstrap-tpls.min.js",
         "dependencies/print/print.js",
         "app/customer/customer.module.js",
         "app/customer/customer.component.js",
         "app/customer/customer.template.html",
         "app/sku/sku.module.js",
         "app/sku/sku.component.js",
-        "app/sku/sku.css",
+        //"app/sku/sku.css",
         "app/sku/sku.template.html",
         "app/cal_money/money.module.js",
         "app/cal_money/money.component.js",
@@ -67,7 +67,7 @@ importScripts('/app/data/offlineData.js');
         "app/config/Constants.js",
         "app/config/ServerConfig.js",
         "app/data/scheema.js",
-        "app/data/offlin.js",
+        "app/data/offlineData.js",
 		"app/data/dexie.js",
 		"app/views/home.html",
 		"app/views/print.html",
@@ -106,16 +106,23 @@ importScripts('/app/data/offlineData.js');
     //service worker install event listner
     self.addEventListener("install", function (event) {
 
-	    event.waitUntil(caches.open(CACHE_NAME).then(function (cache) {
 
-	        return cache.addAll(FILECACHEDLIST).then(function(){
-	               self.skipWaiting();})
-	            }, function (err) {
-	             log("Unable to cache Error: " + err);
-	        })
-	    );
+           /*  event.waitUntil(caches.open(CACHE_NAME).then(function (cache) {
 
-    });
+                           return cache.addAll(FILECACHEDLIST).then(function(){
+                                          self.skipWaiting();
+                                    });
+                          }, function (err) {
+                                         log("Unable to cache Error: " + err);
+                                   }));
+            */
+            event.waitUntil(caches.open(CACHE_NAME).
+                                then(function (cache) {
+                                 return cache.addAll(FILECACHEDLIST);
+                                                }));
+
+
+	});
 
 
     self.addEventListener('push', function(event) {

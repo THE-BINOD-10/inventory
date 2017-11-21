@@ -1,5 +1,4 @@
-
-n (angular) {
+;(function (angular) {
     "use strict";
   
     angular.module("sku", ["ngMaterial"])
@@ -111,7 +110,8 @@ n (angular) {
         self.table_headers = false;
         urlService.current_order = {"customer_data" : {"FirstName": "", "Number": "", "value": ""},
                                     "sku_data" : [],
-                                    "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0, 'issue_ty
+                                    "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0, 
+				    "issue_type": "online"},
                                     "money_data": {}};
         self.skus= urlService.current_order.sku_data;
         manageData.prepForBroadcast("clear");
@@ -196,7 +196,8 @@ n (angular) {
         store_data(urlService.current_order, state);
         urlService.current_order = {"customer_data" : {},
                                     "sku_data" : [],
-                                    "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0, 'issue_ty
+                                    "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0, 
+				    "issue_type": "online"},
                                     "money_data": {}};
         console.log(urlService.hold_data);
         self.skus = urlService.current_order.sku_data;

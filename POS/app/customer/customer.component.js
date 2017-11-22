@@ -23,11 +23,12 @@
 
     // Get data from backend to show below the search box
     self.get_user_data = get_user_data;
-    function get_user_data(key) {
+   /* 
+   function get_user_data(key) {
 
         self.search_term = key;
         var deferred = $q.defer();
-        $http.get(urlService.mainUrl+'search_customer_data?user='+urlService.userData.parent_id+'&key='+key)
+        $http.get(urlService.mainUrl+'search_customer_data/?user='+urlService.userData.parent_id+'&key='+key)
           .success( function(data) {
             if (data.length==0 && self.search_term!=0) {
                 self.customerButton = true;
@@ -43,6 +44,52 @@
           })
         return deferred.promise;
     }
+    */
+
+    
+    function get_user_data(key) {
+
+        if (key.length > 1) {
+            self.search_term = key;
+            var deferred = $q.defer();
+          if(navigator.OnLine){
+            
+            $http.get(urlService.mainUrl+'/rest_api/search_customer_data?user='+urlService.userData.parent_id+'&key='+key)
+              .success(function(data) {
+                if (data.length==0 && self.search_term!=0) {
+                    self.customerButton = true;
+                }
+                else { self.customerButton = false; }
+                self.repos = data;
+                return self.repos.map( function (repo) {
+                  repo.value = repo.Number.toLowerCase();
+                  return repo;
+                })
+              }).then(function() {
+                deferred.resolve(querySearch (key));
+              })
+            return deferred.promise;
+          }else{
+            console.log("activate offline");
+            getCustomerData(key).then(function(data){
+
+                if (data.length==0 && self.search_term!=0) {
+                    self.customerButton = true;
+                }
+                else { self.customerButton = false; }
+                self.repos = data;
+                return self.repos.map( function (repo) {
+                  repo.value = repo.Number.toLowerCase();
+                  return repo;
+                })
+            }).then(function() {
+                deferred.resolve(querySearch (key));
+              })
+            return deferred.promise;
+          }
+      }
+      return [];
+  }
 
     // clear input field when user submit data
     $scope.$on('handleBroadcast', function() {

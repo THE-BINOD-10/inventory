@@ -14,9 +14,10 @@
                       navigator.serviceWorker.ready;
                     }).then(function(reg){
 
-
+                
+ 
           					if(navigator.serviceWorker.controller){
-                     				 if (navigator.storage && navigator.storage.persist) 
+                    				 if (navigator.storage && navigator.storage.persist) 
                           navigator.storage.persisted().then(persistent=>{
                             if (persistent)
                               console.log("Storage will not be cleared except by explicit user action");
@@ -32,11 +33,11 @@
                    		console.log("Service worker failed with error " + err);
               });
          }
-
-      /*Notification.requestPermission(function(result) {
+    /*
+      Notification.requestPermission(function(result) {
            if (result !== 'granted')
              return reject(Error("Denied notification permission"));
-        });*/
+        });
 
      navigator.serviceWorker.ready.then(function(registration) {
         return registration.pushManager.getSubscription()
@@ -62,7 +63,7 @@
      
   });
 
-
+   */
 
 
 

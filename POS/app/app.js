@@ -1,7 +1,7 @@
 var app=angular.module('App', ['ngMaterial','ui.router','FBAngular','ngAnimate','ui.bootstrap','customer','sku', 'money','login','summary', 'pending', 'order']);
 
 app.service('urlService', function($rootScope){
-    this.mainUrl = 'http://192.168.1.162:9009/';//'http://dev.stockone.in/';
+    this.mainUrl = 'https://wms.mieone.com/';//'http://dev.stockone.in/';
     this.userData = {"VAT":0};
     this.VAT = 0;
     this.hold_data = [];

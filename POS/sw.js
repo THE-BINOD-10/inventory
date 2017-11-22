@@ -7,13 +7,14 @@ importScripts('/app/data/offlineData.js');
 (function(){
 	"use strict";
 	//service worker version number
-	var VERSION="0.0.0.9-build-0.9.0.15"
+	var VERSION="0.0.0.91-build-0.9.0.19"
 	//service worker version name
 	var CACHE_NAME="POS"+VERSION;
 	//directory path 
 	var DIRECTORY="";
 	//white listed files
 	var FILECACHEDLIST=[
+        "/",
         "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css",
         "https://fonts.googleapis.com/icon?family=Material+Icons",
         "dependencies/bootstrap.min.js",
@@ -22,7 +23,7 @@ importScripts('/app/data/offlineData.js');
         "app/css/menu.css",
         "app/css/pos.css",
         "app/css/sku.css",
-        "app/css/redirect.css",
+       // "app/css/redirect.css",
         "dependencies/jquery.js",
         "dependencies/new/angular.min.js",
         "dependencies/angular-animate.min.js",
@@ -32,14 +33,16 @@ importScripts('/app/data/offlineData.js');
         "dependencies/simple-autocomplete.js",
         "dependencies/fullscreen/angular-fullscreen.js",
         "dependencies/angular-ui-router.min.js",
+        
         "dependencies/new/ui-bootstrap-tpls-1.3.3.js",
         "dependencies/print/print.js",
+        
         "app/customer/customer.module.js",
         "app/customer/customer.component.js",
         "app/customer/customer.template.html",
         "app/sku/sku.module.js",
         "app/sku/sku.component.js",
-        "app/sku/sku.css",
+        //"app/sku/sku.css",
         "app/sku/sku.template.html",
         "app/cal_money/money.module.js",
         "app/cal_money/money.component.js",
@@ -67,23 +70,22 @@ importScripts('/app/data/offlineData.js');
         "app/config/Constants.js",
         "app/config/ServerConfig.js",
         "app/data/scheema.js",
-        "app/data/offlin.js",
+        "app/data/offlineData.js",
 		"app/data/dexie.js",
 		"app/views/home.html",
 		"app/views/print.html",
 		"app/app.config.js",
 		"app/app.js",
 		"app/app_dev.js",
-        //"sw.js",
-        "sw_reg.js"
-
+        "sw.js",
+        "sw_reg.js",
+        "index.html"
     ];
 
    //black list files 
    var BLACKLIST = [
         "/rest_api/",
-        "/search_product_data",
-        "/get_current_order_id/"
+ 
 
       ];
 
@@ -106,16 +108,18 @@ importScripts('/app/data/offlineData.js');
     //service worker install event listner
     self.addEventListener("install", function (event) {
 
-	    event.waitUntil(caches.open(CACHE_NAME).then(function (cache) {
 
-	        return cache.addAll(FILECACHEDLIST).then(function(){
-	               self.skipWaiting();})
-	            }, function (err) {
-	             log("Unable to cache Error: " + err);
-	        })
-	    );
+             event.waitUntil(caches.open(CACHE_NAME).then(function (cache) {
 
-    });
+                           return cache.addAll(FILECACHEDLIST).then(function(){
+                                          self.skipWaiting();
+                                    });
+                          }, function (err) {
+                                         log("Unable to cache Error: " + err);
+                                   }));
+            
+
+	});
 
 
     self.addEventListener('push', function(event) {
@@ -124,7 +128,7 @@ importScripts('/app/data/offlineData.js');
 
 		  const title = 'Push Codelab';
 		  const options = {
-		    body: 'Yay it works.',
+		    body: ' it works.',
 		    icon: 'images/icon.png',
 		    badge: 'images/badge.png'
 		  };
@@ -368,12 +372,12 @@ importScripts('/app/data/offlineData.js');
 		           
 					getCheckSumData(file_data).then(function(data){
                    		//val=data;
-                      if(data){
+                    
 
                    		console.log("event name is "+event.data);
                       	getContent(event,data);
                      		//ent.ports[0].postMessage("1"); 	
-                      }
+                    
 
 					}).catch(function(error){
 						console.log("event name is "+event.data);
@@ -419,12 +423,12 @@ importScripts('/app/data/offlineData.js');
 		  		 				if(Object.keys(val_data).length>0){
 									file_data=val_data["file_content"];
 									addSKUBulkItem(file_data).then(function(val){
-										event.ports[0].postMessage(val);
+                					console.log(request_url+ "skumaster saved locally is "+val);
+                                      event.ports[0].postMessage(val);
 									}).catch(function(error){
 										event.ports[0].postMessage(error);
 									});
 		  		 				}
-								console.log(request_url+ " sku data is "+result);
 							}).catch(function(error){
 								console.log(request_url+" sku data is "+error);
 							});
@@ -442,13 +446,13 @@ importScripts('/app/data/offlineData.js');
 									file_data=val_data["file_content"];
 									addCustomerBulkItem(file_data).
 									then(function(val){
-										event.ports[0].postMessage(val);
+						         		console.log("customer data saved locally is "+val);
+				        		    	event.ports[0].postMessage(val);
 									}).catch(function(error){
 										event.ports[0].postMessage(error);
 									});
 		  		 				}
-								console.log("customer data is "+file_data.length);
-							}).catch(function(error){
+										}).catch(function(error){
 								console.log("customer  data is "+error);
 							});
 
@@ -482,7 +486,7 @@ importScripts('/app/data/offlineData.js');
 				if(response.status==200){
 				   response.text().then(function(data){
 					   // var val_data=JSON.parse(data);
-					    console.log(request_url+" response is " +data);
+					    console.log(request_url+"get the  response from network ");
 					  	return resolve(data);
 					  
 				   }).catch(function(error){

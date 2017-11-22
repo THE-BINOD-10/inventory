@@ -358,17 +358,17 @@
 								}else{
 
 								setCheckSum(check_sumData).then(function(data){
-                                     return resolve(true);
+                                     return resolve(data);
 									}).catch(function(error){
-										return resolve(false);
+										return resolve(error);
 									});
                                }
 							}).catch(function(error){
 
 								setCheckSum(check_sumData).then(function(data){
-                                     return resolve(true);
+                                     return resolve(data);
 									}).catch(function(error){
-										return resolve(false);
+										return resolve(error);
 									});
 							});
 		});
@@ -393,10 +393,10 @@
 						checksumDelete(check_sumData);
 
 						savegenralData(check_sumData).
-										then(function(){
-											return resolve(true);
-										}).catch(function(){
-											return reject(false);		
+										then(function(data){
+											return resolve(data);
+										}).catch(function(error){
+											return reject(error);		
 										});
 									
 
@@ -413,7 +413,7 @@
 			DATABASE.checksum.put(genralData).then(function(data){
 								console.log("set data is "+data);
 								//DATABASE.checksum.get(check_sum);
-		              			return resolve(true);
+		              			return resolve(data);
 							}).catch(function(error){
 								console.log("set data error "+error.stack || error);
 				                 return reject(false);
@@ -545,7 +545,7 @@
 
 	//change order id formate like checksum 
 	function setOrderID(data){
-		if(data.order_ids.length>0)
+		if(Object.keys(data).indexOf("order_ids")>=0)
 			data.order_id=data.order_ids[0];
 		return {"checksum":data[ORDER_ID],"name":"order_id","path":""};
 	}

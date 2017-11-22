@@ -1,5 +1,4 @@
-
-n (angular) {
+;(function (angular) {
     "use strict";
   
     angular.module("sku", ["ngMaterial"])
@@ -111,7 +110,8 @@ n (angular) {
         self.table_headers = false;
         urlService.current_order = {"customer_data" : {"FirstName": "", "Number": "", "value": ""},
                                     "sku_data" : [],
-                                    "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0, 'issue_ty
+                                    "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
+                                    "issue_type": "online", "order_id": 0},
                                     "money_data": {}};
         self.skus= urlService.current_order.sku_data;
         manageData.prepForBroadcast("clear");
@@ -140,7 +140,7 @@ n (angular) {
   
               $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
   
-              $http.post( urlService.mainUrl+'customer_order/', data).success(function(data, status, headers, config) {
+              $http.post( urlService.mainUrl+'/rest_api/customer_order/', data).success(function(data, status, headers, config) {
                 urlService.current_order.order_id = data.order_ids[0];
                 var state = 1
                 store_data(urlService.current_order, state);
@@ -196,7 +196,8 @@ n (angular) {
         store_data(urlService.current_order, state);
         urlService.current_order = {"customer_data" : {},
                                     "sku_data" : [],
-                                    "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0, 'issue_ty
+                                    "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
+                                    "issue_type": self.issue_selected,"order_id":0},
                                     "money_data": {}};
         console.log(urlService.hold_data);
         self.skus = urlService.current_order.sku_data;
@@ -264,7 +265,7 @@ n (angular) {
             if(navigator.onLine){
               console.log("online");
   
-              $http.get(ENDPOINT+'search_product_data?user='+urlService.userData.parent_id+'&key='+key)
+              $http.get(ENDPOINT+'/rest_api/search_product_data/?user='+urlService.userData.parent_id+'&key='+key)
                 .success( function(data) {
                   self.repos = data;
                   return self.repos.map( function (repo) {

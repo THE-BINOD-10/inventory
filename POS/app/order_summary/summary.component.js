@@ -12,6 +12,69 @@
       self.VAT = urlService.VAT;
       self.order = urlService.current_order.summary;
 
+
+		if (urlService.user_update) {
+
+        if(navigator.onLine){  
+            console.log("online");
+            $http.get( urlService.mainUrl+'/rest_api/get_pos_user_data/?id='+urlService.userData.parent_id).
+					success(function(data, status, headers, config) {
+
+                if (data.status == "Success"){
+                  console.log(data);
+                  urlService.userData = data;
+                  urlService.VAT = data.VAT;
+                  self.VAT = data.VAT;
+
+
+                  //save user status in local db
+                  setCheckSum(setUserData(JSON.stringify(data))).
+                                then(function(data){
+                                    console.log("user data saved on locally"+data); 
+                                    //sync pos data 
+                                  // initStoragePersistence();
+                                  //  checkPersistent();
+                                   // syncPOSTransactionData();
+
+                             if(navigator.serviceWorker.ready){
+                                  navigator.serviceWorker.ready.then(function() {
+                                    syncPOSTransactionData();
+                                });
+                             }    
+                                                                    
+                                });
+
+                } else {
+
+                  $state.go("login");
+                }
+              })
+      }else{
+
+          console.log("offline");
+              //get user status from local db
+              getChecsumByName(USER_DATA).then(function(result){
+
+                var data=JSON.parse(result.checksum);
+
+                 if (data.status == "Success"&& urlService.userData.parent_id==data.parent_id){
+                    console.log(data);
+                    urlService.userData = data;
+                    urlService.VAT = data.VAT;
+                    self.VAT = data.VAT;
+
+                }else{
+                    $state.go("login");  
+                }
+              }).catch(function(){
+                
+                $state.go("login");
+              
+              });
+      }
+    }
+
+      /*
       if (urlService.user_update) {
       $http.get( urlService.mainUrl+'get_pos_user_data/?id='+urlService.userData.parent_id).success(function(data, status, headers, config) {
 
@@ -25,7 +88,7 @@
             $state.go("login");
           }
         })
-      }
+      }*/
       $scope.$on('handleBroadcast', function() {
 
         self.order = urlService.current_order.summary;

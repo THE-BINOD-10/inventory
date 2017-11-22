@@ -217,14 +217,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.closed_po.elem.push({name: 'remarks', value: text});
               vm.service.apiCall('close_po/', 'GET', vm.closed_po.elem, true).then(function(data){
                 if(data.message) {
-                  pop_msg(data.data)
                   if(data.data == 'Updated Successfully') {
                     vm.close();
                     vm.service.refresh(vm.dtInstance);
+                    resolve();
+                  } else {
+                    Service.showNoty(data.data)
                   }
                 }
               });
-              resolve();
             })
           },
           allowOutsideClick: false,
@@ -232,7 +233,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }).then(function (text) {
             swal2({
               type: 'success',
-              title: 'Receved PO is Deleted!',
+              title: 'Received PO is Deleted!',
               // html: 'Submitted text is: ' + text
             })
         });

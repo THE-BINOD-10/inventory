@@ -1356,7 +1356,7 @@ def close_po(request, user=''):
                 status = status.content
             if 'Invalid' not in status:
                 status = ''
-                po = PurchaseOrder.objects.get(id=myDict['id'][i], open_po__sku__user = user.id)
+                po = PurchaseOrder.objects.get(id=myDict['id'][i])
                 setattr(po, 'status', 'location-assigned')
                 po.save()
 

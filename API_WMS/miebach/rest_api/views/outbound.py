@@ -1712,41 +1712,6 @@ def serial_order_mapping(picklist, user):
         log.info("Something went wrong")
         return "Failed"
 
-# def serial_order_mapping(picklist, order_ids):
-#     """ getting all imeis of corresponding orders """
-#     serials = []
-#     val = {}
-#     picklist = picklist[0]
-#     seller_orders = SellerOrder.objects.filter(order__id__in=order_ids)
-#     for order in seller_orders:
-#         if order.order_type == 'Transit':
-#             order_objs = OrderPOMapping.objects.filter(order_id=order.sor_id.split('-')[-1], sku= order.order.sku)
-#
-#             if not order_objs:
-#                 continue
-#             ord_objs = order_objs.values_list('purchase_order_id', 'sku')
-#             po_nos, skus = [], []
-#             for item in ord_objs:
-#                 po_nos.append(item[0])
-#                 skus.append(item[1])
-#
-#             val['wms_code'] = SKUMaster.objects.get(id=skus[0]).wms_code
-#             imeis = POIMEIMapping.objects.filter(purchase_order__order_id__in=po_nos, purchase_order__open_po__sku__in=skus,
-#                         status = 1).values_list('imei_number', flat=True)
-#
-#             serials.extend(list(imeis))
-#     try:
-#         if serials:
-#             serials = ",".join(serials)
-#             val['imei'] = serials
-#             insert_order_serial(picklist, val)
-#             create_shipment_entry(picklist)
-#     except Exception as e:
-#         import traceback
-#         log.debug(traceback.format_exc())
-#
-#     return 'Success'
-
 def create_shipment_entry(picklist):
     """ create shipment data """
     order = picklist.order

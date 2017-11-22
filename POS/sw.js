@@ -17,26 +17,22 @@ importScripts('/app/data/offlineData.js');
         "/",
         "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css",
         "https://fonts.googleapis.com/icon?family=Material+Icons",
-        "dependencies/bootstrap.min.js",
-        "dependencies/node_modules/angular-material/angular-material.min.css",
+        "bower_components/bootstrap/dist/js/bootstrap.min.js",
+        "bower_components/angular-material/angular-material.min.css",
         "app/css/login.css",
         "app/css/menu.css",
         "app/css/pos.css",
         "app/css/sku.css",
-       // "app/css/redirect.css",
-        "dependencies/jquery.js",
-        "dependencies/new/angular.min.js",
-        "dependencies/angular-animate.min.js",
-        "dependencies/angular-aria.min.js",
-        "dependencies/angular-messages.min.js",
-        "dependencies//node_modules/angular-material/angular-material.min.js",
+        "bower_components/jquery/dist/jquery.min.js",
+        "bower_components/angular/angular.min.js",
+        "bower_components/angular-animate/angular-animate.min.js",
+        "bower_components/angular-aria/angular-aria.min.js",
+        "bower_components/angular-messages/angular-messages.min.js",
+        "bower_components/angular-material/angular-material.min.js",
         "dependencies/simple-autocomplete.js",
-        "dependencies/fullscreen/angular-fullscreen.js",
-        "dependencies/angular-ui-router.min.js",
-        
-        "dependencies/new/ui-bootstrap-tpls-1.3.3.js",
-        "dependencies/print/print.js",
-        
+        "bower_components/angular-fullscreen/src/angular-fullscreen.js",
+        "bower_components/angular-ui-router/release/angular-ui-router.min.js",
+        "bower_components/angular-bootstrap/ui-bootstrap-tpls.min.js",
         "app/customer/customer.module.js",
         "app/customer/customer.component.js",
         "app/customer/customer.template.html",
@@ -109,7 +105,7 @@ importScripts('/app/data/offlineData.js');
     self.addEventListener("install", function (event) {
 
 
-             event.waitUntil(caches.open(CACHE_NAME).then(function (cache) {
+           /*  event.waitUntil(caches.open(CACHE_NAME).then(function (cache) {
 
                            return cache.addAll(FILECACHEDLIST).then(function(){
                                           self.skipWaiting();
@@ -117,7 +113,12 @@ importScripts('/app/data/offlineData.js');
                           }, function (err) {
                                          log("Unable to cache Error: " + err);
                                    }));
-            
+            */
+            event.waitUntil(caches.open(CACHE_NAME).
+                                then(function (cache) {
+                                 return cache.addAll(FILECACHEDLIST);
+                                                }));
+
 
 	});
 

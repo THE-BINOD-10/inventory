@@ -52,7 +52,7 @@
         if (key.length > 1) {
             self.search_term = key;
             var deferred = $q.defer();
-          if(navigator.OnLine){
+          if(navigator.onLine){
             
             $http.get(urlService.mainUrl+'/rest_api/search_customer_data?user='+urlService.userData.parent_id+'&key='+key)
               .success(function(data) {
@@ -164,7 +164,7 @@
 		    customers : JSON.stringify(data)
                  });
 	  $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-          $http.post(urlService.mainUrl+'add_customer/', data)
+          $http.post(urlService.mainUrl+'rest_api/add_customer/', data)
             .success( function(data) {
 
               console.log(data);

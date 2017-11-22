@@ -12,7 +12,7 @@
           md-search-text="$ctrl.searchText"
           md-selected-item-change="$ctrl.selectedItemChange(item)"
           md-items="item in $ctrl.get_user_data($ctrl.searchText)"
-          md-item-text="item.Number"
+          md-item-text="item.Number?item.Number:' ';"
           md-min-length="0"
           placeholder="Customer/ Mobile Number"
           md-menu-class="autocomplete-custom-template"

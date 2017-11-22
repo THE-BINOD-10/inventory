@@ -1712,41 +1712,6 @@ def serial_order_mapping(picklist, user):
         log.info("Something went wrong")
         return "Failed"
 
-# def serial_order_mapping(picklist, order_ids):
-#     """ getting all imeis of corresponding orders """
-#     serials = []
-#     val = {}
-#     picklist = picklist[0]
-#     seller_orders = SellerOrder.objects.filter(order__id__in=order_ids)
-#     for order in seller_orders:
-#         if order.order_type == 'Transit':
-#             order_objs = OrderPOMapping.objects.filter(order_id=order.sor_id.split('-')[-1], sku= order.order.sku)
-#
-#             if not order_objs:
-#                 continue
-#             ord_objs = order_objs.values_list('purchase_order_id', 'sku')
-#             po_nos, skus = [], []
-#             for item in ord_objs:
-#                 po_nos.append(item[0])
-#                 skus.append(item[1])
-#
-#             val['wms_code'] = SKUMaster.objects.get(id=skus[0]).wms_code
-#             imeis = POIMEIMapping.objects.filter(purchase_order__order_id__in=po_nos, purchase_order__open_po__sku__in=skus,
-#                         status = 1).values_list('imei_number', flat=True)
-#
-#             serials.extend(list(imeis))
-#     try:
-#         if serials:
-#             serials = ",".join(serials)
-#             val['imei'] = serials
-#             insert_order_serial(picklist, val)
-#             create_shipment_entry(picklist)
-#     except Exception as e:
-#         import traceback
-#         log.debug(traceback.format_exc())
-#
-#     return 'Success'
-
 def create_shipment_entry(picklist):
     """ create shipment data """
     order = picklist.order
@@ -1792,14 +1757,39 @@ def update_invoice(request, user=''):
     order_ids = request.POST.get("order_id", "")
     consignee = request.POST.get("ship_to", "")
     invoice_date = request.POST.get("invoice_date", "")
+    invoice_number = request.POST.get("invoice_number", "")
+    increment_invoice = get_misc_value('increment_invoice', user.id)
+    marketplace = request.POST.get("marketplace", "")
+
+    myDict = dict(request.POST.iterlists())
     if invoice_date:
         invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
     order_id_val = ''.join(re.findall('\d+', order_ids))
     order_code = ''.join(re.findall('\D+', order_ids))
     ord_ids = OrderDetail.objects.filter(Q(order_id = order_id_val, order_code = order_code) | Q(original_order_id=order_ids),
-                                         user = user.id).values_list('id', flat = True)
+                                         user = user.id)
+
+    if increment_invoice == 'true' and invoice_number:
+        invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace)
+        if not invoice_sequence:
+            invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace='')
+        if int(invoice_number) >= int(invoice_sequence[0].value)-1:
+            seller_orders = SellerOrderSummary.objects.filter(order_id__in=ord_ids, order__user=user.id)
+            if seller_orders and int(seller_orders[0].invoice_number) != int(invoice_number):
+                seller_orders.update(invoice_number=str(invoice_number).zfill(3))
+                invoice_sequence = invoice_sequence[0]
+                invoice_sequence.value = int(invoice_number) + 1
+                invoice_sequence.save();
+        else:
+            resp['msg'] = "Invoice number already Exist"
+            return HttpResponse(json.dumps(resp))
+
     for order_id in ord_ids:
-        cust_objs = CustomerOrderSummary.objects.filter(order__user = user.id, order__id = order_id)
+        unit_price_index = myDict['id'].index(str(order_id.id))
+        if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
+            order_id.unit_price = float(myDict['unit_price'][unit_price_index])
+            order_id.save()
+        cust_objs = CustomerOrderSummary.objects.filter(order__user = user.id, order__id = order_id.id)
         if cust_objs:
             cust_obj = cust_objs[0]
             cust_obj.consignee = consignee
@@ -1807,7 +1797,6 @@ def update_invoice(request, user=''):
                 cust_obj.invoice_date = invoice_date
             cust_obj.save()
     return HttpResponse(json.dumps(resp))
-    
 
 @csrf_exempt
 @login_required

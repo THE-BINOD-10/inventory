@@ -460,9 +460,14 @@ def get_sku_data(request,user=''):
     sku_data['hsn_code'] = data.hsn_code
     sku_data['sub_category'] = data.sub_category
     sku_data['primary_category'] = data.primary_category
+    sku_data['hot_release'] = 0
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
+
+    sku_fields = SKUFields.objects.filter(field_type='hot_release', sku_id=data.id)
+    if sku_fields:
+        sku_data['hot_release'] = sku_fields[0].field_value
 
     size_names = SizeMaster.objects.filter(user=user.id)
     sizes_list = []
@@ -480,6 +485,11 @@ def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, 
     search_params1 = {}
     search_params2 = {}
     lis  = ['username', 'first_name', 'email', 'id']
+
+    warehouse_admin = get_warehouse_admin(user)
+    exclude_admin = {}
+    if warehouse_admin.id == user.id:
+        exclude_admin = {'admin_user_id': user.id}
     search_params = get_filtered_params(filters, lis)
     for key, value in search_params.iteritems():
         search_params1['user__' + key] = value
@@ -490,23 +500,28 @@ def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, 
     if order_term == 'desc':
         order_data = '-%s' % order_data
         order_data1 = '-%s' % order_data1
+
+    all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)
     if search_term:
-        master_data1 = UserGroups.objects.filter(Q(user__first_name__icontains=search_term) | Q(user__email__icontains=search_term),
-                                                 admin_user__username__iexact=user.username, **search_params2).\
-                                                 order_by(order_data, order_data).values_list('user__username', 'user__first_name',
+        master_data1 = all_user_groups.filter(Q(user__first_name__icontains=search_term) | Q(user__email__icontains=search_term),
+                                                 **search_params1).exclude(user_id=user.id).\
+                                                 order_by(order_data).values_list('user__username', 'user__first_name',
                                                  'user__email')
-        master_data2 = UserGroups.objects.filter(Q(admin_user__first_name__icontains=search_term) |
-                                                 Q(admin_user__email__icontains=search_term), user__username__iexact=user.username,
-                                                 **search_params1).\
-                                                 order_by(order_data, order_data).values_list('admin_user__username',
-                                                'admin_user__first_name', 'admin_user__email')
+
+        master_data2 = all_user_groups.exclude(**exclude_admin).filter(Q(admin_user__first_name__icontains=search_term) |
+                                                 Q(admin_user__email__icontains=search_term), **search_params2).\
+                                                 order_by(order_data1).values_list('admin_user__username',
+                                                'admin_user__first_name', 'admin_user__email').distinct()
         master_data = list(chain(master_data1, master_data2))
+
     elif order_term:
-        master_data1 = UserGroups.objects.filter(admin_user__username__iexact=user.username, **search_params1).\
-                                          order_by(order_data, order_data).values_list('user__username', 'user__first_name', 'user__email')
-        master_data2 = UserGroups.objects.filter(user__username__iexact=user.username, **search_params2).values_list('admin_user__username',
-                                                'admin_user__first_name', 'admin_user__email')
+        master_data1 = all_user_groups.filter(**search_params1).exclude(user_id=user.id).\
+                                          order_by(order_data).values_list('user__username', 'user__first_name', 'user__email')
+        master_data2 = all_user_groups.exclude(**exclude_admin).filter(**search_params2).order_by(order_data1).\
+                                            values_list('admin_user__username',
+                                                'admin_user__first_name', 'admin_user__email').distinct()
         master_data = list(chain(master_data1, master_data2))
+
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
@@ -576,6 +591,16 @@ def check_update_size_type(data, value):
         sku_fields[0].field_id = size_master.id
         sku_fields[0].save()
 
+def check_update_hot_release(data, value):
+    sku_fields = SKUFields.objects.filter(sku_id=data.id, field_type='hot_release')
+    if not sku_fields:
+        SKUFields.objects.create(sku_id=data.id, field_type='hot_release', field_value= value,
+                                 creation_date=datetime.datetime.now())
+    else:
+        if sku_fields[0].field_value != value:
+            sku_fields[0].field_value = value
+            sku_fields[0].save()
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -624,6 +649,10 @@ def update_sku(request,user=''):
                 value = load_unit_dict.get(value.lower(), 'unit')
             elif key == 'size_type':
                 check_update_size_type(data, value)
+                continue
+            elif key == 'hot_release':
+                value = 1 if (value.lower() == 'enable') else 0;
+                check_update_hot_release(data, value)
                 continue
             setattr(data, key, value)
 
@@ -1225,7 +1254,8 @@ def add_warehouse_user(request, user=''):
         admin_group  = AdminGroups(**admin_dict)
         admin_group.save()
         new_user.groups.add(group)
-        UserGroups.objects.create(admin_user_id=user.id, user_id=new_user.id)
+        warehouse_admin = get_warehouse_admin(user)
+        UserGroups.objects.create(admin_user_id=warehouse_admin.id, user_id=new_user.id)
         status = 'Added Successfully'
     else:
         status = 'Username already exists'
@@ -1491,6 +1521,7 @@ def insert_sku(request,user=''):
         description = request.POST['sku_desc']
         zone = request.POST['zone_id']
         size_type = request.POST.get('size_type', '')
+        hot_release = request.POST.get('hot_release', '')
         if not wms or not description or not zone:
             return HttpResponse('Missing Required Fields')
         filter_params = {'zone': zone, 'user': user.id}
@@ -1537,6 +1568,9 @@ def insert_sku(request,user=''):
                 save_image_file(image_file, sku_master, user)
             if size_type:
                 check_update_size_type(sku_master, size_type)
+            if hot_release:
+                value = 1 if (value.lower() == 'enable') else 0;
+                check_update_hot_release(sku_master, value)
             status_msg = 'New WMS Code Added'
 
             update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=sku_master)

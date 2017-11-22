@@ -183,7 +183,7 @@ def get_order_mapping(reader, file_type):
          and get_cell_data(0, 16, reader, file_type) == 'SKU Code':
         order_mapping = copy.deepcopy(FLIPKART_EXCEL4)
     elif get_cell_data(0, 1, reader, file_type) == 'Date Time' and get_cell_data(0, 3, reader, file_type) == 'Vendor Code':
-        order_mapping = copy.deepcopy(PAYTM_EXCEL)
+        order_mapping = copy.deepcopy(LIMEROAD_EXCEL)
     #elif get_cell_data(0, 1, reader, file_type) == 'item_name':
     #    order_mapping = copy.deepcopy(PAYTM_EXCEL2)
     elif get_cell_data(0, 1, reader, file_type) == 'Order Item ID':
@@ -219,7 +219,7 @@ def get_order_mapping(reader, file_type):
     elif get_cell_data(0, 1, reader, file_type) == 'AMB Order No':
         order_mapping = copy.deepcopy(ASKMEBAZZAR_EXCEL)
     elif get_cell_data(0, 3, reader, file_type) == 'customer_firstname' and get_cell_data(0, 4, reader, file_type) == 'customer_lastname':
-        order_mapping = copy.deepcopy(LIMEROAD_EXCEL)
+        order_mapping = copy.deepcopy(PAYTM_EXCEL)
     elif get_cell_data(0, 1, reader, file_type) == 'Uniware Created At' and get_cell_data(0, 0, reader, file_type) == 'Order #':
         order_mapping = copy.deepcopy(UNI_COMMERCE_EXCEL1)
     elif get_cell_data(0, 0, reader, file_type) == 'Order Date' and get_cell_data(0, 3, reader, file_type) == 'Total Value':
@@ -1002,6 +1002,10 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
                 if cell_data:
 		    if str(cell_data).upper() not in SUB_CATEGORIES.values():
 		        index_status.setdefault(row_idx, set()).add('Sub Category Incorrect')
+            elif key == 'hot_release':
+                if cell_data:
+                    if not str(cell_data).lower() in ['enable', 'disable']:
+                        index_status.setdefault(row_idx, set()).add('Hot Release Should be Enable or Disable')
 
     master_sku = SKUMaster.objects.filter(user=user.id)
     master_sku = [data.sku_code for data in master_sku]
@@ -1043,6 +1047,7 @@ def get_sku_file_mapping(reader, file_type, user=''):
 def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 
     from masters import check_update_size_type
+    from masters import check_update_hot_release
     all_sku_masters = []
     zone_master = ZoneMaster.objects.filter(user=user.id).values('id', 'zone')
     zones = map(lambda d: d['zone'], zone_master)
@@ -1059,6 +1064,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
         wms_code = ''
         sku_data = None
         _size_type = ''
+        hot_release = 0
         for key, value in sku_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, sku_file_mapping[key], reader, file_type)
 
@@ -1152,6 +1158,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
             elif key == 'size_type':
                 continue
 
+            elif key == 'hot_release':
+                hot_release = str(cell_data).lower()
+
             elif cell_data:
                 data_dict[key] = cell_data
                 if sku_data:
@@ -1169,6 +1178,9 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
 
         if _size_type:
             check_update_size_type(sku_data, _size_type)
+        if hot_release:
+            hot_release = 1 if (hot_release == 'enable') else 0
+            check_update_hot_release(sku_data, hot_release)
 
     #get_user_sku_data(user)
     insert_update_brands(user)
@@ -3336,7 +3348,7 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                 if value not in ['Transit', 'Normal']:
                     index_status.setdefault(count, set()).add('Invalid Order Type')
                 else:
-                    seller_order_details['order_type'] = value
+                    order_details['order_type'] = value
 
         if order_details.get('sku_id', ''):
             order_detail_obj = OrderDetail.objects.filter(Q(original_order_id=order_details['original_order_id']) |

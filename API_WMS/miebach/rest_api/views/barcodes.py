@@ -73,8 +73,25 @@ def get_paragraph(data={}, fields=[]):
 
     phrases = []
     for field in fields:
+        if 'SKUPrintQty' in field:
+            if "/" in field:
+                phrases.append("%s: %s" % (str(field.split("/")[1]), str(1)))
+            else:
+                phrases.append("%s: %s" % (str(field), str(1)))
+            continue
         if isinstance(field, list):
-            phrases.append("&nbsp;&nbsp;&nbsp;&nbsp;".join(["%s: %s" % (str(i), data.get(i, '')) for i in field]))
+            nw_phs = []
+            for i  in field:
+                if "/" in i:
+                    i = i.split("/")
+                    v = data.get(i[0], '')
+                    if 'SKUPrintQty' in i:
+                        v = 1
+                    nw_phs.append("%s: %s" % (str(i[1]), v))
+                else:
+                    nw_phs.append("%s: %s" % (str(i) , data.get(i)))
+
+            phrases.append("&nbsp;&nbsp;&nbsp;&nbsp;".join(nw_phs))
         elif isinstance(field, tuple):
             phrases.append("%s: %s" % (str(field[1]) , data.get(field[0])))
         elif "/" in field:
@@ -142,7 +159,9 @@ def get_barcodes1(data_dict):
 
     doc.addPageTemplates(pages)
     doc.build(story)
-    return data_dict['file_name'].replace(settings.BASE_DIR, '').strip('/')
+    if data_dict['file_name'].startswith("./"): url = data_dict['file_name'].lstrip("./")
+    else: url = data_dict['file_name'].replace(settings.BASE_DIR, '').strip('/')
+    return url
 def myFirstPage(canvas, doc):
             canvas.saveState()
             canvas.rotate(90)

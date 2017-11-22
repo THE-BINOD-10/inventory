@@ -612,7 +612,6 @@ def configurations(request, user=''):
     for reports in enabled_reports:
         config_dict['reports_data'].append(str(reports.misc_type.replace('report_', '')))
 
-
     all_related_warehouse_id = get_related_users(user.id)
     config_dict['all_related_warehouse'] = dict(User.objects.filter(id__in = all_related_warehouse_id).exclude(id = user.id).values_list('first_name','id'))
     config_dict['all_related_warehouse'].update({"Intransit of Current Warehouse" : user.id})
@@ -2032,7 +2031,9 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
             else:
                 _tax = (amt * (vat / 100))
 
-            discount_percentage = "%.1f" % (float((discount * 100)/(quantity * unit_price)))
+            discount_percentage = 0
+            if (quantity * unit_price):
+                discount_percentage = "%.1f" % (float((discount * 100)/(quantity * unit_price)))
             unit_price = "%.2f" % unit_price
             total_quantity += quantity
             _total_tax += _tax
@@ -2046,6 +2047,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
                 if customer_sku_code_ins:
                     sku_code = customer_sku_code_ins[0]['customer_sku_code']
 
+            temp_imeis = []
             if show_imei_invoice == 'true':
                 temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
                 # imeis = OrderIMEIMapping.objects.filter(order__user = user.id, order_id = dat.id, sor_id = sor_id)
@@ -2266,6 +2268,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     to_price = request_data.get('to_price', '')
     color = request_data.get('color', '')
     custom_margin = request.GET.get('margin', 0)
+    hot_release = request.GET.get('hot_release', '')
     try:
         custom_margin = float(custom_margin)
     except:
@@ -2336,6 +2339,10 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if to_price:
         filter_params['new_price__lte'] = int(to_price)
         filter_params1['new_price__lte'] = int(to_price)
+    if hot_release == 'true':
+        hot_release_data = SKUFields.objects.filter(sku__user=user.id, field_type='hot_release', field_value = '1').values_list('sku_id', flat=True)
+        filter_params['id__in'] = hot_release_data
+        filter_params1['id__in'] = hot_release_data
 
     start, stop = indexes.split(':')
     start, stop = int(start), int(stop)
@@ -4443,3 +4450,13 @@ def update_invoice_sequence(request, user=''):
                     (str(user.username), str(request.GET.dict()), str(e)))
         status = 'Update Invoice Number Sequence Failed'
     return HttpResponse(json.dumps({'status': status}))
+
+def get_warehouse_admin(user):
+    """ Check and Return Admin user of current """
+
+    is_admin_exists = UserGroups.objects.filter(Q(user=user) | Q(admin_user=user))
+    if is_admin_exists:
+        admin_user = is_admin_exists[0].admin_user
+    else:
+        admin_user = user
+    return admin_user

@@ -82,6 +82,7 @@
         </div>
         <div class="col-md-2 col-sm-2 col-xs-3">
           <input type="text" class="form-control" placeholder="Enter Amount" ng-model="charge.charge_amount"  decimal-number name="charge_amount" required>
+          <input type="hidden" class="form-control" ng-model="charge.charge_id" name="charge_id">
         </div>
         <div class="col-md-1 col-sm-1 col-xs-2">
           <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="pop.model_data.order_charges.splice($index, 1);pop.cal_total();"></i>
@@ -95,6 +96,7 @@
         </div>
         <div class="col-md-2 col-sm-2 col-xs-3">
           <input type="text" class="form-control" placeholder="Enter Amount" ng-model="charge.charge_amount"  decimal-number name="charge_amount" value="{{charge.charge_amount}}" required>
+          <input type="hidden" class="form-control" ng-model="charge.charge_id" name="charge_id" value="{{charge.id}}">
         </div>
         <div class="col-md-1 col-sm-1 col-xs-2">
           <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="pop.model_data.order_charges.splice($index, 1);pop.cal_total();"></i>

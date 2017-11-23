@@ -2076,7 +2076,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
     total_invoice_amount = total_invoice
     if order_id:
         order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
-        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount'))
+        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
         total_charge_amount = order_charge_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
         if total_charge_amount:
             total_invoice_amount = float(total_charge_amount) + total_invoice

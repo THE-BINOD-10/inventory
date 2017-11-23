@@ -273,7 +273,12 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   vm.permissions = Session.roles.permissions;
 
   vm.model_data = items;
-  vm.model_data.other_charges = [];
+
+  vm.model_data.default_charge = function(){
+    if (vm.model_data.order_charges.length == 1) {
+      vm.model_data.flag = true;
+    }
+  }
 
   $timeout(function() {
     $('.stk-readonly').datepicker("setDate", new Date(vm.model_data.inv_date) );
@@ -288,8 +293,8 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
     vm.final_data.total_quantity = 0;
     vm.final_data.total_amount = 0;
 
-    if(vm.model_data.other_charges) {
-      angular.forEach(vm.model_data.other_charges, function(record){
+    if(vm.model_data.order_charges) {
+      angular.forEach(vm.model_data.order_charges, function(record){
         if(record.amount){
           vm.final_data.total_amount += Number(record.amount);
         }
@@ -305,7 +310,7 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
       return false;
     } else if (!form.$valid) {
 
-      Service.showNoty("Please Fill Unit Price");
+      Service.showNoty("Please Fill the Mandatory Fields");
       return false;
     }
     vm.process = true;

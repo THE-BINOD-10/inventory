@@ -273,6 +273,7 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   vm.permissions = Session.roles.permissions;
 
   vm.model_data = items;
+  vm.model_data.other_charges = [];
 
   $timeout(function() {
     $('.stk-readonly').datepicker("setDate", new Date(vm.model_data.inv_date) );
@@ -281,11 +282,25 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
     $modalInstance.close("close");
   };
 
+  /*vm.final_data = {total_quantity:0,total_amount:0}
+  vm.cal_total = function() {
+
+    vm.final_data.total_quantity = 0;
+    vm.final_data.total_amount = 0;
+
+    if(vm.model_data.other_charges) {
+      angular.forEach(vm.model_data.other_charges, function(record){
+        if(record.amount){
+          vm.final_data.total_amount += Number(record.amount);
+        }
+      })
+    }
+  }*/
+
   vm.process = false;
   vm.save = function(form) {
 
-    if (form.invoice_number.$invalid) {
-
+    if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form.invoice_number.$invalid) {
       Service.showNoty("Please Fill Invoice Number");
       return false;
     } else if (!form.$valid) {

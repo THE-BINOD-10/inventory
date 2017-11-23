@@ -1803,7 +1803,7 @@ def update_invoice(request, user=''):
 
         # Updating or Creating Order other charges Table
         for i in range(0, len(myDict.get('charge_name', []))):
-            if myDict.get('charge_id'):
+            if myDict.get('charge_id') and myDict['charge_id'][i]:
                 order_charges = OrderCharges.objects.filter(id=myDict['charge_id'][i], user_id=user.id)
                 if order_charges:
                     if not myDict['charge_amount'][i]:
@@ -6062,7 +6062,7 @@ def delete_order_charges(request, user=''):
     try:
         data_id = request.GET.get('id', '')
         if data_id:
-            other_charges = OtherCharges.objects.filter(id=data_id, order__user=user.id)
+            other_charges = OrderCharges.objects.filter(id=data_id, user_id=user.id)
             if other_charges:
                 other_charges.delete()
     except Exception as e:

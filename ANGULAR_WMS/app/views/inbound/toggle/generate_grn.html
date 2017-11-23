@@ -2,7 +2,7 @@
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
   <div class="modal-dialog model-custom modal-lg">
     <div class="modal-content mw55">
-      <div class="process-overlay" ng-if="process"><div class="process-text">Loading...</div></div>
+      <div class="process-overlay" ng-if="process || showCase.fb.process"><div class="process-text">Loading...</div></div>
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
         <h4 class="modal-title">{{showCase.title}}</h4> </div>
@@ -82,7 +82,7 @@
                     <td><input type="text" ng-model="data.unit" name="unit" class="form-control" readonly></td>
                     <td ng-if="showCase.permissions.use_imei">
                       <input type="text" name="imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control" ng-readonly="data.po_quantity == data.value || data.disable" ng-keydown="showCase.check_imei_exists($event, data, $parent.$parent.$index)">
-                      <input ng-if="!showCase.po_qc" type="hidden" name="imei_number" class="form-control" ng-init="data.imei_list=[]" value="{{data.imei_list.join(',')}}">
+                      <input ng-if="!showCase.po_qc" type="hidden" name="imei_number" class="form-control" value="{{data.imei_list.join(',')}}">
                     </td>
                     <td><input type="text" ng-model="data.price" name="price" class="form-control" value="" ng-readonly="records[0].dis"></td>
                     <td ng-if="showCase.permissions.pallet_switch"><i ng-click="showCase.update_data($index, records)" ng-class="showCase.service.isLast($last)"></i></td>

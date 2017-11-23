@@ -1802,7 +1802,7 @@ def update_invoice(request, user=''):
                 cust_obj.save()
 
         # Updating or Creating Order other charges Table
-        for ind in range(0, len(myDict.get('charge_name', []))):
+        for i in range(0, len(myDict.get('charge_name', []))):
             if myDict.get('charge_id'):
                 order_charges = OrderCharges.objects.filter(id=myDict['charge_id'][i], user_id=user.id)
                 if order_charges:

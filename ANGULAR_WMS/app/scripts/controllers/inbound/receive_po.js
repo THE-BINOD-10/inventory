@@ -1,3 +1,5 @@
+FUN = {};
+
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
@@ -231,10 +233,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (event.keyCode == 13 && field.length > 0) {
         console.log(field);
         vm.model_data.scan_sku = "";
+        vm.scan_sku_disable = true;
         if(vm.permissions.barcode_generate_opt == "sku_serial" && vm.permissions.use_imei) {
           vm.service.apiCall('check_generated_label/', 'GET',{'label': field, 'order_id': vm.model_data.po_id}).then(function(data){
             if(data.message) {
               if(data.data.message == 'Success') {
+                field = data.data.data.label;
                 var sku_code = data.data.data.sku_code;
                 if ((vm.fb.poData.serials.indexOf(field) != -1) || (vm.imei_list.indexOf(field) != -1)){
 
@@ -242,33 +246,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   $('textarea[name="scan_sku"]').trigger('focus').val('');
                 } else {
 
-                  fb.check_imei(field).then(function(resp) {
-                    if (resp.status) {
-                      Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
-                    } else {
-                      for(var i=0; i<vm.model_data.data.length; i++) {
-                        var temp = vm.model_data.data[i][0]
-                        if(temp.wms_code == sku_code) {
-                          if(vm.po_qc) {
-                            vm.current_index = i;
-                            //vm.model_data0["sku_data"] = data1.sku_details[0].fields;
-                            vm.imei_list.push(field);
-                            vm.accept_qc(vm.model_data.data[i], field);
-                            qc_details();
-                          } else {
-                            vm.po_imei_scan(vm.model_data.data[i][0], field)
-                          }
-                          vm.current_sku = "";
-                          break;
-                        }
+                  for(var i=0; i<vm.model_data.data.length; i++) {
+                    var temp = vm.model_data.data[i][0]
+                    if(temp.wms_code == sku_code) {
+                      if(vm.po_qc) {
+                        vm.current_index = i;
+                        //vm.model_data0["sku_data"] = data1.sku_details[0].fields;
+                        vm.imei_list.push(field);
+                        vm.accept_qc(vm.model_data.data[i], field);
+                        qc_details();
+                      } else {
+                        vm.po_imei_scan(vm.model_data.data[i][0], field)
                       }
+                      vm.current_sku = "";
+                      break;
                     }
-                  })
+                  }
                 }
               } else {
                 Service.showNoty(data.data.message);
               }
+            } else {
+              Service.showNoty("Something went wrong");
             }
+            vm.scan_sku_disable = false;
           })
         } else {
           vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
@@ -303,14 +304,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   Service.showNoty(field+" Does Not Exist");
                 }
               }
+            } else {
+              Service.showNoty("Something went wrong");
             }
+            vm.scan_sku_disable = false;
           });
         }
       }
     }
 
+    FUN.scan_sku = vm.scan_sku;
+
     vm.po_imei_scan = function(data1, field) {
 
+      if(data1["imei_list"].indexOf(field) != -1) {
+
+        Service.showNoty("IMEI Already Scanned");
+        return false;
+      }
       data1.value = parseInt(data1.value)+1;
       vm.serial_numbers.push(field);
       data1["imei_list"].push(field);
@@ -492,6 +503,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.service.apiCall('check_generated_label/', 'GET',{'label': data1.imei_number, 'order_id': vm.model_data.po_id}).then(function(data){
                   if(data.message) {
                     if(data.data.message == 'Success') {
+                      data1.imei_number = data.data.data.label;
                       var sku_code = data.data.data.sku_code;
                       if (data1.wms_code != sku_code) {
                         Service.showNoty("Scanned label belongs to "+sku_code);

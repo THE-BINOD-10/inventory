@@ -37,7 +37,7 @@
             <div class="col-md-3 col-sm-3 col-xs-6">
               <div class="form-group">
                 <label for="scan_sku" class="control-label"> Scan SKU </label>
-                <textarea class="form-control" rows="1" ng-model="showCase.model_data.scan_sku" type="text" name="scan_sku" ng-keydown="showCase.scan_sku($event, showCase.model_data.scan_sku)" focus-on="focusSKU" auto-focus></textarea>
+                <textarea class="form-control" rows="1" ng-model="showCase.model_data.scan_sku" type="text" name="scan_sku" ng-keydown="showCase.scan_sku($event, showCase.model_data.scan_sku)" focus-on="focusSKU" auto-focus ng-readonly="showCase.scan_sku_disable"></textarea>
               </div>
             </div>
           </div>

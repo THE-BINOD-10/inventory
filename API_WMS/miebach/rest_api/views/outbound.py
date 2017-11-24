@@ -1782,7 +1782,7 @@ def update_invoice(request, user=''):
                     seller_orders.update(invoice_number=str(invoice_number).zfill(3))
                     invoice_sequence = invoice_sequence[0]
                     invoice_sequence.value = int(invoice_number) + 1
-                    invoice_sequence.save();
+                    invoice_sequence.save()
             else:
                 resp['msg'] = "Invoice number already Exist"
                 return HttpResponse(json.dumps(resp))
@@ -1792,6 +1792,7 @@ def update_invoice(request, user=''):
             unit_price_index = myDict['id'].index(str(order_id.id))
             if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
                 order_id.unit_price = float(myDict['unit_price'][unit_price_index])
+                order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index])
                 order_id.save()
             cust_objs = CustomerOrderSummary.objects.filter(order__user = user.id, order__id = order_id.id)
             if cust_objs:

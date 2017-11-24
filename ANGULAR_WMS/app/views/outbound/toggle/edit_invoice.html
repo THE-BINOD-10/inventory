@@ -65,7 +65,10 @@
         <td class="text-right">{{record.taxes.cgst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.cgst_tax}}%</span></td>
         <td class="text-right">{{record.taxes.sgst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.sgst_tax}}%</span></td>
         <td class="text-right">{{record.taxes.igst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.igst_tax}}%</span></td>
-        <td>{{record.invoice_amount | number:2}}</td>
+        <td>
+          {{record.invoice_amount | number:2}}
+          <input type="hidden" name="invoice_amount" value="{{record.invoice_amount}}" class="form-control">
+        </td>
       </tr>
     </tbody>
   </table>
@@ -75,6 +78,7 @@
     <div class="col-md-12">
       <a href="javascript:;" class="btn btn-success btn-xs" ng-click="pop.model_data.order_charges.push({charge_id: '', charge_name: '', charge_amount: ''}); pop.model_data.default_charge()">Add Other Charges(+)</a>
     </div>
+
     <div class="col-md-12" ng-if="pop.model_data.flag">
       <div class="row mt20" ng-repeat="charge in pop.model_data.order_charges">
         <div class="col-md-3 col-sm-4 col-xs-6">
@@ -85,11 +89,12 @@
           <input type="hidden" class="form-control" ng-model="charge.charge_id" name="charge_id">
         </div>
         <div class="col-md-1 col-sm-1 col-xs-2">
-          <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="pop.model_data.order_charges.splice($index, 1);pop.cal_total();"></i>
+          <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="pop.model_data.order_charges.splice($index, 1)"></i>
         </div>
       </div>
     </div>
-    <div class="col-md-12" ng-if="pop.model_data.order_charges">
+    
+    <div class="col-md-12" ng-if="pop.model_data.order_charges && !pop.model_data.flag">
       <div class="row mt20" ng-repeat="charge in pop.model_data.order_charges">
         <div class="col-md-3 col-sm-4 col-xs-6">
           <input type="text" class="form-control" placeholder="Enter Charge Name" ng-model="charge.charge_name" name="charge_name" value="{{charge.charge_name}}" required>
@@ -99,10 +104,11 @@
           <input type="hidden" class="form-control" ng-model="charge.charge_id" name="charge_id" value="{{charge.id}}">
         </div>
         <div class="col-md-1 col-sm-1 col-xs-2">
-          <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="pop.model_data.order_charges.splice($index, 1);pop.cal_total();"></i>
+          <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="pop.model_data.order_charges.splice($index, 1);pop.delete_charge(charge.id);"></i>
         </div>
       </div>
     </div>
+
   </div>
 
       </div>

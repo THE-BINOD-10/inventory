@@ -280,6 +280,17 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
     }
   }
 
+  vm.delete_charge = function(id){
+    
+    if (id) {
+      vm.service.apiCall("delete_order_charges?id="+id, "GET").then(function(data){
+        if(data.message){
+          Service.showNoty(data.data.message);
+        }
+      });
+    }
+  }
+
   $timeout(function() {
     $('.stk-readonly').datepicker("setDate", new Date(vm.model_data.inv_date) );
   },1000);

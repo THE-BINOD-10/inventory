@@ -11,6 +11,7 @@ app.service('urlService', function($rootScope){
                           "money_data": {},
                           "status": 0
                           };
+  
     this.user_update = true;
     that = this;
 
@@ -40,7 +41,7 @@ app.factory('manageData', function($rootScope) {
   return storage;
 })
 
-app.controller('posController', function($http, $scope, urlService, Fullscreen){
+app.controller('posController', function($http, $scope, urlService, Fullscreen,$mdToast){
 
   $scope.name = "Test";
   $scope.is_disable = "false";
@@ -66,22 +67,80 @@ app.controller('posController', function($http, $scope, urlService, Fullscreen){
    //Synchronize DB
    $scope.sync = function () {
       //$scope.is_disable = "true";
-      $(".preloader").removeClass("ng-hide").addClass("ng-show");
-            
+      showRefresh();
+    
       if(navigator.onLine){
         //sync pos data 
         syncPOSTransactionData().then(function(){
-          $(".preloader").removeClass("ng-show").addClass("ng-hide");
+          hideRefresh();
         }).catch(function(){
-          $(".preloader").removeClass("ng-show").addClass("ng-hide");
+          hideRefresh();
         });
       }else{
         console.log( "offline");
-        $(".preloader").removeClass("ng-show").addClass("ng-hide");
+        hideRefresh();
       }
 
   };
-   
+
+    function showRefresh(){
+      $(".preloader").removeClass("ng-hide").addClass("ng-show");
+    }
+
+    function hideRefresh(){
+      $(".preloader").removeClass("ng-show").addClass("ng-hide");
+    }
+
+    //trigger event for getting data at intiallly.
+    $scope.sync();
+
+
+  window.addEventListener('load', function(e) {
+    if (navigator.onLine) {
+      console.log("online");
+      toast_msg(CONNECTED_NETWORK);
+    } else {
+      console.log("offline");
+      toast_msg(NETWORK_ERROR);
+    }
+  }, false);
+
+  window.addEventListener('online', function(e) {
+    console.log("And we're back");
+    toast_msg(CONNECTED_NETWORK);
+  }, false);
+
+  window.addEventListener('offline', function(e) {
+    console.log("Connection is flaky.");
+    toast_msg(NETWORK_ERROR);
+  }, false);
+  
+  
+  function toast_msg(msg){
+     $mdToast.show( $mdToast.simple()
+        .textContent(msg)
+        .position('top right')
+        .hideDelay(3000));
+  }
+
+  function checkNotificationPermission(){
+
+   enableNotificaiton().then(function(data){
+
+            if(data==false){
+              toast_msg(NOTIIFICATION_ERROR);
+            }
+
+              checkPersistent().then(function(data){
+                  console.log(""+data);
+              }).catch(function(error){
+                  console.log(""+error);
+              });
+            });
+  }  
+
+  checkNotificationPermission();
+
 })
 
 app.config(function($stateProvider, $urlRouterProvider){

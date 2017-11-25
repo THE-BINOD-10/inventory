@@ -13,3 +13,6 @@ var ORDER_ID_UPDATED_ERROR="Order is not updated in local";
 var SYNC_LOCAL_DATA="sync_local_data"
 var USER_DATA="user_data";
 var SYNC_POS_DATA="sync_pos";
+var NETWORK_ERROR="activated offline mode";
+var CONNECTED_NETWORK="online mode";
+var NOTIIFICATION_ERROR="applicaiton need an notfication permission."

@@ -29,7 +29,7 @@ importScripts('/app/data/offlineData.js');
         "bower_components/angular-aria/angular-aria.min.js",
         "bower_components/angular-messages/angular-messages.min.js",
         "bower_components/angular-material/angular-material.min.js",
-        "dependencies/simple-autocomplete.js",
+        "/dependencies/simple-autocomplete.js",
         "bower_components/angular-fullscreen/src/angular-fullscreen.js",
         "bower_components/angular-ui-router/release/angular-ui-router.min.js",
         "bower_components/angular-bootstrap/ui-bootstrap-tpls.min.js",
@@ -81,9 +81,7 @@ importScripts('/app/data/offlineData.js');
    //black list files 
    var BLACKLIST = [
         "/rest_api/",
- 
-
-      ];
+       ];
 
     //check url is black listed or not  
     function isBlacklisted (url) {
@@ -104,22 +102,13 @@ importScripts('/app/data/offlineData.js');
     //service worker install event listner
     self.addEventListener("install", function (event) {
 
-
-           /*  event.waitUntil(caches.open(CACHE_NAME).then(function (cache) {
+             event.waitUntil(caches.open(CACHE_NAME).then(function(cache) {
 
                            return cache.addAll(FILECACHEDLIST).then(function(){
                                           self.skipWaiting();
                                     });
-                          }, function (err) {
-                                         log("Unable to cache Error: " + err);
-                                   }));
-            */
-            event.waitUntil(caches.open(CACHE_NAME).
-                                then(function (cache) {
-                                 return cache.addAll(FILECACHEDLIST);
-                                                }));
-
-
+                          }));
+            
 	});
 
 
@@ -397,23 +386,39 @@ importScripts('/app/data/offlineData.js');
   	//check message event and get the content 
   	function getContent(event,data){
 
-  		if(data==true){
+		if(event.data==SYNC_SKUMASTER){
+
+			getSkumasterData().
+						then(function(result){
+							if(result.length<=0 && data!=true){
+
+							appendUserID(GET_SKUDATA_API).then(function(url){
+								getSkuConent(event,REQUEST_METHOD_GET,url);
+							});	
+							
+							}else{
+								event.ports[0].postMessage(data);					
+							}
+						});
+		}else if(event.data==SYNC_CUSTOMERMASTER){
+
+			getcustomerData().
+						then(function(result){
+							if(result.length<=0 && data!=true){
+								appendUserID(GET_CUSTOMER_API).then(function(url){
+								getCustomerContent(event,REQUEST_METHOD_GET,url);
+							});
+						
+							}else{
+								event.ports[0].postMessage(data);					
+							}
+						});
+
+
+		}else{
 			event.ports[0].postMessage(data);
-  		}else{
-			if(event.data==SYNC_SKUMASTER){
-				appendUserID(GET_SKUDATA_API).then(function(url){
-					getSkuConent(event,REQUEST_METHOD_GET,url);
-				});
-			    
-		    }else if(event.data==SYNC_CUSTOMERMASTER){
-			    appendUserID(GET_CUSTOMER_API).then(function(url){
-					getCustomerContent(event,REQUEST_METHOD_GET,url);
-				});
-
-			}
 		}
-
-   	}
+  	}
 
    	//get the sku content from network
   	function getSkuConent(event,request_method,request_url){

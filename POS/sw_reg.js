@@ -1,71 +1,129 @@
 "use strict";
 (function () {
 
-  var endpoint;
-   var key;
-   var authSecret;
-
-  
-    
-          if ("serviceWorker" in navigator) {
-             //registering service worker 
-              	navigator.serviceWorker.register("sw.js").
-              			then(function(reg){
-                      navigator.serviceWorker.ready;
-                    }).then(function(reg){
-
-                
- 
-          					if(navigator.serviceWorker.controller){
-                    				 if (navigator.storage && navigator.storage.persist) 
-                          navigator.storage.persisted().then(persistent=>{
-                            if (persistent)
-                              console.log("Storage will not be cleared except by explicit user action");
-                            else
-                              console.log("Storage may be cleared by the UA under storage pressure.");
-                          });
-               
-                          console.log("page controlled by Service worker");
-                   			}else{
-                   				console.log("page not controlled Service worker");
-                        }
+  if ("serviceWorker" in navigator) {
+      //registering service worker 
+     	navigator.serviceWorker.register("sw.js").
+               		then(function(reg){
+                     	console.log("service worker registered"+reg);
                   }).catch(function (err) {
-                   		console.log("Service worker failed with error " + err);
-              });
-         }
-    /*
-      Notification.requestPermission(function(result) {
-           if (result !== 'granted')
-             return reject(Error("Denied notification permission"));
-        });
+	                   	console.log("Service worker failed with error " + err);
+                  });
+  }
 
-     navigator.serviceWorker.ready.then(function(registration) {
-        return registration.pushManager.getSubscription()
-              .then(function(subscription) {
-                 if (subscription) {
-                    return subscription;
-                  }
+}());
 
-      return registration.pushManager.subscribe({ userVisibleOnly: true });
+  //enable the notificaiton
+  function enableNotificaiton(){
+
+    return new Promise(function(resolve,reject){
+
+      navigator.serviceWorker.ready.then(function(reg){
+
+        Notification.requestPermission(function(result) {
+               if (result == 'granted')
+                  resolve(true);
+               else
+                 resolve(false);
+
+            });
+      }).catch(function(error){
+          resolve(false);
       });
-    }).then(function(subscription) {
-       var rawKey = subscription.getKey ? subscription.getKey('p256dh') : '';
-       key = rawKey ?
-        btoa(String.fromCharCode.apply(null, new Uint8Array(rawKey))) :
-        '';
-       var rawAuthSecret = subscription.getKey ? subscription.getKey('auth') : '';
-       authSecret = rawAuthSecret ?
-               btoa(String.fromCharCode.apply(null, new Uint8Array(rawAuthSecret))) :
-               '';
+    });
+  }
+  //check if the storage is persisted or not
+  async function isStoragePersisted() {
+    return await navigator.storage && navigator.storage.persisted &&
+      navigator.storage.persisted();
+  }
 
-       endpoint = subscription.endpoint;
+  //storage will be persistent
+  async function persist() {
+    return await navigator.storage && navigator.storage.persist &&
+      navigator.storage.persist();
+  }
 
-     
-  });
+  //show the estimate quota
+  async function showEstimatedQuota() {
+   return await navigator.storage && navigator.storage.estimate ?
+      navigator.storage.estimate() :
+      undefined;
+  }
 
-   */
+  //persist the storage wihout user confirmation
+  async function tryPersistWithoutPromtingUser() {
+      
+      if (!navigator.storage || !navigator.storage.persisted) {
+        return "never";
+      }
+
+      let persisted = await navigator.storage.persisted();
+      if (persisted) {
+        return "persisted";
+      }
+      
+      if (!navigator.permissions || !navigator.permissions.query) {
+        return "prompt"; // It MAY be successful to prompt. Don't know.
+      }
+      
+      const permission = await navigator.permissions.query({
+        name: "persistent-storage"
+      });
+      
+      if (permission.status === "granted") {
+        persisted = await navigator.storage.persist();
+        if (persisted) {
+          return "persisted";
+        } else {
+          throw new Error("Failed to persist");
+        }
+      }
+      
+      if (permission.status === "prompt") {
+        return "prompt";
+      }
+      return "never";
+  }
 
 
+  async function initStoragePersistence() {
+    const persist = await tryPersistWithoutPromtingUser();
+    switch (persist) {
+      case "never":
+        console.log("Not possible to persist storage");
+        break;
+      case "persisted":
+        console.log("Successfully persisted storage silently");
+        break;
+      case "prompt":
+        console.log("Not persisted, but we may prompt user when we want to.");
+        break;
+    }
+    
+  }
 
 
-}());                  
+  function checkPersistent(){
+
+       return new Promise(function(resolve,reject){
+          isStoragePersisted().
+                then(async isPersisted => {
+                          if (isPersisted) {
+                              console.log(":) Storage is successfully persisted.");
+                              resolve(true);
+                          } else {
+                              console.log(":( Storage is not persisted.");
+                              console.log("Trying to persist..:");
+                            if (await persist()) {
+                                 console.log(":) We successfully turned the storage to be persisted.");
+                                resolve(true);
+                              } else {
+                                  console.log(":( Failed to make storage persisted");
+                                  reject(false);
+                              }
+                          }
+                      });
+    });
+
+  }                  

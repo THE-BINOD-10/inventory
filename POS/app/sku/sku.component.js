@@ -18,7 +18,7 @@
       self.selectedItemChange = selectedItemChange;
       self.searchTextChange   = searchTextChange;
       self.searchText
-  
+      
       self.table_headers = false;
   
       self.submit_enable = false;

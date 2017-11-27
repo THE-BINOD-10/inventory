@@ -1753,49 +1753,74 @@ def create_shipment_entry(picklist):
 @get_admin_user
 def update_invoice(request, user=''):
     """ update invoice data """
-    resp = {"msg": "success", "data": {}}
-    order_ids = request.POST.get("order_id", "")
-    consignee = request.POST.get("ship_to", "")
-    invoice_date = request.POST.get("invoice_date", "")
-    invoice_number = request.POST.get("invoice_number", "")
-    increment_invoice = get_misc_value('increment_invoice', user.id)
-    marketplace = request.POST.get("marketplace", "")
 
-    myDict = dict(request.POST.iterlists())
-    if invoice_date:
-        invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
-    order_id_val = ''.join(re.findall('\d+', order_ids))
-    order_code = ''.join(re.findall('\D+', order_ids))
-    ord_ids = OrderDetail.objects.filter(Q(order_id = order_id_val, order_code = order_code) | Q(original_order_id=order_ids),
-                                         user = user.id)
+    try:
+        log.info('Request params for Update Invoice for ' + user.username + ' is ' + str(request.POST.dict()))
+        resp = {"msg": "success", "data": {}}
+        order_ids = request.POST.get("order_id", "")
+        consignee = request.POST.get("ship_to", "")
+        invoice_date = request.POST.get("invoice_date", "")
+        invoice_number = request.POST.get("invoice_number", "")
+        increment_invoice = get_misc_value('increment_invoice', user.id)
+        marketplace = request.POST.get("marketplace", "")
 
-    if increment_invoice == 'true' and invoice_number:
-        invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace)
-        if not invoice_sequence:
-            invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace='')
-        if int(invoice_number) >= int(invoice_sequence[0].value)-1:
-            seller_orders = SellerOrderSummary.objects.filter(order_id__in=ord_ids, order__user=user.id)
-            if seller_orders and int(seller_orders[0].invoice_number) != int(invoice_number):
-                seller_orders.update(invoice_number=str(invoice_number).zfill(3))
-                invoice_sequence = invoice_sequence[0]
-                invoice_sequence.value = int(invoice_number) + 1
-                invoice_sequence.save();
-        else:
-            resp['msg'] = "Invoice number already Exist"
-            return HttpResponse(json.dumps(resp))
+        myDict = dict(request.POST.iterlists())
+        if invoice_date:
+            invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
+        order_id_val = ''.join(re.findall('\d+', order_ids))
+        order_code = ''.join(re.findall('\D+', order_ids))
+        ord_ids = OrderDetail.objects.filter(Q(order_id = order_id_val, order_code = order_code) | Q(original_order_id=order_ids),
+                                             user = user.id)
 
-    for order_id in ord_ids:
-        unit_price_index = myDict['id'].index(str(order_id.id))
-        if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
-            order_id.unit_price = float(myDict['unit_price'][unit_price_index])
-            order_id.save()
-        cust_objs = CustomerOrderSummary.objects.filter(order__user = user.id, order__id = order_id.id)
-        if cust_objs:
-            cust_obj = cust_objs[0]
-            cust_obj.consignee = consignee
-            if invoice_date:
-                cust_obj.invoice_date = invoice_date
-            cust_obj.save()
+        if increment_invoice == 'true' and invoice_number:
+            invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace)
+            if not invoice_sequence:
+                invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace='')
+            if int(invoice_number) >= int(invoice_sequence[0].value)-1:
+                seller_orders = SellerOrderSummary.objects.filter(order_id__in=ord_ids, order__user=user.id)
+                if seller_orders and int(seller_orders[0].invoice_number) != int(invoice_number):
+                    seller_orders.update(invoice_number=str(invoice_number).zfill(3))
+                    invoice_sequence = invoice_sequence[0]
+                    invoice_sequence.value = int(invoice_number) + 1
+                    invoice_sequence.save()
+            else:
+                resp['msg'] = "Invoice number already Exist"
+                return HttpResponse(json.dumps(resp))
+
+        # Updating the Unit Price
+        for order_id in ord_ids:
+            unit_price_index = myDict['id'].index(str(order_id.id))
+            if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
+                order_id.unit_price = float(myDict['unit_price'][unit_price_index])
+                order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index])
+                order_id.save()
+            cust_objs = CustomerOrderSummary.objects.filter(order__user = user.id, order__id = order_id.id)
+            if cust_objs:
+                cust_obj = cust_objs[0]
+                cust_obj.consignee = consignee
+                if invoice_date:
+                    cust_obj.invoice_date = invoice_date
+                cust_obj.save()
+
+        # Updating or Creating Order other charges Table
+        for i in range(0, len(myDict.get('charge_name', []))):
+            if myDict.get('charge_id') and myDict['charge_id'][i]:
+                order_charges = OrderCharges.objects.filter(id=myDict['charge_id'][i], user_id=user.id)
+                if order_charges:
+                    if not myDict['charge_amount'][i]:
+                        myDict['charge_amount'][i] = 0
+                    order_charges.update(charge_name=myDict['charge_name'][i], charge_amount=myDict['charge_amount'][i])
+            else:
+                OrderCharges.objects.create(order_id=order_ids, charge_name=myDict['charge_name'][i],
+                                            charge_amount=myDict['charge_amount'][i],creation_date=datetime.datetime.now(),
+                                            user_id=user.id)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update Invoice failed for params for user %s for params %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()),str(e)))
+        resp = {"msg": "Failed", "data": {}}
+
     return HttpResponse(json.dumps(resp))
 
 @csrf_exempt
@@ -6027,3 +6052,28 @@ def create_custom_skus(request, user=''):
                                        'quantity': quantity, 'extra': data})
     resp['data'] = order_data
     return HttpResponse(json.dumps(resp))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_order_charges(request, user=''):
+    #It Will delete the other charges for Order.
+
+    status = 1
+    message = 'Deleted Successfully'
+    log.info('Request Params for Delete Order Charges for user %s is %s' % (user.username, str(request.GET.dict())))
+    try:
+        data_id = request.GET.get('id', '')
+        if data_id:
+            other_charges = OrderCharges.objects.filter(id=data_id, user_id=user.id)
+            if other_charges:
+                other_charges.delete()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Delete Order Charges failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.GET.dict()), str(e)))
+        status = 0
+        message = 'Order Charges Deletion failed'
+
+    return HttpResponse(json.dumps({'status': status, 'message': message}))

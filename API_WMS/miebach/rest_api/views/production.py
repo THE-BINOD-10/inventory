@@ -2784,8 +2784,8 @@ def send_job_order_mail(request, user, job_code):
             mail_data.setdefault('material_data', [])
             mail_data['material_data'].append(OrderedDict(( ('SKU Code', job_order.product_code.sku_code),
                                                             ('Description', job_order.product_code.sku_desc),
-                                                            ('Quantity', job_order.product_quantity),
-                                                            ('UOM', job_order.product_code.measurement_type)
+                                                            ('UOM', job_order.product_code.measurement_type),
+                                                            ('Quantity', job_order.product_quantity)
             )))
             mail_data['tot_qty'] += float(job_order.product_quantity)
 

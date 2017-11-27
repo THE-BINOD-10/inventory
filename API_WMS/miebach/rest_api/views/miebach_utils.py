@@ -458,7 +458,10 @@ PICKLIST_SKIP_LIST = ('sortingTable_length', 'fifo-switch', 'ship_reference', 's
 
 MAIL_REPORTS = { 'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wise SKU'], 'receipt_note': ['Receipt Summary'], 'dispatch_summary': ['Dispatch Summary'], 'sku_wise': ['SKU Wise Stock'] }
 
-MAIL_REPORTS_DATA = {'Raise PO': 'raise_po', 'Receive PO': 'receive_po', 'Orders': 'order', 'Dispatch': 'dispatch', 'Internal Mail' : 'internal_mail'}
+MAIL_REPORTS_DATA = OrderedDict(( ('Raise PO', 'raise_po'), ('Receive PO', 'receive_po'), ('Orders', 'order'),
+                                  ('Dispatch', 'dispatch'), ('Internal Mail' , 'internal_mail'),
+                                  ('Raise JO', 'raise_jo')
+                            ))
 
 # Configurations
 PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_location', 'Scan Serial': 'scan_serial', 'Scan Label': 'scan_label',

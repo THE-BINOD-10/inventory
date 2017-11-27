@@ -1922,7 +1922,7 @@ def confirm_jo_group(request, user=''):
             return HttpResponse(status)
 
         # Send Job Order Mail
-        #send_job_order_mail(request, user, job_code)
+        send_job_order_mail(request, user, job_code)
 
         user_profile = UserProfile.objects.get(user_id=user.id)
         user_data = {'company_name': user_profile.company_name, 'username': user.username, 'location': user_profile.location}
@@ -2762,35 +2762,42 @@ def update_rm_picklist(request, user=''):
 
 def send_job_order_mail(request, user, job_code):
     """ Check and Send Mail of Job Order to Vendor """
+    try:
+        log.info("Job Order Mail Notification for user %s and Job Order id is %s" % (user.username, str(job_code)) )
+        mail_data = {}
+        user_profile = UserProfile.objects.get(user_id=user.id)
+        mail_data['user_data'] = {'company_name': user_profile.company_name, 'username': user.username,
+                                    'location': user_profile.location, 'company_address': user_profile.address,
+                                    'company_telephone': user_profile.phone_number}
+        mail_data['job_code'] = job_code
+        job_orders = JobOrder.objects.filter(job_code=job_code, product_code__user=user.id,
+                                                 vendor_id__isnull=False)
+        if not job_orders:
+            return "Vendor not found"
+        vendor = job_orders[0].vendor
+        mail_data['vendor'] = {'name': vendor.name, 'email_id': vendor.email_id, 'phone_number': vendor.phone_number,
+                               'address': vendor.address}
+        mail_data['creation_date'] = get_local_date(user, job_orders[0].creation_date, send_date=True)
+        mail_data['tot_qty'] = 0
+        for job_order in job_orders:
+            mail_data.setdefault('material_data', [])
+            mail_data['material_data'].append(OrderedDict(( ('SKU Code', job_order.product_code.sku_code),
+                                                            ('Description', job_order.product_code.sku_desc),
+                                                            ('Quantity', job_order.product_quantity),
+                                                            ('UOM', job_order.product_code.measurement_type)
+            )))
+            mail_data['tot_qty'] += float(job_order.product_quantity)
 
-    mail_data = {}
-    user_profile = UserProfile.objects.get(user_id=user.id)
-    mail_data['user_data'] = {'company_name': user_profile.company_name, 'username': user.username,
-                                'location': user_profile.location, 'company_address': user_profile.address,
-                                'company_telephone': user_profile.phone_number}
-    mail_data['job_code'] = job_code
-    job_orders = JobOrder.objects.filter(job_code=job_code, product_code__user=user.id,
-                                             vendor_id__isnull=False)
-    if not job_orders:
-        return "Vendor not found"
-    vendor = job_orders[0].vendor
-    mail_data['vendor'] = {'name': vendor.name, 'email_id': vendor.email_id, 'phone_number': vendor.phone_number,
-                           'address': vendor.address}
-    mail_data['creation_date'] = get_local_date(user, job_orders[0].creation_date)
-    mail_data['tot_qty'] = 0
-    for job_order in job_orders:
-        mail_data.setdefault('material_data', [])
-        mail_data['material_data'].append(OrderedDict(( ('SKU Code', job_order.product_code.sku_code),
-                                                        ('Description', job_order.product_code.sku_desc),
-                                                        ('Quantity', job_order.product_quantity),
-                                                        ('UOM', job_order.product_code.measurement_type)
-        )))
-        mail_data['tot_qty'] += float(job_order.product_quantity)
+        template = loader.get_template('templates/toggle/jo_raise_mail.html')
+        rendered = template.render(mail_data)
 
-    template = loader.get_template('templates/toggle/jo_raise_mail.html')
-    rendered = template.render(mail_data)
-    #if get_misc_value('raise_jo', user.id) == 'true':
-    if mail_data:
-        write_and_mail_pdf(job_code, rendered, request, user, mail_data['vendor']['email_id'],
-                            mail_data['vendor']['phone_number'], mail_data, mail_data['creation_date'].split(' ')[0],internal=False,
-                           report_type='Job Order')
+        if get_misc_value('raise_jo', user.id) == 'true':
+            write_and_mail_pdf(job_code, rendered, request, user, mail_data['vendor']['email_id'],
+                                mail_data['vendor']['phone_number'], mail_data, str(mail_data['creation_date']).split(' ')[0],internal=False,
+                               report_type='Job Order')
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Job Order Vendor Mail Notification failed for %s and params are %s and error statement is %s' % (
+                        str(user.username), str(request.POST.dict()), str(e)))
+        return "Mail Sending Failed"

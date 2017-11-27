@@ -18,9 +18,11 @@
     <div>
       <div style="float:left;padding-bottom:20px;">
         <p style="font-weight: bold;">From: </p>
-          <p>{{ company_name }}</p>
-            {{ company_address|linebreaks }}
-            <p><b>Telephone:</b> {{ company_telephone }}</p>
+          <p>{{ user_data.company_name }}</p>
+            {{ user_data.company_address|linebreaks }}
+            {% if user_data.company_telephone %}
+              <p><b>Telephone:</b> {{ user_data.company_telephone }}</p>
+            {% endif %}
 
         <p style="font-weight: bold;">To: </p>
           <p>{{ vendor.name }}</p>

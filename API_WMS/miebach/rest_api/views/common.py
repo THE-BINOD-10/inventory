@@ -750,6 +750,16 @@ def grn_message(po_data, phone_no, user_name, f_name, order_date):
     data += '\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
     send_sms(phone_no, data)
 
+def jo_message(po_data, phone_no, user_name, f_name, order_date):
+    #data = 'Dear Vendor,\n%s received the goods against JO NO. %s on dated %s' %(user_name, f_name, order_date)
+    data = 'Dear Vendor, Please find the Job Order details for Job Code %s on dated %s from %s' % (f_name, order_date, user_name)
+    total_quantity = 0
+    for po in po_data.get('material_data', []):
+        data += '\nSKU: %s, Qty: %s' % (po['SKU Code'], po['Quantity'])
+        total_quantity += int(po['Quantity'])
+    data += '\nTotal Qty: %s' % (total_quantity)
+    send_sms(phone_no, data)
+
 def order_creation_message(items, telephone, order_id, other_charges = 0):
     data = 'Your order with ID %s has been successfully placed for ' % order_id
     total_quantity = 0

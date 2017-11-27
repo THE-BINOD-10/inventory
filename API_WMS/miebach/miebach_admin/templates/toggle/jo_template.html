@@ -57,9 +57,10 @@
                                     <tr>
                                         {% if forloop.parentloop.first %}
                                             <td>{{ key }}</td>
+                                            <td>{{ v.5 }}</td>
                                             <td>{{ d }}</td>
                                         {% else %}
-                                            <td></td><td></td>
+                                            <td></td><td></td><td></td>
                                         {% endif %}
                                         <td>{{ v.0 }}</td>
                                         <td>{{ v.1 }}</td>
@@ -70,6 +71,7 @@
                             {% endfor %}
 
                             <tr>
+                                <td></td>
                                 <td>Total Product Quantity</td>
                                 <td>{{ tot_pro_qty }}</td>
                                 <td>Total Material Quantity</td>

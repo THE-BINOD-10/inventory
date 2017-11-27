@@ -634,7 +634,7 @@ def confirm_jo(request, user=''):
             tot_mat_qty += float(data_dict['material_quantity'][i])
             cond = (data_dict['product_code'][i])
             all_data.setdefault(cond, [])
-            all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, order_id, measurement_type]})
+            all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, order_id, measurement_type, data_dict['description'][i]]})
 
         status = validate_jo(all_data, user.id, jo_reference=jo_reference)
         if not status:
@@ -702,7 +702,8 @@ def get_material_codes(request, user=''):
         if bom.wastage_percent:
             material_quantity = float(bom.material_quantity) + ((float(bom.material_quantity)/100) * float(bom.wastage_percent))
         all_data.append({'material_quantity': material_quantity, 'material_code': cond, 'measurement_type': (bom.unit_of_measurement).upper()})
-    return HttpResponse(json.dumps(all_data), content_type='application/json')
+    product_data = {'sku_code': bom_master[0].product_sku.sku_code, 'description': bom_master[0].product_sku.sku_desc}
+    return HttpResponse(json.dumps({'product': product_data, 'materials': all_data}), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -1905,7 +1906,7 @@ def confirm_jo_group(request, user=''):
                     data_id = material.id
                     cond = (order.product_code.wms_code)
                     all_data.setdefault(cond, [])
-                    all_data[cond].append({order.product_quantity: [material.material_code.wms_code, material.material_quantity, data_id ]})
+                    all_data[cond].append({order.product_quantity: [material.material_code.wms_code, material.material_quantity, data_id, material.unit_measurement_type, order.product_code.wms_code]})
                     tot_mat_qty += float(material.material_quantity)
             c_date = JobOrder.objects.filter(job_code=job_code, order_type=status_dict[key], product_code__user=user.id)
             if c_date:
@@ -1922,7 +1923,7 @@ def confirm_jo_group(request, user=''):
             return HttpResponse(status)
 
         # Send Job Order Mail
-        #send_job_order_mail(request, user, job_code)
+        send_job_order_mail(request, user, job_code)
 
         user_profile = UserProfile.objects.get(user_id=user.id)
         user_data = {'company_name': user_profile.company_name, 'username': user.username, 'location': user_profile.location}
@@ -2458,7 +2459,7 @@ def confirm_rwo(request, user=''):
             tot_mat_qty += float(data_dict['material_quantity'][i])
             cond = (data_dict['product_code'][i])
             all_data.setdefault(cond, [])
-            all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, '', '' ]})
+            all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, '', measurement_type, data_dict['description'][i]]})
         status = validate_jo(all_data, user.id, jo_reference='')
         if not status:
             all_data = insert_jo(all_data, user.id, jo_reference, vendor_id)
@@ -2762,35 +2763,42 @@ def update_rm_picklist(request, user=''):
 
 def send_job_order_mail(request, user, job_code):
     """ Check and Send Mail of Job Order to Vendor """
+    try:
+        log.info("Job Order Mail Notification for user %s and Job Order id is %s" % (user.username, str(job_code)) )
+        mail_data = {}
+        user_profile = UserProfile.objects.get(user_id=user.id)
+        mail_data['user_data'] = {'company_name': user_profile.company_name, 'username': user.username,
+                                    'location': user_profile.location, 'company_address': user_profile.address,
+                                    'company_telephone': user_profile.phone_number}
+        mail_data['job_code'] = job_code
+        job_orders = JobOrder.objects.filter(job_code=job_code, product_code__user=user.id,
+                                                 vendor_id__isnull=False)
+        if not job_orders:
+            return "Vendor not found"
+        vendor = job_orders[0].vendor
+        mail_data['vendor'] = {'name': vendor.name, 'email_id': vendor.email_id, 'phone_number': vendor.phone_number,
+                               'address': vendor.address}
+        mail_data['creation_date'] = get_local_date(user, job_orders[0].creation_date, send_date=True)
+        mail_data['tot_qty'] = 0
+        for job_order in job_orders:
+            mail_data.setdefault('material_data', [])
+            mail_data['material_data'].append(OrderedDict(( ('SKU Code', job_order.product_code.sku_code),
+                                                            ('Description', job_order.product_code.sku_desc),
+                                                            ('UOM', job_order.product_code.measurement_type),
+                                                            ('Quantity', job_order.product_quantity)
+            )))
+            mail_data['tot_qty'] += float(job_order.product_quantity)
 
-    mail_data = {}
-    user_profile = UserProfile.objects.get(user_id=user.id)
-    mail_data['user_data'] = {'company_name': user_profile.company_name, 'username': user.username,
-                                'location': user_profile.location, 'company_address': user_profile.address,
-                                'company_telephone': user_profile.phone_number}
-    mail_data['job_code'] = job_code
-    job_orders = JobOrder.objects.filter(job_code=job_code, product_code__user=user.id,
-                                             vendor_id__isnull=False)
-    if not job_orders:
-        return "Vendor not found"
-    vendor = job_orders[0].vendor
-    mail_data['vendor'] = {'name': vendor.name, 'email_id': vendor.email_id, 'phone_number': vendor.phone_number,
-                           'address': vendor.address}
-    mail_data['creation_date'] = get_local_date(user, job_orders[0].creation_date)
-    mail_data['tot_qty'] = 0
-    for job_order in job_orders:
-        mail_data.setdefault('material_data', [])
-        mail_data['material_data'].append(OrderedDict(( ('SKU Code', job_order.product_code.sku_code),
-                                                        ('Description', job_order.product_code.sku_desc),
-                                                        ('Quantity', job_order.product_quantity),
-                                                        ('UOM', job_order.product_code.measurement_type)
-        )))
-        mail_data['tot_qty'] += float(job_order.product_quantity)
+        template = loader.get_template('templates/toggle/jo_raise_mail.html')
+        rendered = template.render(mail_data)
 
-    template = loader.get_template('templates/toggle/jo_raise_mail.html')
-    rendered = template.render(mail_data)
-    #if get_misc_value('raise_jo', user.id) == 'true':
-    if mail_data:
-        write_and_mail_pdf(job_code, rendered, request, user, mail_data['vendor']['email_id'],
-                            mail_data['vendor']['phone_number'], mail_data, mail_data['creation_date'].split(' ')[0],internal=False,
-                           report_type='Job Order')
+        if get_misc_value('raise_jo', user.id) == 'true':
+            write_and_mail_pdf(job_code, rendered, request, user, mail_data['vendor']['email_id'],
+                                mail_data['vendor']['phone_number'], mail_data, str(mail_data['creation_date']).split(' ')[0],internal=False,
+                               report_type='Job Order')
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Job Order Vendor Mail Notification failed for %s and params are %s and error statement is %s' % (
+                        str(user.username), str(request.POST.dict()), str(e)))
+        return "Mail Sending Failed"

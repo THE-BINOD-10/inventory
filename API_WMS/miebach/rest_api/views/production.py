@@ -634,7 +634,7 @@ def confirm_jo(request, user=''):
 			tot_mat_qty += float(data_dict['material_quantity'][i])
 			cond = (data_dict['product_code'][i])
 			all_data.setdefault(cond, [])
-			all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, order_id, measurement_type]})
+			all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, order_id, measurement_type, data_dict['description'][i]]})
 
 		status = validate_jo(all_data, user.id, jo_reference=jo_reference)
 		if not status:
@@ -657,9 +657,9 @@ def confirm_jo(request, user=''):
 				_vendor_name = vend_objs[0].name
 
 		return render(request, 'templates/toggle/jo_template.html', {'tot_mat_qty': tot_mat_qty, 'tot_pro_qty': tot_pro_qty,
-																	'all_data': all_data, 'creation_date': creation_date, 'job_code': job_code,
-																	'user_data': user_data, 'headers': RAISE_JO_HEADERS,
-																	'vendor_id': _vendor_id, 'vendor_name': _vendor_name})
+                                                                             'all_data': all_data, 'creation_date': creation_date, 'job_code': job_code,
+									     'user_data': user_data, 'headers': RAISE_JO_HEADERS,
+									     'vendor_id': _vendor_id, 'vendor_name': _vendor_name})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -698,7 +698,8 @@ def get_material_codes(request, user=''):
         if bom.wastage_percent:
             material_quantity = float(bom.material_quantity) + ((float(bom.material_quantity)/100) * float(bom.wastage_percent))
         all_data.append({'material_quantity': material_quantity, 'material_code': cond, 'measurement_type': (bom.unit_of_measurement).upper()})
-    return HttpResponse(json.dumps(all_data), content_type='application/json')
+    product_data = {'sku_code': bom_master[0].product_sku.sku_code, 'description': bom_master[0].product_sku.sku_desc}
+    return HttpResponse(json.dumps({'product': product_data, 'materials': all_data}), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -1901,7 +1902,7 @@ def confirm_jo_group(request, user=''):
 					data_id = material.id
 					cond = (order.product_code.wms_code)
 					all_data.setdefault(cond, [])
-					all_data[cond].append({order.product_quantity: [material.material_code.wms_code, material.material_quantity, data_id ]})
+					all_data[cond].append({order.product_quantity: [material.material_code.wms_code, material.material_quantity, data_id, material.unit_measurement_type, order.product_code.wms_code]})
 					tot_mat_qty += float(material.material_quantity)
 			c_date = JobOrder.objects.filter(job_code=job_code, order_type=status_dict[key], product_code__user=user.id)
 			if c_date:
@@ -2447,10 +2448,13 @@ def confirm_rwo(request, user=''):
 			data_id = ''
 			if data_dict['id'][i]:
 				data_id = data_dict['id'][i]
+                        measurement_type = ''
+                        if 'measurement_type' in request.POST.keys() and data_dict['measurement_type'][i]:
+                                measurement_type = data_dict['measurement_type'][i]
 			tot_mat_qty += float(data_dict['material_quantity'][i])
 			cond = (data_dict['product_code'][i])
 			all_data.setdefault(cond, [])
-			all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, '', '' ]})
+			all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, '', measurement_type, data_dict['description'][i]]})
 		status = validate_jo(all_data, user.id, jo_reference='')
 		if not status:
 			all_data = insert_jo(all_data, user.id, jo_reference, vendor_id)
@@ -2466,9 +2470,9 @@ def confirm_rwo(request, user=''):
 		return render(request, 'templates/toggle/rwo_template.html', {'tot_mat_qty': tot_mat_qty, 'tot_pro_qty': tot_pro_qty,
                                                                       'all_data': all_data, 'creation_date': creation_date,
                                                                       'job_code': job_code, 'user_data': user_data,
-																	 'headers': RAISE_JO_HEADERS, 'name': rw_order[0].vendor.name,
-																	 'address':rw_order[0].vendor.address,
-																	 'telephone': rw_order[0].vendor.phone_number})
+								      'headers': RAISE_JO_HEADERS, 'name': rw_order[0].vendor.name,
+								      'address':rw_order[0].vendor.address,
+								      'telephone': rw_order[0].vendor.phone_number})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

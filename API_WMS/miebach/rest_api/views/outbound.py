@@ -3110,12 +3110,14 @@ def generate_jo_data(request, user=''):
         data = []
         key = key.split(':')[0]
         bom_master = BOMMaster.objects.filter(product_sku__sku_code=key, product_sku__user=user.id)
+        description = ''
         if bom_master:
             for bom in bom_master:
                 data.append({'material_code': bom.material_sku.sku_code, 'material_quantity': float(bom.material_quantity),
-                             'id': ''})
+                             'id': '', 'measurement_type': bom.unit_of_measurement})
+            description = bom.product_sku.sku_desc
         all_data.append({'product_code': key, 'product_description': value,
-                         'sub_data': data})
+                         'sub_data': data, 'description': description})
     return HttpResponse(json.dumps({'data': all_data}))
 
 @csrf_exempt
@@ -3704,9 +3706,9 @@ def generate_order_jo_data(request, user=''):
         if bom_master:
             for bom in bom_master:
                 data.append({'material_code': bom.material_sku.sku_code, 'material_quantity': float(bom.material_quantity),
-                             'id': ''})
+                             'id': '', 'measurement_type': bom.unit_of_measurement})
         all_data.append({'order_id': data_id, 'product_code': order_detail.sku.sku_code, 'product_description': order_detail.quantity,
-                         'sub_data': data})
+                         'description': order_detail.sku.sku_desc, 'sub_data': data})
     return HttpResponse(json.dumps({'data': all_data}))
 
 @get_admin_user

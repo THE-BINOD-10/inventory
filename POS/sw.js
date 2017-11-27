@@ -29,7 +29,7 @@ importScripts('/app/data/offlineData.js');
         "bower_components/angular-aria/angular-aria.min.js",
         "bower_components/angular-messages/angular-messages.min.js",
         "bower_components/angular-material/angular-material.min.js",
-        "/dependencies/simple-autocomplete.js",
+        /*"/dependencies/simple-autocomplete.js",*/
         "bower_components/angular-fullscreen/src/angular-fullscreen.js",
         "bower_components/angular-ui-router/release/angular-ui-router.min.js",
         "bower_components/angular-bootstrap/ui-bootstrap-tpls.min.js",

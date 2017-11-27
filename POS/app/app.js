@@ -89,6 +89,15 @@ app.controller('posController', function($http, $scope, urlService, Fullscreen,$
 
     function hideRefresh(){
       $(".preloader").removeClass("ng-show").addClass("ng-hide");
+      checkStoragePercent().then(function(data){
+        if(data){
+          toast_msg("memory usage exceed 70% .please free the space");        
+        }else{
+          console.log("memory is not reached 70%");
+        }
+      }).catch(function(error){
+          console.log(error);
+      });
     }
 
     //trigger event for getting data at intiallly.

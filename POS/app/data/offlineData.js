@@ -35,15 +35,20 @@
 
 				DATABASE.skumaster.bulkPut(skulist).then(function(res){
 				 			console.log("addSKUBulkItem data is "+res);
+				 			checkStoragePercent();
 				 			//getData();
 					return resolve(true);
 					}).catch(Dexie.BulkError,function(error){
-							console.log("some sku failed "+ skulist.length()-error.failures.length);
-					  return reject("some sku failed "+ skulist.length()-error.failures.length);
+					  if(error==Dexie.errnames.QuotaExceeded){
+						return reject(error.message);
+					  }else{
+					   console.log("some sku failed "+ skulist.length()-error.failures.length);
+					   return reject("some sku failed "+ skulist.length()-error.failures.length);
+					   }
 					});
 
 		        }).catch(function(error){
-		  			return reject("some sku failed "+ skulist.length()-error.failures.length);
+		  			return reject("some sku failed "+ error.message);
 		        });
 	        });    	
     }
@@ -54,11 +59,17 @@
     	return new Promise(function(resolve,reject){
 			DATABASE.customer.bulkPut(customer_list).then(function(res){
 			 			console.log("data is "+res);
-			 			
-				return resolve(true);
+			 			checkStoragePercent();
+						return resolve(true);
 				}).catch(Dexie.BulkError,function(error){
-						console.log("failed to load some customers "+ customer_list.length()-error.failures.length);
-				   return reject("failed to load some customers " + customer_list.length()-error.failures.length);
+					
+					if(error==Dexie.errnames.QuotaExceeded){
+						return reject(error.message)
+					}else{
+					console.log("failed to load some customers "+ customer_list.length()-error.failures.length);
+				   		return reject("failed to load some customers " + customer_list.length()-error.failures.length);
+				   	}
+				   
 				});
 	    	
     	});
@@ -273,9 +284,6 @@
 				  };
 			}
 
-    		/*checkServiceWorker().then(function(data){
-				navigator.serviceWorker.controller.postMessage(message,channel_port);
-    		});*/
 
 	}
 
@@ -412,11 +420,13 @@
 	 
 			DATABASE.checksum.put(genralData).then(function(data){
 								console.log("set data is "+data);
+								checkStoragePercent();
 								//DATABASE.checksum.get(check_sum);
 		              			return resolve(data);
 							}).catch(function(error){
-								console.log("set data error "+error.stack || error);
-				                 return reject(false);
+								console.log("set data error "+error.stack || error.message);	
+				                return reject(false);
+				                
 							});
 		});
 	}	
@@ -428,9 +438,11 @@
         return new Promise(function (resolve, reject){
 			DATABASE.sync_customer.put(customer_data).
 					then(function(data){
+						checkStoragePercent();
                         resolve(true);                    
 					}).catch(function(error){
-						reject(error);
+						console.log("set data error "+error.stack || error.message);	
+						reject(error.message);
 					});
 		});
 	}
@@ -452,7 +464,12 @@
               		order_data.summary.order_id=order_number[0].checksum;
 
               		//save order in DB
-              		var id=yield DATABASE.sync_orders.put({order:JSON.stringify(order_data)});
+              		var id=yield DATABASE.sync_orders.
+              						put({order:JSON.stringify(order_data)}).
+              						cath(function(error){
+										console.error("error "+error.message);	
+										reject(error.message);
+									});
 
               		// update the order id 
 		            yield DATABASE.checksum.
@@ -468,7 +485,7 @@
                	}).then(function(order_id){
 					resolve(order_id);  
 				}).catch(function(error){
-					reject(error);
+					reject(error.message);
 				});
         });
 	}
@@ -620,6 +637,37 @@
 		});				
 	}
 
-	
+	//get storage percentage
+	function GetStorage_Percentage(){
 
-	
+		return new Promise(function(resolve,reject){
+			showEstimatedQuota().then(function(quota){
+				if(quota!=undefined){
+				  	return (quota.usage/quota.quota)*100;
+				}else{
+					return 0.00;
+				}
+
+			}).then(function(data){
+				return resolve(data.toFixed(2));
+			}).catch(function(error){
+				return reject(error.message);
+			});
+		});
+	}
+
+	//check usage percent 
+	function checkStoragePercent(){
+
+		return new Promise(function(resolve,reject){
+			GetStorage_Percentage().then(function(data){
+				if(data>=70.00){
+					return resolve(true);
+				}else{
+					return resolve(false);
+				}
+			}).catch(function(error){
+				return reject(error);
+			});		
+		});
+	}	

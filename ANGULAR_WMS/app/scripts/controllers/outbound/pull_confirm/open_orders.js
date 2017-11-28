@@ -39,7 +39,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         DTColumnBuilder.newColumn('reserved_quantity').withTitle('Reserved Quantity').notSortable(),
         DTColumnBuilder.newColumn('shipment_date').withTitle('Shipment Date'),
         DTColumnBuilder.newColumn('date').withTitle('Date'),
-
+        DTColumnBuilder.newColumn('status').withTitle('Status'),
     ];
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {

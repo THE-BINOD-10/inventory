@@ -1,3 +1,9 @@
+@font-face {
+  font-family: 'Kaushan Script';
+  font-style: normal;
+  font-weight: 700;
+  src: local('Kaushan Script'), local('Kaushan-Script'), url(../../fonts/Kaushan_Script/KaushanScript-Regular.ttf) format('truetype');
+}
 /* variables */
 /* background colors */
 /* menu height */
@@ -296,6 +302,16 @@ h1 small {
 .toggle-filter .toggle-body .filter-table input {
   padding: 2px 6px !important;
   height: 25px !important;
+}
+@keyframes blinking {
+  from,
+  49.9% {
+    opacity: 0;
+  }
+  50%,
+  to {
+    opacity: 1;
+  }
 }
 .kk-timeline .round {
   width: 25px;

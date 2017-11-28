@@ -217,14 +217,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.closed_po.elem.push({name: 'remarks', value: text});
               vm.service.apiCall('close_po/', 'GET', vm.closed_po.elem, true).then(function(data){
                 if(data.message) {
-                  pop_msg(data.data)
                   if(data.data == 'Updated Successfully') {
                     vm.close();
                     vm.service.refresh(vm.dtInstance);
+                    resolve();
+                  } else {
+                    Service.showNoty(data.data)
                   }
                 }
               });
-              resolve();
             })
           },
           allowOutsideClick: false,
@@ -232,7 +233,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }).then(function (text) {
             swal2({
               type: 'success',
-              title: 'Receved PO is Deleted!',
+              title: 'Received PO is Deleted!',
               // html: 'Submitted text is: ' + text
             })
         });
@@ -621,10 +622,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       })
 
-      vm.model_data['format_types'] = ['format1', 'format2', 'format3', 'Bulk Barcode']
-
-      var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'}
-
       var modalInstance = $modal.open({
         templateUrl: 'views/outbound/toggle/barcodes.html',
         controller: 'Barcodes',
@@ -634,13 +631,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         keyboard: false,
         resolve: {
           items: function () {
+            console.log(model_data);
             return model_data;
           }
         }
       });
 
       modalInstance.result.then(function (selectedItem) {
-        console.log(selectedItem);
       });
       //$state.go('app.inbound.RevceivePo.barcode');
     }
@@ -663,8 +660,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       })
 
-      vm.model_data['format_types'] = ['format1', 'format2', 'format3', 'Bulk Barcode']
-      var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'}
+      vm.model_data['format_types'] = [];
+      var key_obj = {};//{'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'};
+      vm.service.apiCall('get_format_types/').then(function(data){
+        $.each(data['data']['data'], function(ke, val){
+          vm.model_data['format_types'].push(ke);
+          });
+          key_obj = data['data']['data'];
+      });
+
       vm.model_data.have_data = true;
       //$state.go('app.inbound.RevceivePo.barcode');
       var modalInstance = $modal.open({

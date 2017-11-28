@@ -161,3 +161,10 @@ def get_size_wise_stock(data):
     for size in data:
         quantity_list.append(size['sku_size'] + "-" + str(int(size['physical_stock'])))
     return ", ".join(quantity_list)
+
+@register.filter
+def get_page_break(count):
+    if (count+1)%10 == 0:
+        return True
+    else:
+        return False

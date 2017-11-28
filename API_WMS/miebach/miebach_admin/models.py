@@ -69,7 +69,7 @@ class SKUMaster(models.Model):
     sku_desc = models.CharField(max_length=350, default='')
     sku_group = models.CharField(max_length=64, default='')
     sku_type = models.CharField(max_length=64, default='')
-    sku_category = models.CharField(max_length=64, default='')
+    sku_category = models.CharField(max_length=128, default='')
     sku_class = models.CharField(max_length=64, default='')
     sku_brand = models.CharField(max_length=64, default='')
     style_name = models.CharField(max_length=256, default='')
@@ -243,6 +243,7 @@ class OrderDetail(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     unit_price = models.FloatField(default=0)
+    order_type = models.CharField(max_length=64, default='Normal')
 
     class Meta:
         db_table = 'ORDER_DETAIL'
@@ -317,6 +318,7 @@ class PurchaseOrder(models.Model):
     po_date = models.DateTimeField(auto_now_add=True)
     ship_to = models.CharField(max_length=64,default='')
     status = models.CharField(max_length=32, db_index=True)
+    reason = models.TextField(blank=True, null=True)
     prefix = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1572,7 +1574,6 @@ class SellerOrder(models.Model):
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
     order_status = models.CharField(max_length=64, default='')
-    order_type = models.CharField(max_length=64, default='')
     invoice_no = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -1604,6 +1605,18 @@ class OrderReturns(models.Model):
 
     class Meta:
         db_table = 'ORDER_RETURNS'
+
+class OrderReturnReasons(models.Model):
+    id = BigAutoField(primary_key=True)
+    order_return = models.ForeignKey(OrderReturns, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    reason = models.CharField(max_length=256,default='')
+    status = models.CharField(max_length=64)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_RETURN_REASONS'
 
 class ReturnsIMEIMapping(models.Model):
     id = BigAutoField(primary_key = True)
@@ -1903,6 +1916,24 @@ class OrderTracking(models.Model):
     class Meta:
         db_table = 'ORDER_TRACKING'
         index_together = ('order', 'quantity')
+
+class BarcodeSettings(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    format_type = models.CharField(max_length=256)
+    size = models.CharField(max_length=256, blank=True, null=True)
+    show_fields = models.CharField(max_length=256, blank=True, null=True)
+    rows_columns = models.CharField(max_length=64, blank=True, null=True)
+    styles = models.TextField(blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'BARCODE_SETTINGS_TABLE'
+        unique_together = (('user', 'format_type'),)
+
+    def __unicode__(self):
+        return "%s, %s %s" %(self.user, self.show_fields, self.rows_columns)
 
 class InvoiceSequence(models.Model):
     id = BigAutoField(primary_key=True)

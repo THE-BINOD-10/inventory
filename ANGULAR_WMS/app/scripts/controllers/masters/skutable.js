@@ -74,6 +74,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         mix_sku: "",
                         ean_number: "",
                         load_unit_handle: "0",
+                        hot_release: 0,
                         image_url:"images/wms/dflt.jpg",
                       },
                       "zones":[],
@@ -297,10 +298,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.barcode = function() {
 
       vm.barcode_title = 'Barcode Generation';
+      vm.model_data['format_types'] = [];//['format1', 'format2', 'format3', 'Bulk Barcode'];
+      var key_obj = {};//{'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'};
+      vm.service.apiCall('get_format_types/').then(function(data){
+        $.each(data['data']['data'], function(ke, val){
+          vm.model_data['format_types'].push(ke);
+          });
+          key_obj = data['data']['data'];
+      });
 
-      vm.model_data['format_types'] = ['format1', 'format2', 'format3', 'Bulk Barcode']
-
-      var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'}
 
       vm.model_data['barcodes'] = [{'sku_code':'', 'quantity':''}];
 

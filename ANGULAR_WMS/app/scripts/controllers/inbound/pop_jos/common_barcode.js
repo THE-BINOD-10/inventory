@@ -6,6 +6,14 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
 
   var url_get = "get_order_labels/";
   vm.model_data = {};
+  vm.model_data['format_types'] = [];
+  var key_obj = {};//{'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'};
+  vm.service.apiCall('get_format_types/').then(function(data){
+    $.each(data['data']['data'], function(ke, val){
+        vm.model_data['format_types'].push(ke);
+        console.log(data['data']['data']);
+    });
+  });
 
   vm.getPoData = function(data){
 
@@ -36,6 +44,7 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
   }
 
   vm.ok = function (msg) {
+
     $modalInstance.close(vm.status_data);
   };
 
@@ -48,9 +57,7 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
       }
       vm.service.apiCall(url, 'POST', elem, true).then(function(data){
         if(data.message) {
-          console.log(data);
-          var href_url = data.data;
-
+          var href_url = Session.host.concat(data.data.slice(1, -1));
           var downloadpdf = $('<a id="downloadpdf" target="_blank" href='+href_url+' >');
           $('body').append(downloadpdf);
           document.getElementById("downloadpdf").click();

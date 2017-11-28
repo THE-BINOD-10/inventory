@@ -1571,7 +1571,7 @@ def save_receive_jo(request, user=''):
     data_dict = dict(request.POST.iterlists())
     for i in range(len(data_dict['id'])):
         pallet_dict = {}
-        if 'pallet_number' in data_dict.keys():
+        if data_dict.get('pallet_number', '') and not data_dict['pallet_number'][0] == '':
             pallet_dict = {'pallet_number': data_dict['pallet_number'][i], 'pallet_id': data_dict['pallet_id'][i]}
         cond = (data_dict['id'][i])
         all_data.setdefault(cond, [])
@@ -1594,7 +1594,7 @@ def confirm_jo_grn(request, user=''):
     data_dict = dict(request.POST.iterlists())
     for i in range(len(data_dict['id'])):
         pallet_dict = {}
-        if 'pallet_number' in data_dict.keys():
+        if data_dict.get('pallet_number', '') and not data_dict['pallet_number'][0] == '':
             pallet_dict = {'pallet_number': data_dict['pallet_number'][i], 'pallet_id': data_dict['pallet_id'][i]}
         cond = (data_dict['id'][i])
         all_data.setdefault(cond, [])

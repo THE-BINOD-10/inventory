@@ -307,8 +307,24 @@ SELLER_INVOICE_DETAILS_DICT = {
             'dt_url': 'get_seller_invoices_filter', 'excel_name': 'seller_invoices_filter', 'print_url': 'print_seller_invoice_report',
                               }
 
+RM_PICKLIST_REPORT_DICT = {
+              'filters':[ 
+                          {'label': 'From JO Creation Date', 'name': 'from_date', 'type': 'date'}, 
+                          {'label': 'To JO Creation Date', 'name': 'to_date','type': 'date'},
+                          {'label': 'Job Code', 'name': 'job_order_code', 'type': 'input'},
+                          {'label': 'FG SKU Code', 'name': 'fg_sku_code', 'type': 'input' },
+                          {'label': 'RM SKU Code', 'name': 'rm_sku_code', 'type': 'input' },
+                          {'label': 'Location', 'name': 'location', 'type': 'input'},
+                          {'label': 'Pallet', 'name': 'pallet', 'type': 'input'} 
+                        ],
+                        'dt_headers': ['Jo Code', 'Jo Creation Date', 'FG SKU Code', 'RM SKU Code',  'Location', 
+                                        'Pallet Code', 'Quantity', 'Processed Date'],
+                        'dt_url': 'get_rm_picklist_report', 'excel_name': 'rm_picklist_report', 
+                        'print_url': 'print_rm_picklist_report',
+                        }
+
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT, 'sku_wise_po_report': SKU_WISE_PO_DICT,
-                     'grn_report': GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT}
+                     'grn_report': GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT, 'rm_picklist_report': RM_PICKLIST_REPORT_DICT}
 
 SKU_WISE_STOCK = {('sku_wise_form','skustockTable','SKU Wise Stock Summary','sku-wise', 1, 2, 'sku-wise-report') : (['SKU Code', 'WMS Code', 'Product Description', 'SKU Category', 'Total Quantity'],( (('SKU Code', 'sku_code'), ('SKU Category', 'sku_category')), (('SKU Type', 'sku_type'), ('SKU Class', 'sku_class')),(('WMS Code','wms_code'),))),}
 
@@ -666,7 +682,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'order_summary_report': 'get_order_summary_data', 'seller_invoices_filter': 'get_seller_invoices_filter_data',
                         'open_jo_report': 'get_openjo_details', 'grn_inventory_addition': 'get_grn_inventory_addition_data',
                         'sales_returns_addition': 'get_returns_addition_data',
-                        'seller_stock_summary_replace': 'get_seller_stock_summary_replace'
+                        'seller_stock_summary_replace': 'get_seller_stock_summary_replace',
+                        'rm_picklist_report': 'get_rm_picklist_data'
                        }
 # End of Download Excel Report Mapping
 
@@ -2370,5 +2387,63 @@ def demo_fun(request):
 
     return JsonResponse(status)
 
-
-
+def get_rm_picklist_data(search_params, user, sub_user):
+    from rest_api.views.common import get_local_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    status_filter = {}
+    all_data = OrderedDict()
+    lis = {}
+    rm_picklist = RMLocation.objects.filter(stock__sku__user = user.id)
+    if 'from_date' in search_params:
+      status_filter['material_picklist__jo_material__job_order__creation_date__gte'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+    if 'to_date' in search_params:
+      status_filter['material_picklist__jo_material__job_order__creation_date__lte'] = datetime.datetime.combine(search_params['to_date']  + datetime.timedelta(1), datetime.time())
+    if 'job_order_code' in search_params:
+      status_filter['material_picklist__jo_material__job_order__job_code__iexact'] = search_params['job_order_code']
+    if 'fg_sku_code' in search_params:
+      status_filter['material_picklist__jo_material__job_order__product_code__sku_code__iexact'] = search_params['fg_sku_code']
+    if 'rm_sku_code' in search_params:
+      status_filter['material_picklist__jo_material__material_code__sku_code__iexact'] = search_params['rm_sku_code']
+    if 'location' in search_params:
+      status_filter['stock__location__location__iexact'] = search_params['location']
+    if 'pallet' in search_params:
+      status_filter['stock__pallet_detail__pallet_code__iexact'] = search_params['pallet']
+    lis = [
+            'material_picklist__jo_material__job_order__job_code', 
+            'material_picklist__jo_material__job_order__creation_date', 
+            'material_picklist__jo_material__job_order__product_code__sku_code',
+            'material_picklist__jo_material__material_code__sku_code',
+            'stock__location__location',
+            'stock__pallet_detail__pallet_code',
+            'quantity',
+            'updation_date'
+          ]
+    #jo_code, FG sku code, rm SKU code, Location, pallet code, quantity
+    if len(search_params):
+      rm_picklist = rm_picklist.filter(**status_filter)
+    if search_params.get('order_term'):
+      order_data = lis[search_params['order_index']]
+      if search_params['order_term'] == 'desc':
+        order_data = "-%s" % order_data
+      rm_picklist = rm_picklist.order_by(order_data)
+    data = []
+    for obj in rm_picklist:
+      data.append(OrderedDict((('Jo Code', obj.material_picklist.jo_material.job_order.job_code), 
+        ('Jo Creation Date', get_local_date(user, obj.material_picklist.jo_material.job_order.creation_date)),
+        ('FG SKU Code', obj.material_picklist.jo_material.job_order.product_code.sku_code),
+        ('RM SKU Code', obj.material_picklist.jo_material.material_code.sku_code),
+        ('Location', obj.stock.location.location),
+        ('Pallet Code', obj.stock.pallet_detail.pallet_code if obj.stock.pallet_detail else ''),
+        ('Quantity', obj.quantity),
+        ('Processed Date', get_local_date(user, obj.updation_date)),)))
+    temp_data['recordsTotal'] = len(data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    order_term = search_params.get('order_term', '')
+    order_index = search_params.get('order_index', '')
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    temp_data['aaData'] = data
+    if stop_index:
+        temp_data['aaData'] = data[start_index:stop_index]
+    return temp_data

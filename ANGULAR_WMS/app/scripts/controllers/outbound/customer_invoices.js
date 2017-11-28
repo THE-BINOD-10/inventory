@@ -273,6 +273,7 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   vm.permissions = Session.roles.permissions;
 
   vm.model_data = items;
+  vm.model_data.temp_sequence_number = vm.model_data.sequence_number;
 
   vm.model_data.default_charge = function(){
     if (vm.model_data.order_charges.length == 1) {

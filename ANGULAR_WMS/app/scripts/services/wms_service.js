@@ -1341,3 +1341,21 @@ app.directive('discountNumber', function () {
         }  
       }  
     });
+
+
+  app.config(['$httpProvider', function($httpProvider) {
+
+    $httpProvider.responseInterceptors.push(function($q, $rootScope) {
+      return function(promise) {
+          // same as above
+          promise.then(function(data){
+            if(data.status == 200) {
+              if (data.data.message == "invalid user") {
+                $rootScope.$broadcast('invalidUser');
+              }
+            }
+          })
+          return promise;
+      }
+    });
+  }])

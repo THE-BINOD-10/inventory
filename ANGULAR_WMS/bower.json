@@ -56,7 +56,8 @@
     "angular-web-notification": "*",
     "angular-slick": "*",
     "angular-bootstrap-toggle": "0.1.2",
-    "angular-ez-plus": "~1.2.1"
+    "angular-ez-plus": "~1.2.1",
+    "highcharts": "6.0.3"
   },
   "appPath": "app",
   "moduleName": "urbanApp",

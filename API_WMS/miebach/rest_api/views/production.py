@@ -405,6 +405,7 @@ def generated_jo_data(request, user=''):
         jo_material = JOMaterial.objects.filter(job_order_id= rec.id,status=1)
         record_data['product_code'] = rec.product_code.sku_code
         record_data['product_description'] = rec.product_quantity
+        record_data['description'] = rec.product_code.sku_desc
         record_data['data'] = []
         for jo_mat in jo_material:
             dict_data = {'material_code': jo_mat.material_code.sku_code, 'material_quantity': jo_mat.material_quantity, 'id': jo_mat.id, 'measurement_type' : jo_mat.unit_measurement_type}
@@ -2459,7 +2460,7 @@ def confirm_rwo(request, user=''):
             tot_mat_qty += float(data_dict['material_quantity'][i])
             cond = (data_dict['product_code'][i])
             all_data.setdefault(cond, [])
-            all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, '', measurement_type, data_dict['description'][i]]})
+            all_data[cond].append({data_dict['product_quantity'][i]: [data_dict['material_code'][i], data_dict['material_quantity'][i], data_id, '', data_dict['measurement_type'][i], data_dict['description'][i]]})
         status = validate_jo(all_data, user.id, jo_reference='')
         if not status:
             all_data = insert_jo(all_data, user.id, jo_reference, vendor_id)
@@ -2533,6 +2534,7 @@ def saved_rwo_data(request, user=''):
         record_data = {}
         record_data['product_code'] = rec.job_order.product_code.sku_code
         record_data['product_description'] = rec.job_order.product_quantity
+        record_data['description'] = rec.job_order.product_code.sku_desc
         record_data['sub_data'] = []
         jo_material = JOMaterial.objects.filter(job_order_id= rec.job_order.id,status=1)
         for jo_mat in jo_material:

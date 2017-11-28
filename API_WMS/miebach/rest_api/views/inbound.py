@@ -2317,7 +2317,7 @@ def group_sales_return_data(data_dict, return_process):
 
         # Creating the Returns Dictionary
         for key, value in data_dict.iteritems():
-            if key == 'reason':
+            if key in ['reason', 'return_imei']:
                 continue
             returns_dict.setdefault(temp_key, {})
             returns_dict[temp_key].setdefault('reason', [])
@@ -3606,14 +3606,23 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         cmp_name = UserProfile.objects.get(user_id=user.id).company_name
         if cmp_name:
             company_name = cmp_name
+
+    # Email Subject based on report type name
+    email_body = 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name)
+    email_subject = '%s %s' % (company_name, report_type)
+    if report_type == 'Job Order':
+        email_body = 'Please find the %s with Job Code: <b>%s</b> in the attachment' % (report_type, f_name)
+        email_subject = '%s %s with Job Code %s' % (company_name, report_type, f_name)
     if supplier_email or internal or internal_mail:
-        send_mail_attachment(receivers, '%s %s' % (company_name, report_type), 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name), files=[{'path': path + pdf_file, 'name': pdf_file}])
+        send_mail_attachment(receivers, email_subject,email_body, files = [{'path': path + pdf_file, 'name': pdf_file}])
 
     if phone_no:
         if report_type == 'Purchase Order':
             po_message(po_data, phone_no, username, f_name, order_date, ean_flag)
         elif report_type == 'Goods Receipt Note':
             grn_message(po_data, phone_no, username, f_name, order_date)
+        elif report_type == 'Job Order':
+            jo_message(po_data, phone_no, company_name, f_name, order_date)
 
 @csrf_exempt
 @login_required

@@ -274,6 +274,23 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
 
   vm.model_data = items;
 
+  vm.model_data.default_charge = function(){
+    if (vm.model_data.order_charges.length == 1) {
+      vm.model_data.flag = true;
+    }
+  }
+
+  vm.delete_charge = function(id){
+    
+    if (id) {
+      vm.service.apiCall("delete_order_charges?id="+id, "GET").then(function(data){
+        if(data.message){
+          Service.showNoty(data.data.message);
+        }
+      });
+    }
+  }
+
   $timeout(function() {
     $('.stk-readonly').datepicker("setDate", new Date(vm.model_data.inv_date) );
   },1000);
@@ -281,16 +298,30 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
     $modalInstance.close("close");
   };
 
+  /*vm.final_data = {total_quantity:0,total_amount:0}
+  vm.cal_total = function() {
+
+    vm.final_data.total_quantity = 0;
+    vm.final_data.total_amount = 0;
+
+    if(vm.model_data.order_charges) {
+      angular.forEach(vm.model_data.order_charges, function(record){
+        if(record.amount){
+          vm.final_data.total_amount += Number(record.amount);
+        }
+      })
+    }
+  }*/
+
   vm.process = false;
   vm.save = function(form) {
 
-    if (form.invoice_number.$invalid) {
-
+    if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form.invoice_number.$invalid) {
       Service.showNoty("Please Fill Invoice Number");
       return false;
     } else if (!form.$valid) {
 
-      Service.showNoty("Please Fill Unit Price");
+      Service.showNoty("Please Fill the Mandatory Fields");
       return false;
     }
     vm.process = true;

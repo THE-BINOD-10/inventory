@@ -405,7 +405,7 @@ REJECT_REASONS = ['Color Mismatch', 'Price Mismatch', 'Wrong Product', 'Package 
 
 QC_SERIAL_FIELDS = {'quality_check_id': '', 'serial_number_id': '', 'status': '','reason': ''}
 
-RAISE_JO_HEADERS = OrderedDict([('Product SKU Code', 'product_code'), ('Product SKU Quantity', 'product_quantity'),
+RAISE_JO_HEADERS = OrderedDict([('Product SKU Code', 'product_code'), ('Product SKU Description', 'description'), ('Product SKU Quantity', 'product_quantity'),
                                 ('Material SKU Code', 'material_code'), ('Material SKU Quantity', 'material_quantity'), ('Measurement Type', 'measurement_type')])
 
 JO_PRODUCT_FIELDS = {'product_quantity': 0, 'received_quantity': 0, 'job_code': 0, 'jo_reference': '','status': 'open', 'product_code_id': ''}
@@ -458,7 +458,10 @@ PICKLIST_SKIP_LIST = ('sortingTable_length', 'fifo-switch', 'ship_reference', 's
 
 MAIL_REPORTS = { 'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wise SKU'], 'receipt_note': ['Receipt Summary'], 'dispatch_summary': ['Dispatch Summary'], 'sku_wise': ['SKU Wise Stock'] }
 
-MAIL_REPORTS_DATA = {'Raise PO': 'raise_po', 'Receive PO': 'receive_po', 'Orders': 'order', 'Dispatch': 'dispatch', 'Internal Mail' : 'internal_mail'}
+MAIL_REPORTS_DATA = OrderedDict(( ('Raise PO', 'raise_po'), ('Receive PO', 'receive_po'), ('Orders', 'order'),
+                                  ('Dispatch', 'dispatch'), ('Internal Mail' , 'internal_mail'),
+                                  ('Raise JO', 'raise_jo')
+                            ))
 
 # Configurations
 PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_location', 'Scan Serial': 'scan_serial', 'Scan Label': 'scan_label',

@@ -750,6 +750,16 @@ def grn_message(po_data, phone_no, user_name, f_name, order_date):
     data += '\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
     send_sms(phone_no, data)
 
+def jo_message(po_data, phone_no, user_name, f_name, order_date):
+    #data = 'Dear Vendor,\n%s received the goods against JO NO. %s on dated %s' %(user_name, f_name, order_date)
+    data = 'Dear Vendor, Please find the Job Order details for Job Code %s on dated %s from %s' % (f_name, order_date, user_name)
+    total_quantity = 0
+    for po in po_data.get('material_data', []):
+        data += '\nSKU: %s, Qty: %s' % (po['SKU Code'], po['Quantity'])
+        total_quantity += int(po['Quantity'])
+    data += '\nTotal Qty: %s' % (total_quantity)
+    send_sms(phone_no, data)
+
 def order_creation_message(items, telephone, order_id, other_charges = 0):
     data = 'Your order with ID %s has been successfully placed for ' % order_id
     total_quantity = 0
@@ -2076,7 +2086,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
     total_invoice_amount = total_invoice
     if order_id:
         order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
-        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount'))
+        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
         total_charge_amount = order_charge_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
         if total_charge_amount:
             total_invoice_amount = float(total_charge_amount) + total_invoice

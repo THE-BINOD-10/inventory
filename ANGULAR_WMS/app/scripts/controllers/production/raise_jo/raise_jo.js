@@ -249,8 +249,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
           vm.service.apiCall('get_material_codes/','POST', {'sku_code': item}).then(function(data){
             if(data.message) {
               if(data.data != "No Data Found") {
-                sku_data.data = data.data;
+                sku_data.data = data.data.materials;
                 sku_data.product_description = 1;
+                sku_data.description = data.data.product.description;
+
                 vm.change_quantity(sku_data);
               } else {
                 sku_data.data = [{"material_code": "", "material_quantity": '', "id": ''}];

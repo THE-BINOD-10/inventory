@@ -63,6 +63,22 @@ function StockTransferPOP($scope, $http, $state, $timeout, Session, colFilters, 
     }
   }
 
+  vm.get_product_data = function(item, sku_data, index) {
+
+      check_exist(sku_data).then(function(data){
+        if(data) {
+          var elem = $.param({'sku_code': item});
+          vm.service.apiCall('get_material_codes/', 'POST', {'sku_code': item}).then(function(data){
+            if(data.message) {
+              sku_data.sub_data = data.data.materials;
+              sku_data.product_description = 1;
+              sku_data.description = data.data.product.description;
+            }
+          });
+        }
+      });
+    }
+
 }
 
 angular

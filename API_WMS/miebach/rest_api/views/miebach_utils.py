@@ -405,7 +405,7 @@ REJECT_REASONS = ['Color Mismatch', 'Price Mismatch', 'Wrong Product', 'Package 
 
 QC_SERIAL_FIELDS = {'quality_check_id': '', 'serial_number_id': '', 'status': '','reason': ''}
 
-RAISE_JO_HEADERS = OrderedDict([('Product SKU Code', 'product_code'), ('Product SKU Quantity', 'product_quantity'),
+RAISE_JO_HEADERS = OrderedDict([('Product SKU Code', 'product_code'), ('Product SKU Description', 'description'), ('Product SKU Quantity', 'product_quantity'),
                                 ('Material SKU Code', 'material_code'), ('Material SKU Quantity', 'material_quantity'), ('Measurement Type', 'measurement_type')])
 
 JO_PRODUCT_FIELDS = {'product_quantity': 0, 'received_quantity': 0, 'job_code': 0, 'jo_reference': '','status': 'open', 'product_code_id': ''}
@@ -458,7 +458,10 @@ PICKLIST_SKIP_LIST = ('sortingTable_length', 'fifo-switch', 'ship_reference', 's
 
 MAIL_REPORTS = { 'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wise SKU'], 'receipt_note': ['Receipt Summary'], 'dispatch_summary': ['Dispatch Summary'], 'sku_wise': ['SKU Wise Stock'] }
 
-MAIL_REPORTS_DATA = {'Raise PO': 'raise_po', 'Receive PO': 'receive_po', 'Orders': 'order', 'Dispatch': 'dispatch', 'Internal Mail' : 'internal_mail'}
+MAIL_REPORTS_DATA = OrderedDict(( ('Raise PO', 'raise_po'), ('Receive PO', 'receive_po'), ('Orders', 'order'),
+                                  ('Dispatch', 'dispatch'), ('Internal Mail' , 'internal_mail'),
+                                  ('Raise JO', 'raise_jo')
+                            ))
 
 # Configurations
 PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_location', 'Scan Serial': 'scan_serial', 'Scan Label': 'scan_label',
@@ -1188,11 +1191,11 @@ def get_receipt_filter_data(search_params, user, sub_user):
     use_imei = get_misc_value('use_imei', user.id)
     query_prefix = ''
     lis = ['open_po__supplier__name', 'order_id', 'open_po__sku__wms_code', 'open_po__sku__sku_desc', 'received_quantity',
-           'updation_date']
+           'updation_date', 'reason']
     model_obj = PurchaseOrder
     if use_imei == 'true':
         lis = ['purchase_order__open_po__supplier__name', 'purchase_order__order_id', 'purchase_order__open_po__sku__wms_code',
-               'purchase_order__open_po__sku__sku_desc', 'imei_number', 'creation_date']
+               'purchase_order__open_po__sku__sku_desc', 'imei_number', 'creation_date', 'purchase_order__reason']
         query_prefix = 'purchase_order__'
         model_obj = POIMEIMapping
     temp_data = copy.deepcopy( AJAX_DATA )
@@ -1244,11 +1247,15 @@ def get_receipt_filter_data(search_params, user, sub_user):
             serial_number = data.imei_number
             data = data.purchase_order
             received_date = get_local_date(user, data.creation_date)
+        reason = ''
+        if data.reason:
+            reason = data.reason
         po_reference = '%s%s_%s' %(data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), data.order_id)
         temp_data['aaData'].append(OrderedDict(( ('PO Reference', po_reference), ('WMS Code', data.open_po.sku.wms_code), ('Description', data.open_po.sku.sku_desc),
                                     ('Supplier', '%s (%s)' % (data.open_po.supplier.name, data.open_po.supplier_id)),
                                     ('Receipt Number', data.open_po_id), ('Received Quantity', data.received_quantity),
-                                    ('Serial Number', serial_number), ('Received Date', received_date) )))
+                                    ('Serial Number', serial_number), ('Received Date', received_date),
+                                    ('Closing Reason', reason))))
     return temp_data
 
 def get_dispatch_data(search_params, user, sub_user, serial_view=False):

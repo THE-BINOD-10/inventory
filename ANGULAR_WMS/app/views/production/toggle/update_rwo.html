@@ -31,25 +31,36 @@
                 <thead>
                   <tr>
                     <th>Product SKU Code</th>
+                    <th>Product SKU Description</th>
                     <th>Product SKU Quantity</th>
                     <th> Material SKU Code</th>
                     <th> Material SKU Quantity</th>
+                    <th>Units Of Measurement</th>
                   </th>
                 </thead>
                 <tbody ng-repeat="data in showCase.model_data.data">
                   <tr ng-repeat="item in data.sub_data">
                     <td>
                       <input type="hidden" name="id" value="{{item.id}}">
-                      <input type="text" autocomplete="off" ng-readonly="showCase.update && (!(item.new_sku))" ng-show="$first" name="product_code" class="form-control" placeholder="Search Product SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="data.product_code" ng-blur="showCase.service.checkSearchValue(data.product_code,'search_wms_codes?', $event, 'RM', ''Product SKU Code'');showCase.get_product_data(data.product_code, data)">
+                      <input type="text" autocomplete="off" ng-readonly="showCase.update && (!(item.new_sku))" ng-show="$first" name="product_code" class="form-control" placeholder="Search Product SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="data.product_code" typeahead-on-select="showCase.get_product_data(data.product_code, data, $parent.$index)">
+                    </td>
+                    <td>
+                      <input ng-show="$first" type="text" name="description" ng-model="data.description" class="form-control">
                     </td>
                     <td>
                       <input ng-show="$first" type="text" name="product_quantity" ng-model="data.product_description" ng-change="showCase.change_quantity(data)" class="form-control" ng-class="service.get_decimal_perm()">
                     </td>
                     <td>
-                      <input type="text" autocomplete="off" name="material_code" class="form-control" placeholder="Search Material SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?','RM')" typeahead-loading="loadingLocations" ng-model="item.material_code" ng-blur="showCase.service.checkSearchValue(item.material_code,'search_wms_codes?', $event, 'RM', 'Material SKU Code')">
+                      <input type="text" autocomplete="off" name="material_code" class="form-control" placeholder="Search Material SKU Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?','RM')" typeahead-loading="loadingLocations" ng-model="item.material_code">
                     </td>
                     <td>
                       <input type="text" name="material_quantity" class="form-control" value="{{(data.product_description > -1)? showCase.service.decimal(data.product_description, item.material_quantity): item.material_quantity;}}" ng-class="service.get_decimal_perm()">
+                    </td>
+                    <td>
+                      <select name="measurement_type" class="form-control" ng-model="item.measurement_type">
+                        <option value="" ng-selected= "item.measurement_type == ''">Default</option>
+                        <option ng-repeat="unit in showCase.units" value="{{unit}}" ng-selected= "item.measurement_type == unit">{{unit}}</option>
+                      </select>
                     </td>
                     <td>
                       <i ng-click="showCase.update_data(data, $index, $last, $first)" ng-class="showCase.isLast($last)"></i> </div>

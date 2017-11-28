@@ -187,6 +187,11 @@ angular
           return true;
         }
       }
+
+      $rootScope.$on('invalidUser', function () {
+        $state.go("user.signin");
+        Session.unset();
+      });
     }
 ]);
 

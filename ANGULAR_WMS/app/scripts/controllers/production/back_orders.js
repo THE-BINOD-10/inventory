@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
     vm.g_data = Data.back_orders_list;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.units = vm.service.units;
     //vm.filters = {'datatable': 'ProductionBackOrders', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'special_key':'Self Produce'}
     vm.selected = {};
     vm.selectAll = false;
@@ -249,8 +250,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
       }, 2000);
     }
 
-    vm.get_product_data = function(item, sku_data) {
-      console.log(vm.model_data);
+    vm.get_product_data = function(item, sku_data, index) {
       check_exist(sku_data).then(function(data){
         if(data) {
           var elem = $.param({'sku_code': item});;
@@ -260,7 +260,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
                url:Session.url+"get_material_codes/",
                withCredential: true,
                data: elem}).success(function(data, status, headers, config) {
-                 sku_data.sub_data = data;
+                 sku_data.sub_data = data.materials;
+                 sku_data.product_description = 1;
+                 sku_data.description = data.product.description;
             console.log("success");
           });
         }

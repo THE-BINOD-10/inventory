@@ -1336,6 +1336,7 @@ def close_po(request, user=''):
         return HttpResponse('Updated Successfully')
     status = ''
     myDict = dict(request.GET.iterlists())
+    reason = request.GET.get('remarks', '')
     for i in range(0, len(myDict['id'])):
         if myDict['id'][i]:
             if myDict['new_sku'][i] == 'true':
@@ -1358,6 +1359,8 @@ def close_po(request, user=''):
                 status = ''
                 po = PurchaseOrder.objects.get(id=myDict['id'][i])
                 setattr(po, 'status', 'location-assigned')
+                if reason:
+                    po.reason = reason
                 po.save()
 
     if status:

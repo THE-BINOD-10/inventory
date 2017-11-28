@@ -1188,11 +1188,11 @@ def get_receipt_filter_data(search_params, user, sub_user):
     use_imei = get_misc_value('use_imei', user.id)
     query_prefix = ''
     lis = ['open_po__supplier__name', 'order_id', 'open_po__sku__wms_code', 'open_po__sku__sku_desc', 'received_quantity',
-           'updation_date']
+           'updation_date', 'reason']
     model_obj = PurchaseOrder
     if use_imei == 'true':
         lis = ['purchase_order__open_po__supplier__name', 'purchase_order__order_id', 'purchase_order__open_po__sku__wms_code',
-               'purchase_order__open_po__sku__sku_desc', 'imei_number', 'creation_date']
+               'purchase_order__open_po__sku__sku_desc', 'imei_number', 'creation_date', 'purchase_order__reason']
         query_prefix = 'purchase_order__'
         model_obj = POIMEIMapping
     temp_data = copy.deepcopy( AJAX_DATA )
@@ -1244,11 +1244,15 @@ def get_receipt_filter_data(search_params, user, sub_user):
             serial_number = data.imei_number
             data = data.purchase_order
             received_date = get_local_date(user, data.creation_date)
+        reason = ''
+        if data.reason:
+            reason = data.reason
         po_reference = '%s%s_%s' %(data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), data.order_id)
         temp_data['aaData'].append(OrderedDict(( ('PO Reference', po_reference), ('WMS Code', data.open_po.sku.wms_code), ('Description', data.open_po.sku.sku_desc),
                                     ('Supplier', '%s (%s)' % (data.open_po.supplier.name, data.open_po.supplier_id)),
                                     ('Receipt Number', data.open_po_id), ('Received Quantity', data.received_quantity),
-                                    ('Serial Number', serial_number), ('Received Date', received_date) )))
+                                    ('Serial Number', serial_number), ('Received Date', received_date),
+                                    ('Closing Reason', reason))))
     return temp_data
 
 def get_dispatch_data(search_params, user, sub_user, serial_view=False):

@@ -3901,14 +3901,15 @@ def get_view_order_details(request, user=''):
         order_id = ''.join(re.findall('\d+', order_id))
         #seller_data = SellerOrder.objects.filter(sor_id = seller, order__order_id = float(order_id[2:]), order__user=user.id)
         seller_data = SellerOrder.objects.filter(Q(order__order_id = order_id, order__order_code = order_code) | \
-                                                 Q(order__original_order_id=order_id), order__user=user.id, sor_id = sor_id)
+                                                 Q(order__original_order_id=order_id), order__user=user.id, sor_id = sor_id,
+                                                 status=1)
         order_details= seller_data[0].order
         row_id = order_details.id
         order_details = [order_details]
     else:
         order_code = ''.join(re.findall('\D+', main_id))
         order_id = ''.join(re.findall('\d+', main_id))
-        order_details = OrderDetail.objects.filter(Q(order_id = order_id, order_code = order_code) | Q(original_order_id=main_id), user=user.id)
+        order_details = OrderDetail.objects.filter(Q(order_id = order_id, order_code = order_code) | Q(original_order_id=main_id), user=user.id, status=1)
         if not row_id:
             row_id = order_details[0].id
     custom_data = OrderJson.objects.filter(order_id=row_id)

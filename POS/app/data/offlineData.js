@@ -35,15 +35,20 @@
 
 				DATABASE.skumaster.bulkPut(skulist).then(function(res){
 				 			console.log("addSKUBulkItem data is "+res);
+				 			checkStoragePercent();
 				 			//getData();
 					return resolve(true);
 					}).catch(Dexie.BulkError,function(error){
-							console.log("some sku failed "+ skulist.length()-error.failures.length);
-					  return reject("some sku failed "+ skulist.length()-error.failures.length);
+					  if(error==Dexie.errnames.QuotaExceeded){
+						return reject(error.message);
+					  }else{
+					   console.log("some sku failed "+ skulist.length()-error.failures.length);
+					   return reject("some sku failed "+ skulist.length()-error.failures.length);
+					   }
 					});
 
 		        }).catch(function(error){
-		  			return reject("some sku failed "+ skulist.length()-error.failures.length);
+		  			return reject("some sku failed "+ error.message);
 		        });
 	        });    	
     }
@@ -54,11 +59,17 @@
     	return new Promise(function(resolve,reject){
 			DATABASE.customer.bulkPut(customer_list).then(function(res){
 			 			console.log("data is "+res);
-			 			
-				return resolve(true);
+			 			checkStoragePercent();
+						return resolve(true);
 				}).catch(Dexie.BulkError,function(error){
-						console.log("failed to load some customers "+ customer_list.length()-error.failures.length);
-				   return reject("failed to load some customers " + customer_list.length()-error.failures.length);
+					
+					if(error==Dexie.errnames.QuotaExceeded){
+						return reject(error.message)
+					}else{
+					console.log("failed to load some customers "+ customer_list.length()-error.failures.length);
+				   		return reject("failed to load some customers " + customer_list.length()-error.failures.length);
+				   	}
+				   
 				});
 	    	
     	});
@@ -75,7 +86,7 @@
 	   
 	   				 var foundIds = {};
 	    			 DATABASE.sku_search_words.where("word").
-	    						startsWith(find_key).limit(30).
+	    						startsWithIgnoreCase(find_key).limit(30).
 	    						each(function (wordToSKUMapping) {
 	        						foundIds[wordToSKUMapping.SKUCode.toString()] = true;
 	    							}).
@@ -113,7 +124,7 @@
 			DATABASE.customer.where("Number").
 								startsWithIgnoreCase(find_key).
 								or("FirstName").startsWithIgnoreCase(find_key).
-								toArray().then(function(data){
+								limit(30).toArray().then(function(data){
 									return resolve(data);
 								}).catch(function(error){
 									return reject(error);
@@ -273,9 +284,6 @@
 				  };
 			}
 
-    		/*checkServiceWorker().then(function(data){
-				navigator.serviceWorker.controller.postMessage(message,channel_port);
-    		});*/
 
 	}
 
@@ -412,11 +420,13 @@
 	 
 			DATABASE.checksum.put(genralData).then(function(data){
 								console.log("set data is "+data);
+								checkStoragePercent();
 								//DATABASE.checksum.get(check_sum);
 		              			return resolve(data);
 							}).catch(function(error){
-								console.log("set data error "+error.stack || error);
-				                 return reject(false);
+								console.log("set data error "+error.stack || error.message);	
+				                return reject(false);
+				                
 							});
 		});
 	}	
@@ -428,9 +438,11 @@
         return new Promise(function (resolve, reject){
 			DATABASE.sync_customer.put(customer_data).
 					then(function(data){
+						checkStoragePercent();
                         resolve(true);                    
 					}).catch(function(error){
-						reject(error);
+						console.log("set data error "+error.stack || error.message);	
+						reject(error.message);
 					});
 		});
 	}
@@ -452,7 +464,12 @@
               		order_data.summary.order_id=order_number[0].checksum;
 
               		//save order in DB
-              		var id=yield DATABASE.sync_orders.put({order:JSON.stringify(order_data)});
+              		var id=yield DATABASE.sync_orders.
+              						put({order:JSON.stringify(order_data)}).
+              						cath(function(error){
+										console.error("error "+error.message);	
+										reject(error.message);
+									});
 
               		// update the order id 
 		            yield DATABASE.checksum.
@@ -468,7 +485,7 @@
                	}).then(function(order_id){
 					resolve(order_id);  
 				}).catch(function(error){
-					reject(error);
+					reject(error.message);
 				});
         });
 	}
@@ -504,6 +521,32 @@
 						console.log("get sync pos orders error "+error);
 						resolve([]);
           			 });	
+		});
+	}
+
+	//get Customers data
+	function getcustomerData(){
+		return new Promise(function(resolve,reject){
+		
+			DATABASE.customer.toArray()
+					.then(function(data){
+						return resolve(data);
+					}).catch(function(error){
+						return resolve([]);
+					});
+		});
+	}
+
+	//get skumasres data
+	function getSkumasterData(){
+		return new Promise(function(resolve,reject){
+		
+			DATABASE.skumaster.toArray()
+					.then(function(data){
+						return resolve(data);
+					}).catch(function(error){
+						return resolve([]);
+					});
 		});
 	}
 
@@ -594,86 +637,37 @@
 		});				
 	}
 
-	async function isStoragePersisted() {
-	  return await navigator.storage && navigator.storage.persisted &&
-	    navigator.storage.persisted();
+	//get storage percentage
+	function GetStorage_Percentage(){
+
+		return new Promise(function(resolve,reject){
+			showEstimatedQuota().then(function(quota){
+				if(quota!=undefined){
+				  	return (quota.usage/quota.quota)*100;
+				}else{
+					return 0.00;
+				}
+
+			}).then(function(data){
+				return resolve(data.toFixed(2));
+			}).catch(function(error){
+				return reject(error.message);
+			});
+		});
 	}
 
+	//check usage percent 
+	function checkStoragePercent(){
 
-	async function persist() {
-	  return await navigator.storage && navigator.storage.persist &&
-	    navigator.storage.persist();
-	}
-
-	async function showEstimatedQuota() {
- 	 return await navigator.storage && navigator.storage.estimate ?
-    	navigator.storage.estimate() :
-    	undefined;
-	}
-
-	async function tryPersistWithoutPromtingUser() {
-		  if (!navigator.storage || !navigator.storage.persisted) {
-		    return "never";
-		  }
-		  let persisted = await navigator.storage.persisted();
-		  if (persisted) {
-		    return "persisted";
-		  }
-		  if (!navigator.permissions || !navigator.permissions.query) {
-		    return "prompt"; // It MAY be successful to prompt. Don't know.
-		  }
-		  const permission = await navigator.permissions.query({
-		    name: "persistent-storage"
-		  });
-		  if (permission.status === "granted") {
-		    persisted = await navigator.storage.persist();
-		    if (persisted) {
-		      return "persisted";
-		    } else {
-		      throw new Error("Failed to persist");
-		    }
-		  }
-		  if (permission.status === "prompt") {
-		    return "prompt";
-		  }
-		  return "never";
-	}
-
-
-	async function initStoragePersistence() {
-	  const persist = await tryPersistWithoutPromtingUser();
-	  switch (persist) {
-	    case "never":
-	      console.log("Not possible to persist storage");
-	      break;
-	    case "persisted":
-	      console.log("Successfully persisted storage silently");
-	      break;
-	    case "prompt":
-	      console.log("Not persisted, but we may prompt user when we want to.");
-	      break;
-	  }
-	}
-
-	function checkPersistent(){
-
-       return new Promise(function(resolve,reject){
-		isStoragePersisted().then(async isPersisted => {
-		                            if (isPersisted) {
-		                              console.log(":) Storage is successfully persisted.");
-		                              resolve(true);
-		                            } else {
-		                              console.log(":( Storage is not persisted.");
-		                              console.log("Trying to persist..:");
-		                              if (await persist()) {
-		                                console.log(":) We successfully turned the storage to be persisted.");
-		                              	resolve(true);
-		                              } else {
-		                                console.log(":( Failed to make storage persisted");
-		                              	reject(false);
-		                              }
-		                            }
-		                          });
-	});
-
-	}
+		return new Promise(function(resolve,reject){
+			GetStorage_Percentage().then(function(data){
+				if(data>=70.00){
+					return resolve(true);
+				}else{
+					return resolve(false);
+				}
+			}).catch(function(error){
+				return reject(error);
+			});		
+		});
+	}	

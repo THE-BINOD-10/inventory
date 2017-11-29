@@ -11,6 +11,7 @@ app.service('urlService', function($rootScope){
                           "money_data": {},
                           "status": 0
                           };
+  
     this.user_update = true;
     that = this;
 

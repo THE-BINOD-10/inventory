@@ -5,6 +5,7 @@ function BackorderJOPOP($scope, $http, $state, $timeout, Session, colFilters, Se
   var vm = this;
   vm.state_data = ""; 
   vm.service = Service;
+  vm.units = vm.service.units;
 
   if($stateParams.data){
      vm.state_data = $stateParams.data;
@@ -64,7 +65,11 @@ function BackorderJOPOP($scope, $http, $state, $timeout, Session, colFilters, Se
                url:Session.url+"get_material_codes/",
                withCredential: true,
                data: elem}).success(function(data, status, headers, config) {
-                 sku_data.sub_data = data;
+                 // sku_data.sub_data = data;
+
+                 sku_data.sub_data = data.materials;
+                 sku_data.product_description = 1;
+                 sku_data.description = data.product.description;
             console.log("success");
           });
         }

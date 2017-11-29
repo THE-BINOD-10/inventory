@@ -318,6 +318,7 @@ class PurchaseOrder(models.Model):
     po_date = models.DateTimeField(auto_now_add=True)
     ship_to = models.CharField(max_length=64,default='')
     status = models.CharField(max_length=32, db_index=True)
+    reason = models.TextField(blank=True, null=True)
     prefix = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

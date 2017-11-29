@@ -49,22 +49,26 @@
                                         <tr>
                                             {% if forloop.parentloop.first %}
                                                 <td>{{ key.0 }}</td>
+                                                <td>{{ v.4 }}</td>
                                                 <td>{{ d }}</td>
                                             {% else %}
-                                                <td></td><td></td>
+                                                <td></td><td></td><td></td>
                                             {% endif %}
                                             <td>{{ v.0 }}</td>
                                             <td>{{ v.1 }}</td>
+                                            <td>{{ v.3 }}</td>
                                         </tr>
                                         {% endfor %}
                                     {% endfor %}
                                 {% endfor %}
 
                                 <tr>
+                                    <td></td>
                                     <td>Total Product Quantity</td>
                                     <td>{{ j_value.tot_pro_qty }}</td>
                                     <td>Total Material Quantity</td>
                                     <td style="text-align:left;">{{ j_value.tot_mat_qty }}</td>
+                                    <td></td>
                                 </tr>
                             </tbody>
                         </table>

@@ -414,7 +414,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'goods_receipt': 'get_po_filter_data', 'receipt_summary': 'get_receipt_filter_data',
                         'sku_stock': 'print_sku_wise_data', 'sku_wise_purchases': 'sku_wise_purchase_data',
                         'supplier_wise': 'get_supplier_details_data', 'sales_report': 'get_sales_return_filter_data',
-                        'inventory_adjust_report': 'get_adjust_filter_data', 'inventory_aging_report': 'get_aging_filter_data'}
+                        'inventory_adjust_report': 'get_adjust_filter_data', 'inventory_aging_report': 'get_aging_filter_data',
+                        'rm_picklist_report': 'get_rm_picklist_data'}
 
 SKU_GROUP_FIELDS = {'group': '', 'user': '', 'creation_date': NOW}
 

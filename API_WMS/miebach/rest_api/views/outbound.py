@@ -1753,26 +1753,77 @@ def create_shipment_entry(picklist):
 @get_admin_user
 def update_invoice(request, user=''):
     """ update invoice data """
-    resp = {"msg": "success", "data": {}}
-    order_ids = request.POST.get("order_id", "")
-    consignee = request.POST.get("ship_to", "")
-    invoice_date = request.POST.get("invoice_date", "")
-    if invoice_date:
-        invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
-    order_id_val = ''.join(re.findall('\d+', order_ids))
-    order_code = ''.join(re.findall('\D+', order_ids))
-    ord_ids = OrderDetail.objects.filter(Q(order_id = order_id_val, order_code = order_code) | Q(original_order_id=order_ids),
-                                         user = user.id).values_list('id', flat = True)
-    for order_id in ord_ids:
-        cust_objs = CustomerOrderSummary.objects.filter(order__user = user.id, order__id = order_id)
-        if cust_objs:
-            cust_obj = cust_objs[0]
-            cust_obj.consignee = consignee
-            if invoice_date:
-                cust_obj.invoice_date = invoice_date
-            cust_obj.save()
+
+    try:
+        log.info('Request params for Update Invoice for ' + user.username + ' is ' + str(request.POST.dict()))
+        resp = {"msg": "success", "data": {}}
+        order_ids = request.POST.get("order_id", "")
+        consignee = request.POST.get("ship_to", "")
+        invoice_date = request.POST.get("invoice_date", "")
+        invoice_number = request.POST.get("invoice_number", "")
+        increment_invoice = get_misc_value('increment_invoice', user.id)
+        marketplace = request.POST.get("marketplace", "")
+
+        myDict = dict(request.POST.iterlists())
+        if invoice_date:
+            invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
+        order_id_val = ''.join(re.findall('\d+', order_ids))
+        order_code = ''.join(re.findall('\D+', order_ids))
+        ord_ids = OrderDetail.objects.filter(Q(order_id = order_id_val, order_code = order_code) | Q(original_order_id=order_ids),
+                                             user = user.id)
+
+        if increment_invoice == 'true' and invoice_number:
+            invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace)
+            if not invoice_sequence:
+                invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace='')
+            seller_orders = SellerOrderSummary.objects.filter(order_id__in=ord_ids, order__user=user.id)
+            if seller_orders and int(seller_orders[0].invoice_number) != int(invoice_number):
+                if int(invoice_number) >= int(invoice_sequence[0].value)-1:
+                    seller_orders.update(invoice_number=str(invoice_number).zfill(3))
+                    invoice_sequence = invoice_sequence[0]
+                    invoice_sequence.value = int(invoice_number) + 1
+                    invoice_sequence.save()
+                else :
+                    resp['msg'] = "Invoice number already Exist"
+                    return HttpResponse(json.dumps(resp))
+
+        # Updating the Unit Price
+        for order_id in ord_ids:
+            if not str(order_id.id) in myDict['id']:
+                continue
+            unit_price_index = myDict['id'].index(str(order_id.id))
+            if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
+                order_id.unit_price = float(myDict['unit_price'][unit_price_index])
+                order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index])
+                order_id.save()
+            cust_objs = CustomerOrderSummary.objects.filter(order__user = user.id, order__id = order_id.id)
+            if cust_objs:
+                cust_obj = cust_objs[0]
+                cust_obj.consignee = consignee
+                if invoice_date:
+                    cust_obj.invoice_date = invoice_date
+                cust_obj.save()
+
+        # Updating or Creating Order other charges Table
+        for i in range(0, len(myDict.get('charge_name', []))):
+            if myDict.get('charge_id') and myDict['charge_id'][i]:
+                order_charges = OrderCharges.objects.filter(id=myDict['charge_id'][i], user_id=user.id)
+                if order_charges:
+                    if not myDict['charge_amount'][i]:
+                        myDict['charge_amount'][i] = 0
+                    order_charges.update(charge_name=myDict['charge_name'][i], charge_amount=myDict['charge_amount'][i])
+            else:
+                OrderCharges.objects.create(order_id=order_ids, charge_name=myDict['charge_name'][i],
+                                            charge_amount=myDict['charge_amount'][i],creation_date=datetime.datetime.now(),
+                                            user_id=user.id)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update Invoice failed for params for user %s for params %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()),str(e)))
+        resp = {"msg": "Failed", "data": {}}
+
     return HttpResponse(json.dumps(resp))
-    
 
 @csrf_exempt
 @login_required
@@ -3086,12 +3137,14 @@ def generate_jo_data(request, user=''):
         data = []
         key = key.split(':')[0]
         bom_master = BOMMaster.objects.filter(product_sku__sku_code=key, product_sku__user=user.id)
+        description = ''
         if bom_master:
             for bom in bom_master:
                 data.append({'material_code': bom.material_sku.sku_code, 'material_quantity': float(bom.material_quantity),
-                             'id': ''})
+                             'id': '', 'measurement_type': bom.unit_of_measurement})
+            description = bom.product_sku.sku_desc
         all_data.append({'product_code': key, 'product_description': value,
-                         'sub_data': data})
+                         'sub_data': data, 'description': description})
     return HttpResponse(json.dumps({'data': all_data}))
 
 @csrf_exempt
@@ -3680,9 +3733,9 @@ def generate_order_jo_data(request, user=''):
         if bom_master:
             for bom in bom_master:
                 data.append({'material_code': bom.material_sku.sku_code, 'material_quantity': float(bom.material_quantity),
-                             'id': ''})
+                             'id': '', 'measurement_type': bom.unit_of_measurement})
         all_data.append({'order_id': data_id, 'product_code': order_detail.sku.sku_code, 'product_description': order_detail.quantity,
-                         'sub_data': data})
+                         'description': order_detail.sku.sku_desc, 'sub_data': data})
     return HttpResponse(json.dumps({'data': all_data}))
 
 @get_admin_user
@@ -3905,6 +3958,16 @@ def get_view_order_details(request, user=''):
             attr_list = attr_list.get('attribute_data', '')
         else:
             attr_list = []
+
+    tax_type = ''
+    inter_state = 2
+    if customer_order_summary:
+        inter_state = customer_order_summary[0].inter_state
+        if customer_order_summary[0].inter_state == 0:
+            tax_type = 'intra_state'
+        elif customer_order_summary[0].inter_state == 1:
+            tax_type = 'inter_state'
+
     for attr in attr_list:
         tuple_data = (attr['attribute_name'],attr['attribute_value'])
         cus_data.append(tuple_data)
@@ -3930,6 +3993,7 @@ def get_view_order_details(request, user=''):
         sku_id_list.append(sku_id)
         product_title = one_order.title
         quantity = one_order.quantity
+        unit_price = one_order.unit_price
         invoice_amount = one_order.invoice_amount
         remarks = one_order.remarks
         sku_code = one_order.sku.sku_code
@@ -3953,15 +4017,35 @@ def get_view_order_details(request, user=''):
             if order_json:
                 sku_extra_data = json.loads(order_json[0].json_data)
 
+        customer_order = CustomerOrderSummary.objects.filter(order_id = one_order.id)
+        sgst_tax = 0
+        cgst_tax = 0
+        igst_tax = 0
+        discount_percentage = 0
+        if customer_order:
+            sgst_tax = customer_order[0].sgst_tax
+            cgst_tax = customer_order[0].cgst_tax
+            igst_tax = customer_order[0].igst_tax
+            discount_percentage = 0
+            if (quantity * unit_price):
+                discount_percentage = float("%.1f" % (float((customer_order[0].discount * 100)/(quantity * unit_price))))
+
+        tax_masters = TaxMaster.objects.filter(user_id=user.id, product_type=one_order.sku.product_type, inter_state=inter_state)
+        taxes_data = []
+        for tax_master in tax_masters:
+            taxes_data.append(tax_master.json())
+
         order_details_data.append({'product_title':product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
                       'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone,'email': email, 'address': address, 'city': city, 
                       'state': state, 'pin': pin, 'shipment_date': str(shipment_date),'item_code': sku_code, 'order_id': order_id,
                       'image_url': one_order.sku.image_url, 'market_place': one_order.marketplace,
                       'order_id_code': one_order.order_code + str(one_order.order_id), 'print_vendor' : vend_dict['printing_vendor'],
                       'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
-                      'sku_extra_data': sku_extra_data})
+                      'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
+                      'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data, 'sku_status': one_order.status})
+
     data_dict.append({'cus_data': cus_data,'status': status_obj, 'ord_data': order_details_data,
-                      'central_remarks': central_remarks, 'all_status': all_status})
+                      'central_remarks': central_remarks, 'all_status': all_status, 'tax_type': tax_type})
 
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 
@@ -4547,9 +4631,9 @@ def delete_order_data(request, user = ""):
     if complete_id:
         order_id = ''.join(re.findall('\d+', complete_id))
         order_code = ''.join(re.findall('\D+', complete_id))
-        ord_obj = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, sku__sku_code = sku_code, user= user.id)
+        ord_obj = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, sku__sku_code = sku_code, user= user.id, status=1)
         if ord_obj:
-            seller_order = SellerOrder.objects.filter(order_id=ord_obj[0].id, order_status='DELIVERY_RESCHEDULED')
+            seller_order = SellerOrder.objects.filter(order_id=ord_obj[0].id, order_status='DELIVERY_RESCHEDULED', status=1)
             if not seller_order:
                 ord_obj.delete()
             else:
@@ -4567,24 +4651,28 @@ def update_order_data(request, user = ""):
     """ This code will update data if order is updated """
     st_time = datetime.datetime.now()
     log.info("updation of order process started")
-    myDict = dict(request.GET.iterlists())
+    myDict = dict(request.POST.iterlists())
     log.info('Order update request params for ' + user.username + ' is ' + str(request.GET.dict()))
     try:
-        complete_id = myDict['order id'][0]
+        complete_id = myDict['order_id'][0]
         order_id = ''.join(re.findall('\d+', complete_id))
         order_code = ''.join(re.findall('\D+', complete_id))
         older_objs = OrderDetail.objects.filter(Q(order_id = order_id, order_code = order_code) | Q(original_order_id=complete_id),
                                                 user= user.id)
         old_cust_obj = ""
         order_creation_date = datetime.datetime.now()
+        tax_type = 2
+        tax_name = request.POST.get('tax_type', '')
+        if tax_name == 'intra_state':
+            tax_type = 0
+        elif tax_name == 'inter_state':
+            tax_type = 1
 
         if older_objs:
             older_order = older_objs[0]
-            old_cust_obj = CustomerOrderSummary.objects.filter(order = older_order.id)
             order_creation_date = older_order.creation_date
         else:
             return HttpResponse("Order Creation Failed")
-
         for i in range(0, len(myDict['item_code'])):
             s_date = datetime.datetime.strptime(myDict['shipment_date'][0], '%d %b, %Y %H:%M %p')
             if not myDict['item_code'][i] or not myDict['quantity'][i]:
@@ -4596,29 +4684,51 @@ def update_order_data(request, user = ""):
             default_dict = {'title': myDict['product_title'][i], 'quantity': myDict['quantity'][i], 'invoice_amount': myDict['invoice_amount'][i],
                             'user': user.id, 'customer_id': older_order.customer_id, 'customer_name': older_order.customer_name,
                             'telephone': older_order.telephone, 'email_id': older_order.email_id, 'address': older_order.address,
-                            'shipment_date' : older_order.shipment_date, 'status': 1, "marketplace" : older_order.marketplace,
-                            'remarks': myDict['remarks'][i], 'original_order_id': older_order.original_order_id}
-
+                            'shipment_date' : older_order.shipment_date, "marketplace" : older_order.marketplace,
+                            'remarks': myDict['remarks'][i], 'original_order_id': older_order.original_order_id,
+                            'unit_price': myDict['unit_price'][i]}
+            sku_order = older_objs.filter(order_id = order_id, order_code = order_code, sku = sku_id)
+            if not sku_order:
+                default_dict['status'] = 1
+            elif int(sku_order[0].status) == 0:
+                continue
             order_obj, created = OrderDetail.objects.update_or_create(
                 order_id = order_id, order_code = order_code, sku = sku_id, defaults = default_dict
                 )
+            sgst_tax = myDict['sgst'][i]
+            cgst_tax = myDict['cgst'][i]
+            igst_tax = myDict['igst'][i]
+            discount = myDict['discount'][i]
+            if not sgst_tax:
+                sgst_tax = 0
+            if not cgst_tax:
+                cgst_tax = 0
+            if not igst_tax:
+                igst_tax = 0
+            if not discount:
+                discount = 0
 
+            old_cust_obj = CustomerOrderSummary.objects.filter(order = order_obj.id)
             if created:
                 order_obj.creation_date = order_creation_date
                 order_obj.save()
                 if old_cust_obj:
-                    CustomerOrderSummary.objects.create(order = order_obj, discount = old_cust_obj[0].discount, vat = old_cust_obj[0].vat, tax_value = old_cust_obj[0].tax_value, order_taken_by = old_cust_obj[0].order_taken_by, mrp  = old_cust_obj[0].mrp, tax_type = old_cust_obj[0].tax_type, status = old_cust_obj[0].status, central_remarks = old_cust_obj[0].central_remarks)
+                    CustomerOrderSummary.objects.create(order = order_obj, discount = discount, vat = old_cust_obj[0].vat, tax_value = old_cust_obj[0].tax_value, order_taken_by = old_cust_obj[0].order_taken_by, mrp  = old_cust_obj[0].mrp, tax_type = old_cust_obj[0].tax_type, status = old_cust_obj[0].status, central_remarks = old_cust_obj[0].central_remarks, sgst_tax=sgst_tax, cgst_tax=cgst_tax, igst_tax=igst_tax)
                 else:
-                    CustomerOrderSummary.objects.create(order = order_obj, status = myDict['status_type'][0], central_remarks = myDict['central_remarks'][0])
+                    CustomerOrderSummary.objects.create(order = order_obj, status = myDict['status_type'][0], central_remarks = myDict['central_remarks'][0], sgst_tax=sgst_tax, cgst_tax=cgst_tax, igst_tax=igst_tax, discount=discount, tax_type=tax_type)
             else:
-                status_obj = CustomerOrderSummary.objects.filter(order = order_obj.id)
+                status_obj = old_cust_obj
                 if not status_obj:
                     status_obj = CustomerOrderSummary.objects.create(order = order_obj, status = myDict['status_type'][0])
                 else:
                     status_obj = status_obj[0]
                 status_obj.status = myDict['status_type'][0]
                 status_obj.central_remarks = myDict['central_remarks'][0]
-
+                status_obj.sgst_tax = sgst_tax
+                status_obj.cgst_tax = cgst_tax
+                status_obj.igst_tax = igst_tax
+                status_obj.discount = discount
+                status_obj.tax_type = tax_type
                 status_obj.save()
 
                 vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']
@@ -4780,15 +4890,15 @@ def order_delete(request, user=""):
     order_id = ''.join(re.findall('\d+', complete_id))
     order_code = ''.join(re.findall('\D+', complete_id))
     try:
-        order_detail = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id)
+        order_detail = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id, status=1)
         if not order_detail:
             complete_id = request.GET.get("order_id_code", "")
             order_id = ''.join(re.findall('\d+', complete_id))
             order_code = ''.join(re.findall('\D+', complete_id))
-            order_detail = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id)
+            order_detail = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id, status=1)
         if order_detail:
             order_detail_ids = order_detail.values_list('id', flat=True)
-            seller_orders = list(SellerOrder.objects.filter(order_id__in=order_detail_ids, order_status='DELIVERY_RESCHEDULED').\
+            seller_orders = list(SellerOrder.objects.filter(order_id__in=order_detail_ids, order_status='DELIVERY_RESCHEDULED', status=1).\
                                                 values_list('order_id', flat=True))
             order_detail_ids = list(order_detail_ids)
             if seller_orders:
@@ -6001,3 +6111,28 @@ def create_custom_skus(request, user=''):
                                        'quantity': quantity, 'extra': data})
     resp['data'] = order_data
     return HttpResponse(json.dumps(resp))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_order_charges(request, user=''):
+    #It Will delete the other charges for Order.
+
+    status = 1
+    message = 'Deleted Successfully'
+    log.info('Request Params for Delete Order Charges for user %s is %s' % (user.username, str(request.GET.dict())))
+    try:
+        data_id = request.GET.get('id', '')
+        if data_id:
+            other_charges = OrderCharges.objects.filter(id=data_id, user_id=user.id)
+            if other_charges:
+                other_charges.delete()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Delete Order Charges failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.GET.dict()), str(e)))
+        status = 0
+        message = 'Order Charges Deletion failed'
+
+    return HttpResponse(json.dumps({'status': status, 'message': message}))

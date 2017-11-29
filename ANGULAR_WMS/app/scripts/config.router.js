@@ -1514,6 +1514,18 @@ var app = angular.module('urbanApp')
             title: 'Seller Invoice Details',
           }
         })
+        .state('app.reports.RMPicklistReport', {
+          url: '/RMPicklistReport',
+          templateUrl: 'views/reports/rm_picklist_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/rm_picklist_report.js');
+              }]
+          },
+          data: {
+            title: 'RM Picklist Report',
+          }
+        })
 
       // configuration route
       .state('app.configurations', {

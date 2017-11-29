@@ -3930,15 +3930,14 @@ def get_view_order_details(request, user=''):
         order_id = ''.join(re.findall('\d+', order_id))
         #seller_data = SellerOrder.objects.filter(sor_id = seller, order__order_id = float(order_id[2:]), order__user=user.id)
         seller_data = SellerOrder.objects.filter(Q(order__order_id = order_id, order__order_code = order_code) | \
-                                                 Q(order__original_order_id=order_id), order__user=user.id, sor_id = sor_id,
-                                                 status=1)
+                                                 Q(order__original_order_id=order_id), order__user=user.id, sor_id = sor_id)
         order_details= seller_data[0].order
         row_id = order_details.id
         order_details = [order_details]
     else:
         order_code = ''.join(re.findall('\D+', main_id))
         order_id = ''.join(re.findall('\d+', main_id))
-        order_details = OrderDetail.objects.filter(Q(order_id = order_id, order_code = order_code) | Q(original_order_id=main_id), user=user.id, status=1)
+        order_details = OrderDetail.objects.filter(Q(order_id = order_id, order_code = order_code) | Q(original_order_id=main_id), user=user.id)
         if not row_id:
             row_id = order_details[0].id
     custom_data = OrderJson.objects.filter(order_id=row_id)
@@ -4036,7 +4035,6 @@ def get_view_order_details(request, user=''):
         for tax_master in tax_masters:
             taxes_data.append(tax_master.json())
 
-
         order_details_data.append({'product_title':product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
                       'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone,'email': email, 'address': address, 'city': city, 
                       'state': state, 'pin': pin, 'shipment_date': str(shipment_date),'item_code': sku_code, 'order_id': order_id,
@@ -4044,7 +4042,7 @@ def get_view_order_details(request, user=''):
                       'order_id_code': one_order.order_code + str(one_order.order_id), 'print_vendor' : vend_dict['printing_vendor'],
                       'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
                       'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
-                      'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data})
+                      'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data, 'sku_status': one_order.status})
 
     data_dict.append({'cus_data': cus_data,'status': status_obj, 'ord_data': order_details_data,
                       'central_remarks': central_remarks, 'all_status': all_status, 'tax_type': tax_type})
@@ -4633,9 +4631,9 @@ def delete_order_data(request, user = ""):
     if complete_id:
         order_id = ''.join(re.findall('\d+', complete_id))
         order_code = ''.join(re.findall('\D+', complete_id))
-        ord_obj = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, sku__sku_code = sku_code, user= user.id)
+        ord_obj = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, sku__sku_code = sku_code, user= user.id, status=1)
         if ord_obj:
-            seller_order = SellerOrder.objects.filter(order_id=ord_obj[0].id, order_status='DELIVERY_RESCHEDULED')
+            seller_order = SellerOrder.objects.filter(order_id=ord_obj[0].id, order_status='DELIVERY_RESCHEDULED', status=1)
             if not seller_order:
                 ord_obj.delete()
             else:
@@ -4675,7 +4673,6 @@ def update_order_data(request, user = ""):
             order_creation_date = older_order.creation_date
         else:
             return HttpResponse("Order Creation Failed")
-
         for i in range(0, len(myDict['item_code'])):
             s_date = datetime.datetime.strptime(myDict['shipment_date'][0], '%d %b, %Y %H:%M %p')
             if not myDict['item_code'][i] or not myDict['quantity'][i]:
@@ -4687,10 +4684,14 @@ def update_order_data(request, user = ""):
             default_dict = {'title': myDict['product_title'][i], 'quantity': myDict['quantity'][i], 'invoice_amount': myDict['invoice_amount'][i],
                             'user': user.id, 'customer_id': older_order.customer_id, 'customer_name': older_order.customer_name,
                             'telephone': older_order.telephone, 'email_id': older_order.email_id, 'address': older_order.address,
-                            'shipment_date' : older_order.shipment_date, 'status': 1, "marketplace" : older_order.marketplace,
+                            'shipment_date' : older_order.shipment_date, "marketplace" : older_order.marketplace,
                             'remarks': myDict['remarks'][i], 'original_order_id': older_order.original_order_id,
                             'unit_price': myDict['unit_price'][i]}
-
+            sku_order = older_objs.filter(order_id = order_id, order_code = order_code, sku = sku_id)
+            if not sku_order:
+                default_dict['status'] = 1
+            elif int(sku_order[0].status) == 0:
+                continue
             order_obj, created = OrderDetail.objects.update_or_create(
                 order_id = order_id, order_code = order_code, sku = sku_id, defaults = default_dict
                 )
@@ -4889,15 +4890,15 @@ def order_delete(request, user=""):
     order_id = ''.join(re.findall('\d+', complete_id))
     order_code = ''.join(re.findall('\D+', complete_id))
     try:
-        order_detail = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id)
+        order_detail = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id, status=1)
         if not order_detail:
             complete_id = request.GET.get("order_id_code", "")
             order_id = ''.join(re.findall('\d+', complete_id))
             order_code = ''.join(re.findall('\D+', complete_id))
-            order_detail = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id)
+            order_detail = OrderDetail.objects.filter(order_id = order_id, order_code = order_code, user= user.id, status=1)
         if order_detail:
             order_detail_ids = order_detail.values_list('id', flat=True)
-            seller_orders = list(SellerOrder.objects.filter(order_id__in=order_detail_ids, order_status='DELIVERY_RESCHEDULED').\
+            seller_orders = list(SellerOrder.objects.filter(order_id__in=order_detail_ids, order_status='DELIVERY_RESCHEDULED', status=1).\
                                                 values_list('order_id', flat=True))
             order_detail_ids = list(order_detail_ids)
             if seller_orders:

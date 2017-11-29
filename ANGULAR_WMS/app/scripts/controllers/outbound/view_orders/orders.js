@@ -22,7 +22,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.default_status = false;
       console.log(data);
       if (last) {
-        vm.model_data.data.push({item_code:'', product_title:'', quantity:0, unit_price:0, discount_price:0, tax:0, invoice_amount:0, remarks:'', order_status:'', new_product:true, default_status: false});
+        vm.model_data.data.push({item_code:'', product_title:'', quantity:0, unit_price:0, discount_price:0, tax:0, invoice_amount:0, remarks:'', order_status:'', new_product:true, default_status: false, sku_status: 1});
       } else {
         var data_to_delete = {};
         data_to_delete['order_id'] = vm.order_id;
@@ -310,7 +310,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
               var record = vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
               image_url: vm.img_url, remarks: vm.remarks, unit_price: vm.unit_price, taxes: vm.taxes,
-              discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, default_status: true})
+              discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, default_status: true, sku_status: value.sku_status})
               var record = vm.model_data.data[index]
               vm.changeInvoiceAmt(record);
               index++;

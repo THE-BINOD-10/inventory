@@ -38,36 +38,4 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.model_data = {};
   angular.copy(vm.empty_data, vm.model_data);
 
-
-
-
-
-
-  vm.print_excel = print_excel;
-  function print_excel(id)  {
-    vm.service.apiCall('/','GET',{data_id: id}).then(function(data){
-      if(data.message) {
-        window.location = Session.host+data.data.slice(3);
-      }
-    })
-  }
-
-  vm.print_pdf = print_pdf;
-  function print_pdf(id) {
-    vm.service.apiCall('print_rm_picklist_report/','GET',{data_id: id}).then(function(data){
-      if(data.message) {
-        var picklist_number = $($.parseHTML(data.data)).find("input").val()
-        if (picklist_number) {
-            picklist_number = 'Picklist_'+picklist_number
-        } else {
-            picklist_number = Picklist
-        }
-        vm.service.print_data(data.data, picklist_number);
-      }
-    })
-  }
-
-
-
-
 }

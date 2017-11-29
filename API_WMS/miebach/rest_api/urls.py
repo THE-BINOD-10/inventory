@@ -397,11 +397,11 @@ urlpatterns += [
     url(r'get_customer_sku_prices',get_customer_sku_prices),
 
     #save_invoice_changes -> outbound
-    url(r'edit_invoice',edit_invoice),
-
+    url(r'edit_invoice', edit_invoice),
+    url(r'delete_order_charges', delete_order_charges),
 
     #get size_list
-    url(r'get_size_names',get_size_names),
+    url(r'get_size_names', get_size_names),
 
 
     #get list of vendors . @common.py

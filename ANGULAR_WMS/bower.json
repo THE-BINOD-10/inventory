@@ -55,8 +55,10 @@
     "d3": "~3.5.5",
     "angular-web-notification": "*",
     "angular-slick": "*",
-    "angular-bootstrap-toggle": "^0.1.2",
-    "angular-ez-plus": "~1.2.1"
+    "angular-bootstrap-toggle": "0.1.2",
+    "angular-ez-plus": "~1.2.1",
+    "firebase": "3.7.3",
+    "highcharts": "6.0.3"
   },
   "appPath": "app",
   "moduleName": "urbanApp",

@@ -5,7 +5,7 @@
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="pop.ok()"><span aria-hidden="true">×</span>
         </button>
-        <h4 class="modal-title" id="myLargeModalLabel">Picklist</h4>
+        <h4 class="modal-title" id="myLargeModalLabel">Edit Invoice</h4>
       </div>
       <div class="modal-body">
         <input type="hidden" name="order_id" value="{{pop.model_data.order_id}}">
@@ -15,17 +15,105 @@
               <label class="control-label">Invoice Date</label>
               <input name="invoice_date" ui-jq="datepicker" ng-model="pop.model_data.inv_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
             </div>
+            <div class="form-group" ng-if="pop.permissions.increment_invoice && pop.model_data.temp_sequence_number">
+              <label class="control-label">Invoice Number</label>
+              <input name="invoice_number" ng-model="pop.model_data.sequence_number" class="form-control" type="text" ng-required="true" decimal-number>
+              <input name="marketplace" value="{{pop.model_data.marketplace}}" class="form-control" type="hidden">
+            </div>
           </div>
           <div class="col-md-6 col-sm-6 col-xs-6">
             <div class="form-group">
               <label class="control-label">Ship To Address</label>
               <textarea rows="4" class="form-control" cols="27" name="ship_to" ng-model="pop.model_data.consignee"></textarea>
             </div>
-          </div> 
+          </div>
+          </hr>
+        </div>
+<div class="row no-margin">
+  <hr>
+  <table class="table table-bordered bl br cal-table">
+    <thead>
+      <tr class="rm-padding">
+        <th><center>SKU Code</center></th>
+        <th><center>HSN</center></th>
+        <th><center>Description</center></th>
+        <th class="w10"><center>Unit Rate</center></th>
+        <!--<th ng-if="permissions.show_mrp">MRP</center></th>-->
+        <th><center>Qty</center></th>
+        <th><center>Base Price</center></th>
+        <th><center>Disc</center></th>
+        <th><center>Taxable Value</center></th>
+        <th><center>CGST</center></th>
+        <th><center>SGST</center></th>
+        <th><center>IGST</center></th>
+        <th><center>Total</center></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="rm-padding rm-brdr text-right" ng-repeat="record in pop.model_data.data">
+        <td style="text-align: left;">{{record.sku_code}}</td>
+        <td style="text-align: left;">{{record.hsn_code}}</td>
+        <td style="text-align: left;">{{record.title}}</td>
+        <td>
+          <input type="hidden" name="id" value="{{record.id}}">
+          <input type="text" name="unit_price" class="form-control" ng-model="record.unit_price" style="padding: 5px 5px;height: 26px;" ng-change="pop.changeUnitPrice(record)" decimal-number required>
+        </td>
+        <td>{{record.quantity}}</td>
+        <td>{{record.base_price | number:2}}</td>
+        <td class="text-right">{{record.discount | number:2}}<br><span class="tax-percentage">@{{record.discount_percentage}}%</span></td>
+        <td> {{record.amt | number:2}} </td>
+        <td class="text-right">{{record.taxes.cgst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.cgst_tax}}%</span></td>
+        <td class="text-right">{{record.taxes.sgst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.sgst_tax}}%</span></td>
+        <td class="text-right">{{record.taxes.igst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.igst_tax}}%</span></td>
+        <td>
+          {{record.invoice_amount | number:2}}
+          <input type="hidden" name="invoice_amount" value="{{record.invoice_amount}}" class="form-control">
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+  <div class="row mr10 ml10 mr10">
+    <div class="col-md-12">
+      <a href="javascript:;" class="btn btn-success btn-xs" ng-click="pop.model_data.order_charges.push({charge_id: '', charge_name: '', charge_amount: ''}); pop.model_data.default_charge()">Add Other Charges(+)</a>
+    </div>
+
+    <div class="col-md-12" ng-if="pop.model_data.flag">
+      <div class="row mt20" ng-repeat="charge in pop.model_data.order_charges">
+        <div class="col-md-3 col-sm-4 col-xs-6">
+          <input type="text" class="form-control" placeholder="Enter Charge Name" ng-model="charge.charge_name" name="charge_name" required>
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-3">
+          <input type="text" class="form-control" placeholder="Enter Amount" ng-model="charge.charge_amount"  decimal-number name="charge_amount" required>
+          <input type="hidden" class="form-control" ng-model="charge.charge_id" name="charge_id">
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2">
+          <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="pop.model_data.order_charges.splice($index, 1)"></i>
         </div>
       </div>
+    </div>
+    
+    <div class="col-md-12" ng-if="pop.model_data.order_charges && !pop.model_data.flag">
+      <div class="row mt20" ng-repeat="charge in pop.model_data.order_charges">
+        <div class="col-md-3 col-sm-4 col-xs-6">
+          <input type="text" class="form-control" placeholder="Enter Charge Name" ng-model="charge.charge_name" name="charge_name" value="{{charge.charge_name}}" required>
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-3">
+          <input type="text" class="form-control" placeholder="Enter Amount" ng-model="charge.charge_amount"  decimal-number name="charge_amount" value="{{charge.charge_amount}}" required>
+          <input type="hidden" class="form-control" ng-model="charge.charge_id" name="charge_id" value="{{charge.id}}">
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2">
+          <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" class="fa fa-minus-square-o" ng-click="pop.model_data.order_charges.splice($index, 1);pop.delete_charge(charge.id);"></i>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+      </div>
       <div class="modal-footer">
-        <button type="button" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12 pull-right" style="margin-left:0px;" ng-disabled="pop.process" ng-click="pop.save()">Save</button>
+        <button type="submit" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12 pull-right" style="margin-left:0px;" ng-disabled="pop.process" ng-click="pop.save(form)">Save</button>
       </div>
     </div>
   </form>

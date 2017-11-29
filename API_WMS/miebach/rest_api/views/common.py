@@ -750,6 +750,16 @@ def grn_message(po_data, phone_no, user_name, f_name, order_date):
     data += '\nTotal Qty: %s, Total Amount: %s' % (total_quantity,total_amount)
     send_sms(phone_no, data)
 
+def jo_message(po_data, phone_no, user_name, f_name, order_date):
+    #data = 'Dear Vendor,\n%s received the goods against JO NO. %s on dated %s' %(user_name, f_name, order_date)
+    data = 'Dear Vendor, Please find the Job Order details for Job Code %s on dated %s from %s' % (f_name, order_date, user_name)
+    total_quantity = 0
+    for po in po_data.get('material_data', []):
+        data += '\nSKU: %s, Qty: %s' % (po['SKU Code'], po['Quantity'])
+        total_quantity += int(po['Quantity'])
+    data += '\nTotal Qty: %s' % (total_quantity)
+    send_sms(phone_no, data)
+
 def order_creation_message(items, telephone, order_id, other_charges = 0):
     data = 'Your order with ID %s has been successfully placed for ' % order_id
     total_quantity = 0
@@ -1788,6 +1798,7 @@ def get_financial_year(date):
 
 def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile):
     invoice_number = ""
+    inv_no = ""
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
         seller_order_summary = SellerOrderSummary.objects.filter(Q(order__user=user.id, order_id__in=order_ids)|
@@ -1808,6 +1819,7 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile):
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
+                inv_no = int(order_no)
             elif invoice_no_gen[0].misc_value == 'true':
                 invoice_sequence = InvoiceSequence.objects.filter(user=user.id, status=1, marketplace=order.marketplace)
                 if not invoice_sequence:
@@ -1831,7 +1843,8 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile):
         invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
     else:
         invoice_number = 'TI/%s/%s' %(invoice_date.strftime('%m%y'), order_no)
-    return invoice_number
+
+    return invoice_number, inv_no
 
 def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids = ''):
     summary_filter = {}
@@ -2063,9 +2076,9 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
                          'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
                          'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
                          'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
-                         'discount_percentage': discount_percentage})
+                         'discount_percentage': discount_percentage, 'id': dat.id})
 
-    _invoice_no = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile)
+    _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
     order_charges = {}
@@ -2073,7 +2086,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
     total_invoice_amount = total_invoice
     if order_id:
         order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
-        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount'))
+        order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
         total_charge_amount = order_charge_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
         if total_charge_amount:
             total_invoice_amount = float(total_charge_amount) + total_invoice
@@ -2108,7 +2121,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
                     'total_tax_words': number_in_words(_total_tax), 'declaration': declaration, 'hsn_summary': hsn_summary,
                     'hsn_summary_display': get_misc_value('hsn_summary', user.id), 'seller_address': seller_address,
                     'customer_address': customer_address, 'invoice_remarks': invoice_remarks, 'show_disc_invoice': show_disc_invoice,
-                    'seller_company': seller_company}
+                    'seller_company': seller_company, 'sequence_number': _sequence}
 
     return invoice_data
 

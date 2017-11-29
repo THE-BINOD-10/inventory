@@ -56,12 +56,14 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
         url = "generate_po_labels/";
       }
       vm.service.apiCall(url, 'POST', elem, true).then(function(data){
-        if(data.message) {
+        if(data.message && data.data !== '"Failed"') {
           var href_url = Session.host.concat(data.data.slice(1, -1));
           var downloadpdf = $('<a id="downloadpdf" target="_blank" href='+href_url+' >');
           $('body').append(downloadpdf);
           document.getElementById("downloadpdf").click();
           $("#downloadpdf").remove();
+        }else{
+            vm.service.showNoty("Failed", 'warning');
         }
       })
     }

@@ -53,7 +53,7 @@
                 </div>
               </div>
               <div class="col-md-6 col-sm-6 col-xs-3">
-                <span ng-if="order.order_details.status" class="label pull-right text-uppercase" ng-class="(order.getStatus(order.order_details.sum_data.quantity, order.order_details.sum_data.picked_quantity) == 'open')? 'label-danger': 'label-success';" style="font-size: 12px;">{{order.getStatus(order.order_details.sum_data.quantity, order.order_details.sum_data.picked_quantity)}}</span>
+                <span ng-if="order.order_details.status" class="label pull-right text-uppercase" ng-class="(order.getStatus(order.order_details.sum_data.quantity, order.order_details.sum_data.picked_quantity) == 'Open')? 'label-danger': 'label-success';" style="font-size: 12px;">{{order.getStatus(order.order_details.sum_data.quantity, order.order_details.sum_data.picked_quantity)}}</span>
               </div>
             </div>
           </div>

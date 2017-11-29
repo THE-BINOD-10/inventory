@@ -2856,6 +2856,7 @@ def update_filled_capacity(locations, user_id):
             filled_capacity = loc_quantities[loc_mast_ids.index(location.id)]
         location.filled_capacity = filled_capacity
         location.save()
+    return location
 
 def get_dictionary_query(data_dict={}):
     queries = [Q(**{key: value}) for key, value in data_dict.iteritems()]

@@ -2394,7 +2394,7 @@ def get_rm_picklist_data(search_params, user, sub_user):
     status_filter = {}
     all_data = OrderedDict()
     lis = {}
-    rm_picklist = RMLocation.objects.filter(stock__sku__user = user.id)
+    rm_picklist = RMLocation.objects.filter(stock__sku__user = user.id, status = 0)
     if 'from_date' in search_params:
       status_filter['material_picklist__jo_material__job_order__creation_date__gte'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
     if 'to_date' in search_params:
@@ -2419,7 +2419,6 @@ def get_rm_picklist_data(search_params, user, sub_user):
             'quantity',
             'updation_date'
           ]
-    #jo_code, FG sku code, rm SKU code, Location, pallet code, quantity
     if len(search_params):
       rm_picklist = rm_picklist.filter(**status_filter)
     if search_params.get('order_term'):

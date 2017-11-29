@@ -17,7 +17,7 @@
 
         if(navigator.onLine){  
             console.log("online");
-            $http.get( urlService.mainUrl+'/rest_api/get_pos_user_data/?id='+urlService.userData.parent_id).
+            $http.get( urlService.mainUrl+'rest_api/get_pos_user_data/?id='+urlService.userData.parent_id).
 					success(function(data, status, headers, config) {
 
                 if (data.status == "Success"){

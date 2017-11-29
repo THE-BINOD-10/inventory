@@ -54,7 +54,7 @@
             var deferred = $q.defer();
           if(navigator.onLine){
             
-            $http.get(urlService.mainUrl+'/rest_api/search_customer_data?user='+urlService.userData.parent_id+'&key='+key)
+            $http.get(urlService.mainUrl+'rest_api/search_customer_data?user='+urlService.userData.parent_id+'&key='+key)
               .success(function(data) {
                 if (data.length==0 && self.search_term!=0) {
                     self.customerButton = true;

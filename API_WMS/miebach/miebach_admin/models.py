@@ -243,6 +243,7 @@ class OrderDetail(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     unit_price = models.FloatField(default=0)
+    nw_status = models.CharField(max_length=32, blank=True, null=True)
 
     class Meta:
         db_table = 'ORDER_DETAIL'

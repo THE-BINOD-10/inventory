@@ -23,7 +23,7 @@
   
       self.submit_enable = false;
   
-      self.names = ['Delivery Challan']//['Delivery Challan', 'sample', 'R&D']
+      self.names = ['Delivery Challan', 'Pre Order'];//['Delivery Challan', 'sample', 'R&D']
       self.nw_status = "";
   
       //calculate total items
@@ -75,7 +75,7 @@
             urlService.current_order.customer_data.value = "";
           }
           urlService.current_order["user"] = urlService.userData
-          // urlService.current_order.summary.issue_type = self.issue_selected;
+          urlService.current_order.summary.issue_type = self.issue_selected;
           self.customer_order(urlService.current_order);
         } else {
           self.submit_enable = false;
@@ -111,11 +111,24 @@
         urlService.current_order = {"customer_data" : {"FirstName": "", "Number": "", "value": ""},
                                     "sku_data" : [],
                                     "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
-                                    "issue_type": "online", "order_id": 0},
+                                    "issue_type": self.issue_selected, "order_id": 0, "nw_status": "online"},
                                     "money_data": {}};
         self.skus= urlService.current_order.sku_data;
         manageData.prepForBroadcast("clear");
       }
+
+      //change issue type
+      /*self.change_issue_type = change_issue_type;
+      function change_issue_type(){
+        debugger;
+        if (urlService.current_order.sku_data.length !== 0) {
+           var old_type = urlService.current_order.summary.issue_type;
+           var sure = confirm("Changing issue type will discard current orders.\nPress OK to continue.");//self.issue_selected
+           sure ? clear_fields() : self.change_issue_type = old_type;
+        } else {
+           debugger;
+        }
+      }*/
   
       // unhold holded customer order
       $scope.$on('change_current_order', function(){
@@ -127,20 +140,20 @@
       // ajax call to send data to backend
       self.customer_order = customer_order;
       function customer_order(data) {
-        //data["summary"]["issue_type"] = 'online';
+        data["summary"]["nw_status"] = 'online';
         self.submit_enable = true;
   
         if(navigator.onLine){
   
   
-                data.summary.issue_type = ONLINE;
+                data.summary.nw_status = ONLINE;
                 var data = $.param({
                         order : JSON.stringify(data)
                     });
   
               $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
   
-              $http.post( urlService.mainUrl+'/rest_api/customer_order/', data).success(function(data, status, headers, config) {
+              $http.post( urlService.mainUrl+'rest_api/customer_order/', data).success(function(data, status, headers, config) {
                 urlService.current_order.order_id = data.order_ids[0];
                 var state = 1
                 store_data(urlService.current_order, state);
@@ -162,7 +175,7 @@
 
           }else{
   
-            data.summary.issue_type = OFFLINE;
+            data.summary.nw_status = OFFLINE;
             setSynOrdersData(data).
                   then(function(data){
   
@@ -197,7 +210,7 @@
         urlService.current_order = {"customer_data" : {},
                                     "sku_data" : [],
                                     "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
-                                    "issue_type": self.issue_selected,"order_id":0},
+                                    "issue_type": self.issue_selected,"order_id":0, "nw_status":"online"},
                                     "money_data": {}};
         console.log(urlService.hold_data);
         self.skus = urlService.current_order.sku_data;
@@ -215,14 +228,12 @@
               self.repeated_data = false;
               for (var j=0; j< self.skus.length; j++) {
                 if (self.skus[j].sku_code === key) {
-                  //quantitiy change to 1;
-                  var quantity = 1;
-                  /*var quantity = 0;
-                  if (self.skus[j].stock_quantity == self.skus[j].quantity) {
+                  var quantity = 0;
+                  if (self.issue_selected === "Delivery Challan" && self.skus[j].stock_quantity == self.skus[j].quantity) {
                     alert("Given Quantity is more than Stock Quantity.");
                   } else {
                     quantity = 1;
-                  }*/
+                  }
                   self.skus[j].quantity = parseInt(self.skus[j].quantity) + quantity;
                   self.skus[j].price = self.skus[j].quantity * self.skus[j].unit_price
                   self.repeated_data = true;
@@ -230,13 +241,14 @@
                 }
               }
               if (!self.repeated_data) {
-                /*if (filter_data[i].stock_quantity == 0) {
+
+                if (self.issue_selected === "Delivery Challan" && filter_data[i].stock_quantity == 0) {
                   alert("Given SKU stock is empty.");
                   break;
-                } else {*/
+                } else {
   
                   //var quantity = (filter_data[i].stock_quantity > 0) ? 1: 0;
-                  //quantity change to 1 
+                  //Change the quantity to 1
                   var quantity = 1;
   
                   var sgst = filter_data[i].price * filter_data[i].sgst / 100;
@@ -252,7 +264,7 @@
                   urlService.current_order.sku_data = self.skus;
                   break;
   
-                //}
+                }
               }
             }
           }
@@ -265,7 +277,7 @@
             if(navigator.onLine){
               console.log("online");
   
-              $http.get(ENDPOINT+'/rest_api/search_product_data/?user='+urlService.userData.parent_id+'&key='+key)
+              $http.get(ENDPOINT+'rest_api/search_product_data/?user='+urlService.userData.parent_id+'&key='+key)
                 .success( function(data) {
                   self.repos = data;
                   return self.repos.map( function (repo) {
@@ -363,26 +375,26 @@
       function changeQuantity(item) {
         console.log(item);
   
-        /*if (item.quantity > item.stock_quantity) {
+        if (self.issue_selected === "Delivery Challan" && item.quantity > item.stock_quantity) {
           alert("Given Quantity is more than Stock Quantity.");
         item.quantity = item.stock_quantity;
-        }*/
+        }
   
         for (var i = 0; i < self.skus.length ; i ++) {
   
           if (self.skus[i].sku_code == item.sku_code){
   
-            /*if( (item.quantity == 0) || (item.quantity == "0")) {
+            if( (item.quantity == 0) || (item.quantity == "0")) {
   
               self.skus.splice(i, 1);
               cal_total();
             } else {
-  */
+
               self.skus[i].quantity = parseInt(item.quantity);
               self.skus[i].discount = (item.discount) ? parseInt(item.discount) : 0;
               self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
               cal_total();
-            //}
+            }
             break;
           }
         }

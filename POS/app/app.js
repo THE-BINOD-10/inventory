@@ -1,7 +1,7 @@
-var app=angular.module('App', ['ngMaterial','ui.router','FBAngular','ngAnimate','ui.bootstrap','customer','sku', 'money','login','summary', 'pending', 'order']);
+var app=angular.module('App', ['ngMaterial','ui.router','FBAngular','ngAnimate','ui.bootstrap','customer','sku', 'money','login','summary', 'pending', 'order', 'pageheader', 'more']);
 
 app.service('urlService', function($rootScope){
-    this.mainUrl = 'https://wms.mieone.com/';//'http://dev.stockone.in/';
+    this.mainUrl = 'http://wms.mieone.com:89/';//'http://dev.stockone.in/';
     this.userData = {"VAT":0};
     this.VAT = 0;
     this.hold_data = [];
@@ -40,50 +40,6 @@ app.factory('manageData', function($rootScope) {
   return storage;
 })
 
-app.controller('posController', function($http, $scope, urlService, Fullscreen){
-
-  $scope.name = "Test";
-  $scope.is_disable = "false";
-  $scope.customerUrl = urlService.mainUrl;
-
-  $scope.user_data = urlService.userData;
-
-  // Fullscreen
-  $scope.goFullscreen = function () {
-
-      if (Fullscreen.isEnabled())
-         Fullscreen.cancel();
-      else
-         Fullscreen.all();
-   };
-
-   $scope.isFullScreen = false;
-
-   $scope.goFullScreenViaWatcher = function() {
-      $scope.isFullScreen = !$scope.isFullScreen;
-   };
-
-   //Synchronize DB
-   $scope.sync = function () {
-      //$scope.is_disable = "true";
-      $(".preloader").removeClass("ng-hide").addClass("ng-show");
-            
-      if(navigator.onLine){
-        //sync pos data 
-        syncPOSTransactionData().then(function(){
-          $(".preloader").removeClass("ng-show").addClass("ng-hide");
-        }).catch(function(){
-          $(".preloader").removeClass("ng-show").addClass("ng-hide");
-        });
-      }else{
-        console.log( "offline");
-        $(".preloader").removeClass("ng-show").addClass("ng-hide");
-      }
-
-  };
-   
-})
-
 app.config(function($stateProvider, $urlRouterProvider){
       // For any unmatched url, send to /route1
       $urlRouterProvider.otherwise("/login");
@@ -96,6 +52,10 @@ app.config(function($stateProvider, $urlRouterProvider){
         .state('home', {
             url: '/home',
             templateUrl: '/app/views/home.html'
+        })
+        .state('more', {
+            url: '/more',
+            template: '<more></more>'
         })
   }).
   run(["$rootScope", "$state", "$location", "$http","urlService",

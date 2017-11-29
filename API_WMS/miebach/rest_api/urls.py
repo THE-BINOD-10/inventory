@@ -372,6 +372,8 @@ urlpatterns += [
     url('^get_pos_user_data/$', get_pos_user_data),
     url('^customer_order/$', customer_order),
     url('^print_order_data/$', print_order_data),
+    url('^pre_order_data/$', pre_order_data),
+    url('^update_order_status/$', update_order_status),
 
 ]
 

@@ -851,7 +851,7 @@ BARCODE_DICT = {'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': ''
 
 BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'format4': 'Details', 'Bulk Barcode': 'Details'}
 
-BARCODE_ADDRESS_DICT = {'adam_clothing1': 'Adam Exports 401, 4th Floor,\n Pratiek Plazza, S.V.Road,\n Goregaon West, Mumbai - 400062.\n MADE IN INDIA'}
+BARCODE_ADDRESS_DICT = {'adam_clothing': 'Adam Exports 401, 4th Floor,\n Pratiek Plazza, S.V.Road,\n Goregaon West, Mumbai - 400062.\n MADE IN INDIA'}
 
 PRICING_MASTER_HEADERS = ['SKU Code', 'Selling Price type', 'Price', 'Discount']
 

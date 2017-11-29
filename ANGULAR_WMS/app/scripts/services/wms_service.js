@@ -916,7 +916,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
       vm.apiCall('generate_barcodes/', 'POST', elem, true).then(function(data){
 
-        if(data.message) {
+        if(data.message && data.data !== '"Failed"') {
 
             var href_url = Session.host.concat(data.data.slice(1, -1));
             console.log(href_url);
@@ -927,6 +927,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
             document.getElementById("downloadpdf").click();
 
             $("#downloadpdf").remove();
+        }else{
+           vm.showNoty("Failed", 'warning');
         }
       });
     }
@@ -941,7 +943,6 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         link: function (scope, element, attrs) {
             var raw = element[0];
             console.log('loading directive');
-                
             element.bind('scroll', function () {
                 console.log(raw.scrollTop + raw.offsetHeight);
                 console.log(raw.scrollHeight);

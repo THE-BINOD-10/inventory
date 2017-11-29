@@ -15,7 +15,7 @@
               <label class="control-label">Invoice Date</label>
               <input name="invoice_date" ui-jq="datepicker" ng-model="pop.model_data.inv_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
             </div>
-            <div class="form-group" ng-if="pop.permissions.increment_invoice && pop.model_data.sequence_number">
+            <div class="form-group" ng-if="pop.permissions.increment_invoice && pop.model_data.temp_sequence_number">
               <label class="control-label">Invoice Number</label>
               <input name="invoice_number" ng-model="pop.model_data.sequence_number" class="form-control" type="text" ng-required="true" decimal-number>
               <input name="marketplace" value="{{pop.model_data.marketplace}}" class="form-control" type="hidden">

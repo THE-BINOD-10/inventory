@@ -2758,6 +2758,7 @@ def putaway_data(request, user=''):
         else:
             check_and_update_stock(sku_codes, user)
         updated_location = update_filled_capacity(list(set(mod_locations)), user.id)
+        import pdb;pdb.set_trace()
         auto_picklist = MiscDetail.objects.filter(user=request.user.id, misc_type='auto_update_picklist', 
                         misc_value='true')
         if auto_picklist:
@@ -2773,7 +2774,7 @@ def putaway_data(request, user=''):
         log.info('Putaway Confirmation failed for ' + str(scan_data) + ' error statement is ' + str(e))
     return HttpResponse('Updated Successfully')
 
-def update_auto_picklist_location(all_data={}, user='', stock_obj=''):
+def update_auto_picklist_location(putaway={}, user='', stock_obj=''):
     #any sku doesnt stock
     #order and generate picj
     #inbound order and open_picklist
@@ -2781,17 +2782,19 @@ def update_auto_picklist_location(all_data={}, user='', stock_obj=''):
     #----------------------------------
     #get putaway quantity and allocate according to priority
     import pdb;pdb.set_trace()
-    
     if stock_obj:
         open_picklist = Picklist.objects.filter(Q(sku_code = stock_obj.sku.sku_code, order_type='combo') | 
             Q(order__sku__sku_code = stock_obj.sku.sku_code), 
             status__in = ['batch_open', 'open'], order__user = user.id).order_by('creation_date')
-        putaway_allocated_quantity = 0
+        if putaway:
+            putaway_allocated_quantity = putaway.values()[0]
         for open_picklist_obj in open_picklist:
             if not putaway_allocated_quantity:
                 break;
-            free_space = int(open_picklist_obj.reserved_quantity) - int(open_picklist_obj.picked_quantity)
-            putaway_allocated_quantity = int(free_space - putaway_allocated_quantity)
+            free_space = 0
+            if int(open_picklist_obj.reserved_quantity):
+                free_space = int(open_picklist_obj.reserved_quantity) - int(open_picklist_obj.picked_quantity)
+                putaway_allocated_quantity = int(abs(free_space - putaway_allocated_quantity))
             if not open_picklist_obj.stock_id:
                 open_picklist_obj.update(location = stock_obj.location.location)
 

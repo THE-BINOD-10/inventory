@@ -411,6 +411,5 @@ urlpatterns += [
     url(r'update_picklist_loc/',update_picklist_loc),
 
     #Barcodes
-    url('^GetBarcodes/$', get_barcodes),
     url('^get_format_types/', get_format_types)
 ]

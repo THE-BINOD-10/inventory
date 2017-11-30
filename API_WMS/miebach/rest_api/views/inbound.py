@@ -2775,29 +2775,28 @@ def putaway_data(request, user=''):
     return HttpResponse('Updated Successfully')
 
 def update_auto_picklist_location(putaway={}, user='', stock_obj=''):
-    #any sku doesnt stock
-    #order and generate picj
-    #inbound order and open_picklist
-    #update location from the putaway
-    #----------------------------------
-    #get putaway quantity and allocate according to priority
-    import pdb;pdb.set_trace()
     if stock_obj:
         open_picklist = Picklist.objects.filter(Q(sku_code = stock_obj.sku.sku_code, order_type='combo') | 
             Q(order__sku__sku_code = stock_obj.sku.sku_code), 
-            status__in = ['batch_open', 'open'], order__user = user.id).order_by('creation_date')
+            status__in = ['batch_open', 'open'], order__user = user.id, reserved_quantity__gt=0, stock_id = 'NULL')
+            .order_by('creation_date')
         if putaway:
             putaway_allocated_quantity = putaway.values()[0]
         for open_picklist_obj in open_picklist:
             if not putaway_allocated_quantity:
                 break;
-            free_space = 0
-            if int(open_picklist_obj.reserved_quantity):
-                free_space = int(open_picklist_obj.reserved_quantity) - int(open_picklist_obj.picked_quantity)
-                putaway_allocated_quantity = int(abs(free_space - putaway_allocated_quantity))
-            if not open_picklist_obj.stock_id:
-                open_picklist_obj.update(location = stock_obj.location.location)
-
+            free_space = int(open_picklist_obj.reserved_quantity)
+            putaway_allocated_quantity = int(abs(free_space - putaway_allocated_quantity))
+            if not putaway_allocated_quantity:
+                open_picklist_obj.update(stock = stock_obj, status = 'Auto Fullfilled')
+            if putaway_allocated_quantity:
+                open_picklist_obj.update(stock = stock_obj, reserved_quantity = putaway_allocated_quantity, 
+                    status = 'Auto Fullfilled')
+                Picklist.objects.create(picklist_number = open_picklist_obj.picklist_number, 
+                    reserved_quantity = free_space, picked_quantity = 0, remarks = open_picklist_obj.remarks, 
+                    status = open_picklist_obj.status, creation_date = open_picklist_obj.creation_date, 
+                    updation_date = open_picklist_obj.updation_date, order_id = open_picklist_obj.order_id,
+                    stock_id = 'NULL', order_type = open_picklist_obj.order_type, sku_code = open_picklist_obj.sku_id)
 
 @csrf_exempt
 @login_required

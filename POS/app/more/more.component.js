@@ -22,13 +22,14 @@
                    });
         $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
         $http.post( urlService.mainUrl+'rest_api/pre_order_data/', data).success(function(data, status, headers, config) {
-        
+            var key = Object.keys(data.data)[0];
+            key ? self.order_details = data.data[key] : self.order_details = {'status':'empty'};
+            self.isDisabled = false;
+
             $(".preloader").removeClass("ng-show").addClass("ng-hide");
             $(".no_order").removeClass("ng-hide");
             $(".already_delivered").removeClass("ng-hide");
-            self.isDisabled = false;
-            data.data.status==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success");
-            self.order_details = data;
+            self.order_details.status==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success");
 
        }).then(function() {
        });
@@ -38,7 +39,6 @@
 
       function update_order_status(order_id) {
 
-        debugger;
         if(self.isDisabled === false){
             $(".preloader").removeClass("ng-hide").addClass("ng-show");
             // ajax call to send data to backend
@@ -47,16 +47,20 @@
                        });
             $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
             $http.post( urlService.mainUrl+'rest_api/update_order_status/', data).success(function(data, status, headers, config) {
-            
+ 
                 $(".preloader").removeClass("ng-show").addClass("ng-hide");
-                self.isDisabled = true;
-                $("#delivered_btn").removeClass("btn-danger").addClass("btn-success");
+                if(data==="Error"){
+                    alert("Please update Stock Quantity and try again");
+                } else {
+                    self.isDisabled = true;
+                    $("#delivered_btn").removeClass("btn-danger").addClass("btn-success");
+                }
 
            }).then(function() {
            });
         }//if
         else {
-          self.order_details.data.status = '0';
+          self.order_details.status = '0';
         }
       }
 

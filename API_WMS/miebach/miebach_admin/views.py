@@ -55,7 +55,7 @@ def get_misc_value(misc_type, user):
     return misc_value
 
 def get_order_id(user_id):
-    order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'online', 'offline']).order_by('-order_id')
+    order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'online', 'offline', 'Pre Order']).order_by('-order_id')
     if order_detail_id:
         order_id = int(order_detail_id[0].order_id) + 1
     else:

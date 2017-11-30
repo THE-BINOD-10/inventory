@@ -152,7 +152,7 @@
                     });
   
               $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-  
+ 
               $http.post( urlService.mainUrl+'rest_api/customer_order/', data).success(function(data, status, headers, config) {
                 urlService.current_order.order_id = data.order_ids[0];
                 var state = 1

@@ -1665,7 +1665,7 @@ def search_wms_codes(request, user=''):
     return HttpResponse(json.dumps(wms_codes))
 
 def get_order_id(user_id):
-    order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).order_by('-creation_date')
+    order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO', 'Pre Order']).order_by('-creation_date')
     if order_detail_id:
         order_id = int(order_detail_id[0].order_id) + 1
     else:
@@ -1675,7 +1675,6 @@ def get_order_id(user_id):
 
     #order_id = int(order_detail_id['order_id__max']) + 1
     #order_id = time.time()* 1000000
-
     return order_id
 
 def check_and_update_stock(wms_codes, user):

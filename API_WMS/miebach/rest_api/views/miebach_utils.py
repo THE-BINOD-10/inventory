@@ -2423,6 +2423,7 @@ def get_rm_picklist_data(search_params, user, sub_user):
     if len(status_filter):
       rm_picklist = rm_picklist.filter(**status_filter)
     rm_picklist = rm_picklist.annotate(mod_quantity=F('quantity')-F('reserved'))
+    rm_picklist = rm_picklist.filter(mod_quantity__gt = 0)
     if search_params.get('order_term'):
       order_data = lis[search_params['order_index']]
       if search_params['order_term'] == 'desc':

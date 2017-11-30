@@ -2797,6 +2797,26 @@ def update_auto_picklist_location(putaway={}, user='', stock_obj=''):
                     updation_date = open_picklist_obj.updation_date, order_id = open_picklist_obj.order_id,
                     stock_id = 'NULL', order_type = open_picklist_obj.order_type, sku_code = open_picklist_obj.sku_id)
 
+
+def update_auto_allocation(user='', sku='', stock_obj=''):
+    order_po = OrderPOMapping.objects.filter(sku=sku_obj, sku__user=user, order_id=order_obj)
+    if order_po:
+        get_order = Picklist.objects.filters(order_id = order_obj, status__in = ['batch_open', 'open']
+            , stock_id = 'NULL')
+        if not get_order:
+            get_order = OrderDetail.objects.filters(order_id = order_obj, status = 1)
+            if not get_order:
+                get_order = Picklist.objects.filters(order_id = order_obj, status__in = ['batch_open', 'open']
+            , stock_id = 'NULL')
+
+    '''
+    if stock_obj:
+        open_picklist = Picklist.objects.filter(Q(sku_code = stock_obj.sku.sku_code, order_type='combo') | 
+            Q(order__sku__sku_code = stock_obj.sku.sku_code) )
+    '''
+
+
+
 @csrf_exempt
 @login_required
 @get_admin_user

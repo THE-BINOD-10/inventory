@@ -4,14 +4,36 @@ function dashboardCtrl($scope, $state, $http, $interval, COLORS, Session, $timeo
 
   $scope.session = Session;
 
+  // purchase order data
   $scope.po_data = [{key: 'pending_confirmation', value: 'PENDING CONFIRMATION'},
                     {key: 'yet_to_receive', value: 'YET TO RECEIVE'},
                     {key: 'pending_month', value: 'PENDING >1 MONTH'},
                     {key: 'received_today', value: 'RECEIVED TODAY'},
                     {key: 'putaway_pending', value: 'PUTAWAY PENDING'}
                    ]
+  // quick links data
+  $scope.quick_links =[
+                       {name: 'Receipt', url: '#/reports/GoodsReceiptNote', title: 'Good Receipt Note Report', color: 'btn-success'},
+                       {name: 'Stock Detail', url: '#/stockLocator/StockDetail', title: 'Stock Detail Page', color: 'btn-danger'},
+                       {name: 'Stock Reports', url: Session.url+'daily_stock_report/', title: 'Daily Stock Report Download',
+                        color: 'btn-warning'},
+                       {name: 'Uploads', url: '#/uploads', title: 'Upload Page', color: 'btn-primary'}
+                      ]
 
-   function render_top_skus(graph_d) {
+  //dash display leve
+  $scope.display_level = Session.roles.permissions.dashboard_order_level;
+  $scope.display_level = ($scope.display_level == undefined)? false: $scope.display_level;
+  $scope.switches = function() {
+    Service.apiCall("switches/?dashboard_order_level="+$scope.display_level).then(function(data){
+      if(data.message) {
+        $scope.update_dashboard();
+      }
+    });
+    Session.roles.permissions["dashboard_order_level"] = $scope.display_level;
+  }
+
+  //top sku graph
+  function render_top_skus(graph_d) {
 
     var categories = [];
     var data = [];
@@ -19,7 +41,7 @@ function dashboardCtrl($scope, $state, $http, $interval, COLORS, Session, $timeo
     for (var i=0; i<graph_d.length; i++) {
       categories.push(graph_d[i].sku__wms_code);
       data.push(Number(graph_d[i].quantity__sum.toFixed(2)));
-    } 
+    }
 
     $('#top-skus').highcharts({
         chart: {
@@ -75,6 +97,7 @@ function dashboardCtrl($scope, $state, $http, $interval, COLORS, Session, $timeo
     });
   }
 
+  //space utilization graph
   function space_utilization(graph_d) {
 
     Highcharts.chart('space-utilization', {
@@ -127,6 +150,7 @@ function dashboardCtrl($scope, $state, $http, $interval, COLORS, Session, $timeo
     });
   }
 
+  //pie chart
   function pie_donut(data) {
 
     $("#"+data.div).highcharts({
@@ -199,7 +223,7 @@ function dashboardCtrl($scope, $state, $http, $interval, COLORS, Session, $timeo
   };
 
   var seriesData = [[], []];
-  
+
   $scope.series = [{
     color: COLORS.primary,
     data: seriesData[0],
@@ -210,9 +234,30 @@ function dashboardCtrl($scope, $state, $http, $interval, COLORS, Session, $timeo
     name: 'RECEIVED'
     }];
 
+  $scope.interval = undefined;
+  $scope.updateInterval = function() {
+
+    if(angular.isDefined($scope.interval)) {
+
+      $interval.cancel($scope.interval);
+    }
+
+    $scope.interval = $interval(function() {
+      console.log(new Date(), $scope.display_level);
+      if($state.current.name == "app.dashboard") {
+        $scope.update_dashboard();
+      }
+    }, 60000);
+  }
+
   $scope.d_data = {}
   $scope.update_dashboard = function() {
-    Service.apiCall('dashboard/').then(function(data) {
+    if(angular.isDefined($scope.interval)) {
+
+      $interval.cancel($scope.interval);
+    }
+    $scope.loadingData = true;
+    Service.apiCall('dashboard/?display_order_level='+$scope.display_level).then(function(data) {
      if(data.message) {
       data = data.data;
       angular.copy(data, $scope.d_data);
@@ -221,18 +266,16 @@ function dashboardCtrl($scope, $state, $http, $interval, COLORS, Session, $timeo
       console.log(data);
       update_graphs();
 
-      $timeout(function() {
-        if($state.current.name == "app.dashboard") {
-          $scope.update_dashboard();
-        }
-      }, 60000);
+      $scope.updateInterval();
      }
+     $scope.loadingData = false;
     })
   }
   $scope.update_dashboard();
-  
+
+
   function update_graphs() {
-  
+
     var pick_data = {div:"picking", data: [['Picklist not generated',$scope.d_data.picking['Picklist not generated']],
                                            ['In-progress', $scope.d_data.picking['In-progres']],
                                            ['Picked', $scope.d_data.picking['Picked']]]}

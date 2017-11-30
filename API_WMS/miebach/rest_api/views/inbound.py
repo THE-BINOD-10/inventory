@@ -740,7 +740,8 @@ def switches(request, user=''):
                         'invoice_remarks': 'invoice_remarks',
                         'show_disc_invoice': 'show_disc_invoice',
                         'serial_limit': 'serial_limit',
-                        'increment_invoice': 'increment_invoice'
+                        'increment_invoice': 'increment_invoice',
+                        'dashboard_order_level': 'dashboard_order_level'
                       }
 
         toggle_field, selection = "", ""

@@ -2656,7 +2656,6 @@ def putaway_data(request, user=''):
         status = validate_putaway(all_data,user)
         if status:
             return HttpResponse(status)
-
         for key, value in all_data.iteritems():
             loc = LocationMaster.objects.get(location=key[1], zone__user=user.id)
             loc1 = loc
@@ -2757,8 +2756,8 @@ def putaway_data(request, user=''):
             check_and_update_marketplace_stock(marketplace_data, user)
         else:
             check_and_update_stock(sku_codes, user)
-        updated_location = update_filled_capacity(list(set(mod_locations)), user.id)
         import pdb;pdb.set_trace()
+        updated_location = update_filled_capacity(list(set(mod_locations)), user.id)
         auto_picklist = MiscDetail.objects.filter(user=request.user.id, misc_type='auto_update_picklist', 
                         misc_value='true')
         if auto_picklist:
@@ -2767,18 +2766,20 @@ def putaway_data(request, user=''):
                 stock_obj = stock_detail
             if stock_data:
                 stock_obj = stock_data
-            update_auto_picklist_location(all_data, user, stock_obj)
+            #update_auto_picklist_location(all_data, user, stock_obj)
+            update_auto_allocation(user, stock_obj, data.purchase_order.order_id)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Putaway Confirmation failed for ' + str(scan_data) + ' error statement is ' + str(e))
     return HttpResponse('Updated Successfully')
 
+'''
 def update_auto_picklist_location(putaway={}, user='', stock_obj=''):
     if stock_obj:
         open_picklist = Picklist.objects.filter(Q(sku_code = stock_obj.sku.sku_code, order_type='combo') | 
-            Q(order__sku__sku_code = stock_obj.sku.sku_code), 
-            status__in = ['batch_open', 'open'], order__user = user.id, reserved_quantity__gt=0, stock_id = 'NULL').order_by('creation_date')
+            Q(order__sku__sku_code = stock_obj.sku.sku_code), status__in = ['batch_open', 'open'], 
+            order__user = user.id, reserved_quantity__gt=0, stock_id = 'NULL').order_by('creation_date')
         if putaway:
             putaway_allocated_quantity = putaway.values()[0]
         for open_picklist_obj in open_picklist:
@@ -2796,25 +2797,21 @@ def update_auto_picklist_location(putaway={}, user='', stock_obj=''):
                     status = open_picklist_obj.status, creation_date = open_picklist_obj.creation_date, 
                     updation_date = open_picklist_obj.updation_date, order_id = open_picklist_obj.order_id,
                     stock_id = 'NULL', order_type = open_picklist_obj.order_type, sku_code = open_picklist_obj.sku_id)
+'''
 
-
-def update_auto_allocation(user='', sku='', stock_obj=''):
-    order_po = OrderPOMapping.objects.filter(sku=sku_obj, sku__user=user, order_id=order_obj)
+def update_auto_allocation(user='', stock_obj='', order_id=''):
+    #import pdb;pdb.set_trace()
+    order_po = OrderPOMapping.objects.filter(sku=stock_obj.sku.sku_code, sku__user=user, order_id=order_id)
     if order_po:
-        get_order = Picklist.objects.filters(order_id = order_obj, status__in = ['batch_open', 'open']
+        get_order = Picklist.objects.filters(order_id = order_po, status__in = ['batch_open', 'open']
             , stock_id = 'NULL')
         if not get_order:
-            get_order = OrderDetail.objects.filters(order_id = order_obj, status = 1)
-            if not get_order:
-                get_order = Picklist.objects.filters(order_id = order_obj, status__in = ['batch_open', 'open']
-            , stock_id = 'NULL')
+            get_order = OrderDetail.objects.filters(order_id = order_po, status = 1)
 
-    '''
-    if stock_obj:
-        open_picklist = Picklist.objects.filter(Q(sku_code = stock_obj.sku.sku_code, order_type='combo') | 
-            Q(order__sku__sku_code = stock_obj.sku.sku_code) )
-    '''
-
+    if not order_data:
+        get_order = Picklist.objects.filters(status__in = ['batch_open', 'open'], stock_id = 'NULL')
+        if not get_order:
+            get_order = OrderDetail.objects.filters(status = 1)
 
 
 @csrf_exempt

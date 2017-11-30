@@ -2778,8 +2778,7 @@ def update_auto_picklist_location(putaway={}, user='', stock_obj=''):
     if stock_obj:
         open_picklist = Picklist.objects.filter(Q(sku_code = stock_obj.sku.sku_code, order_type='combo') | 
             Q(order__sku__sku_code = stock_obj.sku.sku_code), 
-            status__in = ['batch_open', 'open'], order__user = user.id, reserved_quantity__gt=0, stock_id = 'NULL')
-            .order_by('creation_date')
+            status__in = ['batch_open', 'open'], order__user = user.id, reserved_quantity__gt=0, stock_id = 'NULL').order_by('creation_date')
         if putaway:
             putaway_allocated_quantity = putaway.values()[0]
         for open_picklist_obj in open_picklist:

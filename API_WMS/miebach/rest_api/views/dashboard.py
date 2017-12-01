@@ -48,7 +48,7 @@ def get_quantity(data_dict, key_pair, no_date=False):
             data_dict[key] = data_dict[key]['open_po__order_quantity__sum'] - data_dict[key]['received_quantity__sum']
         elif value[0] == POLocation:
             #results = model_data.filter(**value[1]).values('purchase_order__order_id').distinct()
-            data_dict[key] = model_data.filter(**value[1]).aggregate(Sum('original_quantity'))['original_quantity__sum']
+            data_dict[key] = model_data.filter(**value[1]).aggregate(Sum('quantity'))['quantity__sum']
         else:
             #results = model_data.filter(**value[3]).values('order__order_id', 'order__sku_id').distinct()
             if key == 'Picked':

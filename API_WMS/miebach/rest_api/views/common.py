@@ -302,7 +302,8 @@ def get_search_params(request):
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po', 'marketplace': 'marketplace',
                     'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'jo_code', 'sku_class': 'sku_class', 'sku_size':'sku_size',
                     'order_report_status': 'order_report_status', 'customer_id': 'customer_id', 'imei_number': 'imei_number',
-                    'order_id': 'order_id', 'job_code': 'job_code'}
+                    'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code', 'fg_sku_code': 'fg_sku_code',
+                    'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = { 'search0': 'search_0', 'search1': 'search_1',
                        'search2': 'search_2', 'search3': 'search_3',
@@ -3521,24 +3522,26 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 single['Qty'] = single['SKUPrintQty']
                 single['SKUPrintQty'] = "1"
             barcodes_list.append(single)
-    return get_barcodes1(make_data_dict(barcodes_list, user_prf, pdf_format))
+    return get_barcodes(make_data_dict(barcodes_list, user_prf, pdf_format))
 
 def make_data_dict(barcodes_list, user_prf, pdf_format):
 
-    format_type, size  = pdf_format.split("_") if "_" in pdf_format else (1, '60X30')
-    objs = BarcodeSettings.objects.filter(user=user_prf.user, format_type=str(format_type))
-    if not objs:
-        data_dict = {'customer': user_prf.user.username, 'info': barcodes_list}
-        data_dict.update(settings.BARCODE_DEFAULT)
-    else:
-        data_dict = {'customer': user_prf.user.username,
+    format_type  = "_".join(pdf_format.split("_")[:-1]) if "_" in pdf_format else (1, '60X30')
+    if format_type:
+        objs = BarcodeSettings.objects.filter(user=user_prf.user, format_type=str(format_type))
+        if objs:
+            data_dict = {'customer': user_prf.user.username,
                  'info': barcodes_list,
                  'type': objs[0].format_type if objs[0].format_type else settings.BARCODE_DEFAULT.get('format_type'),
                  'size': eval(objs[0].size) if objs[0].size else settings.BARCODE_DEFAULT.get('size'),
                  'show_fields': eval(objs[0].show_fields) if objs[0].show_fields else settings.BARCODE_DEFAULT.get('show_fields'),
                  'rows_columns' : eval(objs[0].rows_columns) if objs[0].rows_columns else settings.BARCODE_DEFAULT.get('rows_columns'),
                  'styles' : eval(objs[0].styles) if objs[0].styles not in ('{}', '', None) else settings.BARCODE_DEFAULT.get('styles'),
+                 'format_type': pdf_format,
                     }
+            return data_dict
+    data_dict = {'customer': user_prf.user.username, 'info': barcodes_list}
+    data_dict.update(settings.BARCODE_DEFAULT)
     return data_dict
 
 def barcode_service(key, data_to_send, format_name=''):
@@ -4333,9 +4336,6 @@ def get_jo_reference(user):
     else:
         jo_reference = 1
     return jo_reference
-
-def get_barcodes(request):
-    return  HttpResponse(get_barcodes2())
 
 def get_format_types(request):
     format_types = {}

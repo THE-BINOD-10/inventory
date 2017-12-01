@@ -4020,6 +4020,9 @@ def get_view_order_details(request, user=''):
             order_json = OrderJson.objects.filter(order_id=one_order.id)
             if order_json:
                 sku_extra_data = json.loads(order_json[0].json_data)
+                if sku_extra_data['image_data']:
+                    for key, value in sku_extra_data['image_data'].iteritems():
+                        sku_extra_data['image_data'][key] = resize_image(value, user)
 
         customer_order = CustomerOrderSummary.objects.filter(order_id = one_order.id)
         sgst_tax = 0

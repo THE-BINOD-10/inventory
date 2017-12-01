@@ -172,7 +172,7 @@
       </div>
       <div class="col-md-4 col-sm-3 col-xs-12">
         <b>REMARKS:</b>
-        <input type="text" class="form-control" name="central_remarks" ng-model= "showCase.model_data.central_remarks">
+        <input type="text" class="form-control" name="central_remarks" ng-model= "showCase.model_data.central_remarks" ng-readonly="showCase.input_status">
       </div>
     </div>
     <div class="row"><hr></div>
@@ -195,7 +195,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr ng-repeat="data in showCase.model_data.data">
+          <tr ng-repeat="data in showCase.model_data.data" ng-if="data.sku_status">
             <td>
 	          <input type="text" autocomplete="off" placeholder="Search WMS Code" 
 	          typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')"
@@ -240,10 +240,14 @@
 	          <input ng-if="showCase.input_status" type="text" class="form-control" name="remarks" ng-model="data.order_status" ng-readonly="showCase.input_status">
 	        </td>-->
 	        <td ng-if="!showCase.input_status"><i style="font-size: 20px;padding-top: 7px;cursor: pointer;margin-left: -15px;"
-	        ng-click="showCase.update_order_details($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
+	        ng-click="showCase.update_order_details($index, data, false)" class="fa fa-minus-square-o"></i></td>
           </tr>
         </tbody>
       </table>
+
+      <center>
+        <button type="button" class="btn btn-default" style="margin-top:10px" ng-click="showCase.update_order_details(0, {}, true)">Add New WMS Code</button>
+      </center>
     </div>
     <div class="row"><hr></div>
     <div class="row">

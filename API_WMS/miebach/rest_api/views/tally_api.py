@@ -33,7 +33,7 @@ class TallyAPI:
     def get_item_master(self, limit=10):
         send_ids = []
         user_id = self.user
-        exclude_ids = OrdersAPI.objects.filter(engine_type='Tally', order_type='sku', status__in=[1,9]).\
+        exclude_ids = OrdersAPI.objects.filter(user=user_id, engine_type='Tally', order_type='sku', status__in=[1,9]).\
                                         values_list('order_id', flat=True)
         sku_masters = SKUMaster.objects.exclude(id__in=exclude_ids).filter(user=user_id)[:limit]
         tally_company_name = 'Mieone'

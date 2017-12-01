@@ -54,7 +54,7 @@
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Shipment Date *</label>
-            <input name="shipment_date" ui-jq="datepicker" ng-model="showCase.model_data.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" data-date-today-highlight="true" data-date-autoclose="true" readonly>
+            <input name="shipment_date" ui-jq="datepicker" ng-model="showCase.model_data.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" readonly>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
@@ -100,17 +100,16 @@
               <span class="pull-left" align="right">AUTO&nbsp;SHIPMENT</span>
                 <label class="switch switch-sm square pull-right ml10 mr20">
                   <div>
-                    <input type="checkbox" ng-model="showCase.auto_shipment">
+                    <input type="checkbox" ng-model="showCase.auto_shipment" ng-change="showCase.model_data.auto_shipment = ''">
                     <span><i class="handle"></i></span>
                   </div>
                 </label>
             </div>
             <div class="col-md-5" style="margin-top: -5px">
-                <input ng-if="showCase.auto_shipment" ng-show="showCase.auto_shipment" placeholder="PO Numeber" name="po_number" class="form-control" size="15px" type="text" ng-model="showCase.model_data.auto_shipment" required>
-                <input ng-if="!showCase.auto_shipment" ng-show="showCase.auto_shipment" placeholder="PO Numeber" name="po_number" class="form-control" type="text" ng-model="showCase.model_data.auto_shipment">
+              <input ng-show="showCase.auto_shipment" placeholder="PO Number" name="po_number" class="form-control" size="15px" type="text" ng-model="showCase.model_data.auto_shipment" ng-required="showCase.auto_shipment">
             </div>
           </div>
-        </div> 
+        </div>
       </div>
       <div class="row" ng-if="showCase.permissions.create_seller_order"><hr></div>
       <div class="row" ng-if="showCase.permissions.create_seller_order">

@@ -3,7 +3,10 @@ from django.contrib import admin
 from django.conf.urls.static import static
 from django.conf import settings
 from rest_api.views import *
+from rest_api.views.tally import *
 #urlpatterns = patterns('rest_api.views',
+tally_api = TallyAPI()
+
 urlpatterns = [
     # Login and logout
     url(r'^wms_login/$',wms_login),
@@ -412,6 +415,13 @@ urlpatterns += [
     url(r'update_picklist_loc/',update_picklist_loc),
 
     #Barcodes
-    url('^GetBarcodes/$', get_barcodes),
-    url('^get_format_types/', get_format_types)
+    url('^get_format_types/', get_format_types),
+
+    #Tally API
+    url('^GetItemMaster/', tally_api.get_item_master),
+    url('^GetSupplierMaster/', tally_api.get_supplier_master),
+    url('^GetCustomerMaster/', tally_api.get_customer_master),
+
+
+    
 ]

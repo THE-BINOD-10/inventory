@@ -133,8 +133,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function submit() {
       var data = [];
       for(var i=0; i<vm.model_data.data.length; i++)  {
-         var temp = vm.model_data.data[i][0];
-         data.push({name: temp.order_id, value: temp.value});
+        var temp = vm.model_data.data[i][0];
+        if(!temp.is_new) {
+          data.push({name: temp.order_id, value: temp.value});
+        }
       }
       vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
         if(data.message) {

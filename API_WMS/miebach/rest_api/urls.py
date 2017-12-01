@@ -6,6 +6,7 @@ from rest_api.views import *
 from rest_api.views.tally import *
 #urlpatterns = patterns('rest_api.views',
 tally_api = TallyAPI()
+
 urlpatterns = [
     # Login and logout
     url(r'^wms_login/$',wms_login),
@@ -419,5 +420,8 @@ urlpatterns += [
     #Tally API
     url('^GetItemMaster/', tally_api.get_item_master),
     url('^GetSupplierMaster/', tally_api.get_supplier_master),
-    url('^GetCustomerMaster/', tally_api.get_customer_master)   
+    url('^GetCustomerMaster/', tally_api.get_customer_master),
+
+
+    
 ]

@@ -24,6 +24,7 @@ class TallyAPI:
         self.headers = { 'ContentType' : self.content_type }
     
     def get_item_master(self, limit=10):
+        user_id = self.user
         limit = 10
         send_ids = []
         exclude_ids = OrdersAPI.objects.filter(user=user_id, engine_type='Tally', order_type='sku',\

@@ -407,8 +407,14 @@
 	//delete the item
 	function checksumDelete(check_sumData_name){
 	
-			DATABASE.checksum.where("name").
-				equals(check_sumData_name).delete();
+		return new Promise(function (resolve, reject){
+				DATABASE.checksum.where("name").
+					equals(check_sumData_name).delete().then(function(data){
+						return resolve(data);
+					}).catch(function(error){
+						return reject(error.message);
+					});
+		});			
 				
 	}
 
@@ -419,9 +425,13 @@
 		
 			SPWAN(function*(){
 
-						checksumDelete(check_sumData.name);
+					yield checksumDelete(check_sumData.name).then(function(data){
+							console.log( "clear the "+check_sumData.name +" "+data);
+						}).catch(function(error){
+							console.log(error);
+						});
 
-						savegenralData(check_sumData).
+					yield savegenralData(check_sumData).
 										then(function(data){
 											return resolve(data);
 										}).catch(function(error){
@@ -543,10 +553,11 @@
 		
 				var delivered_ids=[];
 				
-				getOfflineDeliveredData().then(function(data){
+				getOffline_PreOrder_DeliveredData().then(function(data){
 					delivered_ids=data;
 					if(delivered_ids.length>0){
-						delivered_preorder_details(delivered_ids).
+						
+						preparePreOrderTransactions(delivered_ids).
 							then(function(delivered_data){
 							return resolve(delivered_data);
 						});				
@@ -560,6 +571,35 @@
 				return  resolve([]);
 			});	
 	}
+
+	//prepare preorder offline delivered details
+	function preparePreOrderTransactions(delivered_ids){
+
+		return new Promise(function (resolve, reject){
+
+			SPWAN(function*(){
+				var preorder_delivered_details=[];
+				getUserID().then(function(data){
+						if(data!=undefined){
+
+							for(var delivered_id=0;delivered_id<delivered_ids.length;delivered_id++){
+								preorder_delivered_details.push({'user':data, 'order_id':delivered_ids[delivered_id]});
+
+								if(delivered_ids.length==delivered_id+1){
+									return resolve(preorder_delivered_details);
+								}
+							}	
+
+						}else{
+							return resolve([]);
+						}
+				});
+
+			});
+		});		
+
+	}
+
 
 	 function delivered_preorder_details(delivered_ids) {
 
@@ -832,6 +872,31 @@
 		});					
 	}
 
+	//get the preorder data check with offline preorder delivered 
+	function  getPreOrderDetails_Check_Off_Delivered(order_id){
+
+		return new Promise(function(resolve,reject){
+			getPreOrderData(order_id).then(function(result){
+				 if(result.length>0){
+	              self.order_details=JSON.parse(result[0].order_data);
+	              getOffline_PreOrder_DeliveredData().then(function(data){
+
+	              	if(data.length>0 && data.indexOf(order_id)==0){
+	              		return resolve([]);
+	              	}else{
+	              		return resolve(result);
+	              	}
+	              });
+	          	}else{
+	          		return resolve([]);
+	          	}
+			}).catch(function(error){
+
+			});
+
+		});
+	}
+
 	//change the preorder status
 	function setPreOrderStatus(order_id,status){
 		
@@ -865,7 +930,7 @@
 									return reject(error.message);
 								});		
 
-						yield getOfflineDeliveredData().
+						yield getOffline_PreOrder_DeliveredData().
 									then(function(delivered_ids){
 
 										delivered_ids.push(order_id);
@@ -893,7 +958,7 @@
 	}
 
 	//get offline delivered data
-	function getOfflineDeliveredData(){
+	function getOffline_PreOrder_DeliveredData(){
 
 		return new Promise(function(resolve,reject){
 			getChecsumByName(OFFLINE_DELIVERED).then(function(data){

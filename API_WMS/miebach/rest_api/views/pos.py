@@ -216,21 +216,31 @@ def customer_order(request):
 
             if customer_name:
                 for item in order['sku_data']:
-                    sku = SKUMaster.objects.get(wms_code = item['sku_code'], user=user_id)
-                    #if not item['quantity']:
-                        #continue
-                    order_detail = OrderDetail.objects.create(user=user_id, order_id=order_id, sku_id=sku.id, customer_id=customer_id,
-                                                       customer_name=customer_name, telephone=number, title=sku.sku_desc, quantity=item['quantity'],
-                                                       invoice_amount=item['price'], order_code=order['summary']['issue_type'], 
-						       shipment_date=NOW, original_order_id=order['summary']['issue_type']+str(order_id),
-						       nw_status=order['summary']['nw_status'],
-                                                       status=status, email_id=cust_dict.get('Email',''), unit_price=item['unit_price'])
 
-                    stock_detail = StockDetail.objects.filter(sku__wms_code=item['sku_code'], sku__user=user_id, quantity__gt=0)
-                    stock_diff = item['quantity']
-                    stock_detail, stock_quantity, sku_code = get_sku_stock(request, sku, sku_stocks, user_id, val_dict, sku_id_stocks)
-                    if status == 0:
-                        picklist_creation(request, stock_detail, stock_quantity, order_detail, picklist_number, stock_diff, item, user)
+                    sku = SKUMaster.objects.get(wms_code = item['sku_code'], user=user_id)
+                    #if not returning item
+                    if item['return_status'] == "false":
+
+                        #if not item['quantity']:
+                            #continue
+                        order_detail = OrderDetail.objects.create(user=user_id, order_id=order_id, sku_id=sku.id, customer_id=customer_id,
+                                                           customer_name=customer_name, telephone=number, title=sku.sku_desc, quantity=item['quantity'],
+                                                           invoice_amount=item['price'], order_code=order['summary']['issue_type'], 
+                                                           shipment_date=NOW, original_order_id=order['summary']['issue_type']+str(order_id),
+                                                           nw_status=order['summary']['nw_status'],
+                                                           status=status, email_id=cust_dict.get('Email',''), unit_price=item['unit_price'])
+
+                        if status == 0:
+                            stock_diff = item['quantity']
+                            stock_detail, stock_quantity, sku_code = get_sku_stock(request, sku, sku_stocks, user_id, val_dict, sku_id_stocks)
+                            picklist_creation(request, stock_detail, stock_quantity, order_detail, picklist_number, stock_diff, item, user)
+
+                    # return item : increase stock
+                    else:
+                        sku_stocks = StockDetail.objects.filter(sku__user=user_id, sku_id=sku.id)
+                        sku_stocks = sku_stocks[0] if sku_stocks else StockDetail.objects.create(sku__user=user_id, sku_id=sku.id)
+                        sku_stocks.quantity = int(sku_stocks.quantity) + item['quantity']
+                        sku_stocks.save()
 
     return HttpResponse(json.dumps({'order_ids': order_ids}))
 
@@ -276,7 +286,7 @@ def print_order_data(request):
                                     'order_date': order_date},
                                     'status': status})) 
 
-def get_order_details(order_id, user_id):
+def get_order_details(order_id, user_id, mobile, customer_name, request_from):
 
     customer_data = {}
     order_data = {}
@@ -286,7 +296,17 @@ def get_order_details(order_id, user_id):
     total_amount = 0
     subtotal = 0
 
-    order_detail = OrderDetail.objects.filter(user=user_id, quantity__gt=0, order_code='Pre Order')
+    #if return, get orders of all order code with status 0
+    if request_from == "return":
+        min_order_date = datetime.datetime.now() - datetime.timedelta(days=60)
+        order_detail = OrderDetail.objects.filter(user=user_id, quantity__gt=0, status=0, creation_date__gte=min_order_date)
+        if order_id:
+            order_detail = order_detail.filter(order_id=order_id)
+        else:
+            if mobile: order_detail = order_detail.filter(telephone=mobile)
+            if customer_name : order_detail = order_detail.filter(customer_name__icontains=customer_name)
+    else:
+        order_detail = OrderDetail.objects.filter(user=user_id, quantity__gt=0, order_code='Pre Order')
     if order_id: order_detail = order_detail.filter(order_id=order_id)
     for order in order_detail:
 
@@ -294,6 +314,7 @@ def get_order_details(order_id, user_id):
         order_id = str(order.order_id)
         order_data.setdefault(order_id,{})
         order_data[order_id]['order_id'] = order_id
+        order_data[order_id]['order_date'] = order.creation_date.strftime("%d %b %Y")
         order_data[order_id]['status'] = order.status
         order_data[order_id].setdefault('sku_data', []).append({'name': order.title, 'quantity': order.quantity, 
                                                  'sku_code': order.sku.sku_code, 'price': order.invoice_amount,
@@ -315,7 +336,10 @@ def get_order_details(order_id, user_id):
 def pre_order_data(request):
    data = eval(request.POST['data'])
    order_id = data.get('order_id', '')
-   order_details = get_order_details(order_id, data['user'])
+   mobile = data.get('mobile', '')
+   customer_name = data.get('customer_name', '')
+   request_from = data.get('request_from', '')
+   order_details = get_order_details(order_id, data['user'], mobile, customer_name, request_from)
    return HttpResponse(order_details)
 
 def update_order_status(request):

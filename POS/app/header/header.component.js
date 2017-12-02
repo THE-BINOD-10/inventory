@@ -36,16 +36,17 @@
 		if(navigator.onLine){
             //sync pos data 
             navigator.serviceWorker.ready.then(function() {
-                showRefresh();
+                urlService.show_loading;
                 syncPOSTransactionData().then(function(){
-                    hideRefresh();
+                    urlService.hide_loading;
                 }).catch(function(){
-                    hideRefresh();
+                    urlService.hide_loading;
+
                 });
             });
         }else{
             console.log( "offline");
-            hideRefresh();
+            urlService.hide_loading;
         }
 
       };

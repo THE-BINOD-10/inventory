@@ -27,6 +27,13 @@
   font-weight: 400;
   font-size: 16px;
 }
+.tab-content > .tab-pane > .alert > input.return_input {
+  color: #404040;
+  width: 20%;
+  height: 35px;
+  font-weight: 400;
+  font-size: 16px;
+}
 .tab-content > .tab-pane > .alert #preorder_btn {
   box-shadow: 1px 2px 3px #888;
   border-radius: 0;

@@ -153,7 +153,7 @@ importScripts('/app/data/offlineData.js');
 			mPOSSync(event).then(function(data){
         		event.ports[0].postMessage(data);	
 			}).catch(function(error){
-				event.ports[0].postMessage(error.message);	
+				event.ports[0].postMessage(error);	
 			});
 		}else if(event.data==GET_PRE_ORDERS){
 			getPreOrdersData(event);
@@ -268,7 +268,7 @@ importScripts('/app/data/offlineData.js');
 	        yield sync_Preorder_offline_delivered().
 	         			then(function(data){
 	         					console.log("sync pos preorder transactions data "+data);	
-	         					checksumDelete().then(function(data){
+	         					checksumDelete(OFFLINE_DELIVERED).then(function(data){
 	         						    console.log("cleared pos preorder transactions data "+data);	
 	         					    	return resolve(data);
 	         						}).catch(function(error){
@@ -355,7 +355,7 @@ importScripts('/app/data/offlineData.js');
                    
                    if(data!=undefined && data.length>0){
                    	                  
-                    var content='data=' + encodeURIComponent(JSON.stringify(data));
+                    var content="data="+encodeURIComponent(JSON.stringify(data));
                     
                     getServerData(REQUEST_METHOD_POST,UPDATE_PRE_ORDER_STATUS_API,content).
                    				then(function(data){

@@ -13,40 +13,42 @@
       self.get_order_details = get_order_details;
       var user = urlService.userData.parent_id;
 
-      function get_order_details(order_id) {
+      function get_order_details(order_id, mobile, customer_name, request_from) {
 
+        self.request_from = request_from;
         $(".preloader").removeClass("ng-hide").addClass("ng-show");
+
 
         if(navigator.onLine){
           
           console.log("online");
           // ajax call to send data to backend
-          var data = $.param({
-                    data: JSON.stringify({'user':user, 'order_id':order_id})
+           // ajax call to send data to backend
+        var data = $.param({
+                    data: JSON.stringify({'user':user, 'order_id':order_id, 'mobile': mobile, 'customer_name': customer_name,
+                                          'request_from': request_from})
                    });
-          $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-          $http.post( urlService.mainUrl+'rest_api/pre_order_data/', data).success(function(data, status, headers, config) {
-              var key = Object.keys(data.data)[0];
-              key ? self.order_details = data.data[key] : self.order_details = {'status':'empty'};
-              self.isDisabled = false;
-              
+        $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+        $http.post( urlService.mainUrl+'rest_api/pre_order_data/', data).success(function(data, status, headers, config) {
 
-              $(".preloader").removeClass("ng-show").addClass("ng-hide");
-              $(".no_order").removeClass("ng-hide");
-              $(".already_delivered").removeClass("ng-hide");
-              
-              self.order_details.status==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success");
-              
-         }).then(function() {
-         });
+            var key = Object.keys(data.data)[0];
+            key ? (request_from !== "return" ? self.order_details = data.data[key]: self.order_details = data.data) : self.order_details = {'status':'empty'};
+            self.isDisabled = false;
+
+            $(".preloader").removeClass("ng-show").addClass("ng-hide");
+            $(".no_order").removeClass("ng-hide");
+            $(".already_delivered").removeClass("ng-hide");
+            self.order_details.status==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success");
+
+       }).then(function() {
+       });
 
         }else{
           console.log("offline");
-          getPreOrderData(order_id).then(function(result){
+          getPreOrderDetails_Check_Off_Delivered(order_id).then(function(result){
   
               if(result.length>0){
               self.order_details=JSON.parse(result[0].order_data);
-              
               }else{
               self.order_details = {'status':'empty'};
               }
@@ -63,7 +65,6 @@
           });
         }
       }  
-
 
       self.update_order_status = update_order_status;
 

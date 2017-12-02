@@ -13,7 +13,7 @@
       <p>Subtotal</p>
     </div>
     <div class="pull-right">
-      <b ng-if="$ctrl.order.subtotal > 0">{{$ctrl.order.subtotal}}</b>
+      <b>{{$ctrl.order.subtotal}}</b>
     </div>
   </div>
   <div class="summary-row">
@@ -56,13 +56,21 @@
       <b ng-if="$ctrl.order.total_discount > 0">{{$ctrl.order.total_discount}}</b>
     </div>
   </div>
+  <div class="summary-row">
+    <div class="pull-left">
+      <p>Total Returned</p>
+    </div>
+    <div class="pull-right">
+      <b ng-if="$ctrl.order.total_returned > 0">{{-$ctrl.order.total_returned}}</b>
+    </div>
+  </div>
 
   <div class="summary-row total-cost">
     <div class="pull-left">
       <p><b>TOTAL COST</b></p>
     </div>
     <div class="pull-right">
-      <b ng-if="$ctrl.order.total_amount > 0">{{$ctrl.order.total_amount}}/-</b>
+      <b>{{$ctrl.order.total_amount}}/-</b>
     </div>
   </div>
 </div>

@@ -10,9 +10,11 @@ var SPWAN = Dexie.spawn;
        checksum:"name,checksum,path",
        customer:"FirstName,LastName,Number,ID,Address,Email",
        sync_customer:"number,firstName,secondName,mail,user",
-       sync_orders:"++id,order"
+       sync_orders:"++id,order",
+       pre_orders:"order_id,order_data"
+       
      });
-
+    
   //create index on sku_search_words table
    DATABASE._createTransaction = Dexie.override(DATABASE._createTransaction, function (createTransaction) {
     // Override DATABASE._createTransaction() to make sure to add _emailWords table to any transaction being modified

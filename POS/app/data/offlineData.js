@@ -35,7 +35,7 @@
 
 				DATABASE.skumaster.bulkPut(skulist).then(function(res){
 				 			console.log("addSKUBulkItem data is "+res);
-				 			checkStoragePercent();
+				 			//checkStoragePercent();
 				 			//getData();
 					return resolve(true);
 					}).catch(Dexie.BulkError,function(error){
@@ -59,7 +59,7 @@
     	return new Promise(function(resolve,reject){
 			DATABASE.customer.bulkPut(customer_list).then(function(res){
 			 			console.log("data is "+res);
-			 			checkStoragePercent();
+			 			//checkStoragePercent();
 						return resolve(true);
 				}).catch(Dexie.BulkError,function(error){
 					
@@ -163,17 +163,30 @@
 	        msg_chan.port1.onmessage = function(event){
 
 
-	        	if(event.data.error)
+	        	if(event.data!=undefined && event.data.error!=undefined && event.data.error)
 	        		reject(event.data.error)
 	        	else
 	        		resolve(event.data);          
 	         };
 
 			sendMessage(sync_type,[msg_chan.port2]);
-
-			
-	        
+        
     	});
+	}
+
+	//sync get preorders data
+	function sync_getPreOrderData(){
+
+		 return new Promise(function(resolve,reject){
+		    checkSyncData(GET_PRE_ORDERS,new MessageChannel()).then(function(data){
+		    	console.log("GET_PRE_ORDERS sync data "+data);
+				
+				resolve();
+		    }).catch(function(error){
+		    	console.log("GET_PRE_ORDERS sync failed "+error);
+		        reject();
+		    });
+	 	});   
 	}
 
 	//check sync sku items 
@@ -182,10 +195,18 @@
 
 	    checkSyncData(SYNC_SKUMASTER,new MessageChannel()).then(function(data){
 	    	console.log("SYNC_SKUMASTER sync data "+data);
-	    	resolve();
+	    	sync_getPreOrderData().then(function(){
+					resolve();
+				}).catch(function(){
+					reject();
+				});
 	    }).catch(function(error){
 	    	console.log("SYNC_SKUMASTER sync failed "+error);
-	    	reject();
+	    	sync_getPreOrderData().then(function(){
+					resolve();
+				}).catch(function(){
+					reject();
+				});
 	    });
 
 	});
@@ -384,10 +405,10 @@
 	}
 
 	//delete the item
-	function checksumDelete(check_sumData){
+	function checksumDelete(check_sumData_name){
 	
 			DATABASE.checksum.where("name").
-				equals(check_sumData.name).delete();
+				equals(check_sumData_name).delete();
 				
 	}
 
@@ -398,7 +419,7 @@
 		
 			SPWAN(function*(){
 
-						checksumDelete(check_sumData);
+						checksumDelete(check_sumData.name);
 
 						savegenralData(check_sumData).
 										then(function(data){
@@ -420,7 +441,7 @@
 	 
 			DATABASE.checksum.put(genralData).then(function(data){
 								console.log("set data is "+data);
-								checkStoragePercent();
+								//checkStoragePercent();
 								//DATABASE.checksum.get(check_sum);
 		              			return resolve(data);
 							}).catch(function(error){
@@ -431,14 +452,13 @@
 		});
 	}	
 
-
 	//save customer in DB
 	function setSynCustomerData(customer_data){
 
         return new Promise(function (resolve, reject){
 			DATABASE.sync_customer.put(customer_data).
 					then(function(data){
-						checkStoragePercent();
+						//checkStoragePercent();
                         resolve(true);                    
 					}).catch(function(error){
 						console.log("set data error "+error.stack || error.message);	
@@ -448,7 +468,7 @@
 	}
 
 	//save offline order in DB
-	function setSynOrdersData(order_data){
+	function setSynOrdersData(order_data,qty_reduce_status){
 
         return new Promise(function (resolve, reject){
 
@@ -463,10 +483,19 @@
               		//add "order id" to order
               		order_data.summary.order_id=order_number[0].checksum;
 
+              		//reduce sku qty
+              		if(qty_reduce_status){
+					yield reduceSKUQty(order_data).then(function(){
+						console.log("sucess to reduce sku qty ");
+					}).catch(function(error){
+						console.log("error at reduce sku qty "+error.message);
+					});
+					}
+
               		//save order in DB
               		var id=yield DATABASE.sync_orders.
               						put({order:JSON.stringify(order_data)}).
-              						cath(function(error){
+              						catch(function(error){
 										console.error("error "+error.message);	
 										reject(error.message);
 									});
@@ -506,6 +535,59 @@
        				 });
        });
 	}
+
+	//sync POS  preorder 
+	function get_transaction_POS_PreOrders(){
+
+		return new Promise(function(resolve,reject){
+		
+				var delivered_ids=[];
+				
+				getOfflineDeliveredData().then(function(data){
+					delivered_ids=data;
+					if(delivered_ids.length>0){
+						delivered_preorder_details(delivered_ids).
+							then(function(delivered_data){
+							return resolve(delivered_data);
+						});				
+	
+					}else{
+						return resolve([]);
+					}		
+				});
+
+		}).catch(function(error){
+				return  resolve([]);
+			});	
+	}
+
+	 function delivered_preorder_details(delivered_ids) {
+
+		return new Promise(function (resolve, reject){
+
+				SPWAN(function*(){
+
+				var preorder_delivered_details=[];
+				 	
+				for(var delivered_id=0;delivered_id<delivered_ids.length;delivered_id++){
+
+							yield getPreOrderData(delivered_ids[delivered_id]).then(function(data){
+
+								if(data.length>0){
+									var val=JSON.parse(data[0].order_data);
+									if(val.status!=0){
+										val.status=0;
+									}
+									preorder_delivered_details.push(val);
+								}
+								if(delivered_ids.length==delivered_id+1){
+									return resolve(preorder_delivered_details);
+								}
+							});
+						}
+				});			
+		});      
+  }
 
 	//get pos sync orders
 	function get_POS_Sync_Orders(){
@@ -594,8 +676,8 @@
 	}
 
 	//change user data foramte like checksum
-	function setUserData(data){
-		return {"checksum":data,"name":""+USER_DATA,"path":""};
+	function setCheckSumFormate(data,name){
+		return {"checksum":data,"name":""+name,"path":""};
 	}
 
 
@@ -607,18 +689,18 @@
 			DATABASE.checksum.where("name").equals(name).toArray().
 								then(function(data){
 									if(data.length>0){
-										resolve(data[0]);
+										return resolve(data[0]);
 									}else{
-										reject();
+										return  reject();
 									}
 								}).catch(function(error){
-                                      reject();
+                                      return  reject();
 								});
 		});
 	}
 
 	//append user id to url
-	function appendUserID(url){
+	function getUserID(){
 
 		return new Promise(function(resolve,reject){
 
@@ -626,15 +708,22 @@
 							then(function(result){
 								var data=JSON.parse(result.checksum);
 	                 			if (data.status == "Success"){
-	                 				resolve(url+"&user="+data.parent_id);
+	                 				return resolve(data.parent_id);
 	                 			}else{
-	                 				resolve(url);
+	                 				return resolve();
 	                 			}
 
 							}).catch(function(){
-								resolve(url);
+								return resolve();
 							});
 		});				
+	}
+
+	function appendUserID(url,id){
+		if(id!=undefined)
+			return url+"&user="+id;
+		else
+		return url;
 	}
 
 	//get storage percentage
@@ -670,4 +759,150 @@
 				return reject(error);
 			});		
 		});
-	}	
+	}
+
+	//reduce sku qty in IndexDB
+	async function reduceSKUQty(data){
+
+		
+		if(data.sku_data.length>0 && data.status==0){
+			
+             
+            for(var i=0;i<data.sku_data.length;i++){
+				
+				await DATABASE.skumaster.where("SKUCode").
+             					equals(data.sku_data[i].sku_code).
+             					modify(function(sku){
+             						sku.stock_quantity=sku.stock_quantity-data.sku_data[i].quantity;
+             					}).then(function(data){
+             						console.log("sucessfully updated "+data);
+             					}).catch(function(error){
+             						console.log(error.message);
+             					});
+            }
+        }
+	}
+
+	//Bulk add pre-orders data
+	function addPreOrdersBulkItems(preoder_data){
+
+		return new Promise(function(resolve,reject){
+
+			 DATABASE.transaction('rw', DATABASE.pre_orders,function () {
+
+				  var data=[];
+
+				  Object.keys(preoder_data).forEach(function(key){
+
+				  		data.push({"order_id":key,"order_data":JSON.stringify(preoder_data[key])});
+
+				  });
+
+				    	 	
+				DATABASE.pre_orders.bulkPut(data).then(function(res){
+				 			console.log("add bulk predorder data is "+res);
+				 			
+							return resolve(true);
+				}).catch(function(error){
+					  if(error==Dexie.errnames.QuotaExceeded){
+						return reject(error.message);
+					  }else if(error==Dexie.BulkError){
+					   console.log("some preorders saving failed "+ data.length()-error.failures.length);
+					   return reject("some preorder saving failed "+ data.length()-error.failures.length);
+					   }
+				});
+	        }).catch(function(error){
+	        	return reject("some preorder saving failed "+ error.message);
+	        });   	
+		});
+	}
+
+	//get preorder data using order_id
+	function getPreOrderData(order_id){
+
+		return new Promise(function(resolve,reject){
+
+			DATABASE.pre_orders.
+						where("order_id").equals(order_id).toArray().
+								then(function(data){
+									return resolve(data);
+								}).catch(function(error){
+									return resolve([]);
+								});
+		});					
+	}
+
+	//change the preorder status
+	function setPreOrderStatus(order_id,status){
+		
+		return new Promise(function(resolve,reject){
+
+			 SPWAN(function*(){
+
+				var orders= yield DATABASE.pre_orders.
+							where("order_id").equals(order_id).toArray();
+
+
+				if(orders.length>0){
+					var order_data=JSON.parse(orders[0].order_data);
+					if(Object.keys(order_data).indexOf("status")>0){
+						order_data.status=status;
+
+					//reduce sku qty
+					yield reduceSKUQty(order_data).then(function(){
+						console.log("sucess to reduce sku qty ");
+					}).catch(function(error){
+						console.log("error at reduce sku qty "+error.message);
+					});	
+
+						yield DATABASE.pre_orders.
+							where("order_id").equals(order_id).
+								modify(function(data){
+									data.order_data=JSON.stringify(order_data);
+								}).then(function(data){
+									console.log("changed the sstatus o preorder "+JSON.stringify(data));
+								}).catch(function(error){
+									return reject(error.message);
+								});		
+
+						yield getOfflineDeliveredData().
+									then(function(delivered_ids){
+
+										delivered_ids.push(order_id);
+										savegenralData(setCheckSumFormate(
+											delivered_ids.toString(),OFFLINE_DELIVERED)).
+													then(function(data){
+														return resolve(true);
+													}).catch(function(error){
+															return reject(true);
+													});
+
+									});		
+
+					}
+				}else{
+					return reject("unable to get the order information in offline");
+				}
+						
+			}).catch(function(error){
+				return reject(error.message);
+			});					
+		}).catch(function(error){
+			return reject(error.message);
+		});	
+	}
+
+	//get offline delivered data
+	function getOfflineDeliveredData(){
+
+		return new Promise(function(resolve,reject){
+			getChecsumByName(OFFLINE_DELIVERED).then(function(data){
+								var delivered_ids=data.checksum.split(",");
+									return resolve(delivered_ids);
+							}).catch(function(error){
+									return resolve([]);
+							});
+		});			
+	
+	}
+

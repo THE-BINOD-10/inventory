@@ -22,6 +22,7 @@
       self.table_headers = false;
   
       self.submit_enable = false;
+      self.qty_switch;
   
       self.names = ['Delivery Challan', 'Pre Order'];//['Delivery Challan', 'sample', 'R&D']
       self.nw_status = "";
@@ -176,7 +177,7 @@
           }else{
   
             data.summary.nw_status = OFFLINE;
-            setSynOrdersData(data).
+            setSynOrdersData(data,self.qty_switch).
                   then(function(data){
   
                     urlService.current_order.order_id = data.order_id;
@@ -196,8 +197,7 @@
                      console.log("order saving error "+error);
   
                   });
-  
-  
+   
         }
       }
   
@@ -229,7 +229,7 @@
               for (var j=0; j< self.skus.length; j++) {
                 if (self.skus[j].sku_code === key) {
                   var quantity = 0;
-                  if (self.issue_selected === "Delivery Challan" && self.skus[j].stock_quantity == self.skus[j].quantity) {
+                  if (!self.qty_switch && self.issue_selected === "Delivery Challan" && self.skus[j].stock_quantity == self.skus[j].quantity) {
                     alert("Given Quantity is more than Stock Quantity.");
                   } else {
                     quantity = 1;
@@ -242,7 +242,7 @@
               }
               if (!self.repeated_data) {
 
-                if (self.issue_selected === "Delivery Challan" && filter_data[i].stock_quantity == 0) {
+                if (!self.qty_switch && self.issue_selected === "Delivery Challan" && filter_data[i].stock_quantity == 0) {
                   alert("Given SKU stock is empty.");
                   break;
                 } else {

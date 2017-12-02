@@ -26,26 +26,30 @@
                   urlService.VAT = data.VAT;
                   self.VAT = data.VAT;
 
-
                   //save user status in local db
-                  setCheckSum(setUserData(JSON.stringify(data))).
-                                then(function(data){
-                                    console.log("user data saved on locally"+data); 
-                                    //sync pos data 
-                                  // initStoragePersistence();
-                                  //  checkPersistent();
-                                   // syncPOSTransactionData();
-
-                             if(navigator.serviceWorker.ready){
-                                  navigator.serviceWorker.ready.then(function() {
-                                    syncPOSTransactionData();
+                  setCheckSum(setCheckSumFormate(JSON.stringify(data),USER_DATA)).
+                          then(function(data){
+                              console.log("user data saved on locally "+data); 
+                                      
+                              if(navigator.onLine){
+                                //sync pos data 
+                                navigator.serviceWorker.ready.then(function() {
+                                  
+                                  urlService.show_loading;
+                                  syncPOSTransactionData().then(function(){
+                                    urlService.hide_loading;
+                                  }).catch(function(){
+                                    urlService.hide_loading;
+                                  });
                                 });
-                             }    
-                                                                    
-                                });
-
+                              }else{
+                                console.log( "offline");
+                                urlService.hide_loading();
+                              }               
+                          }).catch(function(error){
+                             console.log("user data saved fail in locally "+error.message); 
+                          })
                 } else {
-
                   $state.go("login");
                 }
               })

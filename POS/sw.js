@@ -7,7 +7,7 @@ importScripts('/app/data/offlineData.js');
 (function(){
 	"use strict";
 	//service worker version number
-	var VERSION="0.0.0.91-build-0.9.0.19"
+	var VERSION="0.0.0.91-build-0.9.0.24"
 	//service worker version name
 	var CACHE_NAME="POS"+VERSION;
 	//directory path 
@@ -29,7 +29,7 @@ importScripts('/app/data/offlineData.js');
         "bower_components/angular-aria/angular-aria.min.js",
         "bower_components/angular-messages/angular-messages.min.js",
         "bower_components/angular-material/angular-material.min.js",
-        /*"/dependencies/simple-autocomplete.js",*/
+        "/dependencies/simple-autocomplete.js",
         "bower_components/angular-fullscreen/src/angular-fullscreen.js",
         "bower_components/angular-ui-router/release/angular-ui-router.min.js",
         "bower_components/angular-bootstrap/ui-bootstrap-tpls.min.js",
@@ -134,15 +134,17 @@ importScripts('/app/data/offlineData.js');
     self.addEventListener('message', function(event){
 
 		if(event.data==SYNC_SKUMASTER){
-			appendUserID(GET_SKU_MASTER_CHECKSUM_API).
-						then(function(url){
-							getCheckSum(event,REQUEST_METHOD_GET,url);				
+			getUserID().
+						then(function(id){
+							getCheckSum(event,REQUEST_METHOD_GET,
+								appendUserID(GET_SKU_MASTER_CHECKSUM_API,id));				
 						});
 		    
 	    }else if(event.data==SYNC_CUSTOMERMASTER){
-		    appendUserID(GET_CHECKSUM_CUSTOMER_API).
-						then(function(url){
-							getCheckSum(event,REQUEST_METHOD_GET,url);
+		    getUserID().
+						then(function(id){
+							getCheckSum(event,REQUEST_METHOD_GET,
+								appendUserID(GET_CHECKSUM_CUSTOMER_API,id));
 						});
 		}else if(event.data==GET_CURRENT_ORDER){
 			getCurrentOrder(event);
@@ -151,8 +153,10 @@ importScripts('/app/data/offlineData.js');
 			mPOSSync(event).then(function(data){
         		event.ports[0].postMessage(data);	
 			}).catch(function(error){
-				event.ports[0].postMessage(error);	
+				event.ports[0].postMessage(error.message);	
 			});
+		}else if(event.data==GET_PRE_ORDERS){
+			getPreOrdersData(event);
 		}
   	});
 
@@ -209,7 +213,7 @@ importScripts('/app/data/offlineData.js');
 	          return response;
 	        });
 	    }).catch(function(error){
-	    	console.log(url+" fetch error "+error);	
+	    	console.log(url+" fetch error "+error.message);	
 	    }));
     });
 
@@ -231,32 +235,52 @@ importScripts('/app/data/offlineData.js');
 
     	 //sync added pos customers to network	
     	return new Promise(function(resolve,reject){
-	         sync_POS_Customers().
+
+    		SPWAN(function*(){
+	        yield sync_POS_Customers().
 	         		then(function(data){
 	         			console.log("sync pos customet data "+data);
 	    				
 	    				//clear pos sync customers data	
 	    				clear_POS_sync_customers();
+		     		}).catch(function(error){
+	 					console.log("sync pos orders data "+JSON.stringify(error));	
+	 					//return reject(error);
+	         		});
 
-		       			//sync created pos orders to network
-	         			sync_POS_Orders().
-	         				then(function(data){
-	         				console.log("sync pos orders data "+data);	
-	         				//clear pos sync orders data
-	         				clear_POS_sync_orders().then(function(data){
-	         					resolve(data);
-	         				}).catch(function(error){
-	         					reject(error);
-	         				});
+
+	         //sync created pos orders to network
+	       	yield sync_POS_Orders().
+	        		then(function(data){
+	        			console.log("sync pos orders data "+data);	
+	        			//clear pos sync orders data
+	        			clear_POS_sync_orders().then(function(data){
+			    			console.log("cleared sync pos orders data "+data);	
+	         					
 	         			}).catch(function(error){
 							console.log("sync pos orders data "+JSON.stringify(error));	
-							reject(error);
+							//return reject(error);
 	         			});
 	         		}).catch(function(error){
-	 					
-	 					console.log("sync pos orders data "+JSON.stringify(error));	
-	 					reject(error);
+	         			console.log("sync pos orders data "+JSON.stringify(error));	
 	         		});
+
+	        yield sync_Preorder_offline_delivered().
+	         			then(function(data){
+	         					console.log("sync pos preorder transactions data "+data);	
+	         					checksumDelete().then(function(data){
+	         						    console.log("cleared pos preorder transactions data "+data);	
+	         					    	return resolve(data);
+	         						}).catch(function(error){
+	         							return reject(error.message);
+	         						});
+	         					}).catch(function(error){
+	         						    return reject(error.message);
+	         					});
+	         			
+	        }).catch(function(error){
+	        	return reject(error.message);
+	        }) 		
 
         }); 		
     	
@@ -276,14 +300,13 @@ importScripts('/app/data/offlineData.js');
                    	
                    	getServerData(REQUEST_METHOD_POST,ADD_POS_CUSTOMER_API,content).
                    				then(function(data){
-                                	resolve(data);
+                                	return resolve(data);
                    				}).catch(function(error){
-                   					reject(error);
-
+                   					return reject(error.message);
                    				});
 
                    }else{
-                   		resolve(true);
+                   		return resolve(true);
                    }
 
          		});
@@ -309,23 +332,52 @@ importScripts('/app/data/offlineData.js');
                     
                     getServerData(REQUEST_METHOD_POST,SYNC_POS_ORDERS_API,content).
                    				then(function(data){
-                                		resolve(data);
+                                		return resolve(data);
                    				}).catch(function(error){
-                   					reject(error);
+                   					return reject(error);
                    				});
                    }else{
-                   		resolve(true);
+                   		return resolve(true);
                    }
          		});
 	    });
    }
 
+
+
+	//sync POS preorder transactions 
+	function sync_Preorder_offline_delivered(){
+
+		return new Promise(function(resolve,reject){
+
+      		get_transaction_POS_PreOrders().
+         		then(function(data){
+                   
+                   if(data!=undefined && data.length>0){
+                   	                  
+                    var content='data=' + encodeURIComponent(JSON.stringify(data));
+                    
+                    getServerData(REQUEST_METHOD_POST,UPDATE_PRE_ORDER_STATUS_API,content).
+                   				then(function(data){
+                                		return resolve(data);
+                   				}).catch(function(error){
+                   					return reject(error);
+                   				});
+                   }else{
+                   		return resolve(true);
+                   }
+         		});
+	    });
+		
+	}
+
+
    	//get currnet order id from network
     function getCurrentOrder(event){	
 
-    	appendUserID(GET_CURRENT_ORDER_ID_API).then(function(url){
+    	getUserID().then(function(id){
 
-    		getServerData(REQUEST_METHOD_GET,url,"").
+    		getServerData(REQUEST_METHOD_GET,appendUserID(GET_CURRENT_ORDER_ID_API,id),"").
   		 					then(function (result) {
   		 			          if(Object.keys(result).length>0){
             						
@@ -337,15 +389,40 @@ importScripts('/app/data/offlineData.js');
 						          				event.ports[0].postMessage(val_data);	
 						          			}).catch(function(error){
 						          				console.log("order no is sync error "+error);
-						          				event.ports[0].postMessage([]);	
+						          				event.ports[0].postMessage(error.message);	
 						          			});
           						}
   		 	
 					  		}).catch(function(error){
-									event.ports[0].postMessage([]);	
+									event.ports[0].postMessage(error.message);	
 					  		});	 	
 
     	});
+	}
+
+	function getPreOrdersData(event){
+
+		getUserID().then(function(id){
+					
+			var content="data="+encodeURIComponent(JSON.stringify({'user':id}));		
+			getServerData(REQUEST_METHOD_POST,PRE_ORDER_API,content).
+  		 					then(function (result) {
+  		 			        	if(Object.keys(result).length>0){
+            						
+            						var val_data=JSON.parse(result);
+						          	addPreOrdersBulkItems(val_data.data).then(function(data){
+						          		event.ports[0].postMessage(data);	
+						          	}).catch(function(error){
+						          		console.log(" preorders data "+val_data.length);
+          							    event.ports[0].postMessage(error.message);	
+						          	});
+						          	
+          						}
+  		 	
+					  		}).catch(function(error){
+									event.ports[0].postMessage(error.message);	
+					  		});	
+		});
 	}
 
 
@@ -393,10 +470,11 @@ importScripts('/app/data/offlineData.js');
 
 			getSkumasterData().
 						then(function(result){
-							if(result.length<=0 && data!=true){
+							if(result.length<=0 || data!=true){
 
-							appendUserID(GET_SKUDATA_API).then(function(url){
-								getSkuConent(event,REQUEST_METHOD_GET,url);
+							getUserID().then(function(id){
+								getSkuConent(event,REQUEST_METHOD_GET,
+									appendUserID(GET_SKUDATA_API,id));
 							});	
 							
 							}else{
@@ -407,9 +485,10 @@ importScripts('/app/data/offlineData.js');
 
 			getcustomerData().
 						then(function(result){
-							if(result.length<=0 && data!=true){
-								appendUserID(GET_CUSTOMER_API).then(function(url){
-								getCustomerContent(event,REQUEST_METHOD_GET,url);
+							if(result.length<=0 || data!=true){
+								getUserID().then(function(id){
+								getCustomerContent(event,REQUEST_METHOD_GET,
+									appendUserID(GET_CUSTOMER_API,id));
 							});
 						
 							}else{
@@ -435,11 +514,11 @@ importScripts('/app/data/offlineData.js');
                 					console.log(request_url+ "skumaster saved locally is "+val);
                                       event.ports[0].postMessage(val);
 									}).catch(function(error){
-										event.ports[0].postMessage(error);
+										event.ports[0].postMessage(error.message);
 									});
 		  		 				}
 							}).catch(function(error){
-								console.log(request_url+" sku data is "+error);
+								console.log(request_url+" sku data is "+error.message);
 							});
 
   	}
@@ -458,11 +537,12 @@ importScripts('/app/data/offlineData.js');
 						         		console.log("customer data saved locally is "+val);
 				        		    	event.ports[0].postMessage(val);
 									}).catch(function(error){
-										event.ports[0].postMessage(error);
+										event.ports[0].postMessage(error.message);
 									});
 		  		 				}
 										}).catch(function(error){
 								console.log("customer  data is "+error);
+								event.ports[0].postMessage(error.message);
 							});
 
   	}
@@ -500,15 +580,15 @@ importScripts('/app/data/offlineData.js');
 					  
 				   }).catch(function(error){
 				  		console.log(request_url+" response error is " +error);
-				  		return reject(error.text);
+				  		return reject(error);
 					});
 				 }else{
 				 	return reject("error"); 
 				   //return resolve(false);  
 				}
 			   }).catch(function(error){
-			   		console.log(request_url+ " response error is " +error);
-				 	return reject(error.text);
+			   		console.log(request_url+ " response error is " +error.message);
+				 	return reject(error);
 			  });
 	  	});
 	}

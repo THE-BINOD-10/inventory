@@ -1,7 +1,14 @@
 <div class="customer-box sku-box" style='padding-top: 10px;'>
   
   <div>
-  <p style="float: left">{{$ctrl.nw_status}}</p>
+  <!-- <p style="float: left">{{$ctrl.nw_status}}</p> -->
+    <md-switch class="switch"
+              ng-model="$ctrl.qty_switch"
+              aria-label="Switch"
+              style="float: left;margin: 0"
+              ng-init="$ctrl.qty_switch=false">
+    SKU qty accepted zero : {{$ctrl.qty_switch }}
+    </md-switch>
   <p style='text-align: right'>Issue Type*
   <select ng-init="$ctrl.issue_selected=$ctrl.names[0]"
         ng-model="$ctrl.issue_selected"

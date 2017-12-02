@@ -741,7 +741,7 @@ def switches(request, user=''):
                         'show_disc_invoice': 'show_disc_invoice',
                         'serial_limit': 'serial_limit',
                         'increment_invoice': 'increment_invoice',
-                        'auto_update_picklist': 'auto_update_picklist'
+                        'auto_allocate_stock': 'auto_allocate_stock'
                       }
 
         toggle_field, selection = "", ""
@@ -2632,6 +2632,7 @@ def putaway_data(request, user=''):
     all_data = {}
     stock_detail = ''
     stock_data = ''
+    putaway_stock_data = []
     try:
         myDict = dict(request.POST.iterlists())
         sku_codes = []
@@ -2719,10 +2720,13 @@ def putaway_data(request, user=''):
                         pallet_detail = pallet_mapping[0].pallet_detail
                         setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
                     stock_data.save()
-                    #create_update_seller_stock(data, value, user, stock_data, exc_loc, use_value=True)
                     update_details = create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
                     if update_details:
                         marketplace_data += update_details
+
+                    #Collecting data for auto stock allocation
+                    putaway_stock_data.append({'stock': stock_data, 'putaway_qty': float(value),
+                                               'mapping_id': data.purchase_order_id })
                 else:
                     record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
                                    'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
@@ -2734,10 +2738,14 @@ def putaway_data(request, user=''):
                         pallet_mapping[0].save()
                     stock_detail = StockDetail(**record_data)
                     stock_detail.save()
+
+                    #Collecting data for auto stock allocation
+                    putaway_stock_data.append({'stock': stock_detail, 'putaway_qty': float(value),
+                                               'mapping_id': data.purchase_order_id})
+
                     update_details = create_update_seller_stock(data, value, user, stock_detail, old_loc)
                     if update_details:
                         marketplace_data += update_details
-                    #create_update_seller_stock(data, value, user, stock_detail, exc_loc)
                 consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 
                 if order_data['sku_code'] not in sku_codes:
@@ -2756,25 +2764,28 @@ def putaway_data(request, user=''):
             check_and_update_marketplace_stock(marketplace_data, user)
         else:
             check_and_update_stock(sku_codes, user)
-        import pdb;pdb.set_trace()
+
         updated_location = update_filled_capacity(list(set(mod_locations)), user.id)
-        auto_picklist = MiscDetail.objects.filter(user=request.user.id, misc_type='auto_update_picklist', 
-                        misc_value='true')
-        if auto_picklist:
-            stock_obj = ''
-            if stock_detail:
-                stock_obj = stock_detail
-            if stock_data:
-                stock_obj = stock_data
-            #update_auto_picklist_location(all_data, user, stock_obj)
-            update_auto_allocation(user, stock_obj, data.purchase_order.order_id)
+
+        # Auto Allocate Stock
+        if get_misc_value('auto_allocate_stock', user.id) == 'true':
+            order_allocate_stock(request, user, stock_data = putaway_stock_data, mapping_type='PO')
+            # stock_obj = ''
+            # if stock_detail:
+            #     stock_obj = stock_detail
+            # if stock_data:
+            #     stock_obj = stock_data
+            # #update_auto_picklist_location(all_data, user, stock_obj)
+            # update_auto_allocation(user, stock_obj, data.purchase_order.order_id)
+
+
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Putaway Confirmation failed for ' + str(scan_data) + ' error statement is ' + str(e))
     return HttpResponse('Updated Successfully')
 
-'''
+'''  Aravind code
 def update_auto_picklist_location(putaway={}, user='', stock_obj=''):
     if stock_obj:
         open_picklist = Picklist.objects.filter(Q(sku_code = stock_obj.sku.sku_code, order_type='combo') | 
@@ -2797,7 +2808,7 @@ def update_auto_picklist_location(putaway={}, user='', stock_obj=''):
                     status = open_picklist_obj.status, creation_date = open_picklist_obj.creation_date, 
                     updation_date = open_picklist_obj.updation_date, order_id = open_picklist_obj.order_id,
                     stock_id = 'NULL', order_type = open_picklist_obj.order_type, sku_code = open_picklist_obj.sku_id)
-'''
+
 
 def update_auto_allocation(user='', stock_obj='', order_id=''):
     #import pdb;pdb.set_trace()
@@ -2812,7 +2823,7 @@ def update_auto_allocation(user='', stock_obj='', order_id=''):
         get_order = Picklist.objects.filters(status__in = ['batch_open', 'open'], stock_id = 'NULL')
         if not get_order:
             get_order = OrderDetail.objects.filters(status = 1)
-
+'''
 
 @csrf_exempt
 @login_required

@@ -4465,6 +4465,7 @@ def update_invoice_sequence(request, user=''):
         status = 'Update Invoice Number Sequence Failed'
     return HttpResponse(json.dumps({'status': status}))
 
+
 def get_warehouse_admin(user):
     """ Check and Return Admin user of current """
 
@@ -4474,3 +4475,62 @@ def get_warehouse_admin(user):
     else:
         admin_user = user
     return admin_user
+
+def picklist_allocate_stock(request, user, picklists, stock, putaway_qty=0):
+    from outbound import picklist_location_suggestion
+
+    for picklist in picklists:
+        needed_quantity = picklist.reserved_quantity
+        picklist_data = {}
+        picklist_data['stock_id'] = 0
+        picklist_data['order_id'] = picklist.order.id
+        picklist_data['sku_code'] = picklist.sku_code
+        picklist_data['picklist_number'] = picklist.picklist_number
+        picklist_data['reserved_quantity'] = 0
+        picklist_data['picked_quantity'] = 0
+        picklist_data['remarks'] = picklist.remarks
+        picklist_data['order_type'] = picklist.order_type
+        picklist_data['status'] = picklist.status
+        consumed_qty, new_pc_locs = picklist_location_suggestion(request, picklist.order, [stock], user,
+                                                                 needed_quantity, picklist_data)
+        picklist.reserved_quantity -= float(consumed_qty)
+        picklist.save()
+        if consumed_qty:
+            exist_pics = PicklistLocation.objects.filter(picklist_id=picklist.id, status=1, reserved__gt=0)
+            update_picklist_locations(exist_pics, picklist, consumed_qty, 'true')
+            if picklist.reserved_quantity == 0 and not picklist.picked_quantity:
+                picklist.delete()
+            if putaway_qty >= consumed_qty:
+                putaway_qty -= consumed_qty
+            else:
+                putaway_qty = 0
+
+    return putaway_qty
+
+
+def order_allocate_stock(request, user, stock_data = [], mapping_type=''):
+    """Allocates the newly added stock to Order or Picklist"""
+
+    mapping_dict = {}
+    if mapping_type:
+        mapping_dict = {'mapping_type': mapping_type}
+    all_order_mapping = OrderMapping.objects.filter(order__user=user.id, **mapping_dict)
+    all_open_picklists = Picklist.objects.filter(order__user=user.id, status__icontains='open', stock__isnull=True)
+
+    for stock_dict in stock_data:
+        stock = stock_dict['stock']
+        putaway_qty = stock_dict['putaway_qty']
+        picklist_filter = {}
+        if stock_dict.get('mapping_id', ''):
+            order_mapping = all_order_mapping.filter(mapping_id=stock_dict['mapping_id'])
+            if order_mapping:
+                picklist_filter['order_id'] = order_mapping[0].order_id
+        picklists = all_open_picklists.filter(Q(order__sku__sku_code=stock.sku.sku_code, order_type='') |
+                                              Q(sku_code=stock.sku.sku_code, order_type='combo')).\
+                                        order_by('order__creation_date')
+        if picklist_filter:
+            putaway_qty = picklist_allocate_stock(request, user, picklists.filter(**picklist_filter), stock,
+                                                  putaway_qty=putaway_qty)
+        if putaway_qty > 0:
+            putaway_qty = picklist_allocate_stock(request, user, picklists.exclude(**picklist_filter), stock,
+                                                  putaway_qty=putaway_qty)

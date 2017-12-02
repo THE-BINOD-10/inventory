@@ -1,5 +1,5 @@
 ;(function (angular) {
   "use strict";
 
-  angular.module("pageheader", []);
+  angular.module("pageheader", ["ngMaterial"]);
 }(window.angular))

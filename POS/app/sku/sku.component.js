@@ -22,6 +22,7 @@
       self.table_headers = false;
   
       self.submit_enable = false;
+      self.qty_switch;
   
       self.names = ['Delivery Challan', 'Pre Order'];//['Delivery Challan', 'sample', 'R&D']
       self.nw_status = "";
@@ -62,7 +63,7 @@
 		  else
             urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
           /*var oper = self.skus[i].return_status === "true" ? "-=" : "+=";
-          debugger;
+         // debugger;
           self.skus[i].price = self.skus[i].quantity * self.skus[i].unit_price;
           eval('urlService.current_order.summary.total_amount' + oper + 'self.skus[i].price');
           eval('urlService.current_order.summary.subtotal' + oper + 'self.skus[i].price');
@@ -150,13 +151,13 @@
       //change issue type
       /*self.change_issue_type = change_issue_type;
       function change_issue_type(){
-        debugger;
+       // debugger;
         if (urlService.current_order.sku_data.length !== 0) {
            var old_type = urlService.current_order.summary.issue_type;
            var sure = confirm("Changing issue type will discard current orders.\nPress OK to continue.");//self.issue_selected
            sure ? clear_fields() : self.change_issue_type = old_type;
         } else {
-           debugger;
+           //debugger;
         }
       }*/
   
@@ -174,7 +175,6 @@
         self.submit_enable = true;
   
         if(navigator.onLine){
-  
   
                 data.summary.nw_status = ONLINE;
                 var data = $.param({
@@ -206,7 +206,7 @@
           }else{
   
             data.summary.nw_status = OFFLINE;
-            setSynOrdersData(data).
+            setSynOrdersData(data,self.qty_switch).
                   then(function(data){
   
                     urlService.current_order.order_id = data.order_id;
@@ -222,12 +222,9 @@
                       syncPOSData(false);
   
                     }).catch(function(error){
-  
-                     console.log("order saving error "+error);
-  
-                  });
-  
-  
+                       console.log("order saving error "+error);
+                    });
+   
         }
       }
   
@@ -259,8 +256,11 @@
               for (var j=0; j< self.skus.length; j++) {
                 if (self.skus[j].sku_code === key) {
                   var quantity = 0;
-                  if (!self.return_switch && self.issue_selected === "Delivery Challan" &&
+
+              
+                  if (!self.qty_switch && !self.return_switch && self.issue_selected === "Delivery Challan" &&
                                             self.skus[j].stock_quantity == self.skus[j].quantity) {
+
                     alert("Given Quantity is more than Stock Quantity.");
                   } else {
                     quantity = 1;
@@ -273,8 +273,8 @@
                 }
               }
               if (!self.repeated_data) {
-
-                if (!self.return_switch && self.issue_selected === "Delivery Challan" && filter_data[i].stock_quantity == 0) {
+             
+                if (!self.qty_switch && !self.return_switch && self.issue_selected === "Delivery Challan" && filter_data[i].stock_quantity == 0) {
                   alert("Given SKU stock is empty.");
                   break;
                 } else {

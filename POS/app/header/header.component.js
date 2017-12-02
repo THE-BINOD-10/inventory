@@ -1,12 +1,12 @@
 ;(function (angular) {
   "use strict";
 
-  angular.module("pageheader", [])
+  angular.module("pageheader", ["ngMaterial"])
          .component("pageheader", {
 
            "templateUrl": "/app/header/header.template.html",
-           "controller"  : ["$scope", "urlService", "Fullscreen",
-    function ($scope, urlService, Fullscreen) {
+           "controller"  : ["$scope","$mdToast", "urlService", "Fullscreen",
+    function ($scope,$mdToast, urlService, Fullscreen) {
       var self = this;
 
       $scope.name = "Test";
@@ -32,27 +32,32 @@
 	  //Synchronize DB
 	  $scope.sync = function () {
 		//$scope.is_disable = "true";
-		showRefresh();
 		
 		if(navigator.onLine){
-		 //sync pos data 
-		 syncPOSTransactionData().then(function(){
-		   hideRefresh();
-		 }).catch(function(){
-		   hideRefresh();
-		 });
-		}else{
-		 console.log( "offline");
-		 hideRefresh();
-		}
+            //sync pos data 
+            navigator.serviceWorker.ready.then(function() {
+                urlService.show_loading;
+                syncPOSTransactionData().then(function(){
+                    urlService.hide_loading;
+                }).catch(function(){
+                    urlService.hide_loading;
 
+                });
+            });
+        }else{
+            console.log( "offline");
+            urlService.hide_loading;
+        }
+
+      };
+
+	
+	urlService.show_loading=function showRefresh(){
+	  $(".preloader").removeClass("ng-hide").addClass("ng-show");
 	};
 
-	function showRefresh(){
-	  $(".preloader").removeClass("ng-hide").addClass("ng-show");
-	}
-
-	function hideRefresh(){
+	
+	urlService.hide_loading=function hideRefresh(){
 	  $(".preloader").removeClass("ng-show").addClass("ng-hide");
 	  checkStoragePercent().then(function(data){
 		if(data){
@@ -63,10 +68,10 @@
 	  }).catch(function(error){
 		  console.log(error);
 	  });
-	}
+	};
 
 	//trigger event for getting data at intiallly.
-	//$scope.sync();
+    //$scope.sync();
 
 	window.addEventListener('load', function(e) {
 	  if (navigator.onLine) {
@@ -92,7 +97,7 @@
 	   $mdToast.show( $mdToast.simple()
 	  	.textContent(msg)
 	  	.position('top right')
-	  	.hideDelay(3000));
+	  	.hideDelay(5000));
 	}
 
 	function checkNotificationPermission(){
@@ -110,7 +115,9 @@
 	  		  });
 	  		});
 	}  
+
 	checkNotificationPermission();
+
 
   }]
   })

@@ -2389,12 +2389,13 @@ def demo_fun(request):
 
 def get_rm_picklist_data(search_params, user, sub_user):
     from rest_api.views.common import get_local_date
+    from django.db.models import F
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     status_filter = {}
     all_data = OrderedDict()
     lis = {}
-    rm_picklist = RMLocation.objects.filter(stock__sku__user = user.id, status = 0)
+    rm_picklist = RMLocation.objects.filter(stock__sku__user = user.id)
     if 'from_date' in search_params:
       status_filter['material_picklist__jo_material__job_order__creation_date__gte'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
     if 'to_date' in search_params:
@@ -2416,33 +2417,31 @@ def get_rm_picklist_data(search_params, user, sub_user):
             'material_picklist__jo_material__material_code__sku_code',
             'stock__location__location',
             'stock__pallet_detail__pallet_code',
-            'quantity',
+            'mod_quantity',
             'updation_date'
           ]
-    if len(search_params):
+    if len(status_filter):
       rm_picklist = rm_picklist.filter(**status_filter)
+    rm_picklist = rm_picklist.annotate(mod_quantity=F('quantity')-F('reserved'))
+    rm_picklist = rm_picklist.filter(mod_quantity__gt = 0)
     if search_params.get('order_term'):
       order_data = lis[search_params['order_index']]
       if search_params['order_term'] == 'desc':
         order_data = "-%s" % order_data
       rm_picklist = rm_picklist.order_by(order_data)
+    temp_data['recordsTotal'] = rm_picklist.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     data = []
-    for obj in rm_picklist:
-      data.append(OrderedDict((('Jo Code', obj.material_picklist.jo_material.job_order.job_code), 
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    for obj in rm_picklist[start_index:stop_index]:
+      data.append(OrderedDict((('Jo Code', obj.material_picklist.jo_material.job_order.job_code),
         ('Jo Creation Date', get_local_date(user, obj.material_picklist.jo_material.job_order.creation_date)),
         ('FG SKU Code', obj.material_picklist.jo_material.job_order.product_code.sku_code),
         ('RM SKU Code', obj.material_picklist.jo_material.material_code.sku_code),
         ('Location', obj.stock.location.location),
         ('Pallet Code', obj.stock.pallet_detail.pallet_code if obj.stock.pallet_detail else ''),
-        ('Quantity', obj.quantity),
+        ('Quantity', obj.mod_quantity),
         ('Processed Date', get_local_date(user, obj.updation_date)),)))
-    temp_data['recordsTotal'] = len(data)
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    order_term = search_params.get('order_term', '')
-    order_index = search_params.get('order_index', '')
-    start_index = search_params.get('start', 0)
-    stop_index = start_index + search_params.get('length', 0)
     temp_data['aaData'] = data
-    if stop_index:
-        temp_data['aaData'] = data[start_index:stop_index]
     return temp_data

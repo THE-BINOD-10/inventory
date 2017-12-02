@@ -1,4 +1,4 @@
-var ENDPOINT="http://wms.mieone.com:89/";
+var ENDPOINT="https://wms.mieone.com/";
 var APIENDPOINT=ENDPOINT+"rest_api/";
 var GET_SKU_MASTER_CHECKSUM_API=APIENDPOINT+"get_file_checksum/?name=sku_master";
 var GET_SKUDATA_API=APIENDPOINT+"get_file_content/?name=sku_master";

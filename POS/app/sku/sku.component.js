@@ -60,7 +60,7 @@
 		  else
             urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
           /*var oper = self.skus[i].return_status === "true" ? "-=" : "+=";
-          debugger;
+         // debugger;
           self.skus[i].price = self.skus[i].quantity * self.skus[i].unit_price;
           eval('urlService.current_order.summary.total_amount' + oper + 'self.skus[i].price');
           eval('urlService.current_order.summary.subtotal' + oper + 'self.skus[i].price');
@@ -148,13 +148,13 @@
       //change issue type
       /*self.change_issue_type = change_issue_type;
       function change_issue_type(){
-        debugger;
+       // debugger;
         if (urlService.current_order.sku_data.length !== 0) {
            var old_type = urlService.current_order.summary.issue_type;
            var sure = confirm("Changing issue type will discard current orders.\nPress OK to continue.");//self.issue_selected
            sure ? clear_fields() : self.change_issue_type = old_type;
         } else {
-           debugger;
+           //debugger;
         }
       }*/
   
@@ -170,7 +170,7 @@
       function customer_order(data) {
         data["summary"]["nw_status"] = 'online';
         self.submit_enable = true;
-        debugger;
+        
   
         if(navigator.onLine){
   
@@ -186,7 +186,7 @@
                 urlService.current_order.order_id = data.order_ids[0];
                 var state = 1
                 store_data(urlService.current_order, state);
-                debugger;
+                
                 print_order(urlService.current_order, urlService.userData)
                 console.log(data);
                 self.submit_enable = false;

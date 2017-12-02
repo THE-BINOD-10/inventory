@@ -305,8 +305,10 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
         else:
             if mobile: order_detail = order_detail.filter(telephone=mobile)
             if customer_name : order_detail = order_detail.filter(customer_name__icontains=customer_name)
-    else:
+    elif request_from == "preorder":
         order_detail = OrderDetail.objects.filter(user=user_id, quantity__gt=0, order_code='Pre Order')
+    else:
+        order_detail = OrderDetail.objects.filter(user=user_id, status=1, order_code='Pre Order')
     if order_id: order_detail = order_detail.filter(order_id=order_id)
     for order in order_detail:
 

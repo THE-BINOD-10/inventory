@@ -367,7 +367,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       if(data.message) {
 
         Service.stock_transfer = JSON.stringify(data.data.data_dict)
-        $state.go('app.outbound.ViewOrders.ST', {data: Service.stock_transfer})
+        var send_data  = {data: data.data.data_dict}
+        var modalInstance = $modal.open({
+          templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
+          controller: 'StockTransferPOP',
+          controllerAs: 'pop',
+          size: 'lg',
+          backdrop: 'static',
+          keyboard: false,
+          windowClass: 'full-modal',
+          resolve: {
+            items: function () {
+              return send_data;
+            }
+          }
+        });
       }
     })
   }
@@ -406,14 +420,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   }
 
   vm.raise_jo = function() {
-      var data = [];
-      for(var key in vm.selected){
-        if(vm.selected[key]) {
-          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
-          data.push({name: 'id', value: $(temp[""]).attr("name")})
+    var data = [];
+    for(var key in vm.selected){
+      if(vm.selected[key]) {
+        var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+        data.push({name: 'id', value: $(temp[""]).attr("name")})
+      }
+    }
+    var send_data  = {data: data}
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/back/backorder_jo.html',
+      controller: 'BackorderJOPOP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      windowClass: 'full-modal',
+      resolve: {
+        items: function () {
+          return send_data;
         }
       }
-      $state.go("app.outbound.ViewOrders.JO", {data: JSON.stringify(data)});
+    });
   }
 }
 

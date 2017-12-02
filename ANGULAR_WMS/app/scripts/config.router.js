@@ -929,6 +929,21 @@ var app = angular.module('urbanApp')
           template: '<div ui-view></div>',
           abstract: true,
           url: '/outbound',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load([
+                {
+                  serie: true,
+                  files: [
+                             'scripts/controllers/outbound/pop_js/backorder_jo.js',
+                             'scripts/controllers/outbound/pop_js/stock_transfer.js',
+                             'scripts/controllers/outbound/pop_js/picklist.js',
+                             'scripts/controllers/outbound/create_orders/create_stock_orders.js',
+                             'scripts/controllers/outbound/view_orders/custom_orders.js'
+                            ]
+                        }]);
+                    }]
+          }
         })
         .state('app.outbound.CreateOrders', {
           url: '/CreateOrders',
@@ -981,8 +996,6 @@ var app = angular.module('urbanApp')
                   serie: true,
                   files: [
                              'scripts/controllers/outbound/create_orders/create_orders.js',
-                             'scripts/controllers/outbound/pop_js/picklist.js',
-                             'scripts/controllers/outbound/pop_js/common_backorder_po.js',
                              'scripts/controllers/outbound/create_orders/create_stock_orders.js',
                              'scripts/controllers/outbound/view_orders/custom_orders.js'
                             ]
@@ -1016,15 +1029,6 @@ var app = angular.module('urbanApp')
             url: '/CreateTransfer',
             templateUrl: 'views/outbound/toggle/create_stock_transfer.html'
           })
-          .state('app.outbound.ViewOrders.JO', {
-            url: '/RaiseJO?data',
-            templateUrl: 'views/outbound/toggle/back/backorder_jo.html',
-            resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/outbound/pop_js/backorder_jo.js');
-              }]
-            }
-          })
           .state('app.outbound.ViewOrders.PO', {
             url: '/RaisePO?data',
             templateUrl: 'views/outbound/toggle/back/backorder_po.html',
@@ -1057,15 +1061,6 @@ var app = angular.module('urbanApp')
           .state('app.outbound.ViewOrders.InvoiceE', {
             url: '/InvoiceE',
             templateUrl: 'views/outbound/print/empty_invoice.html'
-          })
-          .state('app.outbound.ViewOrders.ST', {
-            url: '/ST?data',
-            templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
-            resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/outbound/pop_js/stock_transfer.js');
-              }]
-            },
           })
         .state('app.outbound.PullConfirmation', {
           url: '/PullConfirmation',

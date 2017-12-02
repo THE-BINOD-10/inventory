@@ -57,6 +57,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
 
+    vm.pop_buttons = false;
+    if (["OrderView", "CustomerOrderView"].indexOf(vm.g_data.view) != -1) {
+      vm.pop_buttons = true;
+    }
+
     vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'special_key': JSON.stringify(vm.special_key)}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -843,26 +848,38 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   }
 
   vm.raise_jo = function() {
-      var data = [];
+    var data = [];
+    if (vm.g_data.view == 'OrderView') {
       for(var key in vm.selected){
         if(vm.selected[key]) {
           var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
           data.push({name: 'id', value: $(temp[""]).attr("name")})
         }
       }
-      //Service.apiCall("generate_order_jo_data/", "POST", data).then(function(data){
-      //  if(data.message) {
+    } else {
+      for(var key in vm.selected){
+        if(vm.selected[key]) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+          data.push({name: 'order_id', value: temp['data_value']})
+        }
+      }
+    }
 
-      //    angular.copy(data.data, vm.model_data);
-      //    angular.forEach(vm.model_data.data, function(temp){
-      //      if(temp.sub_data.length == 0) {
-      //        temp["sub_data"] = [{material_code: "", material_quantity: ""}];
-      //      }
-      //    });
-          $state.go("app.outbound.ViewOrders.JO", {data: JSON.stringify(data)});
-      //  };
-      //});
-      //data = [];
+    var send_data  = {data: data}
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/back/backorder_jo.html',
+      controller: 'BackorderJOPOP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      windowClass: 'full-modal',
+      resolve: {
+        items: function () {
+          return send_data;
+        }
+      }
+    });
   }
 
   vm.get_product_data = function(item, sku_data) {
@@ -927,10 +944,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   /* raise po */
   vm.backorder_po = function() {
     var data = [];
-    for(var key in vm.selected){
-      if(vm.selected[key]) {
-        var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
-        data.push({name: 'id', value: $(temp[""]).attr("name")})
+    if (vm.g_data.view == 'OrderView') {
+      for(var key in vm.selected){
+        if(vm.selected[key]) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+          data.push({name: 'id', value: $(temp[""]).attr("name")})
+        }
+      }
+    } else {
+      for(var key in vm.selected){
+        if(vm.selected[key]) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+          data.push({name: 'order_id', value: temp['data_value']})
+        }
       }
     }
     var send_data  = {data: data}
@@ -990,8 +1016,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         data.push({wms_code: temp['SKU Code'], order_quantity: 1, price: 0})
       }
     }
-    Service.stock_transfer = JSON.stringify(data)
-    $state.go('app.outbound.ViewOrders.ST', {data: Service.stock_transfer})
+
+    var send_data  = {data: data}
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
+      controller: 'StockTransferPOP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      windowClass: 'full-modal',
+      resolve: {
+        items: function () {
+          return send_data;
+        }
+      }
+    });
+    //Service.stock_transfer = JSON.stringify(data)
+    //$state.go('app.outbound.ViewOrders.ST', {data: Service.stock_transfer})
     //$state.go('app.outbound.ViewOrders.ST', )
   }
 

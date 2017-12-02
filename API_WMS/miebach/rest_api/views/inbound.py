@@ -2725,8 +2725,8 @@ def putaway_data(request, user=''):
                         marketplace_data += update_details
 
                     #Collecting data for auto stock allocation
-                    putaway_stock_data.append({'stock': stock_data, 'putaway_qty': float(value),
-                                               'mapping_id': data.purchase_order_id })
+                    putaway_stock_data.append({'sku_id': stock_data.sku_id, 'mapping_id': data.purchase_order_id })
+
                 else:
                     record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
                                    'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
@@ -2740,8 +2740,7 @@ def putaway_data(request, user=''):
                     stock_detail.save()
 
                     #Collecting data for auto stock allocation
-                    putaway_stock_data.append({'stock': stock_detail, 'putaway_qty': float(value),
-                                               'mapping_id': data.purchase_order_id})
+                    putaway_stock_data.append({'sku_id': stock_detail.sku_id, 'mapping_id': data.purchase_order_id})
 
                     update_details = create_update_seller_stock(data, value, user, stock_detail, old_loc)
                     if update_details:
@@ -2768,62 +2767,14 @@ def putaway_data(request, user=''):
         updated_location = update_filled_capacity(list(set(mod_locations)), user.id)
 
         # Auto Allocate Stock
-        if get_misc_value('auto_allocate_stock', user.id) == 'true':
-            order_allocate_stock(request, user, stock_data = putaway_stock_data, mapping_type='PO')
-            # stock_obj = ''
-            # if stock_detail:
-            #     stock_obj = stock_detail
-            # if stock_data:
-            #     stock_obj = stock_data
-            # #update_auto_picklist_location(all_data, user, stock_obj)
-            # update_auto_allocation(user, stock_obj, data.purchase_order.order_id)
-
+        order_allocate_stock(request, user, stock_data = putaway_stock_data, mapping_type='PO')
 
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Putaway Confirmation failed for ' + str(scan_data) + ' error statement is ' + str(e))
+        log.info('Putaway Confirmation failed for ' + str(request.POST.dict()) + ' error statement is ' + str(e))
     return HttpResponse('Updated Successfully')
 
-'''  Aravind code
-def update_auto_picklist_location(putaway={}, user='', stock_obj=''):
-    if stock_obj:
-        open_picklist = Picklist.objects.filter(Q(sku_code = stock_obj.sku.sku_code, order_type='combo') | 
-            Q(order__sku__sku_code = stock_obj.sku.sku_code), status__in = ['batch_open', 'open'], 
-            order__user = user.id, reserved_quantity__gt=0, stock_id = 'NULL').order_by('creation_date')
-        if putaway:
-            putaway_allocated_quantity = putaway.values()[0]
-        for open_picklist_obj in open_picklist:
-            if not putaway_allocated_quantity:
-                break;
-            free_space = int(open_picklist_obj.reserved_quantity)
-            putaway_allocated_quantity = int(abs(free_space - putaway_allocated_quantity))
-            if not putaway_allocated_quantity:
-                open_picklist_obj.update(stock = stock_obj, status = 'Auto Fullfilled')
-            if putaway_allocated_quantity:
-                open_picklist_obj.update(stock = stock_obj, reserved_quantity = putaway_allocated_quantity, 
-                    status = 'Auto Fullfilled')
-                Picklist.objects.create(picklist_number = open_picklist_obj.picklist_number, 
-                    reserved_quantity = free_space, picked_quantity = 0, remarks = open_picklist_obj.remarks, 
-                    status = open_picklist_obj.status, creation_date = open_picklist_obj.creation_date, 
-                    updation_date = open_picklist_obj.updation_date, order_id = open_picklist_obj.order_id,
-                    stock_id = 'NULL', order_type = open_picklist_obj.order_type, sku_code = open_picklist_obj.sku_id)
-
-
-def update_auto_allocation(user='', stock_obj='', order_id=''):
-    #import pdb;pdb.set_trace()
-    order_po = OrderPOMapping.objects.filter(sku=stock_obj.sku.sku_code, sku__user=user, order_id=order_id)
-    if order_po:
-        get_order = Picklist.objects.filters(order_id = order_po, status__in = ['batch_open', 'open']
-            , stock_id = 'NULL')
-        if not get_order:
-            get_order = OrderDetail.objects.filters(order_id = order_po, status = 1)
-
-    if not order_data:
-        get_order = Picklist.objects.filters(status__in = ['batch_open', 'open'], stock_id = 'NULL')
-        if not get_order:
-            get_order = OrderDetail.objects.filters(status = 1)
-'''
 
 @csrf_exempt
 @login_required

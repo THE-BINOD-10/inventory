@@ -3,21 +3,21 @@
   <div>
 
   <!-- <p style="float: left">{{$ctrl.nw_status}}</p> -->
-    <md-switch class="switch"
-              ng-model="$ctrl.qty_switch"
-              aria-label="Switch"
-              style="float: left;margin: 0"
-              ng-init="$ctrl.qty_switch=false">
-    SKU qty accepted zero : {{$ctrl.qty_switch }}
-    </md-switch>
 
   <p style="float: left">{{$ctrl.nw_status}}</p>
+  <span style="float: left;margin:5px;">Return Mode : </span>
   <md-switch class="switch"
               ng-model="$ctrl.return_switch"
               aria-label="Switch"
               style="float: left;margin: 0"
               ng-init="$ctrl.return_switch=false">
-    Enable Return : {{$ctrl.return_switch }}
+  </md-switch>
+  <span style="float: left;margin:5px 5px 5px 30px;">SKU qty accept zero: </span>
+  <md-switch class="switch"
+            ng-model="$ctrl.qty_switch"
+            aria-label="Switch"
+            style="float: left;margin: 0"
+            ng-init="$ctrl.qty_switch=false">
   </md-switch>
 
   <p style='text-align: right'>Issue Type*

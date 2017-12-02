@@ -65,7 +65,7 @@
 				  </div>
 				</div><br><br>
 
-				<div class="orders row" ng-repeat="item in $ctrl.order_details" ng-if="item">
+				<div class="orders row" ng-repeat="item in $ctrl.order_details" ng-if="item.order_id">
 					<div class="col-md-12 alert alert-danger" data-toggle="collapse" data-target="#{{item.order_id}}">
 						<strong>{{item.order_id}}</strong> &nbsp;&nbsp;&nbsp;{{item.order_date}}
 					</div><!--order ids end-->

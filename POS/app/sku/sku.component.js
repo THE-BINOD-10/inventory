@@ -34,6 +34,7 @@
         urlService.current_order.summary.total_amount = 0;
         urlService.current_order.summary.total_quantity = 0;
         urlService.current_order.summary.total_discount = 0;
+        urlService.current_order.summary.total_returned = 0;
         urlService.current_order.summary.subtotal = 0;
         urlService.current_order.summary.sgst = 0;
         urlService.current_order.summary.cgst = 0;
@@ -55,8 +56,10 @@
           urlService.current_order.summary.cgst += (self.skus[i].igst * self.skus[i].quantity);
           urlService.current_order.summary.cgst += (self.skus[i].utgst * self.skus[i].quantity);
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
-		  if (self.skus[i].return_status === "true")
+		  if (self.skus[i].return_status === "true" ) {
 			urlService.current_order.summary.total_discount += 0;
+            urlService.current_order.summary.total_returned += -self.skus[i].unit_price;
+          }
 		  else
             urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
           /*var oper = self.skus[i].return_status === "true" ? "-=" : "+=";
@@ -170,10 +173,8 @@
       function customer_order(data) {
         data["summary"]["nw_status"] = 'online';
         self.submit_enable = true;
-        
   
         if(navigator.onLine){
-  
   
                 data.summary.nw_status = ONLINE;
                 var data = $.param({
@@ -186,7 +187,6 @@
                 urlService.current_order.order_id = data.order_ids[0];
                 var state = 1
                 store_data(urlService.current_order, state);
-                
                 print_order(urlService.current_order, urlService.userData)
                 console.log(data);
                 self.submit_enable = false;
@@ -449,10 +449,9 @@
               cal_total();
             } else {
  
- 
               item.selling_price = item.price;
               self.skus[i].quantity = parseInt(item.quantity);
-              self.skus[i].discount = (item.discount) ? parseInt(item.discount) : 0;
+              self.skus[i].discount = (item.discount && self.skus[i].return_status==='false') ? parseInt(item.discount) : 0;
               self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
               cal_total();
             }

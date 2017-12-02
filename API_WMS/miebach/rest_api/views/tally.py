@@ -34,21 +34,21 @@ class TallyAPI:
         data_list = []
         for sku_master in sku_masters:
             data_dict = {}
-            data_dict['tally_company_name'] = self.tally_dict.get('company_name', '')
-            data_dict['old_item_name'] = ''
-            data_dict['item_name'] = sku_master.sku_desc
-            data_dict['item_alias'] = ''
+            data_dict['tallyCompanyName'] = self.tally_dict.get('company_name', '')
+            data_dict['oldItemName'] = ''
+            data_dict['itemName'] = sku_master.sku_desc
+            data_dict['itemAlias'] = ''
             data_dict['primaryUnitName'] = ''
-            data_dict['stock_group_name'] = self.tally_dict.get('stock_group', '')
-            data_dict['stock_category_name'] = self.tally_dict.get('stock_category', '')
+            data_dict['stockGroupName'] = self.tally_dict.get('stock_group', '')
+            data_dict['stockCategoryName'] = self.tally_dict.get('stock_category', '')
             data_dict['isVatAppl'] = ''
             data_dict['openingQty'] = ''
             data_dict['openingRate'] = sku_master.price
-            data_dict['opening_amt'] = 0
-            data_dict['part_no'] = ''
+            data_dict['openingAmt'] = 0
+            data_dict['partNo'] = ''
             data_dict['description'] = sku_master.sku_desc
-            data_dict['sku_code'] = sku_master.sku_code
-            data_dict['unit_name'] = sku_master.measurement_type
+            data_dict['skuCode'] = sku_master.sku_code
+            data_dict['unitName'] = sku_master.measurement_type
             data_list.append(data_dict)
         return HttpResponse(json.dumps(data_list))
 

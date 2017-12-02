@@ -6,7 +6,7 @@
         <uib-tab index="0" heading="Pre Order">
           <div class="alert alert-success preorder" style="">
             <input class="" id="order_id" ng-model="$ctrl.pre_order_id" ng-keyup ="" placeholder="ORDER ID">
-            <div class="btn btn-danger btn-md" id="preorder_btn" ng-click="$ctrl.get_order_details($ctrl.pre_order_id);">OK</div>
+            <div class="btn btn-danger btn-md" id="preorder_btn" ng-click="$ctrl.get_order_details($ctrl.pre_order_id,'','', 'preorder');">OK</div>
             <br><br>
             <div class="row customer_info">
               <div ng-repeat = "(key, item) in $ctrl.order_details.customer_data" ng-if="item">
@@ -36,7 +36,7 @@
  
               <div class="btn btn-danger btn-md" id="delivered_btn"
                    ng-show="$ctrl.order_details.sku_data.length && $ctrl.order_details.status==='1'"
-                   ng-click="$ctrl.update_order_status($ctrl.order_details.order_id);">Delivered
+                   ng-click="$ctrl.update_order_status($ctrl.order_details.order_id);">Deliver
               </div>
               <!--if no data-->
               <div class="ng-hide no_order">
@@ -49,15 +49,32 @@
         </uib-tab>
 
 
-
-
-
-
-
-
-
         <uib-tab index="1" heading="Return">
-            
+            <div class="alert alert-success preorder" style="">
+                <input class="return_input" id="" ng-model="$ctrl.return_order_id" placeholder="ORDER ID">
+                <input class="return_input" id="mobile" ng-model="$ctrl.return_mobile" placeholder="MOBILE">
+                <input class="return_input" id="name" ng-model="$ctrl.return_name" placeholder="NAME">
+                <div class="btn btn-danger btn-md" id="preorder_btn" ng-click="$ctrl.get_order_details($ctrl.return_order_id, $ctrl.return_mobile, $ctrl.return_name, 'return');">OK</div>
+                <br><br>
+
+				<div class="row customer_info" ng-repeat="order in $ctrl.order_details" ng-if="$index===0">
+				  <div ng-repeat = "(key, item) in order.customer_data" ng-if="item">
+					{{key}} : {{item}}&nbsp;&nbsp;&nbsp;&nbsp;
+				  </div>
+				</div><br><br>
+
+				<div class="orders row" ng-repeat="item in $ctrl.order_details" ng-if="item">
+					<div class="col-md-12 alert alert-danger" data-toggle="collapse" data-target="#{{item.order_id}}">
+						<strong>{{item.order_id}}</strong> &nbsp;&nbsp;&nbsp;{{item.order_date}}
+					</div><!--order ids end-->
+					<div class="" id="{{item.order_id}}">
+
+
+
+					</div><!--each order skus end-->
+				</div><!--orders div-->
+
+            </div><!--alert-->
         </uib-tab>
 
         <uib-tab index="2" heading="Exchange">

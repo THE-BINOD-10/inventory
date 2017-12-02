@@ -40,6 +40,12 @@
         urlService.current_order.summary.utgst = 0;
         for (var i = 0; i < self.skus.length; i++){
 
+		  if(self.skus[i].return_status === "true") {
+			self.skus[i].unit_price = self.skus[i].unit_price < 0 ? self.skus[i].unit_price : -self.skus[i].unit_price;
+			//self.skus[i].price = -self.skus[i].price;
+			self.skus[i].sgst = self.skus[i].cgst = self.skus[i].igst = self.skus[i].utgst = 0;
+		  }
+
           self.skus[i].price = self.skus[i].quantity * self.skus[i].unit_price;
           urlService.current_order.summary.total_amount += self.skus[i].price;
           urlService.current_order.summary.subtotal += self.skus[i].price;
@@ -48,7 +54,21 @@
           urlService.current_order.summary.cgst += (self.skus[i].igst * self.skus[i].quantity);
           urlService.current_order.summary.cgst += (self.skus[i].utgst * self.skus[i].quantity);
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
-          urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
+		  if (self.skus[i].return_status === "true")
+			urlService.current_order.summary.total_discount += 0;
+		  else
+            urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
+          /*var oper = self.skus[i].return_status === "true" ? "-=" : "+=";
+          debugger;
+          self.skus[i].price = self.skus[i].quantity * self.skus[i].unit_price;
+          eval('urlService.current_order.summary.total_amount' + oper + 'self.skus[i].price');
+          eval('urlService.current_order.summary.subtotal' + oper + 'self.skus[i].price');
+          eval('urlService.current_order.summary.sgst' + oper + '(self.skus[i].sgst * self.skus[i].quantity)');
+          eval('urlService.current_order.summary.cgst' + oper + '(self.skus[i].cgst * self.skus[i].quantity)');
+          eval('urlService.current_order.summary.cgst' + oper + '(self.skus[i].igst * self.skus[i].quantity)');
+          eval('urlService.current_order.summary.cgst' + oper + '(self.skus[i].utgst * self.skus[i].quantity)');
+          eval('urlService.current_order.summary.total_quantity' + oper + self.skus[i].quantity);
+          eval('urlService.current_order.summary.total_discount' + oper + (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price);*/
   
           if ((self.skus.length-1) == i) {
   
@@ -62,7 +82,14 @@
         self.table_headers = (self.skus.length > 0) ? true : false;
         console.log("total");
       }
-  
+
+	  //select customer first
+	  self.isCustomer = isCustomer;
+	  function isCustomer() {
+		if(Object.keys(urlService.current_order.customer_data).length===0) {
+			alert("Please select a customer");
+		}
+	  }
       //customer order
       self.submit_data = submit_data;
       function submit_data() {
@@ -142,6 +169,7 @@
       function customer_order(data) {
         data["summary"]["nw_status"] = 'online';
         self.submit_enable = true;
+        debugger;
   
         if(navigator.onLine){
   
@@ -157,6 +185,7 @@
                 urlService.current_order.order_id = data.order_ids[0];
                 var state = 1
                 store_data(urlService.current_order, state);
+                debugger;
                 print_order(urlService.current_order, urlService.userData)
                 console.log(data);
                 self.submit_enable = false;
@@ -229,20 +258,22 @@
               for (var j=0; j< self.skus.length; j++) {
                 if (self.skus[j].sku_code === key) {
                   var quantity = 0;
-                  if (self.issue_selected === "Delivery Challan" && self.skus[j].stock_quantity == self.skus[j].quantity) {
+                  if (!self.return_switch && self.issue_selected === "Delivery Challan" &&
+                                            self.skus[j].stock_quantity == self.skus[j].quantity) {
                     alert("Given Quantity is more than Stock Quantity.");
                   } else {
                     quantity = 1;
                   }
                   self.skus[j].quantity = parseInt(self.skus[j].quantity) + quantity;
-                  self.skus[j].price = self.skus[j].quantity * self.skus[j].unit_price
+                  self.skus[j].price = self.skus[j].quantity * self.skus[j].unit_price;
                   self.repeated_data = true;
+                  self.skus[j].return_status = self.return_switch.toString();
                   break;
                 }
               }
               if (!self.repeated_data) {
 
-                if (self.issue_selected === "Delivery Challan" && filter_data[i].stock_quantity == 0) {
+                if (!self.return_switch && self.issue_selected === "Delivery Challan" && filter_data[i].stock_quantity == 0) {
                   alert("Given SKU stock is empty.");
                   break;
                 } else {
@@ -260,7 +291,7 @@
                                   'selling_price':filter_data[i].selling_price, 'stock_quantity': filter_data[i].stock_quantity,
                                   'sgst': sgst, 'cgst': cgst, 'igst': igst, 'utgst': utgst, 'sgst_percent': filter_data[i].sgst,
                                   'cgst_percent': filter_data[i].cgst, 'igst_percent': filter_data[i].igst,
-                                  'utgst_percent': filter_data[i].utgst});
+                                  'utgst_percent': filter_data[i].utgst, 'return_status': self.return_switch.toString()});
                   urlService.current_order.sku_data = self.skus;
                   break;
   
@@ -416,9 +447,10 @@
               item.total_discount = 0;
               cal_total();
             } else {
-  
+ 
+debugger; 
               item.selling_price = item.price;
-            self.skus[i].quantity = parseInt(item.quantity);
+              self.skus[i].quantity = parseInt(item.quantity);
               self.skus[i].discount = (item.discount) ? parseInt(item.discount) : 0;
               self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
               cal_total();

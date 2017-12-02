@@ -16,7 +16,7 @@
       if(order.length <= 0) {
         return;
       }
-      $http.get( urlService.mainUrl+'/rest_api/print_order_data/?user='+urlService.userData.parent_id+'&order_id='+order).success(function(data, status, headers, config) {
+      $http.get( urlService.mainUrl+'rest_api/print_order_data/?user='+urlService.userData.parent_id+'&order_id='+order).success(function(data, status, headers, config) {
             console.log(data);
             if(data.status == "success") {
               printer.print('/app/views/print.html', {'data': data.data, 'user':urlService.userData, 'print': 'Reprint', 'date':data.data.order_date}); 

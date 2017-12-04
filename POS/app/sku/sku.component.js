@@ -173,10 +173,16 @@
       function customer_order(data) {
         data["summary"]["nw_status"] = 'online';
         self.submit_enable = true;
+
+        //change the status for preorder
+        if(data.summary.issue_type=="Pre Order"){
+            data.status=1;
+        }
   
         if(navigator.onLine){
   
                 data.summary.nw_status = ONLINE;
+
                 var data = $.param({
                         order : JSON.stringify(data)
                     });
@@ -205,7 +211,10 @@
 
           }else{
   
+            //change the network status
             data.summary.nw_status = OFFLINE;
+
+            
             setSynOrdersData(data,self.qty_switch).
                   then(function(data){
   

@@ -504,10 +504,12 @@
 
               		//save order in DB
               		var id=yield DATABASE.sync_orders.
-              						put({order:JSON.stringify(order_data)}).
-              						catch(function(error){
+              						put({"order_id":JSON.stringify(order_data.summary.order_id),
+              							"order":JSON.stringify(order_data)}).then(function(data){
+              								console.log("data saved in local db "+data);	
+              						}).catch(function(error){
 										console.error("error "+error.message);	
-										reject(error.message);
+										return reject(error.message);
 									});
 
               		// update the order id 
@@ -515,16 +517,16 @@
 		            			update(ORDER_ID,{checksum:++order_number[0].checksum});
 		            
 		            //return the order id
-		            return {"order_id":order_number[0].checksum};		
+		            return {"order_id":order_data.summary.order_id};		
 
               	}else{
               		reject(ORDER_ID_UPDATED_ERROR);
               	}
 
                	}).then(function(order_id){
-					resolve(order_id);  
+					return resolve(order_id);  
 				}).catch(function(error){
-					reject(error.message);
+					return reject(error.message);
 				});
         });
 	}
@@ -644,6 +646,24 @@
 						resolve([]);
           			 });	
 		});
+	}
+
+	//get POS sync orders
+	function get_POS_Sync_OrdersByID(pos_sync_orer_id){
+		return new Promise(function(resolve,reject){
+          
+          	DATABASE.sync_orders.where("order_id").equals(pos_sync_orer_id).
+          			 toArray().
+          			 then(function(data){
+                      console.log("get sync pos orders "+data.length);
+                      	if(data.length>0){
+                      		return resolve(data);
+						}else{
+							return resolve([]);
+						}
+          			 });	
+		});
+				
 	}
 
 	//get Customers data
@@ -873,28 +893,51 @@
 	}
 
 	//get the preorder data check with offline preorder delivered 
-	function  getPreOrderDetails_Check_Off_Delivered(order_id){
+	function getPreOrderDetails_Check_Off_Delivered(order_id){
 
 		return new Promise(function(resolve,reject){
-			getPreOrderData(order_id).then(function(result){
+				var order_data="",order_find=false;
+
+
+			 getPreOrderData(order_id).then(function(result){
 				 if(result.length>0){
-	              self.order_details=JSON.parse(result[0].order_data);
-	              getOffline_PreOrder_DeliveredData().then(function(data){
+	              		order_data=JSON.parse(result[0].order_data);
+	              		
+	              		getOffline_PreOrder_DeliveredData().then(function(data){
 
-	              	if(data.length>0 && data.indexOf(order_id)==0){
-	              		return resolve([]);
-	              	}else{
-	              		return resolve(result);
-	              	}
-	              });
-	          	}else{
-	          		return resolve([]);
-	          	}
+		              	if(data.length>0 && data.indexOf(order_id)==0){
+		              		return resolve({});
+		              	}else{
+		              		return resolve(order_data);
+		              	}
+		              });
+
+	          	  }else{
+	          		get_POS_Sync_OrdersByID(order_id).then(function(data){
+	          	  		if(data.length>0){
+	          	  			order_data=JSON.parse(data[0].order);
+	          	  			
+	          	  			getOffline_PreOrder_DeliveredData().then(function(data){
+
+				              	if(data.length>0 && data.indexOf(order_id)==0){
+				              		return resolve({});
+				              	}else{
+				              		return resolve(order_data);
+				              	}
+				            });
+
+	          	  		}else{
+	          	  			
+	          	  			return resolve({});
+	          	  		}
+	          	  	});
+	          	  }
+
 			}).catch(function(error){
-
+				return resolve({});
 			});
 
-		});
+			});	
 	}
 
 	//change the preorder status

@@ -47,8 +47,8 @@
           console.log("offline");
           getPreOrderDetails_Check_Off_Delivered(order_id).then(function(result){
   
-              if(result.length>0){
-              self.order_details=JSON.parse(result[0].order_data);
+              if(Object.keys(result).length>0){
+              self.order_details=result;
               }else{
               self.order_details = {'status':'empty'};
               }

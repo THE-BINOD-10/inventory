@@ -10,7 +10,7 @@ var SPWAN = Dexie.spawn;
        checksum:"name,checksum,path",
        customer:"FirstName,LastName,Number,ID,Address,Email",
        sync_customer:"number,firstName,secondName,mail,user",
-       sync_orders:"++id,order",
+       sync_orders:"order_id,order",
        pre_orders:"order_id,order_data"
        
      });

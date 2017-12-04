@@ -23,6 +23,7 @@ importScripts('/app/data/offlineData.js');
         "app/css/menu.css",
         "app/css/pos.css",
         "app/css/sku.css",
+        "/app/css/receipt.css",
         "bower_components/jquery/dist/jquery.min.js",
         "bower_components/angular/angular.min.js",
         "bower_components/angular-animate/angular-animate.min.js",
@@ -404,7 +405,7 @@ importScripts('/app/data/offlineData.js');
 
 		getUserID().then(function(id){
 					
-			var content="data="+encodeURIComponent(JSON.stringify({'user':id}));		
+			var content="data="+encodeURIComponent(JSON.stringify({'user':id,"request_from":"bulk"}));		
 			getServerData(REQUEST_METHOD_POST,PRE_ORDER_API,content).
   		 					then(function (result) {
   		 			        	if(Object.keys(result).length>0){

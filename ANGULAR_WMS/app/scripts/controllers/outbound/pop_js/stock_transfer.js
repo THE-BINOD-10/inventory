@@ -6,14 +6,22 @@ function StockTransferPOP($scope, $http, $state, $timeout, Session, colFilters, 
   vm.state_data = "";
   vm.service = Service;
 
-  vm.state_data = items.data;
+  vm.state_data = items;
 
   vm.pop_data = {};
   var empty_data = {data: [{wms_code: "", order_quantity: "", price: ""}], warehouse_name: ""};
   angular.copy(empty_data, vm.pop_data);
-  if(vm.state_data)  {
+  if(vm.state_data.data)  {
 
-    angular.copy(vm.state_data, vm.pop_data.data);
+    if (vm.state_data.url) {
+      vm.service.apiCall(vm.state_data.url, 'GET', vm.state_data.data).then(function(data){
+        if(data.message) {
+          angular.copy(data.data.data_dict, vm.pop_data.data);
+        }
+      })
+    } else {
+      angular.copy(vm.state_data.data, vm.pop_data.data);
+    }
   }
 
   vm.isLast = isLast;

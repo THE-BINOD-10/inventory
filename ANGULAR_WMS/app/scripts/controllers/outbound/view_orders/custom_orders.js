@@ -363,11 +363,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         data.push(temp["Order ID"])
       }
     }
-    vm.service.apiCall('get_stock_transfer_details/', 'GET', {order_id: data.join(",")}).then(function(data){
-      if(data.message) {
+    //vm.service.apiCall('get_stock_transfer_details/', 'GET', {order_id: data.join(",")}).then(function(data){
+      //if(data.message) {
 
-        Service.stock_transfer = JSON.stringify(data.data.data_dict)
-        var send_data  = {data: data.data.data_dict}
+        //Service.stock_transfer = JSON.stringify(data.data.data_dict)
+        var send_data  = {data: {order_id: data.join(',')}, url: 'get_stock_transfer_details/'}
         var modalInstance = $modal.open({
           templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
           controller: 'StockTransferPOP',
@@ -382,8 +382,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             }
           }
         });
-      }
-    })
+      //}
+    //})
   }
 
   vm.backorder_po = function() {

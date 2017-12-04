@@ -506,7 +506,6 @@ def validate_jo(all_data, user, jo_reference, vendor_id=''):
 
 def create_order_mapping(user, mapping_id, order_id, mapping_type=''):
     order_ids = str(order_id).split(",")
-    import pdb;pdb.set_trace();
     for order in order_ids:
         order_mapping = OrderMapping.objects.filter(mapping_id=mapping_id, mapping_type=mapping_type, order_id=order)
         if not order_mapping:
@@ -2364,6 +2363,7 @@ def confirm_back_order(request, user=''):
             customer_name = ''
             executive_name = ''
             if order_detail_id:
+                order_detail_id = order_detail_id.split(',')[0]
                 ord_objs = OrderDetail.objects.filter(id = order_detail_id)
                 if ord_objs:
                     if ord_objs[0].customer_name:

@@ -1009,15 +1009,33 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
   vm.raise_stock_transfer = function() {
 
-    var data = []
-    for(var key in vm.selected){
-      if(vm.selected[key]) {
-        var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
-        data.push({wms_code: temp['SKU Code'], order_quantity: 1, price: 0})
+    var data = {};
+    var url = '';
+    if (vm.g_data.view == 'OrderView') {
+      for(var key in vm.selected){
+        if(vm.selected[key]) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+          if (data[temp['SKU Code']]) {
+            data[temp['SKU Code']].order_quantity += temp['Product Quantity'];
+          } else {
+            data[temp['SKU Code']] = {wms_code: temp['SKU Code'], order_quantity: temp['Product Quantity'], price: 0}
+          }
+        }
       }
+      data = Object.values(data);
+    } else {
+      data = [];
+      for(var key in vm.selected){
+        if(vm.selected[key]) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+          data.push(temp['data_value'])
+        }
+      }
+      url = 'get_stock_transfer_details/';
+      data = {order_id: data.join(',')};
     }
 
-    var send_data  = {data: data}
+    var send_data  = {data: data, url: url}
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
       controller: 'StockTransferPOP',

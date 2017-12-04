@@ -2632,7 +2632,7 @@ def putaway_data(request, user=''):
     all_data = {}
     stock_detail = ''
     stock_data = ''
-    putaway_stock_data = []
+    putaway_stock_data = {}
     try:
         myDict = dict(request.POST.iterlists())
         sku_codes = []
@@ -2725,7 +2725,8 @@ def putaway_data(request, user=''):
                         marketplace_data += update_details
 
                     #Collecting data for auto stock allocation
-                    putaway_stock_data.append({'sku_id': stock_data.sku_id, 'mapping_id': data.purchase_order_id })
+                    putaway_stock_data.setdefault(stock_data.sku_id, [])
+                    putaway_stock_data[stock_data.sku_id].append(data.purchase_order_id)
 
                 else:
                     record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
@@ -2740,7 +2741,8 @@ def putaway_data(request, user=''):
                     stock_detail.save()
 
                     #Collecting data for auto stock allocation
-                    putaway_stock_data.append({'sku_id': stock_detail.sku_id, 'mapping_id': data.purchase_order_id})
+                    putaway_stock_data.setdefault(stock_detail.sku_id, [])
+                    putaway_stock_data[stock_detail.sku_id].append(data.purchase_order_id)
 
                     update_details = create_update_seller_stock(data, value, user, stock_detail, old_loc)
                     if update_details:

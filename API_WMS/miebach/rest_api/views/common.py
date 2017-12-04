@@ -4554,6 +4554,16 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
     if get_misc_value('marketplace_model', user.id) == 'true':
         all_zone_mappings = ZoneMarketplaceMapping.objects.filter(zone__user=user.id, status=1)
         is_marketplace_model = True
+
+    fifo_switch = get_misc_value('fifo_switch', user.id)
+    if fifo_switch == "true":
+        order_by = 'receipt_date'
+    else:
+        order_by = 'location_id__pick_sequence'
+    no_stock_switch = False
+    if get_misc_value('no_stock_switch', user.id) == 'true':
+        no_stock_switch = True
+
     for order in order_data:
         picklist_data = copy.deepcopy(PICKLIST_FIELDS)
         #order_quantity = float(order.quantity)
@@ -4566,12 +4576,6 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
             picklist_data['remarks'] = remarks
         else:
             picklist_data['remarks'] = 'Picklist_' + str(picklist_number + 1)
-
-        fifo_switch = get_misc_value('fifo_switch', user.id)
-        if fifo_switch == "true":
-            order_by = 'receipt_date'
-        else:
-            order_by = 'location_id__pick_sequence'
 
         sku_id_stocks = sku_stocks.values('id', 'sku_id').annotate(total=Sum('quantity')).order_by(order_by)
         val_dict = {}
@@ -4610,7 +4614,7 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
             else:
                 order_quantity = float(seller_order.quantity)
             if stock_quantity < float(order_quantity):
-                if get_misc_value('no_stock_switch', user.id) == 'false':
+                if not no_stock_switch:
                     stock_status.append(str(member.sku_code))
                     continue
 
@@ -4844,65 +4848,81 @@ def check_auto_stock_availability(stock, user):
 def order_allocate_stock(request, user, stock_data = [], mapping_type=''):
     """Allocates the newly added stock to Order or Picklist"""
 
-    mapping_dict = {}
-    picklist_order_mapping = {}
-    if mapping_type:
-        mapping_dict = {'mapping_type': mapping_type}
+    try:
+        log.info('Auto Allocate Stock function for %s and params are %s' % (str(user.username), str(stock_data)))
+        picklist_order_mapping = {}
+        all_skus = stock_data.keys()
+        all_order_mapping = OrderMapping.objects.none()
+        if mapping_type:
+            mapping_dict = {'mapping_type': mapping_type, 'order__sku_id__in': all_skus}
+            all_order_mapping = OrderMapping.objects.filter(order__user=user.id, **mapping_dict)
+        auto_allocate = False
+        if get_misc_value('auto_allocate_stock', user.id) == 'true':
+            auto_allocate = True
+        all_open_picklists = Picklist.objects.filter(order__user=user.id, status__icontains='open', stock__isnull=True)
+        sku_combos = SKURelation.objects.none()
 
-    all_skus = map(lambda d: d['sku_id'], stock_data)
-    mapping_dict['order__sku_id__in'] = all_skus
-    all_order_mapping = OrderMapping.objects.filter(order__user=user.id, **mapping_dict)
-    all_open_picklists = Picklist.objects.filter(order__user=user.id, status__icontains='open', stock__isnull=True)
-    sku_combos = SKURelation.objects.filter(id=0)
+        all_open_orders = OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1, sku_id__in=all_skus)
+        all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(order__user=user.id, order__status=1,
+                                                                                      quantity__gt=0,
+                                                                                      order__sku_id__in=all_skus)
+        seller_stocks = SellerStock.objects.filter(seller__user=user.id, quantity__gt=0, stock__sku_id__in=all_skus).\
+                                            values('stock_id', 'seller_id')
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').\
+                                exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).\
+                                filter(sku__user=user.id, quantity__gt=0, sku_id__in=all_skus)
 
-    all_open_orders = OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1, sku_id__in=all_skus)
-    all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(order__user=user.id, order__status=1,
-                                                                                  quantity__gt=0,
-                                                                                  order__sku_id__in=all_skus)
-    seller_stocks = SellerStock.objects.filter(seller__user=user.id, quantity__gt=0, stock__sku_id__in=all_skus).\
-                                        values('stock_id', 'seller_id')
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0,
-                                                                                sku_id__in=all_skus)
+        for sku_id, mapping_ids in stock_data.iteritems():
+            stock = sku_stocks.filter(sku_id=sku_id)
+            sku = stock[0].sku
+            sku_open_orders = all_open_orders.filter(sku_id=sku_id)
+            picklists = all_open_picklists.filter(Q(order__sku_id=sku_id, order_type='') |
+                                                  Q(sku_code=sku.sku_code, order_type='combo')).\
+                                            order_by('order__creation_date')
+            if mapping_ids:
+                picklist_filter = {}
+                order_mapping = all_order_mapping.filter(mapping_id__in=mapping_ids)
+                if order_mapping:
+                    picklist_filter['order_id__in'] = order_mapping.values_list('order_id', flat=True)
+                # If Order Mapping exists then stock allocation for picklists or orders
+                if picklist_filter:
+                    # Stock Allocation for open picklists with NO STOCK
+                    picklist_allocate_stock(request, user, picklists.filter(**picklist_filter), stock)
 
-    for stock_dict in stock_data:
-        stock = sku_stocks.filter(sku__user=user.id, sku_id=stock_dict['sku_id'])
-        sku = stock[0].sku
-        sku_open_orders = all_open_orders.filter(sku_id=sku.id)
-        picklist_filter = {}
-        if stock_dict.get('mapping_id', ''):
-            order_mapping = all_order_mapping.filter(mapping_id=stock_dict['mapping_id'])
-            if order_mapping:
-                picklist_filter['order_id'] = order_mapping[0].order_id
-        picklists = all_open_picklists.filter(Q(order__sku__sku_code=sku.sku_code, order_type='') |
-                                              Q(sku_code=sku.sku_code, order_type='combo')).\
-                                        order_by('order__creation_date')
+                    avail_qty = check_auto_stock_availability(stock, user)
+                    if avail_qty <= 0:
+                        continue
 
-        # If Order Mapping exists then stock allocation for picklists or orders
-        if picklist_filter:
-            # Stock Allocation for open picklists with NO STOCK
-            picklist_allocate_stock(request, user, picklists.filter(**picklist_filter), stock)
+                    # Stock Allocation for open orders in view orders.
+                    open_order_args = [request, user, sku_combos]
+                    open_order_args.append(sku_open_orders.filter(id__in=picklist_filter['order_id__in']))
+                    open_order_args.append(all_seller_orders)
+                    open_order_args.append(seller_stocks)
+                    open_order_args.append(stock)
+                    open_order_args.append(picklist_order_mapping)
+                    picklist_order_mapping = open_orders_allocate_stock(*open_order_args)
 
-            avail_qty = check_auto_stock_availability(stock, user)
-            if avail_qty <= 0:
-                continue
-            # Stock Allocation for open orders in view orders.
-            open_order_args = [request, user, sku_combos, sku_open_orders.filter(id=picklist_filter['order_id'])]
-            open_order_args.append(all_seller_orders, seller_stocks, stock, picklist_order_mapping)
-            picklist_order_mapping = open_orders_allocate_stock(*open_order_args)
+            # If auto stock allocation is on then stock allocation will happen for picklists or orders
+            if auto_allocate:
+                avail_qty = check_auto_stock_availability(stock, user)
+                if avail_qty <= 0:
+                    continue
 
-        # If auto stock allocation is on then stock allocation will happen for picklists or orders
-        if get_misc_value('auto_allocate_stock', user.id) == 'true' :
-            avail_qty = check_auto_stock_availability(stock, user)
-            if avail_qty <= 0:
-                continue
+                # Stock Allocation for open picklists with NO STOCK
+                if picklists:
+                    picklist_allocate_stock(request, user, picklists, stock)
 
-            # Stock Allocation for open picklists with NO STOCK
-            picklist_allocate_stock(request, user, picklists.exclude(**picklist_filter), stock)
+                if avail_qty <= 0:
+                    continue
 
-            if avail_qty <= 0:
-                continue
-            # Stock Allocation for open orders in view orders.
-            open_order_args = [request, user, sku_combos, sku_open_orders, all_seller_orders, seller_stocks]
-            open_order_args.append(stock)
-            open_order_args.append(picklist_order_mapping)
-            picklist_order_mapping = open_orders_allocate_stock(*open_order_args)
+                # Stock Allocation for open orders in view orders.
+                open_order_args = [request, user, sku_combos, sku_open_orders, all_seller_orders, seller_stocks]
+                open_order_args.append(stock)
+                open_order_args.append(picklist_order_mapping)
+                picklist_order_mapping = open_orders_allocate_stock(*open_order_args)
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Auto Allocate Stock function failed for %s and params are %s and error statement is %s' %
+                 (str(user.username), str(stock_data), str(e)))

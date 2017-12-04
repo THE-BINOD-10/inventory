@@ -4380,8 +4380,7 @@ def get_shipment_quantity_for_awb(user, all_orders, sku_grouping=False):
                 dis_quantity = dis_pick[0].order.quantity
         if customer_picklists.filter(**ship_dict).exclude(order_type='combo'):
             all_data[ind]['picked'] = customer_picklists.filter(**ship_dict).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
-        shipping_quantity = OrderIMEIMapping.objects.filter(order_id__in=all_orders.filter(sku__sku_code=all_data[ind]['sku__sku_code']).values_list('id'), status=1).count()
-        all_data[ind]['shipping_quantity'] = shipping_quantity
+        all_data[ind]['shipping_quantity'] = all_data[ind]['picked']
         shipped = ShipmentInfo.objects.filter(**ship_dict).aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
         if shipped:
             shipped = shipped - dis_quantity

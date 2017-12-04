@@ -2020,10 +2020,9 @@ def get_awb_view_shipment_info(request, user=''):
     sku_grouping = request.GET.get('sku_grouping', 'false')
     datatable_view = request.GET.get('view', '')
     search_params = {'user': user.id}
-    ship_status = 'Out for Delivery'
     awb_no = request.GET.get('awb_no','');
     if awb_no:
-        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, status = 2).values('original_order_id')
+        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no).values('original_order_id')
         if order_awb_map:
             data['order_id'] = order_awb_map[0]['original_order_id']
         else:
@@ -2032,9 +2031,12 @@ def get_awb_view_shipment_info(request, user=''):
         order_id_search = ''.join(re.findall('\d+', data['order_id']))
         order_code_search = ''.join(re.findall('\D+', data['order_id']))
         all_orders = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) | Q(original_order_id=order_id_val), user=user.id)
-        tracking = ShipmentTracking.objects.filter(shipment__order__in=all_orders, ship_status=ship_status, shipment__order__user=user.id)
-        if not tracking:
-            ship_info_id = ShipmentInfo.objects.filter(order__in=all_orders)
+
+        tracking = ShipmentTracking.objects.filter(shipment__order__in=all_orders, 
+            ship_status__in=['Dispatched', 'In Transit'], shipment__order__user=user.id).values_list('shipment_id')
+        if len(tracking):
+            ship_info_id = ShipmentTracking.objects.create(shipment_id=ship_info.id, 
+                ship_status='Out for Delivery', creation_date=datetime.datetime.now())
             for ship_info in ship_info_id:
                 ShipmentTracking.objects.create(shipment_id=ship_info.id, ship_status=ship_status,
                                             creation_date=datetime.datetime.now())
@@ -2042,10 +2044,9 @@ def get_awb_view_shipment_info(request, user=''):
                 order_shipment = ship_info.order_packaging.order_shipment
                 order_shipment.shipment_reference = orig_ship_ref
                 order_shipment.save()
-            order_awb_map.update(status = 3)
         else:
-            return HttpResponse(json.dumps({'status': False, 'message' : 'Already Out for Delivery'}))
-    return HttpResponse(json.dumps({'status': True, 'message' : 'Shipped Successfully' }))
+            return HttpResponse(json.dumps({'status': False, 'message' : 'AWB No. Not Found'}))
+    return HttpResponse(json.dumps({'status': True, 'message' : 'Shipped - Out for Delivery Successfully' }))
 
 @csrf_exempt
 @get_admin_user
@@ -2069,10 +2070,9 @@ def get_awb_shipment_details(request, user=''):
         all_orders = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) | Q(original_order_id=order_id_val), user=user.id)
         ship_no = get_shipment_number(user)
         ship_orders_data = get_shipment_quantity_for_awb(user, all_orders)
-        import pdb;pdb.set_trace()
         if ship_orders_data:
             result = { 'data': ship_orders_data, 'shipment_id': '', 'display_fields': '', 'marketplace': '', 'shipment_number': ship_no }
-            result_data = awb_direct_insert_shipment_info(result, user)
+            result_data = awb_direct_insert_shipment_info(result, order_awb_map, user)
             order_awb_map.update(status = 2)
             status = result_data['status']
             message = result_data['message']
@@ -2091,7 +2091,7 @@ def awb_create_shipment(request, user):
     data.save()
     return data
 
-def awb_direct_insert_shipment_info(data_params, user=''):
+def awb_direct_insert_shipment_info(data_params, order_awb_obj, user=''):
     ''' Create Shipment Code '''
     ship_data = data_params['data'];
     user_profile = UserProfile.objects.filter(user_id=user.id)
@@ -2102,6 +2102,8 @@ def awb_direct_insert_shipment_info(data_params, user=''):
         log.debug(traceback.format_exc())
         log.info('Create shipment failed for params ' + str(data) + ' error statement is ' +str(e))
         return 'Create shipment Failed'
+    status = False
+    message = 'Shipment Creation Failed'
     try:
         shipped_orders_dict = {}
         for i in range(0, len(ship_data)):
@@ -2175,6 +2177,17 @@ def awb_direct_insert_shipment_info(data_params, user=''):
                 log.info('Shipemnt Info dict is '+ str(shipment_data))
                 ship_quantity = ShipmentInfo.objects.filter(order_id=order_id).\
                                                      aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
+                if not ship_quantity:
+                    ship_quantity = 0
+                if order_quantity == ship_quantity:
+                    order_awb_map = OrderAwbMap.objects.filter(original_order_id = order_detail.original_order_id)
+                    if len(order_awb_map):
+                        order_awb_map.update(status = 2)
+                    else:
+                        original_order_id = str(order_detail.order_code) + str(order_detail.order_id)
+                        order_awb_map = OrderAwbMap.objects.filter(original_order_id = original_order_id)
+                        if len(order_awb_map):
+                            order_awb_map.update(status = 2)
                 if ship_quantity >= int(order_detail.quantity):
                     order_detail.status = 2
                     order_detail.save()
@@ -2185,13 +2198,18 @@ def awb_direct_insert_shipment_info(data_params, user=''):
         if shipped_orders_dict:
             log.info('Order Status update call for user '+ str(user.username) + ' is ' + str(shipped_orders_dict))
             check_and_update_order_status(shipped_orders_dict, user)
+            message = 'Shipment Created Successfully'
+            status = True
+        else:
+            status = False
+            message = 'Shipment Creation Failed'
         # Until Here
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Shipment info saving is failed for params ' + str(data) + ' error statement is ' +str(e))
 
-    return { 'status' : True , 'message' : 'Shipment Created Successfully' }
+    return { 'status' : status , 'message' : message }
 
 @csrf_exempt
 @get_admin_user

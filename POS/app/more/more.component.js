@@ -38,7 +38,7 @@
             $(".preloader").removeClass("ng-show").addClass("ng-hide");
             $(".no_order").removeClass("ng-hide");
             $(".already_delivered").removeClass("ng-hide");
-            self.order_details.status==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success");
+            self.order_details.status.toString()==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success").removeClass("ng-hide");
 
        }).then(function() {
        });
@@ -48,18 +48,19 @@
           getPreOrderDetails_Check_Off_Delivered(order_id).then(function(result){
   
               if(Object.keys(result).length>0){
-              self.order_details=result;
+                self.order_details=result;
               }else{
               self.order_details = {'status':'empty'};
               }
               self.isDisabled = false;
 
+            $scope.$apply(function() { 
+
               $(".preloader").removeClass("ng-show").addClass("ng-hide");
               $(".no_order").removeClass("ng-hide");
               $(".already_delivered").removeClass("ng-hide");
              
-              $scope.$apply(function() { 
-              self.order_details.status==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success");
+              self.order_details.status.toString()==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success").removeClass("ng-hide");
               });
 
           });
@@ -98,12 +99,19 @@
               setPreOrderStatus(order_id,0).
                             then(function(data){
 
-                              $(".preloader").removeClass("ng-show").addClass("ng-hide");
+                                 $scope.$apply(function() {  
+                                  $(".preloader").removeClass("ng-show").addClass("ng-hide");
                                   self.isDisabled = true;
                                   $("#delivered_btn").removeClass("btn-danger").addClass("btn-success");
+                                });
+                            
                             }).catch(function(error){
+
+                                $scope.$apply(function() { 
                                   $(".preloader").removeClass("ng-show").addClass("ng-hide");
                                   alert(error);
+                                });
+
                             });
           }
         }//if

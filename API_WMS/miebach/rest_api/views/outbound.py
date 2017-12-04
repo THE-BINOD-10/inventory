@@ -2035,10 +2035,10 @@ def get_awb_view_shipment_info(request, user=''):
         tracking = ShipmentTracking.objects.filter(shipment__order__in=all_orders, 
             ship_status__in=['Dispatched', 'In Transit'], shipment__order__user=user.id).values_list('shipment_id')
         if len(tracking):
-            ship_info_id = ShipmentTracking.objects.create(shipment_id=ship_info.id, 
-                ship_status='Out for Delivery', creation_date=datetime.datetime.now())
+            ship_info_id = ShipmentInfo.objects.filter(order__in=all_orders, order__user = user.id, 
+                id__in = tracking)
             for ship_info in ship_info_id:
-                ShipmentTracking.objects.create(shipment_id=ship_info.id, ship_status=ship_status,
+                ShipmentTracking.objects.create(shipment_id=ship_info.id, ship_status='Out for Delivery',
                                             creation_date=datetime.datetime.now())
                 orig_ship_ref = ship_info.order_packaging.order_shipment.shipment_reference
                 order_shipment = ship_info.order_packaging.order_shipment

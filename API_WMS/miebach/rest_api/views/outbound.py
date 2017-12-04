@@ -323,6 +323,9 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 @csrf_exempt
 def get_customer_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
+    gateout = request.POST.get('gateout', '')
+    if gateout:
+        gateout = int(gateout)
     lis = ['Shipment Number', 'Customer ID', 'Customer Name', 'Total Quantity']
     all_data = OrderedDict()
     if search_term:
@@ -336,8 +339,16 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
     for result in results:
         tracking = ShipmentTracking.objects.filter(shipment_id=result.id, shipment__order__user=user.id).order_by('-creation_date').\
                                             values_list('ship_status', flat=True)
-        if tracking and tracking[0] == 'Delivered':
+
+        if not len(tracking):
             continue
+        if gateout:
+            if tracking and tracking[0] != 'Out for Delivery':
+                continue
+        else:
+            if tracking and tracking[0] in ['Delivered', 'Out for Delivery']:
+                continue
+
         cond = (result.order_shipment.shipment_number, result.order.customer_id, result.order.customer_name)
         all_data.setdefault(cond, 0)
         all_data[cond] += result.shipping_quantity
@@ -355,7 +366,39 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
-
+@csrf_exempt
+@get_admin_user
+def get_awb_view_shipment_info(request, user=''):
+    data = {}
+    sku_grouping = request.GET.get('sku_grouping', 'false')
+    datatable_view = request.GET.get('view', '')
+    search_params = {'user': user.id}
+    ship_status = 'Out for Delivery'
+    awb_no = request.GET.get('awb_no','');
+    if awb_no:
+        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, status = 2).values('original_order_id')
+        if order_awb_map:
+            data['order_id'] = order_awb_map[0]['original_order_id']
+        else:
+            return HttpResponse(json.dumps({'status': False, 'message' : 'Incorrect AWB No.'}))
+        order_id_val = data['order_id']
+        order_id_search = ''.join(re.findall('\d+', data['order_id']))
+        order_code_search = ''.join(re.findall('\D+', data['order_id']))
+        all_orders = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) | Q(original_order_id=order_id_val), user=user.id)
+        tracking = ShipmentTracking.objects.filter(shipment__order__in=all_orders, ship_status=ship_status, shipment__order__user=user.id)
+        if not tracking:
+            ship_info_id = ShipmentInfo.objects.filter(order__in=all_orders)
+            for ship_info in ship_info_id:
+                ShipmentTracking.objects.create(shipment_id=ship_info.id, ship_status=ship_status,
+                                            creation_date=datetime.datetime.now())
+                orig_ship_ref = ship_info.order_packaging.order_shipment.shipment_reference
+                order_shipment = ship_info.order_packaging.order_shipment
+                order_shipment.shipment_reference = orig_ship_ref
+                order_shipment.save()
+            order_awb_map.update(status = 3)
+        else:
+            return HttpResponse(json.dumps({'status': False, 'message' : 'Already Out for Delivery'}))
+    return HttpResponse(json.dumps({'status': True, 'message' : 'Shipped Successfully' }))
 
 def create_temp_stock(sku_code, zone, quantity, stock_detail, user):
     if not quantity:
@@ -1972,13 +2015,192 @@ def get_picked_data(data_id, user, marketplace=''):
 
 @csrf_exempt
 @get_admin_user
-def get_customer_sku(request, user=''):
+def get_awb_view_shipment_info(request, user=''):
+    data = {}
+    sku_grouping = request.GET.get('sku_grouping', 'false')
+    datatable_view = request.GET.get('view', '')
+    search_params = {'user': user.id}
+    ship_status = 'Out for Delivery'
+    awb_no = request.GET.get('awb_no','');
+    if awb_no:
+        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, status = 2).values('original_order_id')
+        if order_awb_map:
+            data['order_id'] = order_awb_map[0]['original_order_id']
+        else:
+            return HttpResponse(json.dumps({'status': False, 'message' : 'Incorrect AWB No.'}))
+        order_id_val = data['order_id']
+        order_id_search = ''.join(re.findall('\d+', data['order_id']))
+        order_code_search = ''.join(re.findall('\D+', data['order_id']))
+        all_orders = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) | Q(original_order_id=order_id_val), user=user.id)
+        tracking = ShipmentTracking.objects.filter(shipment__order__in=all_orders, ship_status=ship_status, shipment__order__user=user.id)
+        if not tracking:
+            ship_info_id = ShipmentInfo.objects.filter(order__in=all_orders)
+            for ship_info in ship_info_id:
+                ShipmentTracking.objects.create(shipment_id=ship_info.id, ship_status=ship_status,
+                                            creation_date=datetime.datetime.now())
+                orig_ship_ref = ship_info.order_packaging.order_shipment.shipment_reference
+                order_shipment = ship_info.order_packaging.order_shipment
+                order_shipment.shipment_reference = orig_ship_ref
+                order_shipment.save()
+            order_awb_map.update(status = 3)
+        else:
+            return HttpResponse(json.dumps({'status': False, 'message' : 'Already Out for Delivery'}))
+    return HttpResponse(json.dumps({'status': True, 'message' : 'Shipped Successfully' }))
 
+@csrf_exempt
+@get_admin_user
+def get_awb_shipment_details(request, user=''):
+    data = {}
+    sku_grouping = request.GET.get('sku_grouping', 'false')
+    datatable_view = request.GET.get('view', '')
+    search_params = {'user': user.id}
+    awb_no = request.GET.get('awb_no','');
+    if awb_no:
+        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, status = 1).values('original_order_id');
+        if order_awb_map:
+            data['order_id'] = order_awb_map[0]['original_order_id']
+        else:
+            return HttpResponse(json.dumps({'status': False , 'message' : 'Incorrect AWB No.'}))
+        result_data = 'No Orders found'
+        status = False
+        order_id_val = data['order_id']
+        order_id_search = ''.join(re.findall('\d+', data['order_id']))
+        order_code_search = ''.join(re.findall('\D+', data['order_id']))
+        all_orders = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) | Q(original_order_id=order_id_val), user=user.id)
+        ship_no = get_shipment_number(user)
+        ship_orders_data = get_shipment_quantity_for_awb(user, all_orders)
+        import pdb;pdb.set_trace()
+        if ship_orders_data:
+            result = { 'data': ship_orders_data, 'shipment_id': '', 'display_fields': '', 'marketplace': '', 'shipment_number': ship_no }
+            result_data = awb_direct_insert_shipment_info(result, user)
+            order_awb_map.update(status = 2)
+            status = result_data['status']
+            message = result_data['message']
+    return HttpResponse(json.dumps({'status': status , 'message' : message }))
+
+def awb_create_shipment(request, user):
+    data_dict = copy.deepcopy(ORDER_SHIPMENT_DATA)
+    for key, value in request.iteritems():
+        if key in ('customer_id', 'marketplace'):
+            continue
+        elif key in ORDER_SHIPMENT_DATA.keys():
+            data_dict[key] = value
+    data_dict['user'] = user.id
+    data_dict['shipment_date'] = str(datetime.datetime.now());
+    data = OrderShipment(**data_dict)
+    data.save()
+    return data
+
+def awb_direct_insert_shipment_info(data_params, user=''):
+    ''' Create Shipment Code '''
+    ship_data = data_params['data'];
+    user_profile = UserProfile.objects.filter(user_id=user.id)
+    try:
+        order_shipment = awb_create_shipment(data_params, user)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Create shipment failed for params ' + str(data) + ' error statement is ' +str(e))
+        return 'Create shipment Failed'
+    try:
+        shipped_orders_dict = {}
+        for i in range(0, len(ship_data)):
+            if not ship_data[i]['shipping_quantity']:
+                continue
+            order_ids = ship_data[i]['id']
+            if not isinstance(order_ids, list):
+                order_ids = [order_ids]
+            received_quantity = int(ship_data[i]['shipping_quantity'])
+            for order_id in order_ids:
+                if received_quantity <= 0:
+                    break
+                invoice_number = ''
+                data_dict = copy.deepcopy(ORDER_PACKAGING_FIELDS)
+                shipment_data = copy.deepcopy(SHIPMENT_INFO_FIELDS)
+                order_detail = OrderDetail.objects.get(id=order_id, user = user.id)
+
+                for key, value in ship_data[i].iteritems():
+                    if key in data_dict:
+                        data_dict[key] = value
+                    if key in shipment_data and key !='id':
+                        shipment_data[key] = value
+
+                # Need to comment below 3 lines if shipment scan is ready
+                if 'imei_number' in ship_data[i].keys() and ship_data[i]['imei_number']:
+                    shipped_orders_dict = insert_order_serial([], {'wms_code': order_detail.sku.wms_code, 'imei': ship_data[i]['imei_number']},
+                                                              order=order_detail, shipped_orders_dict=shipped_orders_dict)
+                #Until Here
+                order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id, order_shipment__user=user.id)
+                if not order_pack_instance:
+                    data_dict['order_shipment_id'] = order_shipment.id
+                    data = OrderPackaging(**data_dict)
+                    data.save()
+                else:
+                    data = order_pack_instance[0]
+                picked_orders = Picklist.objects.filter(order_id=order_id, status__icontains='picked', order__user=user.id)
+                order_quantity = int(order_detail.quantity)
+                if order_quantity == 0:
+                    continue
+                elif order_quantity < received_quantity:
+                    shipped_quantity = order_quantity
+                    received_quantity -= order_quantity
+                elif order_quantity >= received_quantity:
+                    shipped_quantity = received_quantity
+                    received_quantity = 0
+
+                shipment_data['order_shipment_id'] = order_shipment.id
+                shipment_data['order_packaging_id'] = data.id
+                shipment_data['order_id'] = order_id
+                shipment_data['shipping_quantity'] = shipped_quantity
+                shipment_data['invoice_number'] = invoice_number
+                ship_data = ShipmentInfo(**shipment_data)
+                ship_data.save()
+
+                default_ship_track_status = 'Dispatched'
+                tracking = ShipmentTracking.objects.filter(shipment_id=ship_data.id, shipment__order__user=user.id,
+                 ship_status=default_ship_track_status)
+                if not tracking:
+                    ShipmentTracking.objects.create(shipment_id=ship_data.id, ship_status = default_ship_track_status,
+                                                        creation_date=datetime.datetime.now())
+
+                # Need to comment below lines if shipment scan is ready
+                if shipped_orders_dict.has_key(int(order_id)):
+                    shipped_orders_dict[int(order_id)].setdefault('quantity', 0)
+                    shipped_orders_dict[int(order_id)]['quantity'] += float(shipped_quantity)
+                else:
+                    shipped_orders_dict[int(order_id)] = {}
+                    shipped_orders_dict[int(order_id)]['quantity'] = float(shipped_quantity)
+                # Until Here
+
+                log.info('Shipemnt Info dict is '+ str(shipment_data))
+                ship_quantity = ShipmentInfo.objects.filter(order_id=order_id).\
+                                                     aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
+                if ship_quantity >= int(order_detail.quantity):
+                    order_detail.status = 2
+                    order_detail.save()
+                    for pick_order in picked_orders:
+                        setattr(pick_order, 'status', 'dispatched')
+                        pick_order.save()
+        # Need to comment below lines if shipment scan is ready
+        if shipped_orders_dict:
+            log.info('Order Status update call for user '+ str(user.username) + ' is ' + str(shipped_orders_dict))
+            check_and_update_order_status(shipped_orders_dict, user)
+        # Until Here
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Shipment info saving is failed for params ' + str(data) + ' error statement is ' +str(e))
+
+    return { 'status' : True , 'message' : 'Shipment Created Successfully' }
+
+@csrf_exempt
+@get_admin_user
+def get_customer_sku(request, user=''):
     data = []
     sku_grouping = request.GET.get('sku_grouping', 'false')
     datatable_view = request.GET.get('view', '')
     search_params = {'user': user.id}
-
+    headers = ('', 'SKU Code', 'Order Quantity', 'Shipping Quantity', 'Pack Reference', '')
     request_data = dict(request.GET.iterlists())
     if 'order_id' in request_data.keys() and not datatable_view == 'ShipmentPickedAlternative':
         search_params['id__in'] = request_data['order_id']
@@ -3226,7 +3448,7 @@ def insert_shipment_info(request, user=''):
                 invoice_number = ''
                 data_dict = copy.deepcopy(ORDER_PACKAGING_FIELDS)
                 shipment_data = copy.deepcopy(SHIPMENT_INFO_FIELDS)
-                order_detail = OrderDetail.objects.get(id=order_id)
+                order_detail = OrderDetail.objects.get(id=order_id, user = user.id)
 
                 for key, value in myDict.iteritems():
                     if key in data_dict:
@@ -3266,6 +3488,22 @@ def insert_shipment_info(request, user=''):
                 ship_data = ShipmentInfo(**shipment_data)
                 ship_data.save()
 
+                default_ship_track_status = 'Dispatched'
+                tracking = ShipmentTracking.objects.filter(shipment_id=ship_data.id, shipment__order__user=user.id,
+                ship_status=default_ship_track_status)
+                if not tracking:
+                    ShipmentTracking.objects.create(shipment_id=ship_data.id, ship_status = default_ship_track_status,
+                        creation_date=datetime.datetime.now())
+                order_awb_map = OrderAwbMap.objects.filter(original_order_id = order_detail.original_order_id)
+                if len(order_awb_map):
+                    order_awb_map.update(status = 2)
+                else:
+                    original_order_id = str(order_detail.order_code) + str(order_detail.order_id)
+                    order_awb_map = OrderAwbMap.objects.filter(original_order_id = original_order_id)
+                    if len(order_awb_map):
+                        order_awb_map.update(status = 2)
+
+
                 # Need to comment below lines if shipment scan is ready
                 if shipped_orders_dict.has_key(int(order_id)):
                     shipped_orders_dict[int(order_id)].setdefault('quantity', 0)
@@ -3294,7 +3532,7 @@ def insert_shipment_info(request, user=''):
         log.debug(traceback.format_exc())
         log.info('Shipment info saving is failed for params ' + str(request.POST.dict()) + ' error statement is ' +str(e))
 
-    return HttpResponse('Shipment Created Successfully')
+    return HttpResponse(json.dumps({ 'status' : True , 'message' : 'Shipment Created Successfully' }))
 
 
 @csrf_exempt
@@ -3305,6 +3543,9 @@ def shipment_info_data(request, user=''):
     data = []
     customer_id = request.GET['customer_id']
     shipment_number = request.GET['shipment_number']
+    gateout = request.GET.get('gateout', '')
+    if gateout:
+        gateout = int(gateout)
     ship_reference = ''
     shipment_orders = ShipmentInfo.objects.filter(order__customer_id=customer_id, order_shipment__shipment_number=shipment_number,
                                                   order_shipment__user=user.id)
@@ -3315,8 +3556,12 @@ def shipment_info_data(request, user=''):
                                             values_list('ship_status', flat=True)
         if tracking:
             status = tracking[0]
-            if status == 'Delivered':
-                continue
+            if gateout:
+                if status != 'Delivered' and status != 'Out for Delivery':
+                    continue
+            else:
+                if not (status != 'Delivered' and status != 'Out for Delivery'):
+                    continue
         ship_status =  ship_status[ship_status.index(status):]
         data.append({'id': orders.id, 'order_id': orders.order.order_id, 'sku_code': orders.order.sku.sku_code,
                      'ship_quantity': orders.shipping_quantity, 'pack_reference': orders.order_packaging.package_reference,
@@ -3338,6 +3583,8 @@ def update_shipment_status(request, user=''):
         if not tracking:
             ShipmentTracking.objects.create(shipment_id=shipment_info.id, ship_status=data_dict['status'][i],
                                             creation_date=datetime.datetime.now())
+        else:
+            tracking.update(ship_status=data_dict['status'][i])
 
         orig_ship_ref = shipment_info.order_packaging.order_shipment.shipment_reference
         if ship_reference:
@@ -3346,7 +3593,7 @@ def update_shipment_status(request, user=''):
                 order_shipment.shipment_reference = ship_reference
                 order_shipment.save()
 
-    return HttpResponse("Updated Successfully")
+    return HttpResponse(json.dumps({'status' : True , 'message' : "Updated Successfully"}));
 
 @csrf_exempt
 @login_required

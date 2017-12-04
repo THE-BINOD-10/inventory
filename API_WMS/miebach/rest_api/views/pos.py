@@ -147,7 +147,12 @@ def add_customer(request):
 
     return HttpResponse("success")
 
-def picklist_creation(request, stock_detail, stock_quantity, order_detail, picklist_number, stock_diff, item, user):
+def picklist_creation(request, stock_detail, stock_quantity, order_detail, picklist_number, stock_diff, item, user, invoice_number):
+
+   #seller_order_summary object creation
+   seller_order_summary = SellerOrderSummary.objects.create(pick_number=1, seller_order=None, order=order_detail,\
+                                                            picklist=None, quantity=order_detail.quantity,\
+                                                            invoice_number=invoice_number)
 
    if stock_quantity < int(order_detail.quantity):
        picklist = Picklist.objects.create(picklist_number=picklist_number, reserved_quantity=0, picked_quantity=stock_diff,
@@ -231,9 +236,10 @@ def customer_order(request):
                                                            status=status, email_id=cust_dict.get('Email',''), unit_price=item['unit_price'])
 
                         if status == 0:
-                            stock_diff = item['quantity']
+                            stock_diff, invoice_number = item['quantity'], order['summary']['invoice_number']+str(order_id)
                             stock_detail, stock_quantity, sku_code = get_sku_stock(request, sku, sku_stocks, user_id, val_dict, sku_id_stocks)
-                            picklist_creation(request, stock_detail, stock_quantity, order_detail, picklist_number, stock_diff, item, user)
+                            picklist_creation(request, stock_detail, stock_quantity, order_detail, picklist_number, stock_diff, \
+                                              item, user, invoice_number)
 
                     # return item : increase stock
                     else:
@@ -241,6 +247,11 @@ def customer_order(request):
                         sku_stocks = sku_stocks[0] if sku_stocks else StockDetail.objects.create(sku__user=user_id, sku_id=sku.id)
                         sku_stocks.quantity = int(sku_stocks.quantity) + item['quantity']
                         sku_stocks.save()
+                        #add item to OrderReturns
+                        order_return = OrderReturns.objects.create(return_id='', order=None, seller_order=None,\
+                                                                   quantity=item['quantity'], damaged_quantity=item['quantity'],\
+                                                                   sku=sku, reason='Not fit/Damaged', status='returned',\
+                                                                   return_type="offline")
 
     return HttpResponse(json.dumps({'order_ids': order_ids}))
 
@@ -391,7 +402,8 @@ def update_order_status(request):
         val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
         val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
 
+        invoice_number = 'TI/%s/%s' %(order.creation_date.strftime('%m%y'), order.order_id)
         stock_detail, stock_quantity, sku_code = get_sku_stock(request, sku, sku_stocks, user_id, val_dict, sku_id_stocks)
-        picklist_creation(request, stock_detail, stock_quantity, order, picklist_number, stock_diff, item, user)
+        picklist_creation(request, stock_detail, stock_quantity, order, picklist_number, stock_diff, item, user, invoice_number)
 
   return HttpResponse("Success")

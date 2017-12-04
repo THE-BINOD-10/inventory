@@ -58,7 +58,7 @@
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
 		  if (self.skus[i].return_status === "true" ) {
 			urlService.current_order.summary.total_discount += 0;
-            urlService.current_order.summary.total_returned += -self.skus[i].unit_price;
+            urlService.current_order.summary.total_returned += -self.skus[i].price;
           }
 		  else
             urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
@@ -82,6 +82,8 @@
           }
         }
         urlService.current_order.summary.issue_type = self.issue_selected;
+        var date=new Date();
+        urlService.current_order.summary.invoice_number = "TI/"+(date.getMonth()+1)+date.getFullYear().toString().substr(2)+"/";
   
         self.table_headers = (self.skus.length > 0) ? true : false;
         console.log("total");
@@ -142,7 +144,7 @@
         urlService.current_order = {"customer_data" : {"FirstName": "", "Number": "", "value": ""},
                                     "sku_data" : [],
                                     "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
-                                    "issue_type": self.issue_selected, "order_id": 0, "nw_status": "online"},
+                                    "issue_type": self.issue_selected, "order_id": 0, "nw_status": "online", 'invoice_number': ''},
                                     "money_data": {}};
         self.skus= urlService.current_order.sku_data;
         manageData.prepForBroadcast("clear");
@@ -246,7 +248,7 @@
         urlService.current_order = {"customer_data" : {},
                                     "sku_data" : [],
                                     "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
-                                    "issue_type": self.issue_selected,"order_id":0, "nw_status":"online"},
+                                    "issue_type": self.issue_selected,"order_id":0, "nw_status":"online", 'invoice_number': ''},
                                     "money_data": {}};
         console.log(urlService.hold_data);
         self.skus = urlService.current_order.sku_data;
@@ -266,7 +268,6 @@
                 if (self.skus[j].sku_code === key) {
                   var quantity = 0;
 
-              
                   if (!self.qty_switch && !self.return_switch && self.issue_selected === "Delivery Challan" &&
                                             self.skus[j].stock_quantity == self.skus[j].quantity) {
 
@@ -416,7 +417,7 @@
       function changeQuantity(item) {
         console.log(item);
   
-        if (self.issue_selected === "Delivery Challan" && item.quantity > item.stock_quantity) {
+        if (!self.return_switch && self.issue_selected === "Delivery Challan" && item.quantity > item.stock_quantity) {
           alert("Given Quantity is more than Stock Quantity.");
         item.quantity = item.stock_quantity;
         }

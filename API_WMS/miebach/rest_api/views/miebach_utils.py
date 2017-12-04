@@ -992,7 +992,7 @@ JOB_ORDER_EXCEL_MAPPING = OrderedDict(( ('product_code', 0), ('product_quantity'
 
 ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name', 'Marketplace']
 
-ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict(( ('order_id', 0), ('awb_no', 1), ('courier_name', 2) ))
+ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict(( ('order_id', 0), ('awb_no', 1), ('courier_name', 2), ('marketplace', 3) ))
 
 #Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png'}

@@ -987,6 +987,8 @@ def validate_upload_orderid_awb(request, reader, user, no_of_rows, fname, file_t
             elif key == 'marketplace':
                 if value:
                     orderid_awb_dict['marketplace'] = value
+                else:
+                    orderid_awb_dict['marketplace'] = ''
 
         all_data_list.append(orderid_awb_dict)
 
@@ -1013,10 +1015,10 @@ def create_orderid_awb_bulk(all_data_list):
         order_awb_present = OrderAwbMap.objects.filter(original_order_id = data_dict['original_order_id'])
         if order_awb_present:
             order_awb_present.update(awb_no=data_dict['awb_no'], courier_name=data_dict['courier_name'], 
-                updation_date=NOW)
+                marketplace = data_dict['marketplace'], updation_date=NOW)
         else:
             OrderAwbMap.objects.create(awb_no=data_dict['awb_no'], courier_name=data_dict['courier_name'], 
-                original_order_id = data_dict['original_order_id'])
+                original_order_id = data_dict['original_order_id'], marketplace = data_dict['marketplace'])
 
 @csrf_exempt
 @login_required

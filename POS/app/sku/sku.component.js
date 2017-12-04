@@ -58,7 +58,7 @@
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
 		  if (self.skus[i].return_status === "true" ) {
 			urlService.current_order.summary.total_discount += 0;
-            urlService.current_order.summary.total_returned += -self.skus[i].unit_price;
+            urlService.current_order.summary.total_returned += -self.skus[i].price;
           }
 		  else
             urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;

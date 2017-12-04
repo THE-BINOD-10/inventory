@@ -366,40 +366,6 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
-@csrf_exempt
-@get_admin_user
-def get_awb_view_shipment_info(request, user=''):
-    data = {}
-    sku_grouping = request.GET.get('sku_grouping', 'false')
-    datatable_view = request.GET.get('view', '')
-    search_params = {'user': user.id}
-    ship_status = 'Out for Delivery'
-    awb_no = request.GET.get('awb_no','');
-    if awb_no:
-        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, status = 2).values('original_order_id')
-        if order_awb_map:
-            data['order_id'] = order_awb_map[0]['original_order_id']
-        else:
-            return HttpResponse(json.dumps({'status': False, 'message' : 'Incorrect AWB No.'}))
-        order_id_val = data['order_id']
-        order_id_search = ''.join(re.findall('\d+', data['order_id']))
-        order_code_search = ''.join(re.findall('\D+', data['order_id']))
-        all_orders = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) | Q(original_order_id=order_id_val), user=user.id)
-        tracking = ShipmentTracking.objects.filter(shipment__order__in=all_orders, ship_status=ship_status, shipment__order__user=user.id)
-        if not tracking:
-            ship_info_id = ShipmentInfo.objects.filter(order__in=all_orders)
-            for ship_info in ship_info_id:
-                ShipmentTracking.objects.create(shipment_id=ship_info.id, ship_status=ship_status,
-                                            creation_date=datetime.datetime.now())
-                orig_ship_ref = ship_info.order_packaging.order_shipment.shipment_reference
-                order_shipment = ship_info.order_packaging.order_shipment
-                order_shipment.shipment_reference = orig_ship_ref
-                order_shipment.save()
-            order_awb_map.update(status = 3)
-        else:
-            return HttpResponse(json.dumps({'status': False, 'message' : 'Already Out for Delivery'}))
-    return HttpResponse(json.dumps({'status': True, 'message' : 'Shipped Successfully' }))
-
 def create_temp_stock(sku_code, zone, quantity, stock_detail, user):
     if not quantity:
         quantity = 0

@@ -990,7 +990,7 @@ JOB_ORDER_EXCEL_HEADERS = ['Product SKU Code', 'Product SKU Quantity']
 
 JOB_ORDER_EXCEL_MAPPING = OrderedDict(( ('product_code', 0), ('product_quantity', 1)))
 
-ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name']
+ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name', 'Marketplace']
 
 ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict(( ('order_id', 0), ('awb_no', 1), ('courier_name', 2) ))
 

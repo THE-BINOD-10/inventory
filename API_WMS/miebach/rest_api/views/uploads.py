@@ -983,7 +983,11 @@ def validate_upload_orderid_awb(request, reader, user, no_of_rows, fname, file_t
                     index_status.setdefault(count, set()).add('Courier Name should not be empty')
                 elif value:
                     orderid_awb_dict['courier_name'] = value
-                    
+
+            elif key == 'marketplace':
+                if value:
+                    orderid_awb_dict['marketplace'] = value
+
         all_data_list.append(orderid_awb_dict)
 
     if index_status and file_type == 'csv':

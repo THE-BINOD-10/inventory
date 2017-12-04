@@ -504,10 +504,12 @@
 
               		//save order in DB
               		var id=yield DATABASE.sync_orders.
-              						put({order:JSON.stringify(order_data)}).
-              						catch(function(error){
+              						put({"order_id":JSON.stringify(order_data.summary.order_id),
+              							"order":JSON.stringify(order_data)}).then(function(data){
+              								console.log("data saved in local db "+data);	
+              						}).catch(function(error){
 										console.error("error "+error.message);	
-										reject(error.message);
+										return reject(error.message);
 									});
 
               		// update the order id 
@@ -515,16 +517,16 @@
 		            			update(ORDER_ID,{checksum:++order_number[0].checksum});
 		            
 		            //return the order id
-		            return {"order_id":order_number[0].checksum};		
+		            return {"order_id":order_data.summary.order_id};		
 
               	}else{
               		reject(ORDER_ID_UPDATED_ERROR);
               	}
 
                	}).then(function(order_id){
-					resolve(order_id);  
+					return resolve(order_id);  
 				}).catch(function(error){
-					reject(error.message);
+					return reject(error.message);
 				});
         });
 	}
@@ -644,6 +646,24 @@
 						resolve([]);
           			 });	
 		});
+	}
+
+	//get POS sync orders
+	function get_POS_Sync_OrdersByID(pos_sync_orer_id){
+		return new Promise(function(resolve,reject){
+          
+          	DATABASE.sync_orders.where("order_id").equals(pos_sync_orer_id).
+          			 toArray().
+          			 then(function(data){
+                      console.log("get sync pos orders "+data.length);
+                      	if(data.length>0){
+                      		return resolve(data);
+						}else{
+							return resolve([]);
+						}
+          			 });	
+		});
+				
 	}
 
 	//get Customers data
@@ -873,28 +893,57 @@
 	}
 
 	//get the preorder data check with offline preorder delivered 
-	function  getPreOrderDetails_Check_Off_Delivered(order_id){
+	function getPreOrderDetails_Check_Off_Delivered(order_id){
 
 		return new Promise(function(resolve,reject){
-			getPreOrderData(order_id).then(function(result){
+				var order_data="",order_find=false;
+
+
+			 getPreOrderData(order_id).then(function(result){
 				 if(result.length>0){
-	              self.order_details=JSON.parse(result[0].order_data);
-	              getOffline_PreOrder_DeliveredData().then(function(data){
+	              		order_data=JSON.parse(result[0].order_data);
+	              		
+	              		getOffline_PreOrder_DeliveredData().then(function(data){
 
-	              	if(data.length>0 && data.indexOf(order_id)==0){
-	              		return resolve([]);
-	              	}else{
-	              		return resolve(result);
-	              	}
-	              });
-	          	}else{
-	          		return resolve([]);
-	          	}
+		              	if(data.length>0 && data.indexOf(order_id)>=0){
+		              		order_data.status=0;
+		              		return resolve(order_data);
+		              	}else{
+		              		return resolve(order_data);
+		              	}
+		              });
+
+	          	  }else{
+	          		get_POS_Sync_OrdersByID(order_id).then(function(data){
+	          	  		if(data.length>0){
+	          	  			order_data=JSON.parse(data[0].order);
+	          	  			var preorder_data={"customer_data":order_data.customer_data,
+						                "sku_data":order_data.sku_data,
+						                  "order_id":order_data.summary.order_id,
+						                   "status":order_data.status};
+				              
+	          	  			getOffline_PreOrder_DeliveredData().then(function(data){
+
+				              	if(data.length>0 && data.indexOf(order_id)>=0){
+				              			preorder_data.status=0;
+		              					return resolve(preorder_data);
+				              	}else{
+				              		return resolve(preorder_data);
+				              	}
+				            });
+
+	          	  		}else{
+
+	          	  			return resolve({});
+	          	  		}
+	          	  	});
+	          	  }
+
 			}).catch(function(error){
-
+				return resolve({});
 			});
 
-		});
+			});	
 	}
 
 	//change the preorder status
@@ -904,9 +953,9 @@
 
 			 SPWAN(function*(){
 
+			 	//getting order from preorder
 				var orders= yield DATABASE.pre_orders.
 							where("order_id").equals(order_id).toArray();
-
 
 				if(orders.length>0){
 					var order_data=JSON.parse(orders[0].order_data);
@@ -944,17 +993,60 @@
 
 									});		
 
+					}else{
+						return reject({});
 					}
 				}else{
+
+					//check order in syn_orders
+					var ordres=get_POS_Sync_OrdersByID(order_id).toArray().
+								then(function(data){
+									if(data.length>0){
+
+										var order_data=JSON.parse(data[0].order);
+										if(Object.keys(order_data).indexOf("status")>0){
+											order_data.status=status;
+											
+											//reduce the sku qty
+											yield reduceSKUQty(order_data).then(function(){
+												console.log("sucess to reduce sku qty ");
+											}).catch(function(error){
+												console.log("error at reduce sku qty "+error.message);
+											});
+
+											//store at offline deliverred items in checksum
+											yield getOffline_PreOrder_DeliveredData().
+												then(function(delivered_ids){
+
+													delivered_ids.push(order_id);
+													savegenralData(setCheckSumFormate(
+														delivered_ids.toString(),OFFLINE_DELIVERED)).
+																then(function(data){
+																	return resolve(true);
+																}).catch(function(error){
+																		return reject(true);
+																});
+
+												});	
+
+										}else{
+											return reject({});
+										}
+
+									}else{
+											return reject({});
+										}		
+								}).catch(function(error){
+									return reject({});
+								});
 					return reject("unable to get the order information in offline");
 				}
-						
+								
 			}).catch(function(error){
 				return reject(error.message);
 			});					
-		}).catch(function(error){
-			return reject(error.message);
 		});	
+
 	}
 
 	//get offline delivered data
@@ -970,4 +1062,3 @@
 		});			
 	
 	}
-

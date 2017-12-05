@@ -294,7 +294,6 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
 
             remarks = picklist_obj[0].remarks
             picklist_id = picklist_obj[0].picklist_number
-            picklist_status = picklist_obj[0].status
 
             first_ord_obj = picklist_obj.exclude(order__shipment_date__isnull=True).values_list('order__id', flat = True).order_by('order__shipment_date')
             shipment_date = ""
@@ -310,7 +309,7 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
         result_data = OrderedDict(( ('DT_RowAttr', { 'data-id': picklist_id }), ('picklist_note', remarks),
                                     ('reserved_quantity', reserved_quantity_sum_value), ('picked_quantity', picked_quantity_sum_value),
                                     ('customer', prepare_str), ('shipment_date', shipment_date),
-                                    ('date', create_date_value), ('id', count), ('DT_RowClass', 'results'), ('status', picklist_status) ))
+                                    ('date', create_date_value), ('id', count), ('DT_RowClass', 'results') ))
         dat = 'picklist_id'
         count += 1
         if status == 'batch_picked':

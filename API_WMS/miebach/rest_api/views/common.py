@@ -4786,6 +4786,7 @@ def picklist_location_suggestion(request, order, stock_detail, user, order_quant
 def picklist_allocate_stock(request, user, picklists, stock):
     from outbound import picklist_location_suggestion
 
+    remarks = 'Auto-generated Picklist'
     for picklist in picklists:
         needed_quantity = picklist.reserved_quantity
         picklist_data = {}
@@ -4800,6 +4801,8 @@ def picklist_allocate_stock(request, user, picklists, stock):
         picklist_data['status'] = picklist.status
         consumed_qty, new_pc_locs = picklist_location_suggestion(request, picklist.order, stock, user,
                                                                  needed_quantity, picklist_data)
+        if consumed_qty:
+            picklist_data['remarks'] = remarks
         picklist.reserved_quantity -= float(consumed_qty)
         picklist.save()
         if consumed_qty:
@@ -4811,6 +4814,7 @@ def picklist_allocate_stock(request, user, picklists, stock):
 
 def open_orders_allocate_stock(request, user, sku_combos, sku_open_orders, all_seller_orders, seller_stocks,
                                stock_objs, picklist_order_mapping):
+    remarks = 'Auto-generated Picklist'
     from outbound import picklist_generation, get_sku_stock, get_picklist_number
     consumed_qty = 0
     for open_order in sku_open_orders:
@@ -4831,10 +4835,10 @@ def open_orders_allocate_stock(request, user, sku_combos, sku_open_orders, all_s
                     sku_stocks = sku_stocks.filter(id=0)
                 stock_status, picklist_number = picklist_generation([seller_order], request, picklist_number, user,
                                                                     sku_combos, sku_stocks, status='open',
-                                                                    remarks='', is_seller_order=True)
+                                                                    remarks=remarks, is_seller_order=True)
         else:
             stock_status, picklist_number = picklist_generation([open_order], request, picklist_number, user,
-                                                                sku_combos, stock_objs, status='open', remarks='')
+                                                                sku_combos, stock_objs, status='open', remarks=remarks)
 
 
     return picklist_order_mapping

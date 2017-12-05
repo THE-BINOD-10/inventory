@@ -68,10 +68,10 @@ class TallyAPI:
         data_list = []
         for master in masters:
             data_dict = {}
-            data_dict['tallyCompanyName'] = self.tally_dict.get('company_name', '')
+            data_dict['tally_company_name'] = self.tally_dict.get('company_name', '')
             data_dict['oldLedgerName'] = ''
-            data_dict['ledgerName'] = master.name
-            data_dict['ledgerAlias'] = getattr(master, field_mapping['id'])
+            data_dict['ledger_name'] = master.name
+            data_dict['ledger_alias'] = getattr(master, field_mapping['id'])
             data_dict['updateOpeningBalance'] = getattr(master, field_mapping['id'])
             data_dict['openingBalance'] = 'Optional'
             parent_group_name = ''
@@ -80,7 +80,7 @@ class TallyAPI:
             if group_obj:
                 parent_group_name = group_obj[0].parent_group
             data_dict['ledgerMailingName'] = master.name
-            data_dict['parentGroupName'] = parent_group_name
+            data_dict['parent_group_name'] = parent_group_name
             data_dict['address'] = master.address
             data_dict['state'] = master.state
             data_dict['pinCode'] = master.pincode

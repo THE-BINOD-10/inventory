@@ -2041,6 +2041,16 @@ def check_returns(request, user=''):
     data = []
     request_order_id = request.GET.get('order_id', '')
     request_return_id = request.GET.get('return_id', '')
+    request_awb = request.GET.get('awb_no', '')
+    if request_awb:
+        try:
+            get_order_id = OrderAwbMap.objects.filter(awb_no = request_awb).values('original_order_id')
+        except ObjectDoesNotExist:
+            get_order_id = None
+        if get_order_id:
+            request_order_id = get_order_id[0]['original_order_id']
+        else:
+            return HttpResponse('AWB No. is Invalid')
     if request_order_id:
         filter_params = {}
         order_id = re.findall('\d+', request_order_id)

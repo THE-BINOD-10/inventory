@@ -7,6 +7,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
+    vm.awb_ship_type = (vm.permissions.create_shipment_type == true) ? true: false;
+
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -45,6 +47,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.scan_orders = [];
       vm.scan_skus = [];
       vm.scan_imeis = [];
+      vm.scan_awb_no = [];
       vm.confirm_disable = false;
       vm.imei_data.reason = "";
       vm.imei_data.scanning = false;
@@ -478,6 +481,42 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
     if(Session.user_profile.user_type != "marketplace_user") {
       vm.return_processes['sku_code'] = 'SKU Code';
+    }
+    if(vm.awb_ship_type) {
+      vm.return_processes['scan_awb'] = 'Scan AWB';
+      vm.return_process = 'scan_awb';
+    }
+
+    vm.scan_awb_no = []
+    vm.scan_awb = function(event, field) {
+      if (event.keyCode == 13 && field) {
+        if(vm.scan_awb_no.indexOf(field) == -1) {
+          vm.service.apiCall('check_returns/', 'GET', {awb_no: field}).then(function(data) {
+            if(data.message) {
+              if ('AWB No. is Invalid' == data.data) {
+                check_data(field);
+                vm.model_data.scan_awb_no = ''
+              } else if (field+' is already confirmed' == data.data){
+                pop_msg(data.data);
+                vm.model_data.scan_awb_no = ''
+              } else {
+                vm.model_data.scan_awb_no = ''
+                angular.forEach(data.data, function(sku_data){
+                  vm.model_data.data.push(sku_data);
+                  var name = sku_data.order_id+"<<>>"+sku_data.sku_code;
+                  vm.orders_data[name] = {};
+                  angular.copy(sku_data, vm.orders_data[name]);
+                })
+                vm.scan_awb_no.push(field);
+              }
+            }
+            vm.model_data.scan_order_id = "";
+          });
+        } else {
+          pop_msg("Already Added In List");
+          vm.model_data.scan_awb_no = ''
+        }
+      }
     }
   }
 

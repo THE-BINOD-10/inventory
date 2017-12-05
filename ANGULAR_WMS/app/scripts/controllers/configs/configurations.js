@@ -19,7 +19,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
                     'invoice_remarks': '', 'show_disc_invoice': false, 'serial_limit': '',
-                    'increment_invoice': false,
+                    'increment_invoice': false, 'create_shipment_type': false
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -32,7 +32,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      32: 'hsn_summary', 33: 'display_customer_sku', 34: 'marketplace_model', 35: 'label_generation',
                      36: 'barcode_generate_opt', 37: 'grn_scan_option', 38: 'invoice_titles', 39: 'show_imei_invoice',
                      40: 'display_remarks_mail', 41: 'create_seller_order', 42: 'invoice_remarks', 43: 'show_disc_invoice',
-                     44: 'increment_invoice', 45: 'serial_limit'}
+                     44: 'increment_invoice', 45: 'serial_limit', 46: 'create_shipment_type'}
 
   vm.check_box_data = [
     {
@@ -231,6 +231,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
+    {
+      name: "Shipment using AWB No.",
+      model_name: "create_shipment_type",
+      param_no: 46,
+      class_name: "glyphicon glyphicon-sort",
+      display: true
+    }
 ]
 
   vm.empty = {};

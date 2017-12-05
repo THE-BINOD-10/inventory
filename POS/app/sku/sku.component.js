@@ -417,7 +417,7 @@
       function changeQuantity(item) {
         console.log(item);
   
-        if (!self.return_switch && self.issue_selected === "Delivery Challan" && item.quantity > item.stock_quantity) {
+        if (!self.qty_switch && !self.return_switch && self.issue_selected === "Delivery Challan" && item.quantity > item.stock_quantity) {
           alert("Given Quantity is more than Stock Quantity.");
         item.quantity = item.stock_quantity;
         }

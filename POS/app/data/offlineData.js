@@ -987,7 +987,7 @@
 						order_data.status=status;
 
 					//reduce sku qty
-					yield reduceSKUQty(order_data).then(function(){
+					reduceSKUQty(order_data).then(function(){
 						console.log("sucess to reduce sku qty ");
 					}).catch(function(error){
 						console.log("error at reduce sku qty "+error.message);
@@ -1003,7 +1003,7 @@
 									return reject(error.message);
 								});		
 
-						yield getOffline_PreOrder_DeliveredData().
+						 getOffline_PreOrder_DeliveredData().
 									then(function(delivered_ids){
 
 										delivered_ids.push(order_id);

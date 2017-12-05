@@ -59,8 +59,8 @@
               $(".preloader").removeClass("ng-show").addClass("ng-hide");
               $(".no_order").removeClass("ng-hide");
               $(".already_delivered").removeClass("ng-hide");
-             
-              self.order_details.status.toString()==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success").removeClass("ng-hide");
+              self.order_details.status = self.order_details.status.toString();
+              self.order_details.status==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success").removeClass("ng-hide");
               });
 
           });

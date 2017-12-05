@@ -490,8 +490,31 @@
               
  				if(order_number.length>0){
               		
-              		//add "order id" to order
-              		order_data.summary.order_id=order_number[0].checksum;
+              		
+ 					var updated_order_id;
+              		
+              		//check the return status
+              		var is_all_return=true;
+              		
+              		//skus in order
+              		var sku_data=order_data.sku_data;
+
+					for(var sku_item=0;sku_item<sku_data.length;sku_item++){
+						if(sku_data[sku_item].return_status.toString()!="true"){
+							is_all_return=false;
+							break;
+						}
+					}
+
+					//add "order id" to order
+					if(is_all_return==false){
+						order_data.summary.order_id=order_number[0].checksum;
+	              		updated_order_id=++order_number[0].checksum;
+	              	}else{
+						updated_order_id=order_number[0].checksum;
+						order_data.summary.order_id=--order_number[0].checksum;
+						order_data.summary.status=0;
+	              	}
 
               		//reduce sku qty
               		if(qty_reduce_status){
@@ -514,7 +537,7 @@
 
               		// update the order id 
 		            yield DATABASE.checksum.
-		            			update(ORDER_ID,{checksum:++order_number[0].checksum});
+		            			update(ORDER_ID,{checksum:updated_order_id});
 		            
 		            //return the order id
 		            return {"order_id":order_data.summary.order_id};		
@@ -531,6 +554,7 @@
         });
 	}
 
+	
 	//get pos sync customers data
 	function get_POS_sync_CustomersData(){
 
@@ -963,7 +987,7 @@
 						order_data.status=status;
 
 					//reduce sku qty
-					 reduceSKUQty(order_data).then(function(){
+					reduceSKUQty(order_data).then(function(){
 						console.log("sucess to reduce sku qty ");
 					}).catch(function(error){
 						console.log("error at reduce sku qty "+error.message);
@@ -979,7 +1003,7 @@
 									return reject(error.message);
 								});		
 
-						getOffline_PreOrder_DeliveredData().
+						 getOffline_PreOrder_DeliveredData().
 									then(function(delivered_ids){
 
 										delivered_ids.push(order_id);
@@ -1006,13 +1030,12 @@
 										var order_data=JSON.parse(data[0].order);
 										if(Object.keys(order_data).indexOf("status")>0){
 											order_data.status=status;
-											
-											//reduce the sku qty
-										     reduceSKUQty(order_data).then(function(){
+											//reduce sku qty
+											 reduceSKUQty(order_data).then(function(){
 												console.log("sucess to reduce sku qty ");
 											}).catch(function(error){
 												console.log("error at reduce sku qty "+error.message);
-											});
+											});	
 
 											//store at offline deliverred items in checksum
 											 getOffline_PreOrder_DeliveredData().

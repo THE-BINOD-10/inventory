@@ -79,7 +79,12 @@ importScripts('/app/data/offlineData.js');
 		"app/app_dev.js",
         "sw.js",
         "sw_reg.js",
-        "index.html"
+        "index.html",
+		"app/css/more.css",
+		"app/header/header.component.js",
+		"app/header/header.module.js",
+		"app/header/header.template.html",
+		"app/css/more.css"
     ];
 
    //black list files 

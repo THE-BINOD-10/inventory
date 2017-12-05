@@ -20,6 +20,21 @@ import sys
 # Create your views here.
 
 @csrf_exempt
+def validate_sales_person(request):
+    response_data = {'status': 'Fail'}
+    user_id = request.GET.get('user_id')
+    user_name = request.GET.get('user_name')
+    if user_id and user_name:
+        data = SalesPersons.objects.filter(user_id=user_id)
+        VAT = '14.5'
+        response_data['status'] = 'Success'
+        response_data['VAT'] = VAT 
+        response_data['user_name'] = data[0].user_name
+        response_data['sales_person_id'] = data[0].id
+        response_data['user_id'] = user_id
+    return HttpResponse(json.dumps(response_data))
+
+@csrf_exempt
 def get_pos_user_data(request):
     print request.user
     user_id = request.GET.get('id')
@@ -308,9 +323,12 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
     subtotal = 0
 
     #if return, get orders of all order code with status 0
-    if request_from == "return":
-        min_order_date = datetime.datetime.now() - datetime.timedelta(days=60)
-        order_detail = OrderDetail.objects.filter(user=user_id, quantity__gt=0, status=0, creation_date__gte=min_order_date)
+    if request_from == "return" or request_from == "initial_preorder":
+
+        status = 0 if request_from == "return" else 1
+        min_order_date = datetime.datetime.now() - datetime.timedelta(days=20)
+        order_detail = OrderDetail.objects.filter(user=user_id, quantity__gt=0, status=status, creation_date__gte=min_order_date)
+        if status == 1: order_detail = order_detail.filter(order_code='Pre Order')
         if order_id:
             order_detail = order_detail.filter(order_id=order_id)
         else:
@@ -331,7 +349,7 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
         order_data[order_id]['status'] = order.status
         order_data[order_id].setdefault('sku_data', []).append({'name': order.title, 'quantity': order.quantity, 
                                                  'sku_code': order.sku.sku_code, 'price': order.invoice_amount,
-                                                 'selling_price': selling_price, 'order_id': order_id})
+                                                 'selling_price': selling_price, 'order_id': order_id, 'id': order.id})
         total_quantity += int(order.quantity)
         total_amount += int(order.invoice_amount)
 	status = order.status

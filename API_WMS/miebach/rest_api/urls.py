@@ -365,6 +365,7 @@ urlpatterns += [
     url(r'^contact_us/$',contact_us),
 
     #POS
+    url('^validate_sales_person', validate_sales_person),
     url('^add_customer/$', add_customer),
     url('^search_customer_data/$', search_customer_data),
     url('^search_product_data/$', search_product_data),

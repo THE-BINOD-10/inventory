@@ -13,6 +13,7 @@
       self.get_order_details = get_order_details;
       var user = urlService.userData.parent_id;
 
+      get_order_details('','','','initial_preorder');
       function get_order_details(order_id, mobile, customer_name, request_from) {
 
         self.request_from = request_from;
@@ -23,7 +24,6 @@
           
           console.log("online");
           // ajax call to send data to backend
-           // ajax call to send data to backend
         var data = $.param({
                     data: JSON.stringify({'user':user, 'order_id':order_id, 'mobile': mobile, 'customer_name': customer_name,
                                           'request_from': request_from})
@@ -32,7 +32,8 @@
         $http.post( urlService.mainUrl+'rest_api/pre_order_data/', data).success(function(data, status, headers, config) {
 
             var key = Object.keys(data.data)[0];
-            key ? (request_from !== "return" ? self.order_details = data.data[key]: self.order_details = data.data) : self.order_details = {'status':'empty'};
+            //key ? (request_from !== "return" ? self.order_details = data.data[key]: self.order_details = data.data) : self.order_details = {'status':'empty'};
+            key ? self.order_details = data.data : self.order_details = {'status':'empty'};
             self.isDisabled = false;
 
             $(".preloader").removeClass("ng-show").addClass("ng-hide");
@@ -59,14 +60,24 @@
               $(".preloader").removeClass("ng-show").addClass("ng-hide");
               $(".no_order").removeClass("ng-hide");
               $(".already_delivered").removeClass("ng-hide");
-              self.order_details.status = self.order_details.status.toString();
+              //self.order_details.status = self.order_details.status.toString();
               self.order_details.status==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success").removeClass("ng-hide");
               });
 
           });
         }
-      }  
+      }
 
+      //click one preorder id to show details
+      self.select_order = select_order;
+
+      function select_order(order_id) {
+
+        self.selected_order = self.order_details[order_id];
+        $('#orderModal').modal('show');
+      }
+
+      //update preorder status and reduce quantity
       self.update_order_status = update_order_status;
 
       function update_order_status(order_id) {

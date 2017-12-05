@@ -19,13 +19,14 @@
                 user_id : username,
                 user_name : password
             });
-        $http.get( urlService.mainUrl+'validate_sales_person/?user_id='+username+'&user_name='+password).success(function(data, status, headers, config) {
+        $http.get( urlService.mainUrl+'rest_api/validate_sales_person/?user_id='+username+'&user_name='+password).success(function(data, status, headers, config) {
 
           if (data.status == "Success"){
+            urlService.userData = {'parent_id':data.user_id, 'user_name':data.user_name}
             $state.go("home");
             console.log(data);
             urlService.user_update = false;
-            urlService.userData = data;
+            //urlService.userData = data;
             urlService.VAT = data.VAT;
             console.log("success");
           }

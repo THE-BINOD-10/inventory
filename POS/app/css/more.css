@@ -43,10 +43,15 @@
 .tab-content > .tab-pane > .alert .customer_info div {
   display: inline;
 }
+.tab-content > .tab-pane > .alert > .all_orders > .each_order {
+  float: left;
+  width: 47%;
+  margin: 10px;
+}
 .sku_details {
   max-height: 460px;
   overflow-y: auto;
-  width: 68%;
+  width: 100%;
   margin: auto;
   color: #000;
   text-align: left;
@@ -75,4 +80,8 @@
 .sku_details > .already_delivered {
   text-align: center;
   margin-top: 5%;
+}
+#orderModal .modal-content {
+  border-radius: 0px;
+  background: #fff;
 }

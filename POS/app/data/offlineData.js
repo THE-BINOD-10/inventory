@@ -973,7 +973,7 @@
 
 				//return all preorders
 
-				var all_pre_orders=[];
+				var all_pre_orders={};
 				var pre_order_data=[];
 				var sync_pre_orders=[];
 				
@@ -1007,7 +1007,8 @@
 								if(data.indexOf(pre_order_data[pre_order].order_id)>0){
 									pre_order_data.remove(pre_order);								
 								}else{
-									all_pre_orders.push(JSON.parse(pre_order_data[0].order_data));
+									all_pre_orders[pre_order_data[pre_order].order_id]=(JSON.parse(pre_order_data[pre_order].order_data));
+									
 								}		
 							}
 							
@@ -1016,20 +1017,20 @@
 								if(data.indexOf(sync_pre_orders[pre_order].order_id)>0){
 									sync_pre_orders.remove(pre_order);								
 								}else{
-									var order_data=JSON.parse(sync_pre_orders[0].order);
+									var order_data=JSON.parse(sync_pre_orders[pre_order].order);
 						
-									all_pre_orders.push({"customer_data":order_data.customer_data,
+									all_pre_orders[sync_pre_orders[pre_order].order_id]={"customer_data":order_data.customer_data,
 							                "sku_data":order_data.sku_data,
 							                  "order_id":order_data.summary.order_id,
 							                  "order_date":order_data.summary.order_date,
-							                   "status":order_data.status});
+							                   "status":order_data.status};
 
 								}
 
 							}
 
 							//return all preorders.
-							return resolve(all_pre_orders);
+							return resolve({"data":all_pre_orders});
 	
 							});
 

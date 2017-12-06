@@ -46,23 +46,14 @@
 
         }else{
           console.log("offline");
-          getPreOrderDetails_Check_Off_Delivered(order_id).then(function(result){
+          getPreOrderDetails_Check_Off_Delivered(order_id).then(function(data){
   
-              if(Object.keys(result).length>0){
-                self.order_details=result;
-              }else{
-              self.order_details = {'status':'empty'};
-              }
-              self.isDisabled = false;
+            var key = Object.keys(data.data)[0];
+            //key ? (request_from !== "return" ? self.order_details = data.data[key]: self.order_details = data.data) : self.order_details = {'status':'empty'};
+            key ? (self.order_details = data.data, self.filtered_order_details = data.data) : self.order_details = {'status':'empty'};
+            self.isDisabled = false;
 
-            $scope.$apply(function() { 
-
-              $(".preloader").removeClass("ng-show").addClass("ng-hide");
-              $(".no_order").removeClass("ng-hide");
-              $(".already_delivered").removeClass("ng-hide");
-              //self.order_details.status = self.order_details.status.toString();
-              self.order_details.status==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success").removeClass("ng-hide");
-              });
+           
 
           });
         }

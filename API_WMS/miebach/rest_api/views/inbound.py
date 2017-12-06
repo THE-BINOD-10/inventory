@@ -2036,13 +2036,7 @@ def confirmation_location(record, data, total_quantity, temp_dict = ''):
 def returns_order_tracking(order_id, quantity, status='', imei=''):
     try:
         log.info('Order Tracking Data Request Params %s, %s, %s, %s' % (str(order_id), str(quantity), str(status), str(imei)))
-        order_tracking = OrderTracking.objects.filter(order_id=order_id, status=status, imei='')
-        if order_tracking:
-            order_tracking = order_tracking[0]
-            order_tracking.quantity = float(order_tracking.quantity) + float(quantity)
-            order_tracking.save()
-        else:
-            OrderTracking.objects.create(order_id=order_id, status=status, imei=imei, quantity=quantity,
+        OrderTracking.objects.create(order_id=order_id, status=status, imei=imei, quantity=quantity,
                 creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
     except Exception as e:
         import traceback

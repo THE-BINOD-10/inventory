@@ -496,7 +496,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.service.apiCall('check_returns/', 'GET', {awb_no: field}).then(function(data) {
             if(data.message) {
               if ('AWB No. is Invalid' == data.data) {
-                check_data(field);
+                $scope.demo5(field)
                 vm.model_data.scan_awb_no = ''
               } else if (field+' is already confirmed' == data.data){
                 pop_msg(data.data);

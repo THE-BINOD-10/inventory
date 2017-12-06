@@ -9,40 +9,50 @@
 
     <div class="modal-body" id="modal-body">
       <div class="row">
-        <div class="col-md-6 col-sm-6">
-          <div>
+        <div class="col-md-5 col-sm-5 col-xs-12">
             <div class="col-md-6 col-sm-6 col-xs-6">
-                <label class="control-label">Source SKU Code &sol; Desc *</label>
-                <input type="text" autocomplete="off" name="source_sku_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="$ctrl.check_sku_code()" ng-model="$ctrl.model_data.source_sku_code" ng-readonly="$ctrl.update" required>
+                <label class="control-label">Source SKU Code</label>
+                <input type="text" autocomplete="off" name="source_sku_code" class="form-control" placeholder="Search WMS Code  &sol; Desc" typeahead="address for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" typeahead-on-select="$ctrl.check_sku_code()" ng-model="$ctrl.model_data.source_sku_code" ng-readonly="$ctrl.update" required>
             </div>
             
-            <div class="col-md-5 col-sm-5 col-xs-5">
-                <label class="control-label">Quantity *</label>
+            <div class="col-md-6 col-sm-6 col-xs-6">
+                <label class="control-label">Quantity</label>
                 <input type="text" name="source_sku_quantity" class="form-control" decimal-number ng-model="$ctrl.model_data.source_sku_quantity" required>
             </div>
 
-            <div class="col-md-1 col-sm-1" style="margin-top: 2.3em">
-              <span><i class="fa fa-exchange fa-2x" aria-hidden="true"></i></span>
+            <div class="col-md-6 col-sm-6 col-xs-6" style="margin-top: 10px">
+                <label class="control-label">Source Location</label>
+                <input type="text" name="source_location" class="form-control" ng-model="$ctrl.model_data.source_location" required>
             </div>
-
-          </div>  
         </div>
 
-        <div class="col-md-6 col-sm-6">
-          <div>
-            <div class="col-md-6 col-sm-6 col-xs-6">
-                <label class="control-label">Destination SKU Code &sol; Desc *</label>
-                <input type="text" autocomplete="off" name="dest_sku_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="$ctrl.check_sku_code()" ng-model="$ctrl.model_data.dest_sku_code" ng-readonly="$ctrl.update" required>
-            </div>
-
-            <div class="col-md-6 col-sm-6 col-xs-6">
-                <label class="control-label">Quantity *</label>
-                <input type="text" name="dest_sku_quantity" class="form-control" decimal-number ng-model="$ctrl.model_data.dest_sku_quantity" required>
-            </div>
+        <div class="col-md-2 col-sm-2 col-xs-12">
+          <div style="margin: auto; width:24px; padding: 24px 0">
+            <span class="hidden-xs"><i class="fa fa-exchange fa-2x" aria-hidden="true"></i></span>
+            <span class="visible-xs"><i class="fa fa-exchange fa-2x fa-rotate-90" aria-hidden="true"></i></span>
           </div>
         </div>
-      </div>
 
+        <div class="col-md-5 col-sm-5 col-xs-12">
+            <div class="col-md-6 col-sm-6 col-xs-6">
+                <label class="control-label">Destination SKU Code</label>
+                <input type="text" autocomplete="off" name="dest_sku_code" class="form-control" placeholder="Search WMS Code  &sol; Desc" typeahead="address for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" typeahead-on-select="$ctrl.check_sku_code()" ng-model="$ctrl.model_data.dest_sku_code" ng-readonly="$ctrl.update" required>
+            </div>
+
+            <div class="col-md-6 col-sm-6 col-xs-6">
+                <label class="control-label">Quantity</label>
+                <input type="text" name="dest_sku_quantity" class="form-control" decimal-number ng-model="$ctrl.model_data.dest_sku_quantity" required>
+            </div>
+          
+            <div>
+              <div class="col-md-6 col-sm-6 col-xs-6" style="margin-top: 10px">
+                  <label class="control-label">Destination Location</label>
+                  <input type="text" name="dest_location" class="form-control" ng-model="$ctrl.model_data.dest_location" required>
+              </div>
+            </div>
+        </div>
+      </div>
+<!-- 
       <div class="row">
         <div class="col-md-6 col-sm-6">
           <div>
@@ -61,7 +71,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
     </div>
 
     <div class="modal-footer">

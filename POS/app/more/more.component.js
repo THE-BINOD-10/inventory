@@ -33,13 +33,13 @@
 
             var key = Object.keys(data.data)[0];
             //key ? (request_from !== "return" ? self.order_details = data.data[key]: self.order_details = data.data) : self.order_details = {'status':'empty'};
-            key ? self.order_details = data.data : self.order_details = {'status':'empty'};
+            key ? (self.order_details = data.data, self.filtered_order_details = data.data) : self.order_details = {'status':'empty'};
             self.isDisabled = false;
 
-            $(".preloader").removeClass("ng-show").addClass("ng-hide");
-            $(".no_order").removeClass("ng-hide");
-            $(".already_delivered").removeClass("ng-hide");
-            self.order_details.status.toString()==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success").removeClass("ng-hide");
+            //$(".preloader").removeClass("ng-show").addClass("ng-hide");
+            //$(".no_order").removeClass("ng-hide");
+            //$(".already_delivered").removeClass("ng-hide");
+            //self.order_details.status.toString()==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success").removeClass("ng-hide");
 
        }).then(function() {
        });
@@ -73,9 +73,82 @@
 
       function select_order(order_id) {
 
-        self.selected_order = self.order_details[order_id];
+        self.selected_order = self.filtered_order_details[order_id];
         $('#orderModal').modal('show');
       }
+      //pre order filters
+      self.pre_order_filter = pre_order_filter;
+
+      function pre_order_filter(order_id, customer_name, sku_id) {
+
+		var before_order_filter = self.order_details;
+      	//if order id
+		if(order_id) {
+
+			order_id = order_id.toUpperCase();
+			var id_filtered = {};
+			Object.keys(before_order_filter).forEach(function(item) {
+
+				if(item.toString().toUpperCase().indexOf(order_id)>=0) {
+					console.log(item);
+					id_filtered[item] = before_order_filter[item];
+				}
+
+			})
+			self.filtered_order_details = id_filtered;
+			debugger;
+			//self.filtered_order_details = [self.order_details[order_id]];
+		}
+		else {
+			self.filtered_order_details = before_order_filter;
+		}//end order id filter
+
+		//if sku_id
+		var before_sku_filter = self.filtered_order_details;
+		if(sku_id) {
+			sku_id = sku_id.toUpperCase();
+			var sku_filtered = {};
+			Object.keys(before_sku_filter).forEach(function(item){
+
+				Object.keys(before_sku_filter[item]).forEach(function(sku){
+					if (sku === "sku_data") {
+						Object.keys(before_sku_filter[item][sku]).forEach(function(each_sku){
+							if(before_sku_filter[item][sku][each_sku]['sku_code'].toUpperCase().indexOf(sku_id)>=0){
+								sku_filtered[item] = before_sku_filter[item];
+							}
+					})
+				}
+			})
+		})
+		self.filtered_order_details = sku_filtered;
+		}
+		else {
+			self.filtered_order_details = before_sku_filter;
+		}//end sku id filter
+
+		//if customer_name
+		var before_customer_filter = self.filtered_order_details;
+		if(customer_name) {
+
+			customer_name = customer_name.toUpperCase();
+			var customer_filter = {};
+			Object.keys(before_customer_filter).forEach(function(item){
+
+				Object.keys(before_customer_filter[item]).forEach(function(custo){
+					if (custo === "customer_data") {
+						if(before_customer_filter[item][custo]['Name'].toUpperCase().indexOf(customer_name)>=0){
+							customer_filter[item] = before_customer_filter[item];
+            			}
+        			}
+    			})
+			})
+			self.filtered_order_details = customer_filter;
+		}
+		else {
+			self.filtered_order_details = before_customer_filter;
+		}//end customer filter
+
+      }//end filter
 
       //update preorder status and reduce quantity
       self.update_order_status = update_order_status;

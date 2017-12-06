@@ -152,28 +152,49 @@
     self.addCustomer = addCustomer;
     self.customer_status = false;
     function addCustomer() {
-		
-          var data =  [];
-	  data = data.concat({"user": urlService.userData.parent_id,
-                       "firstName": self.customer.FirstName || '',
-                       "secondName": self.customer.LastName || '',
-                       "mail": self.customer.Email || '',
-                       "number": parseInt(self.searchText) || ''});
+    
+      var data =  [];
+      var user_details={"user": urlService.userData.parent_id,
+                         "firstName": self.customer.FirstName || '',
+                         "secondName": self.customer.LastName || '',
+                         "mail": self.customer.Email || '',
+                         "number": parseInt(self.searchText) || ''};
+      
+      if(navigator.OnLine){
+          data = data.concat(user_details);
 
-	  data = $.param({
-		    customers : JSON.stringify(data)
-                 });
-	  $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-          $http.post(urlService.mainUrl+'rest_api/add_customer/', data)
-            .success( function(data) {
+          data = $.param({
+              customers : JSON.stringify(data)
+                       });
+          $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+                $http.post(urlService.mainUrl+'add_customer/', data)
+                  .success( function(data) {
 
-              console.log(data);
-              self.customerButton = false;
-            })
+                    console.log(data);
+                    self.customerButton = false;
+                  })
+                self.customer_status = true;
+                $timeout(function() {
+                  self.customer_status = false;
+                }, 2000);
+
+      }else{
+         console.log("offline");   
+         
+          setSynCustomerData(user_details).
+                  then(function(data){
+                      console.log(data);
+                      self.customerButton = false;
+                  }).catch(function(error){
+
+                  });
+
           self.customer_status = true;
-          $timeout(function() {
-            self.customer_status = false;
-          }, 2000);
+                $timeout(function() {
+                  self.customer_status = false;
+                }, 2000);
+
+      }
     }
 
     // to show customer add button

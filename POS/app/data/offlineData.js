@@ -922,50 +922,123 @@
 		return new Promise(function(resolve,reject){
 				var order_data="",order_find=false;
 
+			//check order id length	
+			if(order_id.length>0){	
 
-			 getPreOrderData(order_id).then(function(result){
-				 if(result.length>0){
-	              		order_data=JSON.parse(result[0].order_data);
-	              		
-	              		getOffline_PreOrder_DeliveredData().then(function(data){
+				 getPreOrderData(order_id).then(function(result){
+					 if(result.length>0){
+		              		order_data=JSON.parse(result[0].order_data);
+		              		
+		              		getOffline_PreOrder_DeliveredData().then(function(data){
 
-		              	if(data.length>0 && data.indexOf(order_id)>=0){
-		              		order_data.status=0;
-		              		return resolve(order_data);
-		              	}else{
-		              		return resolve(order_data);
-		              	}
-		              });
+			              	if(data.length>0 && data.indexOf(order_id)>=0){
+			              		order_data.status=0;
+			              		return resolve(order_data);
+			              	}else{
+			              		return resolve(order_data);
+			              	}
+			              });
 
-	          	  }else{
-	          		get_POS_Sync_OrdersByID(order_id).then(function(data){
-	          	  		if(data.length>0){
-	          	  			order_data=JSON.parse(data[0].order);
-	          	  			var preorder_data={"customer_data":order_data.customer_data,
-						                "sku_data":order_data.sku_data,
-						                  "order_id":order_data.summary.order_id,
-						                   "status":order_data.status};
-				              
-	          	  			getOffline_PreOrder_DeliveredData().then(function(data){
+		          	  }else{
+		          		get_POS_Sync_OrdersByID(order_id).then(function(data){
+		          	  		if(data.length>0){
+		          	  			order_data=JSON.parse(data[0].order);
+		          	  			var preorder_data={"customer_data":order_data.customer_data,
+							                "sku_data":order_data.sku_data,
+							                  "order_id":order_data.summary.order_id,
+							                  "order_date":order_data.summary.order_date,
+							                   "status":order_data.status};
+					              
+		          	  			getOffline_PreOrder_DeliveredData().then(function(data){
 
-				              	if(data.length>0 && data.indexOf(order_id)>=0){
-				              			preorder_data.status=0;
-		              					return resolve(preorder_data);
-				              	}else{
-				              		return resolve(preorder_data);
-				              	}
-				            });
+					              	if(data.length>0 && data.indexOf(order_id)>=0){
+					              			preorder_data.status=0;
+			              					return resolve(preorder_data);
+					              	}else{
+					              		return resolve(preorder_data);
+					              	}
+					            });
 
-	          	  		}else{
+		          	  		}else{
+		          	  			return resolve({});
+		          	  		}
+		          	  	});
+		          	  }
 
-	          	  			return resolve({});
-	          	  		}
-	          	  	});
-	          	  }
+				}).catch(function(error){
+					return resolve({});
+				});
 
-			}).catch(function(error){
-				return resolve({});
-			});
+			}else{
+
+				//return all preorders
+
+				var all_pre_orders=[];
+				var pre_order_data=[];
+				var sync_pre_orders=[];
+				
+				//get all peorders in preorder where status is 1.
+				DATABASE.pre_orders.filter(function(data){
+
+						data=JSON.parse(data.order_data);
+						if(data.status.toString()=="1")
+							return true;	
+				}).toArray().then(function(data){
+
+					pre_order_data=data;
+
+					//get all orders where issuetype is "pre order".
+					DATABASE.sync_orders.filter(function(data){
+						data=JSON.parse(data.order);
+						if(data.summary.issue_type="Pre order"){
+							return true;
+						}
+					}).toArray().then(function(preorders){
+						
+								sync_pre_orders=preorders;				
+						
+						//get the offline preorder delivered order id's
+						getOffline_PreOrder_DeliveredData().then(function(data){
+
+
+							//checkwith preorder order id
+							for(var pre_order=0;pre_order<pre_order_data.length;pre_order++){
+
+								if(data.indexOf(pre_order_data[pre_order].order_id)>0){
+									pre_order_data.remove(pre_order);								
+								}else{
+									all_pre_orders.push(JSON.parse(pre_order_data[0].order_data));
+								}		
+							}
+							
+							//check with sync order order id
+							for(var pre_order=0;pre_order<sync_pre_orders.length;pre_order++){
+								if(data.indexOf(sync_pre_orders[pre_order].order_id)>0){
+									sync_pre_orders.remove(pre_order);								
+								}else{
+									var order_data=JSON.parse(sync_pre_orders[0].order);
+						
+									all_pre_orders.push({"customer_data":order_data.customer_data,
+							                "sku_data":order_data.sku_data,
+							                  "order_id":order_data.summary.order_id,
+							                  "order_date":order_data.summary.order_date,
+							                   "status":order_data.status});
+
+								}
+
+							}
+
+							//return all preorders.
+							return resolve(all_pre_orders);
+	
+							});
+
+
+					});
+
+				});
+
+			}	
 
 			});	
 	}

@@ -7,7 +7,7 @@ importScripts('/app/data/offlineData.js');
 (function(){
 	"use strict";
 	//service worker version number
-	var VERSION="0.0.0.91-build-0.9.0.24"
+	var VERSION="0.0.0.91-build-0.9.0.31"
 	//service worker version name
 	var CACHE_NAME="POS"+VERSION;
 	//directory path 
@@ -88,7 +88,8 @@ importScripts('/app/data/offlineData.js');
 		"app/header/header.component.js",
 		"app/header/header.module.js",
 		"app/header/header.template.html",
-		"app/css/more.css"
+		"app/css/more.css",
+        "favicon.ico"
     ];
 
    //black list files 
@@ -427,6 +428,8 @@ importScripts('/app/data/offlineData.js');
           							    event.ports[0].postMessage(error.message);	
 						          	});
 						          	
+          						}else{
+          							event.ports[0].postMessage("data not available");	
           						}
   		 	
 					  		}).catch(function(error){

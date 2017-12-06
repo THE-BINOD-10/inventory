@@ -3,14 +3,16 @@
   "short_name": "POS",
   "icons": [
 		{
-			"src": "../faviocn.ico",
+			"src": "/app/images/pos_icon.png",
 			"sizes": "192x192",
 			"type": "image\/png"
 		}
 	],
-  "start_url": "/#/App/createorder",
+  "start_url": "/#/home?user_id=3&user_name=demo",
   "display": "standalone",
   "background_color": "#ffffff",
+  "theme_color": "#bd0000",
   "orientation":"potrait",
   "gcm_sender_id": "895549824441"
+  
 }

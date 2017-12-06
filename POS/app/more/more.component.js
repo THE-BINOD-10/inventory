@@ -130,9 +130,6 @@
           self.order_details.status = '0';
         }
       }
-
-
-
     }]
   })
 }(window.angular));

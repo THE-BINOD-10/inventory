@@ -59,7 +59,11 @@
 	
 	urlService.hide_loading=function hideRefresh(){
 	  $(".preloader").removeClass("ng-show").addClass("ng-hide");
-	  checkStoragePercent().then(function(data){
+		checkstorage();	  
+	};
+
+	function checkstorage(){
+		checkStoragePercent().then(function(data){
 		if(data){
 		  toast_msg("memory usage exceed 70% .please free the space");        
 		}else{
@@ -68,7 +72,7 @@
 	  }).catch(function(error){
 		  console.log(error);
 	  });
-	};
+	}	
 
 	//trigger event for getting data at intiallly.
     //$scope.sync();

@@ -100,6 +100,7 @@
       self.submit_data = submit_data;
       function submit_data() {
             //debugger;
+
         if (urlService.current_order.sku_data.length > 0 && urlService.current_order.customer_data.FirstName.length > 0) {
           if (urlService.current_order.customer_data.Number == null) {
             urlService.current_order.customer_data.Number = "";
@@ -144,7 +145,8 @@
         urlService.current_order = {"customer_data" : {"FirstName": "", "Number": "", "value": ""},
                                     "sku_data" : [],
                                     "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
-                                    "issue_type": self.issue_selected, "order_id": 0, "nw_status": "online", 'invoice_number': ''},
+                                    "issue_type": self.issue_selected, "order_id": 0, "nw_status": "online", 'invoice_number': '',
+                                    "order_date":''},
                                     "money_data": {}};
         self.skus= urlService.current_order.sku_data;
         manageData.prepForBroadcast("clear");
@@ -176,6 +178,8 @@
         data["summary"]["nw_status"] = 'online';
         self.submit_enable = true;
 
+        //adding order date
+        urlService.current_order.summary.order_date=new Date();
         //change the status for preorder
         if(data.summary.issue_type=="Pre Order"){
             data.status=1;
@@ -248,7 +252,8 @@
         urlService.current_order = {"customer_data" : {},
                                     "sku_data" : [],
                                     "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
-                                    "issue_type": self.issue_selected,"order_id":0, "nw_status":"online", 'invoice_number': ''},
+                                    "issue_type": self.issue_selected,"order_id":0, "nw_status":"online", 'invoice_number': '',
+                                    "order_date":''},
                                     "money_data": {}};
         console.log(urlService.hold_data);
         self.skus = urlService.current_order.sku_data;

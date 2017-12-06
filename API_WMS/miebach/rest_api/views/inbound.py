@@ -2033,6 +2033,24 @@ def confirmation_location(record, data, total_quantity, temp_dict = ''):
         insert_pallet_data(temp_dict, loc)
     return total_quantity
 
+def save_order_tracking_data(order, quantity, status='', imei='')
+    try:
+        log.info('Order Tracking Data Request Params %s, %s, %s, %s' % (str(order.__dict__), str(quantity), str(status), str(imei)))
+        order_tracking = OrderTracking.objects.filter(order_id=order.id, status=status, imei='')
+        if order_tracking:
+            order_tracking = order_tracking[0]
+            order_tracking.quantity = float(order_tracking.quantity) + float(remaining_qty)
+            order_tracking.save()
+        else:
+            OrderTracking.objects.create(order_id=order.id, status=status, imei=imei, quantity=quantity, creation_date=datetime.datetime.now(),
+                                         updation_date=datetime.datetime.now())
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Order Tracking Insert failed for %s and params are %s and error statement is %s' % (str(order.user), str(order.__dict__), str(e)))
+
+
+
 @login_required
 @get_admin_user
 def check_returns(request, user=''):
@@ -2050,7 +2068,7 @@ def check_returns(request, user=''):
         if get_order_id:
             request_order_id = get_order_id[0]['original_order_id']
         else:
-            return HttpResponse('AWB No. is Invalid')
+            status = 'AWB No. is Invalid'
     if request_order_id:
         filter_params = {}
         order_id = re.findall('\d+', request_order_id)
@@ -2096,6 +2114,7 @@ def check_returns(request, user=''):
                          'return_quantity': order_data.quantity, 'damaged_quantity': order_data.damaged_quantity})
 
     if not status:
+        #save_order_tracking_data(order, quantity, status='', imei='')
         return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder))
     return HttpResponse(status)
 
@@ -2302,7 +2321,8 @@ def group_sales_return_data(data_dict, return_process):
     returns_dict = {}
     grouping_dict = {'order_id': '[str(data_dict["order_id"][ind]), str(data_dict["sku_code"][ind])]',
                      'sku_code': 'data_dict["sku_code"][ind]', 'return_id': 'data_dict["id"][ind]',
-                     'scan_imei': 'data_dict["id"][ind]'}
+                     'scan_imei': 'data_dict["id"][ind]', 
+                     'scan_awb': '[str(data_dict["order_id"][ind]), str(data_dict["sku_code"][ind])]'}
     grouping_key = grouping_dict[return_process]
     zero_index_list = ['scan_order_id', 'return_process', 'return_type']
     number_fields = ['return', 'damaged']
@@ -2371,7 +2391,6 @@ def confirm_sales_return(request, user=''):
     try:
         # Group the Input Data Based on the Group Type
         final_data_list = group_sales_return_data(data_dict, return_process)
-
         for return_dict in final_data_list:
             all_data = []
             check_seller_order = True

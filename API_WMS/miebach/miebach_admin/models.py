@@ -1951,6 +1951,7 @@ class InvoiceSequence(models.Model):
         unique_together = ('user', 'marketplace')
 
 class OrderAwbMap(models.Model):
+    user = models.ForeignKey(User)
     original_order_id = models.CharField(max_length=128,default='')
     awb_no = models.CharField(max_length=128, default='')
     marketplace = models.CharField(max_length=128, default='')

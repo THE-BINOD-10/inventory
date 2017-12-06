@@ -2034,10 +2034,12 @@ def confirmation_location(record, data, total_quantity, temp_dict = ''):
     return total_quantity
 
 def returns_order_tracking(order_id, quantity, status='', imei=''):
+    now = datetime.datetime.now()
     try:
-        log.info('Order Tracking Data Request Params %s, %s, %s, %s' % (str(order_id), str(quantity), str(status), str(imei)))
+        log.info('Order Tracking Data Request Params %s, %s, %s, %s' % (str(order_id), str(quantity), 
+                str(status), str(imei)))
         OrderTracking.objects.create(order_id=order_id, status=status, imei=imei, quantity=quantity,
-                creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+            creation_date=now, updation_date=now)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -2055,7 +2057,7 @@ def check_returns(request, user=''):
     request_awb = request.GET.get('awb_no', '')
     if request_awb:
         try:
-            get_order_id = OrderAwbMap.objects.filter(awb_no = request_awb).values('original_order_id')
+            get_order_id = OrderAwbMap.objects.get(awb_no = request_awb).values('original_order_id')
         except ObjectDoesNotExist:
             get_order_id = None
         if get_order_id:

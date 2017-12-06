@@ -43,9 +43,12 @@
           console.log("offline");
           getPreOrderDetails_Check_Off_Delivered(order_id).then(function(data){
 
+            $scope.$apply(function(){
             var key = Object.keys(data.data)[0];
             key ? (self.order_details = data.data, self.filtered_order_details = data.data) : self.order_details = {'status':'empty'};
             self.isDisabled = false;
+
+            });
 
           });
         }
@@ -57,6 +60,8 @@
       function select_order(order_id) {
 
         self.selected_order = self.filtered_order_details[order_id];
+        self.selected_order.status=self.selected_order.status.toString();
+
         $("#delivered_btn").removeClass("btn-success").addClass("btn-danger");
         self.isDisabled = false;
         $('#orderModal').modal('show');
@@ -119,7 +124,7 @@
 
 				Object.keys(before_customer_filter[item]).forEach(function(custo){
 					if (custo === "customer_data") {
-						if(before_customer_filter[item][custo]['Name'].toUpperCase().indexOf(customer_name)>=0){
+						if(before_customer_filter[item][custo]['Name']!=undefined &&before_customer_filter[item][custo]['Name'].toUpperCase().indexOf(customer_name)>=0){
 							customer_filter[item] = before_customer_filter[item];
             			}
         			}
@@ -164,13 +169,14 @@
           }else{
 
               console.log("offline");
-              setPreOrderStatus(order_id,0).
+              setPreOrderStatus(""+order_id,"0").
                             then(function(data){
 
-                                 $scope.$apply(function() {  
-                                  $(".preloader").removeClass("ng-show").addClass("ng-hide");
-                                  self.isDisabled = true;
-                                  $("#delivered_btn").removeClass("btn-danger").addClass("btn-success");
+                                 $scope.$apply(function() {
+                                    $(".preloader").removeClass("ng-show").addClass("ng-hide");  
+                                    self.isDisabled = true;
+                                    $(".already_delivered").removeClass("ng-hide").addClass("ng-show");
+                                    self.selected_order.status = '0';
                                 });
                             
                             }).catch(function(error){

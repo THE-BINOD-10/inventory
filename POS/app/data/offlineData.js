@@ -499,6 +499,7 @@
               		//skus in order
               		var sku_data=order_data.sku_data;
 
+              		//check return items
 					for(var sku_item=0;sku_item<sku_data.length;sku_item++){
 						if(sku_data[sku_item].return_status.toString()!="true"){
 							is_all_return=false;
@@ -513,7 +514,7 @@
 	              	}else{
 						updated_order_id=order_number[0].checksum;
 						order_data.summary.order_id=--order_number[0].checksum;
-						order_data.summary.status=0;
+						//order_data.summary.status="0";
 	              	}
 
               		//reduce sku qty
@@ -1005,7 +1006,7 @@
 							for(var pre_order=0;pre_order<pre_order_data.length;pre_order++){
 
 								if(data.indexOf(pre_order_data[pre_order].order_id)>0){
-									pre_order_data.remove(pre_order);								
+									pre_order_data.splice(pre_order);								
 								}else{
 									all_pre_orders[pre_order_data[pre_order].order_id]=(JSON.parse(pre_order_data[pre_order].order_data));
 									
@@ -1015,7 +1016,7 @@
 							//check with sync order order id
 							for(var pre_order=0;pre_order<sync_pre_orders.length;pre_order++){
 								if(data.indexOf(sync_pre_orders[pre_order].order_id)>0){
-									sync_pre_orders.remove(pre_order);								
+									sync_pre_orders.splice(pre_order,1);								
 								}else{
 									var order_data=JSON.parse(sync_pre_orders[pre_order].order);
 						
@@ -1097,7 +1098,7 @@
 				}else{
 
 					//check order in syn_orders
-					var ordres=get_POS_Sync_OrdersByID(order_id).toArray().
+					get_POS_Sync_OrdersByID(order_id).toArray().
 								then(function(data){
 									if(data.length>0){
 
@@ -1127,16 +1128,16 @@
 												});	
 
 										}else{
-											return reject({});
+											return reject("order has not a status");
 										}
 
 									}else{
-											return reject({});
+										return reject("unable to get the order information in offline");
 										}		
 								}).catch(function(error){
-									return reject({});
+									return reject(error.message);
 								});
-					return reject("unable to get the order information in offline");
+					
 				}
 								
 			}).catch(function(error){

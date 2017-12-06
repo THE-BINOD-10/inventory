@@ -182,7 +182,7 @@
         urlService.current_order.summary.order_date=new Date();
         //change the status for preorder
         if(data.summary.issue_type=="Pre Order"){
-            data.status=1;
+            data.status="1";
         }
   
         if(navigator.onLine){

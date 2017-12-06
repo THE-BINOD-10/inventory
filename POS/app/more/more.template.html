@@ -54,8 +54,8 @@
 										</tbody>
 					 				</table>
 				   				</div>
-								<div class="ng-hide already_delivered">
-								  <strong ng-show="$ctrl.selected_order.status==='0'?true:false">Order Delivered Already !</strong>
+								<div class="ng-hide already_delivered alert-success">
+								  <strong ng-show="$ctrl.selected_order.status==='0'?true:false">Order Delivered Successfully !</strong>
 								</div>
 			  				</div>
 							<div class="modal-footer">
@@ -71,7 +71,7 @@
 
 				<div class="all_orders" ng-repeat="item in $ctrl.filtered_order_details" ng-if="item.order_id">
 					<div class="each_order alert btn btn-info" ng-click="$ctrl.select_order(item.order_id)">
-						<h4><strong>{{item.order_id}}</strong> &nbsp;&nbsp;&nbsp;{{item.order_date}}</h4>
+						<h4>{{item.customer_data.Name}} &nbsp;&nbsp;<strong>{{item.order_id}}</strong> &nbsp;&nbsp;&nbsp;{{item.order_date}}</h4>
 						<div style="overflow-y: overlay;">
 							<span ng-repeat="sku in item.sku_data"><strong>{{sku.sku_code}}&nbsp;</strong></span>
 						</div>
@@ -88,8 +88,8 @@
 			</div><!--alert-->
         </uib-tab>
 
-        <uib-tab index="1" heading="Return">
 
+<!--        <uib-tab index="1" heading="Return">
             <div class="alert alert-success preorder" style="">
                 <input class="return_input" id="" ng-model="$ctrl.return_order_id" placeholder="ORDER ID">
                 <input class="return_input" id="mobile" ng-model="$ctrl.return_mobile" placeholder="MOBILE">

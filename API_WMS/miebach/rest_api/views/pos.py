@@ -345,7 +345,7 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
         order_id = str(order.order_id)
         order_data.setdefault(order_id,{})
         order_data[order_id]['order_id'] = order_id
-        order_data[order_id]['order_date'] = order.creation_date.strftime("%d %b %Y")
+        order_data[order_id]['order_date'] = order.creation_date.strftime("%d %b %Y %I:%M %p")
         order_data[order_id]['status'] = order.status
         order_data[order_id].setdefault('sku_data', []).append({'name': order.title, 'quantity': order.quantity, 
                                                  'sku_code': order.sku.sku_code, 'price': order.invoice_amount,

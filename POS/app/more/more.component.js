@@ -36,24 +36,16 @@
             key ? (self.order_details = data.data, self.filtered_order_details = data.data) : self.order_details = {'status':'empty'};
             self.isDisabled = false;
 
-            //$(".preloader").removeClass("ng-show").addClass("ng-hide");
-            //$(".no_order").removeClass("ng-hide");
-            //$(".already_delivered").removeClass("ng-hide");
-            //self.order_details.status.toString()==='0'?$("#delivered_btn").addClass("ng-hide"):$("#delivered_btn").addClass("btn-danger").removeClass("btn-success").removeClass("ng-hide");
-
        }).then(function() {
        });
 
         }else{
           console.log("offline");
           getPreOrderDetails_Check_Off_Delivered(order_id).then(function(data){
-  
+
             var key = Object.keys(data.data)[0];
-            //key ? (request_from !== "return" ? self.order_details = data.data[key]: self.order_details = data.data) : self.order_details = {'status':'empty'};
             key ? (self.order_details = data.data, self.filtered_order_details = data.data) : self.order_details = {'status':'empty'};
             self.isDisabled = false;
-
-           
 
           });
         }
@@ -65,6 +57,7 @@
       function select_order(order_id) {
 
         self.selected_order = self.filtered_order_details[order_id];
+        $("#delivered_btn").removeClass("btn-success").addClass("btn-danger");
         $('#orderModal').modal('show');
       }
       //pre order filters
@@ -87,8 +80,6 @@
 
 			})
 			self.filtered_order_details = id_filtered;
-			debugger;
-			//self.filtered_order_details = [self.order_details[order_id]];
 		}
 		else {
 			self.filtered_order_details = before_order_filter;
@@ -163,7 +154,8 @@
                       alert("Please update Stock Quantity and try again");
                   } else {
                       self.isDisabled = true;
-                      $("#delivered_btn").removeClass("btn-danger").addClass("btn-success");
+                      $(".already_delivered").removeClass("ng-hide").addClass("ng-show");
+                      self.selected_order.status = '0';
                   }
 
              }).then(function() {

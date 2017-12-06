@@ -81,11 +81,14 @@
 .sku_details > .no_order {
   text-align: center;
 }
-.sku_details > .already_delivered {
-  text-align: center;
-  margin-top: 5%;
-}
 #orderModal .modal-content {
   border-radius: 0px;
   background: #fff;
+}
+#orderModal .modal-content .already_delivered {
+  padding: 10px;
+  width: 80%;
+  text-align: center;
+  margin: 0px auto;
+  margin-top: 10px;
 }

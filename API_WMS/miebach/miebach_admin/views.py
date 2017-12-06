@@ -2582,7 +2582,6 @@ def switches(request, user=''):
                     'pos_switch': request.GET.get('pos_switch', ''),
                     'auto_po_switch': request.GET.get('auto_po_switch', ''),
                     'no_stock_switch': request.GET.get('no_stock_switch', ''),
-                    'create_shipment_type': request.GET.get('create_shipment_type', '')
                   }
 
 

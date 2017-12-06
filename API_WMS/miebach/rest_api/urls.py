@@ -316,9 +316,7 @@ urlpatterns += [
     url(r'^job_order_form/$', job_order_form),
     url(r'^orderid_awb_mapping_form/$', orderid_awb_mapping_form),
     url(r'^orderid_awb_upload/', orderid_awb_upload),
-    url(r'^orderid_awb_mapping_form/$', orderid_awb_mapping_form),
     url(r'^job_order_upload/$', job_order_upload),
-    url(r'^orderid_awb_upload/', orderid_awb_upload),
     url(r'^marketplace_serial_form/$', marketplace_serial_form),
     url(r'^marketplace_serial_upload/$', marketplace_serial_upload),
 

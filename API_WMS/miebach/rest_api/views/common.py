@@ -4366,10 +4366,12 @@ def get_shipment_quantity_for_awb(user, all_orders, sku_grouping=False):
     data = []
     log.info('Request Params for Get Shipment quantity for user %s is %s' % (user.username, str(all_orders.values())))
     filter_list = ['sku__sku_code', 'id', 'order_id', 'sku__sku_desc', 'original_order_id']
+    status_list = ['open', 'picked', 'batch_open', 'batch_picked']
     if sku_grouping == 'true':
         filter_list = ['sku__sku_code', 'sku__sku_desc']
-    customer_picklists = Picklist.objects.filter(order__in=all_orders, status__in=['open', 'picked', 'batch_open', 'batch_picked'], picked_quantity__gt=0, order__user=user.id)
-    all_data = list(all_orders.values(*filter_list).distinct().annotate(picked=Sum('quantity'), ordered=Sum('quantity')))
+    picklists_obj = Picklist.objects.filter(order__in=all_orders, status__in=status_list, 
+            picked_quantity__gt=0, order__user=user.id)
+    all_data = list(all_orders.values(*filter_list).distinct().annotate(picked=Sum('quantity')))
     for ind,dat in enumerate(all_data):
         ship_dict = {'order_id': dat['id']}
         seller_order = SellerOrder.objects.filter(order_id=dat['id'], order_status='DELIVERY_RESCHEDULED')
@@ -4378,15 +4380,13 @@ def get_shipment_quantity_for_awb(user, all_orders, sku_grouping=False):
             dis_pick = Picklist.objects.filter(order_id=dat['id'], status='dispatched')
             if dis_pick:
                 dis_quantity = dis_pick[0].order.quantity
-        if customer_picklists.filter(**ship_dict).exclude(order_type='combo'):
-            all_data[ind]['picked'] = customer_picklists.filter(**ship_dict).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
-        all_data[ind]['shipping_quantity'] = all_data[ind]['picked']
+        if picklists_obj.filter(**ship_dict).exclude(order_type='combo'):
+            all_data[ind]['shipping_quantity'] = all_data[ind]['picked'] = picklists_obj.filter(**ship_dict).aggregate(Sum('picked_quantity'))['picked_quantity__sum']
         shipped = ShipmentInfo.objects.filter(**ship_dict).aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
         if shipped:
             shipped = shipped - dis_quantity
             all_data[ind]['picked'] = float(dat['picked']) - shipped
             all_data[ind]['shipping_quantity'] -= shipped
-            all_data[ind]['shipping_quantity'] = all_data[ind]['picked']
             if all_data[ind]['picked'] < 0:
                 del all_data[ind]
     return all_data

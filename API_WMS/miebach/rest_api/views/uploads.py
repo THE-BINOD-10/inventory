@@ -930,11 +930,9 @@ def validate_upload_orderid_awb(request, reader, user, no_of_rows, fname, file_t
     log.info("OrderID AWB upload started")
     st_time = datetime.datetime.now()
     index_status = {}
-
     order_mapping = get_orderid_awb_mapping(reader, file_type)
     if not order_mapping:
         return 'Invalid File'
-
     count = 0
     log.info("Validation Started %s" %datetime.datetime.now())
     all_data_list = []
@@ -944,14 +942,11 @@ def validate_upload_orderid_awb(request, reader, user, no_of_rows, fname, file_t
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
-
         count += 1
         sku_code = ''
-
         orderid_awb_dict = {}
         for key, val in order_mapping.iteritems():
             value = get_cell_data(row_idx, order_mapping[key], reader, file_type)
-
             if key == 'order_id':
                 if isinstance(value, float):
                     value = str(int(value))
@@ -966,7 +961,6 @@ def validate_upload_orderid_awb(request, reader, user, no_of_rows, fname, file_t
                         if value and value in order_ids_list:
                             index_status.setdefault(row_idx, set()).add('Duplicate Order Ids present in the sheet')
                     order_ids_list.append(value)
-
             elif key == 'awb_no':
                 if isinstance(value, float):
                     value = str(int(value))
@@ -977,48 +971,42 @@ def validate_upload_orderid_awb(request, reader, user, no_of_rows, fname, file_t
                     if value in awb_list:
                         index_status.setdefault(row_idx, set()).add('Duplicate AWB No. Present in the sheet')
                 awb_list.append(value)
-                    
             elif key == 'courier_name':
                 if not value:
                     index_status.setdefault(count, set()).add('Courier Name should not be empty')
                 elif value:
                     orderid_awb_dict['courier_name'] = value
-
             elif key == 'marketplace':
                 if value:
                     orderid_awb_dict['marketplace'] = value
                 else:
                     orderid_awb_dict['marketplace'] = ''
-
         all_data_list.append(orderid_awb_dict)
-
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_csv_file(f_name, index_status, reader)
         if file_path:
             f_name = file_path
         return f_name
-
     elif index_status and file_type == 'xls':
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_excel_file(f_name, index_status, reader)
         if file_path:
             f_name = file_path
         return f_name
-
-    create_orderid_awb_bulk(all_data_list)
+    create_update_orderid_awb(all_data_list, user)
     return 'Success'
 
-def create_orderid_awb_bulk(all_data_list):
-    NOW = datetime.datetime.now()
+def create_update_orderid_awb(all_data_list, user=''):
     for data_dict in all_data_list:
-        order_awb_present = OrderAwbMap.objects.filter(original_order_id = data_dict['original_order_id'])
+        order_awb_present = OrderAwbMap.objects.filter(original_order_id = data_dict['original_order_id'], user = user)
         if order_awb_present:
             order_awb_present.update(awb_no=data_dict['awb_no'], courier_name=data_dict['courier_name'], 
-                marketplace = data_dict['marketplace'], updation_date=NOW)
+                marketplace = data_dict['marketplace'], user=user, updation_date = datetime.datetime.now())
         else:
             OrderAwbMap.objects.create(awb_no=data_dict['awb_no'], courier_name=data_dict['courier_name'], 
-                original_order_id = data_dict['original_order_id'], marketplace = data_dict['marketplace'])
+                original_order_id = data_dict['original_order_id'], marketplace = data_dict['marketplace'],
+                user=user)
 
 @csrf_exempt
 @login_required

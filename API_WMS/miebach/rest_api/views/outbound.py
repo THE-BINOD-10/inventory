@@ -196,7 +196,7 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
                                                    Q(quantity__icontains=search_term) | Q(order_id__icontains=search_term) |
                                                    Q(sku__sku_code__icontains=search_term), sku__user=user.id, status=1).order_by(order_data)
     temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
     for data in master_data[start_index:stop_index]:
         checkbox = '<input type="checkbox" name="id" value="%s">' % data.id
@@ -340,7 +340,7 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         tracking = ShipmentTracking.objects.filter(shipment_id=result.id, shipment__order__user=user.id).order_by('-creation_date').\
                                             values_list('ship_status', flat=True)
 
-        if not len(tracking):
+        if not tracking.count():
             continue
         if gateout:
             if tracking and tracking[0] != 'Out for Delivery':
@@ -1986,10 +1986,10 @@ def get_awb_view_shipment_info(request, user=''):
     sku_grouping = request.GET.get('sku_grouping', 'false')
     datatable_view = request.GET.get('view', '')
     search_params = {'user': user.id}
-    awb_no = request.GET.get('awb_no','');
+    awb_no = request.GET.get('awb_no','')
     if awb_no:
-        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no).values('original_order_id')
-        if order_awb_map:
+        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, user = user).values('original_order_id')
+        if order_awb_map.count():
             data['order_id'] = order_awb_map[0]['original_order_id']
         else:
             return HttpResponse(json.dumps({'status': False, 'message' : 'Incorrect AWB No.'}))
@@ -2000,7 +2000,7 @@ def get_awb_view_shipment_info(request, user=''):
 
         tracking = ShipmentTracking.objects.filter(shipment__order__in=all_orders, 
             ship_status__in=['Dispatched', 'In Transit'], shipment__order__user=user.id).values_list('shipment_id')
-        if len(tracking):
+        if tracking.count():
             ship_info_id = ShipmentInfo.objects.filter(order__in=all_orders, order__user = user.id, 
                 id__in = tracking)
             for ship_info in ship_info_id:
@@ -2023,8 +2023,8 @@ def get_awb_shipment_details(request, user=''):
     search_params = {'user': user.id}
     awb_no = request.GET.get('awb_no','');
     if awb_no:
-        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, status = 1).values('original_order_id');
-        if order_awb_map:
+        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, status = 1, user = user).values('original_order_id');
+        if order_awb_map.count():
             data['order_id'] = order_awb_map[0]['original_order_id']
         else:
             return HttpResponse(json.dumps({'status': False , 'message' : 'Incorrect AWB No.'}))
@@ -2052,7 +2052,7 @@ def awb_create_shipment(request, user):
         elif key in ORDER_SHIPMENT_DATA.keys():
             data_dict[key] = value
     data_dict['user'] = user.id
-    data_dict['shipment_date'] = str(datetime.datetime.now());
+    data_dict['shipment_date'] = datetime.datetime.now()
     data = OrderShipment(**data_dict)
     data.save()
     return data
@@ -2146,13 +2146,13 @@ def awb_direct_insert_shipment_info(data_params, order_awb_obj, user=''):
                 if not ship_quantity:
                     ship_quantity = 0
                 if order_quantity == ship_quantity:
-                    order_awb_map = OrderAwbMap.objects.filter(original_order_id = order_detail.original_order_id)
-                    if len(order_awb_map):
+                    order_awb_map = OrderAwbMap.objects.filter(original_order_id = order_detail.original_order_id, user = user)
+                    if order_awb_map.count():
                         order_awb_map.update(status = 2)
                     else:
                         original_order_id = str(order_detail.order_code) + str(order_detail.order_id)
-                        order_awb_map = OrderAwbMap.objects.filter(original_order_id = original_order_id)
-                        if len(order_awb_map):
+                        order_awb_map = OrderAwbMap.objects.filter(original_order_id = original_order_id, user = user)
+                        if order_awb_map.count():
                             order_awb_map.update(status = 2)
                 if ship_quantity >= int(order_detail.quantity):
                     order_detail.status = 2
@@ -3478,13 +3478,13 @@ def insert_shipment_info(request, user=''):
                 if not tracking:
                     ShipmentTracking.objects.create(shipment_id=ship_data.id, ship_status = default_ship_track_status,
                         creation_date=datetime.datetime.now())
-                order_awb_map = OrderAwbMap.objects.filter(original_order_id = order_detail.original_order_id)
-                if len(order_awb_map):
+                order_awb_map = OrderAwbMap.objects.filter(original_order_id = order_detail.original_order_id, user = user)
+                if order_awb_map.count():
                     order_awb_map.update(status = 2)
                 else:
                     original_order_id = str(order_detail.order_code) + str(order_detail.order_id)
-                    order_awb_map = OrderAwbMap.objects.filter(original_order_id = original_order_id)
-                    if len(order_awb_map):
+                    order_awb_map = OrderAwbMap.objects.filter(original_order_id = original_order_id, user = user)
+                    if order_awb_map.count():
                         order_awb_map.update(status = 2)
 
 
@@ -3930,7 +3930,7 @@ def get_shipment_picked(start_index, stop_index, temp_data, search_term, order_t
 
     master_data = list(OrderedDict.fromkeys(master_data))
     temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
     for dat in master_data[start_index:stop_index]:
         data = OrderDetail.objects.get(id=dat)

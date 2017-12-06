@@ -58,6 +58,7 @@
 
         self.selected_order = self.filtered_order_details[order_id];
         $("#delivered_btn").removeClass("btn-success").addClass("btn-danger");
+        self.isDisabled = false;
         $('#orderModal').modal('show');
       }
       //pre order filters

@@ -51,6 +51,7 @@
 .tab-content > .tab-pane > .alert > .all_orders > .each_order {
   box-shadow: 4px 4px #3a88d8e6;
   width: 90%;
+  background: linear-gradient(#68c2e0, #4d99db);
 }
 .sku_details {
   max-height: 460px;

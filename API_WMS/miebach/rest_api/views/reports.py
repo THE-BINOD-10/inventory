@@ -412,7 +412,7 @@ def print_supplier_pos(request, user=''):
     return HttpResponse(html_data)
 
 
-def get_sales_return_filter_data(search_params, user, request_user):
+def get_sales_return_filter_data(search_params, user, request_user, is_excel=False):
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
     status_dict = {'0': 'Inactive', '1': 'Active'}
@@ -445,20 +445,47 @@ def get_sales_return_filter_data(search_params, user, request_user):
     for data in sales_return:
         order_id = ''
         customer_id = ''
-        marketplace = ""
+        marketplace = ''
+        customer_name = ''
         if data.order:
             order_id = str(data.order.order_code) + str(data.order.order_id)
             customer_id = data.order.customer_id
-
+            customer_name = data.order.customer_name
             marketplace = data.order.marketplace
             if not marketplace:
                 marketplace = data.marketplace
         else:
             marketplace = data.marketplace
-        temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.sku.sku_code), ('Order ID', order_id),
+
+        reasons = OrderReturnReasons.objects.filter(order_return=data.id)
+        reasons_data = []
+
+        if is_excel:
+            if reasons:
+                for reason in reasons:
+                    temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.sku.sku_code), ('Order ID', order_id),
                                                  ('Customer ID', customer_id), ('Return Date', str(data.creation_date).split('+')[0]),
-                                                 ('Status', status_dict[str(data.status)]), ('Market Place', marketplace),
-                                                 ('Quantity', data.quantity) )))
+                                                 ('Market Place', marketplace), ('Quantity', reason.quantity), ('Reason', reason.reason),
+                                                 ('Status', reason.status)
+                                               )))
+            else:
+                temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.sku.sku_code), ('Order ID', order_id),
+                                            ('Customer ID', customer_id), ('Return Date', str(data.creation_date).split('+')[0]),
+                                            ('Market Place', marketplace), ('Quantity', data.quantity), ('Reason', data.reason),
+                                            ('Status', data.status)
+                                          )))
+        else:
+            if reasons:
+                for reason in reasons:
+                    reasons_data.append({'quantity': reason.quantity, 'reason': reason.reason, 'status': reason.status})
+            else:
+                reasons_data.append({'quantity': data.quantity, 'reason': data.reason, 'status': data.status})
+
+            temp_data['aaData'].append(OrderedDict(( ('sku_code', data.sku.sku_code), ('order_id', order_id), ('id', data.id),
+                                                 ('customer_id', customer_id), ('return_date', str(data.creation_date).split('+')[0]),
+                                                 ('status', status_dict[str(data.status)]), ('marketplace', marketplace),
+                                                 ('quantity', data.quantity), ('reasons_data', reasons_data), ('customer_name', customer_name),
+                                                 ('description', data.sku.sku_desc) )))
     return temp_data
 
 @csrf_exempt
@@ -497,10 +524,16 @@ def print_sales_returns(request, user=''):
         if data.order:
             order_id = data.order.order_id
             customer_id = data.order.customer_id
+        reasons = OrderReturnReasons.objects.filter(order_return=data.id)
+        if reasons:
+            for reason in reasons:
+                report_data.append((data.sku.sku_code, order_id, customer_id, str(data.creation_date).split('+')[0],
+                            data.quantity, reason.reason, reason.status))
+            continue
         report_data.append((data.sku.sku_code, order_id, customer_id, str(data.creation_date).split('+')[0],
-                            data.status, data.quantity))
+                            data.quantity, data.reason, data.status))
 
-    headers = ('SKU Code', 'Order ID', 'Customer ID', 'Return Date', 'Status', 'Quantity')
+    headers = ('SKU Code', 'Order ID', 'Customer ID', 'Return Date', 'Quantity', 'Reason', 'Status')
     html_data = create_reports_table(headers, report_data)
     return HttpResponse(html_data)
 
@@ -662,6 +695,40 @@ def print_po_reports(request, user=''):
                            'po_reference': po_reference, 'w_address': w_address, 'company_name': user_profile.company_name,
                            'display': 'display-none', 'receipt_type': receipt_type, 'title': title, 'total_qty': total_qty})
 
+
+@csrf_exempt
+@get_admin_user
+def excel_sales_return_report(request, user=''):
+    excel_name = ''
+    func_name = ''
+    file_type = 'xls'
+    headers, search_params, filter_params = get_search_params(request)
+    if '&' in request.POST['serialize_data']:
+        form_data = request.POST['serialize_data'].split('&')
+    else:
+        form_data = request.POST['serialize_data'].split('<>')
+    for dat in form_data:
+        temp = dat.split('=')
+        if 'excel_name' in dat:
+            excel_name = dat 
+            func_name = eval(EXCEL_REPORT_MAPPING[temp[1]])
+            continue
+        if len(temp) > 1 and temp[1]:
+            if 'date' in dat:
+                temp[1] = datetime.datetime.strptime(temp[1], '%m/%d/%Y')
+            search_params[temp[0]] = temp[1]
+    params = [search_params, user, request.user, True]
+    headers = ['SKU Code', 'Order ID', 'Customer ID', 'Return Date', 'Market Place', 'Quantity', 'Reason', 'Status']
+    report_data = get_sales_return_filter_data(*params)
+    if isinstance(report_data, tuple):
+        report_data = report_data[0]
+    if temp[1] in ['grn_inventory_addition', 'sales_returns_addition', 'seller_stock_summary_replace'] and len(report_data['aaData']) > 0:
+        headers = report_data['aaData'][0].keys()
+        file_type = 'csv'
+    excel_data = print_excel(request,report_data, headers, excel_name, file_type=file_type)
+    return excel_data
+
+
 @csrf_exempt
 @get_admin_user
 def excel_reports(request, user=''):
@@ -684,6 +751,7 @@ def excel_reports(request, user=''):
                 temp[1] = datetime.datetime.strptime(temp[1], '%m/%d/%Y')
             search_params[temp[0]] = temp[1]
     params = [search_params, user, request.user]
+    import pdb;pdb.set_trace();
     if 'datatable=serialView' in form_data:
         params.append(True)
     report_data = func_name(*params)

@@ -281,8 +281,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     };
 
     vm.update_data = function(index , record, data) {
-
       vm.imei_data.scanning = false;
+      if ((vm.scan_awb_no).length) {
+        vm.scan_awb_no.splice($.inArray(data['order_id'], vm.scan_awb_no),1);
+      }
       vm.remove_serials(data);
       data.splice(index, 1);
       vm.calOrdersData(record);
@@ -497,6 +499,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 check_data(field);
                 vm.model_data.scan_awb_no = ''
               } else if (field+' is already confirmed' == data.data){
+                pop_msg(data.data);
+                vm.model_data.scan_awb_no = ''
+              } else if (data.data.indexOf("Sales Return") >= 0) {
                 pop_msg(data.data);
                 vm.model_data.scan_awb_no = ''
               } else {

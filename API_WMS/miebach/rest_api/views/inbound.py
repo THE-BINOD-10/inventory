@@ -2033,23 +2033,22 @@ def confirmation_location(record, data, total_quantity, temp_dict = ''):
         insert_pallet_data(temp_dict, loc)
     return total_quantity
 
-def save_order_tracking_data(order, quantity, status='', imei='')
+def returns_order_tracking(order_id, quantity, status='', imei=''):
     try:
-        log.info('Order Tracking Data Request Params %s, %s, %s, %s' % (str(order.__dict__), str(quantity), str(status), str(imei)))
-        order_tracking = OrderTracking.objects.filter(order_id=order.id, status=status, imei='')
+        log.info('Order Tracking Data Request Params %s, %s, %s, %s' % (str(order_id), str(quantity), str(status), str(imei)))
+        order_tracking = OrderTracking.objects.filter(order_id=order_id, status=status, imei='')
         if order_tracking:
             order_tracking = order_tracking[0]
-            order_tracking.quantity = float(order_tracking.quantity) + float(remaining_qty)
+            order_tracking.quantity = float(order_tracking.quantity) + float(quantity)
             order_tracking.save()
         else:
-            OrderTracking.objects.create(order_id=order.id, status=status, imei=imei, quantity=quantity, creation_date=datetime.datetime.now(),
-                                         updation_date=datetime.datetime.now())
+            OrderTracking.objects.create(order_id=order_id, status=status, imei=imei, quantity=quantity,
+                creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Order Tracking Insert failed for %s and params are %s and error statement is %s' % (str(order.user), str(order.__dict__), str(e)))
-
-
+        log.info('Order Tracking Insert failed for %s and params are %s and error statement is %s' % (str(order), str(e)))
+    return True
 
 @login_required
 @get_admin_user
@@ -2093,8 +2092,13 @@ def check_returns(request, user=''):
             all_data.setdefault(cond, 0)
             all_data[cond] += picklist.picked_quantity
         for key, value in all_data.iteritems():
-            data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'ship_quantity': value, 'return_quantity': 0,
-                         'damaged_quantity': 0 })
+            duplicate = OrderTracking.objects.filter(order_id = key[0], status='returned')
+            if duplicate:
+                status = 'Sales Returns for '+str(key[0])+' Order ID is already Present'
+                return HttpResponse(status)
+            else:
+                data.append({ 'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
+                    'ship_quantity': value, 'return_quantity': 0, 'damaged_quantity': 0 })
     elif request_return_id:
         order_returns = OrderReturns.objects.filter(return_id=request_return_id, sku__user=user.id)
         if not order_returns:
@@ -2108,13 +2112,12 @@ def check_returns(request, user=''):
                 order_quantity = order_data.order.quantity
             else:
                 order_quantity = order_data.quantity
+                order_id = order_obj.order_id
             data.append({'id': order_data.id, 'order_id': order_obj.order_id, 'return_id': order_data.return_id,
                          'sku_code': order_data.sku.sku_code,
                          'sku_desc': order_data.sku.sku_desc, 'ship_quantity': order_quantity,
                          'return_quantity': order_data.quantity, 'damaged_quantity': order_data.damaged_quantity})
-
     if not status:
-        #save_order_tracking_data(order, quantity, status='', imei='')
         return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder))
     return HttpResponse(status)
 
@@ -2382,7 +2385,6 @@ def update_return_reasons(order_return, reasons_list=[]):
 @get_admin_user
 def confirm_sales_return(request, user=''):
     """ Creating and Confirming the Sales Returns"""
-
     data_dict = dict(request.POST.iterlists())
     return_type = request.POST.get('return_type', '')
     return_process = request.POST.get('return_process')
@@ -2437,6 +2439,9 @@ def confirm_sales_return(request, user=''):
             locations_status = save_return_locations(**return_loc_params)
             if not locations_status == 'Success':
                 return HttpResponse(locations_status)
+            else:
+                total_quantity = int(return_dict['return']) + int(return_dict['damaged'])
+                returns_order_tracking(return_dict['order_id'], total_quantity, 'returned', '')
         if user.userprofile.user_type == 'marketplace_user':
             check_and_update_order_status_data(mp_return_data, user, status='RETURNED')
     except Exception as e:

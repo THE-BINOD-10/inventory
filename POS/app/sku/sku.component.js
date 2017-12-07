@@ -62,20 +62,9 @@
           }
 		  else
             urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
-          /*var oper = self.skus[i].return_status === "true" ? "-=" : "+=";
-         // debugger;
-          self.skus[i].price = self.skus[i].quantity * self.skus[i].unit_price;
-          eval('urlService.current_order.summary.total_amount' + oper + 'self.skus[i].price');
-          eval('urlService.current_order.summary.subtotal' + oper + 'self.skus[i].price');
-          eval('urlService.current_order.summary.sgst' + oper + '(self.skus[i].sgst * self.skus[i].quantity)');
-          eval('urlService.current_order.summary.cgst' + oper + '(self.skus[i].cgst * self.skus[i].quantity)');
-          eval('urlService.current_order.summary.cgst' + oper + '(self.skus[i].igst * self.skus[i].quantity)');
-          eval('urlService.current_order.summary.cgst' + oper + '(self.skus[i].utgst * self.skus[i].quantity)');
-          eval('urlService.current_order.summary.total_quantity' + oper + self.skus[i].quantity);
-          eval('urlService.current_order.summary.total_discount' + oper + (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price);*/
-  
+
           if ((self.skus.length-1) == i) {
-  
+
             urlService.current_order.summary.total_amount = urlService.current_order.summary.sgst + urlService.current_order.summary.cgst +
                                                             urlService.current_order.summary.igst + urlService.current_order.summary.utgst +
                                                             urlService.current_order.summary.total_amount;
@@ -448,30 +437,32 @@
       }
   
       self.changePrice = changePrice;
-      function changePrice(item) {
+      function changePrice(item, prev) {
         console.log(item);
+        if(item.price !== prev) {
   
-        for (var i = 0; i < self.skus.length ; i ++) {
-  
-          if (self.skus[i].sku_code == item.sku_code){
-  
-            if( (item.price == 0) || (item.price == "0")) {
-              item.price = 0;
-              item.unit_price = 0;
-              item.selling_price = 0;
-              item.discount = 0;
-              item.total_discount = 0;
-              cal_total();
-            } else {
- 
-              item.selling_price = item.price;
-              self.skus[i].quantity = parseInt(item.quantity);
-              self.skus[i].discount = (item.discount && self.skus[i].return_status==='false') ? parseInt(item.discount) : 0;
-              self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
-              cal_total();
+            for (var i = 0; i < self.skus.length ; i ++) {
+      
+              if (self.skus[i].sku_code == item.sku_code){
+      
+                if( (item.price == 0) || (item.price == "0")) {
+                  item.price = 0;
+                  item.unit_price = 0;
+                  item.selling_price = 0;
+                  item.discount = 0;
+                  item.total_discount = 0;
+                  cal_total();
+                } else {
+     
+                  item.selling_price = item.price;
+                  self.skus[i].quantity = parseInt(item.quantity);
+                  self.skus[i].discount = (item.discount && self.skus[i].return_status==='false') ? parseInt(item.discount) : 0;
+                  self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
+                  cal_total();
+                }
+                break;
+              }
             }
-            break;
-          }
         }
       }
   

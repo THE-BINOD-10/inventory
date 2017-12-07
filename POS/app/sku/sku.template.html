@@ -77,7 +77,9 @@
           <input class="input-show" style="width: 50px;" ng-blur="$ctrl.changeQuantity(item)" type=text value="{{item.quantity}}" ng-model="item.quantity" ngMinlength=0 ng-keypress="filterValue($event)"></td>
        <td class="alter">
            <p class="text-show">{{item.price}}/-</p>
-           <input class="input-show" style="width: 40px;" ng-blur="$ctrl.changePrice(item)" type=text value="{{item.price}}" ng-model="item.price" ng-pattern="" ng-keypress="filterValue($event)"></td>
+           <input class="input-show" style="width: 40px;" ng-blur="$ctrl.changePrice(item, current_val)" type=text value="{{item.price}}"
+                  ng-model="item.price" ng-pattern="" ng-keypress="filterValue($event)"
+                  ng-click="current_val=item.price"></td>
     </tr>
     </tbody>
     </table>

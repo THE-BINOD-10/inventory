@@ -445,7 +445,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.calOrdersData = function(data) {
-
       var temp_data = vm.orders_data[data.order_id+"<<>>"+data.sku_code];
       if (!temp_data) {
         return false;
@@ -457,6 +456,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       });
       temp_data.return_quantity = return_quantity;
+    }
+
+    vm.calOrdersDamagedData = function(data) {
+      var temp_data = vm.orders_data[data.order_id+"<<>>"+data.sku_code];
+      if (!temp_data) {
+        return false;
+      }
+      var damaged_quantity = 0;
+      angular.forEach(vm.model_data.data, function(sku_data, position){
+        if(sku_data.order_id == data.order_id && sku_data.sku_code == data.sku_code) {
+          damaged_quantity += Number(sku_data.damaged_quantity);
+        }
+      });
+      temp_data.damaged_quantity = damaged_quantity;
     }
 
     vm.changeReturnQty = function(qty, index, data) {
@@ -483,6 +496,32 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           data.return_quantity = 0;
         }
         temp_data.return_quantity = Number(data.return_quantity) + return_quantity;
+      }
+    }
+
+    vm.changeDamagedQty = function(qty, index, data) {
+      if(!data.order_id) {
+        return false;
+      } else if(!data.damaged_quantity) {
+        return false;
+        vm.calOrdersDamagedData(data);
+      }
+      var temp_data = vm.orders_data[data.order_id+"<<>>"+data.sku_code];
+      if(temp_data) {
+        var damaged_quantity = 0;
+        angular.forEach(vm.model_data.data, function(sku_data, position) {
+          if(sku_data.order_id == data.order_id && sku_data.sku_code == data.sku_code && position != index) {
+            damaged_quantity += Number(sku_data.damaged_quantity);
+          }
+        });
+        if(damaged_quantity < temp_data.ship_quantity) {
+          if(Number(data.damaged_quantity) > (temp_data.return_quantity - damaged_quantity)) {
+            data.damaged_quantity = temp_data.return_quantity - damaged_quantity;
+          }
+        } else {
+          data.damaged_quantity = 0;
+        }
+        temp_data.damaged_quantity = Number(data.damaged_quantity) + damaged_quantity;
       }
     }
 

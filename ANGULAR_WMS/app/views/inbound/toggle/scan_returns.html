@@ -100,7 +100,7 @@
                  <td><input type="text" name="sku_desc" class="form-control" ng-model="data_split.sku_desc" readonly></td>
                  <td><input type="text" name="shipping" class="form-control" ng-class="service.get_decimal_perm()" ng-model="data_split.ship_quantity" readonly></td>
                  <td><input type="text" name="return" class="form-control" ng-readonly="showCase.return_process == 'scan_imei'" ng-class="service.get_decimal_perm()"  ng-model="data_split.return_quantity" ng-change="showCase.changeReturnQty(data_split.return_quantity, $index, data_split)"></td>
-                 <td><input type="text" name="damaged" class="form-control" ng-readonly="showCase.return_process == 'scan_imei'" ng-class="service.get_decimal_perm()" ng-model="data_split.damaged_quantity">
+                 <td><input type="text" name="damaged" class="form-control" ng-readonly="showCase.return_process == 'scan_imei'" ng-class="service.get_decimal_perm()" ng-model="data_split.damaged_quantity" ng-change="showCase.changeDamagedQty(data_split.damaged_quantity, $index, data_split)">
                    <input type="hidden" class="form-control" name="returns_imeis" ng-model="data_split.returns_imeis" value="{{data_split.returns_imeis.join(',')}}">
                    <input type="hidden" class="form-control" value="{{data_split.damaged_imeis.join(',')}}" name="damaged_imeis" ng-model="data_split.damaged_imeis">
                    <input type="hidden" class="form-control" name="damaged_imeis_reason" value="{{data_split.damaged_imeis_reason.join(',')}}">

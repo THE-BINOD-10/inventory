@@ -2766,7 +2766,7 @@ def putaway_data(request, user=''):
         else:
             check_and_update_stock(sku_codes, user)
 
-        updated_location = update_filled_capacity(list(set(mod_locations)), user.id)
+        update_filled_capacity(list(set(mod_locations)), user.id)
 
         # Auto Allocate Stock
         order_allocate_stock(request, user, stock_data = putaway_stock_data, mapping_type='PO')

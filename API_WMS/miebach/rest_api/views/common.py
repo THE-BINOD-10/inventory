@@ -2857,7 +2857,6 @@ def update_filled_capacity(locations, user_id):
             filled_capacity = loc_quantities[loc_mast_ids.index(location.id)]
         location.filled_capacity = filled_capacity
         location.save()
-    return location
 
 def get_dictionary_query(data_dict={}):
     queries = [Q(**{key: value}) for key, value in data_dict.iteritems()]
@@ -4496,17 +4495,15 @@ def get_sku_stock(request, sku, sku_stocks, user, val_dict, sku_id_stocks=''):
         order_by = 'receipt_date'
     else:
         order_by ='location_id__pick_sequence'
-
     stock_detail = sku_stocks.filter(**data_dict).order_by(order_by)
-
     stock_count = 0
     if sku.id in val_dict['sku_ids']:
         indices = [i for i, x in enumerate(sku_id_stocks) if x['sku_id'] == sku.id]
         for index in indices:
             stock_count += val_dict['stock_totals'][index]
         if sku.id in val_dict['pic_res_ids']:
-            stock_count = stock_count - val_dict['pic_res_quans'][val_dict['pic_res_ids'].index(sku.id)]
-
+            pic_res_id_index = val_dict['pic_res_ids'].index(sku.id)
+            stock_count = stock_count - val_dict['pic_res_quans'][pic_res_id_index]
     return stock_detail, stock_count, sku.wms_code
 
 
@@ -4536,7 +4533,6 @@ def get_stock_count(request, order, stock, stock_diff, user, order_quantity, pre
         else:
             stock_count = stock_quantity
             stock_diff = order_quantity - stock_quantity
-
     return stock_count, stock_diff
 
 def create_seller_summary_details(seller_order, picklist):

@@ -167,7 +167,7 @@
               customers : JSON.stringify(data)
                        });
           $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-                $http.post(urlService.mainUrl+'add_customer/', data)
+                $http.post(urlService.mainUrl+'rest_api/add_customer/', data)
                   .success( function(data) {
 
                     console.log(data);

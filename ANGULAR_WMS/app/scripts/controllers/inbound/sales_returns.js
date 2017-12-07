@@ -73,6 +73,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 check_data(field);
               } else if (field+' is already confirmed' == data.data){
                 pop_msg(data.data);
+              } else if (data.data.indexOf("Already Returned") >= 0) {
+                pop_msg(data.data);
+                vm.model_data.scan_order_id = ''
               } else {
                 angular.forEach(data.data, function(sku_data){
                   vm.model_data.data.push(sku_data);
@@ -102,6 +105,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 check_data(field);
               } else if (field+' is already confirmed' == data.data){
                 pop_msg(data.data);
+              } else if (data.data.indexOf("Already Returned") >= 0) {
+                pop_msg(data.data);
+                vm.model_data.scan_return_id = ''
               } else {
                 vm.model_data.data.push(data.data[0]);
                 vm.scan_returns.push(field);
@@ -259,9 +265,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     $scope.demo5 = function (field) {
-    var data = field;
+    var title_value = 'Invalid Order Id';
+    if (field == 'AWB No.') {
+      title_value = 'Invalid ' + field
+    }
     SweetAlert.swal({
-        title: 'Order Id not Found',
+        title: title_value,
         //text: 'Do you Want to add it',
         type: 'warning',
         //showCancelButton: true,
@@ -496,12 +505,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.service.apiCall('check_returns/', 'GET', {awb_no: field}).then(function(data) {
             if(data.message) {
               if ('AWB No. is Invalid' == data.data) {
-                $scope.demo5(field)
+                $scope.demo5('AWB No.')
                 vm.model_data.scan_awb_no = ''
               } else if (field+' is already confirmed' == data.data){
                 pop_msg(data.data);
                 vm.model_data.scan_awb_no = ''
-              } else if (data.data.indexOf("Sales Return") >= 0) {
+              } else if (data.data.indexOf("Already Returned") >= 0) {
                 pop_msg(data.data);
                 vm.model_data.scan_awb_no = ''
               } else {

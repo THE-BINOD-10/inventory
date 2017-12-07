@@ -2049,6 +2049,7 @@ def returns_order_tracking(order_id, quantity, status='', imei=''):
 @login_required
 @get_admin_user
 def check_returns(request, user=''):
+    from django.core.exceptions import ObjectDoesNotExist
     status = ''
     all_data = {}
     data = []
@@ -2057,11 +2058,11 @@ def check_returns(request, user=''):
     request_awb = request.GET.get('awb_no', '')
     if request_awb:
         try:
-            get_order_id = OrderAwbMap.objects.get(awb_no = request_awb).values('original_order_id')
+            get_order_id = OrderAwbMap.objects.get(awb_no = request_awb).original_order_id
         except ObjectDoesNotExist:
             get_order_id = None
         if get_order_id:
-            request_order_id = get_order_id[0]['original_order_id']
+            request_order_id = get_order_id
         else:
             status = 'AWB No. is Invalid'
     if request_order_id:
@@ -2088,13 +2089,19 @@ def check_returns(request, user=''):
             all_data.setdefault(cond, 0)
             all_data[cond] += picklist.picked_quantity
         for key, value in all_data.iteritems():
-            duplicate = OrderTracking.objects.filter(order_id = key[0], status='returned')
-            if duplicate:
-                status = 'Sales Returns for '+str(key[0])+' Order ID is already Present'
-                return HttpResponse(status)
+            order_track_obj = OrderTracking.objects.filter(order_id = key[0], status='returned')
+            if order_track_obj:
+                order_track_quantity = int(order_track_obj.aggregate(Sum('quantity'))['quantity__sum'])
+                if value == order_track_quantity:
+                    status = str(key[0]) + ' Order ID Already Returned'
+                    return HttpResponse(status)
+                else:
+                    remaining_return = int(value) - int(order_track_quantity)
+                    data.append({ 'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
+                    'ship_quantity': remaining_return, 'return_quantity': remaining_return, 'damaged_quantity': 0 })
             else:
                 data.append({ 'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
-                    'ship_quantity': value, 'return_quantity': 0, 'damaged_quantity': 0 })
+                    'ship_quantity': value, 'return_quantity': value, 'damaged_quantity': 0 })
     elif request_return_id:
         order_returns = OrderReturns.objects.filter(return_id=request_return_id, sku__user=user.id)
         if not order_returns:
@@ -2436,8 +2443,9 @@ def confirm_sales_return(request, user=''):
             if not locations_status == 'Success':
                 return HttpResponse(locations_status)
             else:
-                total_quantity = int(return_dict['return']) + int(return_dict['damaged'])
-                returns_order_tracking(return_dict['order_id'], total_quantity, 'returned', '')
+                total_quantity = int(return_dict['return'])
+                if total_quantity:
+                    returns_order_tracking(return_dict['order_id'], total_quantity, 'returned', '')
         if user.userprofile.user_type == 'marketplace_user':
             check_and_update_order_status_data(mp_return_data, user, status='RETURNED')
     except Exception as e:

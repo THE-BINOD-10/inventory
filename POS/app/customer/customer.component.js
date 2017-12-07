@@ -160,7 +160,7 @@
                          "mail": self.customer.Email || '',
                          "number": parseInt(self.searchText) || ''};
       
-      if(navigator.OnLine){
+      if(navigator.onLine){
           data = data.concat(user_details);
 
           data = $.param({

@@ -319,7 +319,7 @@
   
       function get_product_data(key) {
   
-          if (key.length > 3) {
+          if (key.length > 1) {
             var deferred = $q.defer();
             if(navigator.onLine){
               console.log("online");

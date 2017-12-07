@@ -47,7 +47,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.scan_orders = [];
       vm.scan_skus = [];
       vm.scan_imeis = [];
-      vm.scan_awb_no = [];
+      vm.scan_awb_order_no = [];
       vm.confirm_disable = false;
       vm.imei_data.reason = "";
       vm.imei_data.scanning = false;
@@ -188,6 +188,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           pop_msg(data.data);
           vm.confirm_disable = true;
           if(data.data == 'Updated Successfully') {
+            Service.showNoty(data.data);
             vm.reloadData();
             vm.close();
             vm.orders_data = {};
@@ -291,8 +292,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.update_data = function(index , record, data) {
       vm.imei_data.scanning = false;
-      if ((vm.scan_awb_no).length) {
-        vm.scan_awb_no.splice($.inArray(data['order_id'], vm.scan_awb_no),1);
+      if ((vm.scan_awb_order_no).length) {
+        vm.scan_awb_order_no.splice($.inArray(vm.model_data.data[index]['awb_no'], vm.scan_awb_order_no),1);
       }
       vm.remove_serials(data);
       data.splice(index, 1);
@@ -322,13 +323,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
    }
 
     vm.add_next = function(index , record, data) {
-
       var temp_data = vm.orders_data[record.order_id+"<<>>"+record.sku_code];
       if(temp_data && temp_data.ship_quantity <= temp_data.return_quantity) {
         Service.showNoty("Ship Quantiy Equal To Return Quantity");
         return false;
       }
-
+      if ((vm.scan_awb_order_no).length) {
+        vm.scan_awb_order_no.push(vm.model_data.data[index]['awb_no']);
+      }
       var temp = {order_id: record.order_id, sku_code: record.sku_code, sku_desc: record.sku_desc,
                   ship_quantity: record.ship_quantity, return_quantity: "",
                   damaged_quantity: "", is_new: true, sor_id: record.sor_id,
@@ -498,16 +500,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.return_process = 'scan_awb';
     }
 
-    vm.scan_awb_no = []
+    vm.scan_awb_order_no = []
     vm.scan_awb = function(event, field) {
       if (event.keyCode == 13 && field) {
-        if(vm.scan_awb_no.indexOf(field) == -1) {
+        if(vm.scan_awb_order_no.indexOf(field) == -1) {
           vm.service.apiCall('check_returns/', 'GET', {awb_no: field}).then(function(data) {
             if(data.message) {
               if ('AWB No. is Invalid' == data.data) {
                 $scope.demo5('AWB No.')
                 vm.model_data.scan_awb_no = ''
-              } else if (field+' is already confirmed' == data.data){
+              } else if (field+' is already confirmed' == data.data) {
                 pop_msg(data.data);
                 vm.model_data.scan_awb_no = ''
               } else if (data.data.indexOf("Already Returned") >= 0) {
@@ -515,13 +517,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.model_data.scan_awb_no = ''
               } else {
                 vm.model_data.scan_awb_no = ''
-                angular.forEach(data.data, function(sku_data){
+                angular.forEach(data.data, function(sku_data) {
+                  sku_data['awb_no'] = field;
                   vm.model_data.data.push(sku_data);
                   var name = sku_data.order_id+"<<>>"+sku_data.sku_code;
                   vm.orders_data[name] = {};
                   angular.copy(sku_data, vm.orders_data[name]);
                 })
-                vm.scan_awb_no.push(field);
+                vm.scan_awb_order_no.push(field);
               }
             }
             vm.model_data.scan_order_id = "";

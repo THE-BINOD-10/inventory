@@ -53,13 +53,13 @@
 
 	
 	urlService.show_loading=function showRefresh(){
-	  $(".preloader").removeClass("ng-hide").addClass("ng-show");
+	  $(".glyphicon-refresh").addClass("refresh-spinner");
 	};
 
 	
 	urlService.hide_loading=function hideRefresh(){
-	  $(".preloader").removeClass("ng-show").addClass("ng-hide");
-		checkstorage();	  
+	    $(".glyphicon-refresh").removeClass("refresh-spinner");
+	    checkstorage();
 	};
 
 	function checkstorage(){

@@ -1172,6 +1172,36 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
         else:
             SellerStock.objects.create(seller_id=seller_id, stock_id=stock.id, quantity=quantity)
 
+def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, seller_id=''):
+    for stock in stocks:
+        if stock.quantity > move_quantity:
+            stock.quantity -= move_quantity
+            change_seller_stock(seller_id, stock, user, move_quantity, 'dec')
+            move_quantity = 0
+            if stock.quantity < 0: 
+                stock.quantity = 0
+            stock.save()
+        elif stock.quantity <= move_quantity:
+
+            move_quantity -= stock.quantity
+            change_seller_stock(seller_id, stock, user, stock.quantity, 'dec')
+            stock.quantity = 0
+            stock.save()
+        if move_quantity == 0:
+            break
+
+    if not dest_stocks:
+        dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=float(quantity), status=1,
+                                  creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now(), location_id=dest[0].id,
+                                  sku_id=sku_id)
+        dest_stocks.save()
+        change_seller_stock(seller_id, dest_stocks, user, float(quantity), 'create')
+    else:
+        dest_stocks = dest_stocks[0]
+        dest_stocks.quantity += float(quantity)
+        dest_stocks.save()
+        change_seller_stock(seller_id, dest_stocks, user, quantity, 'inc')
+
 def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id=''):
     #sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     sku = check_and_return_mapping_id(wms_code, "", user, False)
@@ -1208,35 +1238,9 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         seller_stock = SellerStock.objects.filter(stock_id__in=stock_filter_ids, seller_id=seller_id)
         if not seller_stock:
             return 'Seller Stock Not Found'
-    for stock in stocks:
-        if stock.quantity > move_quantity:
-            stock.quantity -= move_quantity
-            change_seller_stock(seller_id, stock, user, move_quantity, 'dec')
-            move_quantity = 0
-            if stock.quantity < 0:
-                stock.quantity = 0
-            stock.save()
-        elif stock.quantity <= move_quantity:
-
-            move_quantity -= stock.quantity
-            change_seller_stock(seller_id, stock, user, stock.quantity, 'dec')
-            stock.quantity = 0
-            stock.save()
-        if move_quantity == 0:
-            break
 
     dest_stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=dest[0].id, sku__user=user.id)
-    if not dest_stocks:
-        dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=float(quantity), status=1,
-                                  creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now(), location_id=dest[0].id,
-                                  sku_id=sku_id)
-        dest_stocks.save()
-        change_seller_stock(seller_id, dest_stocks, user, float(quantity), 'create')
-    else:
-        dest_stocks = dest_stocks[0]
-        dest_stocks.quantity += float(quantity)
-        dest_stocks.save()
-        change_seller_stock(seller_id, dest_stocks, user, quantity, 'inc')
+    update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, seller_id)
 
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
     data_dict['cycle'] = cycle_id

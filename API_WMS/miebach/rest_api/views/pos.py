@@ -258,10 +258,10 @@ def customer_order(request):
 
                     # return item : increase stock
                     else:
-                        sku_stocks = StockDetail.objects.filter(sku__user=user_id, sku_id=sku.id)
-                        sku_stocks = sku_stocks[0] if sku_stocks else StockDetail.objects.create(sku__user=user_id, sku_id=sku.id)
-                        sku_stocks.quantity = int(sku_stocks.quantity) + item['quantity']
-                        sku_stocks.save()
+                        sku_stocks_ = StockDetail.objects.filter(sku__user=user_id, sku_id=sku.id)
+                        sku_stocks_ = sku_stocks_[0] if sku_stocks_ else StockDetail.objects.create(sku__user=user_id, sku_id=sku.id)
+                        sku_stocks_.quantity = int(sku_stocks_.quantity) + item['quantity']
+                        sku_stocks_.save()
                         #add item to OrderReturns
                         order_return = OrderReturns.objects.create(return_id='', order=None, seller_order=None,\
                                                                    quantity=item['quantity'], damaged_quantity=item['quantity'],\

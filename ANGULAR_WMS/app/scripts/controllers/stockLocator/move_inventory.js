@@ -231,16 +231,34 @@
     }
   }
 
-  angular.module('urbanApp').controller('skuSubstitute', function ($modalInstance, $modal, items, Service) {
+  angular.module('urbanApp').controller('skuSubstitute', function ($modalInstance, $modal, items, Service, colFilters) {
     var $ctrl = this;
     $ctrl.marginData = items;
     $ctrl.service = Service;
+    // $ctrl.dest_location = '';
+    // $ctrl.dest_location = '';
 
     $ctrl.margin_types = ['Margin Percentage', 'Margin Value'];
 
-    $ctrl.check_sku_code = function(){
-      if($ctrl.model_data.source_sku_code == $ctrl.model_data.dest_sku_code) {
+    $ctrl.check_sku_code = function($items, location, sku){
+      $ctrl.sku = sku;
+
+      var send = {sku_code: $items.wms_code, location: location};
+
+
+      $ctrl.service.apiCall("get_sku_stock_check/", 'GET', send, true).then(function(data){
+        if (data.data.status) {
+          if ($ctrl.sku == "src_sku") {
+            $ctrl.model_data.src_quantity = data.data.available_quantity;
+          } else {
+            $ctrl.model_data.dest_quantity = data.data.available_quantity;
+          }
+        }
+      });
+
+      if($ctrl.model_data.src_sku_code == $ctrl.model_data.dest_sku_code) {
         $ctrl.model_data.dest_sku_code = '';
+        colFilters.showNoty("You have entered same SKU code, Please try with another SKU code");
       }
     }
 
@@ -249,9 +267,11 @@
         var elem = angular.element($('form'));
         elem = $(elem).serializeArray();
 
-        $ctrl.service.apiCall("add_sku_substitute/", 'POST', elem, true).then(function(response){
-          console.log(response);
-          $modalInstance.close($ctrl.marginData);
+        $ctrl.service.apiCall("confirm_sku_substitution/", 'POST', elem, true).then(function(response){
+          if(response.message == 'Successfully Updated'){
+            console.log(response);
+            $modalInstance.close($ctrl.marginData);
+          }
         });
       }
     };

@@ -751,7 +751,6 @@ def excel_reports(request, user=''):
                 temp[1] = datetime.datetime.strptime(temp[1], '%m/%d/%Y')
             search_params[temp[0]] = temp[1]
     params = [search_params, user, request.user]
-    import pdb;pdb.set_trace();
     if 'datatable=serialView' in form_data:
         params.append(True)
     report_data = func_name(*params)

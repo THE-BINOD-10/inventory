@@ -259,7 +259,17 @@ def customer_order(request):
                     # return item : increase stock
                     else:
                         sku_stocks_ = StockDetail.objects.filter(sku__user=user_id, sku_id=sku.id)
-                        sku_stocks_ = sku_stocks_[0] if sku_stocks_ else StockDetail.objects.create(sku__user=user_id, sku_id=sku.id)
+                        if sku_stocks_: sku_stocks_ = sku_stocks_[0]
+                        else:
+                            recpt_no = StockDetail.objects.filter(sku__user=user_id).aggregate(Max('receipt_number'))\
+                                                          .get('receipt_number__max', 0) + 1
+                            put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user_id)
+                            if not put_zone:
+                                create_default_zones(user, 'DEFAULT', 'DEFAULT', 10001)
+                                put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)[0]
+                            else:put_zone = put_zone[0]
+                            sku_stocks_ = StockDetail.objects.create(receipt_number=recpt_no, sku_id=sku.id, receipt_date=NOW,\
+                                                      creation_date=NOW, location=put_zone.locationmaster_set.all()[0])
                         sku_stocks_.quantity = int(sku_stocks_.quantity) + item['quantity']
                         sku_stocks_.save()
                         #add item to OrderReturns

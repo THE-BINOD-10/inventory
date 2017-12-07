@@ -1950,6 +1950,21 @@ class InvoiceSequence(models.Model):
         index_together = ('user', 'marketplace')
         unique_together = ('user', 'marketplace')
 
+class OrderAwbMap(models.Model):
+    user = models.ForeignKey(User)
+    original_order_id = models.CharField(max_length=128,default='')
+    awb_no = models.CharField(max_length=128, default='')
+    marketplace = models.CharField(max_length=128, default='')
+    courier_name = models.CharField(max_length=128, default='')
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_AWB_MAP'
+        index_together = ('original_order_id', 'awb_no')
+        unique_together = ('original_order_id', 'awb_no')
+
 import django
 from django.core.validators import MaxLengthValidator
 from django.utils.translation import ugettext as _

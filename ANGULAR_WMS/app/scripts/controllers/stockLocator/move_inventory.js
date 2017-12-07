@@ -235,13 +235,27 @@
     var $ctrl = this;
     $ctrl.marginData = items;
     $ctrl.service = Service;
-    // $ctrl.dest_location = '';
-    // $ctrl.dest_location = '';
+    $ctrl.model_data = {};
+    $ctrl.model_data.src_available_quantity = 0;
+    $ctrl.data_available = true;
+
+    $ctrl.empty_sku =function(){
+      if (!$ctrl.model_data.src_available_quantity) {
+        $ctrl.model_data.src_available_quantity = 0;
+      }
+    }
 
     $ctrl.margin_types = ['Margin Percentage', 'Margin Value'];
 
     $ctrl.check_sku_code = function($items, location, sku){
+      $ctrl.data_available = false;
       $ctrl.sku = sku;
+
+      $ctrl.model_data.src_available_quantity = 0;
+      
+      if (!$ctrl.model_data.src_available_quantity) {
+        $ctrl.model_data.src_available_quantity = 0;
+      }
 
       var send = {sku_code: $items.wms_code, location: location};
 
@@ -249,7 +263,8 @@
       $ctrl.service.apiCall("get_sku_stock_check/", 'GET', send, true).then(function(data){
         if (data.data.status) {
           if ($ctrl.sku == "src_sku") {
-            $ctrl.model_data.src_quantity = data.data.available_quantity;
+            $ctrl.model_data.src_available_quantity = data.data.available_quantity;
+            $ctrl.data_available = true;
           } else {
             $ctrl.model_data.dest_quantity = data.data.available_quantity;
           }

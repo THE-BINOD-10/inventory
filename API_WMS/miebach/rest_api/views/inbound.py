@@ -741,6 +741,7 @@ def switches(request, user=''):
                         'show_disc_invoice': 'show_disc_invoice',
                         'serial_limit': 'serial_limit',
                         'increment_invoice': 'increment_invoice',
+                        'dashboard_order_level': 'dashboard_order_level',
                         'auto_allocate_stock': 'auto_allocate_stock'
                       }
 

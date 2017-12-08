@@ -2445,4 +2445,7 @@ def get_rm_picklist_data(search_params, user, sub_user):
         ('Quantity', obj.mod_quantity),
         ('Processed Date', get_local_date(user, obj.updation_date)),)))
     temp_data['aaData'] = data
+    if stop_index:
+        temp_data['aaData'] = data[start_index:stop_index]
+
     return temp_data

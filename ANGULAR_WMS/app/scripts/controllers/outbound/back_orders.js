@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.units = vm.service.units;
     vm.filters = {'datatable': 'OutboundBackOrders', 'search0':'', 'search1':'', 'search2': ''}
     vm.selected = {};
     vm.selectAll = false;
@@ -251,7 +252,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
           angular.copy(data.data, vm.model_data);
           angular.forEach(vm.model_data.data, function(temp){
             if(temp.sub_data.length == 0) {
-              temp["sub_data"] = [{material_code: "", material_quantity: ""}];
+              temp["sub_data"] = [{material_code: "", material_quantity: "", measurement_type: ""}];
             }
           });
           $state.go("app.outbound.BackOrders.JO");
@@ -293,7 +294,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
                url:Session.url+"get_material_codes/",
                withCredential: true,
                data: elem}).success(function(data, status, headers, config) {
-                 sku_data.sub_data = data;
+                 sku_data.sub_data = data.materials;
+                sku_data.product_description = 1;
+                sku_data.description = data.product.description;
             console.log("success");
           });
         }

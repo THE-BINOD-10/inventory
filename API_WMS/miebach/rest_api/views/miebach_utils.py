@@ -307,8 +307,24 @@ SELLER_INVOICE_DETAILS_DICT = {
             'dt_url': 'get_seller_invoices_filter', 'excel_name': 'seller_invoices_filter', 'print_url': 'print_seller_invoice_report',
                               }
 
+RM_PICKLIST_REPORT_DICT = {
+              'filters':[ 
+                          {'label': 'From JO Creation Date', 'name': 'from_date', 'type': 'date'}, 
+                          {'label': 'To JO Creation Date', 'name': 'to_date','type': 'date'},
+                          {'label': 'Job Code', 'name': 'job_order_code', 'type': 'input'},
+                          {'label': 'FG SKU Code', 'name': 'fg_sku_code', 'type': 'input' },
+                          {'label': 'RM SKU Code', 'name': 'rm_sku_code', 'type': 'input' },
+                          {'label': 'Location', 'name': 'location', 'type': 'input'},
+                          {'label': 'Pallet', 'name': 'pallet', 'type': 'input'} 
+                        ],
+                        'dt_headers': ['Jo Code', 'Jo Creation Date', 'FG SKU Code', 'RM SKU Code',  'Location', 
+                                        'Pallet Code', 'Quantity', 'Processed Date'],
+                        'dt_url': 'get_rm_picklist_report', 'excel_name': 'rm_picklist_report', 
+                        'print_url': 'print_rm_picklist_report',
+                        }
+
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT, 'sku_wise_po_report': SKU_WISE_PO_DICT,
-                     'grn_report': GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT}
+                     'grn_report': GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT, 'rm_picklist_report': RM_PICKLIST_REPORT_DICT}
 
 SKU_WISE_STOCK = {('sku_wise_form','skustockTable','SKU Wise Stock Summary','sku-wise', 1, 2, 'sku-wise-report') : (['SKU Code', 'WMS Code', 'Product Description', 'SKU Category', 'Total Quantity'],( (('SKU Code', 'sku_code'), ('SKU Category', 'sku_category')), (('SKU Type', 'sku_type'), ('SKU Class', 'sku_class')),(('WMS Code','wms_code'),))),}
 
@@ -405,7 +421,7 @@ REJECT_REASONS = ['Color Mismatch', 'Price Mismatch', 'Wrong Product', 'Package 
 
 QC_SERIAL_FIELDS = {'quality_check_id': '', 'serial_number_id': '', 'status': '','reason': ''}
 
-RAISE_JO_HEADERS = OrderedDict([('Product SKU Code', 'product_code'), ('Product SKU Quantity', 'product_quantity'),
+RAISE_JO_HEADERS = OrderedDict([('Product SKU Code', 'product_code'), ('Product SKU Description', 'description'), ('Product SKU Quantity', 'product_quantity'),
                                 ('Material SKU Code', 'material_code'), ('Material SKU Quantity', 'material_quantity'), ('Measurement Type', 'measurement_type')])
 
 JO_PRODUCT_FIELDS = {'product_quantity': 0, 'received_quantity': 0, 'job_code': 0, 'jo_reference': '','status': 'open', 'product_code_id': ''}
@@ -458,7 +474,10 @@ PICKLIST_SKIP_LIST = ('sortingTable_length', 'fifo-switch', 'ship_reference', 's
 
 MAIL_REPORTS = { 'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wise SKU'], 'receipt_note': ['Receipt Summary'], 'dispatch_summary': ['Dispatch Summary'], 'sku_wise': ['SKU Wise Stock'] }
 
-MAIL_REPORTS_DATA = {'Raise PO': 'raise_po', 'Receive PO': 'receive_po', 'Orders': 'order', 'Dispatch': 'dispatch', 'Internal Mail' : 'internal_mail'}
+MAIL_REPORTS_DATA = OrderedDict(( ('Raise PO', 'raise_po'), ('Receive PO', 'receive_po'), ('Orders', 'order'),
+                                  ('Dispatch', 'dispatch'), ('Internal Mail' , 'internal_mail'),
+                                  ('Raise JO', 'raise_jo')
+                            ))
 
 # Configurations
 PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_location', 'Scan Serial': 'scan_serial', 'Scan Label': 'scan_label',
@@ -663,7 +682,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'order_summary_report': 'get_order_summary_data', 'seller_invoices_filter': 'get_seller_invoices_filter_data',
                         'open_jo_report': 'get_openjo_details', 'grn_inventory_addition': 'get_grn_inventory_addition_data',
                         'sales_returns_addition': 'get_returns_addition_data',
-                        'seller_stock_summary_replace': 'get_seller_stock_summary_replace'
+                        'seller_stock_summary_replace': 'get_seller_stock_summary_replace',
+                        'rm_picklist_report': 'get_rm_picklist_data'
                        }
 # End of Download Excel Report Mapping
 
@@ -848,7 +868,7 @@ BARCODE_DICT = {'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': ''
 
 BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'format4': 'Details', 'Bulk Barcode': 'Details'}
 
-BARCODE_ADDRESS_DICT = {'adam_clothing1': 'Adam Exports 401, 4th Floor,\n Pratiek Plazza, S.V.Road,\n Goregaon West, Mumbai - 400062.\n MADE IN INDIA'}
+BARCODE_ADDRESS_DICT = {'adam_clothing': 'Adam Exports 401, 4th Floor,\n Pratiek Plazza, S.V.Road,\n Goregaon West, Mumbai - 400062.\n MADE IN INDIA'}
 
 PRICING_MASTER_HEADERS = ['SKU Code', 'Selling Price type', 'Price', 'Discount']
 
@@ -970,6 +990,10 @@ JOB_ORDER_EXCEL_HEADERS = ['Product SKU Code', 'Product SKU Quantity']
 
 JOB_ORDER_EXCEL_MAPPING = OrderedDict(( ('product_code', 0), ('product_quantity', 1)))
 
+ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name', 'Marketplace']
+
+ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict(( ('order_id', 0), ('awb_no', 1), ('courier_name', 2), ('marketplace', 3) ))
+
 #Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png'}
 
@@ -988,7 +1012,8 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                       'barcode_generate_opt': 'barcode_generate_opt', 'online_percentage': 'online_percentage', 'mail_alerts': 'mail_alerts',
                       'detailed_invoice': 'detailed_invoice', 'invoice_titles': 'invoice_titles', 'show_image': 'show_image',
                       'auto_generate_picklist': 'auto_generate_picklist', 'auto_po_switch': 'auto_po_switch', 'fifo_switch': 'fifo_switch',
-                      'internal_mails': 'Internal Emails', 'increment_invoice': 'increment_invoice'
+                      'internal_mails': 'Internal Emails', 'increment_invoice': 'increment_invoice', 'create_shipment_type': 'create_shipment_type',
+                      'auto_allocate_stock': 'auto_allocate_stock'
                      }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency', 'scan_picklist_option': 'scan_picklist_option',
@@ -1188,11 +1213,11 @@ def get_receipt_filter_data(search_params, user, sub_user):
     use_imei = get_misc_value('use_imei', user.id)
     query_prefix = ''
     lis = ['open_po__supplier__name', 'order_id', 'open_po__sku__wms_code', 'open_po__sku__sku_desc', 'received_quantity',
-           'updation_date']
+           'updation_date', 'reason']
     model_obj = PurchaseOrder
     if use_imei == 'true':
         lis = ['purchase_order__open_po__supplier__name', 'purchase_order__order_id', 'purchase_order__open_po__sku__wms_code',
-               'purchase_order__open_po__sku__sku_desc', 'imei_number', 'creation_date']
+               'purchase_order__open_po__sku__sku_desc', 'imei_number', 'creation_date', 'purchase_order__reason']
         query_prefix = 'purchase_order__'
         model_obj = POIMEIMapping
     temp_data = copy.deepcopy( AJAX_DATA )
@@ -1244,11 +1269,15 @@ def get_receipt_filter_data(search_params, user, sub_user):
             serial_number = data.imei_number
             data = data.purchase_order
             received_date = get_local_date(user, data.creation_date)
+        reason = ''
+        if data.reason:
+            reason = data.reason
         po_reference = '%s%s_%s' %(data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), data.order_id)
         temp_data['aaData'].append(OrderedDict(( ('PO Reference', po_reference), ('WMS Code', data.open_po.sku.wms_code), ('Description', data.open_po.sku.sku_desc),
                                     ('Supplier', '%s (%s)' % (data.open_po.supplier.name, data.open_po.supplier_id)),
                                     ('Receipt Number', data.open_po_id), ('Received Quantity', data.received_quantity),
-                                    ('Serial Number', serial_number), ('Received Date', received_date) )))
+                                    ('Serial Number', serial_number), ('Received Date', received_date),
+                                    ('Closing Reason', reason))))
     return temp_data
 
 def get_dispatch_data(search_params, user, sub_user, serial_view=False):
@@ -2363,5 +2392,64 @@ def demo_fun(request):
 
     return JsonResponse(status)
 
+def get_rm_picklist_data(search_params, user, sub_user):
+    from rest_api.views.common import get_local_date
+    from django.db.models import F
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    status_filter = {}
+    all_data = OrderedDict()
+    lis = {}
+    rm_picklist = RMLocation.objects.filter(stock__sku__user = user.id)
+    if 'from_date' in search_params:
+      status_filter['material_picklist__jo_material__job_order__creation_date__gte'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+    if 'to_date' in search_params:
+      status_filter['material_picklist__jo_material__job_order__creation_date__lte'] = datetime.datetime.combine(search_params['to_date']  + datetime.timedelta(1), datetime.time())
+    if 'job_order_code' in search_params:
+      status_filter['material_picklist__jo_material__job_order__job_code__iexact'] = search_params['job_order_code']
+    if 'fg_sku_code' in search_params:
+      status_filter['material_picklist__jo_material__job_order__product_code__sku_code__iexact'] = search_params['fg_sku_code']
+    if 'rm_sku_code' in search_params:
+      status_filter['material_picklist__jo_material__material_code__sku_code__iexact'] = search_params['rm_sku_code']
+    if 'location' in search_params:
+      status_filter['stock__location__location__iexact'] = search_params['location']
+    if 'pallet' in search_params:
+      status_filter['stock__pallet_detail__pallet_code__iexact'] = search_params['pallet']
+    lis = [
+            'material_picklist__jo_material__job_order__job_code', 
+            'material_picklist__jo_material__job_order__creation_date', 
+            'material_picklist__jo_material__job_order__product_code__sku_code',
+            'material_picklist__jo_material__material_code__sku_code',
+            'stock__location__location',
+            'stock__pallet_detail__pallet_code',
+            'mod_quantity',
+            'updation_date'
+          ]
+    if len(status_filter):
+      rm_picklist = rm_picklist.filter(**status_filter)
+    rm_picklist = rm_picklist.annotate(mod_quantity=F('quantity')-F('reserved'))
+    rm_picklist = rm_picklist.filter(mod_quantity__gt = 0)
+    if search_params.get('order_term'):
+      order_data = lis[search_params['order_index']]
+      if search_params['order_term'] == 'desc':
+        order_data = "-%s" % order_data
+      rm_picklist = rm_picklist.order_by(order_data)
+    temp_data['recordsTotal'] = rm_picklist.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    data = []
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    for obj in rm_picklist[start_index:stop_index]:
+      data.append(OrderedDict((('Jo Code', obj.material_picklist.jo_material.job_order.job_code),
+        ('Jo Creation Date', get_local_date(user, obj.material_picklist.jo_material.job_order.creation_date)),
+        ('FG SKU Code', obj.material_picklist.jo_material.job_order.product_code.sku_code),
+        ('RM SKU Code', obj.material_picklist.jo_material.material_code.sku_code),
+        ('Location', obj.stock.location.location),
+        ('Pallet Code', obj.stock.pallet_detail.pallet_code if obj.stock.pallet_detail else ''),
+        ('Quantity', obj.mod_quantity),
+        ('Processed Date', get_local_date(user, obj.updation_date)),)))
+    temp_data['aaData'] = data
+    if stop_index:
+        temp_data['aaData'] = data[start_index:stop_index]
 
-
+    return temp_data

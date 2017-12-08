@@ -1139,15 +1139,19 @@ var app = angular.module('urbanApp')
           permission: 'add_shipmentinfo',
           templateUrl: 'views/outbound/shipment_info.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/outbound/shipment_info/create_shipment.js'
-                ]).then( function() {
-                  return $ocLazyLoad.load([
-                    'scripts/controllers/outbound/shipment_info/view_shipment.js'
-                  ])
-                });
-              }]
+              ]).then( function() {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/shipment_info/view_shipment.js'
+                ])
+              }).then( function() {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/shipment_info/gateout.js'
+                ])
+              });
+            }]
           },
           data: {
             title: 'Shipment Info',
@@ -1327,7 +1331,7 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Location Wise Filter',
-          }   
+          }
         })
         .state('app.reports.GoodsReceiptNote', {
           url: '/GoodsReceiptNote',
@@ -1339,7 +1343,7 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Goods Receipt Note',
-          }   
+          }
         })
           .state('app.reports.GoodsReceiptNote.PurchaseOrder', {
             url: '/GoodsReceiptNote',
@@ -1355,7 +1359,7 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Receipt Summary',
-          }   
+          }
         })
         .state('app.reports.DispatchSummaryReport', {
           url: '/DispatchSummary',
@@ -1366,8 +1370,8 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Dispatch Summary Report',
-          }   
+            title: 'Dispatch Summary',
+          }
         })
         .state('app.reports.SKUWiseStock', {
           url: '/SKUWiseStock',
@@ -1379,7 +1383,7 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'SKU Wise Stock',
-          }   
+          }
         })
         .state('app.reports.SKUWisePurchaseOrders', {
           url: '/SKUWisePurchaseOrders',
@@ -1391,7 +1395,7 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'SKU Wise Purchase Orders',
-          }   
+          }
         })
         .state('app.reports.SupplierWisePOs', {
           url: '/SupplierWisePOs',
@@ -1403,7 +1407,7 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Supplier Wise POs',
-          }   
+          }
         })
         .state('app.reports.SalesReturnReport', {
           url: '/SalesReturnReport',
@@ -1415,7 +1419,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Sales Return Report',
+            title: 'Sales Return',
           }
         })
         .state('app.reports.InventoryAdjustment', {
@@ -1439,7 +1443,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Inventory Aging Report',
+            title: 'Inventory Aging',
           }
         })
         .state('app.reports.StockSummaryReport', {
@@ -1451,7 +1455,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Stock Summary Report',
+            title: 'Stock Summary',
           }
         })
         .state('app.reports.DailyProductionReport', {
@@ -1463,7 +1467,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Daily Production Report',
+            title: 'Daily Production',
           }
         })
         .state('app.reports.OrderSummaryReport', {
@@ -1475,7 +1479,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Order Summary Report',
+            title: 'Order Summary',
           }
         })
         .state('app.reports.JOStatusReport', {
@@ -1499,7 +1503,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Open JO Report',
+            title: 'Open JO',
           }
         })
         .state('app.reports.SellerInvoiceDetails', {
@@ -1512,6 +1516,18 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Seller Invoice Details',
+          }
+        })
+        .state('app.reports.RMPicklistReport', {
+          url: '/RMPicklistReport',
+          templateUrl: 'views/reports/rm_picklist_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/rm_picklist_report.js');
+              }]
+          },
+          data: {
+            title: 'RM Picklist',
           }
         })
 
@@ -1536,7 +1552,7 @@ var app = angular.module('urbanApp')
                             ]
                         }]).then(function () {
                 return $ocLazyLoad.load('scripts/controllers/configs/configurations.js');
-              });   
+              });
                     }]
           },
           data: {

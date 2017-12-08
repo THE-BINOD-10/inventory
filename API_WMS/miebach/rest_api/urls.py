@@ -177,6 +177,8 @@ urlpatterns = [
     url(r'^view_picklist/$',view_picklist),
     url(r'^view_picked_orders/$',view_picked_orders),
     url(r'^get_customer_sku/$',get_customer_sku),
+    url(r'^get_awb_shipment_details/$',get_awb_shipment_details),
+    url(r'^get_awb_view_shipment_info/$',get_awb_view_shipment_info),
     url(r'^print_picklist_excel/$',print_picklist_excel),
     url(r'^print_picklist/$',print_picklist),
     url('^marketplace_segregation/$',marketplace_segregation),
@@ -266,7 +268,9 @@ urlpatterns = [
     url(r'^get_marketplaces_list_reports/$',get_marketplaces_list_reports),
     url(r'^get_seller_invoices_filter/$',get_seller_invoices_filter),
     url(r'^print_seller_invoice_report/$',print_seller_invoice_report),
-
+    url(r'^get_rm_picklist_report/$',get_rm_picklist_report),
+    url(r'^print_rm_picklist_report/$',print_rm_picklist_report),
+    url(r'^excel_sales_return_report/$',excel_sales_return_report),
 ]
 
 #urlpatterns += patterns('rest_api.views',
@@ -311,6 +315,8 @@ urlpatterns += [
     url(r'^po_serial_mapping_form/$', po_serial_mapping_form),
     url(r'^po_serial_mapping_upload/$', po_serial_mapping_upload),
     url(r'^job_order_form/$', job_order_form),
+    url(r'^orderid_awb_mapping_form/$', orderid_awb_mapping_form),
+    url(r'^orderid_awb_upload/', orderid_awb_upload),
     url(r'^job_order_upload/$', job_order_upload),
     url(r'^marketplace_serial_form/$', marketplace_serial_form),
     url(r'^marketplace_serial_upload/$', marketplace_serial_upload),
@@ -410,11 +416,11 @@ urlpatterns += [
     url(r'get_customer_sku_prices',get_customer_sku_prices),
 
     #save_invoice_changes -> outbound
-    url(r'edit_invoice',edit_invoice),
-
+    url(r'edit_invoice', edit_invoice),
+    url(r'delete_order_charges', delete_order_charges),
 
     #get size_list
-    url(r'get_size_names',get_size_names),
+    url(r'get_size_names', get_size_names),
 
 
     #get list of vendors . @common.py
@@ -424,6 +430,5 @@ urlpatterns += [
     url(r'update_picklist_loc/',update_picklist_loc),
 
     #Barcodes
-    url('^GetBarcodes/$', get_barcodes),
     url('^get_format_types/', get_format_types)
 ]

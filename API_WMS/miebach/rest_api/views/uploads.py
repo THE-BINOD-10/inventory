@@ -903,6 +903,147 @@ def marketplace_serial_form(request, user=''):
     return xls_to_response(wb, '%s.marketplace_serial_form.xls' % str(user.id))
 
 @csrf_exempt
+@get_admin_user
+def orderid_awb_mapping_form(request, user=''):
+    label_file = request.GET['orderid-awb-map-file']
+    if label_file:
+        return error_file_download(label_file)
+
+    wb, ws = get_work_sheet('Awb Map', ORDER_ID_AWB_MAP_EXCEL_HEADERS)
+    return xls_to_response(wb, '%s.order_id_awb_mapping_form.xls' % str(user.id))
+
+def get_orderid_awb_mapping(reader, file_type):
+    order_awb_mapping = {}
+    if get_cell_data(0, 0, reader, file_type) == 'Order ID' and get_cell_data(0, 1, reader, file_type) == 'AWB No':
+        order_awb_mapping = copy.deepcopy(ORDER_ID_AWB_EXCEL_MAPPING)
+    return order_awb_mapping
+
+def check_get_order_id(order_id, user):
+    order_obj = ''
+    temp = re.findall('\d+',order_id)
+    str_order_code = ''.join(re.findall('\D+', order_id ))
+    int_order_id = ''.join(re.findall('\d+', order_id ))
+    order_obj = OrderDetail.objects.filter( Q(original_order_id=order_id) | Q(order_code = str_order_code, order_id = int_order_id) , user=user.id)
+    return order_obj
+
+def validate_upload_orderid_awb(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
+    log.info("OrderID AWB upload started")
+    st_time = datetime.datetime.now()
+    index_status = {}
+    order_mapping = get_orderid_awb_mapping(reader, file_type)
+    if not order_mapping:
+        return 'Invalid File'
+    count = 0
+    log.info("Validation Started %s" %datetime.datetime.now())
+    all_data_list = []
+    duplicate_products = []
+    order_ids_list = []
+    awb_list = []
+    for row_idx in range(1, no_of_rows):
+        if not order_mapping:
+            break
+        count += 1
+        sku_code = ''
+        orderid_awb_dict = {}
+        for key, val in order_mapping.iteritems():
+            value = get_cell_data(row_idx, order_mapping[key], reader, file_type)
+            if key == 'order_id':
+                if isinstance(value, float):
+                    value = str(int(value))
+                if not value:
+                    index_status.setdefault(count, set()).add('Order ID should not be empty')
+                elif value:
+                    order_obj = check_get_order_id(value, user)
+                    if not order_obj:
+                        index_status.setdefault(count, set()).add('Invalid Order ID')
+                    else:
+                        orderid_awb_dict['original_order_id'] = value
+                        if value and value in order_ids_list:
+                            index_status.setdefault(row_idx, set()).add('Duplicate Order Ids present in the sheet')
+                    order_ids_list.append(value)
+            elif key == 'awb_no':
+                if isinstance(value, float):
+                    value = str(int(value))
+                if not value:
+                    index_status.setdefault(count, set()).add('AWB No. not should not be empty')
+                elif value:
+                    orderid_awb_dict['awb_no'] = value
+                    if value in awb_list:
+                        index_status.setdefault(row_idx, set()).add('Duplicate AWB No. Present in the sheet')
+                awb_list.append(value)
+            elif key == 'courier_name':
+                if not value:
+                    index_status.setdefault(count, set()).add('Courier Name should not be empty')
+                elif value:
+                    orderid_awb_dict['courier_name'] = value
+            elif key == 'marketplace':
+                if value:
+                    orderid_awb_dict['marketplace'] = value
+                else:
+                    orderid_awb_dict['marketplace'] = ''
+        all_data_list.append(orderid_awb_dict)
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+    create_update_orderid_awb(all_data_list, user)
+    return 'Success'
+
+def create_update_orderid_awb(all_data_list, user=''):
+    for data_dict in all_data_list:
+        order_awb_present = OrderAwbMap.objects.filter(original_order_id = data_dict['original_order_id'], user = user)
+        if order_awb_present:
+            order_awb_present.update(awb_no=data_dict['awb_no'], courier_name=data_dict['courier_name'], 
+                marketplace = data_dict['marketplace'], user=user, updation_date = datetime.datetime.now())
+        else:
+            OrderAwbMap.objects.create(awb_no=data_dict['awb_no'], courier_name=data_dict['courier_name'], 
+                original_order_id = data_dict['original_order_id'], marketplace = data_dict['marketplace'],
+                user=user)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def orderid_awb_upload(request, user=''):
+    fname = request.FILES['files']
+    if (fname.name).split('.')[-1] == 'csv':
+        reader = [[val.replace('\n', '').replace('\t', '').replace('\r','') for val in row] for row in csv.reader(fname.read().splitlines())]
+        no_of_rows = len(reader)
+        file_type = 'csv'
+    elif (fname.name).split('.')[-1] == 'xls' or (fname.name).split('.')[-1] == 'xlsx':
+        try:
+            data = fname.read()
+            if '<table' in data:
+                open_book, open_sheet = html_excel_data(data, fname)
+            else:
+                open_book = open_workbook(filename=None, file_contents=data)
+                open_sheet = open_book.sheet_by_index(0)
+        except:
+            return HttpResponse("Invalid File")
+        reader = open_sheet
+        no_of_rows = reader.nrows
+        file_type = 'xls'
+    else:
+        return HttpResponse('Invalid File')
+
+    try:
+        status  = validate_upload_orderid_awb(request, reader, user, no_of_rows, fname, file_type=file_type)
+        return HttpResponse(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('OrderId-AWB Map Upload failed for %s and params are %s and error statement is %s' % (str(user.username),
+                  str(request.POST. dict()), str(e)))
+    return HttpResponse("OrderId-AWB Map Upload Failed")
+
+@csrf_exempt
 def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls'):
     sku_data = []
     wms_data = []
@@ -1288,6 +1429,7 @@ def inventory_excel_upload(request, open_sheet, user):
     RECORDS = list(EXCEL_RECORDS)
     sku_codes = []
     mod_locations = []
+    putaway_stock_data = {}
     pallet_switch = get_misc_value('pallet_switch', user.id)
     if pallet_switch == 'true' and 'Pallet Number' not in EXCEL_HEADERS:
         EXCEL_HEADERS.append('Pallet Number')
@@ -1368,6 +1510,10 @@ def inventory_excel_upload(request, open_sheet, user):
                     sku_master.save()
                 inventory = StockDetail(**inventory_data)
                 inventory.save()
+
+                # Collecting data for auto stock allocation
+                putaway_stock_data.setdefault(inventory.sku_id, [])
+
                 mod_locations.append(inventory.location.location)
 
             elif inventory_status and inventory_data.get('quantity', ''):
@@ -1375,6 +1521,10 @@ def inventory_excel_upload(request, open_sheet, user):
                 inventory_status.quantity = int(inventory_status.quantity) + int(inventory_data.get('quantity', 0))
                 inventory_status.receipt_date = receipt_date
                 inventory_status.save()
+
+                # Collecting data for auto stock allocation
+                putaway_stock_data.setdefault(inventory_status.sku_id, [])
+
                 mod_locations.append(inventory_status.location.location)
 
             location_master = LocationMaster.objects.get(id=inventory_data.get('location_id', ''), zone__user=user.id)
@@ -1384,6 +1534,9 @@ def inventory_excel_upload(request, open_sheet, user):
     check_and_update_stock(sku_codes, user)
     if mod_locations:
         update_filled_capacity(list(set(mod_locations)), user.id)
+
+    # Auto Allocate Stock
+    order_allocate_stock(request, user, stock_data = putaway_stock_data, mapping_type='')
 
     return 'success'
 
@@ -3348,7 +3501,7 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                 if value not in ['Transit', 'Normal']:
                     index_status.setdefault(count, set()).add('Invalid Order Type')
                 else:
-                    seller_order_details['order_type'] = value
+                    order_details['order_type'] = value
 
         if order_details.get('sku_id', ''):
             order_detail_obj = OrderDetail.objects.filter(Q(original_order_id=order_details['original_order_id']) |

@@ -51,7 +51,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         var columns = data.data.headers;
         var not_sort = ['Order Quantity', 'Picked Quantity']
         vm.dtColumns = vm.service.build_colums(columns, not_sort);
-        vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+        vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle('').notSortable().withOption('width', '20px')
                .renderWith(function(data, type, full, meta) {
                  if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
                    vm.selected = {};
@@ -90,7 +90,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 
         if (data.message) {
-        console.log(data.data);
         var mod_data = data.data;
         var modalInstance = $modal.open({
           templateUrl: 'views/outbound/toggle/edit_invoice.html',
@@ -101,7 +100,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           keyboard: false,
           resolve: {
             items: function () {
-              return mod_data; 
+              return mod_data;
             }
           }
         });
@@ -145,10 +144,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         if(click_type == 'edit'){
           send['data'] = true;
         }
+        vm.bt_disable = true;
         vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 
           if(data.message) {
-            console.log(data.data);
             if(click_type == 'generate') {
               vm.pdf_data = data.data;
               if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
@@ -163,14 +162,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               } else {
                 $state.go("app.outbound.CustomerInvoices.InvoiceN");
               }
-            }
-            else {
+            } else {
               var mod_data = data.data;
               var modalInstance = $modal.open({
               templateUrl: 'views/outbound/toggle/edit_invoice.html',
               controller: 'EditInvoice',
               controllerAs: 'pop',
-              size: 'md',
+              size: 'lg',
               backdrop: 'static',
               keyboard: false,
               resolve: {
@@ -178,13 +176,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                   return mod_data;
                 }
               }
-          });
+              });
 
-          modalInstance.result.then(function (selectedItem) {
-            var data = selectedItem;
-          })
+              modalInstance.result.then(function (selectedItem) {
+                var data = selectedItem;
+              })
             }
           }
+          vm.bt_disable = false;
         });
       }
     }
@@ -272,34 +271,94 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   vm.permissions = Session.roles.permissions;
 
   vm.model_data = items;
+  vm.model_data.temp_sequence_number = vm.model_data.sequence_number;
+
+  vm.model_data.default_charge = function(){
+
+    if (vm.model_data.order_charges.length == 1) {
+
+      vm.model_data.flag = true;
+    }
+  }
+
+  vm.delete_charge = function(id){
+
+    if (id) {
+
+      vm.service.apiCall("delete_order_charges?id="+id, "GET").then(function(data){
+
+        if(data.message){
+
+          Service.showNoty(data.data.message);
+        }
+      });
+    }
+  }
 
   $timeout(function() {
+
     $('.stk-readonly').datepicker("setDate", new Date(vm.model_data.inv_date) );
   },1000);
   vm.ok = function () {
+
     $modalInstance.close("close");
   };
 
   vm.process = false;
-  vm.save = function() {
+  vm.save = function(form) {
 
+    if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form.invoice_number.$invalid) {
+
+      Service.showNoty("Please Fill Invoice Number");
+      return false;
+    } else if (!form.$valid) {
+
+      Service.showNoty("Please Fill the Mandatory Fields");
+      return false;
+    }
     vm.process = true;
     var data = $("form:visible").serializeArray()
     Service.apiCall("update_invoice/", "POST", data).then(function(data) {
-      console.log(data);
+
       if(data.message) {
+
         if(data.data.msg == 'success') {
+
           Service.showNoty("Updated Successfully");
           $modalInstance.close("saved");
         } else {
-          Service.showNoty("Update fail")
+
+          Service.showNoty(data.data.msg);
         }
       } else {
+
         Service.showNoty("Update fail");
       }
       vm.process = false;
     })
-  } 
+  }
+
+  vm.changeUnitPrice = function(data) {
+
+    data.base_price = data.quantity * Number(data.unit_price);
+    data.discount = (data.base_price/100)*Number(data.discount_percentage);
+    data.amt = data.base_price - data.discount;
+    var taxes = {cgst_amt: 'cgst_tax', sgst_amt: 'sgst_tax', igst_amt: 'igst_tax', utgst_amt: 'utgst_tax'};
+    data.total_tax_amount = 0;
+
+    angular.forEach(taxes, function(tax_name, tax_amount){
+
+      if (data.taxes[tax_name] > 0){
+
+        data.taxes[tax_amount] = (data.amt/100)*data.taxes[tax_name];
+      } else {
+
+        data.taxes[tax_amount] = 0;
+      }
+       data.total_tax_amount += data.taxes[tax_amount];
+    })
+    data.invoice_amount = (data.amt + data.total_tax_amount);
+  }
 }
 angular
   .module('urbanApp')

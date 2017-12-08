@@ -740,7 +740,10 @@ def switches(request, user=''):
                         'invoice_remarks': 'invoice_remarks',
                         'show_disc_invoice': 'show_disc_invoice',
                         'serial_limit': 'serial_limit',
-                        'increment_invoice': 'increment_invoice'
+                        'increment_invoice': 'increment_invoice',
+                        'create_shipment_type': 'create_shipment_type',
+                        'dashboard_order_level': 'dashboard_order_level',
+                        'auto_allocate_stock': 'auto_allocate_stock'
                       }
 
         toggle_field, selection = "", ""
@@ -1336,6 +1339,7 @@ def close_po(request, user=''):
         return HttpResponse('Updated Successfully')
     status = ''
     myDict = dict(request.GET.iterlists())
+    reason = request.GET.get('remarks', '')
     for i in range(0, len(myDict['id'])):
         if myDict['id'][i]:
             if myDict['new_sku'][i] == 'true':
@@ -1356,8 +1360,10 @@ def close_po(request, user=''):
                 status = status.content
             if 'Invalid' not in status:
                 status = ''
-                po = PurchaseOrder.objects.get(id=myDict['id'][i], open_po__sku__user = user.id)
+                po = PurchaseOrder.objects.get(id=myDict['id'][i])
                 setattr(po, 'status', 'location-assigned')
+                if reason:
+                    po.reason = reason
                 po.save()
 
     if status:
@@ -2058,7 +2064,7 @@ def check_returns(request, user=''):
             if picklist.stock:
                 wms_code = picklist.stock.sku.wms_code
                 sku_desc = picklist.stock.sku.sku_desc
-            cond = (picklist.order.order_id, wms_code, sku_desc)
+            cond = (picklist.order.original_order_id, wms_code, sku_desc)
             all_data.setdefault(cond, 0)
             all_data[cond] += picklist.picked_quantity
         for key, value in all_data.iteritems():
@@ -2077,7 +2083,7 @@ def check_returns(request, user=''):
                 order_quantity = order_data.order.quantity
             else:
                 order_quantity = order_data.quantity
-            data.append({'id': order_data.id, 'order_id': order_obj.order_id, 'return_id': order_data.return_id,
+            data.append({'id': order_data.id, 'order_id': order_obj.original_order_id, 'return_id': order_data.return_id,
                          'sku_code': order_data.sku.sku_code,
                          'sku_desc': order_data.sku.sku_desc, 'ship_quantity': order_quantity,
                          'return_quantity': order_data.quantity, 'damaged_quantity': order_data.damaged_quantity})
@@ -2314,7 +2320,7 @@ def group_sales_return_data(data_dict, return_process):
 
         # Creating the Returns Dictionary
         for key, value in data_dict.iteritems():
-            if key == 'reason':
+            if key in ['reason', 'return_imei']:
                 continue
             returns_dict.setdefault(temp_key, {})
             returns_dict[temp_key].setdefault('reason', [])
@@ -2626,6 +2632,9 @@ def putaway_data(request, user=''):
     purchase_order_id= ''
     diff_quan = 0
     all_data = {}
+    stock_detail = ''
+    stock_data = ''
+    putaway_stock_data = {}
     try:
         myDict = dict(request.POST.iterlists())
         sku_codes = []
@@ -2639,7 +2648,6 @@ def putaway_data(request, user=''):
                     cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
                     all_data.setdefault(cond, 0)
                     all_data[cond] += float(orig_data['orig_quantity'])
-
             else:
                 cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
                 all_data.setdefault(cond, 0)
@@ -2651,7 +2659,6 @@ def putaway_data(request, user=''):
         status = validate_putaway(all_data,user)
         if status:
             return HttpResponse(status)
-
         for key, value in all_data.iteritems():
             loc = LocationMaster.objects.get(location=key[1], zone__user=user.id)
             loc1 = loc
@@ -2715,10 +2722,14 @@ def putaway_data(request, user=''):
                         pallet_detail = pallet_mapping[0].pallet_detail
                         setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
                     stock_data.save()
-                    #create_update_seller_stock(data, value, user, stock_data, exc_loc, use_value=True)
                     update_details = create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
                     if update_details:
                         marketplace_data += update_details
+
+                    #Collecting data for auto stock allocation
+                    putaway_stock_data.setdefault(stock_data.sku_id, [])
+                    putaway_stock_data[stock_data.sku_id].append(data.purchase_order_id)
+
                 else:
                     record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
                                    'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
@@ -2730,10 +2741,14 @@ def putaway_data(request, user=''):
                         pallet_mapping[0].save()
                     stock_detail = StockDetail(**record_data)
                     stock_detail.save()
+
+                    #Collecting data for auto stock allocation
+                    putaway_stock_data.setdefault(stock_detail.sku_id, [])
+                    putaway_stock_data[stock_detail.sku_id].append(data.purchase_order_id)
+
                     update_details = create_update_seller_stock(data, value, user, stock_detail, old_loc)
                     if update_details:
                         marketplace_data += update_details
-                    #create_update_seller_stock(data, value, user, stock_detail, exc_loc)
                 consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 
                 if order_data['sku_code'] not in sku_codes:
@@ -2752,12 +2767,19 @@ def putaway_data(request, user=''):
             check_and_update_marketplace_stock(marketplace_data, user)
         else:
             check_and_update_stock(sku_codes, user)
+
         update_filled_capacity(list(set(mod_locations)), user.id)
+
+        # Auto Allocate Stock
+        order_allocate_stock(request, user, stock_data = putaway_stock_data, mapping_type='PO')
+
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Putaway Confirmation failed for ' + str(scan_data) + ' error statement is ' + str(e))
+        log.info('Putaway Confirmation failed for ' + str(request.POST.dict()) + ' error statement is ' + str(e))
     return HttpResponse('Updated Successfully')
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -3603,14 +3625,23 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         cmp_name = UserProfile.objects.get(user_id=user.id).company_name
         if cmp_name:
             company_name = cmp_name
+
+    # Email Subject based on report type name
+    email_body = 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name)
+    email_subject = '%s %s' % (company_name, report_type)
+    if report_type == 'Job Order':
+        email_body = 'Please find the %s with Job Code: <b>%s</b> in the attachment' % (report_type, f_name)
+        email_subject = '%s %s with Job Code %s' % (company_name, report_type, f_name)
     if supplier_email or internal or internal_mail:
-        send_mail_attachment(receivers, '%s %s' % (company_name, report_type), 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name), files=[{'path': path + pdf_file, 'name': pdf_file}])
+        send_mail_attachment(receivers, email_subject,email_body, files = [{'path': path + pdf_file, 'name': pdf_file}])
 
     if phone_no:
         if report_type == 'Purchase Order':
             po_message(po_data, phone_no, username, f_name, order_date, ean_flag)
         elif report_type == 'Goods Receipt Note':
             grn_message(po_data, phone_no, username, f_name, order_date)
+        elif report_type == 'Job Order':
+            jo_message(po_data, phone_no, company_name, f_name, order_date)
 
 @csrf_exempt
 @login_required

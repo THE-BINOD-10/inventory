@@ -344,9 +344,11 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       return d.promise;
     }
 
-    vm.print_excel = function(data, instance, headers, name, stat) {
+    vm.print_excel = function(data, instance, headers, name, stat, url) {
 
       var send = {};
+      var excel_url = "excel_reports/";
+      excel_url = (url)? url: excel_url;
       var d = $q.defer();
       vm.print_enable = true;
       data['excel_name'] = name;
@@ -369,7 +371,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         send = $.param(send)
       }
       $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-      $http.post(Session.url+"excel_reports/", send, {withCredential: true}).success(function(data){
+      $http.post(Session.url+url, send, {withCredential: true}).success(function(data){
         window.location = Session.host+data.slice(3);
         vm.print_enable = false;
         d.resolve('resolved');

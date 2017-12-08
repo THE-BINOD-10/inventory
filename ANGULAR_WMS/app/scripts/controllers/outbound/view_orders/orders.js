@@ -20,7 +20,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.update_order_details = update_order_details;
     function update_order_details(index, data, last) {
       vm.default_status = false;
-      console.log(data);
       if (last) {
         vm.model_data.data.push({item_code:'', product_title:'', quantity:0, unit_price:0, discount_price:0, tax:0, invoice_amount:0, remarks:'', order_status:'', new_product:true, default_status: false, sku_status: 1});
       } else {

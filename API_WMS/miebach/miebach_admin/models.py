@@ -320,6 +320,8 @@ class PurchaseOrder(models.Model):
     status = models.CharField(max_length=32, db_index=True)
     reason = models.TextField(blank=True, null=True)
     prefix = models.CharField(max_length=32, default='')
+    remarks = models.TextField(default='')
+    expected_date = models.DateTimeField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

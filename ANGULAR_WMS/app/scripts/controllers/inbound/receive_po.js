@@ -139,6 +139,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           data.push({name: temp.order_id, value: temp.value});
         }
       }
+      data.push({name: 'remarks', value: vm.model_data.remarks});
+      data.push({name: 'expected_date', value: vm.model_data.expected_date});
       vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
@@ -1430,4 +1432,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       return index;
     }
 
+  //GRN Pop Data
+  vm.grn_details = {po_reference: 'PO Reference', supplier_id: 'Supplier ID', supplier_name: 'Supplier Name',
+                    order_date: 'Order Date'}
+  vm.grn_details_keys = Object.keys(vm.grn_details);
 }

@@ -1368,16 +1368,37 @@ def get_supplier_data(request, user=''):
                             'temp_wms': order_data['temp_wms'],'order_type': order_data['order_type'], 'unit': order_data['unit'],
                             'dis': True,
                             'sku_extra_data': sku_extra_data, 'product_images': product_images, 'sku_details': sku_details}])
+    supplier_name, order_date, expected_date, remarks= '', '', '', ''
+    if purchase_orders:
+        purchase_order = purchase_orders[0]
+        if purchase_order.open_po.supplier:
+            supplier_name = purchase_order.open_po.supplier.name
+        order_date = get_local_date(request.user, purchase_order.creation_date)
+        if purchase_order.expected_date:
+            expected_date = datetime.datetime.strftime(purchase_order.expected_date, "%m/%d/%Y")
+        remarks = purchase_order.remarks
 
-    return HttpResponse(json.dumps({'data': orders, 'po_id': order_id, 'options': REJECT_REASONS,
-        'supplier_id': order_data['supplier_id'], 'use_imei': use_imei, 'temp': temp, 'po_reference': po_reference, 'order_ids': order_ids}))
+    return HttpResponse(json.dumps({'data': orders, 'po_id': order_id, 'options': REJECT_REASONS,\
+                                    'supplier_id': order_data['supplier_id'], 'use_imei': use_imei,\
+                                    'temp': temp, 'po_reference': po_reference, 'order_ids': order_ids,\
+                                    'supplier_name': supplier_name, 'order_date': order_date,\
+                                    'expected_date': expected_date, 'remarks': remarks}))
 
 
 @csrf_exempt
 @login_required
 @get_admin_user
 def update_putaway(request, user=''):
+    remarks = request.GET.get('remarks', '')
+    expected_date = request.GET.get('expected_date', '')
+    _expected_date = ''
+    if expected_date:
+        _expected_date = expected_date
+        expected_date = expected_date.split('/')
+        expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
     for key, value in request.GET.iteritems():
+        if key in ['remarks', 'expected_date']:
+            continue
         po = PurchaseOrder.objects.get(id=key)
         total_count = float(value)
         if not po.open_po:
@@ -1385,6 +1406,10 @@ def update_putaway(request, user=''):
             order_quantity = st_order[0].open_st.order_quantity
         else:
             order_quantity = po.open_po.order_quantity
+            if remarks != po.remarks:
+                po.remarks = remarks
+            if expected_date and not po.expected_date or _expected_date != datetime.datetime.strftime(po.expected_date,"%m/%d/%Y"):
+                po.expected_date = expected_date
         if total_count > order_quantity:
             return HttpResponse('Given quantity is greater than expected quantity')
         setattr(po, 'saved_quantity', float(value))
@@ -1881,6 +1906,13 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     po_data = []
     status_msg = ''
     data_dict = ''
+    remarks = request.POST.get('remarks', '')
+    expected_date = request.POST.get('expected_date', '')
+    _expected_date = ''
+    if expected_date:
+        _expected_date = expected_date
+        expected_date = expected_date.split('/')
+        expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
     for i in range(len(myDict['id'])):
         temp_dict = {}
         value = myDict['quantity'][i]
@@ -1904,6 +1936,10 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
                 get_data = create_purchase_order(request, myDict, i)
                 myDict['id'][i] = get_data
         data = PurchaseOrder.objects.get(id=myDict['id'][i])
+        if remarks != data.remarks:
+            data.remarks = remarks
+        if expected_date and not data.expected_date or _expected_date != datetime.datetime.strftime(data.expected_date,"%m/%d/%Y"):
+            data.expected_date = expected_date
         purchase_data = get_purchase_order_data(data)
         temp_quantity = data.received_quantity
         unit = ''

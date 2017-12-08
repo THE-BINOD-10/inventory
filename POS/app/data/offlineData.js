@@ -518,13 +518,11 @@
 	              	}
 
               		//reduce sku qty
-              		if(qty_reduce_status){
 					yield reduceSKUQty(order_data).then(function(){
 						console.log("sucess to reduce sku qty ");
 					}).catch(function(error){
 						console.log("error at reduce sku qty "+error.message);
 					});
-					}
 
               		//save order in DB
               		var id=yield DATABASE.sync_orders.

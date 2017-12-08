@@ -1337,7 +1337,6 @@ def confirm_sku_substitution(request, user=''):
     dest_sku = SKUMaster.objects.filter(user=user.id, sku_code=dest_sku)
     src_loc = LocationMaster.objects.filter(zone__user=user.id, location=src_loc)
     dest_loc = LocationMaster.objects.filter(zone__user=user.id, location=dest_loc)
-    import pdb;pdb.set_trace();
     try:
         src_qty = float(src_qty)
     except ValueError:

@@ -7,10 +7,14 @@
     border-radius: 0;
   }
   .nav-tabs.nav-justified {
+    >li {
+        font-weight: bold;
+        font-size: 2em;
+    }
     >.active {
-      background: none !important;
+      //background: none !important;
       >a {
-        background: #dff0d8;
+        //background: #dff0d8;
         border-radius: 0px;
         }
     }
@@ -26,6 +30,10 @@
     >.alert {
       border-radius: 0px;
       text-align: center;
+      border: 1px solid #ffd9d5;
+      &.preorder {
+        background: #eeeeee;
+      }
 
       >input {
         &#order_id {
@@ -60,9 +68,12 @@
         width: 50%;
         display: inline-block;
         >.each_order {
-            box-shadow: 4px 4px #3a88d8e6;
+            *{
+                color: #e9484e;
+            }
             width: 90%;//22%;
-            background: linear-gradient(#68c2e0, #4d99db);
+            background: #fff;
+            //background: linear-gradient();
         }
      }
     }//alert

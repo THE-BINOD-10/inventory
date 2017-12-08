@@ -4,7 +4,7 @@
         <div class="col-md-12 more">
       <uib-tabset active="activeJustified" justified="true">
         <uib-tab index="0" heading="Pre Order">
-          <div class="alert alert-success preorder" style="">
+          <div class="alert preorder" style="">
 
             	<input class="preorder_input" id="order_id" ng-model="$ctrl.pre_order_id"
 				   	ng-keyup ="$ctrl.pre_order_filter($ctrl.pre_order_id, $ctrl.pre_order_name, $ctrl.pre_order_sku)"
@@ -70,9 +70,9 @@
 				</div><!--modal-->
 
 				<div class="all_orders" ng-repeat="item in $ctrl.filtered_order_details" ng-if="item.order_id">
-					<div class="each_order alert btn btn-info" ng-click="$ctrl.select_order(item.order_id)">
+					<div class="each_order alert btn" ng-click="$ctrl.select_order(item.order_id)">
 						<h4>{{item.customer_data.Name}} &nbsp;&nbsp;<strong>{{item.order_id}}</strong> &nbsp;&nbsp;&nbsp;{{item.order_date}}</h4>
-						<div style="overflow-y: overlay;">
+						<div style="overflow-y: overlay;color: #b9a09f">
 							<span ng-repeat="sku in item.sku_data"><strong>{{sku.sku_code}}&nbsp;</strong></span>
 						</div>
 					</div><!--order ids end-->

@@ -427,6 +427,7 @@ def get_filtered_params(filters, data_list):
             filter_params[data_list[col_num] + '__icontains'] = value
     return filter_params
 
+
 def get_filtered_params_search(filters, data_list):
     filter_params1 = {}
     filter_params2 = {}
@@ -436,7 +437,6 @@ def get_filtered_params_search(filters, data_list):
             filter_params2[data_list[col_num] + '__icontains'] = value
             filter_params1[data_list[col_num] + '__istartswith'] = value
     return filter_params1, filter_params2
-
 
 
 @csrf_exempt
@@ -2931,6 +2931,8 @@ def password_notification_message(username, password, name, to):
 def build_search_term_query(columns, search_term):
     filter_params = OrderedDict()
     query = Q
+    if not search_term:
+        return Q()
     for col in columns:
         if not 'date' in col:
             filter_params[col + '__icontains'] = search_term

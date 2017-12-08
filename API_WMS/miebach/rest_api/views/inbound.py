@@ -93,59 +93,7 @@ def get_raised_stock_transfer(start_index, stop_index, temp_data, search_term, o
         temp_data['aaData'].append({'Warehouse Name': data['warehouse__username'], 'Total Quantity': data['total'], 'DT_RowClass': 'results',
                                     'DT_RowAttr': {'id': data['warehouse__username']}})
 
-
-@csrf_exempt
-def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['PO Number', 'Order Date', 'Supplier ID', 'Supplier Name', 'Order Type', 'Receive Status']
-    data_list = []
-    data = []
-    supplier_data = {}
-    col_num1 = 0
-    if search_term:
-        creation_search = search_term.replace('(', '\(')
-        results = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(Q(open_po__supplier_id__id = search_term) |
-                                                Q(open_po__supplier__name__icontains = search_term)
-                                               |Q( order_id__icontains = search_term ) | Q(creation_date__regex=creation_search),
-                                              open_po__sku__user=user.id, received_quantity__lt=F('open_po__order_quantity')).\
-                                        exclude(status__in=['location-assigned','confirmed-putaway']).\
-                                        values_list('order_id', flat=True).distinct()
-        stock_results = STPurchaseOrder.objects.exclude(po__open_po__isnull=True).exclude(po__status__in=['location-assigned',
-                                                        'confirmed-putaway', 'stock-transfer']).filter(open_st__sku_id__in=sku_master_ids).\
-                                                filter(Q(open_st__warehouse__id__icontains = search_term) |
-                                                       Q(open_st__warehouse__username__icontains = search_term) |
-                                                       Q(po__order_id__icontains = search_term ) | Q(po__creation_date__regex=creation_search),
-                                                       open_st__sku__user=user.id,
-                                                       po__received_quantity__lt=F('open_st__order_quantity')).\
-                                                values_list('po__order_id', flat=True).distinct()
-        rw_results = RWPurchase.objects.exclude(purchase_order__open_po__isnull=True).exclude(purchase_order__status__in=['location-assigned',
-                                                'confirmed-putaway', 'stock-transfer']).filter(rwo__job_order__product_code_id__in=sku_master_ids).\
-                                                filter(Q(rwo__vendor__id__icontains = search_term) |
-                                                       Q(rwo__vendor__name__icontains = search_term) |
-                                                       Q(purchase_order__creation_date__regex=creation_search) |
-                                                       Q(purchase_order__order_id__icontains = search_term ), rwo__vendor__user=user.id,
-                                                       purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')).\
-                                                values_list('purchase_order__order_id', flat=True).\
-                                                distinct()
-        results = list(chain(results, stock_results, rw_results))
-        results.sort()
-
-    elif order_term:
-        results = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(open_po__sku__user = user.id, received_quantity__lt=F('open_po__order_quantity')).\
-                                        exclude(status__in=['location-assigned', 'confirmed-putaway']).values_list('order_id',
-                                                flat=True).distinct()
-
-        stock_results = STPurchaseOrder.objects.filter(open_st__sku_id__in=sku_master_ids).exclude(po__status__in=['location-assigned', 'confirmed-putaway', 'stock-transfer']).\
-                                                filter(po__open_po__isnull=True, open_st__sku__user = user.id,
-                                                       po__received_quantity__lt=F('open_st__order_quantity')).\
-                                                values_list('po__order_id', flat=True).distinct()
-        rw_results = RWPurchase.objects.exclude(purchase_order__status__in=['location-assigned',
-                                                'confirmed-putaway', 'stock-transfer']).filter(rwo__job_order__product_code_id__in=sku_master_ids).\
-                                        filter(rwo__vendor__user = user.id, purchase_order__open_po__isnull=True,
-                                               purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')).\
-                                        values_list('purchase_order__order_id', flat=True).distinct()
-        results = list(set(list(chain(results, stock_results, rw_results))))
-
+def get_receive_po_datatable_filters(user, filters):
     search_params = {}
     search_params1 = {}
     search_params2 = {}
@@ -200,6 +148,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         search_params['open_po__supplier__name__icontains'] = filters['search_3']
         search_params1['open_st__warehouse__username__icontains'] = filters['search_3']
         search_params2['rwo__vendor__name__icontains'] = filters['search_3']
+    '''
     if search_params:
         search_params['open_po__sku__user'] = user.id
         search_params1['open_st__sku__user'] = user.id
@@ -208,8 +157,112 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         stock_results = STPurchaseOrder.objects.exclude(po__open_po__isnull=True).exclude(po__status__in=['location-assigned',
                                                         'confirmed-putaway', 'stock-transfer']).\
                                                 filter(po__received_quantity__lt=F('open_st__order_quantity'), **search_params1).values_list('po__order_id', flat=True).distinct()
-        results = list(chain(results, stock_results))
+        results = list(chain(results, stock_results))'''
 
+    return search_params, search_params1, search_params2
+
+def get_filtered_purchase_order_ids(request, user, search_term, filters):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    purchase_order_list = ['open_po__supplier__id', 'open_po__supplier__name', 'order_id', 'creation_date']
+    st_purchase_list = ['open_st__warehouse__id', 'open_st__warehouse__username', 'po__order_id', 'po__creation_date']
+    rw_purchase_list = ['rwo__vendor__id', 'rwo__vendor__name', 'purchase_order__creation_date',
+                        'purchase_order__order_id']
+
+    purchase_order_query = build_search_term_query(purchase_order_list, search_term)
+    st_search_query = build_search_term_query(st_purchase_list, search_term)
+    rw_purchase_query = build_search_term_query(rw_purchase_list, search_term)
+
+    search_params, search_params1, search_params2 = get_receive_po_datatable_filters(user, filters)
+
+    # Stock Transfer Purchase Records
+    stock_results_objs = STPurchaseOrder.objects.exclude(po__status__in=['location-assigned', 'confirmed-putaway',
+                                                'stock-transfer']).filter(open_st__sku_id__in=sku_master_ids).\
+                                            filter(st_search_query, po__open_po__isnull=True,
+                                                   open_st__sku__user=user.id, **search_params1)
+    order_qtys_dict = dict(stock_results_objs.values_list('po__order_id').\
+                                            annotate(total_order_qty=Sum('open_st__order_quantity')))
+    receive_qtys_dict = dict(stock_results_objs.values_list('po__order_id').\
+                                                annotate(total_received_qty=Sum('po__received_quantity')))
+    st_order_ids_list = stock_results_objs.filter(po__received_quantity__lt=F('open_st__order_quantity')).\
+                                        values_list('po__order_id', flat=True).distinct()
+    rw_results_objs = RWPurchase.objects.exclude(purchase_order__status__in=['location-assigned', 'confirmed-putaway',
+                                            'stock-transfer']).\
+                    filter(purchase_order__open_po__isnull=True, rwo__job_order__product_code_id__in=sku_master_ids,
+                           **search_params2).filter(rw_purchase_query, rwo__vendor__user=user.id)
+    order_qtys_dict.update(dict(rw_results_objs.values_list('purchase_order__order_id').distinct().\
+                                        annotate(total_order_qty=Sum('rwo__job_order__product_quantity'))))
+    receive_qtys_dict.update(dict(rw_results_objs.values_list('purchase_order__order_id').distinct().\
+                                            annotate(total_received_qty=Sum('purchase_order__received_quantity'))))
+    rw_order_ids_list = rw_results_objs.filter(purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')). \
+                                values_list('purchase_order__order_id', flat=True).distinct()
+
+    results_objs = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(**search_params).\
+                                    filter(purchase_order_query, open_po__sku__user=user.id)
+
+    order_qtys_dict.update(dict(results_objs.values_list('order_id').distinct().\
+                            annotate(total_order_qty=Sum('open_po__order_quantity'))))
+    receive_qtys_dict.update(dict(results_objs.values_list('order_id').distinct().\
+                                     annotate(total_received_qty=Sum('received_quantity'))))
+
+    po_order_ids_list = results_objs.exclude(status__in=['location-assigned','confirmed-putaway']).\
+                                    filter(received_quantity__lt=F('open_po__order_quantity')).values_list('order_id',
+                                    flat=True).distinct()
+    results = list(chain(po_order_ids_list, rw_order_ids_list, st_order_ids_list))
+    return results, order_qtys_dict, receive_qtys_dict
+
+@csrf_exempt
+def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    #sku_master, sku_master_ids = get_sku_master(user, request.user)
+    lis = ['PO No', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty', 'Expected Date',
+           'Remarks', 'Order Type', 'Receive Status']
+    data_list = []
+    data = []
+    supplier_data = {}
+    col_num1 = 0
+
+    results, order_qtys_dict, receive_qtys_dict = get_filtered_purchase_order_ids(request, user, search_term, filters)
+    # purchase_order_list = ['open_po__supplier__id', 'open_po__supplier__name', 'order_id', 'creation_date']
+    # st_purchase_list = ['open_st__warehouse__id', 'open_st__warehouse__username', 'po__order_id', 'po__creation_date']
+    # rw_purchase_list = ['rwo__vendor__id', 'rwo__vendor__name', 'purchase_order__creation_date',
+    #                     'purchase_order__order_id']
+    #
+    # purchase_order_query = build_search_term_query(purchase_order_list, search_term)
+    # st_search_query = build_search_term_query(st_purchase_list, search_term)
+    # rw_purchase_query = build_search_term_query(rw_purchase_list, search_term)
+    #
+    # search_params, search_params1, search_params2 = get_receive_po_datatable_filters(user, filters)
+    #
+    # # Stock Transfer Purchase Records
+    # stock_results_objs = STPurchaseOrder.objects.exclude(po__open_po__isnull=True).\
+    #                                     exclude(po__status__in=['location-assigned', 'confirmed-putaway',
+    #                                             'stock-transfer']).filter(open_st__sku_id__in=sku_master_ids).\
+    #                                         filter(st_search_query, open_st__sku__user=user.id, **search_params1)
+    # st_purchase_qtys = stock_results_objs.values_list('po__order_id', flat=True).\
+    #                                         annotate(total_order_qty=Sum('open_st__order_quantity'),
+    #                                             total_received_qty=Sum('po__received_quantity'))
+    # st_order_ids_list = stock_results_objs.filter(po__received_quantity__lt=F('open_st__order_quantity')).\
+    #                                     values_list('po__order_id', flat=True).distinct()
+    # rw_results_objs = RWPurchase.objects.exclude(purchase_order__open_po__isnull=True).\
+    #                     exclude(purchase_order__status__in=['location-assigned', 'confirmed-putaway',
+    #                                         'stock-transfer']).\
+    #                     filter(rwo__job_order__product_code_id__in=sku_master_ids, **search_params2).\
+    #                     filter(rw_purchase_query, rwo__vendor__user=user.id)
+    # rw_purchase_qtys = rw_results_objs.values_list('purchase_order__order_id', flat=True).distinct().\
+    #                                     annotate(total_order_qty=Sum('rwo__job_order__product_quantity'),
+    #                                              total_received_qty=Sum('purchase_order__received_quantity'))
+    # rw_order_ids_list = rw_results_objs.filter(purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')). \
+    #                             values_list('purchase_order__order_id', flat=True).distinct()
+    # #po_ids_list = list(chain(po_ids_list, rw_results))
+    # #total_po_ids_list = list(chain(po_ids_list, total_rw_ids_list))
+    # results_objs = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(**search_params).\
+    #                                 filter(purchase_order_query, open_po__sku__user=user.id).\
+    #                                 exclude(status__in=['location-assigned','confirmed-putaway'])
+    # po_qtys = results_objs.values_list('order_id', flat=True).distinct().\
+    #                         annotate(total_order_qty=Sum('open_po__order_quantity'),
+    #                                  total_received_qty=F('received_quantity'))
+    # po_order_ids_list = results_objs.filter(received_quantity__lt=F('open_po__order_quantity')).values_list('order_id',
+    #                                 flat=True).distinct()
+    # results = list(chain(po_order_ids_list, rw_order_ids_list, st_order_ids_list))
 
     for result in results:
         suppliers = PurchaseOrder.objects.filter(order_id=result, open_po__sku__user = user.id).exclude(status__in=['location-assigned', 'confirmed-putaway'])
@@ -232,19 +285,30 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         order_data = get_purchase_order_data(supplier)
         if supplier.open_po and supplier.open_po.order_type == 'VR':
             order_type = 'Vendor Receipt'
-        if RWPurchase.objects.filter(purchase_order_id=supplier.id):
+        if supplier.rwpurchase_set.filter():
             order_type = 'Returnable Work Order'
-        elif STPurchaseOrder.objects.filter(po_id=supplier.id):
+        elif supplier.stpurchaseorder_set.filter():
             order_type = 'Stock Transfer'
         if supplier.received_quantity and not float(order_data['order_quantity']) == float(supplier.received_quantity):
             receive_status = 'Partially Receive'
         po_reference = '%s%s_%s' % (supplier.prefix, str(supplier.creation_date).split(' ')[0].replace('-', ''), supplier.order_id)
         _date = get_local_date(user, supplier.po_date, True)
         _date = _date.strftime("%d %b, %Y")
-        data_list.append({'DT_RowId': supplier.order_id, 'PO Number': po_reference,
-                          'Order Date': _date,
-                          'Supplier ID': order_data['supplier_id'], 'Supplier Name': order_data['supplier_name'], 'Order Type': order_type,
-                          'Receive Status': receive_status})
+        supplier_id_name = '%s/%s' % (str(order_data['supplier_id']), str(order_data['supplier_name']))
+
+        columns = ['PO No', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty',
+                   'Expected Date', 'Remarks', 'Order Type', 'Receive Status']
+
+        total_order_qty = order_qtys_dict.get(supplier.order_id, 0)
+        total_received_qty = receive_qtys_dict.get(supplier.order_id, 0)
+        total_receivable_qty = total_order_qty - total_received_qty
+        data_list.append(OrderedDict(( ('DT_RowId', supplier.order_id), ('PO No', po_reference), ('Order Date', _date),
+                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
+                                       ('Receivable Qty', total_receivable_qty),
+                                       ('Received Qty', total_received_qty), ('Expected Date', ''), ('Remarks', ''),
+                                       ('Order Type', order_type),
+                                       ('Receive Status', receive_status)
+                                       )))
     sort_col = lis[col_num]
 
     if order_term == 'asc':

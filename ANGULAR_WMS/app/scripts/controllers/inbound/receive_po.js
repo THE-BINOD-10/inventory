@@ -46,7 +46,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['PO Number', 'Order Date', 'Supplier ID', 'Supplier Name', 'Order Type', 'Receive Status'];
+    var columns = ['PO No', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty',
+                   'Expected Date', 'Remarks', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
     vm.dtInstance = {};

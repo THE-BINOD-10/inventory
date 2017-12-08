@@ -145,6 +145,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(data.message) {
           if(data.data == 'Updated Successfully') {
             vm.close();
+            vm.service.refresh(vm.dtInstance);
           } else {
             pop_msg(data.data);
           }

@@ -221,48 +221,6 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     col_num1 = 0
 
     results, order_qtys_dict, receive_qtys_dict = get_filtered_purchase_order_ids(request, user, search_term, filters)
-    # purchase_order_list = ['open_po__supplier__id', 'open_po__supplier__name', 'order_id', 'creation_date']
-    # st_purchase_list = ['open_st__warehouse__id', 'open_st__warehouse__username', 'po__order_id', 'po__creation_date']
-    # rw_purchase_list = ['rwo__vendor__id', 'rwo__vendor__name', 'purchase_order__creation_date',
-    #                     'purchase_order__order_id']
-    #
-    # purchase_order_query = build_search_term_query(purchase_order_list, search_term)
-    # st_search_query = build_search_term_query(st_purchase_list, search_term)
-    # rw_purchase_query = build_search_term_query(rw_purchase_list, search_term)
-    #
-    # search_params, search_params1, search_params2 = get_receive_po_datatable_filters(user, filters)
-    #
-    # # Stock Transfer Purchase Records
-    # stock_results_objs = STPurchaseOrder.objects.exclude(po__open_po__isnull=True).\
-    #                                     exclude(po__status__in=['location-assigned', 'confirmed-putaway',
-    #                                             'stock-transfer']).filter(open_st__sku_id__in=sku_master_ids).\
-    #                                         filter(st_search_query, open_st__sku__user=user.id, **search_params1)
-    # st_purchase_qtys = stock_results_objs.values_list('po__order_id', flat=True).\
-    #                                         annotate(total_order_qty=Sum('open_st__order_quantity'),
-    #                                             total_received_qty=Sum('po__received_quantity'))
-    # st_order_ids_list = stock_results_objs.filter(po__received_quantity__lt=F('open_st__order_quantity')).\
-    #                                     values_list('po__order_id', flat=True).distinct()
-    # rw_results_objs = RWPurchase.objects.exclude(purchase_order__open_po__isnull=True).\
-    #                     exclude(purchase_order__status__in=['location-assigned', 'confirmed-putaway',
-    #                                         'stock-transfer']).\
-    #                     filter(rwo__job_order__product_code_id__in=sku_master_ids, **search_params2).\
-    #                     filter(rw_purchase_query, rwo__vendor__user=user.id)
-    # rw_purchase_qtys = rw_results_objs.values_list('purchase_order__order_id', flat=True).distinct().\
-    #                                     annotate(total_order_qty=Sum('rwo__job_order__product_quantity'),
-    #                                              total_received_qty=Sum('purchase_order__received_quantity'))
-    # rw_order_ids_list = rw_results_objs.filter(purchase_order__received_quantity__lt=F('rwo__job_order__product_quantity')). \
-    #                             values_list('purchase_order__order_id', flat=True).distinct()
-    # #po_ids_list = list(chain(po_ids_list, rw_results))
-    # #total_po_ids_list = list(chain(po_ids_list, total_rw_ids_list))
-    # results_objs = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(**search_params).\
-    #                                 filter(purchase_order_query, open_po__sku__user=user.id).\
-    #                                 exclude(status__in=['location-assigned','confirmed-putaway'])
-    # po_qtys = results_objs.values_list('order_id', flat=True).distinct().\
-    #                         annotate(total_order_qty=Sum('open_po__order_quantity'),
-    #                                  total_received_qty=F('received_quantity'))
-    # po_order_ids_list = results_objs.filter(received_quantity__lt=F('open_po__order_quantity')).values_list('order_id',
-    #                                 flat=True).distinct()
-    # results = list(chain(po_order_ids_list, rw_order_ids_list, st_order_ids_list))
 
     for result in results:
         suppliers = PurchaseOrder.objects.filter(order_id=result, open_po__sku__user = user.id).exclude(status__in=['location-assigned', 'confirmed-putaway'])
@@ -289,8 +247,6 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
             order_type = 'Returnable Work Order'
         elif supplier.stpurchaseorder_set.filter():
             order_type = 'Stock Transfer'
-        if supplier.received_quantity and not float(order_data['order_quantity']) == float(supplier.received_quantity):
-            receive_status = 'Partially Receive'
         po_reference = '%s%s_%s' % (supplier.prefix, str(supplier.creation_date).split(' ')[0].replace('-', ''), supplier.order_id)
         _date = get_local_date(user, supplier.po_date, True)
         _date = _date.strftime("%d %b, %Y")
@@ -302,11 +258,16 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         total_order_qty = order_qtys_dict.get(supplier.order_id, 0)
         total_received_qty = receive_qtys_dict.get(supplier.order_id, 0)
         total_receivable_qty = total_order_qty - total_received_qty
+        if total_received_qty:
+            receive_status = 'Partially Receive'
+        expected_date = ''
+        if supplier.expected_date:
+            expected_date = supplier.expected_date.strftime("%d %b, %Y")
         data_list.append(OrderedDict(( ('DT_RowId', supplier.order_id), ('PO No', po_reference), ('Order Date', _date),
                                        ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
                                        ('Receivable Qty', total_receivable_qty),
-                                       ('Received Qty', total_received_qty), ('Expected Date', ''), ('Remarks', ''),
-                                       ('Order Type', order_type),
+                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),
+                                       ('Remarks', supplier.remarks), ('Order Type', order_type),
                                        ('Receive Status', receive_status)
                                        )))
     sort_col = lis[col_num]
@@ -1353,6 +1314,7 @@ def get_supplier_data(request, user=''):
         purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
     po_reference = '%s%s_%s' % (purchase_orders[0].prefix, str(purchase_orders[0].creation_date).split(' ')[0].replace('-', ''), order_id)
     orders = []
+    order_data = {}
     for order in purchase_orders:
         order_data = get_purchase_order_data(order)
         po_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
@@ -1370,10 +1332,9 @@ def get_supplier_data(request, user=''):
                             'sku_extra_data': sku_extra_data, 'product_images': product_images, 'sku_details': sku_details}])
     supplier_name, order_date, expected_date, remarks= '', '', '', ''
     if purchase_orders:
-        purchase_order = purchase_orders[0]
-        if purchase_order.open_po.supplier:
-            supplier_name = purchase_order.open_po.supplier.name
-        order_date = get_local_date(request.user, purchase_order.creation_date)
+        purchase_order =purchase_orders[0]
+        supplier_name = order_data['supplier_name']
+        order_date = get_local_date(user, purchase_order.creation_date)
         if purchase_order.expected_date:
             expected_date = datetime.datetime.strftime(purchase_order.expected_date, "%m/%d/%Y")
         remarks = purchase_order.remarks
@@ -1389,32 +1350,44 @@ def get_supplier_data(request, user=''):
 @login_required
 @get_admin_user
 def update_putaway(request, user=''):
-    remarks = request.GET.get('remarks', '')
-    expected_date = request.GET.get('expected_date', '')
-    _expected_date = ''
-    if expected_date:
-        _expected_date = expected_date
-        expected_date = expected_date.split('/')
-        expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
-    for key, value in request.GET.iteritems():
-        if key in ['remarks', 'expected_date']:
-            continue
-        po = PurchaseOrder.objects.get(id=key)
-        total_count = float(value)
-        if not po.open_po:
-            st_order = STPurchaseOrder.objects.filter(po_id=key, open_st__sku__user = user.id)
-            order_quantity = st_order[0].open_st.order_quantity
-        else:
-            order_quantity = po.open_po.order_quantity
+    try:
+        log.info("Update Receive PO data for user %s and request params are %s" % (
+                                       user.username, str(request.GET.dict())))
+        remarks = request.GET.get('remarks', '')
+        expected_date = request.GET.get('expected_date', '')
+        _expected_date = ''
+        if expected_date:
+            _expected_date = expected_date
+            expected_date = expected_date.split('/')
+            expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
+        for key, value in request.GET.iteritems():
+            if key in ['remarks', 'expected_date']:
+                continue
+            po = PurchaseOrder.objects.get(id=key)
+            total_count = float(value)
+            order_quantity = 0
             if remarks != po.remarks:
                 po.remarks = remarks
-            if expected_date and not po.expected_date or _expected_date != datetime.datetime.strftime(po.expected_date,"%m/%d/%Y"):
+            if expected_date and not po.expected_date or _expected_date != datetime.datetime.strftime(po.expected_date,
+                                                                                                      "%m/%d/%Y"):
                 po.expected_date = expected_date
-        if total_count > order_quantity:
-            return HttpResponse('Given quantity is greater than expected quantity')
-        setattr(po, 'saved_quantity', float(value))
-        po.save()
-
+            if po.open_po:
+                order_quantity = po.open_po.order_quantity
+            elif po.stpurchaseorder_set.filter():
+                st_order = po.stpurchaseorder_set.filter()
+                order_quantity = st_order[0].open_st.order_quantity
+            elif po.rwpurchase_set.filter():
+                rw_purchase = po.rwpurchase_set.filter()
+                order_quantity = rw_purchase[0].rwo.job_order.product_quantity
+            if total_count > order_quantity:
+                return HttpResponse('Given quantity is greater than expected quantity')
+            setattr(po, 'saved_quantity', float(value))
+            po.save()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Update Receive PO data failed for params " + str(request.GET.dict()) + " and error statement is " + str(e))
+        return HttpResponse('Updated Failed')
     return HttpResponse('Updated Successfully')
 
 @csrf_exempt

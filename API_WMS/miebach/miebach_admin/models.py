@@ -321,7 +321,7 @@ class PurchaseOrder(models.Model):
     reason = models.TextField(blank=True, null=True)
     prefix = models.CharField(max_length=32, default='')
     remarks = models.TextField(default='')
-    expected_date = models.DateTimeField(blank=True, null=True)
+    expected_date = models.DateField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

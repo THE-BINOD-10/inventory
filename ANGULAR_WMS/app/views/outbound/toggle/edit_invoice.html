@@ -10,18 +10,26 @@
       <div class="modal-body">
         <input type="hidden" name="order_id" value="{{pop.model_data.order_id}}">
         <div class="row">
-          <div class="col-md-6 col-sm-6 col-xs-6">
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Order Reference </label>
+              <input name="order_reference" ng-model="pop.model_data.order_reference" class="form-control" type="text">
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
               <label class="control-label">Invoice Date</label>
               <input name="invoice_date" ui-jq="datepicker" ng-model="pop.model_data.inv_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
             </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group" ng-if="pop.permissions.increment_invoice && pop.model_data.temp_sequence_number">
               <label class="control-label">Invoice Number</label>
               <input name="invoice_number" ng-model="pop.model_data.sequence_number" class="form-control" type="text" ng-required="true" decimal-number>
               <input name="marketplace" value="{{pop.model_data.marketplace}}" class="form-control" type="hidden">
             </div>
           </div>
-          <div class="col-md-6 col-sm-6 col-xs-6">
+          <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
               <label class="control-label">Ship To Address</label>
               <textarea rows="4" class="form-control" cols="27" name="ship_to" ng-model="pop.model_data.consignee"></textarea>

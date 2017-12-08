@@ -741,7 +741,8 @@ def switches(request, user=''):
                         'show_disc_invoice': 'show_disc_invoice',
                         'serial_limit': 'serial_limit',
                         'increment_invoice': 'increment_invoice',
-                        'dashboard_order_level': 'dashboard_order_level'
+                        'dashboard_order_level': 'dashboard_order_level',
+                        'auto_allocate_stock': 'auto_allocate_stock'
                       }
 
         toggle_field, selection = "", ""
@@ -2630,6 +2631,9 @@ def putaway_data(request, user=''):
     purchase_order_id= ''
     diff_quan = 0
     all_data = {}
+    stock_detail = ''
+    stock_data = ''
+    putaway_stock_data = {}
     try:
         myDict = dict(request.POST.iterlists())
         sku_codes = []
@@ -2643,7 +2647,6 @@ def putaway_data(request, user=''):
                     cond = (orig_data['orig_id'], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
                     all_data.setdefault(cond, 0)
                     all_data[cond] += float(orig_data['orig_quantity'])
-
             else:
                 cond = (myDict['id'][i], myDict['loc'][i], myDict['po_id'][i], myDict['orig_loc_id'][i], myDict['wms_code'][i])
                 all_data.setdefault(cond, 0)
@@ -2655,7 +2658,6 @@ def putaway_data(request, user=''):
         status = validate_putaway(all_data,user)
         if status:
             return HttpResponse(status)
-
         for key, value in all_data.iteritems():
             loc = LocationMaster.objects.get(location=key[1], zone__user=user.id)
             loc1 = loc
@@ -2719,10 +2721,14 @@ def putaway_data(request, user=''):
                         pallet_detail = pallet_mapping[0].pallet_detail
                         setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
                     stock_data.save()
-                    #create_update_seller_stock(data, value, user, stock_data, exc_loc, use_value=True)
                     update_details = create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
                     if update_details:
                         marketplace_data += update_details
+
+                    #Collecting data for auto stock allocation
+                    putaway_stock_data.setdefault(stock_data.sku_id, [])
+                    putaway_stock_data[stock_data.sku_id].append(data.purchase_order_id)
+
                 else:
                     record_data = {'location_id': exc_loc, 'receipt_number': data.purchase_order.order_id,
                                    'receipt_date': str(data.purchase_order.creation_date).split('+')[0],'sku_id': order_data['sku_id'],
@@ -2734,10 +2740,14 @@ def putaway_data(request, user=''):
                         pallet_mapping[0].save()
                     stock_detail = StockDetail(**record_data)
                     stock_detail.save()
+
+                    #Collecting data for auto stock allocation
+                    putaway_stock_data.setdefault(stock_detail.sku_id, [])
+                    putaway_stock_data[stock_detail.sku_id].append(data.purchase_order_id)
+
                     update_details = create_update_seller_stock(data, value, user, stock_detail, old_loc)
                     if update_details:
                         marketplace_data += update_details
-                    #create_update_seller_stock(data, value, user, stock_detail, exc_loc)
                 consume_bayarea_stock(order_data['sku_code'], "BAY_AREA", float(value), user.id)
 
                 if order_data['sku_code'] not in sku_codes:
@@ -2756,12 +2766,19 @@ def putaway_data(request, user=''):
             check_and_update_marketplace_stock(marketplace_data, user)
         else:
             check_and_update_stock(sku_codes, user)
+
         update_filled_capacity(list(set(mod_locations)), user.id)
+
+        # Auto Allocate Stock
+        order_allocate_stock(request, user, stock_data = putaway_stock_data, mapping_type='PO')
+
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
-        log.info('Putaway Confirmation failed for ' + str(scan_data) + ' error statement is ' + str(e))
+        log.info('Putaway Confirmation failed for ' + str(request.POST.dict()) + ' error statement is ' + str(e))
     return HttpResponse('Updated Successfully')
+
+
 @csrf_exempt
 @login_required
 @get_admin_user

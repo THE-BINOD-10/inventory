@@ -1288,6 +1288,7 @@ def inventory_excel_upload(request, open_sheet, user):
     RECORDS = list(EXCEL_RECORDS)
     sku_codes = []
     mod_locations = []
+    putaway_stock_data = {}
     pallet_switch = get_misc_value('pallet_switch', user.id)
     if pallet_switch == 'true' and 'Pallet Number' not in EXCEL_HEADERS:
         EXCEL_HEADERS.append('Pallet Number')
@@ -1368,6 +1369,10 @@ def inventory_excel_upload(request, open_sheet, user):
                     sku_master.save()
                 inventory = StockDetail(**inventory_data)
                 inventory.save()
+
+                # Collecting data for auto stock allocation
+                putaway_stock_data.setdefault(inventory.sku_id, [])
+
                 mod_locations.append(inventory.location.location)
 
             elif inventory_status and inventory_data.get('quantity', ''):
@@ -1375,6 +1380,10 @@ def inventory_excel_upload(request, open_sheet, user):
                 inventory_status.quantity = int(inventory_status.quantity) + int(inventory_data.get('quantity', 0))
                 inventory_status.receipt_date = receipt_date
                 inventory_status.save()
+
+                # Collecting data for auto stock allocation
+                putaway_stock_data.setdefault(inventory_status.sku_id, [])
+
                 mod_locations.append(inventory_status.location.location)
 
             location_master = LocationMaster.objects.get(id=inventory_data.get('location_id', ''), zone__user=user.id)
@@ -1384,6 +1393,9 @@ def inventory_excel_upload(request, open_sheet, user):
     check_and_update_stock(sku_codes, user)
     if mod_locations:
         update_filled_capacity(list(set(mod_locations)), user.id)
+
+    # Auto Allocate Stock
+    order_allocate_stock(request, user, stock_data = putaway_stock_data, mapping_type='')
 
     return 'success'
 

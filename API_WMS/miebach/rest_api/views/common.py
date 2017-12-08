@@ -4464,6 +4464,7 @@ def update_invoice_sequence(request, user=''):
         status = 'Update Invoice Number Sequence Failed'
     return HttpResponse(json.dumps({'status': status}))
 
+
 def get_warehouse_admin(user):
     """ Check and Return Admin user of current """
 
@@ -4473,3 +4474,455 @@ def get_warehouse_admin(user):
     else:
         admin_user = user
     return admin_user
+
+
+def get_picklist_number(user):
+    """ Get the Latest Picklist number"""
+    picklist_obj = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id)).values_list('picklist_number',
+                                           flat=True).distinct().order_by('-picklist_number')
+    if not picklist_obj:
+        picklist_number = 1000
+    else:
+        picklist_number = picklist_obj[0]
+    return picklist_number
+
+
+@fn_timer
+def get_sku_stock(request, sku, sku_stocks, user, val_dict, sku_id_stocks=''):
+    data_dict = {'sku_id': sku.id, 'quantity__gt': 0}
+    fifo_switch = get_misc_value('fifo_switch', user.id)
+    if fifo_switch == "true":
+        order_by = 'receipt_date'
+    else:
+        order_by ='location_id__pick_sequence'
+    stock_detail = sku_stocks.filter(**data_dict).order_by(order_by)
+    stock_count = 0
+    if sku.id in val_dict['sku_ids']:
+        indices = [i for i, x in enumerate(sku_id_stocks) if x['sku_id'] == sku.id]
+        for index in indices:
+            stock_count += val_dict['stock_totals'][index]
+        if sku.id in val_dict['pic_res_ids']:
+            pic_res_id_index = val_dict['pic_res_ids'].index(sku.id)
+            stock_count = stock_count - val_dict['pic_res_quans'][pic_res_id_index]
+    return stock_detail, stock_count, sku.wms_code
+
+
+def get_stock_count(request, order, stock, stock_diff, user, order_quantity, prev_reserved = False):
+    reserved_quantity = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id).aggregate(Sum('reserved'))['reserved__sum']
+    if not reserved_quantity:
+        reserved_quantity = 0
+
+    stock_quantity = float(stock.quantity) - reserved_quantity
+    #if prev_reserved:
+    #    if stock_quantity >= 0:
+    #        #return order_quantity, 0
+    #        return 0, stock_diff
+    if stock_quantity <= 0:
+        return 0, stock_diff
+
+    if stock_diff:
+        if stock_quantity >= stock_diff:
+            stock_count = stock_diff
+            stock_diff = 0
+        else:
+            stock_count = stock_quantity
+            stock_diff -= stock_quantity
+    else:
+        if stock_quantity >= order_quantity:
+            stock_count = order_quantity
+        else:
+            stock_count = stock_quantity
+            stock_diff = order_quantity - stock_quantity
+    return stock_count, stock_diff
+
+def create_seller_summary_details(seller_order, picklist):
+    if not seller_order or not picklist:
+        return False
+    SellerOrderDetail.objects.create(seller_order_id=seller_order.id, picklist_id=picklist.id, quantity=picklist.reserved_quantity, reserved=picklist.reserved_quantity, creation_date=datetime.datetime.now())
+
+@fn_timer
+def picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, status='', remarks='', is_seller_order=False):
+    stock_status = []
+    if not status:
+        status = 'batch_open'
+    is_marketplace_model = False
+    all_zone_mappings = []
+    if get_misc_value('marketplace_model', user.id) == 'true':
+        all_zone_mappings = ZoneMarketplaceMapping.objects.filter(zone__user=user.id, status=1)
+        is_marketplace_model = True
+
+    fifo_switch = get_misc_value('fifo_switch', user.id)
+    if fifo_switch == "true":
+        order_by = 'receipt_date'
+    else:
+        order_by = 'location_id__pick_sequence'
+    no_stock_switch = False
+    if get_misc_value('no_stock_switch', user.id) == 'true':
+        no_stock_switch = True
+
+    for order in order_data:
+        picklist_data = copy.deepcopy(PICKLIST_FIELDS)
+        #order_quantity = float(order.quantity)
+        seller_order = None
+        if is_seller_order:
+            seller_order = order
+            order = order.order
+        picklist_data['picklist_number'] = picklist_number + 1
+        if remarks:
+            picklist_data['remarks'] = remarks
+        else:
+            picklist_data['remarks'] = 'Picklist_' + str(picklist_number + 1)
+
+        sku_id_stocks = sku_stocks.values('id', 'sku_id').annotate(total=Sum('quantity')).order_by(order_by)
+        val_dict = {}
+        val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
+        val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
+        val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
+        pc_loc_filter = {'status': 1}
+        if is_seller_order:
+            pc_loc_filter['stock_id__in'] = val_dict['stock_ids']
+        pick_res_locat = PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(**pc_loc_filter).\
+                                          filter(picklist__order__user=user.id).values('stock__sku_id').annotate(total=Sum('reserved'))
+
+        val_dict['pic_res_ids'] = map(lambda d: d['stock__sku_id'], pick_res_locat)
+        val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)
+
+        members = [ order.sku ]
+        if order.sku.relation_type == 'combo':
+            picklist_data['order_type'] = 'combo'
+            members = []
+            combo_data = sku_combos.filter(parent_sku_id=order.sku.id)
+            for combo in combo_data:
+                members.append(combo.member_sku)
+
+        for member in members:
+            stock_detail, stock_quantity, sku_code = get_sku_stock(request, member, sku_stocks, user, val_dict, sku_id_stocks)
+            if order.sku.relation_type=='member':
+                parent = sku_combos.filter(member_sku_id=member.id).filter(relation_type='member')
+                stock_detail1, stock_quantity1, sku_code = get_sku_stock(request, parent[0].parent_sku, sku_stocks, user, val_dict, sku_id_stocks)
+                stock_detail = list(chain(stock_detail, stock_detail1))
+                stock_quantity += stock_quantity1
+            elif order.sku.relation_type=='combo':
+                stock_detail, stock_quantity, sku_code = get_sku_stock(request, member, sku_stocks, user, val_dict, sku_id_stocks)
+
+            if not seller_order:
+                order_quantity = float(order.quantity)
+            else:
+                order_quantity = float(seller_order.quantity)
+            if stock_quantity < float(order_quantity):
+                if not no_stock_switch:
+                    stock_status.append(str(member.sku_code))
+                    continue
+
+                if stock_quantity < 0:
+                    stock_quantity = 0
+                order_diff = order_quantity - stock_quantity
+                order_quantity -= order_diff
+                #stock_detail = []
+                #stock_detail = create_temp_stock(member.sku_code, 'DEFAULT', int(order.quantity) - stock_quantity, stock_detail, user.id)
+                picklist_data['reserved_quantity'] = order_diff
+                picklist_data['stock_id'] =  ''
+                picklist_data['order_id'] = order.id
+                picklist_data['status'] = status
+                if sku_code:
+                    picklist_data['sku_code'] = sku_code
+                if 'st_po' not in dir(order):
+                    new_picklist = Picklist(**picklist_data)
+                    new_picklist.save()
+
+                    if seller_order:
+                        create_seller_summary_details(seller_order, new_picklist)
+                        seller_order.status = 0
+                        seller_order.save()
+                        sell_order = SellerOrder.objects.filter(order_id=order.id, status=1)
+                        if not sell_order:
+                            order.status = 0
+                            order.save()
+                    else:
+                        order.status = 0
+                        order.save()
+                    #if seller_order:
+                    #    create_seller_summary_details(seller_order, new_picklist)
+                if stock_quantity <= 0:
+                    continue
+
+            stock_diff = 0
+
+            # Marketplace model suggestions based on Zone Marketplace mapping
+            if is_marketplace_model:
+                zone_map_ids = all_zone_mappings.filter(marketplace=order.marketplace).values_list('zone_id', flat=True)
+                rem_zone_map_ids = all_zone_mappings.exclude(zone_id__in=zone_map_ids).values_list('zone_id', flat=True)
+                all_zone_map_ids = zone_map_ids | rem_zone_map_ids
+                stock_zones1 = stock_detail.filter(location__zone_id__in=zone_map_ids).order_by(order_by)
+                stock_zones2 = stock_detail.exclude(location__zone_id__in=all_zone_map_ids).order_by(order_by)
+                stock_zones3 = stock_detail.filter(location__zone_id__in=rem_zone_map_ids).order_by(order_by)
+                stock_detail = stock_zones1.union(stock_zones2, stock_zones3)
+
+
+            if seller_order and seller_order.order_status == 'DELIVERY_RESCHEDULED':
+                rto_stocks = stock_detail.filter(location__zone__zone='RTO_ZONE')
+                stock_detail = list(chain(rto_stocks, stock_detail))
+            for stock in stock_detail:
+                stock_count, stock_diff = get_stock_count(request, order, stock, stock_diff, user, order_quantity)
+                if not stock_count:
+                    continue
+
+                picklist_data['reserved_quantity'] = stock_count
+                picklist_data['stock_id'] = stock.id
+                if 'st_po' in dir(order):
+                    picklist_data['order_id'] = None
+                else:
+                    picklist_data['order_id'] = order.id
+                picklist_data['status'] = status
+
+                new_picklist = Picklist(**picklist_data)
+                new_picklist.save()
+                if seller_order:
+                    create_seller_summary_details(seller_order, new_picklist)
+
+                picklist_loc_data = {'picklist_id': new_picklist.id , 'status': 1, 'quantity': stock_count, 'creation_date':   datetime.datetime.now(),
+                                     'stock_id': new_picklist.stock_id, 'reserved': stock_count}
+                po_loc = PicklistLocation(**picklist_loc_data)
+                po_loc.save()
+                if 'st_po' in dir(order):
+                    st_order_dict = copy.deepcopy(ST_ORDER_FIELDS)
+                    st_order_dict['picklist_id'] = new_picklist.id
+                    st_order_dict['stock_transfer_id'] = order.id
+                    st_order = STOrder(**st_order_dict)
+                    st_order.save()
+
+                if not stock_diff:
+                    #setattr(order, 'status', 0)
+                    if seller_order:
+                        seller_order.status = 0
+                        seller_order.save()
+                        sell_order = SellerOrder.objects.filter(order_id=order.id, status=1)
+                        if not sell_order:
+                            order.status = 0
+                            order.save()
+                    else:
+                        order.status = 0
+                        order.save()
+                    break
+
+            order.save()
+    return stock_status, picklist_number
+
+
+def picklist_location_suggestion(request, order, stock_detail, user, order_quantity, picklist_data, new_picklist_objs=[]):
+    already_reserved = False
+    stock_diff = 0
+    consumed_qty = 0
+    need_quantity = order_quantity
+    for stock in stock_detail:
+        stock_count, stock_diff = get_stock_count(request, order, stock, stock_diff, user, order_quantity, already_reserved)
+        need_quantity -= stock_count
+        if 'st_po' in dir(order):
+            picklist_data['order_id'] = None
+        else:
+            picklist_data['order_id'] = order.id
+        if not stock_count:
+            continue
+        else:
+            consumed_qty += stock_count
+            picklist_data['stock_id'] = stock.id
+            picklist_data['reserved_quantity'] = stock_count
+
+        if not (picklist_data.get('stock_id', 0) and picklist_data.get('order_id', 0)):
+            return 0, []
+
+        exist_pick = Picklist.objects.filter(stock_id=picklist_data.get('stock_id', 0), order_id=picklist_data.get('order_id', 0),
+                                             status__icontains='open')
+        if not exist_pick:
+            new_picklist = Picklist(**picklist_data)
+            new_picklist.save()
+        else:
+            new_picklist = exist_pick[0]
+            new_picklist.reserved_quantity += stock_count
+            new_picklist.save()
+        new_picklist_objs.append(new_picklist.id)
+        seller_order = ""
+        if seller_order:
+            create_seller_summary_details(seller_order, new_picklist)
+
+        if stock_count:
+            picklist_loc_data = {'picklist_id': new_picklist.id , 'status': 1, 'quantity': stock_count, 'creation_date':   datetime.datetime.now(),
+                             'stock_id': new_picklist.stock_id, 'reserved': stock_count}
+            po_loc = PicklistLocation(**picklist_loc_data)
+            po_loc.save()
+        if 'st_po' in dir(order):
+            st_order_dict = copy.deepcopy(ST_ORDER_FIELDS)
+            st_order_dict['picklist_id'] = new_picklist.id
+            st_order_dict['stock_transfer_id'] = order.id
+            st_order = STOrder(**st_order_dict)
+            st_order.save()
+
+        if not stock_diff:
+            setattr(order, 'status', 0)
+            break
+    if need_quantity > 0:
+        picklist_data['reserved_quantity'] = need_quantity
+        consumed_qty += need_quantity
+        if 'stock_id' in picklist_data.keys():
+            del picklist_data['stock_id']
+        exist_pick = Picklist.objects.filter(stock_id=picklist_data.get('stock_id', 0), order_id=picklist_data.get('order_id', 0),
+                                             status__icontains='open')
+        if not exist_pick:
+            new_picklist = Picklist(**picklist_data)
+            new_picklist.save()
+        else:
+            new_picklist = exist_pick[0]
+            new_picklist.reserved_quantity += stock_count
+            new_picklist.save()
+        new_picklist_objs.append(new_picklist.id)
+
+    return consumed_qty, new_picklist_objs
+
+
+def picklist_allocate_stock(request, user, picklists, stock):
+    from outbound import picklist_location_suggestion
+
+    remarks = 'Auto-generated Picklist'
+    for picklist in picklists:
+        needed_quantity = picklist.reserved_quantity
+        picklist_data = {}
+        picklist_data['stock_id'] = 0
+        picklist_data['order_id'] = picklist.order.id
+        picklist_data['sku_code'] = picklist.sku_code
+        picklist_data['picklist_number'] = picklist.picklist_number
+        picklist_data['reserved_quantity'] = 0
+        picklist_data['picked_quantity'] = 0
+        picklist_data['remarks'] = picklist.remarks
+        picklist_data['order_type'] = picklist.order_type
+        picklist_data['status'] = picklist.status
+        consumed_qty, new_pc_locs = picklist_location_suggestion(request, picklist.order, stock, user,
+                                                                 needed_quantity, picklist_data)
+        if consumed_qty:
+            picklist_data['remarks'] = remarks
+        picklist.reserved_quantity -= float(consumed_qty)
+        picklist.save()
+        if consumed_qty:
+            exist_pics = PicklistLocation.objects.filter(picklist_id=picklist.id, status=1, reserved__gt=0)
+            update_picklist_locations(exist_pics, picklist, consumed_qty, 'true')
+            if picklist.reserved_quantity == 0 and not picklist.picked_quantity:
+                picklist.delete()
+
+
+def open_orders_allocate_stock(request, user, sku_combos, sku_open_orders, all_seller_orders, seller_stocks,
+                               stock_objs, picklist_order_mapping):
+    remarks = 'Auto-generated Picklist'
+    from outbound import picklist_generation, get_sku_stock, get_picklist_number
+    consumed_qty = 0
+    for open_order in sku_open_orders:
+        picklist_number = picklist_order_mapping.get(open_order.original_order_id, '')
+        if not picklist_number:
+            picklist_number = get_picklist_number(user)
+            picklist_order_mapping[open_order.original_order_id] = picklist_number
+        seller_orders = all_seller_orders.filter(order_id=open_order.id).order_by('order__shipment_date')
+        if seller_orders:
+            for seller_order in seller_orders:
+                sku_stocks = stock_objs
+                seller_stock_dict = filter(lambda person: str(person['seller_id']) == str(seller_order.seller_id),
+                                           seller_stocks)
+                if seller_stock_dict:
+                    sell_stock_ids = map(lambda person: person['stock_id'], seller_stock_dict)
+                    sku_stocks = sku_stocks.filter(id__in=sell_stock_ids)
+                else:
+                    sku_stocks = sku_stocks.filter(id=0)
+                stock_status, picklist_number = picklist_generation([seller_order], request, picklist_number, user,
+                                                                    sku_combos, sku_stocks, status='open',
+                                                                    remarks=remarks, is_seller_order=True)
+        else:
+            stock_status, picklist_number = picklist_generation([open_order], request, picklist_number, user,
+                                                                sku_combos, stock_objs, status='open', remarks=remarks)
+
+
+    return picklist_order_mapping
+
+
+def check_auto_stock_availability(stock, user):
+    zones_data, available_quantity = get_sku_stock_summary(stock, '', user)
+    avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
+    return avail_qty
+
+def order_allocate_stock(request, user, stock_data = [], mapping_type=''):
+    """Allocates the newly added stock to Order or Picklist"""
+
+    try:
+        log.info('Auto Allocate Stock function for %s and params are %s' % (str(user.username), str(stock_data)))
+        picklist_order_mapping = {}
+        all_skus = stock_data.keys()
+        all_order_mapping = OrderMapping.objects.none()
+        if mapping_type:
+            mapping_dict = {'mapping_type': mapping_type, 'order__sku_id__in': all_skus}
+            all_order_mapping = OrderMapping.objects.filter(order__user=user.id, **mapping_dict)
+        auto_allocate = False
+        if get_misc_value('auto_allocate_stock', user.id) == 'true':
+            auto_allocate = True
+        all_open_picklists = Picklist.objects.filter(order__user=user.id, status__icontains='open', stock__isnull=True)
+        sku_combos = SKURelation.objects.none()
+
+        all_open_orders = OrderDetail.objects.filter(user=user.id, quantity__gt=0, status=1, sku_id__in=all_skus)
+        all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(order__user=user.id, order__status=1,
+                                                                                      quantity__gt=0,
+                                                                                      order__sku_id__in=all_skus)
+        seller_stocks = SellerStock.objects.filter(seller__user=user.id, quantity__gt=0, stock__sku_id__in=all_skus).\
+                                            values('stock_id', 'seller_id')
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').\
+                                exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).\
+                                filter(sku__user=user.id, quantity__gt=0, sku_id__in=all_skus)
+
+        for sku_id, mapping_ids in stock_data.iteritems():
+            stock = sku_stocks.filter(sku_id=sku_id)
+            sku = stock[0].sku
+            sku_open_orders = all_open_orders.filter(sku_id=sku_id)
+            picklists = all_open_picklists.filter(Q(order__sku_id=sku_id, order_type='') |
+                                                  Q(sku_code=sku.sku_code, order_type='combo')).\
+                                            order_by('order__creation_date')
+            if mapping_ids:
+                picklist_filter = {}
+                order_mapping = all_order_mapping.filter(mapping_id__in=mapping_ids)
+                if order_mapping:
+                    picklist_filter['order_id__in'] = order_mapping.values_list('order_id', flat=True)
+                # If Order Mapping exists then stock allocation for picklists or orders
+                if picklist_filter:
+                    # Stock Allocation for open picklists with NO STOCK
+                    picklist_allocate_stock(request, user, picklists.filter(**picklist_filter), stock)
+
+                    avail_qty = check_auto_stock_availability(stock, user)
+                    if avail_qty <= 0:
+                        continue
+
+                    # Stock Allocation for open orders in view orders.
+                    open_order_args = [request, user, sku_combos]
+                    open_order_args.append(sku_open_orders.filter(id__in=picklist_filter['order_id__in']))
+                    open_order_args.append(all_seller_orders)
+                    open_order_args.append(seller_stocks)
+                    open_order_args.append(stock)
+                    open_order_args.append(picklist_order_mapping)
+                    picklist_order_mapping = open_orders_allocate_stock(*open_order_args)
+
+            # If auto stock allocation is on then stock allocation will happen for picklists or orders
+            if auto_allocate:
+                avail_qty = check_auto_stock_availability(stock, user)
+                if avail_qty <= 0:
+                    continue
+
+                # Stock Allocation for open picklists with NO STOCK
+                if picklists:
+                    picklist_allocate_stock(request, user, picklists, stock)
+
+                if avail_qty <= 0:
+                    continue
+
+                # Stock Allocation for open orders in view orders.
+                open_order_args = [request, user, sku_combos, sku_open_orders, all_seller_orders, seller_stocks]
+                open_order_args.append(stock)
+                open_order_args.append(picklist_order_mapping)
+                picklist_order_mapping = open_orders_allocate_stock(*open_order_args)
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Auto Allocate Stock function failed for %s and params are %s and error statement is %s' %
+                 (str(user.username), str(stock_data), str(e)))

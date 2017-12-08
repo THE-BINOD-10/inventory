@@ -212,7 +212,7 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
     angular.copy(vm.customData, mod_data);
     var modalInstance = $modal.open({
             templateUrl: 'views/outbound/toggle/customOrderDetails.html',
-            controller: 'customOrderDetails',
+            controller: 'customOrderDetailsPreview',
             controllerAs: 'pop',
             size: 'lg',
             backdrop: 'static',
@@ -436,7 +436,7 @@ angular
   .module('urbanApp')
   .controller('CreateCustomOrder', ['$scope', '$http', '$state', 'Session', 'colFilters', 'Service', '$modal', 'Data', CreateCustomOrder]);
 
-function customOrderDetails($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
+function customOrderDetailsPreview($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
 
   var vm = this;
   vm.customData = items;
@@ -449,6 +449,6 @@ function customOrderDetails($scope, $http, $state, $timeout, Session, colFilters
 
 angular
   .module('urbanApp')
-  .controller('customOrderDetails', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', customOrderDetails]);
+  .controller('customOrderDetailsPreview', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', customOrderDetailsPreview]);
 
 

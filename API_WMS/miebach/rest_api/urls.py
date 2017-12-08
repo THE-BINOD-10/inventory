@@ -270,6 +270,7 @@ urlpatterns = [
     url(r'^print_seller_invoice_report/$',print_seller_invoice_report),
     url(r'^get_rm_picklist_report/$',get_rm_picklist_report),
     url(r'^print_rm_picklist_report/$',print_rm_picklist_report),
+    url(r'^excel_sales_return_report/$',excel_sales_return_report),
 ]
 
 #urlpatterns += patterns('rest_api.views',

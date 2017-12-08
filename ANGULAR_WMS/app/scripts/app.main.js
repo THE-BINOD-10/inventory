@@ -1,5 +1,7 @@
 'use strict';
 
+var stockone = angular.module('urbanApp');
+
 angular
   .module('urbanApp')
   .service('myservice', function() {

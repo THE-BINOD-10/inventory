@@ -2063,7 +2063,7 @@ def check_returns(request, user=''):
             if picklist.stock:
                 wms_code = picklist.stock.sku.wms_code
                 sku_desc = picklist.stock.sku.sku_desc
-            cond = (picklist.order.order_id, wms_code, sku_desc)
+            cond = (picklist.order.original_order_id, wms_code, sku_desc)
             all_data.setdefault(cond, 0)
             all_data[cond] += picklist.picked_quantity
         for key, value in all_data.iteritems():
@@ -2082,7 +2082,7 @@ def check_returns(request, user=''):
                 order_quantity = order_data.order.quantity
             else:
                 order_quantity = order_data.quantity
-            data.append({'id': order_data.id, 'order_id': order_obj.order_id, 'return_id': order_data.return_id,
+            data.append({'id': order_data.id, 'order_id': order_obj.original_order_id, 'return_id': order_data.return_id,
                          'sku_code': order_data.sku.sku_code,
                          'sku_desc': order_data.sku.sku_desc, 'ship_quantity': order_quantity,
                          'return_quantity': order_data.quantity, 'damaged_quantity': order_data.damaged_quantity})

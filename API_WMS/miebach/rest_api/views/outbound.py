@@ -1533,6 +1533,7 @@ def update_invoice(request, user=''):
         invoice_number = request.POST.get("invoice_number", "")
         increment_invoice = get_misc_value('increment_invoice', user.id)
         marketplace = request.POST.get("marketplace", "")
+        order_reference = request.POST.get("order_reference", "")
 
         myDict = dict(request.POST.iterlists())
         if invoice_date:
@@ -1541,6 +1542,9 @@ def update_invoice(request, user=''):
         order_code = ''.join(re.findall('\D+', order_ids))
         ord_ids = OrderDetail.objects.filter(Q(order_id = order_id_val, order_code = order_code) | Q(original_order_id=order_ids),
                                              user = user.id)
+
+        if order_reference and ord_ids:
+           ord_ids.update(order_reference = order_reference)
 
         if increment_invoice == 'true' and invoice_number:
             invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace)
@@ -3786,6 +3790,9 @@ def get_view_order_details(request, user=''):
             order_json = OrderJson.objects.filter(order_id=one_order.id)
             if order_json:
                 sku_extra_data = json.loads(order_json[0].json_data)
+                if sku_extra_data['image_data']:
+                    for key, value in sku_extra_data['image_data'].iteritems():
+                        sku_extra_data['image_data'][key] = resize_image(value, user)
 
         customer_order = CustomerOrderSummary.objects.filter(order_id = one_order.id)
         sgst_tax = 0

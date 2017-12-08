@@ -3,9 +3,9 @@ FUN = {};
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ReceivePOCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', 'focus', '$modal', ServerSideProcessingCtrl]);
+  .controller('ReceivePOCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', 'focus', '$modal', '$compile', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert, focus, $modal) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert, focus, $modal, $compile) {
     var vm = this;
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
@@ -49,7 +49,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var columns = ['PO Number', 'Order Date', 'Supplier ID', 'Supplier Name', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
+    var toggle = DTColumnBuilder.newColumn('Po Number').withTitle(' ').notSortable()
+                 .withOption('width', '30px').renderWith(function(data, type, full, meta) {
+                   return $compile("<h4 ng-click='showCase.addRowData($element)'>k</h4>")($scope);
+                 })
+    vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};
+
+    vm.addRowData = function(data) {
+      console.log(data);
+    }
 
     $scope.$on('change_filters_data', function(){
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
@@ -57,8 +66,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
+        $('td:not(td:first)', nRow).unbind('click');
+        $('td:not(td:first)', nRow).bind('click', function() {
             $scope.$apply(function() {
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {

@@ -1,6 +1,6 @@
 'use strict';
 
-function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $modal) {
+function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $modal, $rootScope) {
 
   $scope.msg = "start";
   var vm = this;
@@ -465,6 +465,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.add_scroll();
   })
 
+  $rootScope.$on('$stateChangeSuccess', function () {
+    vm.add_scroll();
+  })
+
   vm.add_scroll = function(){
     $timeout(function() {
     var height = $(window).height()
@@ -482,9 +486,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
   vm.add_scroll();
 
-  $scope.$watch(function(){
-    vm.add_scroll();
-  });
+  //$scope.$watch(function(){
+    //vm.add_scroll();
+  //});
 
   vm.sizeform = function(form) {
     var config = {};
@@ -819,7 +823,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
 angular
   .module('urbanApp')
-  .controller('appCreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', '$modal', appCreateOrders]);
+  .controller('appCreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', '$modal', '$rootScope', appCreateOrders]);
 
 angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance, $modal, items) {
   var $ctrl = this;

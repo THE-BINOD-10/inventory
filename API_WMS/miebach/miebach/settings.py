@@ -220,3 +220,10 @@ LOGGING = {
 }
 
 AUTHORIZATION_CODE_EXPIRE_SECONDS=600
+BARCODE_DEFAULT = {
+		'format_type': 1,
+                'size': (60,25), 
+                'show_fields': ['SKUCode', 'Product', ['Size', 'Gender', 'Qty', 'Color'], ['Phone', 'Email']], #Give nested list if u need multiple columns in same line
+                'rows_columns' : (1,1),
+                'styles' : {'leftIndent': 4, 'spaceAfter': 4, 'spaceBefore': 4, 'fontName': 'Arial', 'fontSize': 6, 'spaceShrinkage': 12, 'leading': 9, 'showBoundary': 0.1, 'rightIndent': 0},
+		}

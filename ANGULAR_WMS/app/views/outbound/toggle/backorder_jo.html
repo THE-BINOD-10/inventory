@@ -15,9 +15,11 @@
                 <thead>
                   <tr>
                     <th>Product SKU Code</th>
+                    <th>Product SKU Description</th>
                     <th>Product SKU Quantity</th>
                     <th>Material SKU Code </th>
                     <th>Material SKU Quantity</th>
+                    <th>Units Of Measurement</th>
                     <th class="plus"></th>
                   </tr>
                 </thead>
@@ -32,6 +34,9 @@
                       <!--<input ng-readonly="showCase.update && (!(item.new_sku))" ng-show="$first" type="text" name="product_code" ng-model="data.product_code" ng-blur="showCase.get_product_data(data.product_code, data)" class="form-control">-->
                     </td>
                     <td>
+                      <input ng-show="$first" type="text" name="description" ng-model="data.description" class="form-control">
+                    </td>
+                    <td>
                       <input ng-show="$first" type="text" name="product_quantity" ng-model="data.product_description" ng-change="showCase.change_quantity(data)" class="form-control" ng-class="service.get_decimal_perm()">
                     </td>
                     <td>
@@ -40,6 +45,12 @@
                     </td>
                     <td>
                       <input type="text" positive-number name="material_quantity" class="form-control" value="{{(data.product_description > -1)? showCase.service.decimal(data.product_description, item.material_quantity): item.material_quantity;}}" ng-class="service.get_decimal_perm()">
+                    </td>
+                    <td>
+                      <select name="measurement_type" class="form-control" ng-model="item.measurement_type">
+                        <option value="" ng-selected= "item.measurement_type == ''">Default</option>
+                        <option ng-repeat="unit in showCase.units" value="{{unit}}" ng-selected= "item.measurement_type == unit">{{unit}}</option>
+                      </select>
                     </td>
                     <td>
                       <i ng-click="showCase.update_data(data, $index, $last, $first)" ng-class="showCase.isLast($last)"></i> </div>

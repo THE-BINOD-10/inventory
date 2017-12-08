@@ -344,9 +344,11 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       return d.promise;
     }
 
-    vm.print_excel = function(data, instance, headers, name, stat) {
+    vm.print_excel = function(data, instance, headers, name, stat, url) {
 
       var send = {};
+      var excel_url = "excel_reports/";
+      excel_url = (url)? url: excel_url;
       var d = $q.defer();
       vm.print_enable = true;
       data['excel_name'] = name;
@@ -369,7 +371,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         send = $.param(send)
       }
       $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-      $http.post(Session.url+"excel_reports/", send, {withCredential: true}).success(function(data){
+      $http.post(Session.url+url, send, {withCredential: true}).success(function(data){
         window.location = Session.host+data.slice(3);
         vm.print_enable = false;
         d.resolve('resolved');
@@ -916,7 +918,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
       vm.apiCall('generate_barcodes/', 'POST', elem, true).then(function(data){
 
-        if(data.message) {
+        if(data.message && data.data !== '"Failed"') {
 
             var href_url = Session.host.concat(data.data.slice(1, -1));
             console.log(href_url);
@@ -927,6 +929,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
             document.getElementById("downloadpdf").click();
 
             $("#downloadpdf").remove();
+        }else{
+           vm.showNoty("Failed", 'warning');
         }
       });
     }
@@ -941,7 +945,6 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         link: function (scope, element, attrs) {
             var raw = element[0];
             console.log('loading directive');
-                
             element.bind('scroll', function () {
                 console.log(raw.scrollTop + raw.offsetHeight);
                 console.log(raw.scrollHeight);
@@ -1107,8 +1110,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
                 var $input = $(this);  
                 var value = $input.val();  
                 value = value.replace(/[^0-9\.]/g, '')  
-                var findsDot = new RegExp(/\./g)  
-                var containsDot = value.match(findsDot)  
+                var findsDot = new RegExp(/\./g)
+                var containsDot = value.match(findsDot)
                 if (containsDot != null && ([46, 110, 190].indexOf(event.which) > -1)) {  
                     event.preventDefault();  
                     return false;  
@@ -1303,3 +1306,59 @@ app.directive('ngDebounce', function($timeout) {
                      
     }
 });
+
+app.directive('discountNumber', function () {  
+      return {
+        restrict: 'A',  
+        link: function (scope, elm, attrs, ctrl) {
+            elm.on('keyup', function (event) {
+                var $input = $(this);
+                var value = $input.val();
+                value = value.replace(/[^0-9\.]/g, '');
+                var findsDot = new RegExp(/\./g)
+                var containsDot = value.match(findsDot)
+                if (containsDot != null && ([46, 110, 190].indexOf(event.which) > -1)) {  
+                    event.preventDefault();  
+                    return false;  
+                }
+                if(containsDot != null) {
+                  var data = value.split(".")
+                  if(data[1].length == 2 && (!([8,39,37].indexOf(event.which) > -1))) {
+                    event.preventDefault();
+                    return false;
+                  }
+                }
+
+                $input.val(value);
+                console.log(value);
+
+                if (99.99 > parseFloat(value)) {
+                  return true;
+                } else if (value == "") {
+                  return true;
+                } else {
+                  $input.val(99.99);
+                  return false;
+                }
+            });  
+        }  
+      }  
+    });
+
+
+  app.config(['$httpProvider', function($httpProvider) {
+
+    $httpProvider.responseInterceptors.push(function($q, $rootScope) {
+      return function(promise) {
+          // same as above
+          promise.then(function(data){
+            if(data.status == 200) {
+              if (data.data.message == "invalid user") {
+                $rootScope.$broadcast('invalidUser');
+              }
+            }
+          })
+          return promise;
+      }
+    });
+  }])

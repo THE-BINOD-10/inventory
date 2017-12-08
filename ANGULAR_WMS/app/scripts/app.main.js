@@ -1,5 +1,7 @@
 'use strict';
 
+var stockone = angular.module('urbanApp');
+
 angular
   .module('urbanApp')
   .service('myservice', function() {
@@ -187,6 +189,11 @@ angular
           return true;
         }
       }
+
+      $rootScope.$on('invalidUser', function () {
+        $state.go("user.signin");
+        Session.unset();
+      });
     }
 ]);
 

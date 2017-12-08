@@ -240,7 +240,8 @@
     $ctrl.data_available = true;
 
     $ctrl.empty_sku =function(){
-      if (!$ctrl.model_data.src_available_quantity) {
+      if (!$ctrl.model_data.src_sku_code) {
+        $ctrl.model_data.src_quantity = '';
         $ctrl.model_data.src_available_quantity = 0;
       }
     }
@@ -248,10 +249,12 @@
     $ctrl.margin_types = ['Margin Percentage', 'Margin Value'];
 
     $ctrl.check_sku_code = function($items, location, sku){
-      $ctrl.data_available = false;
-      $ctrl.sku = sku;
 
-      $ctrl.model_data.src_available_quantity = 0;
+      $ctrl.sku = sku;
+      if (sku == 'src_sku') {
+        $ctrl.data_available = false
+        $ctrl.model_data.src_available_quantity = 0;
+      }
       
       if (!$ctrl.model_data.src_available_quantity) {
         $ctrl.model_data.src_available_quantity = 0;
@@ -265,8 +268,6 @@
           if ($ctrl.sku == "src_sku") {
             $ctrl.model_data.src_available_quantity = data.data.available_quantity;
             $ctrl.data_available = true;
-          } else {
-            $ctrl.model_data.dest_quantity = data.data.available_quantity;
           }
         }
       });

@@ -17,7 +17,7 @@
             
             <div class="col-md-6 col-sm-6 col-xs-6">
                 <label class="control-label">Quantity</label>
-                <input type="text" name="src_quantity" class="form-control" decimal-number ng-model="$ctrl.model_data.src_quantity" ng-readonly="$ctrl.model_data.src_available_quantity == 0" required>
+                <input type="text" name="src_quantity" class="form-control" decimal-number ng-model="$ctrl.model_data.src_quantity" placeholder="0" ng-readonly="$ctrl.model_data.src_available_quantity == 0" required>
             </div>
 
             <div class="col-md-6 col-sm-6 col-xs-6" style="margin-top: 10px">
@@ -88,7 +88,7 @@
 
     <div class="modal-footer">
       <button type="button" class="btn pop pop-normal" ng-click="$ctrl.close()">Close</button>
-      <button type="submit" class="btn pop pop-green" ng-click="$ctrl.submit(myForm)">Save</button>
+      <button type="submit" class="btn pop pop-green" ng-click="$ctrl.submit(myForm)" ng-disabled="myForm.$invalid">Save</button>
     </div>
 
   </form>

@@ -3708,11 +3708,11 @@ def update_seller_order(seller_order_dict, order, user):
 
 def get_invoice_html_data(invoice_data):
     data = {'totals_data': {'label_width': 6, 'value_width': 6}, 'columns': 10, 'emty_tds': [], 'hsn_summary_span': 3}
-    if invoice_data['invoice_remarks'] != 'false':
+    if invoice_data.get('invoice_remarks', '') not in ['false', '']:
         data['totals_data']['label_width'] = 4
         data['totals_data']['value_width'] = 8
 
-    if invoice_data['show_disc_invoice'] == 'true':
+    if invoice_data.get('show_disc_invoice', '') == 'true':
         data['columns'] = 11
         data['hsn_summary_span'] = 4
     data['empty_tds'] = [i for i in range(data['columns'])]

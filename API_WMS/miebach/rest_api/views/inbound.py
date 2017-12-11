@@ -1368,9 +1368,11 @@ def update_putaway(request, user=''):
             order_quantity = 0
             if remarks != po.remarks:
                 po.remarks = remarks
-            if expected_date and not po.expected_date or _expected_date != datetime.datetime.strftime(po.expected_date,
-                                                                                                      "%m/%d/%Y"):
-                po.expected_date = expected_date
+            if expected_date:
+                if po.expected_date and expected_date.strftime('%d/%m/%Y') != po.expected_date.strftime('%d/%m/%Y'):
+                    po.expected_date = expected_date
+                else:
+                    po.expected_date = expected_date
             if po.open_po:
                 order_quantity = po.open_po.order_quantity
             elif po.stpurchaseorder_set.filter():
@@ -1911,7 +1913,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         data = PurchaseOrder.objects.get(id=myDict['id'][i])
         if remarks != data.remarks:
             data.remarks = remarks
-        if expected_date and not data.expected_date or _expected_date != datetime.datetime.strftime(data.expected_date,"%m/%d/%Y"):
+        if expected_date:
             data.expected_date = expected_date
         purchase_data = get_purchase_order_data(data)
         temp_quantity = data.received_quantity

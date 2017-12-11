@@ -46,7 +46,7 @@
                         <div class="col-xs-12 text-left p0 fs14">
                           <strong>Invoice Number:</strong>{{invoice_no}}<br>
                           <strong>Invoice Date:</strong>{{invoice_date}}<br>
-                          <strong>Order Number:</strong>{{order_id}}<br>
+                          <strong>Order Number:</strong>{% if order_reference %} {{order_reference}} {% else %} {{order_id}} {% endif %}<br>
                           <strong>Order Date:</strong>{{order_date}}<br>
                           {% if purchase_type %}
                           <span ng-if="showCase.pdf_data.purchase_type"><strong>Purchase Type:</strong>{{purchase_type}}</span>

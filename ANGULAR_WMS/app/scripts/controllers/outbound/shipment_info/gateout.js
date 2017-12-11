@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ViewShipmentCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', ServerSideProcessingCtrl]);
+  .controller('GateoutCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, Service) {
     var vm = this;
@@ -10,39 +10,37 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.selectAll = false;
     vm.toggleAll = toggleAll;
     vm.toggleOne = toggleOne;
-    vm.permissions = Session.roles.permissions;
-    vm.awb_ship_type = (vm.permissions.create_shipment_type == true) ? true: false;
     var titleHtml = '<input type="checkbox" class="data-select" ng-model="vm.selectAll" ng-change="vm.toggleAll(vm.selectAll, vm.selected); $event.stopPropagation();">';
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
               type: 'POST',
-              data: {'datatable': 'ShipmentInfo', 'ship_id':1, 'gateout':0},
+              data: {'datatable': 'ShipmentInfo', 'ship_id':1, 'gateout':1},
               xhrFields: {
                 withCredentials: true
               }
            })
-       .withDataProp('data')
-       .withOption('drawCallback', function(settings) {
-         vm.service.make_selected(settings, vm.selected);
-       })
+      .withDataProp('data')
+      .withOption('drawCallback', function(settings) {
+        vm.service.make_selected(settings, vm.selected);
+      })
        .withOption('processing', true)
        .withOption('serverSide', true)
        .withOption('createdRow', function(row, data, dataIndex) {
             $compile(angular.element(row).contents())($scope);
-        })
-        .withOption('headerCallback', function(header) {
-            if (!vm.headerCompiled) {
-                vm.headerCompiled = true;
-                $compile(angular.element(header).contents())($scope);
-            }
-        })
-       .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback)
-       .withOption('RecordsTotal', function( settings ) {
-         console.log("complete") 
-       });
+      })
+      .withOption('headerCallback', function(header) {
+        if (!vm.headerCompiled) {
+            vm.headerCompiled = true;
+            $compile(angular.element(header).contents())($scope);
+        }
+      })
+      .withPaginationType('full_numbers')
+      .withOption('rowCallback', rowCallback)
+      .withOption('RecordsTotal', function( settings ) {
+       console.log("complete") 
+      });
 
     vm.dtColumns = [
         /*DTColumnBuilder.newColumn(null).withTitle(titleHtml).notSortable().withOption('width', '20px')
@@ -67,8 +65,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
                 console.log(aData);
-                var data = { gateout : 0 ,customer_id: aData['Customer ID'], shipment_number:aData['Shipment Number']}
+                var data = { gateout : 1, customer_id: aData['Customer ID'], shipment_number:aData['Shipment Number']}
                 vm.service.apiCall("shipment_info_data/","GET", data).then(function(data){
+
                   if(data.message) {
                     angular.copy(data.data, vm.model_data);
                     $state.go('app.outbound.ShipmentInfo.ConfirmShipment');
@@ -81,10 +80,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;
-
-    function reloadAllData () {
-      $('.custom-table').DataTable().draw();
-    };
 
     function reloadData () {
         vm.selectAll = false;
@@ -114,7 +109,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         vm.button_fun();
     }
 
-    vm.bt_disable = true;
+    vm.bt_disable = false;
     vm.button_fun = function() {
 
       var enable = true
@@ -157,47 +152,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     angular.copy(vm.empty_data, vm.model_data);
 
     vm.submit = function(data) {
-      var send = $("form").eq(3);
+      var send = $("form").eq(4);
       send = $(send).serializeArray();
-      vm.service.apiCall("update_shipment_status/", "GET", send).then(function(data) {
+      vm.service.apiCall("update_shipment_status/", "GET", send).then(function(data){
         if(data.message) {
           if(data.data["status"]) {
-              vm.service.showNoty(data.data.message);  
+            vm.service.showNoty(data.data.message);  
           } else {
-              vm.service.showNoty(data.data.message, 'error', 'topRight');
+            vm.service.showNoty(data.data.message, 'error', 'topRight');
           }
           vm.close();
           reloadData();
         }
       });
-    }
-
-    vm.scanAwb = function(event, sku) {
-      if (event.keyCode == 13 && sku.length > 0) {
-        vm.bt_disable = true;
-        vm.awb_no = sku;
-        var apiUrl = "get_awb_view_shipment_info/";
-        if (vm.awb_no.length) {
-          var data=[];
-          data.push({ name: 'awb_no', value: vm.awb_no });
-        } else {
-          vm.bt_disable = false;
-          vm.service.showNoty("Fill Mandatory Fields", 'error', 'topRight');
-          return;
-        }
-        vm.service.apiCall( apiUrl, "GET", data).then(function(data) {
-          if(data.message) {
-            if(data.data["status"]) {
-                vm.service.showNoty(data.data.message);  
-              } else {
-                vm.service.showNoty(data.data.message, 'error', 'topRight');
-              }
-            }
-          reloadAllData();
-          vm.awb_no = '';
-          vm.bt_disable = true;
-        });
-      }
     }
 
   }

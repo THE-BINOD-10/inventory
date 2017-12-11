@@ -1,0 +1,39 @@
+<div id="page-pop">
+  <div class="modal-header">
+    <h4 class="modal-title" id="modal-title">SALES RETURN DETAILS</h4>
+  </div>
+  <div class="modal-body" id="modal-body">
+    <div class="row no-margin">
+      <div class="col-md-12">
+        <span>SKU Code: <b>{{$ctrl.modal_data.sku_code}}</b></span></br>
+        <span>SKU Description: <b>{{$ctrl.modal_data.description}}</b></br></span>
+        <span ng-if="$ctrl.modal_data.order_id">Order ID: <b>{{$ctrl.modal_data.order_id}}</b></br></span>
+        <span ng-if="$ctrl.modal_data.customer_name">Customer Name: <b>{{$ctrl.modal_data.customer_name}}</b></br></span>
+        <span>Return Date: <b>{{$ctrl.modal_data.return_date}}</b></span></br>
+      </div>
+    </div>
+
+    <div class="row no-margin">
+      <hr>
+      <table class="table table-bordered bl br cal-table">
+        <thead>
+          <tr>
+            <th><center>Qauntity</center></th>
+            <th><center>Reason</center></th>
+            <th><center>Status</center></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="text-center" ng-repeat="reason in $ctrl.modal_data.reasons_data">
+            <td>{{reason.quantity}}</td>
+            <td>{{reason.reason}}</td>
+            <td>{{reason.status}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn pop" ng-click="$ctrl.ok()">Close</button>
+  </div>
+</div>

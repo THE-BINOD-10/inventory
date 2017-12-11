@@ -244,6 +244,7 @@ class OrderDetail(models.Model):
     updation_date = models.DateTimeField(auto_now=True)
     unit_price = models.FloatField(default=0)
     order_type = models.CharField(max_length=64, default='Normal')
+    order_reference = models.CharField(max_length=128,default='')
 
     class Meta:
         db_table = 'ORDER_DETAIL'
@@ -508,6 +509,22 @@ class InventoryAdjustment(models.Model):
     class Meta:
         db_table = 'INVENTORY_ADJUSTMENT'
         unique_together = ('cycle', 'adjusted_location')
+
+    def __unicode__(self):
+        return str(self.id)
+
+class SubstitutionSummary(models.Model):
+    source_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='source_sku')
+    destination_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='destination_sku')
+    source_location = models.CharField(max_length=64)
+    destination_location = models.CharField(max_length=64)
+    source_quantity = models.FloatField(default=0)
+    destination_quantity = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SUBSTITUTION_SUMMARY'
 
     def __unicode__(self):
         return str(self.id)
@@ -1951,6 +1968,21 @@ class InvoiceSequence(models.Model):
         db_table = 'INVOICE_SEQUENCE'
         index_together = ('user', 'marketplace')
         unique_together = ('user', 'marketplace')
+
+class OrderAwbMap(models.Model):
+    user = models.ForeignKey(User)
+    original_order_id = models.CharField(max_length=128,default='')
+    awb_no = models.CharField(max_length=128, default='')
+    marketplace = models.CharField(max_length=128, default='')
+    courier_name = models.CharField(max_length=128, default='')
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ORDER_AWB_MAP'
+        index_together = ('original_order_id', 'awb_no')
+        unique_together = ('original_order_id', 'awb_no')
 
 import django
 from django.core.validators import MaxLengthValidator

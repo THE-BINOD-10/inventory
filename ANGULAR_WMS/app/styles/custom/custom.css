@@ -400,7 +400,7 @@ h1 small {
   }
 }
 .order-list {
-  border: 1px solid #cccccc;
+  border: 1px solid #ccc;
 }
 .order-list .order-item {
   padding: 10px;
@@ -409,23 +409,23 @@ h1 small {
   color: blue;
 }
 .order-list .order-label {
-  color: #999999;
+  color: #999;
 }
 .order-list .order-bold {
   font-size: 20px;
   color: black;
 }
 .order-list .border-grey {
-  border-bottom: 1px solid #cccccc;
+  border-bottom: 1px solid #ccc;
 }
 .detail-list {
-  border: 1px solid #cccccc;
+  border: 1px solid #ccc;
 }
 .detail-list .detail-item {
   padding: 10px;
 }
 .detail-list .border-grey {
-  border-bottom: 1px solid #cccccc;
+  border-bottom: 1px solid #ccc;
 }
 .detail-list .detail-bg-grey {
   background: #f0f0f0;
@@ -484,6 +484,9 @@ h1 small {
 }
 .sagar-custom .custom-colors .color-selected {
   box-shadow: 0px 0px 4px black;
+}
+.order_level {
+  height: 22px !important;
 }
 body {
   background: #fff;
@@ -588,6 +591,9 @@ body {
 .page-layout .layout-body label.error {
   display: none !important;
 }
+.lebel-error-hide label.error {
+  display: none !important;
+}
 .custom-table {
   border-bottom: 1px solid rgba(0, 0, 0, 0.14) !important;
 }
@@ -603,7 +609,7 @@ body {
 }
 .dataTables_wrapper {
   overflow-x: auto;
-  min-height: 250px;
+  min-height: 100px;
 }
 .dataTables_wrapper > .row {
   margin-left: 0px !important;
@@ -626,6 +632,7 @@ body {
   margin-top: 0px !important;
   padding-top: 0px !important;
   top: 100px;
+  height: 0px;
 }
 .no_click_tb tbody tr:hover {
   cursor: text !important;
@@ -663,7 +670,7 @@ body {
   top: 8px;
 }
 .layout-sub-header {
-  background: #ffffff;
+  background: #fff;
 }
 .layout-sub-header .filters {
   background: #f0f0f0;
@@ -760,12 +767,10 @@ body {
 .page-pop .modal-body table {
   /*width: 97%;
       margin: 10px;*/
-
 }
 #page-pop .modal-body table tbody > tr > td > input,
 .page-pop .modal-body table tbody > tr > td > input {
   /*width: 90%;*/
-
 }
 #page-pop .modal-body .dropdown-menu > .active > a:hover,
 .page-pop .modal-body .dropdown-menu > .active > a:hover,
@@ -1122,7 +1127,6 @@ rm-blur:active {
   padding: 5px 0;
   padding: 3px;
   /* Position the tooltip */
-
   position: absolute;
   z-index: 1;
   top: -5px;
@@ -1190,7 +1194,6 @@ rm-blur:active {
     }
   }
   */
-
 }
 .tracking .panel-group .panel-body {
   background: #f0f0f0;

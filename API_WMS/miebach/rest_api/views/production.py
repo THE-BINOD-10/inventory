@@ -1757,6 +1757,7 @@ def putaway_location(data, value, exc_loc, user, order_id, po_id):
 @get_admin_user
 def jo_putaway_data(request, user=''):
     all_data = {}
+    putaway_stock_data = {}
     data_dict = dict(request.POST.iterlists())
     mod_locations = []
     for i in range(len(data_dict['id'])):
@@ -1795,6 +1796,7 @@ def jo_putaway_data(request, user=''):
                     pallet_detail = pallet_mapping[0].pallet_detail
                     setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
                 stock_data.save()
+                stock_detail = stock_data
                 mod_locations.append(stock_data.location.location)
             else:
                 record_data = {'location_id': location.id, 'receipt_number': data.job_order.job_code,
@@ -1807,6 +1809,10 @@ def jo_putaway_data(request, user=''):
                 stock_detail = StockDetail(**record_data)
                 stock_detail.save()
                 mod_locations.append(stock_detail.location.location)
+
+            # Collecting data for auto stock allocation
+            putaway_stock_data.setdefault(stock_detail.sku_id, [])
+            putaway_stock_data[stock_detail.sku_id].append(data.job_order_id)
 
         putaway_quantity = POLocation.objects.filter(job_order_id=data.job_order_id,
                                                      job_order__product_code__user = user.id, status=0). \
@@ -1821,6 +1827,9 @@ def jo_putaway_data(request, user=''):
 
     if mod_locations:
         update_filled_capacity(list(set(mod_locations)), user.id)
+
+    # Auto Allocate Stock
+    order_allocate_stock(request, user, stock_data=putaway_stock_data, mapping_type='JO')
 
     return HttpResponse('Updated Successfully')
 

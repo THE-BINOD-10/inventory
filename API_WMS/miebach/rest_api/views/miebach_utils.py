@@ -990,6 +990,10 @@ JOB_ORDER_EXCEL_HEADERS = ['Product SKU Code', 'Product SKU Quantity']
 
 JOB_ORDER_EXCEL_MAPPING = OrderedDict(( ('product_code', 0), ('product_quantity', 1)))
 
+ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name', 'Marketplace']
+
+ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict(( ('order_id', 0), ('awb_no', 1), ('courier_name', 2), ('marketplace', 3) ))
+
 #Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png'}
 
@@ -1008,7 +1012,8 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                       'barcode_generate_opt': 'barcode_generate_opt', 'online_percentage': 'online_percentage', 'mail_alerts': 'mail_alerts',
                       'detailed_invoice': 'detailed_invoice', 'invoice_titles': 'invoice_titles', 'show_image': 'show_image',
                       'auto_generate_picklist': 'auto_generate_picklist', 'auto_po_switch': 'auto_po_switch', 'fifo_switch': 'fifo_switch',
-                      'internal_mails': 'Internal Emails', 'increment_invoice': 'increment_invoice'
+                      'internal_mails': 'Internal Emails', 'increment_invoice': 'increment_invoice', 'create_shipment_type': 'create_shipment_type',
+                      'auto_allocate_stock': 'auto_allocate_stock'
                      }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency', 'scan_picklist_option': 'scan_picklist_option',
@@ -2444,4 +2449,7 @@ def get_rm_picklist_data(search_params, user, sub_user):
         ('Quantity', obj.mod_quantity),
         ('Processed Date', get_local_date(user, obj.updation_date)),)))
     temp_data['aaData'] = data
+    if stop_index:
+        temp_data['aaData'] = data[start_index:stop_index]
+
     return temp_data

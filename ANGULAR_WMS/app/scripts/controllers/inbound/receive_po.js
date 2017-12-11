@@ -64,13 +64,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.dtColumns = vm.service.build_colums(columns);
 
     if(vm.g_data.style_view) {
-      var toggle = DTColumnBuilder.newColumn('Po Number').withTitle(' ').notSortable()
+      var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable()
                  .withOption('width', '25px').renderWith(function(data, type, full, meta) {
                    return "<i ng-click='showCase.addRowData($event, "+JSON.stringify(full)+")' class='fa fa-plus-square'></i>";
                  })
     } else {
 
-      var toggle = DTColumnBuilder.newColumn('Po Number').withTitle(' ').notSortable().notVisible();
+      var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable().notVisible();
     }
     vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};

@@ -208,8 +208,8 @@
   
             //change the network status
             data.summary.nw_status = OFFLINE;
+            urlService.sync_status = true;
 
-            
             setSynOrdersData(data,self.qty_switch).
                   then(function(data){
   

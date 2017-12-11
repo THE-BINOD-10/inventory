@@ -17,6 +17,11 @@ app.service('urlService', function($rootScope){
     this.user_update = true;
     that = this;
 
+    //sync status
+    checkPOSSync().then(function(data){
+        that.sync_status = data
+    });
+
     this.changeCurrentOrder = function() {
 
       $rootScope.$broadcast('change_current_order');

@@ -1156,5 +1156,30 @@
 									return resolve([]);
 							});
 		});			
-	
 	}
+	function checkPOSSync(){
+        return new Promise(function(resolve,reject){
+            get_POS_Sync_Orders().then(function(data){
+                
+                if(data.length>0){
+                    return resolve(true);
+                }else{
+                    get_POS_sync_CustomersData().then(function(data){
+                        if(data.length>0){
+                            return resolve(true);
+                        }else{
+                            getOffline_PreOrder_DeliveredData().then(function(data){
+                                if(data.length>0){
+                                    return resolve(true);
+                                }else{
+                                    return resolve(false);
+                                }
+                            });
+                            
+                        }
+                    }); 
+                }       
+            });
+            
+        });
+    }

@@ -180,7 +180,7 @@
 
       }else{
          console.log("offline");   
-         
+          urlService.sync_status = true;
           setSynCustomerData(user_details).
                   then(function(data){
                       console.log(data);

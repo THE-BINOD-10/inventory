@@ -41,6 +41,7 @@
 
         }else{
           console.log("offline");
+          urlService.sync_status = true;
           getPreOrderDetails_Check_Off_Delivered(order_id).then(function(data){
 
             $scope.$apply(function(){
@@ -169,6 +170,7 @@
           }else{
 
               console.log("offline");
+              urlService.sync_status = true;
               setPreOrderStatus(""+order_id,"0").
                             then(function(data){
 

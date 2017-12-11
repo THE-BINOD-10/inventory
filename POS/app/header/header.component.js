@@ -42,6 +42,8 @@
             navigator.serviceWorker.ready.then(function() {
                 urlService.show_loading();
                 syncPOSTransactionData().then(function(){
+                    $rootScope.sync_status = false;
+                    $rootScope.$broadcast('change_sync_status');
                     urlService.hide_loading();
                 }).catch(function(){
                     urlService.hide_loading();

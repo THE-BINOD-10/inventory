@@ -126,6 +126,7 @@ urlpatterns = [
     url('^confirm_receive_qc/$',confirm_receive_qc),
     url('^generate_po_labels/$',generate_po_labels),
     url('^check_generated_label/$',check_generated_label),
+    url('^get_receive_po_style_view/$',get_receive_po_style_view),
 
     # Production
     url(r'^generated_jo_data/$',generated_jo_data),
@@ -170,6 +171,7 @@ urlpatterns = [
     url(r'^seller_stock_summary_data/$',seller_stock_summary_data),
     url(r'^get_imei_details/$',get_imei_details),
     url(r'^change_imei_status/$',change_imei_status),
+    url(r'^confirm_sku_substitution/$', confirm_sku_substitution),
 
     # OutBound
     url(r'^batch_generate_picklist/$',batch_generate_picklist),

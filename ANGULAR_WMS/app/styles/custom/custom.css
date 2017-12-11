@@ -591,6 +591,9 @@ body {
 .page-layout .layout-body label.error {
   display: none !important;
 }
+.lebel-error-hide label.error {
+  display: none !important;
+}
 .custom-table {
   border-bottom: 1px solid rgba(0, 0, 0, 0.14) !important;
 }
@@ -618,11 +621,11 @@ body {
 .dataTables_wrapper .dataTables_filter {
   padding-right: 5px !important;
 }
-.dataTables_wrapper tbody tr:hover {
+.dataTables_wrapper .custom-table > tbody > tr:hover {
   background: rgba(111, 213, 217, 0.1) !important;
   cursor: pointer;
 }
-.dataTables_wrapper tbody tr td {
+.dataTables_wrapper .custom-table > tbody > tr > td {
   vertical-align: middle;
 }
 .dataTables_wrapper .dataTables_processing {
@@ -1441,4 +1444,10 @@ pre {
     width: 33%;
     height: 75px;
   }
+}
+.row-expansion {
+  cursor: text !important;
+}
+.row-expansion:hover {
+  background: #fff !important;
 }

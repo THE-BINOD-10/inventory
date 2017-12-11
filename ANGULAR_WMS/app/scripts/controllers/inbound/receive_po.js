@@ -1,11 +1,13 @@
 FUN = {};
 
+;(function() {
+
 'use strict';
 
-angular.module('urbanApp', ['datatables'])
-  .controller('ReceivePOCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', 'focus', '$modal', ServerSideProcessingCtrl]);
+var stockone = angular.module('urbanApp', ['datatables'])
+stockone.controller('ReceivePOCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', 'focus', '$modal', '$compile', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert, focus, $modal) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert, focus, $modal, $compile, Data) {
     var vm = this;
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
@@ -25,7 +27,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     //process type;
     vm.po_qc = true;
     vm.po_qc = (vm.permissions.receive_process == "receipt-qc")? true: false;
+    vm.g_data = Data.receive_po;
 
+    var sort_no = (vm.g_data.style_view)? 1: 0;
     vm.filters = {'datatable': 'ReceivePO', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'search5': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -37,19 +41,77 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               }
            })
        .withDataProp('data')
-       .withOption('order', [0, 'desc'])
+       .withOption('order', [sort_no, 'desc'])
        .withOption('processing', true)
        .withOption('serverSide', true)
+       .withOption('createdRow', function(row, data, dataIndex) {
+            $compile(angular.element(row).contents())($scope);
+        })
+        .withOption('headerCallback', function(header) {
+            if (!vm.headerCompiled) {
+                vm.headerCompiled = true;
+                $compile(angular.element(header).contents())($scope);
+            }
+        })
        .withPaginationType('full_numbers')
        .withOption('rowCallback', rowCallback)
        .withOption('initComplete', function( settings ) {
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['PO Number', 'Order Date', 'Supplier ID', 'Supplier Name', 'Order Type', 'Receive Status'];
+    var columns = ['PO No', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty',
+                   'Expected Date', 'Remarks', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
+    if(vm.g_data.style_view) {
+      var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable()
+                 .withOption('width', '25px').renderWith(function(data, type, full, meta) {
+                   return "<i ng-click='showCase.addRowData($event, "+JSON.stringify(full)+")' class='fa fa-plus-square'></i>";
+                 })
+    } else {
+
+      var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable().notVisible();
+    }
+    vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};
+    vm.poDataNotFound = function() {
+      $(elem).removeClass();
+      $(elem).addClass('fa fa-plus-square');
+      Service.showNoty('Something went wrong')
+    }
+    vm.addRowData = function(event, data) {
+      console.log(data);
+      var elem = event.target;
+      if (!$(elem).hasClass('fa')) {
+        return false;
+      }
+      var data_tr = angular.element(elem).parent().parent();
+      if ($(elem).hasClass('fa-plus-square')) {
+        $(elem).removeClass('fa-plus-square');
+        $(elem).removeClass();
+        $(elem).addClass('glyphicon glyphicon-refresh glyphicon-refresh-animate');
+        Service.apiCall('get_receive_po_style_view/?order_id='+data['PO No'].split("_")[1]).then(function(resp){
+          if (resp.message){
+
+            if(resp.data.status) {
+              var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='11'><dt-po-data data='"+JSON.stringify(resp.data.data_dict)+"'></dt-po-data></td></tr>")($scope);
+              data_tr.after(html)
+              data_tr.next().toggle(1000);
+              $(elem).removeClass();
+              $(elem).addClass('fa fa-minus-square');
+            } else {
+              vm.poDataNotFound();
+            }
+          } else {
+            vm.poDataNotFound();
+          }
+        })
+      } else {
+        $(elem).removeClass('fa-minus-square');
+        $(elem).addClass('fa-plus-square');
+        data_tr.next().remove();
+      }
+    }
 
     $scope.$on('change_filters_data', function(){
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
@@ -57,8 +119,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
+        $('td:not(td:first)', nRow).unbind('click');
+        $('td:not(td:first)', nRow).bind('click', function() {
             $scope.$apply(function() {
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {
@@ -138,10 +200,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           data.push({name: temp.order_id, value: temp.value});
         }
       }
+      data.push({name: 'remarks', value: vm.model_data.remarks});
+      data.push({name: 'expected_date', value: vm.model_data.expected_date});
       vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
             vm.close();
+            vm.service.refresh(vm.dtInstance);
           } else {
             pop_msg(data.data);
           }
@@ -1429,4 +1494,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       return index;
     }
 
+  //GRN Pop Data
+  vm.grn_details = {po_reference: 'PO Reference', supplier_id: 'Supplier ID', supplier_name: 'Supplier Name',
+                    order_date: 'Order Date'}
+  vm.grn_details_keys = Object.keys(vm.grn_details);
+
+  vm.change_datatable = function() {
+      Data.receive_po.style_view = vm.g_data.style_view;
+      $state.go($state.current, {}, {reload: true});
+  }
 }
+
+stockone.directive('dtPoData', function() {
+  return {
+    restrict: 'E',
+    scope: {
+      po_data: '=data'
+    },
+    templateUrl: 'views/inbound/toggle/po_data_html.html',
+    link: function(scope, element, attributes, $http){
+      console.log(scope);
+    }
+  };
+});
+
+})();

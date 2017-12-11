@@ -74,7 +74,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
     vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};
-
+    vm.poDataNotFound = function() {
+      $(elem).removeClass();
+      $(elem).addClass('fa fa-plus-square');
+      Service.showNoty('Something went wrong')
+    }
     vm.addRowData = function(event, data) {
       console.log(data);
       var elem = event.target;
@@ -86,13 +90,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(elem).removeClass('fa-plus-square');
         $(elem).removeClass();
         $(elem).addClass('glyphicon glyphicon-refresh glyphicon-refresh-animate');
-        $timeout(function(){
-          var html = $compile("<tr style='display: none'><td colspan='7'><dt-po-data data='"+JSON.stringify(data)+"'></dt-po-data></td></tr>")($scope);
-          data_tr.after(html)
-          data_tr.next().toggle(1000);
-          $(elem).removeClass();
-          $(elem).addClass('fa fa-minus-square');
-        }, 5000);
+        Service.apiCall('get_receive_po_style_view/?order_id='+data['PO No'].split("_")[1]).then(function(resp){
+          if (resp.message){
+
+            if(resp.data.status) {
+              var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='11'><dt-po-data data='"+JSON.stringify(resp.data.data_dict)+"'></dt-po-data></td></tr>")($scope);
+              data_tr.after(html)
+              data_tr.next().toggle(1000);
+              $(elem).removeClass();
+              $(elem).addClass('fa fa-minus-square');
+            } else {
+              vm.poDataNotFound();
+            }
+          } else {
+            vm.poDataNotFound();
+          }
+        })
       } else {
         $(elem).removeClass('fa-minus-square');
         $(elem).addClass('fa-plus-square');

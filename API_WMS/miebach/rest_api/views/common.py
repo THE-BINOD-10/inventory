@@ -2994,7 +2994,8 @@ def get_tally_data(request, user = ""):
                                 ('sku_type', 'Type')
                              ))
         result_data['headers'] = headers
-        tally_config = TallyConfiguration.objects.filter(user_id=user.id)
+        result_data['product_group'] = result_data['product_type']
+        tally_config = TallyConfiguration.objects.filter(user_ids=user.id)
         config_dict = {}
         if tally_config:
             config_dict = tally_config[0].json()

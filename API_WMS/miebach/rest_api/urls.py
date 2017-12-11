@@ -126,6 +126,7 @@ urlpatterns = [
     url('^confirm_receive_qc/$',confirm_receive_qc),
     url('^generate_po_labels/$',generate_po_labels),
     url('^check_generated_label/$',check_generated_label),
+    url('^get_receive_po_style_view/$',get_receive_po_style_view),
 
     # Production
     url(r'^generated_jo_data/$',generated_jo_data),

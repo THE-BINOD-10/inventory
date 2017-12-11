@@ -213,7 +213,7 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters):
 @csrf_exempt
 def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     #sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['PO No', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty', 'Expected Date',
+    lis = ['PO No', 'PO No', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty', 'Expected Date',
            'Remarks', 'Order Type', 'Receive Status']
     data_list = []
     data = []
@@ -4756,3 +4756,58 @@ def check_generated_label(request, user=''):
         status = {'message': 'Check Labels Failed', 'data': {}}
 
     return HttpResponse(json.dumps(status))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_receive_po_style_view(request, user=''):
+    try:
+        log.info("Request Params for Get Receive PO Style View for user %s is %s" % (
+                    user.username, str(request.GET.dict())))
+        order_id = request.GET.get('order_id', '')
+        sku_master, sku_master_ids = get_sku_master(user, request.user)
+        stpurchase_filter = {'stpurchaseorder__open_st__sku_id__in': sku_master_ids,
+                             'stpurchaseorder__po__open_po__isnull': True,
+                             'stpurchaseorder__open_st__sku__user': user.id, 'stpurchaseorder__po__order_id':order_id
+                             }
+        rwpurchase_filter = {'rwpurchase__purchase_order__open_po__isnull': True,
+                             'rwpurchase__rwo__job_order__product_code_id__in': sku_master_ids,
+                             'rwpurchase__rwo__vendor__user': user.id, 'rwpurchase__purchase_order__order_id': order_id}
+        purchase_filter = {'open_po__sku_id__in': sku_master_ids, 'order_id': order_id}
+        order_by_list = ['stpurchaseorder__open_st__sku__sequence', 'rwpurchase__rwo__job_order__product_code__sequence',
+                        'open_po__sku__sequence']
+        purchase_orders = PurchaseOrder.objects.filter(Q(**stpurchase_filter) | Q(**rwpurchase_filter) |
+                                                       Q(**purchase_filter)).order_by(*order_by_list)
+        data_dict = OrderedDict()
+        default_po_dict = {'total_order_quantity': 0, 'total_received_quantity': 0, 'total_receivable_quantity': 0}
+        for order in purchase_orders:
+            order_data = get_purchase_order_data(order)
+            sku = order_data['sku']
+            sku_class = sku.sku_class
+            sku_size = sku.sku_size
+            size_type = ''
+            size_type_obj = sku.skufields_set.filter(field_type='size_type')
+            if size_type_obj:
+                size_type = size_type_obj[0].field_value
+            receivable_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
+            if receivable_quantity < 0:
+                receivable_quantity = 0
+            data_dict.setdefault(size_type, {'sizes_list': [], 'styles': {}})
+            if sku_size not in data_dict[size_type]['sizes_list']:
+                data_dict[size_type]['sizes_list'].append(sku_size)
+            style_data = {'style_code': sku_class, 'style_name': sku.style_name, 'brand': sku.sku_brand,
+                           'category': sku.sku_category }
+            data_dict[size_type]['styles'].setdefault(sku_class, {'style_data': style_data, 'sizes': {},
+                                                                  'po_data': copy.deepcopy(default_po_dict)})
+            data_dict[size_type]['styles'][sku_class]['sizes'][sku_size] = order_data['order_quantity']
+            data_dict[size_type]['styles'][sku_class]['po_data']['total_order_quantity'] += order_data['order_quantity']
+            data_dict[size_type]['styles'][sku_class]['po_data']['total_received_quantity'] += order.received_quantity
+            data_dict[size_type]['styles'][sku_class]['po_data']['total_receivable_quantity'] += receivable_quantity
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Get Receive PO Style View failed for params %s on %s and error statement is %s" % (
+                    str(request.GET.dict()), str(get_local_date(user, datetime.datetime.now())), str(e)))
+        return HttpResponse(json.dumps({'data_dict': {}, 'status': 0, 'message': 'Failed'}))
+    return HttpResponse(json.dumps({'data_dict': data_dict, 'status': 1}))

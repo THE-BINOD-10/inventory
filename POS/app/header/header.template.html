@@ -16,7 +16,7 @@
             </div>
           </div>
           <div class="pull-right">
-            <div class="alert sync_warning" ng-show="{{urlService.sync_status}}">
+            <div class="alert sync_warning" ng-show="sync_status">
                 <p>Not Synced !</p>
             </div>
           </div>
@@ -24,8 +24,6 @@
             <a href="#/home?user_id={{user_data.parent_id}}">Home</a>
             <a href="#/more?user_id={{user_data.parent_id}}">More</a>
           </div>
-
-
         </div>
 </div>
 

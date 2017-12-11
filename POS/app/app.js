@@ -1,5 +1,5 @@
 
-var app=angular.module('App', ['ngMaterial','ui.router','FBAngular','ngAnimate','ui.bootstrap','customer','sku', 'money','login','summary', 'pending', 'order', 'pageheader', 'more']);
+var app=angular.module('App', ['ngMaterial','ui.router','FBAngular','ngAnimate','ui.bootstrap','customer','sku', 'money','login','summary', 'pending', 'order', 'pageheader', 'more', 'pageheader']);
 
 app.service('urlService', function($rootScope){
     this.mainUrl = 'https://wms.mieone.com/';//'http://dev.stockone.in/';
@@ -19,7 +19,7 @@ app.service('urlService', function($rootScope){
 
     //sync status
     checkPOSSync().then(function(data){
-        that.sync_status = data
+        $rootScope.sync_status = data;
     });
 
     this.changeCurrentOrder = function() {

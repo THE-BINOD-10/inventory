@@ -5,8 +5,8 @@
          .component("more", {
 
            "templateUrl": "/app/more/more.template.html",
-           "controller"  : ["$http", "$scope", "urlService",
-    function ($http, $scope, urlService) {
+           "controller"  : ["$http", "$scope", "urlService", "$rootScope",
+    function ($http, $scope, urlService, $rootScope) {
       var self = this;
       self.isDisabled = false;
 
@@ -41,7 +41,6 @@
 
         }else{
           console.log("offline");
-          urlService.sync_status = true;
           getPreOrderDetails_Check_Off_Delivered(order_id).then(function(data){
 
             $scope.$apply(function(){
@@ -170,7 +169,8 @@
           }else{
 
               console.log("offline");
-              urlService.sync_status = true;
+              $rootScope.sync_status = true;
+              $rootScope.$broadcast('change_sync_status');
               setPreOrderStatus(""+order_id,"0").
                             then(function(data){
 

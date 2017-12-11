@@ -485,6 +485,9 @@ h1 small {
 .sagar-custom .custom-colors .color-selected {
   box-shadow: 0px 0px 4px black;
 }
+.order_level {
+  height: 22px !important;
+}
 body {
   background: #fff;
 }
@@ -588,6 +591,9 @@ body {
 .page-layout .layout-body label.error {
   display: none !important;
 }
+.lebel-error-hide label.error {
+  display: none !important;
+}
 .custom-table {
   border-bottom: 1px solid rgba(0, 0, 0, 0.14) !important;
 }
@@ -603,7 +609,7 @@ body {
 }
 .dataTables_wrapper {
   overflow-x: auto;
-  min-height: 250px;
+  min-height: 100px;
 }
 .dataTables_wrapper > .row {
   margin-left: 0px !important;
@@ -615,17 +621,18 @@ body {
 .dataTables_wrapper .dataTables_filter {
   padding-right: 5px !important;
 }
-.dataTables_wrapper tbody tr:hover {
+.dataTables_wrapper .custom-table > tbody > tr:hover {
   background: rgba(111, 213, 217, 0.1) !important;
   cursor: pointer;
 }
-.dataTables_wrapper tbody tr td {
+.dataTables_wrapper .custom-table > tbody > tr > td {
   vertical-align: middle;
 }
 .dataTables_wrapper .dataTables_processing {
   margin-top: 0px !important;
   padding-top: 0px !important;
   top: 100px;
+  height: 0px;
 }
 .no_click_tb tbody tr:hover {
   cursor: text !important;
@@ -1437,4 +1444,10 @@ pre {
     width: 33%;
     height: 75px;
   }
+}
+.row-expansion {
+  cursor: text !important;
+}
+.row-expansion:hover {
+  background: #fff !important;
 }

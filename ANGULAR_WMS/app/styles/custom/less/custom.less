@@ -5,6 +5,7 @@
 @import "timeline.less";
 @import "small.less";
 @import "custom_order.less";
+@import "dashboard.less";
 
 body {
 
@@ -142,6 +143,13 @@ body {
   }
 }
 
+.lebel-error-hide {
+
+  label.error{
+    display: none !important;
+  }
+}
+
 .custom-table {
 
   thead:first-child > tr:first-child > th {
@@ -178,15 +186,16 @@ body {
   .dataTables_filter {
     padding-right: 5px !important;
   }
-
-  tbody {
-    tr {
-      &:hover {
-        background: rgba(111,213,217,0.1) !important;
-        cursor: pointer;
-      }
-      td {
-        vertical-align: middle; 
+  .custom-table {
+    >tbody {
+      >tr {
+        &:hover {
+          background: rgba(111,213,217,0.1) !important;
+          cursor: pointer;
+        }
+        >td {
+          vertical-align: middle;
+        }
       }
     }
   }
@@ -1225,4 +1234,12 @@ pre {
 @media screen and (max-width: 600px) {
 
   .po-item { width: 33%; height: 75px;}
+}
+
+.row-expansion {
+
+  cursor: text !important;
+  &:hover {
+    background:  #fff !important;
+  }
 }

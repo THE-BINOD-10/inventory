@@ -126,6 +126,7 @@ urlpatterns = [
     url('^confirm_receive_qc/$',confirm_receive_qc),
     url('^generate_po_labels/$',generate_po_labels),
     url('^check_generated_label/$',check_generated_label),
+    url('^get_receive_po_style_view/$',get_receive_po_style_view),
 
     # Production
     url(r'^generated_jo_data/$',generated_jo_data),
@@ -170,6 +171,7 @@ urlpatterns = [
     url(r'^seller_stock_summary_data/$',seller_stock_summary_data),
     url(r'^get_imei_details/$',get_imei_details),
     url(r'^change_imei_status/$',change_imei_status),
+    url(r'^confirm_sku_substitution/$', confirm_sku_substitution),
 
     # OutBound
     url(r'^batch_generate_picklist/$',batch_generate_picklist),
@@ -177,6 +179,8 @@ urlpatterns = [
     url(r'^view_picklist/$',view_picklist),
     url(r'^view_picked_orders/$',view_picked_orders),
     url(r'^get_customer_sku/$',get_customer_sku),
+    url(r'^get_awb_shipment_details/$',get_awb_shipment_details),
+    url(r'^get_awb_view_shipment_info/$',get_awb_view_shipment_info),
     url(r'^print_picklist_excel/$',print_picklist_excel),
     url(r'^print_picklist/$',print_picklist),
     url('^marketplace_segregation/$',marketplace_segregation),
@@ -268,6 +272,7 @@ urlpatterns = [
     url(r'^print_seller_invoice_report/$',print_seller_invoice_report),
     url(r'^get_rm_picklist_report/$',get_rm_picklist_report),
     url(r'^print_rm_picklist_report/$',print_rm_picklist_report),
+    url(r'^excel_sales_return_report/$',excel_sales_return_report),
 ]
 
 #urlpatterns += patterns('rest_api.views',
@@ -312,6 +317,8 @@ urlpatterns += [
     url(r'^po_serial_mapping_form/$', po_serial_mapping_form),
     url(r'^po_serial_mapping_upload/$', po_serial_mapping_upload),
     url(r'^job_order_form/$', job_order_form),
+    url(r'^orderid_awb_mapping_form/$', orderid_awb_mapping_form),
+    url(r'^orderid_awb_upload/', orderid_awb_upload),
     url(r'^job_order_upload/$', job_order_upload),
     url(r'^marketplace_serial_form/$', marketplace_serial_form),
     url(r'^marketplace_serial_upload/$', marketplace_serial_upload),

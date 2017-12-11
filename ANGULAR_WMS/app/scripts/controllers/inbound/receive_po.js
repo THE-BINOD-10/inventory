@@ -29,6 +29,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.po_qc = (vm.permissions.receive_process == "receipt-qc")? true: false;
     vm.g_data = Data.receive_po;
 
+    var sort_no = (vm.g_data.style_view)? 1: 0;
     vm.filters = {'datatable': 'ReceivePO', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'search5': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -40,7 +41,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               }
            })
        .withDataProp('data')
-       .withOption('order', [0, 'desc'])
+       .withOption('order', [sort_no, 'desc'])
        .withOption('processing', true)
        .withOption('serverSide', true)
        .withOption('createdRow', function(row, data, dataIndex) {
@@ -67,8 +68,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                  .withOption('width', '25px').renderWith(function(data, type, full, meta) {
                    return "<i ng-click='showCase.addRowData($event, "+JSON.stringify(full)+")' class='fa fa-plus-square'></i>";
                  })
-      vm.dtColumns.unshift(toggle);
+    } else {
+
+      var toggle = DTColumnBuilder.newColumn('Po Number').withTitle(' ').notSortable().notVisible();
     }
+    vm.dtColumns.unshift(toggle);
     vm.dtInstance = {};
 
     vm.addRowData = function(event, data) {

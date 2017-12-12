@@ -5,8 +5,8 @@
          .component("customer", {
 
            "templateUrl": "/app/customer/customer.template.html",
-           "controller"  : ["$http", "$scope", "$timeout", "$q", "$log", "urlService", "manageData",
-  function ($http, $scope, $timeout, $q, $log, urlService, manageData) {
+           "controller"  : ["$http", "$scope","$rootScope", "$timeout", "$q", "$log", "urlService", "manageData",
+  function ($http, $scope,$rootScope, $timeout, $q, $log, urlService, manageData) {
 
     var self = this;
 

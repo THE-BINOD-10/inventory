@@ -214,8 +214,13 @@
             setSynOrdersData(data,self.qty_switch).
                   then(function(data){
   
+                    if(data.is_all_return==true){
+                      urlService.current_order.order_id = "return";
+                    }else{
                     urlService.current_order.order_id = data.order_id;
-                    var state = 1
+                    }
+
+                    var state = 1;
                     store_data(urlService.current_order, state);
                     print_order(urlService.current_order, urlService.userData)
                     console.log(data);

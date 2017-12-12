@@ -62,7 +62,6 @@
         self.selected_order = self.filtered_order_details[order_id];
         self.selected_order.status=self.selected_order.status.toString();
 
-        $("#delivered_btn").removeClass("btn-success").addClass("btn-danger");
         self.isDisabled = false;
         $('#orderModal').modal('show');
       }

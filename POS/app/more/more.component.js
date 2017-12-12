@@ -184,6 +184,8 @@
                                     self.isDisabled = true;
                                     $(".already_delivered").removeClass("ng-hide").addClass("ng-show");
                                     self.selected_order.status = '0';
+                                    //auto sync when network available
+                                    syncPOSData(false);
                                 });
                             
                             }).catch(function(error){

@@ -324,7 +324,6 @@
 			}
 	}
 
-
 	//check service worker readdy
 	function checkServiceWorker(){
 
@@ -847,16 +846,19 @@
 	//reduce sku qty in IndexDB
 	async function reduceSKUQty(data){
 
-		
 		if(data.sku_data.length>0 && data.status==0){
 			
-             
-            for(var i=0;i<data.sku_data.length;i++){
+           for(var i=0;i<data.sku_data.length;i++){
 				
 				await DATABASE.skumaster.where("SKUCode").
              					equals(data.sku_data[i].sku_code).
              					modify(function(sku){
-             						sku.stock_quantity=sku.stock_quantity-data.sku_data[i].quantity;
+             						
+             						if(sku.stock_quantity>=data.sku_data[i].quantity)
+             							sku.stock_quantity=sku.stock_quantity-data.sku_data[i].quantity;
+             						else
+             							sku.stock_quantity=0;
+
              					}).then(function(data){
              						console.log("sucessfully updated "+data);
              					}).catch(function(error){
@@ -881,7 +883,7 @@
 
 				  });
 
-				    	 	
+
 				DATABASE.pre_orders.bulkPut(data).then(function(res){
 				 			console.log("add bulk predorder data is "+res);
 				 			
@@ -1096,7 +1098,7 @@
 				}else{
 
 					//check order in syn_orders
-					get_POS_Sync_OrdersByID(order_id).toArray().
+					get_POS_Sync_OrdersByID(order_id).
 								then(function(data){
 									if(data.length>0){
 

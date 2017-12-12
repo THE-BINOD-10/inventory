@@ -7,7 +7,7 @@ importScripts('/app/data/offlineData.js');
 (function(){
 	"use strict";
 	//service worker version number
-	var VERSION="0.0.0.91-build-0.9.0.33"
+	var VERSION="0.0.0.91-build-0.9.0.34"
 	//service worker version name
 	var CACHE_NAME="POS"+VERSION;
 	//directory path 
@@ -231,14 +231,18 @@ importScripts('/app/data/offlineData.js');
     //service worker sync event listner
     self.addEventListener("sync",function(event){
 
-	    if(event.tag==SYNC_POS_DATA){
-		      	event.waitUntil(mPOSSync(false).
-		      				then(function(data){
+    	if(navigator.onLine){
+		    if(event.tag==SYNC_POS_DATA){
+			      	event.waitUntil(mPOSSync(false).
+			      				then(function(data){
 
-			      			}).catch(function(error){
-			      				throw error;
-			      			}));
-	    }
+				      			}).catch(function(error){
+				      				throw error;
+				      			}));
+		    }
+		}else{
+			throw error;
+		}
     });
 
     //POS transactions  sync 

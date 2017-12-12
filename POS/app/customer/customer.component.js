@@ -179,8 +179,9 @@
                 }, 2000);
 
       }else{
-         console.log("offline");   
-         
+          console.log("offline");   
+          $rootScope.sync_status = true;
+          $rootScope.$broadcast('change_sync_status');
           setSynCustomerData(user_details).
                   then(function(data){
                       console.log(data);

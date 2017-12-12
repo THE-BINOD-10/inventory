@@ -5,8 +5,8 @@
          .component("more", {
 
            "templateUrl": "/app/more/more.template.html",
-           "controller"  : ["$http", "$scope", "urlService",
-    function ($http, $scope, urlService) {
+           "controller"  : ["$http", "$scope", "urlService", "$rootScope",
+    function ($http, $scope, urlService, $rootScope) {
       var self = this;
       self.isDisabled = false;
 
@@ -62,7 +62,6 @@
         self.selected_order = self.filtered_order_details[order_id];
         self.selected_order.status=self.selected_order.status.toString();
 
-        $("#delivered_btn").removeClass("btn-success").addClass("btn-danger");
         self.isDisabled = false;
         $('#orderModal').modal('show');
       }
@@ -141,16 +140,21 @@
       //update preorder status and reduce quantity
       self.update_order_status = update_order_status;
 
-      function update_order_status(order_id) {
+      function update_order_status(order_id, delete_order =false) {
 
         if(self.isDisabled === false){
 
           if(navigator.onLine){
 
+              var del = "false";
+              if(delete_order) {
+                del = confirm("Sure to delete the order permanantly ?").toString();
+              }
+
               $(".preloader").removeClass("ng-hide").addClass("ng-show");
               // ajax call to send data to backend
               var data = $.param({
-                          data: JSON.stringify({'user':user, 'order_id':order_id})
+                          data: JSON.stringify({'user':user, 'order_id':order_id, 'delete_order':del})
                          });
               $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
               $http.post( urlService.mainUrl+'rest_api/update_order_status/', data).success(function(data, status, headers, config) {
@@ -160,6 +164,7 @@
                       alert("Please update Stock Quantity and try again");
                   } else {
                       self.isDisabled = true;
+                      self.success_msg = data;
                       $(".already_delivered").removeClass("ng-hide").addClass("ng-show");
                       self.selected_order.status = '0';
                   }
@@ -169,6 +174,8 @@
           }else{
 
               console.log("offline");
+              $rootScope.sync_status = true;
+              $rootScope.$broadcast('change_sync_status');
               setPreOrderStatus(""+order_id,"0").
                             then(function(data){
 

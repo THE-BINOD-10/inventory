@@ -25,7 +25,7 @@ def get_user_customer_data(user):
           status = 'Active'
 
       if data['phone_number']:
-          data['phone_number'] = int(float(data['phone_number']))
+        data['phone_number'] = int(float(data['phone_number'])) if data['phone_number'] != 'NaN' else ''
       total_data.append({'ID': data['id'], 'FirstName': data['name'], 'LastName': data['last_name'], 'Address': data['address'],\
                            'Number': str(data['phone_number']), 'Email': data['email_id']})
 

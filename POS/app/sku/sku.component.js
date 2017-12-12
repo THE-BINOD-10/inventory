@@ -5,8 +5,8 @@
            .component("sku", {
   
              "templateUrl": "/app/sku/sku.template.html",
-             "controller"  : ["$http", "$scope", "$timeout", "$q", "$log", "urlService", "manageData","printer",
-      function ($http, $scope, $timeout, $q, $log, urlService, manageData, printer) {
+             "controller"  : ["$http", "$scope", "$timeout", "$q", "$log", "urlService", "manageData","printer", "$rootScope",
+      function ($http, $scope, $timeout, $q, $log, urlService, manageData, printer, $rootScope) {
         var self = this;
   
       self.simulateQuery = false;
@@ -208,8 +208,9 @@
   
             //change the network status
             data.summary.nw_status = OFFLINE;
+            $rootScope.sync_status = true;
+            $rootScope.$broadcast('change_sync_status');
 
-            
             setSynOrdersData(data,self.qty_switch).
                   then(function(data){
   

@@ -5,14 +5,18 @@
          .component("pageheader", {
 
            "templateUrl": "/app/header/header.template.html",
-           "controller"  : ["$scope","$mdToast", "urlService", "Fullscreen",
-    function ($scope,$mdToast, urlService, Fullscreen) {
+           "controller"  : ["$scope","$mdToast", "urlService", "Fullscreen","$rootScope",
+    function ($scope,$mdToast, urlService, Fullscreen, $rootScope) {
       var self = this;
 
       $scope.name = "Test";
       $scope.is_disable = "false";
       $scope.customerUrl = urlService.mainUrl;
       $scope.user_data = urlService.userData;
+      $scope.sync_status = $rootScope.sync_status;
+      $scope.$on('change_sync_status', function(){
+        $scope.sync_status = $rootScope.sync_status;
+      })
 
       // Fullscreen
       $scope.goFullscreen = function () {
@@ -38,6 +42,8 @@
             navigator.serviceWorker.ready.then(function() {
                 urlService.show_loading();
                 syncPOSTransactionData().then(function(){
+                    $rootScope.sync_status = false;
+                    $rootScope.$broadcast('change_sync_status');
                     urlService.hide_loading();
                 }).catch(function(){
                     urlService.hide_loading();

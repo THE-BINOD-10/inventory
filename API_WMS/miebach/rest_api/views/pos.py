@@ -200,6 +200,7 @@ def customer_order(request):
     orders = request.POST['order']
     orders = eval(orders)
     order_ids = []
+    only_return = True
     if isinstance(orders, dict): orders = [orders]
 
     for order in orders:
@@ -241,6 +242,7 @@ def customer_order(request):
                     #if not returning item
                     if item['return_status'] == "false":
 
+                        only_return = False
                         #if not item['quantity']:
                             #continue
                         order_detail = OrderDetail.objects.create(user=user_id, order_id=order_id, sku_id=sku.id, customer_id=customer_id,
@@ -272,11 +274,13 @@ def customer_order(request):
                                                       creation_date=NOW, location=put_zone.locationmaster_set.all()[0])
                         sku_stocks_.quantity = int(sku_stocks_.quantity) + item['quantity']
                         sku_stocks_.save()
+                        order_id = "return"
                         #add item to OrderReturns
                         order_return = OrderReturns.objects.create(return_id='', order=None, seller_order=None,\
                                                                    quantity=item['quantity'], damaged_quantity=item['quantity'],\
                                                                    sku=sku, reason='Not fit/Damaged', status='returned',\
                                                                    return_type="offline")
+    if only_return: order_ids=['return']
 
     return HttpResponse(json.dumps({'order_ids': order_ids}))
 
@@ -394,6 +398,10 @@ def update_order_status(request):
   for data in full_data:
       order_detail = OrderDetail.objects.filter(order_id=data['order_id'], user=data['user'], quantity__gt=0,\
                                                 order_code='Pre Order')
+      if data['delete_order'] == "true":
+        order_detail.delete()
+        if nw_status=="online": return HttpResponse("Deleted Successfully !")
+        else: continue
       for order in order_detail:
         order.status = 0
         sku = order.sku
@@ -410,11 +418,12 @@ def update_order_status(request):
 
         stock_diff = StockDetail.objects.filter(sku=sku).exclude(location__zone__zone='DAMAGED_ZONE')\
                                 .values_list('sku__wms_code').distinct().annotate(total=Sum('quantity'))[0][1]
-        sku_master = SKUMaster.objects.filter(user = user_id, id=order.sku.id).values_list('product_type', 'price', 'discount_percentage')[0]
+        sku_master = SKUMaster.objects.filter(user = user_id, id=order.sku.id).values_list('product_type',\
+                                              'price', 'discount_percentage')[0]
 
-        tax_master = {'cgst_tax':0, 'sgst_tax':0, 'igst_tax':0, 'utgst_tax':0} if not sku_master[0] else TaxMaster.objects.filter(user=user_id,
-                                                            product_type=sku_master[0], max_amt__gte=sku_master[1], \
-                                                            min_amt__lte=sku_master[1])\
+        tax_master = {'cgst_tax':0, 'sgst_tax':0, 'igst_tax':0, 'utgst_tax':0} if not sku_master[0] else TaxMaster.objects\
+                                                            .filter(user=user_id, product_type=sku_master[0],\
+                                                            max_amt__gte=sku_master[1], min_amt__lte=sku_master[1])\
                                                             .values('sgst_tax', 'cgst_tax', 'igst_tax', 'utgst_tax')[0]
         item = {'discount': sku_master[2], 'cgst_percent': tax_master['cgst_tax'], 'sgst_percent': tax_master['sgst_tax'],
                 'igst_percent': tax_master['igst_tax'], 'utgst_percent': tax_master['utgst_tax'], 'issue_type':order.order_code }
@@ -434,4 +443,4 @@ def update_order_status(request):
         stock_detail, stock_quantity, sku_code = get_sku_stock(request, sku, sku_stocks, user_id, val_dict, sku_id_stocks)
         picklist_creation(request, stock_detail, stock_quantity, order, picklist_number, stock_diff, item, user, invoice_number)
 
-  return HttpResponse("Success")
+  return HttpResponse("Delivered Successfully !")

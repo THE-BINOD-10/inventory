@@ -340,6 +340,25 @@ input#input-1 {
   font-size: 20px;
   margin-left: 15px;
 }
+.sync_warning {
+  padding: 5px 2px 2px;
+  background: #fff;
+  margin: 4px;
+  position: relative;
+}
+.sync_warning > p {
+  padding-top: 1px;
+  color: #e9484e;
+}
+.sync_warning > p:before {
+  content: "";
+  position: absolute;
+  border: solid 8px transparent;
+  border-left-color: #ffffff;
+  z-index: 1;
+  right: -20%;
+  top: 20%;
+}
 .refresh-spinner {
   -webkit-animation: glyphicon-spin-r 2s infinite linear;
   animation: glyphicon-spin-r 2s infinite linear;

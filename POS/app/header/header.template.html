@@ -15,12 +15,15 @@
                 <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
             </div>
           </div>
+          <div class="pull-right">
+            <div class="alert sync_warning" ng-show="sync_status">
+                <p>Not Synced !</p>
+            </div>
+          </div>
           <div class="pull-left main_menu">
             <a href="#/home?user_id={{user_data.parent_id}}">Home</a>
             <a href="#/more?user_id={{user_data.parent_id}}">More</a>
           </div>
-
-
         </div>
 </div>
 

@@ -1098,7 +1098,7 @@
 				}else{
 
 					//check order in syn_orders
-					get_POS_Sync_OrdersByID(order_id).toArray().
+					get_POS_Sync_OrdersByID(order_id).
 								then(function(data){
 									if(data.length>0){
 
@@ -1158,37 +1158,30 @@
 									return resolve([]);
 							});
 		});			
-	
 	}
-
-
-	//data will be synced or not
 	function checkPOSSync(){
-
-		
-
-			get_POS_Sync_Orders().then(function(data){
-				
-				if(data.length>0){
-					return true;
-				}else{
-
-					get_POS_sync_CustomersData().then(function(data){
-						if(data.length>0){
-							return true;
-						}else{
-							getOffline_PreOrder_DeliveredData().then(function(data){
-
-								if(data.length>0){
-									return true;
-								}else{
-									return false;
-								}
-							});
-							
-						}
-					});	
-				}		
-
-			});
-	}
+        return new Promise(function(resolve,reject){
+            get_POS_Sync_Orders().then(function(data){
+                
+                if(data.length>0){
+                    return resolve(true);
+                }else{
+                    get_POS_sync_CustomersData().then(function(data){
+                        if(data.length>0){
+                            return resolve(true);
+                        }else{
+                            getOffline_PreOrder_DeliveredData().then(function(data){
+                                if(data.length>0){
+                                    return resolve(true);
+                                }else{
+                                    return resolve(false);
+                                }
+                            });
+                            
+                        }
+                    }); 
+                }       
+            });
+            
+        });
+    }

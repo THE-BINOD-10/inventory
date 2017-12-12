@@ -10,7 +10,7 @@ from miebach_utils import *
 from django.db.models import Q, F
 from django.db.models import Sum, Count
 from miebach_admin.models import *
-from miebach_admin.views import get_sku_stock, get_picklist_number, get_local_date, get_order_id, get_stock_count
+from miebach_admin.views import get_sku_stock, get_picklist_number, get_local_date, get_order_id
 from miebach_admin.custom_decorators import login_required,get_admin_user
 from django.core import serializers
 import os
@@ -162,6 +162,27 @@ def add_customer(request):
 
     return HttpResponse("success")
 
+def get_stock_count(request, order, stock, stock_diff, user, order_quantity):
+
+    stock_quantity = float(stock.quantity)
+    if stock_quantity <= 0:
+        return 0, stock_diff
+
+    if stock_diff:
+        if stock_quantity >= stock_diff:
+            stock_count = stock_diff
+            stock_diff = 0
+        else:
+            stock_count = stock_quantity
+            stock_diff -= stock_quantity
+    else:
+        if stock_quantity >= order_quantity:
+            stock_count = order_quantity
+        else:
+            stock_count = stock_quantity
+            stock_diff = order_quantity - stock_quantity
+    return stock_count, stock_diff
+
 def picklist_creation(request, stock_detail, stock_quantity, order_detail, picklist_number, stock_diff, item, user, invoice_number):
 
    #seller_order_summary object creation
@@ -177,23 +198,23 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, pickl
                                        issue_type=order_detail.order_code,
                                        cgst_tax=item['cgst_percent'], sgst_tax=item['sgst_percent'],
                                        creation_date=NOW)
+   stock_diff = 0
    for stock in stock_detail:
-       #stock_count, stock_diff = get_stock_count(request, order_detail, stock, stock_diff, user)
-       stock_count = stock.quantity
+       stock_count, stock_diff = get_stock_count(request, order_detail, stock, stock_diff, user, order_detail.quantity)
+
        if not stock_count:
            continue
-       stock.quantity = int(stock.quantity) - order_detail.quantity
+       stock.quantity = int(stock.quantity) - stock_count
        stock.save()
-       picklist = Picklist.objects.create(picklist_number=picklist_number, reserved_quantity=0, picked_quantity=order_detail.quantity,
+       picklist = Picklist.objects.create(picklist_number=picklist_number, reserved_quantity=0, picked_quantity=stock_count,
                                           remarks='Picklist_' + str(picklist_number), status='batch_picked', order_id=order_detail.id,
                                           stock_id=stock.id,creation_date=NOW)
-       PicklistLocation.objects.create(quantity=order_detail.quantity,status=0, picklist_id=picklist.id, reserved=0, stock_id=stock.id,
+       PicklistLocation.objects.create(quantity=stock_count,status=0, picklist_id=picklist.id, reserved=0, stock_id=stock.id,
                                        creation_date=NOW)
 
        if not stock_diff:
            break
    return "Success"
-
 
 @csrf_exempt
 def customer_order(request):

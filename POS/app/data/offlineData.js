@@ -538,7 +538,7 @@
 		            			update(ORDER_ID,{checksum:updated_order_id});
 		            
 		            //return the order id
-		            return {"order_id":order_data.summary.order_id};		
+		            return {"order_id":order_data.summary.order_id,"is_all_return":is_all_return};		
 
               	}else{
               		reject(ORDER_ID_UPDATED_ERROR);

@@ -178,15 +178,16 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, pickl
                                        cgst_tax=item['cgst_percent'], sgst_tax=item['sgst_percent'],
                                        creation_date=NOW)
    for stock in stock_detail:
-       stock_count, stock_diff = get_stock_count(request, order_detail, stock, stock_diff, user)
+       #stock_count, stock_diff = get_stock_count(request, order_detail, stock, stock_diff, user)
+       stock_count = stock.quantity
        if not stock_count:
            continue
-       stock.quantity = int(stock.quantity) - stock_count
+       stock.quantity = int(stock.quantity) - order_detail.quantity
        stock.save()
-       picklist = Picklist.objects.create(picklist_number=picklist_number, reserved_quantity=0, picked_quantity=stock_count,
+       picklist = Picklist.objects.create(picklist_number=picklist_number, reserved_quantity=0, picked_quantity=order_detail.quantity,
                                           remarks='Picklist_' + str(picklist_number), status='batch_picked', order_id=order_detail.id,
                                           stock_id=stock.id,creation_date=NOW)
-       PicklistLocation.objects.create(quantity=stock_count,status=0, picklist_id=picklist.id, reserved=0, stock_id=stock.id,
+       PicklistLocation.objects.create(quantity=order_detail.quantity,status=0, picklist_id=picklist.id, reserved=0, stock_id=stock.id,
                                        creation_date=NOW)
 
        if not stock_diff:
@@ -247,14 +248,16 @@ def customer_order(request):
                             #continue
                         order_detail = OrderDetail.objects.create(user=user_id, order_id=order_id, sku_id=sku.id, customer_id=customer_id,
                                                            customer_name=customer_name, telephone=number, title=sku.sku_desc, quantity=item['quantity'],
-                                                           invoice_amount=item['price'], order_code=order['summary']['issue_type'], 
+                                                           invoice_amount=item['price'], order_code=order['summary']['issue_type'],
                                                            shipment_date=NOW, original_order_id=order['summary']['issue_type']+str(order_id),
                                                            nw_status=order['summary']['nw_status'],
                                                            status=status, email_id=cust_dict.get('Email',''), unit_price=item['unit_price'])
 
                         if status == 0:
                             stock_diff, invoice_number = item['quantity'], order['summary']['invoice_number']+str(order_id)
-                            stock_detail, stock_quantity, sku_code = get_sku_stock(request, sku, sku_stocks, user_id, val_dict, sku_id_stocks)
+                            stock_detail = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE')\
+                                                              .filter(sku__wms_code=sku.wms_code, sku__user=user_id)
+                            stock_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
                             picklist_creation(request, stock_detail, stock_quantity, order_detail, picklist_number, stock_diff, \
                                               item, user, invoice_number)
 
@@ -440,7 +443,11 @@ def update_order_status(request):
         val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
 
         invoice_number = 'TI/%s/%s' %(order.creation_date.strftime('%m%y'), order.order_id)
-        stock_detail, stock_quantity, sku_code = get_sku_stock(request, sku, sku_stocks, user_id, val_dict, sku_id_stocks)
+        #stock_detail, stock_quantity, sku_code = get_sku_stock(request, sku, sku_stocks, user_id, val_dict, sku_id_stocks)
+        stock_detail = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE')\
+                                          .filter(sku__wms_code=order.sku.wms_code, sku__user=user_id)
+        stock_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
+
         picklist_creation(request, stock_detail, stock_quantity, order, picklist_number, stock_diff, item, user, invoice_number)
 
   return HttpResponse("Delivered Successfully !")

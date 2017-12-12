@@ -219,11 +219,15 @@
                     print_order(urlService.current_order, urlService.userData)
                     console.log(data);
                     self.submit_enable = false;
-  
+                    
+                    //auto sync when network available
+                    syncPOSData(false);
+                    
                     }).then(function(){
   
                       clear_fields();
                       syncPOSData(false);
+
   
                     }).catch(function(error){
                        console.log("order saving error "+error);

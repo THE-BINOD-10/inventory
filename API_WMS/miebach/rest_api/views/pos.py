@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseRedirect
 import json
+from dateutil import tz
 from django.contrib.auth import authenticate
 from django.contrib import auth
 from dateutil.relativedelta import relativedelta
@@ -359,6 +360,7 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
     total_quantity = 0
     total_amount = 0
     subtotal = 0
+    to_zone = tz.gettz('Asia/Kolkata')
 
     #if return, get orders of all order code with status 0
     if request_from == "return" or request_from == "initial_preorder":
@@ -383,7 +385,7 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
         order_id = str(order.order_id)
         order_data.setdefault(order_id,{})
         order_data[order_id]['order_id'] = order_id
-        order_data[order_id]['order_date'] = order.creation_date.strftime("%d %b %Y %I:%M %p")
+        order_data[order_id]['order_date'] = order.creation_date.astimezone(to_zone).strftime("%d %b %Y %I:%M %p")
         order_data[order_id]['status'] = order.status
         order_data[order_id].setdefault('sku_data', []).append({'name': order.title, 'quantity': order.quantity, 
                                                  'sku_code': order.sku.sku_code, 'price': order.invoice_amount,

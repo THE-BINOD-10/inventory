@@ -340,8 +340,6 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         tracking = ShipmentTracking.objects.filter(shipment_id=result.id, shipment__order__user=user.id).order_by('-creation_date').\
                                             values_list('ship_status', flat=True)
 
-        if not tracking.count():
-            continue
         if gateout:
             if tracking and tracking[0] != 'Out for Delivery':
                 continue
@@ -5484,7 +5482,9 @@ def generate_customer_invoice(request, user=''):
                 merge_data[detail[field_mapping['sku_code']]] += detail['total_quantity']
 
         invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, is_seller_order=True, sell_ids=sell_ids)
-        invoice_data = modify_invoice_data(invoice_data, user)
+        edit_invoice = request.GET.get('edit_invoice', '')
+        if edit_invoice != 'true':
+            invoice_data = modify_invoice_data(invoice_data, user)
         ord_ids = order_ids.split(",")
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         invoice_date = datetime.datetime.now()

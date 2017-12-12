@@ -207,7 +207,7 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters):
     po_order_ids_list = results_objs.exclude(status__in=['location-assigned','confirmed-putaway']).\
                                     filter(received_quantity__lt=F('open_po__order_quantity')).values_list('order_id',
                                     flat=True).distinct()
-    results = list(chain(po_order_ids_list, rw_order_ids_list, st_order_ids_list))
+    results = list(set((chain(po_order_ids_list, rw_order_ids_list, st_order_ids_list))))
     return results, order_qtys_dict, receive_qtys_dict
 
 @csrf_exempt

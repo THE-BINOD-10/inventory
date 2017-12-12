@@ -200,6 +200,7 @@ def customer_order(request):
     orders = request.POST['order']
     orders = eval(orders)
     order_ids = []
+    only_return = True
     if isinstance(orders, dict): orders = [orders]
 
     for order in orders:
@@ -241,6 +242,7 @@ def customer_order(request):
                     #if not returning item
                     if item['return_status'] == "false":
 
+                        only_return = False
                         #if not item['quantity']:
                             #continue
                         order_detail = OrderDetail.objects.create(user=user_id, order_id=order_id, sku_id=sku.id, customer_id=customer_id,
@@ -272,11 +274,13 @@ def customer_order(request):
                                                       creation_date=NOW, location=put_zone.locationmaster_set.all()[0])
                         sku_stocks_.quantity = int(sku_stocks_.quantity) + item['quantity']
                         sku_stocks_.save()
+                        order_id = "return"
                         #add item to OrderReturns
                         order_return = OrderReturns.objects.create(return_id='', order=None, seller_order=None,\
                                                                    quantity=item['quantity'], damaged_quantity=item['quantity'],\
                                                                    sku=sku, reason='Not fit/Damaged', status='returned',\
                                                                    return_type="offline")
+    if only_return: order_ids=['return']
 
     return HttpResponse(json.dumps({'order_ids': order_ids}))
 

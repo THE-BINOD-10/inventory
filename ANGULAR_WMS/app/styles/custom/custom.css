@@ -400,7 +400,7 @@ h1 small {
   }
 }
 .order-list {
-  border: 1px solid #cccccc;
+  border: 1px solid #ccc;
 }
 .order-list .order-item {
   padding: 10px;
@@ -409,23 +409,23 @@ h1 small {
   color: blue;
 }
 .order-list .order-label {
-  color: #999999;
+  color: #999;
 }
 .order-list .order-bold {
   font-size: 20px;
   color: black;
 }
 .order-list .border-grey {
-  border-bottom: 1px solid #cccccc;
+  border-bottom: 1px solid #ccc;
 }
 .detail-list {
-  border: 1px solid #cccccc;
+  border: 1px solid #ccc;
 }
 .detail-list .detail-item {
   padding: 10px;
 }
 .detail-list .border-grey {
-  border-bottom: 1px solid #cccccc;
+  border-bottom: 1px solid #ccc;
 }
 .detail-list .detail-bg-grey {
   background: #f0f0f0;
@@ -490,6 +490,9 @@ h1 small {
 }
 body {
   background: #fff;
+}
+.swal2-container {
+  z-index: 2021;
 }
 .field {
   margin-bottom: 10px;
@@ -670,7 +673,7 @@ body {
   top: 8px;
 }
 .layout-sub-header {
-  background: #ffffff;
+  background: #fff;
 }
 .layout-sub-header .filters {
   background: #f0f0f0;
@@ -767,12 +770,10 @@ body {
 .page-pop .modal-body table {
   /*width: 97%;
       margin: 10px;*/
-
 }
 #page-pop .modal-body table tbody > tr > td > input,
 .page-pop .modal-body table tbody > tr > td > input {
   /*width: 90%;*/
-
 }
 #page-pop .modal-body .dropdown-menu > .active > a:hover,
 .page-pop .modal-body .dropdown-menu > .active > a:hover,
@@ -1129,7 +1130,6 @@ rm-blur:active {
   padding: 5px 0;
   padding: 3px;
   /* Position the tooltip */
-
   position: absolute;
   z-index: 1;
   top: -5px;
@@ -1197,7 +1197,6 @@ rm-blur:active {
     }
   }
   */
-
 }
 .tracking .panel-group .panel-body {
   background: #f0f0f0;

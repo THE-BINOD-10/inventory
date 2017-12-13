@@ -2617,13 +2617,11 @@ def get_sku_master(user,sub_user):
 
     return sku_master, sku_master_ids
 
-def create_update_user(data, password, username):
+def create_update_user(full_name, email, phone_number, password, username, role_name='customer'):
     """
     Creating a new Customer User
     """
-    full_name = data.name
-    password = password
-    email = data.email_id
+    new_user_id = ''
     if username and password:
         user = User.objects.filter(username=username)
         if user:
@@ -2632,16 +2630,17 @@ def create_update_user(data, password, username):
             user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name,
                                             last_login=datetime.datetime.now())
             user.save()
+            new_user_id = user.id
             hash_code = hashlib.md5(b'%s:%s' % (user.id, email)).hexdigest()
             if user:
                 prefix = re.sub('[^A-Za-z0-9]+', '', user.username)[:3].upper()
-                user_profile = UserProfile.objects.create(phone_number=data.phone_number, user_id=user.id, api_hash=hash_code,
-                                                          prefix=prefix, user_type='customer')
+                user_profile = UserProfile.objects.create(phone_number=phone_number, user_id=user.id,
+                                                          api_hash=hash_code, prefix=prefix, user_type=role_name)
                 user_profile.save()
-                CustomerUserMapping.objects.create(customer_id=data.id, user_id=user.id, creation_date=datetime.datetime.now())
+
             status = 'User Added Successfully'
 
-    return status
+    return status, new_user_id
 
 @csrf_exempt
 @login_required

@@ -102,7 +102,8 @@ def search_product_data(request):
     user_id = request.GET['user']
     user = User.objects.filter(id=user_id)[0]
     total_data = []
-    master_data = SKUMaster.objects.filter(Q(wms_code__icontains = search_key) | Q(sku_desc__icontains = search_key), user = user_id)
+    master_data = SKUMaster.objects.exclude(sku_type='RM')\
+                           .filter(Q(wms_code__icontains = search_key) | Q(sku_desc__icontains = search_key), user = user_id)
     for data in master_data[:30]:
         status = 'Inactive'
         if data.status:
@@ -139,7 +140,10 @@ def search_product_data(request):
         stock_quantity = stock_quantity['quantity__sum']
         if not stock_quantity:
             stock_quantity = 0
-        total_data.append({'search': str(data.wms_code)+" "+data.sku_desc, 'SKUCode': data.wms_code, 'ProductDescription': data.sku_desc, 'price': discount_price, 'url': data.image_url, 'data-id': data.id, 'discount': discount_percentage, 'selling_price': price, 'stock_quantity': stock_quantity, 'sgst': sgst, 'cgst': cgst, 'igst': igst, 'utgst': utgst})
+        total_data.append({'search': str(data.wms_code)+" "+data.sku_desc, 'SKUCode': data.wms_code,\
+                           'ProductDescription': data.sku_desc, 'price': discount_price, 'url': data.image_url,\
+                           'data-id': data.id, 'discount': discount_percentage, 'selling_price': price,\
+                           'stock_quantity': stock_quantity, 'sgst': sgst, 'cgst': cgst, 'igst': igst, 'utgst': utgst})
     return HttpResponse(json.dumps(total_data))
 
 def add_customer(request):
@@ -192,13 +196,11 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, pickl
                                                             invoice_number=invoice_number)
 
    if stock_quantity < int(order_detail.quantity):
-       picklist = Picklist.objects.create(picklist_number=picklist_number, reserved_quantity=0, picked_quantity=stock_diff,
-                                          remarks='Picklist_' + str(picklist_number), status='batch_picked', order_id=order_detail.id,
+       picklist = Picklist.objects.create(picklist_number=picklist_number, reserved_quantity=0, picked_quantity=stock_diff,\
+                                          remarks='Picklist_' + str(picklist_number), status='batch_picked', order_id=order_detail.id,\
                                           stock_id='', creation_date=NOW)
-   CustomerOrderSummary.objects.create(order_id=order_detail.id, discount=item['discount'],
-                                       issue_type=order_detail.order_code,
-                                       cgst_tax=item['cgst_percent'], sgst_tax=item['sgst_percent'],
-                                       creation_date=NOW)
+   CustomerOrderSummary.objects.create(order_id=order_detail.id, discount=item['discount'], issue_type=order_detail.order_code,\
+                                       cgst_tax=item['cgst_percent'], sgst_tax=item['sgst_percent'],creation_date=NOW)
    stock_diff = 0
    for stock in stock_detail:
        stock_count, stock_diff = get_stock_count(request, order_detail, stock, stock_diff, user, order_detail.quantity)
@@ -207,10 +209,10 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, pickl
            continue
        stock.quantity = int(stock.quantity) - stock_count
        stock.save()
-       picklist = Picklist.objects.create(picklist_number=picklist_number, reserved_quantity=0, picked_quantity=stock_count,
-                                          remarks='Picklist_' + str(picklist_number), status='batch_picked', order_id=order_detail.id,
+       picklist = Picklist.objects.create(picklist_number=picklist_number, reserved_quantity=0, picked_quantity=stock_count,\
+                                          remarks='Picklist_' + str(picklist_number), status='batch_picked', order_id=order_detail.id,\
                                           stock_id=stock.id,creation_date=NOW)
-       PicklistLocation.objects.create(quantity=stock_count,status=0, picklist_id=picklist.id, reserved=0, stock_id=stock.id,
+       PicklistLocation.objects.create(quantity=stock_count,status=0, picklist_id=picklist.id, reserved=0, stock_id=stock.id,\
                                        creation_date=NOW)
 
        if not stock_diff:
@@ -250,13 +252,13 @@ def customer_order(request):
             sku_id_stocks = sku_stocks.values('id', 'sku_id').annotate(total=Sum('quantity'))
             pick_res_locat = PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).\
                                               filter(picklist__order__user=user_id).values('stock__sku_id').annotate(total=Sum('reserved'))
-            val_dict = {}
+            """val_dict = {}
             val_dict['pic_res_ids'] = map(lambda d: d['stock__sku_id'], pick_res_locat)
             val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)
 
             val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
             val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
-            val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
+            val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)"""
 
             if customer_name:
                 for item in order['sku_data']:
@@ -268,20 +270,21 @@ def customer_order(request):
                         only_return = False
                         #if not item['quantity']:
                             #continue
-                        order_detail = OrderDetail.objects.create(user=user_id, order_id=order_id, sku_id=sku.id, customer_id=customer_id,
-                                                           customer_name=customer_name, telephone=number, title=sku.sku_desc, quantity=item['quantity'],
-                                                           invoice_amount=item['price'], order_code=order['summary']['issue_type'],
-                                                           shipment_date=NOW, original_order_id=order['summary']['issue_type']+str(order_id),
-                                                           nw_status=order['summary']['nw_status'],
-                                                           status=status, email_id=cust_dict.get('Email',''), unit_price=item['unit_price'])
+                        order_detail = OrderDetail.objects.create(user=user_id, order_id=order_id, sku_id=sku.id, customer_id=customer_id,\
+                                                           customer_name=customer_name, telephone=number, title=sku.sku_desc,\
+                                                           quantity=item['quantity'], invoice_amount=item['price'],\
+                                                           order_code=order['summary']['issue_type'], shipment_date=NOW,\
+                                                           original_order_id=order['summary']['issue_type']+str(order_id),\
+                                                           nw_status=order['summary']['nw_status'], status=status,\
+                                                           email_id=cust_dict.get('Email',''), unit_price=item['unit_price'])
 
                         if status == 0:
                             stock_diff, invoice_number = item['quantity'], order['summary']['invoice_number']+str(order_id)
                             stock_detail = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE')\
                                                               .filter(sku__wms_code=sku.wms_code, sku__user=user_id)
                             stock_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
-                            picklist_creation(request, stock_detail, stock_quantity, order_detail, picklist_number, stock_diff, \
-                                              item, user, invoice_number)
+                            picklist_creation(request, stock_detail, stock_quantity, order_detail, picklist_number,\
+                                              stock_diff, item, user, invoice_number)
 
                     # return item : increase stock
                     else:
@@ -326,8 +329,8 @@ def print_order_data(request):
     order_detail = OrderDetail.objects.filter(order_id=order_id, user=user_id, quantity__gt=0)
     for order in order_detail:
         selling_price = order.unit_price if order.unit_price != 0 else float(order.invoice_amount)/float(order.quantity)
-        sku_data.append({'name': order.title, 'quantity': order.quantity, 'sku_code': order.sku.sku_code, 'price': order.invoice_amount,
-                         'selling_price': selling_price})
+        sku_data.append({'name': order.title, 'quantity': order.quantity, 'sku_code': order.sku.sku_code,\
+                         'price': order.invoice_amount, 'selling_price': selling_price})
         total_quantity += int(order.quantity)
         total_amount += int(order.invoice_amount)
     if order_detail:
@@ -347,9 +350,9 @@ def print_order_data(request):
             summary = {'total_quantity': total_quantity, 'total_amount': total_amount,
                        'subtotal': total_amount, 'issue_type': order_summary.issue_type}
     
-    return HttpResponse(json.dumps({'data': {'customer_data': customer_data, 'summary': summary, 'sku_data': sku_data, 'order_id': order_id,
-                                    'order_date': order_date},
-                                    'status': status})) 
+    return HttpResponse(json.dumps({'data': {'customer_data': customer_data, 'summary': summary, 'sku_data': sku_data,\
+                                             'order_id': order_id, 'order_date': order_date},\
+                                    'status': status}))
 
 def get_order_details(order_id, user_id, mobile, customer_name, request_from):
 
@@ -458,12 +461,12 @@ def update_order_status(request):
         sku_id_stocks = sku_stocks.values('id', 'sku_id').annotate(total=Sum('quantity'))
         pick_res_locat = PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).\
                                           filter(picklist__order__user=user_id).values('stock__sku_id').annotate(total=Sum('reserved'))
-        val_dict = {}
+        """val_dict = {}
         val_dict['pic_res_ids'] = map(lambda d: d['stock__sku_id'], pick_res_locat)
         val_dict['pic_res_quans'] = map(lambda d: d['total'], pick_res_locat)
         val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
         val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
-        val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
+        val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)"""
 
         invoice_number = 'TI/%s/%s' %(order.creation_date.strftime('%m%y'), order.order_id)
         #stock_detail, stock_quantity, sku_code = get_sku_stock(request, sku, sku_stocks, user_id, val_dict, sku_id_stocks)

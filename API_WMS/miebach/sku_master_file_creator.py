@@ -18,8 +18,8 @@ def get_user_sku_data(user):
    user = User.objects.get(id=user)
    print "inside sku func"
    total_data = []
-   master_data = SKUMaster.objects.filter(user = user.id).only('id', 'zone_id', 'price', 'product_type', 'discount_percentage',\
-                                                               'sku_category', 'wms_code', 'sku_desc', 'image_url')\
+   master_data = SKUMaster.objects.exclude(sku_type='RM').filter(user = user.id).only('id', 'zone_id', 'price', 'product_type',\
+                                                         'discount_percentage', 'sku_category', 'wms_code', 'sku_desc', 'image_url')\
                                                          .prefetch_related('zone')
 
    stocks = dict(StockDetail.objects.filter(sku__user=user.id).exclude(location__zone__zone='DAMAGED_ZONE')

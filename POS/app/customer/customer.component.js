@@ -186,6 +186,13 @@
                   then(function(data){
                       console.log(data);
                       self.customerButton = false;
+
+                        syncPOSData(false).then(function(data){
+
+                          $rootScope.sync_status = false;
+                          $rootScope.$broadcast('change_sync_status');
+                      });
+
                   }).catch(function(error){
 
                   });
@@ -200,7 +207,6 @@
 
     // to show customer add button
     self.customerButton = false;
-
 
     self.updateCustomer = updateCustomer;
     function updateCustomer(name, var_type) {

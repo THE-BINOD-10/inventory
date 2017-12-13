@@ -1,5 +1,5 @@
 import requests
-dns = 'http://0.0.0.0:8081/rest_api/'
+dns = 'http://94.130.136.118:8081/rest_api/'
 
 def apiItemData():
 	url = dns + 'GetItemMaster/';

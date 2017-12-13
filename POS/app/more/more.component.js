@@ -185,7 +185,11 @@
                                     $(".already_delivered").removeClass("ng-hide").addClass("ng-show");
                                     self.selected_order.status = '0';
                                     //auto sync when network available
-                                    syncPOSData(false);
+                                    syncPOSData(false).then(function(data){
+
+                                      $rootScope.sync_status = false;
+                                      $rootScope.$broadcast('change_sync_status');
+                                    });
                                 });
                             
                             }).catch(function(error){

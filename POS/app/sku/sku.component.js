@@ -168,8 +168,10 @@
         self.submit_enable = true;
 
         //adding order date
-        urlService.current_order.summary.order_date=new Date();
-        //change the status for preorder
+        var date_order=new Date();
+        
+        urlService.current_order.summary.order_date=date_order;
+        //change the status for preorder0
         if(data.summary.issue_type=="Pre Order"){
             data.status="1";
         }
@@ -213,27 +215,29 @@
 
             setSynOrdersData(data,self.qty_switch).
                   then(function(data){
-  
-                    if(data.is_all_return==true){
-                      urlService.current_order.order_id = "return";
-                    }else{
-                    urlService.current_order.order_id = data.order_id;
-                    }
+    
+                      if(data.is_all_return==true){
+                        urlService.current_order.order_id = "return";
+                      }else{
+                      urlService.current_order.order_id = data.order_id;
+                      }
 
-                    var state = 1;
-                    store_data(urlService.current_order, state);
-                    print_order(urlService.current_order, urlService.userData)
-                    console.log(data);
-                    self.submit_enable = false;
-                    
-                    //auto sync when network available
-                    syncPOSData(false);
-                    
+                      var state = 1;
+                      store_data(urlService.current_order, state);
+                      print_order(urlService.current_order, urlService.userData)
+                      console.log(data);
+                      self.submit_enable = false;
+                                 
+                                       
                     }).then(function(){
   
                       clear_fields();
-                      syncPOSData(false);
+                       //auto sync when network available
+                      syncPOSData(false).then(function(data){
 
+                        $rootScope.sync_status = false;
+                        $rootScope.$broadcast('change_sync_status');
+                      });
   
                     }).catch(function(error){
                        console.log("order saving error "+error);

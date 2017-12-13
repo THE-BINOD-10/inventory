@@ -125,7 +125,29 @@
 								startsWithIgnoreCase(find_key).
 								or("FirstName").startsWithIgnoreCase(find_key).
 								limit(30).toArray().then(function(data){
-									return resolve(data);
+
+									if(data.length>0){
+										return resolve(data);	
+									}else{
+
+										DATABASE.sync_customer.where("number").
+											startsWithIgnoreCase(find_key).
+											or("firstName").startsWithIgnoreCase(find_key).
+											limit(30).toArray().then(function(data){
+
+												var data_list=[],user={};
+
+												for(var user_list=0;user_list<data.length;user_list++){
+													user=data[user_list];
+													data_list.push({"FirstName":user.firstName,"Address":"","Email":user.mail,"ID":'',"LastName":user.secondName,"Number":""+user.number});
+												}
+
+												return resolve(data_list);
+											}).catch(function(error){
+												return reject(error);
+											});
+									}
+									
 								}).catch(function(error){
 									return reject(error);
 								});
@@ -311,17 +333,24 @@
 	//check for serviceWOrker ready
 	function syncPOSData(all_data_sync){
 
-		if (navigator.serviceWorker!=null && navigator.serviceWorker.controller) {
-	 			order_Sync(all_data_sync);
-			} else {
-				  navigator.serviceWorker.oncontrollerchange = function() {
-				    this.controller.onstatechange = function() {
-				      if (this.state === 'activated') {
-				    		order_Sync(all_data_sync);
-				      }
-				    };
-				  };
-			}
+		return	new Promise(function(resolve,reject){		
+
+			if (navigator.serviceWorker!=null && navigator.serviceWorker.controller) {
+		 			order_Sync(all_data_sync).then(function(){
+		 				return resolve();
+		 			});
+				} else {
+					  navigator.serviceWorker.oncontrollerchange = function() {
+					    this.controller.onstatechange = function() {
+					      if (this.state === 'activated') {
+					    		order_Sync(all_data_sync).then(function(){
+					 				return resolve();
+					 			});
+					      }
+					    };
+					  };
+				}
+		});	
 	}
 
 	//check service worker readdy
@@ -347,29 +376,50 @@
 	//sync pos data offline transations like customer and orders
 	function order_Sync(all_data_sync){
 
+		return	new Promise(function(resolve,reject){
 		navigator.serviceWorker.ready.
 					then(function(reg) {
            				if(reg.sync) {
              				reg.sync.register(SYNC_POS_DATA).
              		  					then(function(data){
 
-             		  					console.log("sync data "+data);
-             		  					if(all_data_sync)
-             		  						sync_getCurrentOrderId();
-
+	             		  					console.log("sync data "+data);
+	             		  					if(all_data_sync){
+	             		  						sync_getCurrentOrderId().then(function(){
+	             		  							return resolve();	
+	             		  						});
+	             		  					
+	             		  					}else{
+	             		  						return resolve();
+	             		  					
+	             		  					}
              		  					}).catch(function(error){
 						
-										console.log("sync error "+JSON.stringify(error));
-    									if(all_data_sync)
-             		  						sync_getCurrentOrderId();         		  
+											console.log("sync error "+JSON.stringify(error));
+	    									
+	    									if(all_data_sync){
+	             		  						sync_getCurrentOrderId().then(function(){
+	             		  							return resolve();	
+	             		  						});
+	    									
+	             		  					}else{
+	             		  						return resolve();	 
+	             		  					}
              		  					});
 
              			}else{
              				console.log("sync not supported");
-             				if(all_data_sync)
-             		  			sync_getCurrentOrderId();
+             				if(all_data_sync){
+             		  			sync_getCurrentOrderId().then(function(){
+	             		  							return resolve();	
+	             		  						});
+             				
+             		  		}else{
+             		  			return resolve();
+             		  		}
              			}	
 					});
+		});			
 		
     }		 
 

@@ -81,7 +81,7 @@ function getAllWords(text) {
 }
 
  DATABASE.open().then(function(){
-      console.log("DATABASE created");
+      console.log("Opened");
       
   }).catch(function(e) {
      console.log("DATABASE error :"+e);   

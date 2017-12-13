@@ -300,7 +300,7 @@
                   //var quantity = (filter_data[i].stock_quantity > 0) ? 1: 0;
                   //Change the quantity to 1
                   var quantity = 1;
-  
+
                   var sgst = filter_data[i].price * filter_data[i].sgst / 100;
                           var cgst = filter_data[i].price * filter_data[i].cgst / 100;
                           var igst = filter_data[i].price * filter_data[i].igst / 100;
@@ -465,13 +465,19 @@
                   item.selling_price = 0;
                   item.discount = 0;
                   item.total_discount = 0;
+				  item.cgst=item.sgst=item.utgst=item.igst=0;
                   cal_total();
                 } else {
      
                   item.selling_price = item.price;
                   self.skus[i].quantity = parseInt(item.quantity);
                   self.skus[i].discount = (item.discount && self.skus[i].return_status==='false') ? parseInt(item.discount) : 0;
-                  self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
+				  self.skus[i].sgst = item.price * self.skus[i]['sgst_percent'] / 100;
+				  self.skus[i].cgst = item.price * self.skus[i]['cgst_percent'] / 100;
+				  self.skus[i].igst = item.price * self.skus[i]['igst_percent'] / 100;
+				  self.skus[i].utgst= item.price * self.skus[i]['utgst_percent'] / 100;
+                  urlService.current_order.sku_data = self.skus;
+  self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
                   cal_total();
                 }
                 break;

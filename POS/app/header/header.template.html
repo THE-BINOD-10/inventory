@@ -22,8 +22,23 @@
           </div>
           <div class="pull-left main_menu">
             <a href="#/home?user_id={{user_data.parent_id}}">Home</a>
-            <a href="#/more?user_id={{user_data.parent_id}}">More</a>
+            <!--<a href="#/more?user_id={{user_data.parent_id}}">More</a>-->
           </div>
+          <div class="pull-left">
+            <div id="" class="dropdown main_menu">
+              <a id="drop1" class="dropdown-toggle" data-toggle="dropdown" role="button"
+                 aria-haspopup="true" aria-expanded="true">
+                    More
+                    <span class="caret"></span>
+              </a>
+              <ul class="dropdown-menu" aria-labelledby="drop1">
+                <li><a href="#/more?user_id={{user_data.parent_id}}">Deliver Pre Order</a></li>
+                <li><a href="{{stockoneUrl}}#/outbound/ViewOrders" target="_blank">View Pre Orders</a></li>
+                <li><a href="{{stockoneUrl}}#/outbound/CustomerInvoices" target="_blank">View Completed Orders</a></li>
+              </ul>
+            </div>
+          </div>
+
         </div>
 </div>
 

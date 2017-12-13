@@ -3,6 +3,7 @@ var app=angular.module('App', ['ngMaterial','ui.router','FBAngular','ngAnimate',
 
 app.service('urlService', function($rootScope){
     this.mainUrl = 'https://wms.mieone.com/';//'http://dev.stockone.in/';
+    this.stockoneUrl = 'http://wms.mieone.com:90/';
     
     this.userData = {"VAT":0};
     this.VAT = 0;

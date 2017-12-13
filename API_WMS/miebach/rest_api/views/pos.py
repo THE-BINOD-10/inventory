@@ -304,10 +304,12 @@ def customer_order(request):
                         sku_stocks_.save()
                         order_id = "return"
                         #add item to OrderReturns
-                        order_return = OrderReturns.objects.create(return_id='', order=None, seller_order=None,\
-                                                                   quantity=item['quantity'], damaged_quantity=item['quantity'],\
-                                                                   sku=sku, reason='Not fit/Damaged', status='returned',\
-                                                                   return_type="offline")
+                        order_return = OrderReturns.objects.create(order=None, seller_order=None, quantity=item['quantity'],\
+                                                                   damaged_quantity=0, sku=sku, reason='', status=0)
+                        order_return.return_id = "MN" + str(order_return.id)
+                        order_return.save()
+                        return_location = ReturnsLocation.objects.create(quantity=0, status=0, location=sku_stocks_.location,\
+                                                                         returns=order_return)
     if only_return: order_ids=['return']
 
     return HttpResponse(json.dumps({'order_ids': order_ids}))

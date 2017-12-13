@@ -149,6 +149,7 @@
               var del = "false";
               if(delete_order) {
                 del = confirm("Sure to delete the order permanantly ?").toString();
+                if(del==='false') return;
               }
 
               $(".preloader").removeClass("ng-hide").addClass("ng-show");

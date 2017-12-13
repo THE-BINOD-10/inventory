@@ -63,6 +63,9 @@
         self.selected_order.status=self.selected_order.status.toString();
 
         self.isDisabled = false;
+        self.selected_order.status==="1" ? $(".already_delivered").removeClass("ng-show").addClass("ng-hide")
+                                         : $(".already_delivered").removeClass("ng-hide").addClass("ng-show"),
+                                           self.success_msg="Delivered Successfully";
         $('#orderModal').modal('show');
       }
       //pre order filters
@@ -166,6 +169,7 @@
                   } else {
                       self.isDisabled = true;
                       self.success_msg = data;
+                      if(del==='true') $("."+order_id).parent('div').addClass("ng-hide");
                       $(".already_delivered").removeClass("ng-hide").addClass("ng-show");
                       self.selected_order.status = '0';
                   }

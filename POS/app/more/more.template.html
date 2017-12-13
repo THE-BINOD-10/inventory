@@ -73,7 +73,7 @@
 				</div><!--modal-->
 
 				<div class="all_orders" ng-repeat="item in $ctrl.filtered_order_details" ng-if="item.order_id">
-					<div class="each_order alert btn" ng-click="$ctrl.select_order(item.order_id)">
+					<div class="each_order alert btn {{item.order_id}}" ng-click="$ctrl.select_order(item.order_id)">
 						<h4>{{item.customer_data.Name}} &nbsp;&nbsp;<strong>{{item.order_id}}</strong> &nbsp;&nbsp;&nbsp;{{item.order_date}}</h4>
 						<div style="overflow-y: overlay;color: #b9a09f">
 							<span ng-repeat="sku in item.sku_data"><strong>{{sku.sku_code}}&nbsp;</strong></span>

@@ -1281,7 +1281,7 @@ function addItem(){
                 DATABASE.order_delivered.toArray().then(function(data){
                     return resolve(data);
                 }).catch(function(error){
-                    return reject([]);
+                    return resolve([]);
                 });
                 
             }else{
@@ -1292,7 +1292,7 @@ function addItem(){
                     else
                         return resolve([]);
                 }).catch(function(error){
-                    return reject([]);
+                    return resolve([]);
                 });
                 
             }

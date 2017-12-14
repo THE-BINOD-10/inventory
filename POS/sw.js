@@ -7,7 +7,7 @@ importScripts('/app/data/offlineData.js');
 (function(){
 	"use strict";
 	//service worker version number
-	var VERSION="0.0.0.91-build-0.9.0.35"
+	var VERSION="0.0.0.91-build-0.9.0.36"
 	//service worker version name
 	var CACHE_NAME="POS"+VERSION;
 	//directory path 
@@ -283,7 +283,7 @@ importScripts('/app/data/offlineData.js');
 	        yield sync_Preorder_offline_delivered().
 	         			then(function(data){
 	         					console.log("sync pos preorder transactions data "+data);	
-	         					checksumDelete(OFFLINE_DELIVERED).then(function(data){
+	         					clearDeliveredOrders().then(function(data){
 	         						    console.log("cleared pos preorder transactions data "+data);	
 	         					    	return resolve(data);
 	         						}).catch(function(error){

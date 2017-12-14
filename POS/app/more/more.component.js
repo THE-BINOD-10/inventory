@@ -147,13 +147,13 @@
 
         if(self.isDisabled === false){
 
-          if(navigator.onLine){
-
-              var del = "false";
+          var del = "false";
               if(delete_order) {
                 del = confirm("Sure to delete the order permanantly ?").toString();
                 if(del==='false') return;
               }
+              
+          if(navigator.onLine){
 
               $(".preloader").removeClass("ng-hide").addClass("ng-show");
               // ajax call to send data to backend
@@ -181,7 +181,7 @@
               console.log("offline");
               $rootScope.sync_status = true;
               $rootScope.$broadcast('change_sync_status');
-              setPreOrderStatus(""+order_id,"0").
+              setPreOrderStatus(""+order_id,"0",del).
                             then(function(data){
 
                                  $scope.$apply(function() {

@@ -11,9 +11,9 @@ var SPWAN = Dexie.spawn;
        customer:"FirstName,LastName,Number,ID,Address,Email",
        sync_customer:"number,firstName,secondName,mail,user",
        sync_orders:"order_id,order",
-       pre_orders:"order_id,order_data"
-       
-     });
+       pre_orders:"order_id,order_data",
+       order_delivered:"order_id,delete_order,user"
+    });
     
   //create index on sku_search_words table
    DATABASE._createTransaction = Dexie.override(DATABASE._createTransaction, function (createTransaction) {

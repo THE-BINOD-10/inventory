@@ -186,10 +186,15 @@
                             then(function(data){
 
                                  $scope.$apply(function() {
+                                   
                                     $(".preloader").removeClass("ng-show").addClass("ng-hide");  
+                                   
                                     self.isDisabled = true;
+                                    self.success_msg = data;
+                                    if(del==='true') $("."+order_id).parent('div').addClass("ng-hide");
                                     $(".already_delivered").removeClass("ng-hide").addClass("ng-show");
                                     self.selected_order.status = '0';
+                                   
                                     //auto sync when network available
                                     syncPOSData(false).then(function(data){
 

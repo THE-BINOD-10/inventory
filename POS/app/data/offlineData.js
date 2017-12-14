@@ -976,6 +976,7 @@
 						get_POS_Sync_OrdersByID(order_id).then(function(data){
 							if(data.length>0){
 								order_data=JSON.parse(data[0].order);
+								order_data.customer_data.Name=order_data.customer_data.FirstName;
 								var preorder_data={"customer_data":order_data.customer_data,
 								"sku_data":order_data.sku_data,
 								"order_id":order_data.summary.order_id,
@@ -1056,7 +1057,7 @@
 									sync_pre_orders.splice(pre_order,1);                                
 								}else{
 									var order_data=JSON.parse(sync_pre_orders[pre_order].order);
-									
+									order_data.customer_data.Name=order_data.customer_data.FirstName;
 									all_pre_orders[sync_pre_orders[pre_order].order_id]={"customer_data":order_data.customer_data,
 									"sku_data":order_data.sku_data,
 									"order_id":order_data.summary.order_id,
@@ -1105,7 +1106,7 @@
 						order_data.status=status;
 
 					//reduce sku qty
-					if(delete_order==false){
+					if(delete_order=="false"){
 						reduceSKUQty(order_data).then(function(){
 							console.log("sucess to reduce sku qty ");
 						}).catch(function(error){
@@ -1125,9 +1126,12 @@
 
 					setOrderDeliveredItems(user_id,order_id,delete_order).
 					then(function(data){
-						return resolve(true);
+						if(delete_order=="true")
+							return resolve("Deleted sucessfully");
+						else
+							return resolve("Delivered sucessfully");
 					}).catch(function(error){
-						return reject(true);
+						return reject(error.message);
 					});
 
 				}else{
@@ -1146,7 +1150,7 @@
 
 
 											//reduce sku qty
-											if(delete_order==false){
+											if(delete_order=="false"){
 												reduceSKUQty(order_data).then(function(){
 													console.log("sucess to reduce sku qty ");
 												}).catch(function(error){
@@ -1165,16 +1169,16 @@
 
 												setOrderDeliveredItems(user_id,order_id,delete_order).
 												then(function(data){
-													return resolve(true);
+													return resolve("Delivered sucessfully");
 												}).catch(function(error){
-													return reject(true);
+													return reject(error.message);
 												});
 											}else{
 
 												DATABASE.sync_orders.
 												where("order_id").equals(order_id).
 												delete().then(function(data){
-													return resolve(true);
+													return resolve("Deleted sucessfully");
 												}).catch(function(error){
 													return reject(error.message);
 												}); 

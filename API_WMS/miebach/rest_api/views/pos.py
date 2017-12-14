@@ -440,8 +440,7 @@ def update_order_status(request):
         user = User.objects.get(id=user_id)
         picklist_number = get_picklist_number(user)
         stock_detail = StockDetail.objects.filter(sku=sku, quantity__gt=0)
-        if stock_detail:
-            if nw_status=="online": order.save()
+        if stock_detail: order.save()
         else:
            if nw_status=="online": return HttpResponse("Error")
            order.save()

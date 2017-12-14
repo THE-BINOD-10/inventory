@@ -189,8 +189,8 @@
 
                         syncPOSData(false).then(function(data){
 
-                          $rootScope.sync_status = false;
-                          $rootScope.$broadcast('change_sync_status');
+                         // $rootScope.sync_status = false;
+                          //$rootScope.$broadcast('change_sync_status');
                       });
 
                   }).catch(function(error){

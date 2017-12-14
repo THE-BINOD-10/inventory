@@ -175,6 +175,7 @@
                   }
 
              }).then(function() {
+              console.log("then");
              });
           }else{
 
@@ -192,8 +193,8 @@
                                     //auto sync when network available
                                     syncPOSData(false).then(function(data){
 
-                                      $rootScope.sync_status = false;
-                                      $rootScope.$broadcast('change_sync_status');
+                                     // $rootScope.sync_status = false;
+                                      //$rootScope.$broadcast('change_sync_status');
                                     });
                                 });
                             

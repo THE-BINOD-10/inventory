@@ -43,6 +43,33 @@ function Profile($scope, Session, Service, $modal) {
       angular.copy(data.data.data, vm.orig_model_data);
     }
   });
+
+  vm.back = function() {
+
+    angular.copy(vm.orig_model_data, vm.model_data);
+  }
+
+  vm.process = false;
+  vm.updateProfile = function(form) {
+
+    if(form.$invalid) {
+      return false;
+    }
+    vm.process = true;
+    Service.apiCall('update_profile_data/', 'POST', vm.model_data).then(function(data){
+
+      if(data.message) {
+        if(data.data == 'Success') {
+          angular.copy(vm.model_data, vm.orig_model_data);
+          vm.edit_form = false;
+          Service.showNoty('Successfully Updated');
+        } else {
+          Service.showNoty(data.data);
+        }
+      }
+      vm.process = false;
+    });
+  }
 }
 app.controller('changePassword', function($scope, $modalInstance, items, Service, $state, Session){
 

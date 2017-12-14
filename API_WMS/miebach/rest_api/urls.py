@@ -357,6 +357,7 @@ urlpatterns += [
     url(r'get_imei_data/', get_imei_data),
     url(r'get_user_profile_data/$', get_user_profile_data),
     url(r'change_user_password/$', change_user_password),
+    url(r'update_profile_data/$', update_profile_data),
 
     #Retailone
     url(r'^get_marketplace_data/$',get_marketplace_data),

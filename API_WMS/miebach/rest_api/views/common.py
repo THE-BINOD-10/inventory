@@ -4976,6 +4976,9 @@ def get_user_profile_data(request, user=''):
     data['main_user'] = request.user.is_staff
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
 
+@csrf_exempt
+@login_required
+@get_admin_user
 def change_user_password(request, user=''):
 
     resp = {'msg': 0, 'data':'Successfully Updated'}
@@ -5010,3 +5013,20 @@ def change_user_password(request, user=''):
         log.info('Change Password Faild User '+ str(request.user.username))
         resp['data'] = 'Password Updation Fail'
     return HttpResponse(json.dumps(resp))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_profile_data(request, user=''):
+    ''' will update profile data '''
+
+    address = request.POST.get('address', '')
+    gst_number = request.POST.get('gst_number', '')
+    email = request.POST.get('email', '')
+    main_user = UserProfile.objects.get(user_id=user.id)
+    main_user.address = address
+    main_user.gst_number = gst_number
+    main_user.save()
+    user.email = email
+    user.save()
+    return HttpResponse('Success')

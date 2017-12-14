@@ -6,6 +6,12 @@ app.service('Data',['$rootScope', '$compile','$q', '$http', '$state', '$timeout'
 function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COLORS) {
 
   var self = this;
+
+  /*** Receive PO  ***/
+  self.receive_po = {
+                      style_view: false
+                    }
+
   /*** Production Data ***/
 
   // Receive Job Order

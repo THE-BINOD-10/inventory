@@ -90,7 +90,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 
         if (data.message) {
-        console.log(data.data);
         var mod_data = data.data;
         var modalInstance = $modal.open({
           templateUrl: 'views/outbound/toggle/edit_invoice.html',
@@ -101,7 +100,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           keyboard: false,
           resolve: {
             items: function () {
-              return mod_data; 
+              return mod_data;
             }
           }
         });
@@ -144,12 +143,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
         if(click_type == 'edit'){
           send['data'] = true;
+          send['edit_invoice'] = true;
         }
         vm.bt_disable = true;
         vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 
           if(data.message) {
-            console.log(data.data);
             if(click_type == 'generate') {
               vm.pdf_data = data.data;
               if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
@@ -276,16 +275,21 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   vm.model_data.temp_sequence_number = vm.model_data.sequence_number;
 
   vm.model_data.default_charge = function(){
+
     if (vm.model_data.order_charges.length == 1) {
+
       vm.model_data.flag = true;
     }
   }
 
   vm.delete_charge = function(id){
-    
+
     if (id) {
+
       vm.service.apiCall("delete_order_charges?id="+id, "GET").then(function(data){
+
         if(data.message){
+
           Service.showNoty(data.data.message);
         }
       });
@@ -293,31 +297,19 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   }
 
   $timeout(function() {
+
     $('.stk-readonly').datepicker("setDate", new Date(vm.model_data.inv_date) );
   },1000);
   vm.ok = function () {
+
     $modalInstance.close("close");
   };
-
-  /*vm.final_data = {total_quantity:0,total_amount:0}
-  vm.cal_total = function() {
-
-    vm.final_data.total_quantity = 0;
-    vm.final_data.total_amount = 0;
-
-    if(vm.model_data.order_charges) {
-      angular.forEach(vm.model_data.order_charges, function(record){
-        if(record.amount){
-          vm.final_data.total_amount += Number(record.amount);
-        }
-      })
-    }
-  }*/
 
   vm.process = false;
   vm.save = function(form) {
 
     if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form.invoice_number.$invalid) {
+
       Service.showNoty("Please Fill Invoice Number");
       return false;
     } else if (!form.$valid) {
@@ -328,15 +320,19 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
     vm.process = true;
     var data = $("form:visible").serializeArray()
     Service.apiCall("update_invoice/", "POST", data).then(function(data) {
-      console.log(data);
+
       if(data.message) {
+
         if(data.data.msg == 'success') {
+
           Service.showNoty("Updated Successfully");
           $modalInstance.close("saved");
         } else {
-          Service.showNoty(data.data.msg)
+
+          Service.showNoty(data.data.msg);
         }
       } else {
+
         Service.showNoty("Update fail");
       }
       vm.process = false;

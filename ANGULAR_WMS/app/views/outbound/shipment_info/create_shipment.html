@@ -2,7 +2,22 @@
   <div class="panel-header" style="overflow: visible;">
     <div class="layout-sub-header">
       <form name="form" role="form" ui-jq="validate" ui-options="showCase.validationOpt" class="filters">
-        <div class="clearfix">
+
+        <div class="clearfix" ng-if='showCase.awb_ship_type'>
+          <div class="row">
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="font-weight: 700;">
+              <p class="control-label" style="margin-top: 10px;text-align: center;">Scan AWB No.</p>
+            </div>
+            <div class="col-lg-10 col-md-10 col-sm-10 col-xs-10">
+              <div class="form-group">
+                <textarea id='awb_no' rows="1" type="text" autocomplete="off" name="awb_no" class="form-control" ng-model="showCase.awb_no" ng-keydown="showCase.scanAwb($event, showCase.awb_no)" auto-focus required>
+                </textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="clearfix" ng-if='!showCase.awb_ship_type'>
           <div class="row hide">
             <div class="col-md-11 col-sm-11 col-xs-10">
               <p align="right"><b> SKU Grouping: </b></p>
@@ -88,7 +103,6 @@
   </div>
   <div ng-include="'views/common/datatable.html'"></div>
   <div class="col-md-12">
-
     	<button type="submit" class="btn btn-success" ng-disabled="showCase.bt_disable" style="display: block;margin: auto;" ng-click="showCase.add(form)">Create Shipment</button>
   </div>
 </div>

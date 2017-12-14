@@ -1139,15 +1139,19 @@ var app = angular.module('urbanApp')
           permission: 'add_shipmentinfo',
           templateUrl: 'views/outbound/shipment_info.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/outbound/shipment_info/create_shipment.js'
-                ]).then( function() {
-                  return $ocLazyLoad.load([
-                    'scripts/controllers/outbound/shipment_info/view_shipment.js'
-                  ])
-                });
-              }]
+              ]).then( function() {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/shipment_info/view_shipment.js'
+                ])
+              }).then( function() {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/shipment_info/gateout.js'
+                ])
+              });
+            }]
           },
           data: {
             title: 'Shipment Info',

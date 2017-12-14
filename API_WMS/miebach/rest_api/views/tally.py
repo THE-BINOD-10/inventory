@@ -37,7 +37,8 @@ class TallyAPI:
                             'order__order_code', 'order__pin_code', 'order__payment_mode',\
                             'order__payment_received', 'order__unit_price', 'order__order_type',\
                             'order__shipment_date', 'order__sku__product_type', 'order__customer_id',\
-                            'order__original_order_id', 'order__sku__sku_desc', 'order__sku__measurement_type')[:10]
+                            'order__original_order_id', 'order__sku__sku_desc', 'order__sku__measurement_type',
+                            'creation_date')[:10]
         invoices = []
         from decimal import Decimal
         for obj in seller_summary:
@@ -47,7 +48,7 @@ class TallyAPI:
                             'tin_number', 'cst_number', 'pan_number', 'price_type', 'tax_type')
             customer_info = customer_info[0] if customer_info else {}
 
-            s_obj['tally_company_name'] = tally_config.get('company_name', '')
+            s_obj['tally_company_name'] = tally_config.get('company_name', 'Mieone')
             s_obj['voucher_foreign_key'] = obj['invoice_number'] if obj['invoice_number'] else obj['order__order_id']
             s_obj['dt_of_voucher'] = obj['creation_date'].strftime('%d/%m/%Y')
             s_obj['voucher_typeName'] = 'Sales'
@@ -96,10 +97,10 @@ class TallyAPI:
             if vat_ledger:
                 party_ledger_tax_obj['name'] = vat_ledger[0].ledger_name
 
-	        s_obj.setdefault('party_ledger', {})
-	        s_obj['party_ledger'].update(party_ledger_obj)
+	    s_obj.setdefault('party_ledger', {})
+	    s_obj['party_ledger'].update(party_ledger_obj)
 
-	        s_obj.setdefault('party_ledger_tax', {})
+	    s_obj.setdefault('party_ledger_tax', {})
             s_obj['party_ledger_tax'].update(party_ledger_tax_obj)
 
             #s_obj['items'] = []
@@ -116,7 +117,9 @@ class TallyAPI:
             s_obj['despatched_through'] = COD.get('dispatch_through', '')
             s_obj['destination'] =  customer_info.get('address', '')
             s_obj['bill_of_lading_no'] = ''
+
             s_obj['bill_of_lading_dt'] = ''
+
             s_obj['carrier_name'] = ''
             s_obj['terms_of_payment'] =  COD.get('payment_terms', '')
             s_obj['other_reference'] = ''
@@ -137,7 +140,7 @@ class TallyAPI:
         send_ids = []
         exclude_ids = OrdersAPI.objects.filter(user=user_id, engine_type='Tally', order_type='sku',\
                     status__in=[1,9]).values_list('order_id', flat=True)
-        sku_masters = SKUMaster.objects.exclude(id__in=exclude_ids).filter(user=user_id)[:limit]
+        sku_masters = SKUMaster.objects.exclude(id__in=exclude_ids).filter(user=2)[:limit]
         tally_company_name = 'Mieone'
         data_list = []
         for sku_master in sku_masters:
@@ -166,51 +169,62 @@ class TallyAPI:
         data_list = []
         for master in masters:
             data_dict = {}
-            data_dict['tally_company_name'] = self.tally_dict.get('company_name', '')
-            data_dict['oldLedgerName'] = ''
+            data_dict['tally_company_name'] = self.tally_dict.get('company_name', 'Mieone')
+            data_dict['old_ledger_name'] = ''
+            #data_dict['oldLedgerName'] = ''
             data_dict['ledger_name'] = master.name
             data_dict['ledger_alias'] = getattr(master, field_mapping['id'])
-            data_dict['updateOpeningBalance'] = getattr(master, field_mapping['id'])
-            data_dict['openingBalance'] = 'Optional'
+            data_dict['ledger_alias'] = 'cehck1123123'
+            #data_dict['updateOpeningBalance'] = getattr(master, field_mapping['id'])
+            data_dict['update_opening_balance'] = getattr(master, field_mapping['id'])
+            #data_dict['openingBalance'] = 'Optional'
+            data_dict['opening_balance'] = 0 #?int or Float
             parent_group_name = ''
             master_type = getattr(master, field_mapping['type'])
             group_obj = master_group.filter(master_value=master_type)
             if group_obj:
                 parent_group_name = group_obj[0].parent_group
-            data_dict['ledgerMailingName'] = master.name
+            #data_dict['ledgerMailingName'] = master.name
+            data_dict['ledger_mailing_name'] = master.name
+            #--------
             data_dict['parent_group_name'] = parent_group_name
+            data_dict['parent_group_name'] = 'Fixed Assets'
             data_dict['address'] = master.address
             data_dict['state'] = master.state
-            data_dict['pinCode'] = master.pincode
+            #data_dict['pinCode'] = master.pincode
+            data_dict['pin_code'] = master.pincode
             data_dict['country'] = master.country
-            data_dict['contactPerson'] = ''
-            data_dict['telephoneNo'] = master.phone_number
-            data_dict['faxNo'] = master.phone_number
+            #data_dict['contactPerson'] = ''
+            data_dict['contact_person'] = ''
+            #data_dict['telephoneNo'] = master.phone_number
+            data_dict['telephone_no'] = master.phone_number
+            #data_dict['faxNo'] = master.phone_number
+            data_dict['fax_no'] = ''
             data_dict['email'] = master.email_id
-            data_dict['tinNo'] = master.tin_number
-            data_dict['cstNo'] = master.cst_number
-            data_dict['panNo'] = master.pan_number
-            data_dict['serviceTaxNo'] = ''
+            data_dict['tin_no'] = master.tin_number
+            data_dict['cst_no'] = master.cst_number
+            data_dict['pan_no'] = master.pan_number
+            data_dict['service_tax_no'] = ''
             if master_type == 'customer':
                 credit_period = master.credit_period
                 if not credit_period and self.tally_dict.get('credit_perod', 0):
                     credit_period = self.tally_dict.get('credit_perod')
-                data_dict['defaultCreditPeriod'] = credit_period
-            data_dict['maintainBillWiseDetails'] = STATUS_DICT[self.tally_dict.get('maintain_bill', 0)]
+                data_dict['default_credit_period'] = credit_period
+            data_dict['maintain_billWise_details'] = STATUS_DICT[self.tally_dict.get('maintain_bill', 0)]
             data_list.append(data_dict)
         return data_list
 
     def get_supplier_master(self, limit=10):
-        limit = 10
-        user_id = self.user
+        limit = 1
+        user_id = 7
         supplier_masters = SupplierMaster.objects.filter(user=user_id)[:limit]
         data_list = self.update_masters_data(supplier_masters,\
             'vendor', {'id': 'id', 'type': 'supplier_type'}, user_id)
         return HttpResponse(json.dumps(data_list, cls=DjangoJSONEncoder))
 
     def get_customer_master(self, limit=10):
-        limit=10
-        user_id = self.user
+        limit=1
+        user_id = 7
         customer_masters = CustomerMaster.objects.filter(user=user_id)[:limit]
         data_list = self.update_masters_data(customer_masters,\
             'customer', {'id': 'customer_id', 'type': 'customer_type'}, user_id)
@@ -230,7 +244,7 @@ class TallyAPI:
                             'sku__measurement_type', 'order__unit_price', 'order__order_id', 'order__sku__product_type', 'order__state', \
                             'order__customer_id', 'order__user')
         for obj in order_returns_obj:
-            order_returns['tally_company_name'] = tally_config.get('company_name', '')
+            order_returns['tally_company_name'] = tally_config.get('company_name', 'Mieone')
             order_returns['voucher_foreign_key'] = obj['return_id']
             order_returns['dt_of_voucher'] = obj['creation_date'].strftime('%d/%m/%Y')
             order_returns['buyer_name'] = obj['order__customer_name']
@@ -332,7 +346,7 @@ class TallyAPI:
         for obj in purchase_order:
             s_obj = {}
             purchase_order_obj.setdefault(obj['order_id'], {})
-            purchase_order_obj[obj['order_id']]['tally_company_name'] = tally_config.get('company_name', '')
+            purchase_order_obj[obj['order_id']]['tally_company_name'] = tally_config.get('company_name', 'Mieone')
             purchase_order_obj[obj['order_id']]['voucher_foreign_key'] = self.get_voucher(obj)
             purchase_order_obj[obj['order_id']]['dt_of_voucher'] = obj['creation_date'].strftime('%d/%m/%Y')
             purchase_order_obj[obj['order_id']]['supplier_name'] = obj['open_po__supplier__name']

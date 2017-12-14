@@ -1172,7 +1172,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
         else:
             SellerStock.objects.create(seller_id=seller_id, stock_id=stock.id, quantity=quantity)
 
-def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, seller_id=''):
+def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, seller_id=''):
     for stock in stocks:
         if stock.quantity > move_quantity:
             stock.quantity -= move_quantity
@@ -1191,9 +1191,9 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, selle
             break
 
     if not dest_stocks:
-        dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=float(quantity), status=1,
-                                  creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now(), location_id=dest[0].id,
-                                  sku_id=sku_id)
+        dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=float(quantity),
+                                  status=1, creation_date=datetime.datetime.now(),
+                                  updation_date=datetime.datetime.now(), location_id=dest[0].id, sku_id=sku_id)
         dest_stocks.save()
         change_seller_stock(seller_id, dest_stocks, user, float(quantity), 'create')
     else:
@@ -1240,7 +1240,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
             return 'Seller Stock Not Found'
 
     dest_stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=dest[0].id, sku__user=user.id)
-    update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, seller_id)
+    update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, seller_id)
 
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
     data_dict['cycle'] = cycle_id
@@ -2921,12 +2921,13 @@ def apply_search_sort(columns, data_dict, order_term, search_term, col_num, exac
             data_dict = sorted(data_dict, key = lambda x: x[order_data], reverse= True)
     return data_dict
 
-def password_notification_message(username, password, name, to):
+def password_notification_message(username, password, name, to, role_name):
     """ Send SMS for password modification """
     arguments = "%s -- %s -- %s -- %s" % (username, password, name, to)
     log.info(arguments)
     try:
-        data = " Dear Customer, Your credentials for %s Customer Portal are as follows: \n Username: %s \n Password: %s" %(name, username, password)
+        data = " Dear %s, Your credentials for %s %s Portal are as follows: \n Username: %s \n Password: %s" % (
+                        role_name, role_name, name, username, password)
 
         send_sms(to, data)
     except:

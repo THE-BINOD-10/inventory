@@ -189,10 +189,10 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
 
         login_created = False
         user_role_mapping = UserRoleMapping.objects.filter(role_id=data.id, role_type='supplier')
-        user_name = ""
+        username = ""
         if user_role_mapping:
             login_created = True
-            user_name = user_role_mapping[0].user.username
+            username = user_role_mapping[0].user.username
 
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
@@ -202,7 +202,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                  ('pan_number', data.pan_number), ('city', data.city), ('state', data.state),
                                                  ('country', data.country), ('pincode', data.pincode),
                                                  ('status', status), ('supplier_type', data.supplier_type),
-                                                 ('login_created', login_created), ('user_name', user_name),
+                                                 ('login_created', login_created), ('username', username),
                                                  ('DT_RowId', data.id), ('DT_RowClass', 'results') )))
 
 @csrf_exempt
@@ -733,10 +733,12 @@ def update_supplier_values(request, user=''):
     try:
         data_id = request.POST['id']
         data = get_or_none(SupplierMaster, {'id': data_id, 'user': user.id})
+        old_name = data.name
 
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
         username = request.POST.get('username', '')
+        login_created = request.POST.get('login_created', '')
 
         for key, value in request.POST.iteritems():
             if key not in data.__dict__.keys():
@@ -756,6 +758,16 @@ def update_supplier_values(request, user=''):
                 return HttpResponse(status_msg)
             UserRoleMapping.objects.create(role_id=data.id, role_type='supplier', user_id=new_user_id,
                                            creation_date=datetime.datetime.now())
+        name_ch = False
+        if old_name != data.name:
+            name_ch = True
+        if login_created == 'true':
+            if password or name_ch:
+                user_role_mapping = UserRoleMapping.objects.filter(role_id=data.id, role_type='supplier')
+                if user_role_mapping:
+                    update_user_password(data.name, data.email_id, data.phone_number, password,
+                                         user_role_mapping[0].user_id, user, 'Supplier')
+                #update_customer_password(data, password, user)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -871,21 +883,19 @@ def insert_mapping(request, user=''):
     sku_supplier.save()
     return HttpResponse('Added Successfully')
 
-def update_customer_password(data, password, user):
-    customer_user_map = CustomerUserMapping.objects.filter(customer_id=data.id, customer__user=data.user)
-    if customer_user_map:
-        customer_user = customer_user_map[0].user
-        if password:
-            customer_user.set_password(password)
-        customer_user.email = data.email_id
-        customer_user.first_name  = data.name
-        customer_user.save()
-        if user.first_name:
-            name = user.first_name
-        else:
-            name = user.username
-        if password:
-            password_notification_message(customer_user.username, password, name, data.phone_number)
+def update_user_password(data_name, data_email, phone_number, password, cur_user_id, user, role_name):
+    cur_user = User.objects.get(id=cur_user_id)
+    if password:
+        cur_user.set_password(password)
+    cur_user.email = data_email
+    cur_user.first_name  = data_name
+    cur_user.save()
+    if user.first_name:
+        name = user.first_name
+    else:
+        name = user.username
+    if password:
+        password_notification_message(cur_user.username, password, name, phone_number, role_name)
 
 @csrf_exempt
 @login_required
@@ -936,7 +946,12 @@ def update_customer_values(request,user=''):
             name_ch = True
         if login_created == 'true':
             if password or name_ch:
-                update_customer_password(data, password, user)
+                customer_user_map = CustomerUserMapping.objects.filter(customer_id=data.id, customer__user=data.user)
+                if customer_user_map:
+                    cur_user_id = customer_user_map[0].user.id
+                    update_user_password(data.name, data.email_id, data.phone_number, password, cur_user_id, user,
+                                         role_name='Customer')
+                #update_customer_password(data, password, user)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

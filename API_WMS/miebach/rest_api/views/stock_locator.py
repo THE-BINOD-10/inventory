@@ -1368,7 +1368,7 @@ def confirm_sku_substitution(request, user=''):
     elif src_stock_count < src_qty:
         return HttpResponse('Source SKU Code Have Stock, '+ str(src_stock_count))
     dest_stocks = StockDetail.objects.filter(sku_id=dest_sku.id, location_id=dest_loc.id, sku__user=user.id)
-    update_stocks_data(src_stocks, float(src_qty), dest_stocks, float(dest_qty), user, '')
+    update_stocks_data(src_stocks, float(src_qty), dest_stocks, float(dest_qty), user, [dest_loc], dest_sku.id, '')
     sub_data = {'source_sku_code_id': src_sku.id, 'source_location': src_loc.location, 'source_quantity': src_qty,
                 'destination_sku_code_id': dest_sku.id, 'destination_location': dest_loc.location, 'destination_quantity': dest_qty}
     SubstitutionSummary.objects.create(**sub_data)

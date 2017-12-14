@@ -4963,3 +4963,50 @@ def order_allocate_stock(request, user, stock_data = [], mapping_type=''):
         log.debug(traceback.format_exc())
         log.info('Auto Allocate Stock function failed for %s and params are %s and error statement is %s' %
                  (str(user.username), str(stock_data), str(e)))
+
+@login_required
+@get_admin_user
+def get_user_profile_data(request, user=''):
+    ''' return user profile data '''
+
+    data = {'name': user.username, 'email': user.email}
+    main_user = UserProfile.objects.get(user_id=user.id)
+    data['address'] = main_user.address
+    data['gst_number'] = main_user.gst_number
+    data['main_user'] = request.user.is_staff
+    return HttpResponse(json.dumps({'msg': 1, 'data': data}))
+
+def change_user_password(request, user=''):
+
+    resp = {'msg': 0, 'data':'Successfully Updated'}
+    try:
+        log.info('Change Password  for user %s , %s' % (str(rquest.user.id), str(request.user.username)))
+
+        old_password = request.POST.get('old_password', '')
+        if not request.user.check_password(old_password):
+            resp['data'] = 'Invalid Old Password'
+            return HttpResponse(json.dumps(resp))
+        new_password = request.POST.get('new_password', '')
+        retype_password = request.POST.get('retype_password', '')
+        if not new_password:
+            resp['data'] = 'New Password Should Not Be Empty'
+            return HttpResponse(json.dumps(resp))
+        if not retype_password:
+            resp['data'] = 'Retype Password Should Not Be Empty'
+            return HttpResponse(json.dumps(resp))
+        if new_password != retype_password:
+            resp['data'] = 'New Password and Retype Password Should Be Same'
+            return HttpResponse(json.dumps(resp))
+        if old_password == new_password:
+            resp['data'] = 'Old Password and New Password Should Be Same'
+            return HttpResponse(json.dumps(resp))
+
+        resp['msg'] = 1
+        request.user.set_password(new_password)
+        request.user.save()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Change Password Faild User '+ str(request.user.username))
+        resp['data'] = 'Password Updation Fail'
+    return HttpResponse(json.dumps(resp))

@@ -680,6 +680,7 @@ class UserProfile(models.Model):
     country = models.CharField(max_length=60, default='')
     pin_code = models.PositiveIntegerField(default=0)
     address = models.CharField(max_length=256, default='')
+    gst_number = models.CharField(max_length=32, default='')
     multi_warehouse = models.IntegerField(default=0)
     is_trail = models.IntegerField(default=0)
     api_hash = models.CharField(max_length=256, default='')

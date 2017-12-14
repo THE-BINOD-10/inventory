@@ -27,6 +27,7 @@
             <input ng-if="showCase.model_data.create_login && !(showCase.model_data.login_created)" type="hidden" name="create_login" value="{{showCase.model_data.create_login}}">
             <div class="row">
               <div class="col-md-4">
+                <input name="login_created" type="hidden" value="{{showCase.model_data.login_created}}">
                 <div class="form-group">
                   <label class="control-label"> Supplier Id * </label>
                   <input type="text" name="id" class="form-control" ng-model="showCase.model_data.id" ng-readonly="showCase.update" ng-required="true">
@@ -108,6 +109,15 @@
                   <textarea rows="5" cols="27" class="form-control" ng-model="showCase.model_data.address" name="address" ng-required="true">{{showCase.model_data.address}}</textarea>
                 </div>
               </div>
+              <div class="col-md-6" ng-if="showCase.model_data.login_created && !(showCase.model_data.create_login)">
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="form-group">
+                    <a ng-click="showCase.model_data.create_login = true" style="color: #33cc66; text-decoration: underline;"> Change Password </a>
+                  </div>
+                </div>
+              </div>
+            </div>
             </div>
             <div class="row" ng-if="showCase.model_data.create_login">
               <hr>

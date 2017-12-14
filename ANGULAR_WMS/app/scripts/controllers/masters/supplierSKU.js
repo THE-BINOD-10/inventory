@@ -41,6 +41,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
+                vm.model_data['create_login'] = false;
                 angular.copy(aData, vm.model_data);
                 vm.update = true;
                 vm.title = "Update Supplier SKU";

@@ -92,8 +92,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.supplier = function(url) {
 
-    var data = $.param(vm.model_data);
-    vm.service.apiCall(url, 'POST', vm.model_data, true).then(function(data){
+    //var data = $.param(vm.model_data);
+    var send = $("form").serializeArray();
+    vm.service.apiCall(url, 'POST', send, true).then(function(data){
 
       if(data.message) {
 

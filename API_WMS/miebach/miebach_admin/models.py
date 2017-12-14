@@ -4,6 +4,8 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from choices import ROLE_TYPE_CHOICES
+
 #from longerusername import MAX_USERNAME_LENGTH
 # Create your models here.
 
@@ -1984,12 +1986,26 @@ class OrderAwbMap(models.Model):
         index_together = ('original_order_id', 'awb_no')
         unique_together = ('original_order_id', 'awb_no')
 
+class UserRoleMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    role_id = models.CharField(max_length=64, default='')
+    role_type = models.CharField(max_length=32, choices=ROLE_TYPE_CHOICES, default='supplier')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'USER_ROLE_MAPPING'
+        index_together = ('user', 'role_id', 'role_type')
+        unique_together = ('user', 'role_id', 'role_type')
+
+'''
 import django
 from django.core.validators import MaxLengthValidator
 from django.utils.translation import ugettext as _
 from django.db.models.signals import class_prepared
 from django.conf import settings
-'''
+
 def longer_username_signal(sender, *args, **kwargs):
     if (sender.__name__ == "User" and
         sender.__module__ == "django.contrib.auth.models"):

@@ -143,6 +143,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
         if(click_type == 'edit'){
           send['data'] = true;
+          send['edit_invoice'] = true;
         }
         vm.bt_disable = true;
         vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){

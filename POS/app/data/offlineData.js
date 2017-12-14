@@ -1,31 +1,6 @@
 "use strict";
 
-function addItem(){
-
-	DATABASE.skumaster.put({
-		ProductDescription: "laptop back cover",
-		igst: 20,
-		SKUCode: "228",
-		price: 100,
-		discount: 20,
-		selling_price: 130,
-		search: "228 Pavechas Cotton Sari",
-		url: "http://img.fkcdn.com/image/sari/g/q/3/228-pavecha-free-size-1024x800-imadnbxqgfdbknef.jpeg",
-		sgst: 20,
-		data_id: 546,
-		utgst: 8,
-		stock_quantity: 120,
-		cgst: 3
-	}).then(function(res){
-		console.log("data is "+res);
-	}).catch(function(error){
-		console.log("data error is "+error);
-	});
-
-}
-	//addItem();
-
-	//add bulk sukitems
+//add bulk sukitems
 	function addSKUBulkItem(skulist){
 
 		return new Promise(function(resolve,reject){
@@ -164,8 +139,6 @@ function addItem(){
 		});
 	}
 
-	//addBulkItem();
-	
 	//check table in DATABASE
 	function checktable(table_name){
 
@@ -1298,7 +1271,7 @@ function addItem(){
 				DATABASE.order_delivered.toArray().then(function(data){
 					return resolve(data);
 				}).catch(function(error){
-					return reject([]);
+					return resolve([]);
 				});
 				
 			}else{
@@ -1309,7 +1282,7 @@ function addItem(){
 					else
 						return resolve([]);
 				}).catch(function(error){
-					return reject([]);
+					return resolve([]);
 				});
 				
 			}
@@ -1372,4 +1345,4 @@ function addItem(){
 		});     
 	} 
 
-	
+

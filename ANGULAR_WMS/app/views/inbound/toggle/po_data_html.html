@@ -1,0 +1,21 @@
+<div class="table-responsive mt20 ml20 mr20 mb20">
+  <table class="table table-bordered mb20" ng-repeat="(size_type, size_data) in po_data">
+    <thead>
+      <tr>
+        <th ng-repeat="hd in ['Style Code', 'Style Name', 'Brand', 'Category']">{{hd}}</th>
+        <th ng-repeat="size in size_data.sizes_list">{{size}}</th>
+        <th ng-repeat="hd in ['Total Qty', 'Receivable Qty', 'Received Qty']">{{hd}}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="(name, style_data) in size_data.styles">
+        <td ng-repeat="record in ['style_code', 'style_name', 'brand', 'category']">{{style_data.style_data[record]}}</td>
+        <td ng-repeat="record in size_data.sizes_list">{{(style_data.sizes[record])? style_data.sizes[record]: 0;}}</td>
+        <td ng-repeat="record in ['total_order_quantity', 'total_receivable_quantity', 'total_received_quantity']">
+          {{(style_data.po_data[record])? style_data.po_data[record]: 0;}}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+</div>

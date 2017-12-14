@@ -400,7 +400,7 @@ h1 small {
   }
 }
 .order-list {
-  border: 1px solid #cccccc;
+  border: 1px solid #ccc;
 }
 .order-list .order-item {
   padding: 10px;
@@ -409,23 +409,23 @@ h1 small {
   color: blue;
 }
 .order-list .order-label {
-  color: #999999;
+  color: #999;
 }
 .order-list .order-bold {
   font-size: 20px;
   color: black;
 }
 .order-list .border-grey {
-  border-bottom: 1px solid #cccccc;
+  border-bottom: 1px solid #ccc;
 }
 .detail-list {
-  border: 1px solid #cccccc;
+  border: 1px solid #ccc;
 }
 .detail-list .detail-item {
   padding: 10px;
 }
 .detail-list .border-grey {
-  border-bottom: 1px solid #cccccc;
+  border-bottom: 1px solid #ccc;
 }
 .detail-list .detail-bg-grey {
   background: #f0f0f0;
@@ -490,6 +490,9 @@ h1 small {
 }
 body {
   background: #fff;
+}
+.swal2-container {
+  z-index: 2021;
 }
 .field {
   margin-bottom: 10px;
@@ -591,6 +594,9 @@ body {
 .page-layout .layout-body label.error {
   display: none !important;
 }
+.lebel-error-hide label.error {
+  display: none !important;
+}
 .custom-table {
   border-bottom: 1px solid rgba(0, 0, 0, 0.14) !important;
 }
@@ -618,11 +624,11 @@ body {
 .dataTables_wrapper .dataTables_filter {
   padding-right: 5px !important;
 }
-.dataTables_wrapper tbody tr:hover {
+.dataTables_wrapper .custom-table > tbody > tr:hover {
   background: rgba(111, 213, 217, 0.1) !important;
   cursor: pointer;
 }
-.dataTables_wrapper tbody tr td {
+.dataTables_wrapper .custom-table > tbody > tr > td {
   vertical-align: middle;
 }
 .dataTables_wrapper .dataTables_processing {
@@ -667,7 +673,7 @@ body {
   top: 8px;
 }
 .layout-sub-header {
-  background: #ffffff;
+  background: #fff;
 }
 .layout-sub-header .filters {
   background: #f0f0f0;
@@ -764,12 +770,10 @@ body {
 .page-pop .modal-body table {
   /*width: 97%;
       margin: 10px;*/
-
 }
 #page-pop .modal-body table tbody > tr > td > input,
 .page-pop .modal-body table tbody > tr > td > input {
   /*width: 90%;*/
-
 }
 #page-pop .modal-body .dropdown-menu > .active > a:hover,
 .page-pop .modal-body .dropdown-menu > .active > a:hover,
@@ -1126,7 +1130,6 @@ rm-blur:active {
   padding: 5px 0;
   padding: 3px;
   /* Position the tooltip */
-
   position: absolute;
   z-index: 1;
   top: -5px;
@@ -1194,7 +1197,6 @@ rm-blur:active {
     }
   }
   */
-
 }
 .tracking .panel-group .panel-body {
   background: #f0f0f0;
@@ -1441,4 +1443,10 @@ pre {
     width: 33%;
     height: 75px;
   }
+}
+.row-expansion {
+  cursor: text !important;
+}
+.row-expansion:hover {
+  background: #fff !important;
 }

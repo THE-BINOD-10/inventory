@@ -71,7 +71,7 @@ DATABASE.skumaster.hook("deleting", function (primKey, obj, trans) {
 function getAllWords(text) {
     
     if (text) {
-        var allWordsIncludingDups = text.toLowerCase().split(' ');
+        var allWordsIncludingDups = text.toLowerCase().split(/[\s-]+/);
         var wordSet = allWordsIncludingDups.reduce(function (prev, current) {
             prev[current] = true;
             return prev;

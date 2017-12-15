@@ -37,7 +37,10 @@ function BackorderPOPOP($scope, $http, $state, $timeout, Session, colFilters, Se
   }
 
   vm.print_enable = false;
-  vm.confirm_po = function() {
+  vm.confirm_po = function(form) {
+      if(form.$invalid) {
+        return false;
+      }
       var elem = $("form:visible").serializeArray();
 
       Service.apiCall("confirm_back_order/", "POST", elem, true).then(function(data){

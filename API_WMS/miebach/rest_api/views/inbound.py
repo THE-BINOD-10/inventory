@@ -2136,13 +2136,9 @@ def check_returns(request, user=''):
     request_awb = request.GET.get('awb_no', '')
     if request_awb:
         try:
-            get_order_id = OrderAwbMap.objects.get(awb_no = request_awb).original_order_id
+            request_order_id = OrderAwbMap.objects.get(awb_no = request_awb, user = user.id).original_order_id
         except ObjectDoesNotExist:
-            get_order_id = None
-        if get_order_id:
-            request_order_id = get_order_id
-        else:
-            status = 'AWB No. is Invalid'
+            request_order_id = None
     if request_order_id:
         filter_params = {}
         order_id = re.findall('\d+', request_order_id)
@@ -2203,6 +2199,8 @@ def check_returns(request, user=''):
                          'sku_code': order_data.sku.sku_code,
                          'sku_desc': order_data.sku.sku_desc, 'ship_quantity': order_quantity,
                          'return_quantity': order_data.quantity, 'damaged_quantity': order_data.damaged_quantity})
+    else:
+        status = 'AWB No. is Invalid'
     if not status:
         return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder))
     return HttpResponse(status)

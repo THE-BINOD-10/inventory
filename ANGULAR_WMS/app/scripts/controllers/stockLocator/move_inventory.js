@@ -262,16 +262,16 @@
           $ctrl.model_data.src_quantity = $ctrl.model_data.src_available_quantity;
         }
       } else {
-        
+
         $ctrl.empty_input_fields();
       }
     }
 
     $ctrl.empty_input_fields = function(){
 
-        $ctrl.model_data.src_quantity = 0;
+        $ctrl.model_data.src_quantity = "";
         $ctrl.model_data.dest_sku_code = "";
-        $ctrl.model_data.dest_quantity = 0;
+        $ctrl.model_data.dest_quantity = "";
         $ctrl.model_data.dest_location = "";
     }
 

@@ -17,12 +17,12 @@
             
             <div class="col-md-6 col-sm-6 col-xs-6">
                 <label class="control-label">Quantity</label>
-                <input type="text" name="src_quantity" class="form-control" decimal-number ng-model="$ctrl.model_data.src_quantity" placeholder="0" ng-disabled="$ctrl.model_data.src_available_quantity == 0" ng-change="$ctrl.check_validation()">
+                <input type="text" name="src_quantity" class="form-control" decimal-number ng-model="$ctrl.model_data.src_quantity"  ng-disabled="$ctrl.model_data.src_available_quantity == 0" ng-change="$ctrl.check_validation()">
             </div>
 
             <div class="col-md-6 col-sm-6 col-xs-6" style="margin-top: 10px">
                 <label class="control-label">Source Location</label>
-                <input type="text" name="src_location" class="form-control" ng-model="$ctrl.model_data.src_location" ng-disabled="!$ctrl.model_data.src_sku_code" ng-blur="$ctrl.check_loc_wise_qty($ctrl.model_data.src_sku_code, $ctrl.model_data.src_location, 'src_sku')">
+                <input type="text" name="src_location" class="form-control" ng-model="$ctrl.model_data.src_location" ng-disabled="!$ctrl.model_data.src_sku_code" ng-change="$ctrl.check_loc_wise_qty($ctrl.model_data.src_sku_code, $ctrl.model_data.src_location, 'src_sku')" ng-debounce>
             </div>
 
             <div class="col-md-6 col-sm-6 col-xs-6" style="margin-top: 10px; text-align: center">
@@ -90,7 +90,7 @@
         </div>
       </div> -->
     </div>
-    
+
     <div class="modal-footer">
       <button type="button" class="btn pop pop-normal" ng-click="$ctrl.close()">Close</button>
       <button type="button" class="btn pop pop-green" ng-click="$ctrl.submit(myForm)" ng-disabled="myForm.$invalid; $ctrl.disabled_button">Save

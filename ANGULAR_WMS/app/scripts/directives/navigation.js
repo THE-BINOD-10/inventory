@@ -26,6 +26,8 @@ function sideNavigation() {
           scope.$apply('checkOffscreen()');
           //$this.closest('li').parents(".menu-accordion,.open").addClass("active");
           //otherLinks.removeClass('active');
+          otherLinks.removeClass('open');
+          scope.updateScrollbars();
           return;
         }
 

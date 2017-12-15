@@ -1,23 +1,27 @@
 'use strict';
 
-function StockTransferPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams) {
+function StockTransferPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
 
   var vm = this;
   vm.state_data = "";
   vm.service = Service;
 
-  if($stateParams.data){
-     vm.state_data = $stateParams.data;
-  }
+  vm.state_data = items;
 
   vm.pop_data = {};
   var empty_data = {data: [{wms_code: "", order_quantity: "", price: ""}], warehouse_name: ""};
   angular.copy(empty_data, vm.pop_data);
-  if(vm.state_data)  {
+  if(vm.state_data.data)  {
 
-    angular.copy(JSON.parse(vm.state_data), vm.pop_data.data);
-  } else {
-    $state.go($state.$current.parent);
+    if (vm.state_data.url) {
+      vm.service.apiCall(vm.state_data.url, 'GET', vm.state_data.data).then(function(data){
+        if(data.message) {
+          angular.copy(data.data.data_dict, vm.pop_data.data);
+        }
+      })
+    } else {
+      angular.copy(vm.state_data.data, vm.pop_data.data);
+    }
   }
 
   vm.isLast = isLast;
@@ -55,6 +59,7 @@ function StockTransferPOP($scope, $http, $state, $timeout, Session, colFilters, 
         if(data.message) {
           if(data.data == 'Confirmed Successfully') {
             vm.service.pop_msg(data.data);
+            vm.ok(data.data);
           } else {
             vm.service.pop_msg(data.data);
           }
@@ -79,8 +84,11 @@ function StockTransferPOP($scope, $http, $state, $timeout, Session, colFilters, 
       });
     }
 
+  vm.ok = function (msg) {
+    $modalInstance.close(msg);
+  };
 }
 
 angular
   .module('urbanApp')
-  .controller('StockTransferPOP', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', StockTransferPOP]);
+  .controller('StockTransferPOP', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', StockTransferPOP]);

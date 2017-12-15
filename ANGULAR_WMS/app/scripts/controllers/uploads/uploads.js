@@ -209,8 +209,17 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "marketplace-serial-file",
                    value: "",
                    show: Session.roles.permissions.use_imei
-                 },
-                 ]
+                 }, {
+                    title: "OrderId AWB Mapping Download/Upload",
+                    download: "Download OrderId AWB Mapping Form",
+                    upload: "Upload OrderId AWB Mapping Form",
+                    durl: "orderid_awb_mapping_form/",
+                    uurl: "orderid_awb_upload/",
+                    dparam: "orderid-awb-map-file",
+                    value: "",
+                    show: true
+                  }
+                ]
 
   $scope.download = function(data) {
 

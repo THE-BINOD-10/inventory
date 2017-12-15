@@ -1,0 +1,12 @@
+<div class="summary pending">
+  <h5>Last 5 Orders</h5>
+  <div class="summary-row" ng-repeat= "item in $ctrl.pending_data" ng-click="$ctrl.unhold_order(item)">
+    <div class="pull-left">
+      <p><b ng-if="(item.customer_data.Number.length > 0)? true : false;">{{item.customer_data.Number}} :</b> {{item.customer_data.FirstName}}</p>
+    </div>
+    <div class="pull-right">
+      <h5 ng-if="item.status == 1"><span class="label label-default" style="background: #33cc66;">{{item.order_id}}</span></h5>
+      <h5 ng-if="item.status == 0"><span class="label label-default">pending</span></h5>
+    </div>
+  </div>
+</div>

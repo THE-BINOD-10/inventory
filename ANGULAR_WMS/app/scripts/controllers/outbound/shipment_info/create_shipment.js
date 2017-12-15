@@ -11,6 +11,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.sku_group = false;
     vm.permissions = Session.roles.permissions;
     vm.mk_user = (vm.permissions.use_imei == true) ? true: false;
+    vm.awb_ship_type = (vm.permissions.create_shipment_type == true) ? true: false;
 
     vm.g_data = Data.create_shipment;
 
@@ -112,7 +113,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.add = function (data) {
         vm.bt_disable = true;
         var table = vm.dtInstance.DataTable.data()
-
+        var apiUrl = "get_customer_sku/";
         var data = []
         var order_ids = [];
         var mk_places = [];
@@ -132,6 +133,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
         if(order_ids.length == 0) {
           service.showNoty("Please Select Orders First");
+          vm.bt_disable = false;
           return false;
         }
 
@@ -146,8 +148,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
             return;
           }
         }
+
         data.push({name:'view', value:vm.g_data.view});
-        service.apiCall("get_customer_sku/", "GET", data).then(function(data){
+        service.apiCall(apiUrl, "GET", data).then(function(data){
           if(data.message) {
             if(data.data["status"]) {
 
@@ -265,24 +268,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   }
 
   vm.add_shipment = function(valid) {
-
     if(valid.$valid) {
       if(vm.service.check_quantity(vm.model_data.data, 'sub_data', 'shipping_quantity'))  {
         vm.bt_disable = true;
         var data = $("#add-customer:visible").serializeArray();
         service.apiCall("insert_shipment_info/", "POST", data, true).then(function(data){
-
-          if(data.message) {
-            service.showNoty(data.data);
-            if(data.data.indexOf("Success") != -1) {
-              vm.close();
-              vm.reloadData();
-            }
+          if(data.data.status) {
+            service.showNoty(data.data.message);
+            vm.close();
+            vm.reloadData();
+            vm.awb_no = '';
             vm.bt_disable = false;
           };
         });
       } else {
-
         service.showNoty("Please Enter Quantity");
       }
     } else {
@@ -389,5 +388,37 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
       $('.shipment-date').datepicker('update');
     }
+
+    vm.scanAwb = function(event, sku) {
+      if (event.keyCode == 13 && sku.length > 0) {
+        vm.bt_disable = true;
+        vm.awb_no = sku;
+        var apiUrl = "get_awb_shipment_details/";
+        if (vm.awb_no.length) {
+          var data=[];
+          data.push({ name: 'awb_no', value: vm.awb_no });
+        } else {
+          vm.bt_disable = false;
+          service.showNoty("Fill Mandatory Fields", 'error', 'topRight');
+          return;
+        }
+        data.push({ name:'view', value:vm.g_data.view });
+        service.apiCall( apiUrl, "GET", data).then(function(data) {
+        if(data.message) {
+          if(data.data["status"]) {
+            vm.service.showNoty(data.data.message);  
+          } else {
+            vm.service.showNoty(data.data.message, 'error', 'topRight');
+          }
+        }
+        vm.awb_no = '';
+        vm.bt_disable = true;
+        vm.reloadData();
+        });
+      }
+    }
+        
+    vm.bt_disable = false;
+
   }
 

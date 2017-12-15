@@ -8,7 +8,7 @@ importScripts('/app/data/offlineData.js');
 	"use strict";
 	//service worker version number
 
-	var VERSION="0.0.0.91-build-0.9.0.45"
+	var VERSION="0.0.0.91-build-0.9.0.49"
 
 	//service worker version name
 	var CACHE_NAME="POS"+VERSION;

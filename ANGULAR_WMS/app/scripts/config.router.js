@@ -1672,6 +1672,20 @@ var app = angular.module('urbanApp')
             templateUrl: 'views/manage_users/group_details.html'
           })
 
+      //Porfile
+      .state('app.Profile', {
+          url: '/Profile',
+          templateUrl: 'views/profile/profile.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/controllers/profile.js');
+                    }]
+          },
+          data: {
+            title: 'Porfile'
+          }
+        })
+
       //register
       .state('app.Register', {
           url: '/Register',

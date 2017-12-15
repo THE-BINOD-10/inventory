@@ -4974,6 +4974,7 @@ def get_user_profile_data(request, user=''):
     data['address'] = main_user.address
     data['gst_number'] = main_user.gst_number
     data['main_user'] = request.user.is_staff
+    data['company_name'] =main_user.company_name
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
 
 @csrf_exempt
@@ -5022,10 +5023,12 @@ def update_profile_data(request, user=''):
 
     address = request.POST.get('address', '')
     gst_number = request.POST.get('gst_number', '')
+    company_name = request.POST.get('company_name', '')
     email = request.POST.get('email', '')
     main_user = UserProfile.objects.get(user_id=user.id)
     main_user.address = address
     main_user.gst_number = gst_number
+    main_user.company_name = company_name
     main_user.save()
     user.email = email
     user.save()

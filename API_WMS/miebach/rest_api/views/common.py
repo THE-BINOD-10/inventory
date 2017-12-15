@@ -1680,7 +1680,7 @@ def search_wms_codes(request, user=''):
     return HttpResponse(json.dumps(wms_codes))
 
 def get_order_id(user_id):
-    order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).order_by('-creation_date')
+    order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO', 'Pre Order']).order_by('-creation_date')
     if order_detail_id:
         order_id = int(order_detail_id[0].order_id) + 1
     else:
@@ -1690,7 +1690,6 @@ def get_order_id(user_id):
 
     #order_id = int(order_detail_id['order_id__max']) + 1
     #order_id = time.time()* 1000000
-
     return order_id
 
 def check_and_update_stock(wms_codes, user):
@@ -2417,7 +2416,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     data = get_styles_data(user, product_styles, sku_master, start, stop, customer_id=customer_id, customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict)
     return data, start, stop
 
-def get_user_sku_data(user):
+'''def get_user_sku_data(user):
     request = {}
     #user = User.objects.get(id=sku.user)
     _brand, _categories, _size, _colors, category_details = get_sku_categories_data(request, user, request_data={'file': True}, is_catalog='true')
@@ -2437,26 +2436,28 @@ def get_user_sku_data(user):
     else:
         file_dump = file_dump[0]
         file_dump.checksum = checksum
-        file_dump.save()
+        file_dump.save()'''
 
 @csrf_exempt
-@login_required
-@get_admin_user
+#@login_required
+#@get_admin_user
 def get_file_checksum(request,user=''):
     name = request.GET.get('name', '')
+    user = request.GET.get('user','')
     file_content = ''
-    file_data = list(FileDump.objects.filter(name=name, user=user.id).values('name', 'checksum', 'path'))
+    file_data = list(FileDump.objects.filter(name=name, user=user).values('name', 'checksum', 'path'))
     if file_data:
         file_data = file_data[0]
     return HttpResponse(json.dumps({'file_data': file_data}))
 
 @csrf_exempt
-@login_required
-@get_admin_user
+#@login_required
+#@get_admin_user
 def get_file_content(request,user=''):
     name = request.GET.get('name', '')
+    user = request.GET.get('user','')
     file_content = ''
-    file_data = list(FileDump.objects.filter(name=name, user=user.id).values('name', 'checksum', 'path'))
+    file_data = list(FileDump.objects.filter(name=name, user=user).values('name', 'checksum', 'path'))
     if file_data:
         file_data = file_data[0]
         file_content = open(file_data['path'], 'r').read()

@@ -2022,8 +2022,13 @@ def validate_purchase_order(open_sheet, user):
             elif col_idx == 1:
                 if cell_data:
                     try:
-                        po_date = xldate_as_tuple(cell_data, 0)
 
+                        if isinstance(cell_data, float):
+                            po_date = xldate_as_tuple(cell_data, 0)
+                        elif '-' in cell_data:
+                            po_date = datetime.datetime.strptime(cell_data, "%m-%d-%Y")
+                        else:
+                            index_status.setdefault(row_idx, set()).add('Check the date format')
                     except:
                         index_status.setdefault(row_idx, set()).add('Check the date format')
             elif col_idx == 3:

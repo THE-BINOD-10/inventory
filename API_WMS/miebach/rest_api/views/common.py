@@ -1172,7 +1172,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
         else:
             SellerStock.objects.create(seller_id=seller_id, stock_id=stock.id, quantity=quantity)
 
-def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, seller_id=''):
+def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, seller_id=''):
     for stock in stocks:
         if stock.quantity > move_quantity:
             stock.quantity -= move_quantity
@@ -1191,9 +1191,9 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, selle
             break
 
     if not dest_stocks:
-        dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=float(quantity), status=1,
-                                  creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now(), location_id=dest[0].id,
-                                  sku_id=sku_id)
+        dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=float(quantity),
+                                  status=1, creation_date=datetime.datetime.now(),
+                                  updation_date=datetime.datetime.now(), location_id=dest[0].id, sku_id=sku_id)
         dest_stocks.save()
         change_seller_stock(seller_id, dest_stocks, user, float(quantity), 'create')
     else:
@@ -1240,7 +1240,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
             return 'Seller Stock Not Found'
 
     dest_stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=dest[0].id, sku__user=user.id)
-    update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, seller_id)
+    update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, seller_id)
 
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
     data_dict['cycle'] = cycle_id
@@ -3530,6 +3530,7 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 single['Qty'] = single['SKUPrintQty']
                 single['SKUPrintQty'] = "1"
             barcodes_list.append(single)
+    log.info(barcodes_list)
     return get_barcodes(make_data_dict(barcodes_list, user_prf, pdf_format))
 
 def make_data_dict(barcodes_list, user_prf, pdf_format):

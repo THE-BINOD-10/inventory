@@ -4999,6 +4999,10 @@ def get_customer_orders(request, user=""):
             record['date'] = get_only_date(request, data[0].creation_date)
             record['total_inv_amt'] = round(record['total_inv_amt'], 2)
             record['picked_quantity'] = picked_quantity
+            if record['original_order_id']:
+                record['order_id'] = record['original_order_id']
+            else:
+                record['order_id'] = str(record['order_code']) + str(record['order_id'])
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
 @login_required
@@ -5011,7 +5015,7 @@ def get_customer_order_detail(request, user=""):
     if not order_id:
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
-    order = OrderDetail.objects.filter(order_id = order_id, user=user.id)
+    order = get_order_detail_objs(order_id, user)
     if not order:
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
@@ -5029,7 +5033,7 @@ def get_customer_order_detail(request, user=""):
             tax_data = tax_data[0]
             record['invoice_amount'] = record['invoice_amount'] - tax_data.tax_value
 
-    tax = CustomerOrderSummary.objects.filter(order__order_id = order_id, order__user = user.id).aggregate(Sum('tax_value'))['tax_value__sum']
+    tax = CustomerOrderSummary.objects.filter(order_id__in = order, order__user = user.id).aggregate(Sum('tax_value'))['tax_value__sum']
     if not tax:
         tax = 0
 

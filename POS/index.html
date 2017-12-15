@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>POS</title>
+    <!-- Bootstrap CSS -->
+    <!--<link href="dependencies/bootstrap.min.css" rel="stylesheet">-->
+    <!-- Latest compiled and minified CSS -->
+
+    <!-- registre service worker -->
+    <script type="text/javascript" src="sw_reg.js"></script>
+     <!-- db -->
+    <script type="text/javascript" src="app/data/dexie.js"></script>
+     
+    
+    <!-- <script type="text/javascript" src="sw.js"></script> -->
+    <link href="manifest.json" rel="manifest">
+   <script src="bower_components/jquery/dist/jquery.min.js"></script>
+    
+    <script src="app/config/ServerConfig.js"></script>
+    <script src="app/config/Constants.js"></script>
+   
+    
+    <script type="text/javascript" src="app/data/scheema.js"></script>
+    <script type="text/javascript" src="app/data/offlineData.js"></script>
+ 
+    
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <!-- material.angular.js -->
+    <link href="bower_components/angular-material/angular-material.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- customer css -->
+    <link href="app/css/login.css" rel="stylesheet">
+    <link href="/app/css/menu.css" rel="stylesheet">
+    <link href="app/css/pos.css" rel="stylesheet">
+    <link href="/app/css/sku.css" rel="stylesheet">
+    <link href="/app/css/more.css" rel="stylesheet">
+    <link href="/app/css/receipt.css" rel="stylesheet">
+    <link href="manifest.json" rel="manifest">
+
+  <script src="bower_components/jquery/dist/jquery.min.js"></script>
+  <!-- Bootstrap -->
+  <script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+    <!-- Angular -->
+  <script src="bower_components/angular/angular.min.js"></script>
+  <script src="bower_components/angular-animate/angular-animate.min.js"></script>
+  <script src="bower_components/angular-aria/angular-aria.min.js"></script>
+  <script src="bower_components/angular-messages/angular-messages.min.js"></script>
+  <script src="bower_components/angular-material/angular-material.min.js"></script>
+  <script src="/dependencies/simple-autocomplete.js"></script>
+  <script src="bower_components/angular-fullscreen/src/angular-fullscreen.js"></script>
+  <script src="bower_components/angular-ui-router/release/angular-ui-router.min.js"></script>
+  <script src="bower_components/angular-bootstrap/ui-bootstrap-tpls.min.js"></script>
+
+  <script src="dependencies/print/print.js"></script>
+
+  <script src="/app/header/header.module.js"></script>
+  <script src="/app/header/header.component.js"></script>
+
+  <script src="/app/customer/customer.module.js"></script>
+  <script src="/app/customer/customer.component.js"></script>
+
+  <script src="/app/sku/sku.module.js"></script>
+  <script src="/app/sku/sku.component.js"></script>
+
+  <script src="/app/cal_money/money.module.js"></script>
+  <script src="/app/cal_money/money.component.js"></script>
+
+  <script src="/app/login/login.module.js"></script>
+  <script src="/app/login/login.component.js"></script>
+
+  <script src="/app/order_summary/summary.module.js"></script>
+  <script src="/app/order_summary/summary.component.js"></script>
+
+  <script src="/app/pending/pending.module.js"></script>
+  <script src="/app/pending/pending.component.js"></script>
+
+  <script src="/app/order/order.module.js"></script>
+  <script src="/app/order/order.component.js"></script>
+
+  <script src="/app/more/more.module.js"></script>
+  <script src="/app/more/more.component.js"></script>
+
+  <!-- app -->
+  <script src="/app/app.js"></script>
+  
+
+  <!-- <script src="/app/app.config.js"></script> -->
+
+</head>
+
+<body>
+  <div ng-app="App" class="content-wrapper">
+    <!--<div ng-controller="posController">
+      <button class="hide" ng-click="goFullscreen()" style="float: right;">FullScreen</button>
+    </div>-->
+      <div ui-view></div>
+  </div>
+</body>
+
+</html>

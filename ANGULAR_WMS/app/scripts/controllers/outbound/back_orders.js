@@ -223,18 +223,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
     modalInstance.result.then(function (selectedItem) {
       var data = selectedItem;
       reloadData();
-    }, function () {
-       $log.info('Modal dismissed at: ' + new Date());
     });
-      /*vm.process = true
-      Service.apiCall("generate_po_data/", "POST", data).then(function(data){
-        if(data.message) { 
 
-          angular.copy(data.data, vm.model_data)
-          $state.go("app.outbound.BackOrders.PO");
-        };
-        vm.process = false;
-      });*/
     }
 
     vm.backorder_jo = function() {
@@ -245,19 +235,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
           data[temp['WMS Code']+":"+$(temp[""]).attr("name")] = temp['Procurement Quantity'];
         }
       });
-      vm.process = true;
-      Service.apiCall("generate_jo_data/", "POST", data).then(function(data){
-        if(data.message) {
+      var send_data  = {data: data, url: "generate_jo_data/"}
+      var modalInstance = $modal.open({
+        templateUrl: 'views/outbound/toggle/back/backorder_jo.html',
+        controller: 'BackorderJOPOP',
+        controllerAs: 'pop',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+        windowClass: 'full-modal',
+        resolve: {
+          items: function () {
+            return send_data;
+          }
+        }
+      });
 
-          angular.copy(data.data, vm.model_data);
-          angular.forEach(vm.model_data.data, function(temp){
-            if(temp.sub_data.length == 0) {
-              temp["sub_data"] = [{material_code: "", material_quantity: "", measurement_type: ""}];
-            }
-          });
-          $state.go("app.outbound.BackOrders.JO");
-          vm.process = false;
-        };
+      modalInstance.result.then(function (selectedItem) {
+        var data = selectedItem;
+        reloadData();
       });
     }
 
@@ -269,11 +265,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
                 data.push({wms_code: temp['WMS Code'], order_quantity: temp['Ordered Quantity'], price: 0})
             }
         }
-        Service.stock_transfer = JSON.stringify(data);
-        if(data) {
-          $state.go('app.outbound.BackOrders.ST');
-          vm.reloadData();
-        }
+        var send_data  = {data: data}
+        var modalInstance = $modal.open({
+          templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
+          controller: 'StockTransferPOP',
+          controllerAs: 'pop',
+          size: 'lg',
+          backdrop: 'static',
+          keyboard: false,
+          windowClass: 'full-modal',
+          resolve: {
+            items: function () { 
+            return send_data;
+            }
+          }
+        });
+        modalInstance.result.then(function (selectedItem) {
+          var data = selectedItem;
+          reloadData();
+        });
    }
 
     function pop_msg(msg){

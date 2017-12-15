@@ -151,15 +151,14 @@ class TallyAPI:
             data_dict['tally_company_name'] = self.tally_dict.get('company_name', 'Mieone')
 	    data_dict['old_item_name'] = sku_master.sku_desc
             data_dict['item_name'] = sku_master.sku_desc
-            #data_dict['item_alias'] = 
             data_dict['stock_group_name'] = self.tally_dict.get('stock_group', '')
             data_dict['stock_category_name'] = self.tally_dict.get('stock_category', '')
-            #data_dict['is_vat_app'] = sku_master.is_vat_app
+            data_dict['is_vat_app'] = ''
             data_dict['opening_qty'] = 0
             data_dict['opening_rate'] = sku_master.price
             data_dict['opening_amt'] = 0
-            #data_dict['partNo'] = ''
-            #data_dict['description'] = sku_master.sku_desc
+            data_dict['partNo'] = ''
+            data_dict['description'] = sku_master.sku_desc
             data_dict['sku_code'] = sku_master.sku_code
             data_dict['unit_name'] = sku_master.measurement_type if sku_master.measurement_type else 'nos'
             data_list.append(data_dict)

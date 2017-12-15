@@ -12,6 +12,7 @@
       $scope.name = "Test";
       $scope.is_disable = "false";
       $scope.customerUrl = urlService.mainUrl;
+      $scope.stockoneUrl = urlService.stockoneUrl;
       $scope.user_data = urlService.userData;
       $scope.sync_status = $rootScope.sync_status;
       $scope.$on('change_sync_status', function(){

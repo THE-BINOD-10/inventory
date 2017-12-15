@@ -4,7 +4,7 @@ var app=angular.module('App', ['ngMaterial','ui.router','FBAngular','ngAnimate',
 app.service('urlService', function($rootScope){
 
     this.mainUrl = ENDPOINT;//'http://dev.stockone.in/';
-       
+    this.stockoneUrl = STOCKONE;
     this.userData = {"VAT":0};
     this.VAT = 0;
     this.hold_data = [];

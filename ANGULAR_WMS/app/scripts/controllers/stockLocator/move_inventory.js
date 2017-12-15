@@ -238,12 +238,41 @@
     $ctrl.model_data = {};
     $ctrl.model_data.src_available_quantity = 0;
     $ctrl.data_available = true;
+    $ctrl.success_resp = false;
+    $ctrl.disabled_button = false;
+    $ctrl.model_data.src_quantity = 0;
 
     $ctrl.empty_sku =function(){
+
       if (!$ctrl.model_data.src_sku_code) {
-        $ctrl.model_data.src_quantity = '';
+      
+        $ctrl.model_data.src_location = "";
         $ctrl.model_data.src_available_quantity = 0;
+        $ctrl.empty_input_fields();
       }
+    }
+
+    $ctrl.check_validation = function(){
+      
+      if ($ctrl.model_data.src_quantity) {
+
+        if ($ctrl.model_data.src_quantity > $ctrl.model_data.src_available_quantity) {
+
+          colFilters.showNoty("You have entered mote than "+$ctrl.model_data.src_available_quantity+", Please continue with available quantity");
+          $ctrl.model_data.src_quantity = $ctrl.model_data.src_available_quantity;
+        }
+      } else {
+        
+        $ctrl.empty_input_fields();
+      }
+    }
+
+    $ctrl.empty_input_fields = function(){
+
+        $ctrl.model_data.src_quantity = 0;
+        $ctrl.model_data.dest_sku_code = "";
+        $ctrl.model_data.dest_quantity = 0;
+        $ctrl.model_data.dest_location = "";
     }
 
     $ctrl.margin_types = ['Margin Percentage', 'Margin Value'];
@@ -251,48 +280,84 @@
     $ctrl.check_sku_code = function($items, location, sku){
 
       $ctrl.sku = sku;
+
       if (sku == 'src_sku') {
+
         $ctrl.data_available = false
         $ctrl.model_data.src_available_quantity = 0;
       }
       
       if (!$ctrl.model_data.src_available_quantity) {
+
         $ctrl.model_data.src_available_quantity = 0;
       }
 
       var send = {sku_code: $items.wms_code, location: location};
 
+      $ctrl.get_avb_quantity(send, sku);
+    }
 
+    $ctrl.check_loc_wise_qty = function(sku, location, sku_type){
+
+      var send = {sku_code: sku, location: location};
+      $ctrl.get_avb_quantity(send, sku_type);
+    }
+
+    $ctrl.get_avb_quantity = function(send, sku_type){
+      
       $ctrl.service.apiCall("get_sku_stock_check/", 'GET', send, true).then(function(data){
+       
         if (data.data.status) {
-          if ($ctrl.sku == "src_sku") {
+       
+          if (sku_type == "src_sku") {
+       
             $ctrl.model_data.src_available_quantity = data.data.available_quantity;
-            $ctrl.data_available = true;
           }
+        } else {
+
+          $ctrl.model_data.src_available_quantity = 0;
         }
+
+        $ctrl.empty_input_fields();
+
+        $ctrl.data_available = true;
+        $ctrl.api_message = data.data.message;
       });
 
       if($ctrl.model_data.src_sku_code == $ctrl.model_data.dest_sku_code) {
+
         $ctrl.model_data.dest_sku_code = '';
         colFilters.showNoty("You have entered same SKU code, Please try with another SKU code");
       }
     }
 
     $ctrl.submit = function (data) {
+      
       if(data.$valid) {
+
+        $ctrl.disabled_button = true;  
+        $ctrl.success_resp = true;
         var elem = angular.element($('form'));
         elem = $(elem).serializeArray();
 
         $ctrl.service.apiCall("confirm_sku_substitution/", 'POST', elem, true).then(function(response){
-          if(response.message == 'Successfully Updated'){
+          
+          if(response.data == 'Successfully Updated'){
+          
             console.log(response);
             $modalInstance.close($ctrl.marginData);
           }
+
+          $ctrl.api_message = response.data;
+          $ctrl.success_resp = false;
         });
+
+        $ctrl.disabled_button = false;
       }
     };
 
     $ctrl.close = function () {
+      
       $modalInstance.dismiss('cancel');
     };
   });

@@ -24,8 +24,8 @@ class TallyAPI:
         self.headers = { 'ContentType' : self.content_type }
 
     def get_sales_invoices(self, request):
-        #user_id= request.user.id
-        user_id= 15
+        user_id= request.user.id
+        #user_id= 15
         tally_config = TallyConfiguration.objects.filter(user=user_id).values('tally_ip', 'tally_ip', 'tally_path',\
                                 'company_name', 'stock_group', 'stock_category', 'maintain_bill', 'automatic_voucher')
         tally_config = tally_config[0] if tally_config else {}
@@ -87,6 +87,8 @@ class TallyAPI:
                 party_amount = int(item_obj['billed_qty']) * int(item_obj['unit'])
     	    total_amount = party_amount + ( (party_amount/100) * party_ledger_total_tax )
             party_ledger_obj['amount'] = total_amount
+	    s_obj.setdefault('party_ledger', {})
+            s_obj['party_ledger'].update(party_ledger_obj)
 
             party_ledger_tax_obj = {}
             party_ledger_tax_obj['is_deemeed_positive'] = True
@@ -96,9 +98,6 @@ class TallyAPI:
             party_ledger_tax_obj['name'] = ''
             if vat_ledger:
                 party_ledger_tax_obj['name'] = vat_ledger[0].ledger_name
-
-	    s_obj.setdefault('party_ledger', {})
-	    s_obj['party_ledger'].update(party_ledger_obj)
 
 	    s_obj.setdefault('party_ledger_tax', {})
             s_obj['party_ledger_tax'].update(party_ledger_tax_obj)
@@ -117,9 +116,7 @@ class TallyAPI:
             s_obj['despatched_through'] = COD.get('dispatch_through', '')
             s_obj['destination'] =  customer_info.get('address', '')
             s_obj['bill_of_lading_no'] = ''
-
             s_obj['bill_of_lading_dt'] = ''
-
             s_obj['carrier_name'] = ''
             s_obj['terms_of_payment'] =  COD.get('payment_terms', '')
             s_obj['other_reference'] = ''
@@ -130,7 +127,13 @@ class TallyAPI:
             s_obj['buyer_cst_no'] = customer_info.get('cst_num', '')
             s_obj['type_of_dealer'] = ''
             s_obj['narration'] = ''
-            s_obj['del_notes'] = ''
+
+	    del_notes = {}
+	    del_notes['delivery_note_no'] = ''
+	    del_notes['delivery_note_Date'] = obj['creation_date'].strftime('%d/%m/%Y')
+
+            s_obj.setdefault('del_notes', [])
+            s_obj['del_notes'].append(del_notes)
             invoices.append(s_obj)
         return HttpResponse(json.dumps(invoices, cls=DjangoJSONEncoder))
 
@@ -146,13 +149,12 @@ class TallyAPI:
         for sku_master in sku_masters:
             data_dict = {}
             data_dict['tally_company_name'] = self.tally_dict.get('company_name', 'Mieone')
-            #data_dict['oldItemName'] = ''
+	    data_dict['old_item_name'] = sku_master.sku_desc
             data_dict['item_name'] = sku_master.sku_desc
-            data_dict['item_alias'] = ''
-            #data_dict['primaryUnitName'] = ''
+            #data_dict['item_alias'] = 
             data_dict['stock_group_name'] = self.tally_dict.get('stock_group', '')
             data_dict['stock_category_name'] = self.tally_dict.get('stock_category', '')
-            #data_dict['isVatAppl'] = ''
+            #data_dict['is_vat_app'] = sku_master.is_vat_app
             data_dict['opening_qty'] = 0
             data_dict['opening_rate'] = sku_master.price
             data_dict['opening_amt'] = 0
@@ -171,34 +173,25 @@ class TallyAPI:
             data_dict = {}
             data_dict['tally_company_name'] = self.tally_dict.get('company_name', 'Mieone')
             data_dict['old_ledger_name'] = ''
-            #data_dict['oldLedgerName'] = ''
             data_dict['ledger_name'] = master.name
             data_dict['ledger_alias'] = getattr(master, field_mapping['id'])
             data_dict['ledger_alias'] = 'cehck1123123'
-            #data_dict['updateOpeningBalance'] = getattr(master, field_mapping['id'])
             data_dict['update_opening_balance'] = getattr(master, field_mapping['id'])
-            #data_dict['openingBalance'] = 'Optional'
             data_dict['opening_balance'] = 0 #?int or Float
             parent_group_name = ''
             master_type = getattr(master, field_mapping['type'])
             group_obj = master_group.filter(master_value=master_type)
             if group_obj:
                 parent_group_name = group_obj[0].parent_group
-            #data_dict['ledgerMailingName'] = master.name
             data_dict['ledger_mailing_name'] = master.name
-            #--------
             data_dict['parent_group_name'] = parent_group_name
             data_dict['parent_group_name'] = 'Fixed Assets'
             data_dict['address'] = master.address
             data_dict['state'] = master.state
-            #data_dict['pinCode'] = master.pincode
             data_dict['pin_code'] = master.pincode
             data_dict['country'] = master.country
-            #data_dict['contactPerson'] = ''
             data_dict['contact_person'] = ''
-            #data_dict['telephoneNo'] = master.phone_number
             data_dict['telephone_no'] = master.phone_number
-            #data_dict['faxNo'] = master.phone_number
             data_dict['fax_no'] = ''
             data_dict['email'] = master.email_id
             data_dict['tin_no'] = master.tin_number
@@ -215,16 +208,18 @@ class TallyAPI:
         return data_list
 
     def get_supplier_master(self, limit=10):
-        limit = 1
-        user_id = 7
+        limit = 10
+        #user_id = 7
+	user_id = self.user
         supplier_masters = SupplierMaster.objects.filter(user=user_id)[:limit]
         data_list = self.update_masters_data(supplier_masters,\
             'vendor', {'id': 'id', 'type': 'supplier_type'}, user_id)
         return HttpResponse(json.dumps(data_list, cls=DjangoJSONEncoder))
 
     def get_customer_master(self, limit=10):
-        limit=1
-        user_id = 7
+        limit=10
+        #user_id = 7
+	user_id = self.user
         customer_masters = CustomerMaster.objects.filter(user=user_id)[:limit]
         data_list = self.update_masters_data(customer_masters,\
             'customer', {'id': 'customer_id', 'type': 'customer_type'}, user_id)
@@ -234,7 +229,7 @@ class TallyAPI:
         user_id = self.user
         sales_returns = []
         order_returns = {}
-        user_id= 19#19, 605, 3
+        #user_id= 19#19, 605, 3
         tally_config = TallyConfiguration.objects.filter(user=user_id).values('tally_ip', 'tally_path', 'company_name', 'stock_group',\
                      'stock_category', 'maintain_bill', 'automatic_voucher')
         tally_config = tally_config[0] if tally_config else {}
@@ -327,7 +322,8 @@ class TallyAPI:
     def get_purchase_invoice(self, limit=10):
         from django.core.exceptions import ObjectDoesNotExist
         data_list = []
-        user_id= 15
+        #user_id= 15
+	user_id = self.user
         tally_config = TallyConfiguration.objects.filter(user=user_id).values('tally_ip', 'tally_ip', 'tally_path',\
                                 'company_name', 'stock_group', 'stock_category', 'maintain_bill', 'automatic_voucher')
         tally_config = tally_config[0] if tally_config else {}

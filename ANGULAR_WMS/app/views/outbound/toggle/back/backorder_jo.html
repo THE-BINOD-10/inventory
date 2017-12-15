@@ -1,11 +1,10 @@
-<div ng-controller="BackorderJOPOP as pop" id="page-pop" class="modal fade in over-x" id="po-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="display: block; padding-left: 15px;">
-  <!-- Modal -->
+<div id="page-pop">
   <form name="form" role="form" ui-jq="validate" ui-options="pop.validationOpt">
-    <div class="modal-dialog modal-lg model-custom">
+    <div class="model-custom">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="$state.go($state.$current.parent)"><span aria-hidden="true">×</span>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="pop.ok('close')"><span aria-hidden="true">×</span>
           </button>
           <h4 class="modal-title" id="myLargeModalLabel">Raise Job Order</h4> </div>
         <div class="modal-body">
@@ -29,7 +28,7 @@
                       <input type="hidden" name="order_id" value="{{data.order_id}}">
                       <input type="hidden" name="id" value="{{item.id}}">
 
-                      <input type="text" autocomplete="off" ng-readonly="pop.update && (!(item.new_sku))" ng-show="$first" name="product_code" class="form-control" placeholder="Search Product SKU Code" typeahead="address for address in pop.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="data.product_code" ng-blur="pop.service.checkSearchValue(data.product_code,'search_wms_codes?', $event, 'RM', 'Product SKU Code');pop.get_product_data(data.product_code, data, $parent.$index)">
+                      <input type="text" autocomplete="off" ng-readonly="pop.update && (!(item.new_sku))" ng-show="$first" name="product_code" class="form-control" placeholder="Search Product SKU Code" typeahead="address for address in pop.service.getSearchValues($viewValue, 'search_wms_codes?', 'RM')" typeahead-loading="loadingLocations" ng-model="data.product_code" typeahead-on-select="pop.get_product_data(data.product_code, data, $parent.$index)">
                     </td>
                     <td>
                       <input ng-show="$first" type="text" name="description" ng-model="data.description" class="form-control">

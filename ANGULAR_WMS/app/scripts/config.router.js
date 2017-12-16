@@ -1634,7 +1634,7 @@ var app = angular.module('urbanApp')
                     }]
           },
           data: {
-            title: 'Porfile'
+            title: 'Profile'
           }
         })
 

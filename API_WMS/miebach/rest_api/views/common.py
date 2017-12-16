@@ -36,6 +36,7 @@ import math
 from django.db.models.functions import Cast, Concat
 from django.db.models.fields import DateField, CharField
 import re
+import subprocess
 
 from django.template import loader, Context
 from barcodes import *

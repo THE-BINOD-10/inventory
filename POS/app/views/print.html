@@ -1,4 +1,48 @@
-<link rel="stylesheet" href="/app/css/receipt.css"/>
+<!-- <link rel="stylesheet" href="/app/css/receipt.css"/> -->
+<style>
+.receipt {
+  width: 300px;
+  font-size: 14px;
+}
+* {
+  padding: 0px;
+  margin: 0px;
+}
+.shop-name{
+  text-align: center;
+  display: block;
+}
+.title .shop-title {
+  text-align: center;
+  display: block;
+}
+.products table,
+.table-pro table {
+  width: 100%;
+  font-size: 14px;
+}
+.products table thead th:nth-child(1),
+.table-pro table thead th:nth-child(1) {
+  text-align: left;
+}
+.products table thead th,
+.table-pro table thead th {
+  text-align: center;
+}
+.products table tbody tr > td:nth-child(1),
+.table-pro table tbody tr > td:nth-child(1) {
+  text-align: left;
+}
+.products table tbody tr > td,
+.table-pro table tbody tr > td {
+  text-align: center;
+}
+.product-total span {
+  width: 30%;
+  display: inline-block;
+}
+</style>
+
 <div class="receipt">
   <span class="shop-name">{{user.company}}</span>
   <span class="shop-name">{{user.address}}</span>

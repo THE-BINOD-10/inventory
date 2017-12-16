@@ -73,7 +73,7 @@ def get_current_order_id(request):
    return HttpResponse(json.dumps({'order_id': order_id}))
 
 
-def search_customer_data(request):
+def search_pos_customer_data(request):
     search_key = request.GET['key']
     total_data = []
     user = request.user.id

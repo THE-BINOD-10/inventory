@@ -4987,7 +4987,7 @@ def change_user_password(request, user=''):
 
     resp = {'msg': 0, 'data':'Successfully Updated'}
     try:
-        log.info('Change Password  for user %s , %s' % (str(rquest.user.id), str(request.user.username)))
+        log.info('Change Password  for user %s , %s' % (str(request.user.id), str(request.user.username)))
 
         old_password = request.POST.get('old_password', '')
         if not request.user.check_password(old_password):

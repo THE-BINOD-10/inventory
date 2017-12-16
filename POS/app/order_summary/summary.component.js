@@ -26,6 +26,7 @@
                   urlService.VAT = data.VAT;
                   self.VAT = data.VAT;
 
+                  
                   //save user status in local db
                   setCheckSum(setCheckSumFormate(JSON.stringify(data),USER_DATA)).
                           then(function(data){

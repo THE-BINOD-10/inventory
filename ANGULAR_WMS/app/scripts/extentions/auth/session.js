@@ -9,6 +9,8 @@
     //that.host = 'http://localhost:7654/';
     that.url = that.host+'rest_api/';
 
+    that.pos_host = 'https://wms.mieone.com/';
+
     function resetSession () {
 
       angular.extend(that, {

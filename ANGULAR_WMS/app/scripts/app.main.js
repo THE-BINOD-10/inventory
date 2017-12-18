@@ -14,9 +14,11 @@ angular
         function AppCtrl($rootScope, $scope, $state, $http, $localStorage, Session, myservice, Auth, AUTH_EVENTS, Service, $timeout) {
 
       $rootScope.process = false;
+      $scope.stockone_loader = false;
 
       $rootScope.$on('$stateChangeSuccess', function () {
         $rootScope.process = false;
+        $scope.stockone_loader = true;
       })
 
       $scope.mobileView = 767;

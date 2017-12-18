@@ -14,6 +14,7 @@ angular
         function AppCtrl($rootScope, $scope, $state, $http, $localStorage, Session, myservice, Auth, AUTH_EVENTS, Service, $timeout) {
 
       $rootScope.process = false;
+      $scope.session = Session;
 
       $rootScope.$on('$stateChangeSuccess', function () {
         $rootScope.process = false;

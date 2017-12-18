@@ -3496,47 +3496,47 @@ def generate_barcode_dict(pdf_format, myDict, user):
             single['SKUPrintQty'] = quant
             single['Brand'] = sku_data.sku_brand.replace("'",'')
             single['SKUDes'] = sku_data.sku_desc.replace("'",'')
-	    single['UOM'] = sku_data.measurement_type.replace("'",'')
-	    single['Style'] = str(sku_data.style_name).replace("'",'')
-	    single['Color'] = sku_data.color.replace("'",'')
-	    single['Product'] = sku_data.sku_desc
-	    if len(sku_data.sku_desc) >= 25:
-		single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
-            single['Company'] = user_prf.company_name.replace("'",'')
-            single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
-            present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
-	    single["Packed on"] = str(present).replace("'",'')
-	    single['Marketed By'] = user_prf.company_name.replace("'",'')
-	    single['MFD'] = str(present).replace("'",'')
-	    phone_number = user_prf.phone_number
-	    if not phone_number:
-		phone_number = ''
-	    single['Contact No'] = phone_number
-	    single['Email'] = user.email
-	    single["Gender"] = str(sku_data.style_name).replace("'",'')
-	    single['MRP'] = str(sku_data.price).replace("'",'')
-	    order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
+        single['UOM'] = sku_data.measurement_type.replace("'",'')
+        single['Style'] = str(sku_data.style_name).replace("'",'')
+        single['Color'] = sku_data.color.replace("'",'')
+        single['Product'] = sku_data.sku_desc
+        if len(sku_data.sku_desc) >= 25:
+            single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
+        single['Company'] = user_prf.company_name.replace("'",'')
+        single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
+        present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
+        single["Packed on"] = str(present).replace("'",'')
+        single['Marketed By'] = user_prf.company_name.replace("'",'')
+        single['MFD'] = str(present).replace("'",'')
+        phone_number = user_prf.phone_number
+        if not phone_number:
+            phone_number = ''
+        single['Contact No'] = phone_number
+        single['Email'] = user.email
+        single["Gender"] = str(sku_data.style_name).replace("'",'')
+        single['MRP'] = str(sku_data.price).replace("'",'')
+        order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
 
-	    if order_label:
-		order_label = order_label[0]
-		single["Vendor SKU"] = order_label.vendor_sku
-		single["SKUCode"] = order_label.item_sku
-		single['MRP'] = order_label.mrp
-		single['Phone'] = user_prf.phone_number
-		single['Email'] = user.email
-		single["PO No"] = order_label.order.original_order_id
-		single['Color'] = order_label.color.replace("'",'')
-		single['Size'] = str(order_label.size).replace("'",'')
-		if not single["PO No"]:
-		    single["PO No"] = str(order_label[0].order.order_code) + str(order_label[0].order.order_id)
-                address = user_prf.address
-	    if BARCODE_ADDRESS_DICT.get(user.username, ''):
-		address = BARCODE_ADDRESS_DICT.get(user.username)
-                single['Manufactured By'] = address.replace("'",'')
-            if "bulk" in pdf_format.lower():
-                single['Qty'] = single['SKUPrintQty']
-                single['SKUPrintQty'] = "1"
-            barcodes_list.append(single)
+        if order_label:
+            order_label = order_label[0]
+            single["Vendor SKU"] = order_label.vendor_sku
+            single["SKUCode"] = order_label.item_sku
+            single['MRP'] = order_label.mrp
+            single['Phone'] = user_prf.phone_number
+            single['Email'] = user.email
+            single["PO No"] = order_label.order.original_order_id
+            single['Color'] = order_label.color.replace("'",'')
+            single['Size'] = str(order_label.size).replace("'",'')
+            if not single["PO No"]:
+                single["PO No"] = str(order_label[0].order.order_code) + str(order_label[0].order.order_id)
+        address = user_prf.address
+        if BARCODE_ADDRESS_DICT.get(user.username, ''):
+            address = BARCODE_ADDRESS_DICT.get(user.username)
+            single['Manufactured By'] = address.replace("'",'')
+        if "bulk" in pdf_format.lower():
+            single['Qty'] = single['SKUPrintQty']
+            single['SKUPrintQty'] = "1"
+        barcodes_list.append(single)
     log.info(barcodes_list)
     return get_barcodes(make_data_dict(barcodes_list, user_prf, pdf_format))
 

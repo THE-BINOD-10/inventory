@@ -18,7 +18,6 @@ from dict_to_txt import text_file_creator
 
 def get_user_sku_data(user):
    user = User.objects.get(id=user)
-   print "inside sku func"
    total_data = []
    master_data = SKUMaster.objects.exclude(sku_type='RM').filter(user = user.id)\
                                                          .only('id', 'zone_id', 'price', 'product_type',\
@@ -73,10 +72,9 @@ def get_user_sku_data(user):
 
    path = 'static/text_files'
    dump_name = 'sku_master'
-   print text_file_creator(user, path, total_data, dump_name)
+   text_file_creator(user, path, total_data, dump_name)
 
 
 if __name__ == '__main__':
-   print str(sys.argv)
    user = sys.argv[1]
    get_user_sku_data(user)

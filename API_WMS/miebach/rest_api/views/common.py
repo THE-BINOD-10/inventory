@@ -1878,7 +1878,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
     # Initializing Default Values
     data, imei_data, customer_details  = [], [], []
     order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address = '', '', '', '', '', '', '', ''
-    tax_type, seller_company , order_reference = '', '', ''
+    tax_type, seller_company , order_reference, order_reference_date = '', '', '', ''
     total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0}
     hsn_summary = {}
@@ -1948,6 +1948,11 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
             order_id = dat.original_order_id
             order_no = str(dat.order_id)
             order_reference = dat.order_reference
+            order_reference_date = ''
+            order_reference_date_field = ''
+            if dat.order_reference_date:
+                order_reference_date_field = dat.order_reference_date.strftime("%m/%d/%Y")
+                order_reference_date = dat.order_reference_date.strftime("%d %b %Y")
             if not order_id:
                 order_id = dat.order_code + str(dat.order_id)
             title = dat.title
@@ -2127,7 +2132,8 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
                     'total_tax_words': number_in_words(_total_tax), 'declaration': declaration, 'hsn_summary': hsn_summary,
                     'hsn_summary_display': get_misc_value('hsn_summary', user.id), 'seller_address': seller_address,
                     'customer_address': customer_address, 'invoice_remarks': invoice_remarks, 'show_disc_invoice': show_disc_invoice,
-                    'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference}
+                    'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
+                    'order_reference_date_field': order_reference_date_field, 'order_reference_date': order_reference_date}
 
     return invoice_data
 

@@ -245,6 +245,7 @@ class OrderDetail(models.Model):
     unit_price = models.FloatField(default=0)
     order_type = models.CharField(max_length=64, default='Normal')
     order_reference = models.CharField(max_length=128,default='')
+    order_reference_date = models.DateField(null=True, blank=True)
 
     class Meta:
         db_table = 'ORDER_DETAIL'

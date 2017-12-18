@@ -8394,7 +8394,7 @@ def insert_move_inventory(request, user=''):
 
     return HttpResponse(status)
 
-def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet=''):
+def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
     now = str(datetime.datetime.now())
     if wmscode:
         sku = SKUMaster.objects.filter(wms_code=wmscode, user=user.id)
@@ -8407,18 +8407,10 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             return 'Invalid Location'
     if not quantity:
         return 'Quantity should not be empty'
-
-    if pallet:
-        pallet = PalletDetail.objects.filter(user = user.id, status = 1, pallet_code = pallet).count()
-        if not pallet:
-            return 'Invalid Pallet Detail'
-
-    quantity = int(quantity)
+    
     total_stock_quantity = 0
 
     stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=location[0].id, sku__user=user.id)
-    if pallet:
-        stocks = stocks.filter(pallet_detail_id = pallet)
 
     for stock in stocks:
         total_stock_quantity += int(stock.quantity)

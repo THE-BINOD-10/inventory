@@ -1,24 +1,25 @@
 'use strict';
 
-function BackorderJOPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $q) {
+function BackorderJOPOP($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $q, $modalInstance, items) {
 
   var vm = this;
-  vm.state_data = ""; 
+  vm.state_data = "";
   vm.service = Service;
   vm.units = vm.service.units;
-
-  if($stateParams.data){
-     vm.state_data = $stateParams.data;
-  }
 
    vm.empty_data = {"title": "Update Job Order", "data": [{"product_code": "", "sub_data": [{"material_code": "", "material_quantity": '', "id": ''}], "product_description":'', 'new_sku': true}], "jo_reference": ""}
 
   vm.pop_data = {};
+  vm.status_data = ""
 
   vm.getPoData = function(data){
 
-    data = JSON.parse(data);
-    Service.apiCall("generate_order_jo_data/", "POST", data, true).then(function(data){
+    data = data.data;
+    var url = "generate_order_jo_data/";
+    if (items.url) {
+      url = items.url;
+    }
+    Service.apiCall(url, "POST", data, true).then(function(data){
       if(data.message) {
 
         angular.copy(data.data, vm.pop_data);
@@ -31,10 +32,7 @@ function BackorderJOPOP($scope, $http, $state, $timeout, Session, colFilters, Se
     });
   }
 
-  if(vm.state_data) {
-
-    vm.getPoData(vm.state_data);
-  }
+  vm.getPoData(items);
 
   function check_exist(sku_data, index) {
 
@@ -89,16 +87,9 @@ function BackorderJOPOP($scope, $http, $state, $timeout, Session, colFilters, Se
       var elem = angular.element($('form:visible'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      //elem = $.param(elem);
       $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
       Service.apiCall("confirm_jo/", "POST", elem, true).then(function(data){
         if(data.message) {
-      //$http({
-      //         method: 'POST',
-      //         url:Session.url+"confirm_jo/",
-      //         withCredential: true,
-      //         data: elem}).success(function(data, status, headers, config) {
-
             if(data.data.search("<div") != -1) {
               vm.html = $(data.data)[0];
               var html = $(vm.html).closest("form").clone();
@@ -173,13 +164,17 @@ function BackorderJOPOP($scope, $http, $state, $timeout, Session, colFilters, Se
   }
 
   vm.isLast = isLast;
-    function isLast(check) {
+  function isLast(check) {
 
-      var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
-      return cssClass
-    }
+    var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
+    return cssClass;
+  }
+
+  vm.ok = function (msg) {
+    $modalInstance.close(vm.status_data);
+  };
 }
 
 angular
   .module('urbanApp')
-  .controller('BackorderJOPOP', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$q', BackorderJOPOP]);
+  .controller('BackorderJOPOP', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$q', '$modalInstance', 'items', BackorderJOPOP]);

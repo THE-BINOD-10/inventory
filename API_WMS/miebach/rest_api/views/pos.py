@@ -73,7 +73,7 @@ def get_current_order_id(request):
    return HttpResponse(json.dumps({'order_id': order_id}))
 
 
-def search_customer_data(request):
+def search_pos_customer_data(request):
     search_key = request.GET['key']
     total_data = []
     user = request.user.id
@@ -263,7 +263,7 @@ def customer_order(request):
             status = 0 if order['summary']['issue_type'] == "Delivery Challan"\
                        else 1
             order_ids.append(order_id)
-            picklist_number = get_picklist_number(user)
+            picklist_number = get_picklist_number(user) + 1
             if customer_data:
                 customer_id = customer_data[0].id
                 customer_name = customer_data[0].name
@@ -294,6 +294,7 @@ def customer_order(request):
                     if item['return_status'] == "false":
                         only_return = False
                         order_detail = OrderDetail.objects.create(user = user_id,\
+                                                   marketplace = "Offline",\
                                                    order_id = order_id,\
                                                    sku_id = sku.id,\
                                                    customer_id = customer_id,\
@@ -310,8 +311,7 @@ def customer_order(request):
                                                    email_id = cust_dict.get('Email',''),\
                                                    unit_price = item['unit_price'])
                         if status == 0:
-                            stock_diff, invoice_number = item['quantity'],\
-                                                         order['summary']['invoice_number'] + str(order_id)
+                            stock_diff, invoice_number = item['quantity'], order_id
                             stock_detail = StockDetail.objects.exclude(\
                                                               location__zone__zone = 'DAMAGED_ZONE')\
                                                               .filter(sku__wms_code = sku.wms_code,\
@@ -509,7 +509,7 @@ def update_order_status(request):
         sku = order.sku
         user_id = order.user
         user = User.objects.get(id = user_id)
-        picklist_number = get_picklist_number(user)
+        picklist_number = get_picklist_number(user) + 1
         stock_detail = StockDetail.objects.filter(sku = sku, quantity__gt = 0)
         if stock_detail: order.save()
         else:
@@ -545,7 +545,7 @@ def update_order_status(request):
                                          .filter(picklist__order__user = user_id)\
                                          .values('stock__sku_id')\
                                          .annotate(total = Sum('reserved'))
-        invoice_number = 'TI/%s/%s' % (order.creation_date.strftime('%m%y'), order.order_id)
+        invoice_number = order.order_id
         stock_detail = StockDetail.objects.exclude(location__zone__zone = 'DAMAGED_ZONE')\
                                           .filter(sku__wms_code=order.sku.wms_code, sku__user=user_id)
         stock_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']

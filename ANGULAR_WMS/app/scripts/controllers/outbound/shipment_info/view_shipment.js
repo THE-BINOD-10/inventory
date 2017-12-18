@@ -152,7 +152,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     }
 
     vm.empty_data = {"shipment_number":"", "shipment_date":"","truck_number":"","shipment_reference":"","customer_id":"", "marketplace":"",
-                     "market_list":[]};
+                     "market_list":[], "courier_name" : []};
     vm.model_data = {};
     angular.copy(vm.empty_data, vm.model_data);
 
@@ -172,6 +172,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       });
     }
 
+    vm.service.apiCall("get_awb_marketplaces/?status=2").then(function(data) {
+      if(data.data.status) {
+        vm.model_data.market_list = data.data.marketplaces;
+        vm.empty_data.market_list = data.data.marketplaces;
+        vm.model_data.courier_name = data.data.courier_name;
+        vm.empty_data.courier_name = data.data.courier_name;
+      }
+    })
+
     vm.scanAwb = function(event, sku) {
       if (event.keyCode == 13 && sku.length > 0) {
         vm.bt_disable = true;
@@ -180,6 +189,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         if (vm.awb_no.length) {
           var data=[];
           data.push({ name: 'awb_no', value: vm.awb_no });
+          data.push({ name: 'market_place', value: vm.market_place });
+          data.push({ name: 'courier_name', value: vm.courier_name });
         } else {
           vm.bt_disable = false;
           vm.service.showNoty("Fill Mandatory Fields", 'error', 'topRight');

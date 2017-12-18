@@ -178,7 +178,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     }
 
     vm.empty_data = {"shipment_number":"", "shipment_date":"","truck_number":"","shipment_reference":"","customer_id":"", "marketplace":"",
-                     "market_list":[]};
+                     "market_list":[], "courier_name" : []};
     vm.model_data = {};
     angular.copy(vm.empty_data, vm.model_data);
 
@@ -194,10 +194,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       });
     };
 
-    service.apiCall("get_marketplaces_list/?status=picked").then(function(data){
-      if(data.message) {
+    service.apiCall("get_awb_marketplaces/?status=1").then(function(data) {
+      if(data.data.status) {
         vm.model_data.market_list = data.data.marketplaces;
         vm.empty_data.market_list = data.data.marketplaces;
+        vm.model_data.courier_name = data.data.courier_name;
+        vm.empty_data.courier_name = data.data.courier_name;
       }
     })
 
@@ -402,7 +404,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           service.showNoty("Fill Mandatory Fields", 'error', 'topRight');
           return;
         }
-        data.push({ name:'view', value:vm.g_data.view });
+        data.push({ name:'view', value:vm.g_data.view })
+        data.push({ name:'marketplace', value: vm.special_key.market_place })
+        data.push({ name:'courier_name', value: vm.special_key.courier_name })
         service.apiCall( apiUrl, "GET", data).then(function(data) {
         if(data.message) {
           if(data.data["status"]) {

@@ -4,15 +4,46 @@
 	  <form name="form" role="form" ui-jq="validate" ui-options="vm.validationOpt" class="filters">      
 	    <div class="clearfix">
 	      <div class="row">
-	        <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="font-weight: 700;">
+
+	        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+              <div class="form-group">
+                <label class="control-label">Market Place</label>
+                <select name="marketplace" ng-model="vm.market_place" class="form-control">
+                  <option value="">All</option>
+                  <option ng-repeat="market in vm.model_data.market_list" value="{{market}}">{{market}}</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+              <div class="form-group">
+                <label class="control-label">Courier Name</label>
+                <select name="courier" ng-model="vm.courier_name" class="form-control">
+                  <option value="">All</option>
+                  <option ng-repeat="market in vm.model_data.courier_name" value="{{market}}">{{market}}</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Scan AWB</label>
+                <textarea id='awb_no' rows="1" type="text" autocomplete="off" name="awb_no" class="form-control" ng-model="vm.awb_no" ng-keydown="vm.scanAwb($event, vm.awb_no)" auto-focus placeholder="Scan AWB" required>
+                </textarea>
+              </div>
+            </div>
+
+            <!--<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="font-weight: 700;">
 	          <p class="control-label" style="margin-top: 10px;text-align: center;">Scan AWB No.</p>
 	        </div>
+
 	        <div class="col-lg-10 col-md-10 col-sm-10 col-xs-10">
 	          <div class="form-group">
 	            <textarea id='awb_no' rows="1" type="text" autocomplete="off" name="awb_no" class="form-control" ng-model="vm.awb_no" ng-keydown="vm.scanAwb($event, vm.awb_no)" auto-focus required>
 	            </textarea>
 	          </div>
 	        </div>
+			-->
 	      </div>
 	    </div>
 	  </form>

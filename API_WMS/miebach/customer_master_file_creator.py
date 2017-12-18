@@ -16,8 +16,6 @@ from miebach_admin.models import *
 
 from dict_to_txt import text_file_creator
 
-log = init_logger('logs/pos.log')
-
 
 def get_user_customer_data(user):
    user = User.objects.get(id = user)
@@ -40,9 +38,8 @@ def get_user_customer_data(user):
                          'Email': data['email_id']})
    path = 'static/text_files'
    dump_name = 'customer_master'
-   log.info(text_file_creator(user, path, total_data, dump_name))
+   text_file_creator(user, path, total_data, dump_name)
 
 if __name__ == '__main__':
-   log.info(str(sys.argv))
    user = sys.argv[1]
    get_user_customer_data(user)

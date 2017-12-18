@@ -505,9 +505,11 @@ def validate_jo(all_data, user, jo_reference, vendor_id=''):
     return sku_status
 
 def create_order_mapping(user, mapping_id, order_id, mapping_type=''):
-    order_mapping = OrderMapping.objects.filter(mapping_id=mapping_id, mapping_type=mapping_type, order_id=order_id)
-    if not order_mapping:
-        OrderMapping.objects.create(mapping_id=mapping_id, mapping_type=mapping_type, order_id=order_id, creation_date=datetime.datetime.now())
+    order_ids = str(order_id).split(",")
+    for order in order_ids:
+        order_mapping = OrderMapping.objects.filter(mapping_id=mapping_id, mapping_type=mapping_type, order_id=order)
+        if not order_mapping:
+            OrderMapping.objects.create(mapping_id=mapping_id, mapping_type=mapping_type, order_id=order, creation_date=datetime.datetime.now())
 
 def insert_jo(all_data, user, jo_reference, vendor_id='', order_type=''):
     for key,value in all_data.iteritems():
@@ -2209,7 +2211,66 @@ def generate_rm_po_data(request, user=''):
                           'job_order_id': job_order_id})
     return HttpResponse(json.dumps({'data_dict': data_dict, 'supplier_list': supplier_list}))
 
+def get_grn_json_data(order, user, request):
+
+    purchase_order_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id = order.order_id)
+    total = 0
+    total_qty = 0
+    po_data = []
+    for purchase_order in purchase_order_data:
+
+        amount = float(purchase_order.open_po.order_quantity) * float(purchase_order.open_po.price)
+
+        supplier_code = ''
+        supplier_mapping = SKUSupplier.objects.filter(sku_id=purchase_order.open_po.sku_id, supplier_id=purchase_order.open_po.supplier_id,
+                                                          sku__user=user.id)
+        if supplier_mapping:
+            supplier_code = supplier_mapping[0].supplier_code
+
+        tax = purchase_order.open_po.sgst_tax + purchase_order.open_po.cgst_tax + purchase_order.open_po.igst_tax + purchase_order.open_po.utgst_tax
+        if not tax:
+            total += amount
+        else:
+            total += amount + ((amount/100) * float(tax))
+            supplier = purchase_order.open_po.supplier
+            total_qty += purchase_order.open_po.order_quantity
+
+        po_data.append(( purchase_order.open_po.sku.sku_code, supplier_code, purchase_order.open_po.sku.sku_desc,
+                         purchase_order.open_po.order_quantity, purchase_order.open_po.price, amount,
+                         purchase_order.open_po.sgst_tax, purchase_order.open_po.cgst_tax,
+                         purchase_order.open_po.igst_tax, purchase_order.open_po.utgst_tax, purchase_order.open_po.remarks))
+
+    wms_code = order.open_po.sku.wms_code
+    telephone = order.open_po.supplier.phone_number
+    name = order.open_po.supplier.name
+    order_id =  order.order_id
+    supplier_email = order.open_po.supplier.email_id
+    gstin_no = order.open_po.supplier.tin_number
+    order_date = get_local_date(request.user, order.creation_date)
+    address = '\n'.join(order.open_po.supplier.address.split(','))
+    vendor_name = ''
+    vendor_address = ''
+    vendor_telephone = ''
+    if purchase_order.open_po.order_type == 'VR':
+        vendor_address = order.open_po.vendor.address
+        vendor_address = '\n'.join(vendor_address.split(','))
+        vendor_name = order.open_po.vendor.name
+        vendor_telephone = order.open_po.vendor.phone_number
+
+    po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+    table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Unit Price', 'Amount', 'SGST', 'CGST', 'IGST', 'UTGST', 'Remarks')
+    profile = UserProfile.objects.get(user=request.user.id)
+
+    data_dictionary = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
+                       'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
+                       'po_reference': po_reference, 'user_name': request.user.username, 'total_qty': total_qty,
+                       'company_name': profile.company_name, 'location': profile.location, 'w_address': profile.address,
+                       'vendor_name': vendor_name, 'vendor_address': vendor_address,'vendor_telephone': vendor_telephone,
+                       'gstin_no': gstin_no}
+    return data_dictionary
+
 @csrf_exempt
+@login_required
 @get_admin_user
 def confirm_back_order(request, user=''):
     all_data = {}
@@ -2311,6 +2372,7 @@ def confirm_back_order(request, user=''):
             customer_name = ''
             executive_name = ''
             if order_detail_id:
+                order_detail_id = order_detail_id.split(',')[0]
                 ord_objs = OrderDetail.objects.filter(id = order_detail_id)
                 if ord_objs:
                     if ord_objs[0].customer_name:
@@ -2321,55 +2383,10 @@ def confirm_back_order(request, user=''):
                 if customer_order:
                     executive_name = customer_order[0].order_taken_by
 
-            # Send Mail code
-            supplier_code = ''
-            supplier_mapping = SKUSupplier.objects.filter(sku_id=purchase_order.open_po.sku_id, supplier_id=purchase_order.open_po.supplier_id,
-                                                          sku__user=user.id)
-            if supplier_mapping:
-                supplier_code = supplier_mapping[0].supplier_code
-
-            amount = float(purchase_order.open_po.order_quantity) * float(purchase_order.open_po.price)
-            tax = purchase_order.open_po.sgst_tax + purchase_order.open_po.cgst_tax + purchase_order.open_po.igst_tax + purchase_order.open_po.utgst_tax
-            if not tax:
-                total += amount
-            else:
-                total += amount + ((amount/100) * float(tax))
-            supplier = purchase_order.open_po.supplier
-            total_qty += purchase_order.open_po.order_quantity
-            wms_code = purchase_order.open_po.sku.wms_code
-            telephone = supplier.phone_number
-            name = supplier.name
-            order_id =  purchase_order.order_id
-            supplier_email = supplier.email_id
-            gstin_no = supplier.tin_number
-            order_date = get_local_date(request.user, purchase_order.creation_date)
-            address = '\n'.join(supplier.address.split(','))
-            vendor_name = ''
-            vendor_address = ''
-            vendor_telephone = ''
-            if purchase_order.open_po.order_type == 'VR':
-                vendor_address = purchase_order.open_po.vendor.address
-                vendor_address = '\n'.join(vendor_address.split(','))
-                vendor_name = purchase_order.open_po.vendor.name
-                vendor_telephone = purchase_order.open_po.vendor.phone_number
-
-
-
-            po_reference = '%s%s_%s' % (purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''), order_id)
-            table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Unit Price', 'Amount', 'SGST', 'CGST', 'IGST', 'UTGST', 'Remarks')
-
-            po_data.append(( wms_code, supplier_code, purchase_order.open_po.sku.sku_desc, purchase_order.open_po.order_quantity,
-                             purchase_order.open_po.price, amount, purchase_order.open_po.sgst_tax, purchase_order.open_po.cgst_tax,
-                             purchase_order.open_po.igst_tax, purchase_order.open_po.utgst_tax, purchase_order.open_po.remarks))
-
-            profile = UserProfile.objects.get(user=request.user.id)
-            data_dictionary = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
-                               'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference,
-                               'user_name': request.user.username, 'total_qty': total_qty, 'company_name': profile.company_name,
-                               'location': profile.location, 'w_address': profile.address, 'executive_name': executive_name,
-                               'company_name': profile.company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
-                               'vendor_telephone': vendor_telephone, 'customization': customization, 'customer_name': customer_name,
-                               'gstin_no': gstin_no}
+        data_dictionary = get_grn_json_data(purchase_order, user, request)
+        data_dictionary['executive_name'] = executive_name
+        data_dictionary['customer_name'] = customer_name
+        data_dictionary['customization'] = customization
 
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dictionary)

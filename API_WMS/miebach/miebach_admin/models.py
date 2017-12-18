@@ -243,8 +243,10 @@ class OrderDetail(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     unit_price = models.FloatField(default=0)
+    nw_status = models.CharField(max_length=32, blank=True, null=True)
     order_type = models.CharField(max_length=64, default='Normal')
     order_reference = models.CharField(max_length=128,default='')
+    order_reference_date = models.DateField(null=True, blank=True)
 
     class Meta:
         db_table = 'ORDER_DETAIL'
@@ -680,6 +682,7 @@ class UserProfile(models.Model):
     country = models.CharField(max_length=60, default='')
     pin_code = models.PositiveIntegerField(default=0)
     address = models.CharField(max_length=256, default='')
+    gst_number = models.CharField(max_length=32, default='')
     multi_warehouse = models.IntegerField(default=0)
     is_trail = models.IntegerField(default=0)
     api_hash = models.CharField(max_length=256, default='')

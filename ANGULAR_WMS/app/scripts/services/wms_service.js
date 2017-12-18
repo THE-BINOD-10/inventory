@@ -371,7 +371,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         send = $.param(send)
       }
       $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-      $http.post(Session.url+url, send, {withCredential: true}).success(function(data){
+      $http.post(Session.url+excel_url, send, {withCredential: true}).success(function(data){
         window.location = Session.host+data.slice(3);
         vm.print_enable = false;
         d.resolve('resolved');

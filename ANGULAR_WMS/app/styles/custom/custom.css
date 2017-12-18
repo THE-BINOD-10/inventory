@@ -491,6 +491,9 @@ h1 small {
 body {
   background: #fff;
 }
+.swal2-container {
+  z-index: 2021;
+}
 .field {
   margin-bottom: 10px;
 }
@@ -1450,4 +1453,21 @@ pre {
 }
 .row-expansion:hover {
   background: #fff !important;
+}
+.stockone-loader {
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  position: fixed;
+  display: block;
+  opacity: 0.8;
+  background-color: #fff;
+  z-index: 2000;
+  text-align: center;
+  background-image: url('/images/stockone_logo.png');
+  background-repeat: no-repeat;
+  background-size: 100px;
+  background-position: center;
+  cursor: progress;
 }

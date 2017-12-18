@@ -355,6 +355,9 @@ urlpatterns += [
     url(r'get_sku_stock_check/', get_sku_stock_check),
     url(r'check_labels/', check_labels),
     url(r'get_imei_data/', get_imei_data),
+    url(r'get_user_profile_data/$', get_user_profile_data),
+    url(r'change_user_password/$', change_user_password),
+    url(r'update_profile_data/$', update_profile_data),
 
     #Retailone
     url(r'^get_marketplace_data/$',get_marketplace_data),
@@ -371,6 +374,19 @@ urlpatterns += [
     #stockone
     url(r'^book_trial/$',book_trial),
     url(r'^contact_us/$',contact_us),
+
+    #POS
+    url('^validate_sales_person', validate_sales_person),
+    url('^add_customer/$', add_customer),
+    url('^search_pos_customer_data/$', search_pos_customer_data),
+    url('^search_product_data/$', search_product_data),
+    url('^get_current_order_id/$', get_current_order_id),
+    url('^get_pos_user_data/$', get_pos_user_data),
+    url('^customer_order/$', customer_order),
+    url('^print_order_data/$', print_order_data),
+    url('^pre_order_data/$', pre_order_data),
+    url('^update_order_status/$', update_order_status),
+
 ]
 
 #urlpatterns += patterns('rest_api.views',

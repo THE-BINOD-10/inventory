@@ -207,7 +207,7 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters):
     po_order_ids_list = results_objs.exclude(status__in=['location-assigned','confirmed-putaway']).\
                                     filter(received_quantity__lt=F('open_po__order_quantity')).values_list('order_id',
                                     flat=True).distinct()
-    results = list(chain(po_order_ids_list, rw_order_ids_list, st_order_ids_list))
+    results = list(set((chain(po_order_ids_list, rw_order_ids_list, st_order_ids_list))))
     return results, order_qtys_dict, receive_qtys_dict
 
 @csrf_exempt
@@ -992,7 +992,7 @@ def confirm_po(request, user=''):
     company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.POST.get('receipt_type', '')
-    if receipt_type == 'Hosted Warehouse':
+    if request.POST.get('seller_id', ''):
         title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and str(request.POST.get('seller_id').split(":")[1]).lower() == 'shproc':
         company_name = 'SHPROC Procurement Pvt. Ltd.'
@@ -2111,14 +2111,34 @@ def confirmation_location(record, data, total_quantity, temp_dict = ''):
         insert_pallet_data(temp_dict, loc)
     return total_quantity
 
+def returns_order_tracking(order_id, quantity, status='', imei=''):
+    now = datetime.datetime.now()
+    try:
+        log.info('Order Tracking Data Request Params %s, %s, %s, %s' % (str(order_id), str(quantity), 
+                str(status), str(imei)))
+        OrderTracking.objects.create(order_id=order_id, status=status, imei=imei, quantity=quantity,
+            creation_date=now, updation_date=now)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Order Tracking Insert failed for %s and params are %s and error statement is %s' % (str(order), str(e)))
+    return True
+
 @login_required
 @get_admin_user
 def check_returns(request, user=''):
+    from django.core.exceptions import ObjectDoesNotExist
     status = ''
     all_data = {}
     data = []
     request_order_id = request.GET.get('order_id', '')
     request_return_id = request.GET.get('return_id', '')
+    request_awb = request.GET.get('awb_no', '')
+    if request_awb:
+        try:
+            request_order_id = OrderAwbMap.objects.get(awb_no = request_awb, user = user.id).original_order_id
+        except ObjectDoesNotExist:
+            request_order_id = None
     if request_order_id:
         filter_params = {}
         order_id = re.findall('\d+', request_order_id)
@@ -2139,12 +2159,26 @@ def check_returns(request, user=''):
             if picklist.stock:
                 wms_code = picklist.stock.sku.wms_code
                 sku_desc = picklist.stock.sku.sku_desc
-            cond = (picklist.order.original_order_id, wms_code, sku_desc)
+            order_id = picklist.order.original_order_id
+            if not order_id:
+                order_id = picklist.order.order_code + str(picklist.order.order_id)
+            cond = (order_id, wms_code, sku_desc)
             all_data.setdefault(cond, 0)
             all_data[cond] += picklist.picked_quantity
         for key, value in all_data.iteritems():
-            data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2], 'ship_quantity': value, 'return_quantity': 0,
-                         'damaged_quantity': 0 })
+            order_track_obj = OrderTracking.objects.filter(order_id = key[0], status='returned')
+            if order_track_obj:
+                order_track_quantity = int(order_track_obj.aggregate(Sum('quantity'))['quantity__sum'])
+                if value == order_track_quantity:
+                    status = str(key[0]) + ' Order ID Already Returned'
+                    return HttpResponse(status)
+                else:
+                    remaining_return = int(value) - int(order_track_quantity)
+                    data.append({ 'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
+                    'ship_quantity': remaining_return, 'return_quantity': remaining_return, 'damaged_quantity': 0 })
+            else:
+                data.append({ 'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
+                    'ship_quantity': value, 'return_quantity': value, 'damaged_quantity': 0 })
     elif request_return_id:
         order_returns = OrderReturns.objects.filter(return_id=request_return_id, sku__user=user.id)
         if not order_returns:
@@ -2158,11 +2192,15 @@ def check_returns(request, user=''):
                 order_quantity = order_data.order.quantity
             else:
                 order_quantity = order_data.quantity
-            data.append({'id': order_data.id, 'order_id': order_obj.original_order_id, 'return_id': order_data.return_id,
+            order_id = order_obj.original_order_id
+            if not order_id:
+                order_id = order_obj.order_code + str(order_obj.order_id)
+            data.append({'id': order_data.id, 'order_id': order_id, 'return_id': order_data.return_id,
                          'sku_code': order_data.sku.sku_code,
                          'sku_desc': order_data.sku.sku_desc, 'ship_quantity': order_quantity,
                          'return_quantity': order_data.quantity, 'damaged_quantity': order_data.damaged_quantity})
-
+    else:
+        status = 'AWB No. is Invalid'
     if not status:
         return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder))
     return HttpResponse(status)
@@ -2370,7 +2408,8 @@ def group_sales_return_data(data_dict, return_process):
     returns_dict = {}
     grouping_dict = {'order_id': '[str(data_dict["order_id"][ind]), str(data_dict["sku_code"][ind])]',
                      'sku_code': 'data_dict["sku_code"][ind]', 'return_id': 'data_dict["id"][ind]',
-                     'scan_imei': 'data_dict["id"][ind]'}
+                     'scan_imei': 'data_dict["id"][ind]', 
+                     'scan_awb': '[str(data_dict["order_id"][ind]), str(data_dict["sku_code"][ind])]'}
     grouping_key = grouping_dict[return_process]
     zero_index_list = ['scan_order_id', 'return_process', 'return_type']
     number_fields = ['return', 'damaged']
@@ -2430,7 +2469,6 @@ def update_return_reasons(order_return, reasons_list=[]):
 @get_admin_user
 def confirm_sales_return(request, user=''):
     """ Creating and Confirming the Sales Returns"""
-
     data_dict = dict(request.POST.iterlists())
     return_type = request.POST.get('return_type', '')
     return_process = request.POST.get('return_process')
@@ -2439,7 +2477,6 @@ def confirm_sales_return(request, user=''):
     try:
         # Group the Input Data Based on the Group Type
         final_data_list = group_sales_return_data(data_dict, return_process)
-
         for return_dict in final_data_list:
             all_data = []
             check_seller_order = True
@@ -2486,6 +2523,10 @@ def confirm_sales_return(request, user=''):
             locations_status = save_return_locations(**return_loc_params)
             if not locations_status == 'Success':
                 return HttpResponse(locations_status)
+            else:
+                total_quantity = int(return_dict['return'])
+                if total_quantity:
+                    returns_order_tracking(return_dict['order_id'], total_quantity, 'returned', '')
         if user.userprofile.user_type == 'marketplace_user':
             check_and_update_order_status_data(mp_return_data, user, status='RETURNED')
     except Exception as e:
@@ -3655,7 +3696,8 @@ def confirm_add_po(request, sales_data = '', user=''):
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     #if receipt_type == 'Hosted Warehouse':
-    title = 'Stock Transfer Note'
+    if request.POST.get('seller_id', ''):
+        title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
         company_name = 'SHPROC Procurement Pvt. Ltd.'
         title = 'Purchase Order'

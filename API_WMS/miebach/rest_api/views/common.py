@@ -36,6 +36,7 @@ import math
 from django.db.models.functions import Cast, Concat
 from django.db.models.fields import DateField, CharField
 import re
+import subprocess
 
 from django.template import loader, Context
 from barcodes import *
@@ -1172,7 +1173,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
         else:
             SellerStock.objects.create(seller_id=seller_id, stock_id=stock.id, quantity=quantity)
 
-def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, seller_id=''):
+def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, seller_id=''):
     for stock in stocks:
         if stock.quantity > move_quantity:
             stock.quantity -= move_quantity
@@ -1191,9 +1192,9 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, selle
             break
 
     if not dest_stocks:
-        dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=float(quantity), status=1,
-                                  creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now(), location_id=dest[0].id,
-                                  sku_id=sku_id)
+        dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=float(quantity),
+                                  status=1, creation_date=datetime.datetime.now(),
+                                  updation_date=datetime.datetime.now(), location_id=dest[0].id, sku_id=sku_id)
         dest_stocks.save()
         change_seller_stock(seller_id, dest_stocks, user, float(quantity), 'create')
     else:
@@ -1240,7 +1241,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
             return 'Seller Stock Not Found'
 
     dest_stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=dest[0].id, sku__user=user.id)
-    update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, seller_id)
+    update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, seller_id)
 
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
     data_dict['cycle'] = cycle_id
@@ -1680,7 +1681,7 @@ def search_wms_codes(request, user=''):
     return HttpResponse(json.dumps(wms_codes))
 
 def get_order_id(user_id):
-    order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO']).order_by('-creation_date')
+    order_detail_id = OrderDetail.objects.filter(user=user_id, order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO', 'Pre Order']).order_by('-creation_date')
     if order_detail_id:
         order_id = int(order_detail_id[0].order_id) + 1
     else:
@@ -1690,7 +1691,6 @@ def get_order_id(user_id):
 
     #order_id = int(order_detail_id['order_id__max']) + 1
     #order_id = time.time()* 1000000
-
     return order_id
 
 def check_and_update_stock(wms_codes, user):
@@ -1878,7 +1878,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
     # Initializing Default Values
     data, imei_data, customer_details  = [], [], []
     order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address = '', '', '', '', '', '', '', ''
-    tax_type, seller_company , order_reference = '', '', ''
+    tax_type, seller_company , order_reference, order_reference_date = '', '', '', ''
     total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0}
     hsn_summary = {}
@@ -1948,6 +1948,11 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
             order_id = dat.original_order_id
             order_no = str(dat.order_id)
             order_reference = dat.order_reference
+            order_reference_date = ''
+            order_reference_date_field = ''
+            if dat.order_reference_date:
+                order_reference_date_field = dat.order_reference_date.strftime("%m/%d/%Y")
+                order_reference_date = dat.order_reference_date.strftime("%d %b %Y")
             if not order_id:
                 order_id = dat.order_code + str(dat.order_id)
             title = dat.title
@@ -2127,7 +2132,8 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
                     'total_tax_words': number_in_words(_total_tax), 'declaration': declaration, 'hsn_summary': hsn_summary,
                     'hsn_summary_display': get_misc_value('hsn_summary', user.id), 'seller_address': seller_address,
                     'customer_address': customer_address, 'invoice_remarks': invoice_remarks, 'show_disc_invoice': show_disc_invoice,
-                    'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference}
+                    'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
+                    'order_reference_date_field': order_reference_date_field, 'order_reference_date': order_reference_date}
 
     return invoice_data
 
@@ -2417,7 +2423,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     data = get_styles_data(user, product_styles, sku_master, start, stop, customer_id=customer_id, customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict)
     return data, start, stop
 
-def get_user_sku_data(user):
+'''def get_user_sku_data(user):
     request = {}
     #user = User.objects.get(id=sku.user)
     _brand, _categories, _size, _colors, category_details = get_sku_categories_data(request, user, request_data={'file': True}, is_catalog='true')
@@ -2437,26 +2443,28 @@ def get_user_sku_data(user):
     else:
         file_dump = file_dump[0]
         file_dump.checksum = checksum
-        file_dump.save()
+        file_dump.save()'''
 
 @csrf_exempt
-@login_required
-@get_admin_user
+#@login_required
+#@get_admin_user
 def get_file_checksum(request,user=''):
     name = request.GET.get('name', '')
+    user = request.GET.get('user','')
     file_content = ''
-    file_data = list(FileDump.objects.filter(name=name, user=user.id).values('name', 'checksum', 'path'))
+    file_data = list(FileDump.objects.filter(name=name, user=user).values('name', 'checksum', 'path'))
     if file_data:
         file_data = file_data[0]
     return HttpResponse(json.dumps({'file_data': file_data}))
 
 @csrf_exempt
-@login_required
-@get_admin_user
+#@login_required
+#@get_admin_user
 def get_file_content(request,user=''):
     name = request.GET.get('name', '')
+    user = request.GET.get('user','')
     file_content = ''
-    file_data = list(FileDump.objects.filter(name=name, user=user.id).values('name', 'checksum', 'path'))
+    file_data = list(FileDump.objects.filter(name=name, user=user).values('name', 'checksum', 'path'))
     if file_data:
         file_data = file_data[0]
         file_content = open(file_data['path'], 'r').read()
@@ -2995,7 +3003,7 @@ def get_tally_data(request, user = ""):
                              ))
         result_data['headers'] = headers
         result_data['product_group'] = result_data['product_type']
-        tally_config = TallyConfiguration.objects.filter(user_ids=user.id)
+        tally_config = TallyConfiguration.objects.filter(user_id=user.id)
         config_dict = {}
         if tally_config:
             config_dict = tally_config[0].json()
@@ -3488,47 +3496,48 @@ def generate_barcode_dict(pdf_format, myDict, user):
             single['SKUPrintQty'] = quant
             single['Brand'] = sku_data.sku_brand.replace("'",'')
             single['SKUDes'] = sku_data.sku_desc.replace("'",'')
-	    single['UOM'] = sku_data.measurement_type.replace("'",'')
-	    single['Style'] = str(sku_data.style_name).replace("'",'')
-	    single['Color'] = sku_data.color.replace("'",'')
-	    single['Product'] = sku_data.sku_desc
-	    if len(sku_data.sku_desc) >= 25:
-		single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
-            single['Company'] = user_prf.company_name.replace("'",'')
-            single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
-            present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
-	    single["Packed on"] = str(present).replace("'",'')
-	    single['Marketed By'] = user_prf.company_name.replace("'",'')
-	    single['MFD'] = str(present).replace("'",'')
-	    phone_number = user_prf.phone_number
-	    if not phone_number:
-		phone_number = ''
-	    single['Contact No'] = phone_number
-	    single['Email'] = user.email
-	    single["Gender"] = str(sku_data.style_name).replace("'",'')
-	    single['MRP'] = str(sku_data.price).replace("'",'')
-	    order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
+        single['UOM'] = sku_data.measurement_type.replace("'",'')
+        single['Style'] = str(sku_data.style_name).replace("'",'')
+        single['Color'] = sku_data.color.replace("'",'')
+        single['Product'] = sku_data.sku_desc
+        if len(sku_data.sku_desc) >= 25:
+            single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
+        single['Company'] = user_prf.company_name.replace("'",'')
+        single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
+        present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
+        single["Packed on"] = str(present).replace("'",'')
+        single['Marketed By'] = user_prf.company_name.replace("'",'')
+        single['MFD'] = str(present).replace("'",'')
+        phone_number = user_prf.phone_number
+        if not phone_number:
+            phone_number = ''
+        single['Contact No'] = phone_number
+        single['Email'] = user.email
+        single["Gender"] = str(sku_data.style_name).replace("'",'')
+        single['MRP'] = str(sku_data.price).replace("'",'')
+        order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
 
-	    if order_label:
-		order_label = order_label[0]
-		single["Vendor SKU"] = order_label.vendor_sku
-		single["SKUCode"] = order_label.item_sku
-		single['MRP'] = order_label.mrp
-		single['Phone'] = user_prf.phone_number
-		single['Email'] = user.email
-		single["PO No"] = order_label.order.original_order_id
-		single['Color'] = order_label.color.replace("'",'')
-		single['Size'] = str(order_label.size).replace("'",'')
-		if not single["PO No"]:
-		    single["PO No"] = str(order_label[0].order.order_code) + str(order_label[0].order.order_id)
-                address = user_prf.address
-	    if BARCODE_ADDRESS_DICT.get(user.username, ''):
-		address = BARCODE_ADDRESS_DICT.get(user.username)
-                single['Manufactured By'] = address.replace("'",'')
-            if "bulk" in pdf_format.lower():
-                single['Qty'] = single['SKUPrintQty']
-                single['SKUPrintQty'] = "1"
-            barcodes_list.append(single)
+        if order_label:
+            order_label = order_label[0]
+            single["Vendor SKU"] = order_label.vendor_sku
+            single["SKUCode"] = order_label.item_sku
+            single['MRP'] = order_label.mrp
+            single['Phone'] = user_prf.phone_number
+            single['Email'] = user.email
+            single["PO No"] = order_label.order.original_order_id
+            single['Color'] = order_label.color.replace("'",'')
+            single['Size'] = str(order_label.size).replace("'",'')
+            if not single["PO No"]:
+                single["PO No"] = str(order_label[0].order.order_code) + str(order_label[0].order.order_id)
+        address = user_prf.address
+        if BARCODE_ADDRESS_DICT.get(user.username, ''):
+            address = BARCODE_ADDRESS_DICT.get(user.username)
+            single['Manufactured By'] = address.replace("'",'')
+        if "bulk" in pdf_format.lower():
+            single['Qty'] = single['SKUPrintQty']
+            single['SKUPrintQty'] = "1"
+        barcodes_list.append(single)
+    log.info(barcodes_list)
     return get_barcodes(make_data_dict(barcodes_list, user_prf, pdf_format))
 
 def make_data_dict(barcodes_list, user_prf, pdf_format):
@@ -4963,3 +4972,73 @@ def order_allocate_stock(request, user, stock_data = [], mapping_type=''):
         log.debug(traceback.format_exc())
         log.info('Auto Allocate Stock function failed for %s and params are %s and error statement is %s' %
                  (str(user.username), str(stock_data), str(e)))
+
+@login_required
+@get_admin_user
+def get_user_profile_data(request, user=''):
+    ''' return user profile data '''
+
+    data = {'name': user.username, 'email': user.email}
+    main_user = UserProfile.objects.get(user_id=user.id)
+    data['address'] = main_user.address
+    data['gst_number'] = main_user.gst_number
+    data['main_user'] = request.user.is_staff
+    data['company_name'] =main_user.company_name
+    return HttpResponse(json.dumps({'msg': 1, 'data': data}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def change_user_password(request, user=''):
+
+    resp = {'msg': 0, 'data':'Successfully Updated'}
+    try:
+        log.info('Change Password  for user %s , %s' % (str(request.user.id), str(request.user.username)))
+
+        old_password = request.POST.get('old_password', '')
+        if not request.user.check_password(old_password):
+            resp['data'] = 'Invalid Old Password'
+            return HttpResponse(json.dumps(resp))
+        new_password = request.POST.get('new_password', '')
+        retype_password = request.POST.get('retype_password', '')
+        if not new_password:
+            resp['data'] = 'New Password Should Not Be Empty'
+            return HttpResponse(json.dumps(resp))
+        if not retype_password:
+            resp['data'] = 'Retype Password Should Not Be Empty'
+            return HttpResponse(json.dumps(resp))
+        if new_password != retype_password:
+            resp['data'] = 'New Password and Retype Password Should Be Same'
+            return HttpResponse(json.dumps(resp))
+        if old_password == new_password:
+            resp['data'] = 'Old Password and New Password Should Be Same'
+            return HttpResponse(json.dumps(resp))
+
+        resp['msg'] = 1
+        request.user.set_password(new_password)
+        request.user.save()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Change Password Faild User '+ str(request.user.username))
+        resp['data'] = 'Password Updation Fail'
+    return HttpResponse(json.dumps(resp))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_profile_data(request, user=''):
+    ''' will update profile data '''
+
+    address = request.POST.get('address', '')
+    gst_number = request.POST.get('gst_number', '')
+    company_name = request.POST.get('company_name', '')
+    email = request.POST.get('email', '')
+    main_user = UserProfile.objects.get(user_id=user.id)
+    main_user.address = address
+    main_user.gst_number = gst_number
+    main_user.company_name = company_name
+    main_user.save()
+    user.email = email
+    user.save()
+    return HttpResponse('Success')

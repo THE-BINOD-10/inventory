@@ -8,3 +8,4 @@ from reports import *
 from uploads import *
 from retailone import *
 from stockone import *
+from pos import *

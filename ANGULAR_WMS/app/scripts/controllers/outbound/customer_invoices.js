@@ -143,6 +143,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
         if(click_type == 'edit'){
           send['data'] = true;
+          send['edit_invoice'] = true;
         }
         vm.bt_disable = true;
         vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
@@ -297,7 +298,7 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
 
   $timeout(function() {
 
-    $('.stk-readonly').datepicker("setDate", new Date(vm.model_data.inv_date) );
+    $('[name="invoice_date"]').datepicker("setDate", new Date(vm.model_data.inv_date) );
   },1000);
   vm.ok = function () {
 

@@ -340,8 +340,6 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
         tracking = ShipmentTracking.objects.filter(shipment_id=result.id, shipment__order__user=user.id).order_by('-creation_date').\
                                             values_list('ship_status', flat=True)
 
-        if not tracking.count():
-            continue
         if gateout:
             if tracking and tracking[0] != 'Out for Delivery':
                 continue
@@ -1543,6 +1541,7 @@ def update_invoice(request, user=''):
         increment_invoice = get_misc_value('increment_invoice', user.id)
         marketplace = request.POST.get("marketplace", "")
         order_reference = request.POST.get("order_reference", "")
+        order_reference_date = request.POST.get("order_reference_date", "")
 
         myDict = dict(request.POST.iterlists())
         if invoice_date:
@@ -1552,8 +1551,14 @@ def update_invoice(request, user=''):
         ord_ids = OrderDetail.objects.filter(Q(order_id = order_id_val, order_code = order_code) | Q(original_order_id=order_ids),
                                              user = user.id)
 
-        if order_reference and ord_ids:
-           ord_ids.update(order_reference = order_reference)
+        if ord_ids:
+            update_dict = {}
+            if order_reference:
+                update_dict['order_reference'] = order_reference
+            if order_reference_date:
+                update_dict['order_reference_date'] = datetime.datetime.strptime(order_reference_date, "%m/%d/%Y").date()
+            if update_dict:
+                ord_ids.update(**update_dict)
 
         if increment_invoice == 'true' and invoice_number:
             invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace)
@@ -1574,6 +1579,7 @@ def update_invoice(request, user=''):
         for order_id in ord_ids:
             if not str(order_id.id) in myDict['id']:
                 continue
+
             unit_price_index = myDict['id'].index(str(order_id.id))
             if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
                 order_id.unit_price = float(myDict['unit_price'][unit_price_index])
@@ -3729,18 +3735,32 @@ def generate_order_jo_data(request, user=''):
     all_data = []
     title = 'Raise Job Order'
     data_dict = dict(request.POST.iterlists())
-    for i in range(0, len(data_dict['id'])):
-        data_id = data_dict['id'][i]
-        order_detail = OrderDetail.objects.get(id=data_id, user=user.id)
+
+    order_id = request.POST.get('order_id', '')
+    order_details = OrderDetail.objects.none()
+    if order_id:
+        for i in range(0, len(data_dict['order_id'])):
+            main_id = data_dict['order_id'][i]
+            order_code = ''.join(re.findall('\D+', main_id))
+            order_id = ''.join(re.findall('\d+', main_id))
+            order_details = order_details | OrderDetail.objects.filter(Q(order_id = order_id,\
+                            order_code = order_code) | Q(original_order_id=main_id), user=user.id)
+    else:
+        order_details = OrderDetail.objects.filter(id__in=data_dict['id'], user=user.id)
+    for sku_id in order_details.values('sku__id').distinct():
+        order_detail = order_details.filter(sku__id = sku_id['sku__id'])
         data = []
+        product_qty = order_detail.aggregate(Sum('quantity'))['quantity__sum']
+        data_id = ','.join([str(order_id.id) for order_id in order_detail])
+        order_detail = order_detail[0]
         bom_master = BOMMaster.objects.filter(product_sku__sku_code=order_detail.sku.sku_code, product_sku__user=user.id)
-        value = order_detail.quantity
         if bom_master:
             for bom in bom_master:
                 data.append({'material_code': bom.material_sku.sku_code, 'material_quantity': float(bom.material_quantity),
                              'id': '', 'measurement_type': bom.unit_of_measurement})
-        all_data.append({'order_id': data_id, 'product_code': order_detail.sku.sku_code, 'product_description': order_detail.quantity,
+        all_data.append({'order_id': data_id, 'product_code': order_detail.sku.sku_code, 'product_description': product_qty,
                          'description': order_detail.sku.sku_desc, 'sub_data': data})
+
     return HttpResponse(json.dumps({'data': all_data}))
 
 @get_admin_user
@@ -3776,17 +3796,33 @@ def generate_order_po_data(request, user=''):
     for supplier in suppliers:
         supplier_list.append({'id': supplier.id, 'name': supplier.name})
     request_dict = dict(request.POST.iterlists())
-    for i in range(0, len(request_dict['id'])):
-        data_id = request_dict['id'][i]
-        order_detail = OrderDetail.objects.get(id=data_id, user=user.id)
+    order_id = request.POST.get('order_id', '')
+    order_details = OrderDetail.objects.none()
+    if order_id:
+        for i in range(0, len(request_dict['order_id'])):
+            main_id = request_dict['order_id'][i]
+            order_code = ''.join(re.findall('\D+', main_id))
+            order_id = ''.join(re.findall('\d+', main_id))
+            order_details = order_details | OrderDetail.objects.filter(Q(order_id = order_id,\
+                            order_code = order_code) | Q(original_order_id=main_id), user=user.id)
+    else:
+        order_details = OrderDetail.objects.filter(id__in=request_dict['id'], user=user.id)
+
+    for sku_id in order_details.values('sku__id').distinct():
+        order_detail = order_details.filter(sku__id = sku_id['sku__id'])
+        product_qty = order_detail.aggregate(Sum('quantity'))['quantity__sum']
+        data_id = ','.join([str(order_id.id) for order_id in order_detail])
         price = 0
         selected_item = ''
+        order_detail = order_detail[0]
         sku_supplier = SKUSupplier.objects.filter(sku__wms_code=order_detail.sku.wms_code, sku__user=user.id)
         if sku_supplier:
             selected_item = {'id': sku_supplier[0].supplier_id, 'name': sku_supplier[0].supplier.name}
             price = sku_supplier[0].price
-        data_dict.append({'order_id': order_detail.id, 'wms_code': order_detail.sku.wms_code, 'title': order_detail.title ,
-                          'quantity': order_detail.quantity, 'selected_item': selected_item, 'price': price})
+        else:
+            selected_item = supplier_list[1]
+        data_dict.append({'order_id': data_id, 'wms_code': order_detail.sku.wms_code, 'title': order_detail.title ,
+                          'quantity': product_qty, 'selected_item': selected_item, 'price': price})
 
     return HttpResponse(json.dumps({'data_dict': data_dict, 'supplier_list': supplier_list}))
 
@@ -4971,6 +5007,10 @@ def get_customer_orders(request, user=""):
             record['date'] = get_only_date(request, data[0].creation_date)
             record['total_inv_amt'] = round(record['total_inv_amt'], 2)
             record['picked_quantity'] = picked_quantity
+            if record['original_order_id']:
+                record['order_id'] = record['original_order_id']
+            else:
+                record['order_id'] = str(record['order_code']) + str(record['order_id'])
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
 @login_required
@@ -4983,7 +5023,7 @@ def get_customer_order_detail(request, user=""):
     if not order_id:
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
-    order = OrderDetail.objects.filter(order_id = order_id, user=user.id)
+    order = get_order_detail_objs(order_id, user)
     if not order:
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
@@ -5001,7 +5041,7 @@ def get_customer_order_detail(request, user=""):
             tax_data = tax_data[0]
             record['invoice_amount'] = record['invoice_amount'] - tax_data.tax_value
 
-    tax = CustomerOrderSummary.objects.filter(order__order_id = order_id, order__user = user.id).aggregate(Sum('tax_value'))['tax_value__sum']
+    tax = CustomerOrderSummary.objects.filter(order_id__in = order, order__user = user.id).aggregate(Sum('tax_value'))['tax_value__sum']
     if not tax:
         tax = 0
 
@@ -5484,7 +5524,9 @@ def generate_customer_invoice(request, user=''):
                 merge_data[detail[field_mapping['sku_code']]] += detail['total_quantity']
 
         invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, is_seller_order=True, sell_ids=sell_ids)
-        invoice_data = modify_invoice_data(invoice_data, user)
+        edit_invoice = request.GET.get('edit_invoice', '')
+        if edit_invoice != 'true':
+            invoice_data = modify_invoice_data(invoice_data, user)
         ord_ids = order_ids.split(",")
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         invoice_date = datetime.datetime.now()

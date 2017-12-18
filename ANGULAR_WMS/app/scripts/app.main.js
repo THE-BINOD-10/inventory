@@ -15,9 +15,11 @@ angular
 
       $rootScope.process = false;
       $scope.session = Session;
+      $scope.stockone_loader = false;
 
       $rootScope.$on('$stateChangeSuccess', function () {
         $rootScope.process = false;
+        $scope.stockone_loader = true;
       })
 
       $scope.mobileView = 767;

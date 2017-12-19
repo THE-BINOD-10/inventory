@@ -1791,7 +1791,7 @@ def get_awb_view_shipment_info(request, user=''):
     courier_name = request.GET.get('courier_name',[])
     message = ''
     if awb_no:        
-        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, user = user).values('original_order_id')
+        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, status = 2,user = user).values('original_order_id')
         if courier_name:
             order_awb_map = order_awb_map.filter(courier_name = courier_name)
         if marketplace:
@@ -1825,6 +1825,7 @@ def get_awb_view_shipment_info(request, user=''):
                 order_shipment = ship_info.order_packaging.order_shipment
                 order_shipment.shipment_reference = orig_ship_ref
                 order_shipment.save()
+                order_awb_map.update(status = 3)
         else:
             return HttpResponse(json.dumps({'status': False, 'message' : 'AWB No. Not Found'}))
     return HttpResponse(json.dumps({'status': True, 'message' : 'Shipped - Out for Delivery Successfully' }))

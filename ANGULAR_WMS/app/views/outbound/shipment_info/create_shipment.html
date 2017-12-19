@@ -2,7 +2,42 @@
   <div class="panel-header" style="overflow: visible;">
     <div class="layout-sub-header">
       <form name="form" role="form" ui-jq="validate" ui-options="showCase.validationOpt" class="filters">
-        <div class="clearfix">
+
+        <div class="clearfix" ng-if='showCase.awb_ship_type'>
+          <div class="row">
+
+            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+              <div class="form-group">
+                <label class="control-label">Market Place</label>
+                <select name="marketplace" ng-model="showCase.special_key.market_place" class="form-control">
+                  <option value="">All</option>
+                  <option ng-repeat="market in showCase.model_data.market_list" value="{{market}}">{{market}}</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+              <div class="form-group">
+                <label class="control-label">Courier Name</label>
+                <select name="courier" ng-model="showCase.special_key.courier_name" class="form-control">
+                  <option value="">All</option>
+                  <option ng-repeat="market in showCase.model_data.courier_name" value="{{market}}">{{market}}</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Scan AWB</label>
+                <textarea id='awb_no' rows="1" type="text" autocomplete="off" name="awb_no" class="form-control" ng-model="showCase.awb_no" ng-keydown="showCase.scanAwb($event, showCase.awb_no)" auto-focus placeholder="Scan AWB" required>
+                </textarea>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        
+        <div class="clearfix" ng-if='!showCase.awb_ship_type'>
           <div class="row hide">
             <div class="col-md-11 col-sm-11 col-xs-10">
               <p align="right"><b> SKU Grouping: </b></p>
@@ -88,7 +123,6 @@
   </div>
   <div ng-include="'views/common/datatable.html'"></div>
   <div class="col-md-12">
-
     	<button type="submit" class="btn btn-success" ng-disabled="showCase.bt_disable" style="display: block;margin: auto;" ng-click="showCase.add(form)">Create Shipment</button>
   </div>
 </div>

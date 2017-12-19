@@ -10,13 +10,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.selectAll = false;
     vm.toggleAll = toggleAll;
     vm.toggleOne = toggleOne;
+    vm.permissions = Session.roles.permissions;
+    vm.awb_ship_type = (vm.permissions.create_shipment_type == true) ? true: false;
     var titleHtml = '<input type="checkbox" class="data-select" ng-model="vm.selectAll" ng-change="vm.toggleAll(vm.selectAll, vm.selected); $event.stopPropagation();">';
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
               type: 'POST',
-              data: {'datatable': 'ShipmentInfo', 'ship_id':1},
+              data: {'datatable': 'ShipmentInfo', 'ship_id':1, 'gateout':0},
               xhrFields: {
                 withCredentials: true
               }
@@ -65,9 +67,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
                 console.log(aData);
-                var data = {customer_id: aData['Customer ID'], shipment_number:aData['Shipment Number']}
+                var data = { gateout : 0 ,customer_id: aData['Customer ID'], shipment_number:aData['Shipment Number']}
                 vm.service.apiCall("shipment_info_data/","GET", data).then(function(data){
-
                   if(data.message) {
                     angular.copy(data.data, vm.model_data);
                     $state.go('app.outbound.ShipmentInfo.ConfirmShipment');
@@ -80,6 +81,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;
+
+    function reloadAllData () {
+      $('.custom-table').DataTable().draw();
+    };
 
     function reloadData () {
         vm.selectAll = false;
@@ -147,22 +152,63 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     }
 
     vm.empty_data = {"shipment_number":"", "shipment_date":"","truck_number":"","shipment_reference":"","customer_id":"", "marketplace":"",
-                     "market_list":[]};
+                     "market_list":[], "courier_name" : []};
     vm.model_data = {};
     angular.copy(vm.empty_data, vm.model_data);
 
     vm.submit = function(data) {
-
-      var send = $("form").eq(2);
+      var send = $("form").eq(3);
       send = $(send).serializeArray();
-      vm.service.apiCall("update_shipment_status/", "GET", send).then(function(data){
+      vm.service.apiCall("update_shipment_status/", "GET", send).then(function(data) {
         if(data.message) {
-          if(data.data == "Updated Successfully") {
-            vm.close();
+          if(data.data["status"]) {
+              vm.service.showNoty(data.data.message);  
+          } else {
+              vm.service.showNoty(data.data.message, 'error', 'topRight');
           }
-          vm.service.pop_msg(data.data);
+          vm.close();
           reloadData();
         }
       });
     }
+
+    vm.service.apiCall("get_awb_marketplaces/?status=2").then(function(data) {
+      if(data.data.status) {
+        vm.model_data.market_list = data.data.marketplaces;
+        vm.empty_data.market_list = data.data.marketplaces;
+        vm.model_data.courier_name = data.data.courier_name;
+        vm.empty_data.courier_name = data.data.courier_name;
+      }
+    })
+
+    vm.scanAwb = function(event, sku) {
+      if (event.keyCode == 13 && sku.length > 0) {
+        vm.bt_disable = true;
+        vm.awb_no = sku;
+        var apiUrl = "get_awb_view_shipment_info/";
+        if (vm.awb_no.length) {
+          var data=[];
+          data.push({ name: 'awb_no', value: vm.awb_no });
+          data.push({ name: 'market_place', value: vm.market_place });
+          data.push({ name: 'courier_name', value: vm.courier_name });
+        } else {
+          vm.bt_disable = false;
+          vm.service.showNoty("Fill Mandatory Fields", 'error', 'topRight');
+          return;
+        }
+        vm.service.apiCall( apiUrl, "GET", data).then(function(data) {
+          if(data.message) {
+            if(data.data["status"]) {
+                vm.service.showNoty(data.data.message);  
+              } else {
+                vm.service.showNoty(data.data.message, 'error', 'topRight');
+              }
+            }
+          reloadAllData();
+          vm.awb_no = '';
+          vm.bt_disable = true;
+        });
+      }
+    }
+
   }

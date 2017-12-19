@@ -1,0 +1,144 @@
+<!-- <link rel="stylesheet" href="/app/css/receipt.css"/> -->
+<style>
+.receipt {
+  width: 300px;
+  font-size: 14px;
+}
+* {
+  padding: 0px;
+  margin: 0px;
+}
+.shop-name{
+  text-align: center;
+  display: block;
+}
+.title .shop-title {
+  text-align: center;
+  display: block;
+}
+.products table,
+.table-pro table {
+  width: 100%;
+  font-size: 14px;
+}
+.products table thead th:nth-child(1),
+.table-pro table thead th:nth-child(1) {
+  text-align: left;
+}
+.products table thead th,
+.table-pro table thead th {
+  text-align: center;
+}
+.products table tbody tr > td:nth-child(1),
+.table-pro table tbody tr > td:nth-child(1) {
+  text-align: left;
+}
+.products table tbody tr > td,
+.table-pro table tbody tr > td {
+  text-align: center;
+}
+.product-total span {
+  width: 30%;
+  display: inline-block;
+}
+</style>
+
+<div class="receipt">
+  <span class="shop-name">{{user.company}}</span>
+  <span class="shop-name">{{user.address}}</span>
+  <hr>
+  <div class="title">
+    <div>
+        <!--<span class="hide shop-title">Sales Person Name: {{urlService.userData.user_name}}</span>-->
+      <div>
+          <span class="pull-right">Invoice Number: {{data.summary.invoice_number}}{{data.order_id}}</span>
+      </div>
+      <div>
+          <span class="pull-right">Order Number: {{data.order_id}}</span>
+      </div>
+      <div>
+          <span class="pull-right">Order Type: {{data.summary.issue_type}}</span>
+      </div>
+      <div>
+          <span class="pull-right">Order Date: {{date}}</span>
+      </div>
+    </div>
+  </div>
+  <hr>
+    <p align="center">Customer Details</p>
+  <hr>
+  <div class="customer">
+    <p>Name : {{data.customer_data.FirstName}}</p>
+    <p>Email : {{data.customer_data.Email}}</p>
+    <p>Cell Number: {{data.customer_data.Number}} </p>
+  </div>
+
+  <hr>
+  <div class="products table-pro">
+    <table>
+      <thead>
+        <tr>
+          <th>Products</th>
+          <th>Qty</th>
+          <th>Rate</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="item in data.sku_data">
+          <td> {{item.name}} </td>
+          <td> {{item.quantity}} </td>
+          <td> {{item.selling_price}} </td>
+          <td> {{item.price}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <hr>
+    <div class="product-total">
+       <span>Items: {{data.sku_data.length}}</span>
+       <span>Qty: {{data.summary.total_quantity}} </span>
+       <span>Amt: {{data.summary.subtotal}}</span>
+       <!--<span>Amt: {{(data.summary.total_amount*100)/(100+user.VAT)}}</span>-->
+    </div>
+  <hr>
+    <p align="center">TAX Details</p>
+  <hr>
+  <div class="vat-cal table-pro">
+    <table>
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Sales Value</th>
+          <th>Total Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td> GST: {{data.summary.sgst + data.summary.cgst}} </td>
+          <td> {{data.summary.subtotal}}</td>
+          <td> {{data.summary.total_amount}} </td>
+          <!--<td> {{(data.summary.total_amount*100)/(100+user.VAT)}} </td>
+          <td> {{(((data.summary.total_amount*100)/(100+user.VAT))/100)*user.VAT}} </td>-->
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <hr>
+  <div class="total">
+    <div class="product-total">
+       <span>Total ...</span>
+       <span></span>
+       <span>Amt: {{data.summary.total_amount}}</span>
+    </div>
+  </div>
+  <hr>
+  <div ng-if="data.summary.issue_type == 'sample'">
+      <b>Note:Not for Sale</b>
+      <hr>
+  </div>
+  <p align="left">Computer Generated order, Hence Signature not required.</p>
+  <hr>
+  <p align="left">{{print}}</p>
+</div>
+

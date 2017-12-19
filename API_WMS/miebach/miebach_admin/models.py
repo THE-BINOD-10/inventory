@@ -243,7 +243,9 @@ class OrderDetail(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     unit_price = models.FloatField(default=0)
+    nw_status = models.CharField(max_length=32, blank=True, null=True)
     order_type = models.CharField(max_length=64, default='Normal')
+    order_reference = models.CharField(max_length=128,default='')
 
     class Meta:
         db_table = 'ORDER_DETAIL'
@@ -320,6 +322,8 @@ class PurchaseOrder(models.Model):
     status = models.CharField(max_length=32, db_index=True)
     reason = models.TextField(blank=True, null=True)
     prefix = models.CharField(max_length=32, default='')
+    remarks = models.TextField(default='')
+    expected_date = models.DateField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -510,6 +514,22 @@ class InventoryAdjustment(models.Model):
     def __unicode__(self):
         return str(self.id)
 
+class SubstitutionSummary(models.Model):
+    source_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='source_sku')
+    destination_sku_code = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='destination_sku')
+    source_location = models.CharField(max_length=64)
+    destination_location = models.CharField(max_length=64)
+    source_quantity = models.FloatField(default=0)
+    destination_quantity = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SUBSTITUTION_SUMMARY'
+
+    def __unicode__(self):
+        return str(self.id)
+
 class Issues(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
@@ -661,6 +681,7 @@ class UserProfile(models.Model):
     country = models.CharField(max_length=60, default='')
     pin_code = models.PositiveIntegerField(default=0)
     address = models.CharField(max_length=256, default='')
+    gst_number = models.CharField(max_length=32, default='')
     multi_warehouse = models.IntegerField(default=0)
     is_trail = models.IntegerField(default=0)
     api_hash = models.CharField(max_length=256, default='')

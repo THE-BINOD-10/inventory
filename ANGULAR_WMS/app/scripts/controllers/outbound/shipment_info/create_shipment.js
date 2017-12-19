@@ -432,5 +432,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       $rootScope.$emit("CallParentMethod", {});
     }
 
-  }
+    vm.get_courier_for_marketplace = function() {
+      service.apiCall("get_courier_name_for_marketplaces/?status=1&marketplace="+vm.special_key.market_place).then(function(data) {
+        if(data.data.status) {
+          vm.model_data.courier_name = [];
+          vm.model_data.courier_name = data.data.courier_name;
+          vm.empty_data.courier_name = data.data.courier_name;
+        }
+      })
+    }
 
+  }

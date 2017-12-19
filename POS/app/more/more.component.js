@@ -5,8 +5,8 @@
          .component("more", {
 
            "templateUrl": "/app/more/more.template.html",
-           "controller"  : ["$http", "$scope", "urlService", "$rootScope",
-    function ($http, $scope, urlService, $rootScope) {
+           "controller"  : ["$http", "$scope", "urlService", "$rootScope", "$location", "$window",
+    function ($http, $scope, urlService, $rootScope, $location, $window) {
       var self = this;
       self.isDisabled = false;
 
@@ -30,12 +30,14 @@
                    });
         $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
         $http.post( urlService.mainUrl+'rest_api/pre_order_data/', data).success(function(data, status, headers, config) {
-
-            var key = Object.keys(data.data)[0];
-            //key ? (request_from !== "return" ? self.order_details = data.data[key]: self.order_details = data.data) : self.order_details = {'status':'empty'};
-            key ? (self.order_details = data.data, self.filtered_order_details = data.data) : self.order_details = {'status':'empty'};
-            self.isDisabled = false;
-
+            if(data.message === "invalid user") {
+                $window.location.href = urlService.stockoneUrl;
+            } else {
+                var key = Object.keys(data.data)[0];
+                //key ? (request_from !== "return" ? self.order_details = data.data[key]: self.order_details = data.data) : self.order_details = {'status':'empty'};
+                key ? (self.order_details = data.data, self.filtered_order_details = data.data) : self.order_details = {'status':'empty'};
+                self.isDisabled = false;
+            }
        }).then(function() {
        });
 
@@ -162,18 +164,20 @@
                          });
               $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
               $http.post( urlService.mainUrl+'rest_api/update_order_status/', data).success(function(data, status, headers, config) {
-   
-                  $(".preloader").removeClass("ng-show").addClass("ng-hide");
-                  if(data==="Error"){
-                      alert("Please update Stock Quantity and try again");
-                  } else {
-                      self.isDisabled = true;
-                      self.success_msg = data;
-                      if(del==='true') $("."+order_id).parent('div').addClass("ng-hide");
-                      $(".already_delivered").removeClass("ng-hide").addClass("ng-show");
-                      self.selected_order.status = '0';
-                  }
-
+                if(data.message === "invalid user") {
+                    $window.location.href = urlService.stockoneUrl;
+                } else {
+                    $(".preloader").removeClass("ng-show").addClass("ng-hide");
+                    if(data==="Error"){
+                        alert("Please update Stock Quantity and try again");
+                    } else {
+                        self.isDisabled = true;
+                        self.success_msg = data;
+                        if(del==='true') $("."+order_id).parent('div').addClass("ng-hide");
+                        $(".already_delivered").removeClass("ng-hide").addClass("ng-show");
+                        self.selected_order.status = '0';
+                    }
+                }
              }).then(function() {
               console.log("then");
              });

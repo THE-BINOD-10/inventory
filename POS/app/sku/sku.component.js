@@ -5,8 +5,9 @@
            .component("sku", {
   
              "templateUrl": "/app/sku/sku.template.html",
-             "controller"  : ["$http", "$scope", "$timeout", "$q", "$log", "urlService", "manageData","printer", "$rootScope",
-      function ($http, $scope, $timeout, $q, $log, urlService, manageData, printer, $rootScope) {
+             "controller"  : ["$http", "$scope", "$timeout", "$q", "$log", "urlService",
+                              "manageData","printer", "$rootScope", "$location", "$window",
+      function ($http, $scope, $timeout, $q, $log, urlService, manageData, printer, $rootScope, $location, $window) {
         var self = this;
   
       self.simulateQuery = false;
@@ -187,21 +188,25 @@
               $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
  
               $http.post( urlService.mainUrl+'rest_api/customer_order/', data).success(function(data, status, headers, config) {
-                urlService.current_order.order_id = data.order_ids[0];
-                var state = 1
-                store_data(urlService.current_order, state);
-                print_order(urlService.current_order, urlService.userData)
-                console.log(data);
-                self.submit_enable = false;
-  
-                //update the current order id
-                setCheckSum(setOrderID(data)).
-                  then(function(data){
-                    console.log("order id updated");
-                }).catch(function(error){
-                    console.log("order id updated error "+error);
-                });
-  
+                if(data.message === "invalid user") {
+                    window.location.reload();
+                } else {
+                    urlService.current_order.order_id = data.order_ids[0];
+                    var state = 1
+                    store_data(urlService.current_order, state);
+                    print_order(urlService.current_order, urlService.userData)
+                    console.log(data);
+                    self.submit_enable = false;
+      
+                    //update the current order id
+                    setCheckSum(setOrderID(data)).
+                      then(function(data){
+                        console.log("order id updated");
+                    }).catch(function(error){
+                        console.log("order id updated error "+error);
+                    });
+                }
+
               }).then(function() {
                     clear_fields();
               }) ;
@@ -329,11 +334,15 @@
   
               $http.get(ENDPOINT+'rest_api/search_product_data/?user='+urlService.userData.parent_id+'&key='+key)
                 .success( function(data) {
-                  self.repos = data;
-                  return self.repos.map( function (repo) {
-                    repo.value = repo.search.toLowerCase();
-                    return repo;
-                  })
+                 if(data.message === "invalid user") {
+                    $window.location.reload();
+                 } else {
+                    self.repos = data;
+                    return self.repos.map( function (repo) {
+                      repo.value = repo.search.toLowerCase();
+                      return repo;
+                    })
+                 }
                 }).then(function() {
                   deferred.resolve(querySearch (key));
                   deferred.promise.then(function(data){

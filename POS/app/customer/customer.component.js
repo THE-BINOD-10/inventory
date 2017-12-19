@@ -5,8 +5,9 @@
          .component("customer", {
 
            "templateUrl": "/app/customer/customer.template.html",
-           "controller"  : ["$http", "$scope","$rootScope", "$timeout", "$q", "$log", "urlService", "manageData",
-  function ($http, $scope,$rootScope, $timeout, $q, $log, urlService, manageData) {
+           "controller"  : ["$http", "$scope","$rootScope", "$timeout", "$q", "$log", "urlService",
+                            "manageData", "$location", "$window",
+  function ($http, $scope,$rootScope, $timeout, $q, $log, urlService, manageData, $location, $window) {
 
     var self = this;
 
@@ -56,15 +57,20 @@
             
             $http.get(urlService.mainUrl+'rest_api/search_pos_customer_data?user='+urlService.userData.parent_id+'&key='+key)
               .success(function(data) {
-                if (data.length==0 && self.search_term!=0) {
-                    self.customerButton = true;
+                console.log($window);
+                if(data.message === "invalid user") {
+                    $window.location.reload();
+                } else {
+                    if (data.length==0 && self.search_term!=0) {
+                        self.customerButton = true;
+                    }
+                    else { self.customerButton = false; }
+                    self.repos = data;
+                    return self.repos.map( function (repo) {
+                      repo.value = repo.Number.toLowerCase();
+                      return repo;
+                    })
                 }
-                else { self.customerButton = false; }
-                self.repos = data;
-                return self.repos.map( function (repo) {
-                  repo.value = repo.Number.toLowerCase();
-                  return repo;
-                })
               }).then(function() {
                 deferred.resolve(querySearch (key));
               })
@@ -169,9 +175,12 @@
           $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
                 $http.post(urlService.mainUrl+'rest_api/add_customer/', data)
                   .success( function(data) {
-
-                    console.log(data);
-                    self.customerButton = false;
+                    if(data.message === "invalid user") {
+                        $window.location.reload();
+                    } else {
+                        console.log(data);
+                        self.customerButton = false;
+                    }
                   })
                 self.customer_status = true;
                 $timeout(function() {

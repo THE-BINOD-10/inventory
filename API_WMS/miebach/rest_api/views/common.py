@@ -2439,7 +2439,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         file_dump.save()'''
 
 @csrf_exempt
-#@login_required
+@login_required
 #@get_admin_user
 def get_file_checksum(request,user=''):
     name = request.GET.get('name', '')
@@ -2451,7 +2451,7 @@ def get_file_checksum(request,user=''):
     return HttpResponse(json.dumps({'file_data': file_data}))
 
 @csrf_exempt
-#@login_required
+@login_required
 #@get_admin_user
 def get_file_content(request,user=''):
     name = request.GET.get('name', '')

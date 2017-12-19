@@ -1026,7 +1026,7 @@
                     //get all orders where issuetype is "pre order".
                     DATABASE.sync_orders.filter(function(data){
                         data=JSON.parse(data.order);
-                        if(data.summary.issue_type==="Pre order"){
+                        if(data.summary.issue_type.toLowerCase()==="pre order"){
                             return true;
                         }
                     }).toArray().then(function(preorders){
@@ -1037,14 +1037,14 @@
                         getOrderDeliveredItems("").then(function(order_data){
 
                             var data=[];
-                            for(var orders=0;orders<order_data;orders++){
-                                data.push(order_data[ordres].order_id);
+                            for(var orders=0;orders<order_data.length;orders++){
+                                data.push(order_data[orders].order_id);
                             }
 
                             //checkwith preorder order id
                             for(var pre_order=0;pre_order<pre_order_data.length;pre_order++){
 
-                                if(data.indexOf(pre_order_data[pre_order].order_id)>0){
+                                if(data.indexOf(pre_order_data[pre_order].order_id)>=0){
                                     pre_order_data.splice(pre_order);                               
                                 }else{
                                     all_pre_orders[pre_order_data[pre_order].order_id]=(JSON.parse(pre_order_data[pre_order].order_data));
@@ -1054,7 +1054,7 @@
                             
                             //check with sync order order id
                             for(var pre_order=0;pre_order<sync_pre_orders.length;pre_order++){
-                                if(data.indexOf(sync_pre_orders[pre_order].order_id)>0){
+                                if(data.indexOf(sync_pre_orders[pre_order].order_id)>=0){
                                     sync_pre_orders.splice(pre_order,1);                                
                                 }else{
                                     var order_data=JSON.parse(sync_pre_orders[pre_order].order);

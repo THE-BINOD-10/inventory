@@ -46,50 +46,47 @@
     }
     */
 
-    
-    function get_user_data(key) {
-
+     function get_user_data(key) {
         if (key.length > 1) {
             self.search_term = key;
             var deferred = $q.defer();
-          if(navigator.onLine){
-            
-            $http.get(urlService.mainUrl+'rest_api/search_pos_customer_data?user='+urlService.userData.parent_id+'&key='+key)
-              .success(function(data) {
-                if (data.length==0 && self.search_term!=0) {
-                    self.customerButton = true;
-                }
-                else { self.customerButton = false; }
-                self.repos = data;
-                return self.repos.map( function (repo) {
-                  repo.value = repo.Number.toLowerCase();
-                  return repo;
-                })
-              }).then(function() {
-                deferred.resolve(querySearch (key));
-              })
-            return deferred.promise;
-          }else{
-            console.log("activate offline");
-            getCustomerData(key).then(function(data){
 
-                if (data.length==0 && self.search_term!=0) {
-                    self.customerButton = true;
-                }
-                else { self.customerButton = false; }
-                self.repos = data;
-                return self.repos.map( function (repo) {
-                  repo.value = repo.Number.toLowerCase();
-                  return repo;
-                })
-            }).then(function() {
-                deferred.resolve(querySearch (key));
-              })
+            $http.get(urlService.mainUrl+'rest_api/search_pos_customer_data?user='+urlService.userData.parent_id+'&key='+key)
+              .then(function(data) {
+                  data=data.data;
+                  onLineUserData(data);
+              },function(error){
+                  console.log("activate offline");
+                  getCustomerData(key).then(function(data){
+                      offLineUserData(data);
+                  });    
+
+              }).then(function() {
+                  deferred.resolve(querySearch (key));
+              });
             return deferred.promise;
           }
+        return [];
+    }
+
+    //function online get user data process
+    function onLineUserData(data){
+      if (data.length==0 && self.search_term!=0) {
+        self.customerButton = true;
+      }else {
+        self.customerButton = false;
       }
-      return [];
-  }
+      self.repos = data;
+      return self.repos.map( function (repo) {
+        repo.value = repo.Number.toLowerCase();
+        return repo;
+      });
+    }
+
+    //function offline get user Data
+    function offLineUserData(data){
+      onLineUserData(data);
+    }
 
     // clear input field when user submit data
     $scope.$on('handleBroadcast', function() {
@@ -152,57 +149,45 @@
     self.addCustomer = addCustomer;
     self.customer_status = false;
     function addCustomer() {
-    
       var data =  [];
       var user_details={"user": urlService.userData.parent_id,
                          "firstName": self.customer.FirstName || '',
                          "secondName": self.customer.LastName || '',
                          "mail": self.customer.Email || '',
                          "number": parseInt(self.searchText) || ''};
-      
-      if(navigator.onLine){
-          data = data.concat(user_details);
+      data = data.concat(user_details);
+      data = $.param({
+          customers : JSON.stringify(data)
+                   });
+      $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+            $http.post(urlService.mainUrl+'rest_api/add_customer/', data)
+              .then( function(data) {
+                 data=data.data; 
+                 console.log(data);
+                 self.customerButton = false;
+              },function(error){
+                console.log("offline");   
+                $rootScope.sync_status = true;
+                $rootScope.$broadcast('change_sync_status');
+                setSynCustomerData(user_details).
+                            then(function(data){
+                              console.log(data);
+                              self.customerButton = false;
+                              syncPOSData(false).then(function(data){
+                                  // $rootScope.sync_status = false;
+                                  //$rootScope.$broadcast('change_sync_status');
+                              });
 
-          data = $.param({
-              customers : JSON.stringify(data)
-                       });
-          $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-                $http.post(urlService.mainUrl+'rest_api/add_customer/', data)
-                  .success( function(data) {
+                            }).catch(function(error){
 
-                    console.log(data);
-                    self.customerButton = false;
-                  })
-                self.customer_status = true;
-                $timeout(function() {
-                  self.customer_status = false;
-                }, 2000);
+                            });
 
-      }else{
-          console.log("offline");   
-          $rootScope.sync_status = true;
-          $rootScope.$broadcast('change_sync_status');
-          setSynCustomerData(user_details).
-                  then(function(data){
-                      console.log(data);
-                      self.customerButton = false;
+              });
 
-                        syncPOSData(false).then(function(data){
-
-                         // $rootScope.sync_status = false;
-                          //$rootScope.$broadcast('change_sync_status');
-                      });
-
-                  }).catch(function(error){
-
-                  });
-
-          self.customer_status = true;
-                $timeout(function() {
-                  self.customer_status = false;
-                }, 2000);
-
-      }
+            self.customer_status = true;
+            $timeout(function() {
+              self.customer_status = false;
+            }, 2000);
     }
 
     // to show customer add button

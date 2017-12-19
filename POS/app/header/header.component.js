@@ -83,6 +83,25 @@
 	//trigger event for getting data at intiallly.
     //$scope.sync();
 
+     navigator.serviceWorker.ready.then(function(reg){
+
+	  		reg.addEventListener('updatefound',function(){
+	  			const newWorker = reg.installing;
+	  			newWorker.addEventListener('statechange', function() {
+			      console.log("changed teh status "+newWorker.state);
+			    });
+
+	  		});
+	  			
+	  		reg.addEventListener('controllerchange',function(){
+
+	  			console.log("updated the service worker");
+
+	  		});
+
+	  });
+	
+
 	window.addEventListener('load', function(e) {
 	  if (navigator.onLine) {
 	    console.log("online");
@@ -91,6 +110,24 @@
 	    console.log("offline");
 	    toast_msg(NETWORK_ERROR);
 	  }
+
+	  navigator.serviceWorker.ready.then(function(reg){
+
+	  		reg.addEventListener('updatefound',function(){
+	  			const newWorker = reg.installing;
+	  			newWorker.addEventListener('statechange', function() {
+			      console.log("changed teh status "+newWorker.state);
+			    });
+
+	  		});
+
+	  		reg.addEventListener('controllerchange',function(){
+
+	  			console.log("updated the service worker");
+
+	  		});
+
+	  });
 	}, false);
 
 	window.addEventListener('online', function(e) {

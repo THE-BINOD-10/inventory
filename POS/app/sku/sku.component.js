@@ -164,6 +164,7 @@
       // ajax call to send data to backend
       self.customer_order = customer_order;
       function customer_order(data) {
+        
         data["summary"]["nw_status"] = 'online';
         self.submit_enable = true;
 
@@ -176,44 +177,40 @@
             data.status="1";
         }
   
-        if(navigator.onLine){
-  
-                data.summary.nw_status = ONLINE;
-
-                var data = $.param({
-                        order : JSON.stringify(data)
-                    });
-  
-              $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
- 
-              $http.post( urlService.mainUrl+'rest_api/customer_order/', data).success(function(data, status, headers, config) {
-                urlService.current_order.order_id = data.order_ids[0];
-                var state = 1
-                store_data(urlService.current_order, state);
-                print_order(urlService.current_order, urlService.userData)
-                console.log(data);
-                self.submit_enable = false;
-  
-                //update the current order id
-                setCheckSum(setOrderID(data)).
-                  then(function(data){
-                    console.log("order id updated");
-                }).catch(function(error){
-                    console.log("order id updated error "+error);
+              data.summary.nw_status = ONLINE;
+              var order_data=data;
+            var data = $.param({
+                    order : JSON.stringify(data)
                 });
-  
-              }).then(function() {
-                    clear_fields();
-              }) ;
 
-          }else{
-  
-            //change the network status
-            data.summary.nw_status = OFFLINE;
+          $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+
+          $http.post( urlService.mainUrl+'rest_api/customer_order/', data).
+          then(function(data, status, headers, config) {
+            data=data.data;
+            urlService.current_order.order_id = data.order_ids[0];
+            var state = 1
+            store_data(urlService.current_order, state);
+            print_order(urlService.current_order, urlService.userData)
+            console.log(data);
+            self.submit_enable = false;
+
+            //update the current order id
+            setCheckSum(setOrderID(data)).
+              then(function(data){
+                console.log("order id updated");
+            }).catch(function(error){
+                console.log("order id updated error "+error);
+            });
+
+          },function(error){
+
+                //change the network status
+            order_data.summary.nw_status = OFFLINE;
             $rootScope.sync_status = true;
             $rootScope.$broadcast('change_sync_status');
 
-            setSynOrdersData(data,self.qty_switch).
+            setSynOrdersData(order_data,self.qty_switch).
                   then(function(data){
     
                       if(data.is_all_return==true){
@@ -242,8 +239,12 @@
                     }).catch(function(error){
                        console.log("order saving error "+error);
                     });
-   
-        }
+
+          }).then(function() {
+                clear_fields();
+          }) ;
+
+          
       }
   
       self.hold_data = hold_data;
@@ -323,52 +324,35 @@
       }
   
       function get_product_data(key) {
-  
           if (key.length > 1) {
-            var deferred = $q.defer();
-            if(navigator.onLine){
-              console.log("online");
-  
-              $http.get(ENDPOINT+'rest_api/search_product_data/?user='+urlService.userData.parent_id+'&key='+key)
-                .success( function(data) {
-                  self.repos = data;
+              var deferred = $q.defer();
+              $http.get(urlService.mainUrl+'rest_api/search_product_data/?user='+urlService.userData.parent_id+'&key='+key)
+                .then( function(data) {
+                  console.log("online");
+                  self.repos = data.data;
                   return self.repos.map( function (repo) {
                     repo.value = repo.search.toLowerCase();
                     return repo;
                   })
+                },function(error){
+                  console.log("offline");
+                   getData(key).then(function(data){
+                      self.repos = data;
+                      //deferred.resolve(data);
+                      return self.repos.map( function (repo) {
+                         repo.value = repo.search.toLowerCase();
+                       return repo;
+                      })
+                    });
                 }).then(function() {
                   deferred.resolve(querySearch (key));
                   deferred.promise.then(function(data){
-  
                     update_search_results(data, key)
                     cal_total();
-                  })
-                })
-                 return deferred.promise;
-            }else{
-              console.log("offline");
-
-             getData(key).then(function(data){
-  
-                self.repos = data;
-                deferred.resolve(data);
-                return self.repos.map( function (repo) {
-                 repo.value = repo.search.toLowerCase();
-                 return repo;
-                })
-              });/*.then(function(){
-  
-                  deferred.resolve(querySearch (key));
-                  deferred.promise.then(function(data){
-                          update_search_results(data, key)
-                          cal_total();
-                          });
-              return deferred.promise;
-            });
-         // });*/
-        return deferred.promise;
-      }
-    }
+                  });
+                });
+             return deferred.promise;
+          }
       return [];
     }
   

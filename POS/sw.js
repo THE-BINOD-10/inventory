@@ -8,7 +8,7 @@ importScripts('/app/data/offlineData.js');
 	"use strict";
 	//service worker version number
 
-	var VERSION="0.0.0.91-build-0.9.0.53"
+	var VERSION="0.0.0.91-build-0.9.0.57"
 
 	//service worker version name
 	var CACHE_NAME="POS"+VERSION;
@@ -118,15 +118,15 @@ importScripts('/app/data/offlineData.js');
     //service worker install event listner
     self.addEventListener("install", function (event) {
 
-             event.waitUntil(caches.open(CACHE_NAME).then(function(cache) {
 
-                           return cache.addAll(FILECACHEDLIST).then(function(){
-                                          self.skipWaiting();
-                                    });
-                          }));
+	     event.waitUntil(caches.open(CACHE_NAME).then(function(cache) {
+
+	                   return cache.addAll(FILECACHEDLIST).then(function(){
+	                                  self.skipWaiting();
+	                            });
+	                  }));
             
 	});
-
 
     self.addEventListener('push', function(event) {
 		  console.log('[Service Worker] Push Received.');
@@ -538,6 +538,7 @@ importScripts('/app/data/offlineData.js');
 		  		 				}
 							}).catch(function(error){
 								console.log(request_url+" sku data is "+error.message);
+								event.ports[0].postMessage(error.message);
 							});
 
   	}

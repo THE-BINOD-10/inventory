@@ -10,7 +10,7 @@
                 <label class="control-label">Market Place</label>
                 <select name="marketplace" ng-model="vm.market_place" class="form-control">
                   <option value="">All</option>
-                  <option ng-repeat="market in vm.model_data.market_list" value="{{market}}">{{market}}</option>
+                  <option ng-repeat="market in vm.model_data.market_list" value="{{market}}" ng-selected="market == ''">{{market}}</option>
                 </select>
               </div>
             </div>
@@ -20,7 +20,7 @@
                 <label class="control-label">Courier Name</label>
                 <select name="courier" ng-model="vm.courier_name" class="form-control">
                   <option value="">All</option>
-                  <option ng-repeat="market in vm.model_data.courier_name" value="{{market}}">{{market}}</option>
+                  <option ng-repeat="market in vm.model_data.courier_name" value="{{market}}" ng-selected="market == ''">{{market}}</option>
                 </select>
               </div>
             </div>

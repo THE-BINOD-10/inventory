@@ -1757,7 +1757,7 @@ def get_awb_marketplaces(request, user=''):
     api_status = False
     marketplace = ''
     courier_name = ''
-    status = int(request.GET.get('status', ''))
+    status = int(request.GET.get('status', 0))
     awb_marketplace = OrderAwbMap.objects.exclude(marketplace='').filter(status=status, user_id=user.id)
     if awb_marketplace:
         marketplace = list(awb_marketplace.values_list('marketplace', flat=True).distinct())
@@ -1766,6 +1766,20 @@ def get_awb_marketplaces(request, user=''):
     return HttpResponse(json.dumps({ 'status' : api_status ,'marketplaces': marketplace, 
                         'courier_name': courier_name }))
 
+'''
+@csrf_exempt
+@get_admin_user
+def get_courier_name_for_marketplaces(request, user=''):
+    api_status = False
+    marketplace = request.GET.get('marketplace', '')
+    status = int(request.GET.get('status', 0))
+    awb_marketplace = OrderAwbMap.objects.filter(marketplace=marketplace, status=status, user_id=user.id)
+    if awb_marketplace:
+        courier_name = list(awb_marketplace.values_list('courier_name', flat=True).distinct())
+        api_status = True
+    return HttpResponse(json.dumps({ 'status' : api_status, 'courier_name': courier_name }))
+'''
+
 @csrf_exempt
 @get_admin_user
 def get_awb_view_shipment_info(request, user=''):
@@ -1773,8 +1787,8 @@ def get_awb_view_shipment_info(request, user=''):
     datatable_view = request.GET.get('view', '')
     search_params = {'user': user.id}
     awb_no = request.GET.get('awb_no','')
-    marketplace = request.GET.get('marketplace','')
-    courier_name = request.GET.get('courier_name','')
+    marketplace = request.GET.get('marketplace',[])
+    courier_name = request.GET.get('courier_name',[])
     message = ''
     if awb_no:        
         order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, user = user).values('original_order_id')

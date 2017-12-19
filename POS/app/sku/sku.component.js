@@ -274,6 +274,7 @@
   
       function update_search_results(filter_data, key) {
           for (var i=0; i<filter_data.length; i++) {
+           if(filter_data.length === 1) {
             if(filter_data[i].SKUCode===key) {
               self.searchText = "";
               self.repeated_data = false;
@@ -322,6 +323,7 @@
                 }
               }
             }
+           }
           }
       }
   

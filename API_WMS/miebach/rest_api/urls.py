@@ -184,6 +184,7 @@ urlpatterns = [
     url(r'^get_customer_sku/$',get_customer_sku),
     url(r'^get_awb_shipment_details/$',get_awb_shipment_details),
     url(r'^get_awb_view_shipment_info/$',get_awb_view_shipment_info),
+    url(r'^get_awb_marketplaces/$',get_awb_marketplaces),
     url(r'^print_picklist_excel/$',print_picklist_excel),
     url(r'^print_picklist/$',print_picklist),
     url('^marketplace_segregation/$',marketplace_segregation),

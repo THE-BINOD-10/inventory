@@ -175,8 +175,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     $scope.awb_marketplace_filter_data = function() {
       vm.service.apiCall("get_awb_marketplaces/?status=2").then(function(data) {
         if(data.data.status) {
+          vm.model_data.market_list = [];
           vm.model_data.market_list = data.data.marketplaces;
           vm.empty_data.market_list = data.data.marketplaces;
+          vm.model_data.courier_name = [];
           vm.model_data.courier_name = data.data.courier_name;
           vm.empty_data.courier_name = data.data.courier_name;
         }

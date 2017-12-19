@@ -197,8 +197,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.create_shipment_awb_filter = function() {
       service.apiCall("get_awb_marketplaces/?status=1").then(function(data) {
         if(data.data.status) {
+          vm.model_data.market_list = [];
           vm.model_data.market_list = data.data.marketplaces;
           vm.empty_data.market_list = data.data.marketplaces;
+          vm.model_data.courier_name = [];
           vm.model_data.courier_name = data.data.courier_name;
           vm.empty_data.courier_name = data.data.courier_name;
         }
@@ -412,22 +414,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         if(data.message) {
           if(data.data["status"]) {
             vm.service.showNoty(data.data.message);
-            vm.create_shipment_awb_filter();
-            vm.reloadData();
             $scope.refreshViewShipment();
+            vm.reloadData();
           } else {
             vm.service.showNoty(data.data.message, 'error', 'topRight');
           }
         }
         vm.awb_no = '';
         vm.bt_disable = true;
-        });
-        
+        }); 
       }
     }
     vm.bt_disable = false;
 
     $scope.refreshViewShipment = function() {
+      vm.create_shipment_awb_filter();
       $rootScope.$emit("CallParentMethod", {});
     }
 

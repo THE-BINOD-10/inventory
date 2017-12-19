@@ -8,7 +8,7 @@
 	        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
               <div class="form-group">
                 <label class="control-label">Market Place</label>
-                <select name="marketplace" ng-model="vm.market_place" class="form-control">
+                <select name="marketplace" ng-model="vm.market_place" class="form-control" ng-change="vm.get_courier_for_marketplace(vm.market_place)">
                   <option value="">All</option>
                   <option ng-repeat="market in vm.model_data.market_list" value="{{market}}" ng-selected="market == ''">{{market}}</option>
                 </select>

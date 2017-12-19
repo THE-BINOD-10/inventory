@@ -1766,19 +1766,22 @@ def get_awb_marketplaces(request, user=''):
     return HttpResponse(json.dumps({ 'status' : api_status ,'marketplaces': marketplace, 
                         'courier_name': courier_name }))
 
-'''
+
 @csrf_exempt
 @get_admin_user
 def get_courier_name_for_marketplaces(request, user=''):
     api_status = False
     marketplace = request.GET.get('marketplace', '')
     status = int(request.GET.get('status', 0))
-    awb_marketplace = OrderAwbMap.objects.filter(marketplace=marketplace, status=status, user_id=user.id)
+    if not marketplace:
+        awb_marketplace = OrderAwbMap.objects.exclude(marketplace='').filter(status=status, user_id=user.id)
+    else:
+        awb_marketplace = OrderAwbMap.objects.filter(marketplace=marketplace, status=status, user_id=user.id)
     if awb_marketplace:
         courier_name = list(awb_marketplace.values_list('courier_name', flat=True).distinct())
         api_status = True
     return HttpResponse(json.dumps({ 'status' : api_status, 'courier_name': courier_name }))
-'''
+
 
 @csrf_exempt
 @get_admin_user

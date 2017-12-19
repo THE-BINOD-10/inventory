@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ViewShipmentCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', ServerSideProcessingCtrl]);
+  .controller('ViewShipmentCtrl',['$scope', '$http', '$state', '$compile', '$rootScope', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, Service) {
     var vm = this;
     vm.service = Service
     vm.selected = {};
@@ -172,14 +172,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       });
     }
 
-    vm.service.apiCall("get_awb_marketplaces/?status=2").then(function(data) {
-      if(data.data.status) {
-        vm.model_data.market_list = data.data.marketplaces;
-        vm.empty_data.market_list = data.data.marketplaces;
-        vm.model_data.courier_name = data.data.courier_name;
-        vm.empty_data.courier_name = data.data.courier_name;
-      }
-    })
+    $scope.awb_marketplace_filter_data = function() {
+      vm.service.apiCall("get_awb_marketplaces/?status=2").then(function(data) {
+        if(data.data.status) {
+          vm.model_data.market_list = data.data.marketplaces;
+          vm.empty_data.market_list = data.data.marketplaces;
+          vm.model_data.courier_name = data.data.courier_name;
+          vm.empty_data.courier_name = data.data.courier_name;
+        }
+      })
+    }
+
+    $scope.awb_marketplace_filter_data()
 
     vm.scanAwb = function(event, sku) {
       if (event.keyCode == 13 && sku.length > 0) {
@@ -199,16 +203,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         vm.service.apiCall( apiUrl, "GET", data).then(function(data) {
           if(data.message) {
             if(data.data["status"]) {
-                vm.service.showNoty(data.data.message);  
+                vm.service.showNoty(data.data.message);
+                reloadAllData();
               } else {
                 vm.service.showNoty(data.data.message, 'error', 'topRight');
               }
             }
-          reloadAllData();
           vm.awb_no = '';
           vm.bt_disable = true;
         });
       }
     }
+
+    $rootScope.$on("CallParentMethod", function(){
+      $scope.awb_marketplace_filter_data();
+    });
 
   }

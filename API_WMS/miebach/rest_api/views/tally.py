@@ -15,22 +15,24 @@ from miebach_utils import *
 
 class TallyAPI:
     def __init__(self, user=''):
-        self.user = 1
         self.content_type = 'application/json'
+        '''
         self.tally_dict = {}
         tally_obj = TallyConfiguration.objects.filter(user_id=self.user)
         if tally_obj:
             self.tally_dict = tally_obj[0].json()
+        '''
         self.headers = { 'ContentType' : self.content_type }
 
-    def get_sales_invoices(self, request):
-        user_id= request.user.id
-        #user_id= 15
-        tally_config = TallyConfiguration.objects.filter(user=user_id).values('tally_ip', 'tally_ip', 'tally_path',\
-                                'company_name', 'stock_group', 'stock_category', 'maintain_bill', 'automatic_voucher')
+    def tally_configuration(self):
+	tally_config = TallyConfiguration.objects.filter(user=self.user_id).values('company_name', 'stock_group', 'stock_category', 'maintain_bill', 'automatic_voucher', 'credit_period')
         tally_config = tally_config[0] if tally_config else {}
+	return tally_config
 
-        seller_summary = SellerOrderSummary.objects.filter(order__user=user_id).values('id',\
+    def get_sales_invoices(self, request):
+        self.user_id = request.GET.get('user_id', '')
+	tally_config = self.tally_configuration()
+        seller_summary = SellerOrderSummary.objects.filter(order__user=self.user_id).values('id',\
                             'pick_number', 'seller_order', 'order__order_id', 'picklist',\
                             'quantity', 'invoice_number', 'creation_date', 'order__sku__sku_code',\
                             'order__state', 'order__quantity', 'order__invoice_amount',\
@@ -43,7 +45,7 @@ class TallyAPI:
         from decimal import Decimal
         for obj in seller_summary:
             s_obj = {}
-            customer_info = CustomerMaster.objects.filter(user=user_id, customer_id=obj['order__customer_id'])\
+            customer_info = CustomerMaster.objects.filter(user=self.user_id, customer_id=obj['order__customer_id'])\
                             .values('customer_id', 'name', 'address', 'state', 'city', 'state', 'country',\
                             'tin_number', 'cst_number', 'pan_number', 'price_type', 'tax_type')
             customer_info = customer_info[0] if customer_info else {}
@@ -68,7 +70,7 @@ class TallyAPI:
             s_obj.setdefault('items', [])
             s_obj['items'].append(item_obj)
 
-            ledger_obj = GroupLedgerMapping.objects.filter(user_id = user_id, ledger_type = 'sales', product_group = obj['order__sku__product_type'], state = obj['order__state'])
+            ledger_obj = GroupLedgerMapping.objects.filter(user_id = self.user_id, ledger_type = 'sales', product_group = obj['order__sku__product_type'], state = obj['order__state'])
             item_obj['ledger_name'] = ''
             if ledger_obj:
                 item_obj['ledger_name'] = ledger_obj[0].name
@@ -94,7 +96,7 @@ class TallyAPI:
             party_ledger_tax_obj['is_deemeed_positive'] = True
             party_ledger_tax_obj['entry_rate'] = party_ledger_total_tax
             party_ledger_tax_obj['amount'] = total_amount
-            vat_ledger = VatLedgerMapping.objects.filter(tax_percentage = party_ledger_total_tax, tax_type = 'sales', user = user_id)
+            vat_ledger = VatLedgerMapping.objects.filter(tax_percentage = party_ledger_total_tax, tax_type = 'sales', user = self.user_id)
             party_ledger_tax_obj['name'] = ''
             if vat_ledger:
                 party_ledger_tax_obj['name'] = vat_ledger[0].ledger_name
@@ -137,22 +139,23 @@ class TallyAPI:
             invoices.append(s_obj)
         return HttpResponse(json.dumps(invoices, cls=DjangoJSONEncoder))
 
-    def get_item_master(self, limit=10):
-        user_id = self.user
+    def get_item_master(self, request):
+        self.user_id = request.GET.get('user_id', '')
+	tally_config = self.tally_configuration()
         limit = 10
         send_ids = []
-        exclude_ids = OrdersAPI.objects.filter(user=user_id, engine_type='Tally', order_type='sku',\
+        exclude_ids = OrdersAPI.objects.filter(user=self.user_id, engine_type='Tally', order_type='sku',\
                     status__in=[1,9]).values_list('order_id', flat=True)
-        sku_masters = SKUMaster.objects.exclude(id__in=exclude_ids).filter(user=2)[:limit]
+        sku_masters = SKUMaster.objects.exclude(id__in=exclude_ids).filter(user=self.user_id)[:limit]
         tally_company_name = 'Mieone'
         data_list = []
         for sku_master in sku_masters:
             data_dict = {}
-            data_dict['tally_company_name'] = self.tally_dict.get('company_name', 'Mieone')
+            data_dict['tally_company_name'] = tally_config.get('company_name', 'Mieone')
 	    data_dict['old_item_name'] = sku_master.sku_desc
             data_dict['item_name'] = sku_master.sku_desc
-            data_dict['stock_group_name'] = self.tally_dict.get('stock_group', '')
-            data_dict['stock_category_name'] = self.tally_dict.get('stock_category', '')
+            data_dict['stock_group_name'] = tally_config.get('stock_group', '')
+            data_dict['stock_category_name'] = tally_config.get('stock_category', '')
             data_dict['is_vat_app'] = ''
             data_dict['opening_qty'] = 0
             data_dict['opening_rate'] = sku_master.price
@@ -164,13 +167,13 @@ class TallyAPI:
             data_list.append(data_dict)
         return HttpResponse(json.dumps(data_list, cls=DjangoJSONEncoder))
 
-    def update_masters_data(self, masters, master_type, field_mapping, user_id):
-        master_group = MasterGroupMapping.objects.filter(user_id=user_id, master_type=master_type)
+    def update_masters_data(self, masters, master_type, field_mapping):
+        master_group = MasterGroupMapping.objects.filter(user_id=self.user_id, master_type=master_type)
         send_ids =[]
         data_list = []
         for master in masters:
             data_dict = {}
-            data_dict['tally_company_name'] = self.tally_dict.get('company_name', 'Mieone')
+            data_dict['tally_company_name'] = tally_config.get('company_name', 'Mieone')
             data_dict['old_ledger_name'] = ''
             data_dict['ledger_name'] = master.name
             data_dict['ledger_alias'] = getattr(master, field_mapping['id'])
@@ -199,40 +202,38 @@ class TallyAPI:
             data_dict['service_tax_no'] = ''
             if master_type == 'customer':
                 credit_period = master.credit_period
-                if not credit_period and self.tally_dict.get('credit_perod', 0):
-                    credit_period = self.tally_dict.get('credit_perod')
+                if not credit_period and tally_config.get('credit_perod', 0):
+                    credit_period = tally_config.get('credit_perod')
                 data_dict['default_credit_period'] = credit_period
-            data_dict['maintain_billWise_details'] = STATUS_DICT[self.tally_dict.get('maintain_bill', 0)]
+            data_dict['maintain_billWise_details'] = STATUS_DICT[tally_config.get('maintain_bill', 0)]
             data_list.append(data_dict)
         return data_list
 
-    def get_supplier_master(self, limit=10):
+    def get_supplier_master(self, request):
         limit = 10
-        #user_id = 7
-	user_id = self.user
-        supplier_masters = SupplierMaster.objects.filter(user=user_id)[:limit]
+        self.user_id = request.GET.get('user_id', '')
+        supplier_masters = SupplierMaster.objects.filter(user=self.user_id)[:limit]
         data_list = self.update_masters_data(supplier_masters,\
-            'vendor', {'id': 'id', 'type': 'supplier_type'}, user_id)
+            'vendor', {'id': 'id', 'type': 'supplier_type'}, self.user_id)
         return HttpResponse(json.dumps(data_list, cls=DjangoJSONEncoder))
 
-    def get_customer_master(self, limit=10):
+    def get_customer_master(self, request):
         limit=10
-        #user_id = 7
-	user_id = self.user
-        customer_masters = CustomerMaster.objects.filter(user=user_id)[:limit]
+        self.user_id = request.GET.get('user_id', '')
+        customer_masters = CustomerMaster.objects.filter(user=self.user_id)[:limit]
         data_list = self.update_masters_data(customer_masters,\
-            'customer', {'id': 'customer_id', 'type': 'customer_type'}, user_id)
+            'customer', {'id': 'customer_id', 'type': 'customer_type'}, self.user_id)
         return HttpResponse(json.dumps(data_list, cls=DjangoJSONEncoder))
 
-    def get_sales_returns(self, limit=10):
-        user_id = self.user
+    def get_sales_returns(self, request):
+        self.user_id = request.GET.get('user_id', '')
         sales_returns = []
         order_returns = {}
         #user_id= 19#19, 605, 3
-        tally_config = TallyConfiguration.objects.filter(user=user_id).values('tally_ip', 'tally_path', 'company_name', 'stock_group',\
+        tally_config = TallyConfiguration.objects.filter(user=self.user_id).values('tally_ip', 'tally_path', 'company_name', 'stock_group',\
                      'stock_category', 'maintain_bill', 'automatic_voucher')
         tally_config = tally_config[0] if tally_config else {}
-        order_returns_obj = OrderReturns.objects.filter(order__user = user_id).values('order__customer_name', 'order__state', \
+        order_returns_obj = OrderReturns.objects.filter(order__user = self.user_id).values('order__customer_name', 'order__state', \
                             'seller_order__invoice_no', 'seller_order__creation_date', 'return_id', 'seller_order__seller__address', \
                             'seller_order__seller__tin_number', 'creation_date', 'order__sku__sku_desc', 'quantity', 'damaged_quantity', \
                             'sku__measurement_type', 'order__unit_price', 'order__order_id', 'order__sku__product_type', 'order__state', \
@@ -271,7 +272,7 @@ class TallyAPI:
             order_returns.setdefault('items', [])
             order_returns['items'].append(item_obj)
             party_ledger_obj = {}
-            ledger_obj = GroupLedgerMapping.objects.filter(user_id = user_id, ledger_type = 'sales',
+            ledger_obj = GroupLedgerMapping.objects.filter(user_id = self.user_id, ledger_type = 'sales',
                         product_group = obj['order__sku__product_type'], state = obj['order__state'])
             party_ledger_obj['name'] = ''
             if ledger_obj:
@@ -282,7 +283,7 @@ class TallyAPI:
             order_returns['party_ledger'].update(party_ledger_obj)
             party_ledger_tax_obj = {}
             party_ledger_tax_obj['name'] = ''
-            party_ledger_obj = VatLedgerMapping.objects.filter(tax_percentage = total_ledger_tax, tax_type = 'sales', user = user_id)
+            party_ledger_obj = VatLedgerMapping.objects.filter(tax_percentage = total_ledger_tax, tax_type = 'sales', user = self.user_id)
             if party_ledger_obj:
                 party_ledger_tax_obj['name'] = party_ledger_obj[0].ledger_name
             party_ledger_tax_obj['entry_rate'] = total_ledger_tax
@@ -318,15 +319,14 @@ class TallyAPI:
         po_number = '%s%s_%s' % (order['prefix'], str(order['creation_date']).split(' ')[0].replace('-', ''), order['order_id'])
     	return po_number
 
-    def get_purchase_invoice(self, limit=10):
+    def get_purchase_invoice(self, request):
         from django.core.exceptions import ObjectDoesNotExist
         data_list = []
-        #user_id= 15
-	user_id = self.user
-        tally_config = TallyConfiguration.objects.filter(user=user_id).values('tally_ip', 'tally_ip', 'tally_path',\
+        self.user_id = request.GET.get('user_id', '')
+        tally_config = TallyConfiguration.objects.filter(user=self.user_id).values('tally_ip', 'tally_ip', 'tally_path',\
                                 'company_name', 'stock_group', 'stock_category', 'maintain_bill', 'automatic_voucher')
         tally_config = tally_config[0] if tally_config else {}
-        purchase_order = PurchaseOrder.objects.filter(open_po__sku__user=user_id).values('id',\
+        purchase_order = PurchaseOrder.objects.filter(open_po__sku__user=self.user_id).values('id',\
                             'order_id', 'open_po', 'received_quantity', 'saved_quantity',\
                             'po_date', 'ship_to', 'status', 'reason', 'prefix', 'creation_date',\
 			    'updation_date', 'open_po__supplier__name', 'open_po__supplier__state',\
@@ -346,7 +346,7 @@ class TallyAPI:
             purchase_order_obj[obj['order_id']]['dt_of_voucher'] = obj['creation_date'].strftime('%d/%m/%Y')
             purchase_order_obj[obj['order_id']]['supplier_name'] = obj['open_po__supplier__name']
             purchase_order_obj[obj['order_id']]['supplier_state'] = obj['open_po__supplier__state']
-            ledger_obj = GroupLedgerMapping.objects.filter(user_id = user_id, ledger_type = 'purchase', product_group = obj['open_po__sku__product_type'], state = obj['open_po__supplier__state'])
+            ledger_obj = GroupLedgerMapping.objects.filter(user_id = self.user_id, ledger_type = 'purchase', product_group = obj['open_po__sku__product_type'], state = obj['open_po__supplier__state'])
             item_obj = {}
             item_obj['is_deemeed_positive'] = True
             item_obj['name'] = obj['open_po__sku__sku_desc']
@@ -408,7 +408,7 @@ class TallyAPI:
             purchase_order_obj[obj['order_id']]['narration'] = ''
             purchase_order_obj[obj['order_id']]['del_notes'] = ''
 
-            party_ledger_obj = VatLedgerMapping.objects.filter(tax_percentage = party_ledger_total_tax, tax_type = 'purchase', user = user_id)
+            party_ledger_obj = VatLedgerMapping.objects.filter(tax_percentage = party_ledger_total_tax, tax_type = 'purchase', user = self.user_id)
             party_ledger_tax = {}
             party_ledger_tax['name'] = ''
             if party_ledger_obj:
@@ -420,8 +420,8 @@ class TallyAPI:
                 purchase_order_obj[obj['order_id']]['party_ledger_tax'].update(party_ledger_tax)
         return HttpResponse(json.dumps(purchase_order_obj, cls=DjangoJSONEncoder))
 
-    def get_purchase_returns(self, limit=10):
-        user_id = self.user
+    def get_purchase_returns(self, request):
+        self.user_id = request.GET.get('user_id', '')
         data_dict = {}
         data_list = []
         data_list.append(data_dict)

@@ -1,12 +1,13 @@
 ;(function (angular) {
+
 	"use strict";
 
 	angular.module("more", [])
 	.component("more", {
 
 		"templateUrl": "/app/more/more.template.html",
-		"controller"  : ["$http", "$scope", "urlService", "$rootScope",
-		function ($http, $scope, urlService, $rootScope) {
+    "controller"  : ["$http", "$scope", "urlService", "$rootScope", "$location", "$window",
+		function ($http, $scope, urlService, $rootScope, $location, $window) {
 			var self = this;
 			self.isDisabled = false;
 
@@ -29,7 +30,12 @@
 
 					$http.post( urlService.mainUrl+'rest_api/pre_order_data/', data).
 					then(function(data, status, headers, config) {
-						onLinePreorderData(data.data);
+						data=data.data;
+						if(data.message === "invalid user") {
+                $window.location.href = urlService.stockoneUrl;
+            } else {
+						onLinePreorderData(data);
+						}
 					},function(error){
 						console.log("offline");
 						getPreOrderDetails_Check_Off_Delivered(order_id).then(function(data){
@@ -148,6 +154,7 @@
 			self.filtered_order_details = before_customer_filter;
 		}//end customer filter
 
+<<<<<<< HEAD
 			}//end filter
 
 			//update preorder status and reduce quantity
@@ -230,4 +237,89 @@
 			}
 		}]
 	})
+=======
+      }//end filter
+
+      //update preorder status and reduce quantity
+      self.update_order_status = update_order_status;
+
+      function update_order_status(order_id, delete_order =false) {
+
+        if(self.isDisabled === false){
+
+          var del = "false";
+              if(delete_order) {
+                del = confirm("Sure to delete the order permanantly ?").toString();
+                if(del==='false') return;
+              }
+              
+          if(navigator.onLine){
+
+              $(".preloader").removeClass("ng-hide").addClass("ng-show");
+              // ajax call to send data to backend
+              var data = $.param({
+                          data: JSON.stringify({'user':user, 'order_id':order_id, 'delete_order':del})
+                         });
+              $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+              $http.post( urlService.mainUrl+'rest_api/update_order_status/', data).success(function(data, status, headers, config) {
+                if(data.message === "invalid user") {
+                    $window.location.href = urlService.stockoneUrl;
+                } else {
+                    $(".preloader").removeClass("ng-show").addClass("ng-hide");
+                    if(data==="Error"){
+                        alert("Please update Stock Quantity and try again");
+                    } else {
+                        self.isDisabled = true;
+                        self.success_msg = data;
+                        if(del==='true') $("."+order_id).parent('div').addClass("ng-hide");
+                        $(".already_delivered").removeClass("ng-hide").addClass("ng-show");
+                        self.selected_order.status = '0';
+                    }
+                }
+             }).then(function() {
+              console.log("then");
+             });
+          }else{
+
+              console.log("offline");
+              $rootScope.sync_status = true;
+              $rootScope.$broadcast('change_sync_status');
+              setPreOrderStatus(""+order_id,"0",del).
+                            then(function(data){
+
+                                 $scope.$apply(function() {
+                                   
+                                    $(".preloader").removeClass("ng-show").addClass("ng-hide");  
+                                   
+                                    self.isDisabled = true;
+                                    self.success_msg = data;
+                                    if(del==='true') $("."+order_id).parent('div').addClass("ng-hide");
+                                    $(".already_delivered").removeClass("ng-hide").addClass("ng-show");
+                                    self.selected_order.status = '0';
+                                   
+                                    //auto sync when network available
+                                    syncPOSData(false).then(function(data){
+
+                                     // $rootScope.sync_status = false;
+                                      //$rootScope.$broadcast('change_sync_status');
+                                    });
+                                });
+                            
+                            }).catch(function(error){
+
+                                $scope.$apply(function() { 
+                                  $(".preloader").removeClass("ng-show").addClass("ng-hide");
+                                  alert(error);
+                                });
+
+                            });
+          }
+        }//if
+        else {
+          self.order_details.status = '0';
+        }
+      }
+    }]
+  })
+>>>>>>> 48d51e247f7b1aa0296d4282207ac1379b4828e6
 }(window.angular));

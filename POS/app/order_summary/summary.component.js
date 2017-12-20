@@ -5,8 +5,8 @@
          .component("summary", {
 
            "templateUrl": "/app/order_summary/summary.template.html",
-           "controller"  : ["$http", "$scope", "urlService", "manageData", "$state", "$location",
-    function ($http, $scope, urlService, manageData, $state, $location) {
+           "controller"  : ["$http", "$scope", "urlService", "manageData", "$state", "$location", "$window",
+    function ($http, $scope, urlService, manageData, $state, $location, $window) {
 
       var self = this;
       self.VAT = urlService.VAT;
@@ -51,7 +51,8 @@
                              console.log("user data saved fail in locally "+error.message); 
                           })
                 } else {
-                  $state.go("login");
+                  $window.location.href = urlService.stockoneUrl;//+ "?next='"+ urlService.mainUrl + "'";
+                  //$state.go("login");
                 }
               })
       }else{

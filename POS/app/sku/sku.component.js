@@ -5,8 +5,9 @@
            .component("sku", {
   
              "templateUrl": "/app/sku/sku.template.html",
-             "controller"  : ["$http", "$scope", "$timeout", "$q", "$log", "urlService", "manageData","printer", "$rootScope",
-      function ($http, $scope, $timeout, $q, $log, urlService, manageData, printer, $rootScope) {
+             "controller"  : ["$http", "$scope", "$timeout", "$q", "$log", "urlService",
+                              "manageData","printer", "$rootScope", "$location", "$window",
+      function ($http, $scope, $timeout, $q, $log, urlService, manageData, printer, $rootScope, $location, $window) {
         var self = this;
   
       self.simulateQuery = false;
@@ -177,13 +178,14 @@
             data.status="1";
         }
   
+
               data.summary.nw_status = ONLINE;
               var order_data=data;
             var data = $.param({
                     order : JSON.stringify(data)
                 });
 
-          $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+       $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
 
           $http.post( urlService.mainUrl+'rest_api/customer_order/', data).
           then(function(data, status, headers, config) {
@@ -325,15 +327,20 @@
   
       function get_product_data(key) {
           if (key.length > 1) {
+
               var deferred = $q.defer();
               $http.get(urlService.mainUrl+'rest_api/search_product_data/?user='+urlService.userData.parent_id+'&key='+key)
                 .then( function(data) {
+                  if(data.message === "invalid user") {
+                    $window.location.reload();
+                 } else {
                   console.log("online");
                   self.repos = data.data;
                   return self.repos.map( function (repo) {
                     repo.value = repo.search.toLowerCase();
                     return repo;
                   })
+                 } 
                 },function(error){
                   console.log("offline");
                    getData(key).then(function(data){

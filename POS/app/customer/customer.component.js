@@ -5,8 +5,9 @@
          .component("customer", {
 
            "templateUrl": "/app/customer/customer.template.html",
-           "controller"  : ["$http", "$scope","$rootScope", "$timeout", "$q", "$log", "urlService", "manageData",
-  function ($http, $scope,$rootScope, $timeout, $q, $log, urlService, manageData) {
+           "controller"  : ["$http", "$scope","$rootScope", "$timeout", "$q", "$log", "urlService",
+                            "manageData", "$location", "$window",
+  function ($http, $scope,$rootScope, $timeout, $q, $log, urlService, manageData, $location, $window) {
 
     var self = this;
 
@@ -53,14 +54,18 @@
 
             $http.get(urlService.mainUrl+'rest_api/search_pos_customer_data?user='+urlService.userData.parent_id+'&key='+key)
               .then(function(data) {
+                 console.log($window);
+                if(data.message === "invalid user") {
+                    $window.location.reload();
+                } else {
                   data=data.data;
                   onLineUserData(data);
+                }  
               },function(error){
                   console.log("activate offline");
                   getCustomerData(key).then(function(data){
                       offLineUserData(data);
                   });    
-
               }).then(function() {
                   deferred.resolve(querySearch (key));
               });
@@ -155,6 +160,7 @@
                          "secondName": self.customer.LastName || '',
                          "mail": self.customer.Email || '',
                          "number": parseInt(self.searchText) || ''};
+
       data = data.concat(user_details);
       data = $.param({
           customers : JSON.stringify(data)
@@ -163,8 +169,12 @@
             $http.post(urlService.mainUrl+'rest_api/add_customer/', data)
               .then( function(data) {
                  data=data.data; 
+                 if(data.message === "invalid user") {
+                        $window.location.reload();
+                    } else {
                  console.log(data);
                  self.customerButton = false;
+               }
               },function(error){
                 console.log("offline");   
                 $rootScope.sync_status = true;
@@ -188,6 +198,7 @@
             $timeout(function() {
               self.customer_status = false;
             }, 2000);
+
     }
 
     // to show customer add button

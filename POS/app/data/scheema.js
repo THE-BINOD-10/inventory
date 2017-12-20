@@ -2,7 +2,7 @@
   
 var ASYNC = Dexie.async;
 var SPWAN = Dexie.spawn;
- var DATABASE = new Dexie("pos_pwa");
+var DATABASE = new Dexie("pos_pwa");
 
     DATABASE.version(1).stores({
        skumaster:"SKUCode,ProductDescription,search,price,igst,discount,selling_price,url,sgst,data_id,utgst,stock_quantity,cgst,*sku_search_words",
@@ -15,6 +15,7 @@ var SPWAN = Dexie.spawn;
        order_delivered:"order_id,delete_order,user"
     });
     
+    openDB();
   //create index on sku_search_words table
    DATABASE._createTransaction = Dexie.override(DATABASE._createTransaction, function (createTransaction) {
     // Override DATABASE._createTransaction() to make sure to add _emailWords table to any transaction being modified
@@ -72,6 +73,7 @@ function getAllWords(text) {
     
     if (text) {
         var allWordsIncludingDups = text.toLowerCase().split(/[\s-]+/);
+        allWordsIncludingDups.push(text);
         var wordSet = allWordsIncludingDups.reduce(function (prev, current) {
             prev[current] = true;
             return prev;
@@ -80,6 +82,8 @@ function getAllWords(text) {
     }
 }
 
+//opent local DB
+function openDB(){
  DATABASE.open().then(function(){
       console.log("Opened");
       
@@ -87,5 +91,6 @@ function getAllWords(text) {
      console.log("DATABASE error :"+e);   
      //alert ("Local DATABASE creation failed: " + e);
   });
+}
 
 

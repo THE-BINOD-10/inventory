@@ -8,7 +8,7 @@ importScripts('/app/data/offlineData.js');
 	"use strict";
 	//service worker version number
 
-	var VERSION="0.0.0.91-build-0.9.0.57"
+	var VERSION="0.0.0.91-build-0.9.0.67"
 
 	//service worker version name
 	var CACHE_NAME="POS"+VERSION;
@@ -182,12 +182,14 @@ importScripts('/app/data/offlineData.js');
 	    }
 
 	    event.waitUntil(caches.keys().then(function (cachesList) {
+	    		
 
-	        return Promise.all(cachesList.map(function (name) {
+	    	return Promise.all(cachesList.map(function (name) {
 				          if (name !== CACHE_NAME) {
 				            return caches.delete(name);
 				          }
 	        }));
+	        
 	    }));
     });
 
@@ -310,7 +312,7 @@ importScripts('/app/data/offlineData.js');
 
       	get_POS_sync_CustomersData().
          		then(function(data){
-                   
+                   console.log("sw get sync customers "+data.length);
                    if(data.length>0){
 
                    	var content='customers=' + encodeURIComponent(JSON.stringify(data));
@@ -323,6 +325,7 @@ importScripts('/app/data/offlineData.js');
                    				});
 
                    }else{
+                   		console.log("sw get sync customers less than zero "+data.length);
                    		return resolve(true);
                    }
 
@@ -595,7 +598,7 @@ importScripts('/app/data/offlineData.js');
 				if(response.status==200){
 				   response.text().then(function(data){
 					   // var val_data=JSON.parse(data);
-					    console.log(request_url+"get the  response from network ");
+					    console.log(request_url+" got the  response from network ");
 					  	return resolve(data);
 					  
 				   }).catch(function(error){

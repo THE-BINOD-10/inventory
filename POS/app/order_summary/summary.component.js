@@ -18,7 +18,7 @@
         
             console.log("online");
             $http.get( urlService.mainUrl+'rest_api/get_pos_user_data/?id='+urlService.userData.parent_id).
-					then(function(data, status, headers, config) {
+					then(function(data) {
                 data=data.data;
                 if (data.status == "Success"){
                   console.log(data);

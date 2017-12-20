@@ -29,7 +29,7 @@
 					$http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
 
 					$http.post( urlService.mainUrl+'rest_api/pre_order_data/', data).
-					then(function(data, status, headers, config) {
+					then(function(data) {
 						data=data.data;
 						if(data.message === "invalid user") {
                 $window.location.href = urlService.stockoneUrl;
@@ -45,8 +45,6 @@
 
 					//onLine getpreordersData
 					function onLinePreorderData(data){
-
-						
 							var key = Object.keys(data.data);
 							if(key.length > 0) {
 							  self.order_details = data.data;
@@ -174,7 +172,7 @@
 							});
 							$http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
 							$http.post( urlService.mainUrl+'rest_api/update_order_status/', data)
-							.then(function(data, status, headers, config) {
+							.then(function(data) {
 								data=data.data;
 								if(data.message === "invalid user") {
                     $window.location.href = urlService.stockoneUrl;

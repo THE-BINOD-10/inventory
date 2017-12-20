@@ -59,11 +59,10 @@ app.factory('manageData', function($rootScope) {
     });
 })*/
 
-
 app.config(function($stateProvider, $urlRouterProvider,$httpProvider){
       
       $httpProvider.defaults.withCredentials = true;
-      
+
       // For any unmatched url, send to /route1
       $urlRouterProvider.otherwise("/login");
 

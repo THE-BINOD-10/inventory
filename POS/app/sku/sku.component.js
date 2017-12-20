@@ -188,7 +188,7 @@
        $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
 
           $http.post( urlService.mainUrl+'rest_api/customer_order/', data).
-          then(function(data, status, headers, config) {
+          then(function(data) {
 
             data=data.data;
             if(data.message === "invalid user") {
@@ -335,11 +335,12 @@
               var deferred = $q.defer();
               $http.get(urlService.mainUrl+'rest_api/search_product_data/?user='+urlService.userData.parent_id+'&key='+key)
                 .then( function(data) {
+                  data=data.data;
                   if(data.message === "invalid user") {
                     $window.location.reload();
                  } else {
                   console.log("online");
-                  self.repos = data.data;
+                  self.repos = data;
                   return self.repos.map( function (repo) {
                     repo.value = repo.search.toLowerCase();
                     return repo;

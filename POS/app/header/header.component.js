@@ -85,12 +85,12 @@
 
      navigator.serviceWorker.ready.then(function(reg){
 
+     		console.log("service worker update found");
 	  		reg.addEventListener('updatefound',function(){
 	  			const newWorker = reg.installing;
 	  			newWorker.addEventListener('statechange', function() {
 			      console.log("changed teh status "+newWorker.state);
 			    });
-
 	  		});
 	  			
 	  		reg.addEventListener('controllerchange',function(){

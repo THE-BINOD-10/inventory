@@ -54,12 +54,12 @@
 
             $http.get(urlService.mainUrl+'rest_api/search_pos_customer_data?user='+urlService.userData.parent_id+'&key='+key)
               .then(function(data) {
-                 console.log($window);
+                data=data.data;
+                console.log($window);
                 if(data.message === "invalid user") {
                     $window.location.reload();
                 } else {
-                  data=data.data;
-                  onLineUserData(data);
+                    onLineUserData(data);
                 }  
               },function(error){
                   console.log("activate offline");

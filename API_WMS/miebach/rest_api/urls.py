@@ -378,7 +378,7 @@ urlpatterns += [
     #POS
     url('^validate_sales_person', validate_sales_person),
     url('^add_customer/$', add_customer),
-    url('^search_customer_data/$', search_customer_data),
+    url('^search_pos_customer_data/$', search_pos_customer_data),
     url('^search_product_data/$', search_product_data),
     url('^get_current_order_id/$', get_current_order_id),
     url('^get_pos_user_data/$', get_pos_user_data),

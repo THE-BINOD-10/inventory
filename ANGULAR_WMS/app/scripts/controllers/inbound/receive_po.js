@@ -63,11 +63,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                    'Expected Date', 'Remarks', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
+    var row_click_bind = 'td';
     if(vm.g_data.style_view) {
       var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable()
                  .withOption('width', '25px').renderWith(function(data, type, full, meta) {
                    return "<i ng-click='showCase.addRowData($event, "+JSON.stringify(full)+")' class='fa fa-plus-square'></i>";
                  })
+      row_click_bind = 'td:not(td:first)';
     } else {
 
       var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable().notVisible();
@@ -119,8 +121,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $('td:not(td:first)', nRow).unbind('click');
-        $('td:not(td:first)', nRow).bind('click', function() {
+        $(row_click_bind, nRow).unbind('click');
+        $(row_click_bind, nRow).bind('click', function() {
             $scope.$apply(function() {
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {

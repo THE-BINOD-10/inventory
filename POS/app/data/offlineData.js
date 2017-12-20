@@ -1,39 +1,40 @@
 "use strict";
 
-//add bulk sukitems
-function addSKUBulkItem(skulist){
+    //add bulk sukitems
+    function addSKUBulkItem(skulist){
 
-    return new Promise(function(resolve,reject){
+        return new Promise(function(resolve,reject){
 
-        DATABASE.transaction('rw', DATABASE.skumaster, DATABASE.sku_search_words,
-            function () {
+            DATABASE.transaction('rw', DATABASE.skumaster, DATABASE.sku_search_words,
+                function () {
 
-                SPWAN(function*(){
-                    
-                    yield DATABASE.skumaster.clear();
-                    yield DATABASE.sku_search_words.clear();    
+                    SPWAN(function*(){
+                        
+                        yield DATABASE.sku_search_words.clear(); 
+                        yield DATABASE.skumaster.clear();
+                           
 
-                    yield DATABASE.skumaster.bulkPut(skulist).then(function(res){
-                        console.log("addSKUBulkItem data is "+res);
-                                //checkStoragePercent();
-                                //getData();
-                                return resolve(true);
-                            }).catch(Dexie.BulkError,function(error){
-                                if(error==Dexie.errnames.QuotaExceeded){
-                                    return reject(error.message);
-                                }else{
-                                    console.log("some sku failed "+ skulist.length()-error.failures.length);
-                                    return reject("some sku failed "+ skulist.length()-error.failures.length);
-                                }
+                        yield DATABASE.skumaster.bulkPut(skulist).then(function(res){
+                            console.log("addSKUBulkItem data is "+res);
+                                    //checkStoragePercent();
+                                    //getData();
+                                    return resolve(true);
+                                }).catch(Dexie.BulkError,function(error){
+                                    if(error==Dexie.errnames.QuotaExceeded){
+                                        return reject(error.message);
+                                    }else{
+                                        console.log("some sku failed "+ skulist.length()-error.failures.length);
+                                        return reject("some sku failed "+ skulist.length()-error.failures.length);
+                                    }
+                                });
+
+                            }).catch(function(error){
+                                return reject("some sku failed "+ error.message);
                             });
 
-                        }).catch(function(error){
-                            return reject("some sku failed "+ error.message);
                         });
-
-                    });
-    });     
-}
+        });     
+    }
 
     //add bulk cutomers
     function addCustomerBulkItem(customer_list){
@@ -76,23 +77,23 @@ function addSKUBulkItem(skulist){
                         foundIds[wordToSKUMapping.SKUCode.toString()] = true;
                     }).
                     then(function () {
-                                        // Now we got all sku IDs in the keys of foundIds object.
-                                        // Convert to array if IDs.
-                                        var sku_ids = Object.keys(foundIds).
-                                        map(function (sku_id) {
-                                            return sku_id;
-                                        });
+                        // Now we got all sku IDs in the keys of foundIds object.
+                        // Convert to array if IDs.
+                        var sku_ids = Object.keys(foundIds).
+                        map(function (sku_id) {
+                            return sku_id;
+                        });
+                        
+                        DATABASE.skumaster.where("SKUCode").
+                        anyOf(sku_ids).toArray().
+                        then(function(skus){
+                            return resolve(skus);
+                        }).catch(function(error){
+                            console.log('collection error ' +err);
+                            return resolve([]);
+                        });
                                         
-                                        DATABASE.skumaster.where("SKUCode").
-                                        anyOf(sku_ids).toArray().
-                                        then(function(skus){
-                                            return resolve(skus);
-                                        }).catch(function(error){
-                                            console.log('collection error ' +err);
-                                            return resolve([]);
-                                        });
-                                        
-                                    });
+                    });
                 }).catch(function (e) {
                     console.log(e.stack || e);
                     return resolve([]);

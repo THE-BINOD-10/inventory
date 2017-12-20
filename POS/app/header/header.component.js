@@ -48,7 +48,6 @@
                     urlService.hide_loading();
                 }).catch(function(){
                     urlService.hide_loading();
-
                 });
             });
         }else{

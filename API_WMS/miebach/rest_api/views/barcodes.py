@@ -71,11 +71,15 @@ def get_customer_styles(data_dict):
 def get_paragraph(data={}, fields=[]):
     phrases = []
     for field in fields:
+
         if 'SKUPrintQty' in field:
+            val = 1
+            if data.has_key('Qty'):
+                val = data.get('Qty', 1)
             if "/" in field:
-                phrases.append("%s: %s" % (str(field.split("/")[1]), str(1)))
+                phrases.append("%s: %s" % (str(field.split("/")[1]), str(val)))
             else:
-                phrases.append("%s: %s" % (str(field), str(1)))
+                phrases.append("%s: %s" % (str(field), str(val)))
             continue
 
         if isinstance(field, list):
@@ -84,6 +88,7 @@ def get_paragraph(data={}, fields=[]):
                 if "/" in i:
                     i = i.split("/")
                     v = 1 if 'SKUPrintQty' in i else data.get(i[0], '')
+                    v = data.get('Qty', 1) if 'SKUPrintQty' in i and data.has_key('Qty') else data.get(i[0], '')
                     nw_phs.append("%s: %s" % (str(i[1]), v))
                 else:
                     nw_phs.append("%s: %s" % (str(i) , data.get(i)))
@@ -132,7 +137,8 @@ def get_barcodes(data_dict):
 
         data['width'], data['height'] = size[0]*mm, size[1]*mm
 
-        for qty in range(int(data.get('SKUPrintQty', 1))):
+        iter_qty = 1 if data.has_key('Qty') else data.get('SKUPrintQty', 1)
+        for qty in range(int(iter_qty)):
             '''Checking and iterating on SKUPrintQty then qty should be one else bulk qty will be printed'''
 
             f = Frame(prev_width*mm, prev_height*mm, data['width'], data['height'],\

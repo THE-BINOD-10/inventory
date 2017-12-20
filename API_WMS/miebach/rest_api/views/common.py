@@ -36,6 +36,7 @@ import math
 from django.db.models.functions import Cast, Concat
 from django.db.models.fields import DateField, CharField
 import re
+import subprocess
 
 from django.template import loader, Context
 from barcodes import *
@@ -1885,7 +1886,7 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
     # Initializing Default Values
     data, imei_data, customer_details  = [], [], []
     order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address = '', '', '', '', '', '', '', ''
-    tax_type, seller_company , order_reference = '', '', ''
+    tax_type, seller_company , order_reference, order_reference_date = '', '', '', ''
     total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0}
     hsn_summary = {}
@@ -1955,6 +1956,11 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
             order_id = dat.original_order_id
             order_no = str(dat.order_id)
             order_reference = dat.order_reference
+            order_reference_date = ''
+            order_reference_date_field = ''
+            if dat.order_reference_date:
+                order_reference_date_field = dat.order_reference_date.strftime("%m/%d/%Y")
+                order_reference_date = dat.order_reference_date.strftime("%d %b %Y")
             if not order_id:
                 order_id = dat.order_code + str(dat.order_id)
             title = dat.title
@@ -2134,7 +2140,8 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
                     'total_tax_words': number_in_words(_total_tax), 'declaration': declaration, 'hsn_summary': hsn_summary,
                     'hsn_summary_display': get_misc_value('hsn_summary', user.id), 'seller_address': seller_address,
                     'customer_address': customer_address, 'invoice_remarks': invoice_remarks, 'show_disc_invoice': show_disc_invoice,
-                    'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference}
+                    'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
+                    'order_reference_date_field': order_reference_date_field, 'order_reference_date': order_reference_date}
 
     return invoice_data
 
@@ -3497,47 +3504,47 @@ def generate_barcode_dict(pdf_format, myDict, user):
             single['SKUPrintQty'] = quant
             single['Brand'] = sku_data.sku_brand.replace("'",'')
             single['SKUDes'] = sku_data.sku_desc.replace("'",'')
-	    single['UOM'] = sku_data.measurement_type.replace("'",'')
-	    single['Style'] = str(sku_data.style_name).replace("'",'')
-	    single['Color'] = sku_data.color.replace("'",'')
-	    single['Product'] = sku_data.sku_desc
-	    if len(sku_data.sku_desc) >= 25:
-		single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
-            single['Company'] = user_prf.company_name.replace("'",'')
-            single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
-            present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
-	    single["Packed on"] = str(present).replace("'",'')
-	    single['Marketed By'] = user_prf.company_name.replace("'",'')
-	    single['MFD'] = str(present).replace("'",'')
-	    phone_number = user_prf.phone_number
-	    if not phone_number:
-		phone_number = ''
-	    single['Contact No'] = phone_number
-	    single['Email'] = user.email
-	    single["Gender"] = str(sku_data.style_name).replace("'",'')
-	    single['MRP'] = str(sku_data.price).replace("'",'')
-	    order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
+        single['UOM'] = sku_data.measurement_type.replace("'",'')
+        single['Style'] = str(sku_data.style_name).replace("'",'')
+        single['Color'] = sku_data.color.replace("'",'')
+        single['Product'] = sku_data.sku_desc
+        if len(sku_data.sku_desc) >= 25:
+            single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
+        single['Company'] = user_prf.company_name.replace("'",'')
+        single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
+        present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
+        single["Packed on"] = str(present).replace("'",'')
+        single['Marketed By'] = user_prf.company_name.replace("'",'')
+        single['MFD'] = str(present).replace("'",'')
+        phone_number = user_prf.phone_number
+        if not phone_number:
+            phone_number = ''
+        single['Contact No'] = phone_number
+        single['Email'] = user.email
+        single["Gender"] = str(sku_data.style_name).replace("'",'')
+        single['MRP'] = str(sku_data.price).replace("'",'')
+        order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
 
-	    if order_label:
-		order_label = order_label[0]
-		single["Vendor SKU"] = order_label.vendor_sku
-		single["SKUCode"] = order_label.item_sku
-		single['MRP'] = order_label.mrp
-		single['Phone'] = user_prf.phone_number
-		single['Email'] = user.email
-		single["PO No"] = order_label.order.original_order_id
-		single['Color'] = order_label.color.replace("'",'')
-		single['Size'] = str(order_label.size).replace("'",'')
-		if not single["PO No"]:
-		    single["PO No"] = str(order_label[0].order.order_code) + str(order_label[0].order.order_id)
-                address = user_prf.address
-	    if BARCODE_ADDRESS_DICT.get(user.username, ''):
-		address = BARCODE_ADDRESS_DICT.get(user.username)
-                single['Manufactured By'] = address.replace("'",'')
-            if "bulk" in pdf_format.lower():
-                single['Qty'] = single['SKUPrintQty']
-                single['SKUPrintQty'] = "1"
-            barcodes_list.append(single)
+        if order_label:
+            order_label = order_label[0]
+            single["Vendor SKU"] = order_label.vendor_sku
+            single["SKUCode"] = order_label.item_sku
+            single['MRP'] = order_label.mrp
+            single['Phone'] = user_prf.phone_number
+            single['Email'] = user.email
+            single["PO No"] = order_label.order.original_order_id
+            single['Color'] = order_label.color.replace("'",'')
+            single['Size'] = str(order_label.size).replace("'",'')
+            if not single["PO No"]:
+                single["PO No"] = str(order_label[0].order.order_code) + str(order_label[0].order.order_id)
+        address = user_prf.address
+        if BARCODE_ADDRESS_DICT.get(user.username, ''):
+            address = BARCODE_ADDRESS_DICT.get(user.username)
+            single['Manufactured By'] = address.replace("'",'')
+        if "bulk" in pdf_format.lower():
+            single['Qty'] = single['SKUPrintQty']
+            single['SKUPrintQty'] = "1"
+        barcodes_list.append(single)
     log.info(barcodes_list)
     return get_barcodes(make_data_dict(barcodes_list, user_prf, pdf_format))
 
@@ -4994,7 +5001,7 @@ def change_user_password(request, user=''):
 
     resp = {'msg': 0, 'data':'Successfully Updated'}
     try:
-        log.info('Change Password  for user %s , %s' % (str(rquest.user.id), str(request.user.username)))
+        log.info('Change Password  for user %s , %s' % (str(request.user.id), str(request.user.username)))
 
         old_password = request.POST.get('old_password', '')
         if not request.user.check_password(old_password):

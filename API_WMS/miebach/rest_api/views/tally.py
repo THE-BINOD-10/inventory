@@ -11,17 +11,20 @@ from django.contrib import auth
 from miebach_admin.models import *
 from common import *
 from miebach_utils import *
-#from tally.tally.api import *
+
+'''
+http://94.130.136.118:8988/rest_api/GetItemMaster/?user_id=3
+http://94.130.136.118:8988/rest_api/GetCustomerMaster/?user_id=3
+http://94.130.136.118:8988/rest_api/GetSupplierMaster/?user_id=3
+http://94.130.136.118:8988/rest_api/GetSalesInvoices/?user_id=3
+http://94.130.136.118:8988/rest_api/GetSalesReturns/?user_id=3
+http://94.130.136.118:8988/rest_api/GetPurchaseInvoices/?user_id=3
+http://94.130.136.118:8988/rest_api/GetPurchaseReturns/?user_id=3
+'''
 
 class TallyAPI:
     def __init__(self, user=''):
         self.content_type = 'application/json'
-        '''
-        self.tally_dict = {}
-        tally_obj = TallyConfiguration.objects.filter(user_id=self.user)
-        if tally_obj:
-            self.tally_dict = tally_obj[0].json()
-        '''
         self.headers = { 'ContentType' : self.content_type }
 
     def tally_configuration(self):
@@ -30,7 +33,7 @@ class TallyAPI:
 	return tally_config
 
     def get_sales_invoices(self, request):
-        self.user_id = request.GET.get('user_id', '')
+        self.user_id = request.GET.get('user_id', 0)
 	tally_config = self.tally_configuration()
         seller_summary = SellerOrderSummary.objects.filter(order__user=self.user_id).values('id',\
                             'pick_number', 'seller_order', 'order__order_id', 'picklist',\
@@ -77,7 +80,7 @@ class TallyAPI:
 
             party_ledger_obj = {}
             party_ledger_obj['is_deemeed_positive'] = True
-            COD = CustomerOrderSummary.objects.filter(order=obj['order__order_id']).values('dispatch_through', 'payment_terms', 'tax_type')
+            COD = CustomerOrderSummary.objects.filter(order=obj['order__order_id'], order__user = self.user_id).values('dispatch_through', 'payment_terms', 'tax_type')
             COD = COD[0] if COD else {}
             cgst_tax = COD.get('cgst_tax', 0)
             sgst_tax = COD.get('sgst_tax', 0)
@@ -140,7 +143,7 @@ class TallyAPI:
         return HttpResponse(json.dumps(invoices, cls=DjangoJSONEncoder))
 
     def get_item_master(self, request):
-        self.user_id = request.GET.get('user_id', '')
+        self.user_id = request.GET.get('user_id', 0)
 	tally_config = self.tally_configuration()
         limit = 10
         send_ids = []
@@ -167,7 +170,7 @@ class TallyAPI:
             data_list.append(data_dict)
         return HttpResponse(json.dumps(data_list, cls=DjangoJSONEncoder))
 
-    def update_masters_data(self, masters, master_type, field_mapping):
+    def update_masters_data(self, masters, master_type, field_mapping, tally_config):
         master_group = MasterGroupMapping.objects.filter(user_id=self.user_id, master_type=master_type)
         send_ids =[]
         data_list = []
@@ -177,7 +180,6 @@ class TallyAPI:
             data_dict['old_ledger_name'] = ''
             data_dict['ledger_name'] = master.name
             data_dict['ledger_alias'] = getattr(master, field_mapping['id'])
-            data_dict['ledger_alias'] = 'cehck1123123'
             data_dict['update_opening_balance'] = getattr(master, field_mapping['id'])
             data_dict['opening_balance'] = 0 #?int or Float
             parent_group_name = ''
@@ -187,7 +189,6 @@ class TallyAPI:
                 parent_group_name = group_obj[0].parent_group
             data_dict['ledger_mailing_name'] = master.name
             data_dict['parent_group_name'] = parent_group_name
-            data_dict['parent_group_name'] = 'Fixed Assets'
             data_dict['address'] = master.address
             data_dict['state'] = master.state
             data_dict['pin_code'] = master.pincode
@@ -211,33 +212,32 @@ class TallyAPI:
 
     def get_supplier_master(self, request):
         limit = 10
-        self.user_id = request.GET.get('user_id', '')
+        self.user_id = request.GET.get('user_id', 0)
+        tally_config = self.tally_configuration()
         supplier_masters = SupplierMaster.objects.filter(user=self.user_id)[:limit]
         data_list = self.update_masters_data(supplier_masters,\
-            'vendor', {'id': 'id', 'type': 'supplier_type'}, self.user_id)
+            'vendor', {'id': 'id', 'type': 'supplier_type'}, tally_config)
         return HttpResponse(json.dumps(data_list, cls=DjangoJSONEncoder))
 
     def get_customer_master(self, request):
         limit=10
-        self.user_id = request.GET.get('user_id', '')
+        self.user_id = request.GET.get('user_id', 0)
+        tally_config = self.tally_configuration()
         customer_masters = CustomerMaster.objects.filter(user=self.user_id)[:limit]
         data_list = self.update_masters_data(customer_masters,\
-            'customer', {'id': 'customer_id', 'type': 'customer_type'}, self.user_id)
+            'customer', {'id': 'customer_id', 'type': 'customer_type'}, tally_config)
         return HttpResponse(json.dumps(data_list, cls=DjangoJSONEncoder))
 
     def get_sales_returns(self, request):
-        self.user_id = request.GET.get('user_id', '')
+        self.user_id = request.GET.get('user_id', 0)
         sales_returns = []
         order_returns = {}
-        #user_id= 19#19, 605, 3
-        tally_config = TallyConfiguration.objects.filter(user=self.user_id).values('tally_ip', 'tally_path', 'company_name', 'stock_group',\
-                     'stock_category', 'maintain_bill', 'automatic_voucher')
-        tally_config = tally_config[0] if tally_config else {}
+        tally_config = self.tally_configuration()
         order_returns_obj = OrderReturns.objects.filter(order__user = self.user_id).values('order__customer_name', 'order__state', \
                             'seller_order__invoice_no', 'seller_order__creation_date', 'return_id', 'seller_order__seller__address', \
                             'seller_order__seller__tin_number', 'creation_date', 'order__sku__sku_desc', 'quantity', 'damaged_quantity', \
                             'sku__measurement_type', 'order__unit_price', 'order__order_id', 'order__sku__product_type', 'order__state', \
-                            'order__customer_id', 'order__user')
+                            'order__customer_id', 'order__user', 'order__address')
         for obj in order_returns_obj:
             order_returns['tally_company_name'] = tally_config.get('company_name', 'Mieone')
             order_returns['voucher_foreign_key'] = obj['return_id']
@@ -255,7 +255,7 @@ class TallyAPI:
             discount = cgst_tax = sgst_tax = igst_tax = utgst_tax = total_ledger_tax = total_amount = item_obj_amount = 0
             item_obj['discount_percentage'] = 0
             if obj['order__order_id']:
-                COD = CustomerOrderSummary.objects.filter(order__id = obj['order__order_id']).values('discount', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax')
+                COD = CustomerOrderSummary.objects.filter(order__id = obj['order__order_id'], order__user = self.user_id).values('discount', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax')
                 COD = COD[0] if COD else {}
                 discount = COD.get('discount', 0)
                 cgst_tax = COD.get('cgst_tax', 0)
@@ -266,6 +266,7 @@ class TallyAPI:
                 total_amount = item_obj['billed_qty'] * item_obj['rate']
                 if discount:
                     item_obj['discount_percentage'] = "%.1f" % (float((discount * 100)/(total_amount)))
+                    item_obj['discount_percentage'] = float(item_obj['discount_percentage'])
                 amount_with_discount = total_amount - discount
                 item_obj_amount = amount_with_discount + ( (amount_with_discount * total_ledger_tax)/100 )
             item_obj['amount'] = item_obj_amount
@@ -297,19 +298,30 @@ class TallyAPI:
             order_returns['reference'] = obj['seller_order__invoice_no']
             order_returns['reference_date'] = obj['seller_order__creation_date']
             order_returns['voucher_identifier'] = obj['return_id']
-            order_returns['consignee_name'] = ''
-            order_returns['consignee_address'] = obj['seller_order__seller__address']
-            order_returns['consignee_address_1'] = obj['seller_order__seller__address']
-            order_returns['buyer_address_1'] = obj['seller_order__seller__address']
             try:
-                customer_obj = CustomerMaster.objects.get(customer_id = obj['order__customer_id'])
+                customer_obj = CustomerMaster.objects.get(customer_id = obj['order__customer_id'], user = user_id)
             except:
                 customer_obj = None
                 order_returns['buyer_TIN_no'] = ''
                 order_returns['buyer_CST_no'] = ''
+                order_returns['consignee_name'] = ''
+                order_returns['consignee_address'] = ''
+                order_returns['consignee_address_1'] = ''
+                order_returns['buyer_address_1'] = ''
             if customer_obj:
                 order_returns['buyer_TIN_no'] = customer_obj.tin_number
                 order_returns['buyer_CST_no'] = customer_obj.cst_number
+                order_returns['consignee_name'] = customer_obj.name
+                order_returns['consignee_address'] = customer_obj.address
+                order_returns['consignee_address_1'] = customer_obj.address
+                order_returns['buyer_address_1'] = customer_obj.address
+            else:
+                order_returns['buyer_TIN_no'] = ''
+                order_returns['buyer_CST_no'] = ''
+                order_returns['consignee_name'] = obj['order__customer_name']
+                order_returns['consignee_address'] = obj['order__address']
+                order_returns['consignee_address_1'] = obj['order__address']
+                order_returns['buyer_address_1'] = obj['order__address']
             order_returns['type_of_dealer'] = 'Unregistered Dealer'
             order_returns['narration'] = ''
             sales_returns.append(order_returns)
@@ -322,10 +334,8 @@ class TallyAPI:
     def get_purchase_invoice(self, request):
         from django.core.exceptions import ObjectDoesNotExist
         data_list = []
-        self.user_id = request.GET.get('user_id', '')
-        tally_config = TallyConfiguration.objects.filter(user=self.user_id).values('tally_ip', 'tally_ip', 'tally_path',\
-                                'company_name', 'stock_group', 'stock_category', 'maintain_bill', 'automatic_voucher')
-        tally_config = tally_config[0] if tally_config else {}
+        self.user_id = request.GET.get('user_id', 0)
+        tally_config = self.tally_configuration()
         purchase_order = PurchaseOrder.objects.filter(open_po__sku__user=self.user_id).values('id',\
                             'order_id', 'open_po', 'received_quantity', 'saved_quantity',\
                             'po_date', 'ship_to', 'status', 'reason', 'prefix', 'creation_date',\
@@ -358,7 +368,7 @@ class TallyAPI:
             item_obj['amount'] = 0
             if obj['received_quantity'] and obj['open_po__measurement_unit']:
                 item_obj['amount'] = int(obj['received_quantity']) * int(obj['open_po__measurement_unit'])
-                item_obj['discount_percentage'] = 0
+            item_obj['discount_percentage'] = 0
             item_obj['ledger_name'] = ''
             if ledger_obj:
                 party_ledger_obj['name'] = ledger_obj[0].ledger_name
@@ -389,7 +399,7 @@ class TallyAPI:
             purchase_order_obj[obj['order_id']]['voucher_no'] = int(tally_config.get('automatic_voucher', 0))
             purchase_order_obj[obj['order_id']]['reference'] = '' #Supplier Invoice Number to be sent
             purchase_order_obj[obj['order_id']]['despatch_doc_no'] = ''
-            COD = CustomerOrderSummary.objects.filter(order__id = obj['order_id']).values('dispatch_through', 'payment_terms', 'tax_type')
+            COD = CustomerOrderSummary.objects.filter(order__id = obj['order_id'], order__user = self.user_id).values('dispatch_through', 'payment_terms', 'tax_type')
             COD = COD[0] if COD else {}
             purchase_order_obj[obj['order_id']]['despatched_through'] = COD.get('dispatch_through', '')
             purchase_order_obj[obj['order_id']]['destination'] = obj['open_po__supplier__address']
@@ -421,7 +431,7 @@ class TallyAPI:
         return HttpResponse(json.dumps(purchase_order_obj, cls=DjangoJSONEncoder))
 
     def get_purchase_returns(self, request):
-        self.user_id = request.GET.get('user_id', '')
+        self.user_id = request.GET.get('user_id', 0)
         data_dict = {}
         data_list = []
         data_list.append(data_dict)

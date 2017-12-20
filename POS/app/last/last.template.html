@@ -1,0 +1,11 @@
+<div class="summary pending">
+  <h5>Last Five Orders</h5>
+  <div class="summary-row" ng-repeat= "item in $ctrl.last_five">
+    <div class="pull-left">
+      <p>{{item.customer_data.Number}}</p>
+    </div>
+    <div class="pull-right">
+      <b>{{item.customer_data.FirstName}}</b>
+    </div>
+  </div>
+</div>

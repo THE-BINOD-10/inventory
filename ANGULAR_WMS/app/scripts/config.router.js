@@ -741,26 +741,19 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/production/back_orders.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/production/back_orders.js');
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/pop_js/common_backorder_po.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/production/back_orders.js'
+                  ])
+                });
               }]
           },
           data: {
             title: 'Back Orders',
           }
         })
-          .state('app.production.BackOrders.PO', {
-            url: '/BackOrderPO',
-            templateUrl: 'views/outbound/toggle/backorder_po.html'
-          })
-          .state('app.outbound.BackOrders.ST', {
-            url: '/ST',
-            templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
-            resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/outbound/pop_js/stock_transfer.js');
-              }]
-            },
-          })
           .state('app.production.BackOrders.RWO', {
             url: '/BackOrderRWO',
             templateUrl: 'views/production/toggle/update_rwo.html'
@@ -929,6 +922,20 @@ var app = angular.module('urbanApp')
           template: '<div ui-view></div>',
           abstract: true,
           url: '/outbound',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load([
+                {
+                  serie: true,
+                  files: [
+                             'scripts/controllers/outbound/pop_js/common_backorder_po.js',
+                             'scripts/controllers/outbound/pop_js/backorder_jo.js',
+                             'scripts/controllers/outbound/pop_js/stock_transfer.js',
+                             'scripts/controllers/outbound/pop_js/picklist.js'
+                            ]
+                        }]);
+                    }]
+          }
         })
         .state('app.outbound.CreateOrders', {
           url: '/CreateOrders',
@@ -977,16 +984,8 @@ var app = angular.module('urbanApp')
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
               return $ocLazyLoad.load([
-                {
-                  serie: true,
-                  files: [
-                             'scripts/controllers/outbound/create_orders/create_orders.js',
-                             'scripts/controllers/outbound/pop_js/picklist.js',
-                             'scripts/controllers/outbound/pop_js/common_backorder_po.js',
-                             'scripts/controllers/outbound/create_orders/create_stock_orders.js',
-                             'scripts/controllers/outbound/view_orders/custom_orders.js'
-                            ]
-                        }]).then( function() {
+                       'scripts/controllers/outbound/view_orders/custom_orders.js'
+                        ]).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
                   ])
@@ -1000,39 +999,9 @@ var app = angular.module('urbanApp')
             title: 'View Orders',
           }
         })
-          .state('app.outbound.ViewOrders.Picklist', {
-            url: '/Picklist',
-            templateUrl: 'views/outbound/toggle/batch_tg.html'
-          })
           .state('app.outbound.ViewOrders.Transfer', {
             url: '/Transfer',
             templateUrl: 'views/outbound/toggle/transfer_tg.html'
-          })
-          .state('app.outbound.ViewOrders.CreateOrder', {
-            url: '/CreateOrder',
-            templateUrl: 'views/outbound/toggle/create_order.html'
-          })
-          .state('app.outbound.ViewOrders.CreateTransfer', {
-            url: '/CreateTransfer',
-            templateUrl: 'views/outbound/toggle/create_stock_transfer.html'
-          })
-          .state('app.outbound.ViewOrders.JO', {
-            url: '/RaiseJO?data',
-            templateUrl: 'views/outbound/toggle/back/backorder_jo.html',
-            resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/outbound/pop_js/backorder_jo.js');
-              }]
-            }
-          })
-          .state('app.outbound.ViewOrders.PO', {
-            url: '/RaisePO?data',
-            templateUrl: 'views/outbound/toggle/back/backorder_po.html',
-            resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/outbound/pop_js/backorder_po.js');
-              }]
-            }
           })
           .state('app.outbound.ViewOrders.OrderDetails', {
             url: '/OrderDetails',
@@ -1057,15 +1026,6 @@ var app = angular.module('urbanApp')
           .state('app.outbound.ViewOrders.InvoiceE', {
             url: '/InvoiceE',
             templateUrl: 'views/outbound/print/empty_invoice.html'
-          })
-          .state('app.outbound.ViewOrders.ST', {
-            url: '/ST?data',
-            templateUrl: 'views/outbound/toggle/create_stock_transfer.html',
-            resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/outbound/pop_js/stock_transfer.js');
-              }]
-            },
           })
         .state('app.outbound.PullConfirmation', {
           url: '/PullConfirmation',
@@ -1139,15 +1099,19 @@ var app = angular.module('urbanApp')
           permission: 'add_shipmentinfo',
           templateUrl: 'views/outbound/shipment_info.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/outbound/shipment_info/create_shipment.js'
-                ]).then( function() {
-                  return $ocLazyLoad.load([
-                    'scripts/controllers/outbound/shipment_info/view_shipment.js'
-                  ])
-                });
-              }]
+              ]).then( function() {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/shipment_info/view_shipment.js'
+                ])
+              }).then( function() {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/shipment_info/gateout.js'
+                ])
+              });
+            }]
           },
           data: {
             title: 'Shipment Info',
@@ -1173,14 +1137,6 @@ var app = angular.module('urbanApp')
             title: 'Back Orders',
           }
         })
-          .state('app.outbound.BackOrders.PO', {
-            url: '/BackOrderPO',
-            templateUrl: 'views/outbound/toggle/backorder_po.html'
-          })
-          .state('app.outbound.BackOrders.JO', {
-            url: '/BackOrderJO',
-            templateUrl: 'views/outbound/toggle/backorder_jo.html'
-          })
         .state('app.outbound.CreateStockTransfer', {
           url: '/CreateStockTransfer',
           permission: 'multi_warehouse',
@@ -1327,7 +1283,7 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Location Wise Filter',
-          }   
+          }
         })
         .state('app.reports.GoodsReceiptNote', {
           url: '/GoodsReceiptNote',
@@ -1339,7 +1295,7 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Goods Receipt Note',
-          }   
+          }
         })
           .state('app.reports.GoodsReceiptNote.PurchaseOrder', {
             url: '/GoodsReceiptNote',
@@ -1355,7 +1311,7 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Receipt Summary',
-          }   
+          }
         })
         .state('app.reports.DispatchSummaryReport', {
           url: '/DispatchSummary',
@@ -1366,8 +1322,8 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Dispatch Summary Report',
-          }   
+            title: 'Dispatch Summary',
+          }
         })
         .state('app.reports.SKUWiseStock', {
           url: '/SKUWiseStock',
@@ -1379,7 +1335,7 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'SKU Wise Stock',
-          }   
+          }
         })
         .state('app.reports.SKUWisePurchaseOrders', {
           url: '/SKUWisePurchaseOrders',
@@ -1391,7 +1347,7 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'SKU Wise Purchase Orders',
-          }   
+          }
         })
         .state('app.reports.SupplierWisePOs', {
           url: '/SupplierWisePOs',
@@ -1403,7 +1359,7 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Supplier Wise POs',
-          }   
+          }
         })
         .state('app.reports.SalesReturnReport', {
           url: '/SalesReturnReport',
@@ -1415,7 +1371,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Sales Return Report',
+            title: 'Sales Return',
           }
         })
         .state('app.reports.InventoryAdjustment', {
@@ -1439,7 +1395,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Inventory Aging Report',
+            title: 'Inventory Aging',
           }
         })
         .state('app.reports.StockSummaryReport', {
@@ -1451,7 +1407,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Stock Summary Report',
+            title: 'Stock Summary',
           }
         })
         .state('app.reports.DailyProductionReport', {
@@ -1463,7 +1419,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Daily Production Report',
+            title: 'Daily Production',
           }
         })
         .state('app.reports.OrderSummaryReport', {
@@ -1475,7 +1431,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Order Summary Report',
+            title: 'Order Summary',
           }
         })
         .state('app.reports.JOStatusReport', {
@@ -1499,7 +1455,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Open JO Report',
+            title: 'Open JO',
           }
         })
         .state('app.reports.SellerInvoiceDetails', {
@@ -1523,7 +1479,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'RM Picklist Report',
+            title: 'RM Picklist',
           }
         })
 
@@ -1548,7 +1504,7 @@ var app = angular.module('urbanApp')
                             ]
                         }]).then(function () {
                 return $ocLazyLoad.load('scripts/controllers/configs/configurations.js');
-              });   
+              });
                     }]
           },
           data: {
@@ -1667,6 +1623,20 @@ var app = angular.module('urbanApp')
             url: '/GroupDetails',
             templateUrl: 'views/manage_users/group_details.html'
           })
+
+      //Porfile
+      .state('app.Profile', {
+          url: '/Profile',
+          templateUrl: 'views/profile/profile.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/controllers/profile.js');
+                    }]
+          },
+          data: {
+            title: 'Porfile'
+          }
+        })
 
       //register
       .state('app.Register', {

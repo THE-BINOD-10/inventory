@@ -59,10 +59,15 @@ app.factory('manageData', function($rootScope) {
     });
 })*/
 
-app.config(function($stateProvider, $urlRouterProvider){
+
+app.config(function($stateProvider, $urlRouterProvider,$httpProvider){
+      
+      $httpProvider.defaults.withCredentials = true;
+      
       // For any unmatched url, send to /route1
       $urlRouterProvider.otherwise("/login");
 
+      
       $stateProvider
         .state('login', {
             //url: STOCKONE,
@@ -173,4 +178,8 @@ app.factory('printer', ['$rootScope', '$compile', '$http', '$timeout','$q', func
             print: print,
             printFromScope:printFromScope
         }
+
+
 }]);
+
+

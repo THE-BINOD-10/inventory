@@ -189,22 +189,26 @@
 
           $http.post( urlService.mainUrl+'rest_api/customer_order/', data).
           then(function(data, status, headers, config) {
+
             data=data.data;
-            urlService.current_order.order_id = data.order_ids[0];
-            var state = 1
-            store_data(urlService.current_order, state);
-            print_order(urlService.current_order, urlService.userData)
-            console.log(data);
-            self.submit_enable = false;
+            if(data.message === "invalid user") {
+                    $window.location.reload();
+            } else {
+              urlService.current_order.order_id = data.order_ids[0];
+              var state = 1
+              store_data(urlService.current_order, state);
+              print_order(urlService.current_order, urlService.userData)
+              console.log(data);
+              self.submit_enable = false;
 
-            //update the current order id
-            setCheckSum(setOrderID(data)).
-              then(function(data){
-                console.log("order id updated");
-            }).catch(function(error){
-                console.log("order id updated error "+error);
-            });
-
+              //update the current order id
+              setCheckSum(setOrderID(data)).
+                then(function(data){
+                  console.log("order id updated");
+              }).catch(function(error){
+                  console.log("order id updated error "+error);
+              });
+          }
           },function(error){
 
                 //change the network status

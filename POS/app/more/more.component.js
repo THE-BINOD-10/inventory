@@ -104,57 +104,54 @@
 
 					})
 					self.filtered_order_details = id_filtered;
-				}
-				else {
+				}else {
 					self.filtered_order_details = before_order_filter;
-		}//end order id filter
+				}//end order id filter
 
-		//if sku_id
-		var before_sku_filter = self.filtered_order_details;
-		if(sku_id) {
-			sku_id = sku_id.toUpperCase();
-			var sku_filtered = {};
-			Object.keys(before_sku_filter).forEach(function(item){
+				//if sku_id
+				var before_sku_filter = self.filtered_order_details;
+				if(sku_id) {
+					sku_id = sku_id.toUpperCase();
+					var sku_filtered = {};
+					Object.keys(before_sku_filter).forEach(function(item){
 
-				Object.keys(before_sku_filter[item]).forEach(function(sku){
-					if (sku === "sku_data") {
-						Object.keys(before_sku_filter[item][sku]).forEach(function(each_sku){
-							if(before_sku_filter[item][sku][each_sku]['sku_code'].toUpperCase().indexOf(sku_id)>=0){
-								sku_filtered[item] = before_sku_filter[item];
+						Object.keys(before_sku_filter[item]).forEach(function(sku){
+							if (sku === "sku_data") {
+								Object.keys(before_sku_filter[item][sku]).forEach(function(each_sku){
+									if(before_sku_filter[item][sku][each_sku]['sku_code'].toUpperCase().indexOf(sku_id)>=0){
+										sku_filtered[item] = before_sku_filter[item];
+									}
+								})
 							}
 						})
-					}
-				})
-			})
-			self.filtered_order_details = sku_filtered;
-		}
-		else {
-			self.filtered_order_details = before_sku_filter;
-		}//end sku id filter
+					})
+					self.filtered_order_details = sku_filtered;
+				}else {
+					self.filtered_order_details = before_sku_filter;
+				}//end sku id filter
 
-		//if customer_name
-		var before_customer_filter = self.filtered_order_details;
-		if(customer_name) {
+				//if customer_name
+				var before_customer_filter = self.filtered_order_details;
+				if(customer_name) {
 
-			customer_name = customer_name.toUpperCase();
-			var customer_filter = {};
-			Object.keys(before_customer_filter).forEach(function(item){
+					customer_name = customer_name.toUpperCase();
+					var customer_filter = {};
+					Object.keys(before_customer_filter).forEach(function(item){
 
-				Object.keys(before_customer_filter[item]).forEach(function(custo){
-					if (custo === "customer_data") {
-						if(before_customer_filter[item][custo]['Name']!=undefined &&before_customer_filter[item][custo]['Name'].toUpperCase().indexOf(customer_name)>=0){
-							customer_filter[item] = before_customer_filter[item];
-						}
-					}
-				})
-			})
-			self.filtered_order_details = customer_filter;
-		}
-		else {
-			self.filtered_order_details = before_customer_filter;
-		}//end customer filter
+						Object.keys(before_customer_filter[item]).forEach(function(custo){
+							if (custo === "customer_data") {
+								if(before_customer_filter[item][custo]['Name']!=undefined &&before_customer_filter[item][custo]['Name'].toUpperCase().indexOf(customer_name)>=0){
+									customer_filter[item] = before_customer_filter[item];
+								}
+							}
+						})
+					})
+					self.filtered_order_details = customer_filter;
+				}else {
+					self.filtered_order_details = before_customer_filter;
+				}//end customer filter
 
-<<<<<<< HEAD
+
 			}//end filter
 
 			//update preorder status and reduce quantity
@@ -178,7 +175,12 @@
 							$http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
 							$http.post( urlService.mainUrl+'rest_api/update_order_status/', data)
 							.then(function(data, status, headers, config) {
-								onLineOrderStatusData(order_id,data.data,del);
+								data=data.data;
+								if(data.message === "invalid user") {
+                    $window.location.href = urlService.stockoneUrl;
+                } else {
+								onLineOrderStatusData(order_id,data,del);
+								}
 							},function(error){
 
 								console.log("offline");
@@ -237,89 +239,5 @@
 			}
 		}]
 	})
-=======
-      }//end filter
 
-      //update preorder status and reduce quantity
-      self.update_order_status = update_order_status;
-
-      function update_order_status(order_id, delete_order =false) {
-
-        if(self.isDisabled === false){
-
-          var del = "false";
-              if(delete_order) {
-                del = confirm("Sure to delete the order permanantly ?").toString();
-                if(del==='false') return;
-              }
-              
-          if(navigator.onLine){
-
-              $(".preloader").removeClass("ng-hide").addClass("ng-show");
-              // ajax call to send data to backend
-              var data = $.param({
-                          data: JSON.stringify({'user':user, 'order_id':order_id, 'delete_order':del})
-                         });
-              $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-              $http.post( urlService.mainUrl+'rest_api/update_order_status/', data).success(function(data, status, headers, config) {
-                if(data.message === "invalid user") {
-                    $window.location.href = urlService.stockoneUrl;
-                } else {
-                    $(".preloader").removeClass("ng-show").addClass("ng-hide");
-                    if(data==="Error"){
-                        alert("Please update Stock Quantity and try again");
-                    } else {
-                        self.isDisabled = true;
-                        self.success_msg = data;
-                        if(del==='true') $("."+order_id).parent('div').addClass("ng-hide");
-                        $(".already_delivered").removeClass("ng-hide").addClass("ng-show");
-                        self.selected_order.status = '0';
-                    }
-                }
-             }).then(function() {
-              console.log("then");
-             });
-          }else{
-
-              console.log("offline");
-              $rootScope.sync_status = true;
-              $rootScope.$broadcast('change_sync_status');
-              setPreOrderStatus(""+order_id,"0",del).
-                            then(function(data){
-
-                                 $scope.$apply(function() {
-                                   
-                                    $(".preloader").removeClass("ng-show").addClass("ng-hide");  
-                                   
-                                    self.isDisabled = true;
-                                    self.success_msg = data;
-                                    if(del==='true') $("."+order_id).parent('div').addClass("ng-hide");
-                                    $(".already_delivered").removeClass("ng-hide").addClass("ng-show");
-                                    self.selected_order.status = '0';
-                                   
-                                    //auto sync when network available
-                                    syncPOSData(false).then(function(data){
-
-                                     // $rootScope.sync_status = false;
-                                      //$rootScope.$broadcast('change_sync_status');
-                                    });
-                                });
-                            
-                            }).catch(function(error){
-
-                                $scope.$apply(function() { 
-                                  $(".preloader").removeClass("ng-show").addClass("ng-hide");
-                                  alert(error);
-                                });
-
-                            });
-          }
-        }//if
-        else {
-          self.order_details.status = '0';
-        }
-      }
-    }]
-  })
->>>>>>> 48d51e247f7b1aa0296d4282207ac1379b4828e6
 }(window.angular));

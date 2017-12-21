@@ -5,8 +5,8 @@
          .component("pageheader", {
 
            "templateUrl": "/app/header/header.template.html",
-           "controller"  : ["$scope","$mdToast", "urlService", "Fullscreen","$rootScope",
-    function ($scope,$mdToast, urlService, Fullscreen, $rootScope) {
+           "controller"  : ["$scope","$mdToast", "urlService", "Fullscreen","$rootScope","$window",
+    function ($scope,$mdToast, urlService, Fullscreen, $rootScope,$window) {
       var self = this;
 
       $scope.name = "Test";
@@ -90,6 +90,9 @@
 	  			const newWorker = reg.installing;
 	  			newWorker.addEventListener('statechange', function() {
 			      console.log("changed teh status "+newWorker.state);
+			      if(newWorker.state==="activated"){
+					$window.location.reload();
+			      }
 			    });
 	  		});
 	  			

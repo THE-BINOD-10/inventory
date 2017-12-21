@@ -2,37 +2,49 @@
 
     //add bulk sukitems
     function addSKUBulkItem(skulist){
-
+        console.log("got the bulk skuitems "+skulist.length);
         return new Promise(function(resolve,reject){
+            openDB().then(function(){
 
-            DATABASE.transaction('rw', DATABASE.skumaster, DATABASE.sku_search_words,
+            DATABASE.transaction('rw', POS_TABLES.skumaster, POS_TABLES.sku_search_words,
                 function () {
 
                     SPWAN(function*(){
-                        
-                        yield DATABASE.sku_search_words.clear(); 
-                        yield DATABASE.skumaster.clear();
-                           
+                                                
+                        yield POS_TABLES.skumaster.clear();
+                        console.log("clear all the local sku master"); 
 
-                        yield DATABASE.skumaster.bulkPut(skulist).then(function(res){
-                            console.log("addSKUBulkItem data is "+res);
-                                    //checkStoragePercent();
-                                    //getData();
-                                    return resolve(true);
-                                }).catch(Dexie.BulkError,function(error){
+                        for(var skudata=1;skudata<=skulist.length;skudata++){
+
+                            yield POS_TABLES.skumaster.bulkPut(skulist.slice(0,1000)).then(function(res){
+                                    
+                                    console.log("sku successfully insert the list "+skudata +" of 1000 items");
+                                    skulist.splice(0,1000);
+                                    console.log("sku remove the list "+skudata +" of 1000 items");
+                                    }).catch(Dexie.BulkError,function(error){
                                     if(error==Dexie.errnames.QuotaExceeded){
                                         return reject(error.message);
                                     }else{
-                                        console.log("some sku failed "+ skulist.length()-error.failures.length);
-                                        return reject("some sku failed "+ skulist.length()-error.failures.length);
+                                        console.log("some sku failed "+ error.failures.length);
+                                        return reject("some sku failed "+ error.failures.length);
                                     }
                                 });
 
-                            }).catch(function(error){
-                                return reject("some sku failed "+ error.message);
-                            });
+                            if(skulist.length==0){
+                                return resolve(true);
+                            }        
+                                    
+                        }  
 
-                        });
+                    }).catch(function(error){
+                        return reject("some sku failed "+ error.message);
+                    });
+
+                });
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
+            });
         });     
     }
 
@@ -40,24 +52,40 @@
     function addCustomerBulkItem(customer_list){
 
         return new Promise(function(resolve,reject){
+            openDB().then(function(){
 
             SPWAN(function*(){
-                yield DATABASE.customer.clear();
-                yield DATABASE.customer.bulkPut(customer_list).then(function(res){
-                    console.log("data is "+res);
-                                //checkStoragePercent();
-                                return resolve(true);
-                            }).catch(Dexie.BulkError,function(error){
+                yield POS_TABLES.customer.clear();
 
-                                if(error==Dexie.errnames.QuotaExceeded){
-                                    return reject(error.message)
-                                }else{
-                                    console.log("failed to load some customers "+ customer_list.length()-error.failures.length);
-                                    return reject("failed to load some customers " + customer_list.length()-error.failures.length);
-                                }
-                                
-                            });
-                        });     
+                for(var customer_data=1;customer_data<=customer_list.length;customer_data++){
+                    yield POS_TABLES.customer.bulkPut(customer_list.splice(0,1000)).then(function(res){
+                                     console.log("data is "+res);
+                                    //checkStoragePercent();
+                                     console.log("customer successfully insert the list "+customer_data +" of 1000 items");
+                                    customer_list.splice(0,1000);
+                                    console.log("customer remove the list "+customer_data +" of 1000 items");
+                                    
+                                }).catch(Dexie.BulkError,function(error){
+
+                                    if(error==Dexie.errnames.QuotaExceeded){
+                                        return reject(error.message)
+                                    }else{
+                                        console.log("failed to load some customers "+ error.failures.length);
+                                        return reject("failed to load some customers " + error.failures.length);
+                                    }
+                                    
+                                });
+
+                    if(customer_list.length==0){
+                        return resolve(true);
+                    }              
+                }
+                });   
+
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
+            });             
         });
     }
 
@@ -67,11 +95,13 @@
 
         return new Promise(function(resolve,reject){
 
-            DATABASE.transaction('rw', DATABASE.skumaster, DATABASE.sku_search_words,
+            openDB().then(function(){
+
+            DATABASE.transaction('rw', POS_TABLES.skumaster, POS_TABLES.sku_search_words,
                 function () {
 
                     var foundIds = {};
-                    DATABASE.sku_search_words.where("word").
+                    POS_TABLES.sku_search_words.where("word").
                     startsWithIgnoreCase(find_key).limit(30).
                     each(function (wordToSKUMapping) {
                         foundIds[wordToSKUMapping.SKUCode.toString()] = true;
@@ -84,7 +114,7 @@
                             return sku_id;
                         });
                         
-                        DATABASE.skumaster.where("SKUCode").
+                        POS_TABLES.skumaster.where("SKUCode").
                         anyOf(sku_ids).toArray().
                         then(function(skus){
                             return resolve(skus);
@@ -98,6 +128,10 @@
                     console.log(e.stack || e);
                     return resolve([]);
                 }); 
+             }).catch(function(error){
+                console.log(error);
+                return reject(error);
+            }); 
 
             });
         
@@ -107,7 +141,8 @@
     function getCustomerData(find_key){
 
         return new Promise(function(resolve,reject){
-            DATABASE.customer.where("Number").
+            openDB().then(function(){
+            POS_TABLES.customer.where("Number").
             startsWithIgnoreCase(find_key).
             or("FirstName").startsWithIgnoreCase(find_key).
             limit(30).toArray().then(function(data){
@@ -116,7 +151,7 @@
                     return resolve(data);   
                 }else{
 
-                    DATABASE.sync_customer.where("number").
+                    POS_TABLES.sync_customer.where("number").
                     startsWithIgnoreCase(find_key).
                     or("firstName").startsWithIgnoreCase(find_key).
                     limit(30).toArray().then(function(data){
@@ -137,6 +172,11 @@
             }).catch(function(error){
                 return reject(error);
             });
+
+           }).catch(function(error){
+                console.log(error);
+                return reject(error);
+            });
         });
     }
 
@@ -144,16 +184,21 @@
     function checktable(table_name){
 
         return new Promise(function(resolve,reject){
+            openDB().then(function(){
             var count=DATABASE.tables.length;
             var count_item=0; 
             DATABASE.tables.forEach(function(table) {
                 count_item++;
                 if(table.name==table_name){
                     console.log("Schema of " + table.name + ": " + JSON.stringify(table.schema));   
-                    resolve(true) ;
+                   return resolve(true) ;
                 }else if(count_item==count){
-                    reject(false);
+                   return reject(false);
                 }
+            });
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
             });
         }); 
 
@@ -162,7 +207,8 @@
 
     //check sync data
     function checkSyncData(sync_type,messagechannel){
-        console.log("call post message");
+        console.log("call post message "+sync_type);
+
         return new Promise(function(resolve, reject){
             var msg_chan =messagechannel;
 
@@ -170,9 +216,9 @@
 
 
                 if(event.data!=undefined && event.data.error!=undefined && event.data.error)
-                    reject(event.data.error)
+                    return reject(event.data.error)
                 else
-                    resolve(event.data);          
+                    return resolve(event.data);          
             };
 
             sendMessage(sync_type,[msg_chan.port2]);
@@ -187,10 +233,10 @@
             checkSyncData(GET_PRE_ORDERS,new MessageChannel()).then(function(data){
                 console.log("GET_PRE_ORDERS sync data "+data);
                 
-                resolve();
+               return resolve();
             }).catch(function(error){
                 console.log("GET_PRE_ORDERS sync failed "+error);
-                reject();
+               return reject();
             });
         });   
     }
@@ -202,16 +248,16 @@
             checkSyncData(SYNC_SKUMASTER,new MessageChannel()).then(function(data){
                 console.log("SYNC_SKUMASTER sync data "+data);
                 sync_getPreOrderData().then(function(){
-                    resolve();
+                   return resolve();
                 }).catch(function(){
-                    reject();
+                   return reject();
                 });
             }).catch(function(error){
                 console.log("SYNC_SKUMASTER sync failed "+error);
                 sync_getPreOrderData().then(function(){
-                    resolve();
+                   return resolve();
                 }).catch(function(){
-                    reject();
+                   return reject();
                 });
             });
 
@@ -226,16 +272,16 @@
             checkSyncData(SYNC_CUSTOMERMASTER,new MessageChannel()).then(function(data){
                 console.log("SYNC_CUSTOMERMASTER sync data "+data);
                 sync_SKUData().then(function(){
-                    resolve();
+                   return resolve();
                 }).catch(function(){
-                    reject();
+                   return reject();
                 });
             }).catch(function(error){
                 console.log("SYNC_CUSTOMERMASTER sync failed "+error);
                 sync_SKUData().then(function(){
-                    resolve();
+                   return resolve();
                 }).catch(function(){
-                    reject();
+                   return reject();
                 });
             });
         });
@@ -250,18 +296,18 @@
                 console.log("GET_CURRENT_ORDER sync data "+data);
                 
                 syncCustomerData().then(function(){
-                    resolve();
+                   return resolve();
                 }).catch(function(){
-                    reject();
+                   return reject();
                 });
                 
             }).catch(function(error){
                 console.log("GET_CURRENT_ORDER sync failed "+error);
 
                 syncCustomerData().then(function(){
-                    resolve();
+                   return resolve();
                 }).catch(function(){
-                    reject();
+                   return reject();
                 });
 
             });
@@ -277,18 +323,18 @@
                 console.log(" sync POS  data "+data);
                 
                 sync_getCurrentOrderId().then(function(){
-                    resolve();
+                   return resolve();
                 }).catch(function(){
-                    reject();
+                   return reject();
                 });
                 
             }).catch(function(error){
                 console.log(" sync POS DATA failed "+error);
 
                 sync_getCurrentOrderId().then(function(){
-                    resolve();
+                   return resolve();
                 }).catch(function(){
-                    reject();
+                   return reject();
                 });
             });
         });
@@ -343,13 +389,13 @@
         return  new Promise(function(resolve,reject){
 
             if (navigator.serviceWorker!=null && navigator.serviceWorker.controller) {
-                resolve(true);
+               return resolve(true);
                 
             } else {
                 navigator.serviceWorker.oncontrollerchange = function() {
                     this.controller.onstatechange = function() {
                         if (this.state === 'activated') {
-                            resolve(true);
+                          return resolve(true);
                         }
                     };
                 };
@@ -411,8 +457,9 @@
     function getCheckSumData(check_sumData){
 
         return new Promise(function (resolve, reject) {
+            openDB().then(function(){
 
-            DATABASE.checksum.where("checksum").equals(check_sumData["checksum"]).
+            POS_TABLES.checksum.where("checksum").equals(check_sumData["checksum"]).
             toArray().then(function(data){
 
                 if(data.length>0){
@@ -433,6 +480,10 @@
                     return resolve(error);
                 });
             });
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
+            });
         });
         
     }
@@ -441,11 +492,16 @@
     function checksumDelete(check_sumData_name){
 
         return new Promise(function (resolve, reject){
-            DATABASE.checksum.where("name").
+            openDB().then(function(){
+            POS_TABLES.checksum.where("name").
             equals(check_sumData_name).delete().then(function(data){
                 return resolve(data);
             }).catch(function(error){
                 return reject(error.message);
+            });
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
             });
         });         
         
@@ -481,8 +537,9 @@
     function savegenralData(genralData){
 
         return new Promise(function (resolve, reject){
+            openDB().then(function(){
 
-            DATABASE.checksum.put(genralData).then(function(data){
+            POS_TABLES.checksum.put(genralData).then(function(data){
                 console.log("set data is "+data);
                                 //checkStoragePercent();
                                 //DATABASE.checksum.get(check_sum);
@@ -492,33 +549,43 @@
                                 return reject(false);
                                 
                             });
-                        });
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
+            });
+            });
     }   
 
     //save customer in DB
     function setSynCustomerData(customer_data){
 
         return new Promise(function (resolve, reject){
-            DATABASE.sync_customer.put(customer_data).
+            openDB().then(function(){
+            POS_TABLES.sync_customer.put(customer_data).
             then(function(data){
                         //checkStoragePercent();
-                        resolve(true);                    
+                       return resolve(true);                    
                     }).catch(function(error){
                         console.log("set data error "+error.stack || error.message);    
-                        reject(error.message);
+                       return reject(error.message);
                     });
-                });
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
+            });
+            });
     }
 
     //save offline order in DB
     function setSynOrdersData(order_data,qty_reduce_status){
 
         return new Promise(function (resolve, reject){
+            openDB().then(function(){
 
             SPWAN(function*(){
 
                 //get the order id  
-                var order_number= yield DATABASE.checksum.where("name").
+                var order_number= yield POS_TABLES.checksum.where("name").
                 equals(ORDER_ID).toArray();
                 
                 if(order_number.length>0){
@@ -558,7 +625,7 @@
                     });
 
                     //save order in DB
-                    var id=yield DATABASE.sync_orders.
+                    var id=yield POS_TABLES.sync_orders.
                     put({"order_id":JSON.stringify(order_data.summary.order_id),
                         "order":JSON.stringify(order_data)}).then(function(data){
                             console.log("data saved in local db "+data);    
@@ -568,14 +635,14 @@
                         });
 
                     // update the order id 
-                    yield DATABASE.checksum.
+                    yield POS_TABLES.checksum.
                     update(ORDER_ID,{checksum:updated_order_id});
                     
                     //return the order id
                     return {"order_id":order_data.summary.order_id,"is_all_return":is_all_return};      
 
                 }else{
-                    reject(ORDER_ID_UPDATED_ERROR);
+                   return reject(ORDER_ID_UPDATED_ERROR);
                 }
 
             }).then(function(order_id){
@@ -583,23 +650,32 @@
             }).catch(function(error){
                 return reject(error.message);
             });
+        }).catch(function(error){
+                console.log(error);
+                return reject(error);
+        });   
         });
     }
 
     
     //get pos sync customers data
     function get_POS_sync_CustomersData(){
+        console.log("call sync customer data");
 
         return new Promise(function(resolve,reject){
-
-            DATABASE.sync_customer.
+            openDB().then(function(){
+            POS_TABLES.sync_customer.
             toArray().
             then(function(data){
                 console.log("get sync customers "+data.length);
-                resolve(data);
+                return resolve(data);
             }).catch(function(error){
                 console.log("get sync customers error "+error);
-                resolve([]);
+               return resolve([]);
+            });
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
             });
         });
     }
@@ -682,25 +758,29 @@
     //get pos sync orders
     function get_POS_Sync_Orders(){
         return new Promise(function(resolve,reject){
-
-            DATABASE.sync_orders.
+            openDB().then(function(){
+            POS_TABLES.sync_orders.
             toArray().
             then(function(data){
                 console.log("get sync pos orders "+data.length);
-                resolve(data);
+                return resolve(data);
 
             }).catch(function(error){
                 console.log("get sync pos orders error "+error);
-                resolve([]);
+                return resolve([]);
             }); 
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
+            });
         });
     }
 
     //get POS sync orders
     function get_POS_Sync_OrdersByID(pos_sync_orer_id){
         return new Promise(function(resolve,reject){
-
-            DATABASE.sync_orders.where("order_id").equals(pos_sync_orer_id).
+            openDB().then(function(){
+            POS_TABLES.sync_orders.where("order_id").equals(pos_sync_orer_id).
             toArray().
             then(function(data){
                 console.log("get sync pos orders "+data.length);
@@ -710,6 +790,10 @@
                     return resolve([]);
                 }
             }); 
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
+            });
         });
         
     }
@@ -717,12 +801,16 @@
     //get Customers data
     function getcustomerData(){
         return new Promise(function(resolve,reject){
-
-            DATABASE.customer.toArray()
+            openDB().then(function(){
+            POS_TABLES.customer.toArray()
             .then(function(data){
                 return resolve(data);
             }).catch(function(error){
                 return resolve([]);
+            });
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
             });
         });
     }
@@ -730,12 +818,16 @@
     //get skumasres data
     function getSkumasterData(){
         return new Promise(function(resolve,reject){
-
-            DATABASE.skumaster.toArray()
+            openDB().then(function(){
+            POS_TABLES.skumaster.toArray()
             .then(function(data){
                 return resolve(data);
             }).catch(function(error){
                 return resolve([]);
+            });
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
             });
         });
     }
@@ -744,17 +836,21 @@
     function clear_POS_sync_orders(){
 
         return new Promise(function(resolve,reject){
-
-            DATABASE.sync_orders.
+            openDB().then(function(){    
+            POS_TABLES.sync_orders.
             clear().
             then(function(){
                 console.log("cleared pos sync order table ");
-                resolve("sucess");
+                return resolve("sucess");
 
             }).catch(function(error){
                 console.log("cleared pos sync order table error "+error);
-                resolve(error);
+                return resolve(error);
             }); 
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
+            });
         });
     }
 
@@ -762,17 +858,21 @@
     function clear_POS_sync_customers(){
 
         return new Promise(function(resolve,reject){
-
-            DATABASE.sync_customer.
+            openDB().then(function(){
+            POS_TABLES.sync_customer.
             clear().
             then(function(){
                 console.log("cleared pos sync customers table ");
-                resolve("sucess");
+                return resolve("sucess");
 
             }).catch(function(error){
                 console.log("cleared pos sync customers table error "+error);
-                resolve(error);
+                return resolve(error);
             }); 
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
+            });
         });
     }
 
@@ -793,8 +893,8 @@
     function getChecsumByName(name){
 
         return new Promise(function(resolve,reject){
-
-            DATABASE.checksum.where("name").equals(name).toArray().
+            openDB().then(function(){
+            POS_TABLES.checksum.where("name").equals(name).toArray().
             then(function(data){
                 if(data.length>0){
                     return resolve(data[0]);
@@ -804,6 +904,10 @@
             }).catch(function(error){
                 return  reject();
             });
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
+            });
         });
     }
 
@@ -811,7 +915,7 @@
     function getUserID(){
 
         return new Promise(function(resolve,reject){
-
+            openDB().then(function(){
             getChecsumByName(USER_DATA).
             then(function(result){
                 var data=JSON.parse(result.checksum);
@@ -823,6 +927,10 @@
 
             }).catch(function(){
                 return resolve();
+            });
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
             });
         });             
     }
@@ -840,7 +948,9 @@
         return new Promise(function(resolve,reject){
             showEstimatedQuota().then(function(quota){
                 if(quota!=undefined){
-                    return (quota.usage/quota.quota)*100;
+                    var storage_per=(quota.usage/quota.quota)*100;
+                    console.log("used percentage is "+storage_per);
+                    return storage_per; 
                 }else{
                     return 0.00;
                 }
@@ -872,11 +982,12 @@
     //reduce sku qty in IndexDB
     async function reduceSKUQty(data){
 
+        
         if(data.sku_data.length>0 && data.status==0){
 
             for(var i=0;i<data.sku_data.length;i++){
 
-                await DATABASE.skumaster.where("SKUCode").
+                await POS_TABLES.skumaster.where("SKUCode").
                 equals(data.sku_data[i].sku_code).
                 modify(function(sku){
 
@@ -892,44 +1003,59 @@
                 });
             }
         }
+        
     }
 
     //Bulk add pre-orders data
-    function addPreOrdersBulkItems(preoder_data){
+    function addPreOrdersBulkItems(preoder_list){
 
+        console.log("get the bulk preorders "+preoder_data.length);
         return new Promise(function(resolve,reject){
 
-            
-
-            DATABASE.transaction('rw', DATABASE.pre_orders,function () {
+            openDB().then(function(){
+            DATABASE.transaction('rw', POS_TABLES.pre_orders,function () {
 
                 SPWAN(function*(){
-                    var data=[];
+                    
+                    yield POS_TABLES.pre_orders.clear();
+                    console.log("clear all the local preorders");
 
-                    Object.keys(preoder_data).forEach(function(key){
+                    for(var preorder_item=1;preorder_item<=preoder_list.length;preorder_item++){
 
-                        data.push({"order_id":key,"order_data":JSON.stringify(preoder_data[key])});
+                        var preorderData=preoder_list.splice(0,1000);
 
-                    });
+                        var data=[];
+                        Object.keys(preorderData).forEach(function(key){
+                            data.push({"order_id":key,"order_data":JSON.stringify(preoder_list[key])});
+                        });
 
+                        POS_TABLES.pre_orders.bulkPut(data).then(function(res){
+                            console.log("add bulk predorders data is "+res);
+                            console.log("sku successfully insert the list "+preorder_item +" of 1000 items");
+                             preoder_list.splice(0,1000);
+                             console.log("sku remove the list "+preorder_item +" of 1000 items");
+                            
+                        }).catch(function(error){
+                            console.log("get an error adding bulk preorders "+error.stack);
+                            if(error==Dexie.errnames.QuotaExceeded){
+                                return reject(error.message);
+                            }else if(error==Dexie.BulkError){
+                                console.log("some preorders saving failed "+error.failures.length);
+                                return reject("some preorder saving failed "+error.failures.length);
+                            }
+                        });
 
-                    yield DATABASE.pre_orders.clear();
-
-                    DATABASE.pre_orders.bulkPut(data).then(function(res){
-                        console.log("add bulk predorder data is "+res);
-                        
-                        return resolve(true);
-                    }).catch(function(error){
-                        if(error==Dexie.errnames.QuotaExceeded){
-                            return reject(error.message);
-                        }else if(error==Dexie.BulkError){
-                            console.log("some preorders saving failed "+ data.length()-error.failures.length);
-                            return reject("some preorder saving failed "+ data.length()-error.failures.length);
+                        if(preoder_list==0){
+                            return resolve(true);
                         }
-                    });
+                    }
                 });
             }).catch(function(error){
                 return reject("some preorder saving failed "+ error.message);
+            });
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
             });
             
         });
@@ -939,13 +1065,17 @@
     function getPreOrderData(order_id){
 
         return new Promise(function(resolve,reject){
-
-            DATABASE.pre_orders.
+            openDB().then(function(){
+            POS_TABLES.pre_orders.
             where("order_id").equals(order_id).toArray().
             then(function(data){
                 return resolve(data);
             }).catch(function(error){
                 return resolve([]);
+            });
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
             });
         });                 
     }
@@ -1012,9 +1142,9 @@
                 var all_pre_orders={};
                 var pre_order_data=[];
                 var sync_pre_orders=[];
-                
+                openDB().then(function(){
                 //get all peorders in preorder where status is 1.
-                DATABASE.pre_orders.filter(function(data){
+                POS_TABLES.pre_orders.filter(function(data){
 
                     data=JSON.parse(data.order_data);
                     if(data.status.toString()=="1")
@@ -1024,7 +1154,7 @@
                     pre_order_data=data;
 
                     //get all orders where issuetype is "pre order".
-                    DATABASE.sync_orders.filter(function(data){
+                    POS_TABLES.sync_orders.filter(function(data){
                         data=JSON.parse(data.order);
                         if(data.summary.issue_type.toLowerCase()==="pre order"){
                             return true;
@@ -1078,7 +1208,10 @@
                     });
 
                 });
-
+                }).catch(function(error){
+                    console.log(error);
+                    return reject(error);
+                });
             }   
 
         }); 
@@ -1088,7 +1221,7 @@
     function setPreOrderStatus(order_id,status,delete_order){
 
         return new Promise(function(resolve,reject){
-
+            openDB().then(function(){
             SPWAN(function*(){
 
                 var user_id="";
@@ -1098,7 +1231,7 @@
                 });
 
                 //getting order from preorder
-                var orders= yield DATABASE.pre_orders.
+                var orders= yield POS_TABLES.pre_orders.
                 where("order_id").equals(order_id).toArray();
 
                 if(orders.length>0){
@@ -1115,7 +1248,7 @@
                         }); 
                     }
 
-                    yield DATABASE.pre_orders.
+                    yield POS_TABLES.pre_orders.
                     where("order_id").equals(order_id).
                     modify(function(data){
                         data.order_data=JSON.stringify(order_data);
@@ -1157,7 +1290,7 @@
                                     console.log("error at reduce sku qty "+error.message);
                                 }); 
                                 
-                                DATABASE.sync_orders.
+                                POS_TABLES.sync_orders.
                                 where("order_id").equals(order_id).
                                 modify(function(data){
                                     data.order=JSON.stringify(order_data);
@@ -1192,7 +1325,11 @@
             
         }).catch(function(error){
             return reject(error.message);
-        });                 
+        });
+        }).catch(function(error){
+                console.log(error);
+                return reject(error);
+        });                
     }); 
 
 }
@@ -1242,13 +1379,18 @@
     function setOrderDeliveredItems(user_id,order_id,delete_order){
 
         return new Promise(function(resolve,reject){
+            openDB().then(function(){
 
-            DATABASE.order_delivered.put({"user":user_id,
+            POS_TABLES.order_delivered.put({"user":user_id,
                 "order_id":order_id,
                 "delete_order":delete_order}).
             then(function(data){
                 return resolve();
             }).catch(function(error){
+                return reject(error);
+            });
+            }).catch(function(error){
+                console.log(error);
                 return reject(error);
             });
         });
@@ -1258,10 +1400,10 @@
     function getOrderDeliveredItems(order_id){
 
         return new Promise(function(resolve,reject){
-
+            openDB().then(function(){
             if(order_id.length==0){
 
-                DATABASE.order_delivered.toArray().then(function(data){
+                POS_TABLES.order_delivered.toArray().then(function(data){
                     return resolve(data);
                 }).catch(function(error){
                     return resolve([]);
@@ -1269,7 +1411,7 @@
                 
             }else{
 
-                DATABASE.order_delivered.where("order_id").equals(order_id).toArray().then(function(data){
+                POS_TABLES.order_delivered.where("order_id").equals(order_id).toArray().then(function(data){
                     if(data.length>0)   
                         return resolve(data);
                     else
@@ -1279,6 +1421,10 @@
                 });
                 
             }
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
+            });
         }); 
         
     }
@@ -1287,14 +1433,15 @@
     function clearDeliveredOrders(){
 
         return new Promise(function(resolve,reject){
+            openDB().then(function(){
 
             SPWAN(function*(){
 
-                yield DATABASE.order_delivered.toArray(function(delivered_orders){
+                yield POS_TABLES.order_delivered.toArray(function(delivered_orders){
 
                     for(var orders=0;orders<delivered_orders.length;orders++){
 
-                        DATABASE.sync_orders.
+                        POS_TABLES.sync_orders.
                         where("order_id").equals(delivered_orders[orders].order_id).
                         modify(function(modify_order){
                             modify_order.order.status="0";
@@ -1303,7 +1450,7 @@
 
                             if(data.length==0){
 
-                                DATABASE.pre_orders.
+                                POS_TABLES.pre_orders.
                                 where("order_id").equals(delivered_orders[orders].order_id).
                                 modify(function(modify_order){
                                     modify_order.order.status="0";
@@ -1317,7 +1464,7 @@
 
                 }).catch(function(error){
 
-                    DATABASE.order_delivered.
+                    POS_TABLES.order_delivered.
                     clear().
                     then(function(data){
                         return resolve();
@@ -1326,14 +1473,18 @@
                     });
                 });
 
-                DATABASE.order_delivered.
+                POS_TABLES.order_delivered.
                 clear().
                 then(function(data){
                     return resolve();
                 }).catch(function(error){
                     return resolve();
                 });
-            });  
+            });
+            }).catch(function(error){
+                console.log(error);
+                return reject(error);
+            }); 
 
         });     
     } 

@@ -53,16 +53,15 @@
         }else{
             console.log( "offline");
             urlService.hide_loading();
+            toast_msg(NETWORK_ERROR);
         }
 
       };
 
-	
 	urlService.show_loading=function showRefresh(){
 	  $(".glyphicon-refresh").addClass("refresh-spinner");
 	};
 
-	
 	urlService.hide_loading=function hideRefresh(){
 	    $(".glyphicon-refresh").removeClass("refresh-spinner");
 	    checkstorage();
@@ -85,8 +84,9 @@
 
      navigator.serviceWorker.ready.then(function(reg){
 
-     		console.log("service worker update found");
+
 	  		reg.addEventListener('updatefound',function(){
+	  			console.log("service worker update found");
 	  			const newWorker = reg.installing;
 	  			newWorker.addEventListener('statechange', function() {
 			      console.log("changed teh status "+newWorker.state);
@@ -106,28 +106,12 @@
 	  if (navigator.onLine) {
 	    console.log("online");
 	    toast_msg(CONNECTED_NETWORK);
+	    $scope.sync();
 	  } else {
 	    console.log("offline");
 	    toast_msg(NETWORK_ERROR);
 	  }
 
-	  navigator.serviceWorker.ready.then(function(reg){
-
-	  		reg.addEventListener('updatefound',function(){
-	  			const newWorker = reg.installing;
-	  			newWorker.addEventListener('statechange', function() {
-			      console.log("changed teh status "+newWorker.state);
-			    });
-
-	  		});
-
-	  		reg.addEventListener('controllerchange',function(){
-
-	  			console.log("updated the service worker");
-
-	  		});
-
-	  });
 	}, false);
 
 	window.addEventListener('online', function(e) {

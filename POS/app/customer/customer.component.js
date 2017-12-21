@@ -65,7 +65,9 @@
                   console.log("activate offline");
                   getCustomerData(key).then(function(data){
                       offLineUserData(data);
-                  });    
+                  }).then(function(){
+                      deferred.resolve(querySearch (key));
+                  });   
               }).then(function() {
                   deferred.resolve(querySearch (key));
               });

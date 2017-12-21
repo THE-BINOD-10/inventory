@@ -180,13 +180,12 @@ importScripts('/app/data/offlineData.js');
 	    if (self.clients && clients.claim) {
 	        clients.claim();
 	    }
-
 	    event.waitUntil(caches.keys().then(function (cachesList) {
-	    		
-
-	    	return Promise.all(cachesList.map(function (name) {
+	       	return Promise.all(cachesList.map(function (name) {
 				          if (name !== CACHE_NAME) {
 				            return caches.delete(name);
+				          }else{
+				          	createDB();
 				          }
 	        }));
 	        

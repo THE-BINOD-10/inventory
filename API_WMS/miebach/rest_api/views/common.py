@@ -1298,17 +1298,20 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         if not sku:
             return 'Invalid WMS Code'
         sku_id = sku[0].id
+
     if loc:
         location = LocationMaster.objects.filter(location=loc, zone__user=user.id)
         if not location:
             return 'Invalid Location'
+
     if quantity == '':
         return 'Quantity should not be empty'
 
     if pallet:
-        pallet = PalletDetail.objects.filter(user = user.id, status = 1, pallet_code = pallet)
-        if not pallet:
-            return 'Invalid Pallet Detail'
+        pallet_present = PalletDetail.objects.filter(user = user.id, status = 1, pallet_code = pallet)
+        if not pallet_present:
+            pallet_present = PalletDetail.objects.create(user = user.id, status = 1, pallet_code = pallet_code, 
+                quantity = quantity, creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
 
     total_stock_quantity = 0
     if quantity:
@@ -1337,11 +1340,11 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                     setattr(stock, 'quantity', 0)
                     stock.save()
                     remaining_quantity = remaining_quantity - stock_quantity
+        import pdb;pdb.set_trace()
         if not stocks:
             dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(),
-                                        quantity=quantity, status=1, creation_date=now_date,
-                                        updation_date= now_date, location_id=location[0].id,
-                                        sku_id=sku_id, pallet_detail_id=pallet)
+                quantity=quantity, status=1, creation_date=now_date, updation_date=now_date, 
+                location_id=location[0].id, sku_id=sku_id, pallet_detail_id=pallet_present)
             dest_stocks.save()
     if quantity == 0:
         StockDetail.objects.filter(sku_id=sku_id, location__location=location[0].location, sku__user=user.id).update(quantity=0)

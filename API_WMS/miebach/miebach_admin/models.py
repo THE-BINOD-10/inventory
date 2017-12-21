@@ -505,6 +505,7 @@ class InventoryAdjustment(models.Model):
     adjusted_location = models.CharField(max_length=64)
     adjusted_quantity = models.FloatField(default=0)
     reason = models.TextField()
+    pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

@@ -5042,3 +5042,17 @@ def update_profile_data(request, user=''):
     user.email = email
     user.save()
     return HttpResponse('Success')
+
+def get_purchase_company_address(profile):
+    """ Returns Company address for purchase order"""
+
+    address = profile.address
+    if not address:
+        return ''
+    if profile.user.email:
+        address = ("%s, Email: %s") % (address, profile.user.email)
+    if profile.phone_number:
+        address = ("%s, Phone: %s") % (address, profile.phone_number)
+    if GSTIN_USER_MAPPING.get(profile.user.username, ''):
+        address = ("%s, GSTIN No: %s") % (address, GSTIN_USER_MAPPING.get(profile.user.username, ''))
+    return address

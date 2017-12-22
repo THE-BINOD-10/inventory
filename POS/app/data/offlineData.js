@@ -1167,7 +1167,7 @@
                     //get all orders where issuetype is "pre order".
                     POS_TABLES.sync_orders.filter(function(data){
                         data=JSON.parse(data.order);
-                        if(data.summary.issue_type.toLowerCase()==="pre order"){
+                        if(data.summary.issue_type.toLowerCase()==="pre order" && data.status==="1"){
                             return true;
                         }
                     }).toArray().then(function(preorders){
@@ -1182,22 +1182,20 @@
                                 data.push(order_data[orders].order_id);
                             }
 
+
                             //checkwith preorder order id
+
                             for(var pre_order=0;pre_order<pre_order_data.length;pre_order++){
 
-                                if(data.indexOf(pre_order_data[pre_order].order_id)>=0){
-                                    pre_order_data.splice(pre_order);                               
-                                }else{
+
+                                if(data.length==0 || data.indexOf(pre_order_data[pre_order].order_id)==-1){
                                     all_pre_orders[pre_order_data[pre_order].order_id]=(JSON.parse(pre_order_data[pre_order].order_data));
-                                    
                                 }       
                             }
                             
                             //check with sync order order id
                             for(var pre_order=0;pre_order<sync_pre_orders.length;pre_order++){
-                                if(data.indexOf(sync_pre_orders[pre_order].order_id)>=0){
-                                    sync_pre_orders.splice(pre_order,1);                                
-                                }else{
+                                if(data.length==0 ||  data.indexOf(sync_pre_orders[pre_order].order_id)==-1){
                                     var order_data=JSON.parse(sync_pre_orders[pre_order].order);
                                     order_data.customer_data.Name=order_data.customer_data.FirstName;
                                     all_pre_orders[sync_pre_orders[pre_order].order_id]={"customer_data":order_data.customer_data,

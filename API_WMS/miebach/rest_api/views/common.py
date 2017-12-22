@@ -5050,9 +5050,9 @@ def get_purchase_company_address(profile):
     if not address:
         return ''
     if profile.user.email:
-        address = ("%s, Email: %s") % (address, profile.user.email)
+        address = ("%s, Email:%s") % (address, profile.user.email)
     if profile.phone_number:
-        address = ("%s, Phone: %s") % (address, profile.phone_number)
+        address = ("%s, Phone:%s") % (address, profile.phone_number)
     if GSTIN_USER_MAPPING.get(profile.user.username, ''):
-        address = ("%s, GSTIN No: %s") % (address, GSTIN_USER_MAPPING.get(profile.user.username, ''))
+        address = ("%s, GSTINo:%s") % (address, GSTIN_USER_MAPPING.get(profile.user.username, ''))
     return address

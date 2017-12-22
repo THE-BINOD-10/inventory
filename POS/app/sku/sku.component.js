@@ -208,7 +208,9 @@
               }).catch(function(error){
                   console.log("order id updated error "+error);
               });
+
           }
+            clear_fields();
           },function(error){
 
                 //change the network status
@@ -246,9 +248,7 @@
                        console.log("order saving error "+error);
                     });
 
-          }).then(function() {
-                clear_fields();
-          }) ;
+          });
 
           
       }
@@ -330,8 +330,8 @@
       }
   
       function get_product_data(key) {
-          if (key.length > 1) {
 
+          if(key.length>1){
               var deferred = $q.defer();
               $http.get(urlService.mainUrl+'rest_api/search_product_data/?user='+urlService.userData.parent_id+'&key='+key)
                 .then( function(data) {
@@ -364,7 +364,7 @@
                   });
                 });
              return deferred.promise;
-          }
+        }
       return [];
     }
   

@@ -100,30 +100,41 @@
             DATABASE.transaction('rw', POS_TABLES.skumaster, POS_TABLES.sku_search_words,
                 function () {
 
-                    var foundIds = {};
-                    POS_TABLES.sku_search_words.where("word").
-                    startsWithIgnoreCase(find_key).limit(30).
-                    each(function (wordToSKUMapping) {
-                        foundIds[wordToSKUMapping.SKUCode.toString()] = true;
-                    }).
-                    then(function () {
-                        // Now we got all sku IDs in the keys of foundIds object.
-                        // Convert to array if IDs.
-                        var sku_ids = Object.keys(foundIds).
-                        map(function (sku_id) {
-                            return sku_id;
+                    if(find_key!=undefined && find_key.length>0){
+                        var foundIds = {};
+                        POS_TABLES.sku_search_words.where("word").
+                        startsWithIgnoreCase(find_key).limit(30).
+                        each(function (wordToSKUMapping) {
+                            foundIds[wordToSKUMapping.SKUCode.toString()] = true;
+                        }).
+                        then(function () {
+                            // Now we got all sku IDs in the keys of foundIds object.
+                            // Convert to array if IDs.
+                            var sku_ids = Object.keys(foundIds).
+                            map(function (sku_id) {
+                                return sku_id;
+                            });
+                            
+                            POS_TABLES.skumaster.where("SKUCode").
+                            anyOf(sku_ids).toArray().
+                            then(function(skus){
+                                return resolve(skus);
+                            }).catch(function(error){
+                                console.log('collection error ' +err);
+                                return resolve([]);
+                            });
+                                            
                         });
+                    }else{
+                        POS_TABLES.skumaster.toArray().
+                                then(function(skus){
+                                    return resolve(skus);
+                                }).catch(function(error){
+                                    console.log('collection error ' +err);
+                                    return resolve([]);
+                                });
                         
-                        POS_TABLES.skumaster.where("SKUCode").
-                        anyOf(sku_ids).toArray().
-                        then(function(skus){
-                            return resolve(skus);
-                        }).catch(function(error){
-                            console.log('collection error ' +err);
-                            return resolve([]);
-                        });
-                                        
-                    });
+                    }
                 }).catch(function (e) {
                     console.log(e.stack || e);
                     return resolve([]);

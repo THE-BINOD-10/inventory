@@ -109,17 +109,16 @@
 	  if (navigator.onLine) {
 	    console.log("online");
 	    toast_msg(CONNECTED_NETWORK);
-	    $scope.sync();
 	  } else {
 	    console.log("offline");
 	    toast_msg(NETWORK_ERROR);
 	  }
-
 	}, false);
 
 	window.addEventListener('online', function(e) {
 	  console.log("And we're back");
 	  toast_msg(CONNECTED_NETWORK);
+	  $scope.sync();
 	}, false);
 
 	window.addEventListener('offline', function(e) {

@@ -176,9 +176,10 @@
         //change the status for preorder0
         if(data.summary.issue_type=="Pre Order"){
             data.status="1";
+        }else{
+            data.status="0";
         }
   
-
               data.summary.nw_status = ONLINE;
               var order_data=data;
             var data = $.param({

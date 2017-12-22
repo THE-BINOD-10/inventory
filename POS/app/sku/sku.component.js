@@ -203,6 +203,7 @@
               self.submit_enable = false;
 
               //update the current order id
+              data=data.order_ids[0]+1;
               setCheckSum(setOrderID(data)).
                 then(function(data){
                   console.log("order id updated");

@@ -4395,7 +4395,7 @@ def generate_seller_invoice(request, user=''):
     all_data = OrderedDict()
     seller_po_ids = []
     sell_ids = {}
-    gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
+    gstin_no = user_profile.gst_number
     taxes_dict = {}
     total_taxable_amt = 0
     for data_id in seller_summary_dat:

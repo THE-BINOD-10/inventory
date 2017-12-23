@@ -53,7 +53,7 @@
         }else{
             console.log( "offline");
             urlService.hide_loading();
-            toast_msg(NETWORK_ERROR);
+            urlService.show_toast(NETWORK_ERROR);
         }
 
       };
@@ -70,7 +70,7 @@
 	function checkstorage(){
 		checkStoragePercent().then(function(data){
 		if(data){
-		  toast_msg("memory usage exceed 70% .please free the space");        
+		  urlService.show_toast("memory usage exceed 70% .please free the space");        
 		}else{
 		  console.log("memory is not reached 70%");
 		}
@@ -86,15 +86,31 @@
 
 
 	  		reg.addEventListener('updatefound',function(){
-	  			console.log("service worker update found");
-	  			const newWorker = reg.installing;
-	  			newWorker.addEventListener('statechange', function() {
-			      console.log("changed teh status "+newWorker.state);
-			      if(newWorker.state==="activated"){
-					$window.location.reload();
-			      }
-			    });
-	  		});
+                console.log("service worker update founded");
+                const newWorker = reg.installing;
+                
+                var flag = localStorage.getItem('reload_flag') || '0';
+                    if(flag === '0') {
+                        localStorage.setItem('reload_flag','1');
+                        $window.location.reload();
+                    }  
+                    else {
+                        localStorage.setItem('reload_flag','0');
+                    }  
+                
+                /*newWorker.addEventListener('statechange', function() {
+                  console.log("changed teh status "+newWorker.state);
+                  if(newWorker.state==="activated"){
+                    var flag = localStorage.getItem('reload_flag') || '0';
+                    if(flag === '0') {
+                        localStorage.setItem('reload_flag','1');
+                        $window.location.reload();
+                    }  
+                    else {
+                        localStorage.setItem('reload_flag','0');
+                    }  
+                  }  
+                });*/
 	  			
 	  		reg.addEventListener('controllerchange',function(){
 
@@ -103,30 +119,32 @@
 	  		});
 
 	  });
-	
+	 }); 		
 
 	window.addEventListener('load', function(e) {
 	  if (navigator.onLine) {
 	    console.log("online");
-	    toast_msg(CONNECTED_NETWORK);
+	    urlService.show_toast(CONNECTED_NETWORK);
 	  } else {
 	    console.log("offline");
-	    toast_msg(NETWORK_ERROR);
+	    urlService.show_toast(NETWORK_ERROR);
 	  }
 	}, false);
 
 	window.addEventListener('online', function(e) {
 	  console.log("And we're back");
-	  toast_msg(CONNECTED_NETWORK);
+	  urlService.show_toast(CONNECTED_NETWORK);
 	  $scope.sync();
 	}, false);
 
 	window.addEventListener('offline', function(e) {
 	  console.log("Connection is flaky.");
-	  toast_msg(NETWORK_ERROR);
+	  urlService.show_toast(NETWORK_ERROR);
 	}, false);
 
-	function toast_msg(msg){
+	//show toast  message on POS
+	
+	urlService.show_toast=function toast_msg(msg){
 	   $mdToast.show( $mdToast.simple()
 	  	.textContent(msg)
 	  	.position('top right')
@@ -138,7 +156,7 @@
 	 enableNotificaiton().then(function(data){
 
 	  		if(data==false){
-	  		  toast_msg(NOTIIFICATION_ERROR);
+	  		  urlService.show_toast(NOTIIFICATION_ERROR);
 	  		}
 
 	  		  checkPersistent().then(function(data){

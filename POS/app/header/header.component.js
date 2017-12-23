@@ -5,8 +5,8 @@
          .component("pageheader", {
 
            "templateUrl": "/app/header/header.template.html",
-           "controller"  : ["$scope","$mdToast", "urlService", "Fullscreen","$rootScope",
-    function ($scope,$mdToast, urlService, Fullscreen, $rootScope) {
+           "controller"  : ["$scope","$mdToast", "urlService", "Fullscreen","$rootScope","$window",
+    function ($scope,$mdToast, urlService, Fullscreen, $rootScope,$window) {
       var self = this;
 
       $scope.name = "Test";
@@ -53,16 +53,15 @@
         }else{
             console.log( "offline");
             urlService.hide_loading();
+            toast_msg(NETWORK_ERROR);
         }
 
       };
 
-	
 	urlService.show_loading=function showRefresh(){
 	  $(".glyphicon-refresh").addClass("refresh-spinner");
 	};
 
-	
 	urlService.hide_loading=function hideRefresh(){
 	    $(".glyphicon-refresh").removeClass("refresh-spinner");
 	    checkstorage();
@@ -83,6 +82,29 @@
 	//trigger event for getting data at intiallly.
     //$scope.sync();
 
+     navigator.serviceWorker.ready.then(function(reg){
+
+
+	  		reg.addEventListener('updatefound',function(){
+	  			console.log("service worker update found");
+	  			const newWorker = reg.installing;
+	  			newWorker.addEventListener('statechange', function() {
+			      console.log("changed teh status "+newWorker.state);
+			      if(newWorker.state==="activated"){
+					$window.location.reload();
+			      }
+			    });
+	  		});
+	  			
+	  		reg.addEventListener('controllerchange',function(){
+
+	  			console.log("updated the service worker");
+
+	  		});
+
+	  });
+	
+
 	window.addEventListener('load', function(e) {
 	  if (navigator.onLine) {
 	    console.log("online");
@@ -96,6 +118,7 @@
 	window.addEventListener('online', function(e) {
 	  console.log("And we're back");
 	  toast_msg(CONNECTED_NETWORK);
+	  $scope.sync();
 	}, false);
 
 	window.addEventListener('offline', function(e) {

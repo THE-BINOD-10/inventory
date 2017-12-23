@@ -19,7 +19,7 @@ from miebach_utils import *
 # Create your views here.
 log = init_logger('logs/pos.log')
 
-
+@login_required
 @csrf_exempt
 def validate_sales_person(request):
     response_data = {'status': 'Fail'}
@@ -35,7 +35,7 @@ def validate_sales_person(request):
         response_data['user_id'] = user_id
     return HttpResponse(json.dumps(response_data))
 
-
+@login_required
 @csrf_exempt
 def get_pos_user_data(request):
     user_id = request.GET.get('id')
@@ -66,6 +66,7 @@ def get_pos_user_data(request):
     return HttpResponse("fail")
 
 
+@login_required
 @csrf_exempt
 def get_current_order_id(request):
    user = request.GET.get('user','')
@@ -73,6 +74,7 @@ def get_current_order_id(request):
    return HttpResponse(json.dumps({'order_id': order_id}))
 
 
+@login_required
 def search_pos_customer_data(request):
     search_key = request.GET['key']
     total_data = []
@@ -97,6 +99,7 @@ def search_pos_customer_data(request):
     return HttpResponse(json.dumps(total_data))
 
 
+@login_required
 def search_product_data(request):
     search_key = request.GET['key']
     user_id = request.GET['user']
@@ -152,6 +155,7 @@ def search_product_data(request):
     return HttpResponse(json.dumps(total_data))
 
 
+@login_required
 def add_customer(request):
     new_customers = eval(request.POST.get("customers"))
     user = new_customers[0]["user"]
@@ -242,6 +246,7 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail,\
    return "Success"
 
 
+@login_required
 @csrf_exempt
 def customer_order(request):
     orders = request.POST['order']
@@ -364,6 +369,7 @@ def customer_order(request):
     return HttpResponse(json.dumps({'order_ids': order_ids}))
 
 
+@login_required
 @csrf_exempt
 def print_order_data(request):
     customer_data, summary = {}, {}
@@ -476,6 +482,7 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
     return json.dumps({'data': order_data})
 
 
+@login_required
 def pre_order_data(request):
    data = eval(request.POST['data'])
    order_id = data.get('order_id', '')
@@ -487,6 +494,7 @@ def pre_order_data(request):
    return HttpResponse(order_details)
 
 
+@login_required
 def update_order_status(request):
   full_data = eval(request.POST['data'])
   nw_status = "offline"

@@ -1884,10 +1884,10 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
     hsn_summary = {}
     is_gst_invoice = False
     invoice_date = datetime.datetime.now()
-    gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
 
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
+    gstin_no = user_profile.gst_number
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     invoice_remarks = get_misc_value('invoice_remarks', user.id)
@@ -2446,7 +2446,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         file_dump.save()'''
 
 @csrf_exempt
-#@login_required
+@login_required
 #@get_admin_user
 def get_file_checksum(request,user=''):
     name = request.GET.get('name', '')
@@ -2458,7 +2458,7 @@ def get_file_checksum(request,user=''):
     return HttpResponse(json.dumps({'file_data': file_data}))
 
 @csrf_exempt
-#@login_required
+@login_required
 #@get_admin_user
 def get_file_content(request,user=''):
     name = request.GET.get('name', '')
@@ -5042,3 +5042,17 @@ def update_profile_data(request, user=''):
     user.email = email
     user.save()
     return HttpResponse('Success')
+
+def get_purchase_company_address(profile):
+    """ Returns Company address for purchase order"""
+
+    address = profile.address
+    if not address:
+        return ''
+    if profile.user.email:
+        address = ("%s, Email:%s") % (address, profile.user.email)
+    if profile.phone_number:
+        address = ("%s, Phone:%s") % (address, profile.phone_number)
+    if profile.gst_number:
+        address = ("%s, GSTINo:%s") % (address, profile.gst_number)
+    return address

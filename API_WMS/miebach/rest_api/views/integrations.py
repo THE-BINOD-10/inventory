@@ -29,15 +29,13 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
 
     return final_data_dict
 
-
 def validate_orders(orders, user='', company_name='', is_cancelled=False):
+    import pdb;pdb.set_trace()
     order_mapping = eval(LOAD_CONFIG.get(company_name, 'order_mapping_dict', ''))
     NOW = datetime.datetime.now()
-
     #insert_status = {'Seller Master does not exists': [], 'SOR ID not found': [], 'Order Status not Matched': [],
     #                 'Order Exists already': [], 'Invalid SKU Codes': [], 'Invalid Delivery Rescheduled Order': []}
     insert_status = []
-
     final_data_dict = OrderedDict()
     try:
         seller_masters = SellerMaster.objects.filter(user=user.id)
@@ -46,6 +44,7 @@ def validate_orders(orders, user='', company_name='', is_cancelled=False):
         sku_ids = []
         if not orders:
             orders = {}
+        #doubt
         orders = eval(order_mapping['items'])
         if order_mapping.get('is_dict', False):
             orders = [orders]
@@ -77,7 +76,6 @@ def validate_orders(orders, user='', company_name='', is_cancelled=False):
 
             if not order_items:
                 print "order_items doesn't exists" + original_order_id
-
             for order in order_items:
                 try:
                     shipment_date = eval(order_mapping['shipment_date'])
@@ -92,7 +90,6 @@ def validate_orders(orders, user='', company_name='', is_cancelled=False):
                     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
                     seller_order_dict = copy.deepcopy(SELLER_ORDER_FIELDS)
                     sku_code = eval(order_mapping['sku'])
-
                     swx_mappings = []
                     seller_item_id = ''
                     seller_parent_id = ''
@@ -101,7 +98,8 @@ def validate_orders(orders, user='', company_name='', is_cancelled=False):
                         swx_mappings.append({'app_host': 'shotang', 'swx_id': seller_item_id,
                                              'swx_type': 'seller_item_id'})
                     if order_mapping.has_key('seller_parent_item_id'):
-                        seller_parent_id = eval(order_mapping['seller_parent_item_id'])
+                        #seller_parent_id = eval(order_mapping['seller_parent_item_id'])
+                        seller_parent_id = order_mapping['seller_parent_item_id']
                         swx_mappings.append({'app_host': 'shotang', 'swx_id': seller_parent_id,
                                              'swx_type': 'seller_parent_item_id'})
                     seller_master = []
@@ -201,6 +199,213 @@ def validate_orders(orders, user='', company_name='', is_cancelled=False):
                         insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
                                               'error': 'Invalid Delivery Rescheduled Order'})
                         continue
+
+                    if order_create or is_cancelled:
+                        order_details['original_order_id'] = original_order_id
+                        order_details['order_id'] = order_id
+                        order_details['order_code'] = order_code
+
+                        order_details['sku_id'] = sku_master[0].id
+                        order_details['title'] = eval(order_mapping['title'])
+                        order_details['user'] = user.id
+                        order_details['quantity'] = eval(order_mapping['quantity'])
+                        order_details['shipment_date'] = shipment_date
+                        order_details['marketplace'] = channel_name
+                        order_details['invoice_amount'] = float(invoice_amount)
+
+                        final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details, final_data_dict=final_data_dict)
+
+                        if order_mapping.has_key('cgst_tax'):
+                            customerorder = CustomerOrderSummary(**order_summary_dict)
+                            final_data_dict = check_and_add_dict(grouping_key, 'order_summary_dict', order_summary_dict,
+                                                                 final_data_dict=final_data_dict)
+                    else:
+                        order_detail = order_det
+
+                    if order_mapping.has_key('sor_id'):
+                        seller_order_dict['seller_id'] = seller_master_dict[seller_id]
+                        seller_order_dict['sor_id'] = eval(order_mapping['sor_id'])
+                        seller_order_dict['order_status'] = eval(order_mapping['order_status'])
+                        seller_order_dict['quantity'] = eval(order_mapping['quantity'])
+                        final_data_dict = check_and_add_dict(grouping_key, 'seller_order_dict', seller_order_dict, final_data_dict=final_data_dict)
+
+        return insert_status, final_data_dict
+
+    except:
+        traceback.print_exc()
+        return insert_status, final_data_dict
+
+
+def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False):
+    order_mapping = eval(LOAD_CONFIG.get(company_name, 'order_mapping_dict', ''))
+    NOW = datetime.datetime.now()
+    #insert_status = {'Seller Master does not exists': [], 'SOR ID not found': [], 'Order Status not Matched': [],
+    #                 'Order Exists already': [], 'Invalid SKU Codes': [], 'Invalid Delivery Rescheduled Order': []}
+    insert_status = []
+    final_data_dict = OrderedDict()
+    import pdb;pdb.set_trace()
+    try:
+        seller_masters = SellerMaster.objects.filter(user=user.id)
+        user_profile = UserProfile.objects.get(user_id=user.id)
+        seller_master_dict = {}
+        sku_ids = []
+        if not orders:
+            orders = {}
+        orders = eval(order_mapping['items'])
+        if order_mapping.get('is_dict', False):
+            orders = [orders]
+        for ind, orders in enumerate(orders):
+            can_fulfill = orders.get('can_fulfill', '1')
+            channel_name = eval(order_mapping['channel'])
+            if can_fulfill == '0':
+                continue
+
+            order_details = copy.deepcopy(ORDER_DATA)
+            data = orders
+            original_order_id = str(data[order_mapping['order_id']])
+            order_code = ''.join(re.findall('\D+', original_order_id))
+            order_id = ''.join(re.findall('\d+', original_order_id))
+            filter_params = {'user': user.id, 'order_id': order_id}
+            filter_params1 = {'user': user.id, 'original_order_id': original_order_id}
+            if order_mapping.has_key('customer_id'):
+                order_details['customer_id'] = eval(order_mapping['customer_id'])
+                order_details['customer_name'] = eval(order_mapping['customer_name'])
+                order_details['telephone'] = eval(order_mapping['telephone'])
+                order_details['city'] = eval(order_mapping['city'])
+                order_details['address'] = eval(order_mapping['address'])
+            if order_code:
+                filter_params['order_code'] = order_code
+            order_items = [orders]
+            if order_mapping.get('order_items', ''):
+                order_items = eval(order_mapping['order_items'])
+
+            if not order_items:
+                print "order_items doesn't exists" + original_order_id
+            for order in order_items:
+                try:
+                    shipment_date = eval(order_mapping['shipment_date'])
+                    shipment_date = datetime.datetime.fromtimestamp(shipment_date)
+                except:
+                    shipment_date = NOW
+                if not order_mapping.get('line_items'):
+                    sku_items = [order]
+                else:
+                    sku_items = eval(order_mapping['line_items'])
+                for sku_item in sku_items:
+                    order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
+                    seller_order_dict = copy.deepcopy(SELLER_ORDER_FIELDS)
+                    sku_code = eval(order_mapping['sku'])
+                    swx_mappings = []
+                    seller_item_id = ''
+                    seller_parent_id = ''
+                    #if order_mapping.has_key('seller_item_id'):
+                    #    seller_item_id = eval(order_mapping['seller_item_id'])
+                    #    swx_mappings.append({'app_host': 'shotang', 'swx_id': seller_item_id,
+                    #                         'swx_type': 'seller_item_id'})
+                    #if order_mapping.has_key('seller_parent_item_id'):
+                        #seller_parent_id = eval(order_mapping['seller_parent_item_id'])
+                    #    seller_parent_id = order_mapping['seller_parent_item_id']
+                    #    swx_mappings.append({'app_host': 'shotang', 'swx_id': seller_parent_id,
+                    #                         'swx_type': 'seller_parent_item_id'})
+                    seller_master = []
+                    if order_mapping.get('seller_id', ''):
+                        seller_id = eval(order_mapping['seller_id'])
+                        seller_master = seller_masters.filter(seller_id=seller_id)
+                        order_status = eval(order_mapping['order_status'])
+
+                        #if not seller_master:
+                        #    insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
+                        #                          'error': 'Seller Master does not exists'})
+                        #    continue
+                        #else:
+                        #    seller_master_dict[seller_id] = seller_master[0].id
+                    #if not eval(order_mapping['sor_id']):
+                    #    insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
+                    #                          'error': 'SOR ID not found'})
+                    #    continue
+
+                    #if order.has_key('currentStatus') and not order_status in ['PENDING', 'DELIVERY_RESCHEDULED']:
+                    #    insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
+                    #                          'error': 'Order Status not Matched'})
+                    #    continue
+                    #seller_order = SellerOrder.objects.filter(Q(order__original_order_id=original_order_id)|Q(order__order_id=order_id,
+                    #                             order__order_code=order_code),sor_id=eval(order_mapping['sor_id']), seller__user=user.id)
+                    #if seller_order and not order_status == 'DELIVERY_RESCHEDULED':
+                    #    if not is_cancelled:
+                    #        insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
+                    #                              'error': 'Order Exists already'})
+                    #        continue
+                    sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+                    if sku_master:
+                        filter_params['sku_id'] = sku_master[0].id
+                        filter_params1['sku_id'] = sku_master[0].id
+                    else:
+                        reason = ''
+                        insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
+                                              'error': 'Invalid SKU Codes'})
+                        channel_sku = eval(order_mapping['channel_sku'])
+                        if sku_code:
+                            insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
+                                                  'error': "SKU Mapping doesn't exists"})
+                        else:
+                            insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
+                                                  'error': "SKU Code missing"})
+                        continue
+
+                    order_sor_id = ''
+                    #if order_mapping.get('sor_id', ''):
+                    #    order_sor_id = eval(order_mapping['sor_id'])
+                    #grouping_key = str(original_order_id) + '<<>>' + str(sku_master[0].sku_code) + '<<>>' +str(order_sor_id)
+                    grouping_key = str(original_order_id) + '<<>>' + str(sku_master[0].sku_code)
+                    #final_data_dict = check_and_add_dict(grouping_key, 'swx_mappings', swx_mappings, final_data_dict=final_data_dict, is_list=True)
+                    order_det = OrderDetail.objects.filter(**filter_params)
+                    order_det1 = OrderDetail.objects.filter(**filter_params1)
+                    invoice_amount = float(data.get('total_price', 0))
+
+                    if 'unit_price' in order_mapping:
+                        invoice_amount = float(eval(order_mapping['unit_price'])) * float(eval(order_mapping['quantity']))
+                        order_details['unit_price'] = float(eval(order_mapping['unit_price']))
+                    if order_mapping.has_key('cgst_tax'):
+                        order_summary_dict['cgst_tax'] = eval(order_mapping['cgst_tax'])
+                        order_summary_dict['sgst_tax'] = eval(order_mapping['sgst_tax'])
+                        order_summary_dict['igst_tax'] = eval(order_mapping['igst_tax'])
+                        order_summary_dict['inter_state'] = 0
+                        if order_summary_dict['igst_tax']:
+                            order_summary_dict['inter_state'] = 1
+                        tot_invoice = (float(invoice_amount)/100) * (float(order_summary_dict['cgst_tax']) + float(order_summary_dict['sgst_tax'])\
+                                                                      + float(order_summary_dict['igst_tax']))
+                        invoice_amount += float(tot_invoice)
+
+                    if not order_det:
+                        order_det = order_det1
+
+                    order_create = True
+                    if (order_det and filter_params['sku_id'] in sku_ids) or (order_det and seller_id in seller_master_dict.keys())\
+                        and not order_status == 'DELIVERY_RESCHEDULED':
+                        order_det = order_det[0]
+                        #order_det.quantity += float(eval(order_mapping['quantity']))
+                        #order_det.invoice_amount += invoice_amount
+                        #order_det.save()
+                        #final_data_dict = check_and_add_dict(grouping_key, 'order_detail_obj', order_det, final_data_dict=final_data_dict)
+                        #Recent Comment
+                        #if order_det and seller_id in seller_master_dict.keys():
+                        #    order_create = False
+                        #elif is_cancelled:
+                        #    final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details, final_data_dict=final_data_dict)
+                        #else:
+                        #    insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
+                        #                          'error': 'Order Exists already'})
+                        #    continue
+                    #elif order_det and order_status == 'DELIVERY_RESCHEDULED':
+                        #seller_order_ins = seller_order.filter(order_status='PROCESSED', order__sku_id=sku_master[0].id)
+                        #if not seller_order_ins or not (int(seller_order_ins[0].order.status) in [2, 4, 5]):
+                        #    insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
+                        #                          'error': 'Invalid Delivery Rescheduled Order'})
+                        #continue
+                    #elif not order_det and order_status == 'DELIVERY_RESCHEDULED':
+                        #insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
+                        #                      'error': 'Invalid Delivery Rescheduled Order'})
+                        #continue
 
                     if order_create or is_cancelled:
                         order_details['original_order_id'] = original_order_id

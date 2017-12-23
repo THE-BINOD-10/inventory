@@ -958,12 +958,15 @@ def get_sku(request):
 @csrf_exempt
 @login_required
 def update_order(request):
+    
     try:
         orders = json.loads(request.body)
     except:
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
+    import pdb;pdb.set_trace()
     try:
+
         validation_dict, final_data_dict = validate_orders(orders, user=request.user, company_name='mieone')
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
@@ -1080,3 +1083,47 @@ def update_return(request):
         log.info('Update Sellers data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'message': 'Internal Server Error'}
     return HttpResponse(json.dumps(status))
+
+#Ingram Api - Create Orders
+@csrf_exempt
+@login_required
+def update_so(request):
+    try:
+        orders = json.loads(request.body)
+    except:
+        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+    log.info('Request params for ' + request.user.username + ' is ' + str(orders))
+    try:
+        #validation_dict, final_data_dict = validate_orders(orders, user=request.user, company_name='ingram')
+        validation_dict, final_data_dict = validate_ingram_orders(orders, user=request.user, company_name='ingram')
+        import pdb;pdb.set_trace()
+        if validation_dict:
+            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
+        status = update_order_dicts(final_data_dict, user=request.user, company_name='ingram')
+        log.info(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        status = {'messages': 'Internal Server Error', 'status': 0}
+    return HttpResponse(json.dumps(status))
+
+    '''
+    if request.user.is_anonymous():
+        return HttpResponse(json.dumps({'message': 'fail'}))
+    data = []
+    limit = request.POST.get('limit', '')
+    sku_records = SKUMaster.objects.filter(user = request.user.id)
+    for sku in sku_records:
+        updated = ''
+        if sku.updation_date:
+            updated = sku.updation_date.strftime('%Y-%m-%d %H:%M:%S')
+        data.append(OrderedDict(( ('id', sku.id), ('sku_code', sku.sku_code), ('sku_desc', sku.sku_desc), ('sku_category', sku.sku_category),
+                     ('price', str(sku.price)), ('active', sku.status), ('created_at', sku.creation_date.strftime('%Y-%m-%d %H:%M:%S')),
+                     ('updated_at', updated ))))
+
+    data = scroll_data(request, data, limit=limit)
+
+    data['message'] = 'success'
+    return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder))
+    '''

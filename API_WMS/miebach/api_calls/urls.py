@@ -41,5 +41,6 @@ urlpatterns = [
     url(r'^update_seller/$',update_seller),
     url(r'^cancel_order/$',cancel_order),
     url(r'^update_return/$',update_return),
+    url(r'^update_so/$',update_so),
 ]
 

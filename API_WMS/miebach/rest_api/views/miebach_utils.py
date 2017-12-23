@@ -766,6 +766,27 @@ ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items
                          'seller_parent_item_id': 'sku_item["parentLineItemId"]'
                         }
 
+ORDER_DETAIL_INGRAM_API_MAPPING = { 'order_id': 'order_id', 'items': 'orders',
+                         'channel': 'orders.get("channel", "ingram")', 'order_items': 'orders["items"]', 
+                         'sku': 'sku_item["sku"]', 'title': 'sku_item["name"]', 'quantity': 'sku_item["quantity"]',
+                         'shipment_date': '(orders.get("invoice_details", {})).get("shipment_date", "")',
+                         'channel_sku': 'sku_item["sku"]',
+                         'unit_price': 'sku_item["unitPrice"]', 
+                         'cgst_tax': 'sku_item.get("cgstTax", "0")', 
+                         'sgst_tax':'sku_item.get("sgstTax", "0")',
+                         'igst_tax': 'sku_item.get("igstTax", "0")',
+                         'customer_id': '(orders.get("shipping_address", {})).get("id", "")',
+                         'customer_name': '(orders.get("shipping_address", {})).get("name", "")',
+                         'telephone': '(orders.get("shipping_address", {})).get("telephone", "")',
+                         'address': '(orders.get("shipping_address", {})).get("address", "")',
+                         'city': '(orders.get("shipping_address", {})).get("city", "")',
+                         #'seller_id': 'order["sellerId"]',
+                         #'sor_id': 'order["sorId"]', 
+                         #'id': 'order["itemId"]',
+                         #'line_items': 'orders["items"]'
+                         #'order_status': 'sku_item.get("status", "")',
+                        }
+
 SKU_MASTER_API_MAPPING = OrderedDict(( ('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_name'),
                                        ('sku_brand', 'sku_brand'), ('sku_category', 'sku_category_name'), ('price', 'price'),
                                        ('mrp', 'mrp'), ('product_type', 'product_type'), ('sku_class', 'sku_class'),

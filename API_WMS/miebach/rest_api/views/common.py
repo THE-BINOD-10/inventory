@@ -4245,6 +4245,7 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
 
 def update_order_dicts(orders, user='', company_name=''):
     status = {'status': 0, 'messages': ['Something went wrong']}
+    success = ['Success']
     for order_key, order in orders.iteritems():
         if not order.get('order_details', {}):
             continue
@@ -4257,18 +4258,20 @@ def update_order_dicts(orders, user='', company_name=''):
             order_obj = [order.get('order_detail_obj', None)]
         if order_obj:
             order_obj = order_obj[0]
-            order_obj.quantity = float(order_obj.quantity) + float(order_det_dict.get('quantity', 0))
-            order_obj.invoice_amount = float(order_obj.invoice_amount) + float(order_det_dict.get('invoice_amount', 0))
+            #order_obj.quantity = float(order_obj.quantity) + float(order_det_dict.get('quantity', 0))
+            #order_obj.invoice_amount = float(order_obj.invoice_amount) + float(order_det_dict.get('invoice_amount', 0))
+            order_obj.status = order_det_dict.get('status', 0)
             order_obj.save()
             order_detail = order_obj
+            message = 'Orders Updated Successfully'
         else:
             order_detail = OrderDetail.objects.create(**order['order_details'])
-
+            message = 'Orders Created Successfully'
         if order.get('order_summary_dict', {}) and not order_obj:
             customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
-        if order.get('seller_order_dict', {}):
-            check_create_seller_order(order['seller_order_dict'], order_detail, user, order.get('swx_mappings', []))
-        status = {'status': 1, 'messages': ['Success']}
+        #if order.get('seller_order_dict', {}):
+        #    check_create_seller_order(order['seller_order_dict'], order_detail, user, order.get('swx_mappings', []))
+        status = {'status': 'Success', 'messages': message}
     return status
 
 def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):

@@ -766,8 +766,9 @@ ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items
                          'seller_parent_item_id': 'sku_item["parentLineItemId"]'
                         }
 
-ORDER_DETAIL_INGRAM_API_MAPPING = { 'order_id': 'order_id', 'items': 'orders',
-                         'channel': 'orders.get("channel", "ingram")', 'order_items': 'orders["items"]', 
+ORDER_DETAIL_INGRAM_API_MAPPING = { 'order_id': 'order_increment_id', 'order_status': '(orders["order_status"]).upper()', 
+                         'items': 'orders',
+                         'channel': 'orders.get("marketplace", "ingram")', 'order_items': 'orders["items"]', 
                          'sku': 'sku_item["sku"]', 'title': 'sku_item["name"]', 'quantity': 'sku_item["qty_ordered"]',
                          'shipment_date': '(orders.get("invoice_details", {})).get("shipment_date", "")',
                          'channel_sku': 'sku_item["sku"]',
@@ -780,13 +781,13 @@ ORDER_DETAIL_INGRAM_API_MAPPING = { 'order_id': 'order_id', 'items': 'orders',
                          'telephone': '(orders.get("shipping_address", {})).get("telephone", "")',
                          'address': '(orders.get("shipping_address", {})).get("street", "")',
                          'city': '(orders.get("shipping_address", {})).get("city", "")',
-                         'seller_name' : '(order_mapping.get("invoice_details", {})).get("company_name", "")',
-                         'seller_address' : '(order_mapping.get("invoice_details", {})).get("company_address", "")',
-                         'seller_city' : '(order_mapping.get("invoice_details", {})).get("company_city", "")',
-                         'seller_region' : '(order_mapping.get("invoice_details", {})).get("company_region", "")',
-                         'seller_country' : '(order_mapping.get("invoice_details", {})).get("company_country", "")',
-                         'seller_postal' : '(order_mapping.get("invoice_details", {})).get("company_postal", "")',
-                         'seller_tax_id' : '(order_mapping.get("invoice_details", {})).get("company_tax_id", "")',
+                         'seller_name' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_name", "")',
+                         'seller_address' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_address", "")',
+                         'seller_city' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_city", "")',
+                         'seller_region' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_region", "")',
+                         'seller_country' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_contry", "")',
+                         'seller_postal' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_postal", "")',
+                         'seller_tax_id' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_tax_id", "")',
                         }
 
 SKU_MASTER_API_MAPPING = OrderedDict(( ('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_name'),

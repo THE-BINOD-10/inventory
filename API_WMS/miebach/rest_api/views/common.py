@@ -4263,6 +4263,7 @@ def update_order_dicts(orders, user='', company_name=''):
             order_detail = order_obj
         else:
             order_detail = OrderDetail.objects.create(**order['order_details'])
+
         if order.get('order_summary_dict', {}) and not order_obj:
             customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
         if order.get('seller_order_dict', {}):

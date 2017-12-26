@@ -1096,7 +1096,6 @@ def update_so(request):
     try:
         #validation_dict, final_data_dict = validate_orders(orders, user=request.user, company_name='ingram')
         validation_dict, final_data_dict = validate_ingram_orders(orders, user=request.user, company_name='ingram')
-        import pdb;pdb.set_trace()
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
         status = update_order_dicts(final_data_dict, user=request.user, company_name='ingram')

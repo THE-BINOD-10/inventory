@@ -5,8 +5,8 @@
          .component("summary", {
 
            "templateUrl": "/app/order_summary/summary.template.html",
-           "controller"  : ["$http", "$scope", "urlService", "manageData", "$state", "$location",
-    function ($http, $scope, urlService, manageData, $state, $location) {
+           "controller"  : ["$http", "$scope", "urlService", "manageData", "$state", "$location", "$window",
+    function ($http, $scope, urlService, manageData, $state, $location, $window) {
 
       var self = this;
       self.VAT = urlService.VAT;
@@ -15,11 +15,11 @@
 
 		if (urlService.user_update) {
 
-        if(navigator.onLine){  
+        
             console.log("online");
             $http.get( urlService.mainUrl+'rest_api/get_pos_user_data/?id='+urlService.userData.parent_id).
-					success(function(data, status, headers, config) {
-
+					then(function(data) {
+                data=data.data;
                 if (data.status == "Success"){
                   console.log(data);
                   urlService.userData = data;
@@ -50,32 +50,34 @@
                              console.log("user data saved fail in locally "+error.message); 
                           })
                 } else {
-                  $state.go("login");
+                  $window.location.href = urlService.stockoneUrl;//+ "?next='"+ urlService.mainUrl + "'";
+                  //$state.go("login");
                 }
-              })
-      }else{
+              },function(error){
 
-          console.log("offline");
-              //get user status from local db
-              getChecsumByName(USER_DATA).then(function(result){
+                console.log("offline");
+                //get user status from local db
+                getChecsumByName(USER_DATA).then(function(result){
 
-                var data=JSON.parse(result.checksum);
+                  var data=JSON.parse(result.checksum);
 
-                 if (data.status == "Success"&& urlService.userData.parent_id==data.parent_id){
-                    console.log(data);
-                    urlService.userData = data;
-                    urlService.VAT = data.VAT;
-                    self.VAT = data.VAT;
+                   if (data.status == "Success"&& urlService.userData.parent_id==data.parent_id){
+                      console.log(data);
+                      urlService.userData = data;
+                      urlService.VAT = data.VAT;
+                      self.VAT = data.VAT;
 
-                }else{
-                    $state.go("login");  
-                }
-              }).catch(function(){
+                  }else{
+                      $window.location.href = urlService.stockoneUrl; 
+                  }
+                }).catch(function(){
+                  
+                  $window.location.href = urlService.stockoneUrl; 
                 
-                $state.go("login");
-              
+                });
+
               });
-      }
+      
     }
 
       /*

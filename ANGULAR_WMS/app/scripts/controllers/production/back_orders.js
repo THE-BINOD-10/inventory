@@ -63,6 +63,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
 
     function reloadData () {
         vm.dtInstance.reloadData();
+        vm.bt_disable = false;
     };
 
     vm.excel = excel;
@@ -191,6 +192,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
           //data[temp['WMS Code']+":"+"Order_det"] = temp['order_id'];
         }
       });
+       vm.bt_disable = true;`
       var send_data  = {data: data, filter: vm.filter}
       var modalInstance = $modal.open({
       templateUrl: 'views/outbound/toggle/common_backorder_po.html',

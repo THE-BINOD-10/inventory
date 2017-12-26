@@ -2,8 +2,9 @@
 var app=angular.module('App', ['ngMaterial','ui.router','FBAngular','ngAnimate','ui.bootstrap','customer','sku', 'money','login','summary', 'pending', 'order', 'pageheader', 'more', 'pageheader']);
 
 app.service('urlService', function($rootScope){
+
     this.mainUrl = ENDPOINT;//'http://dev.stockone.in/';
-       
+    this.stockoneUrl = STOCKONE;
     this.userData = {"VAT":0};
     this.VAT = 0;
     this.hold_data = [];
@@ -48,14 +49,29 @@ app.factory('manageData', function($rootScope) {
   return storage;
 })
 
-app.config(function($stateProvider, $urlRouterProvider){
+/*app.run(function($rootScope, $window) {
+  $rootScope.$on('$stateChangeStart',
+    function(event, toState, toParams, fromState, fromParams) {
+      if (toState.external) {
+        event.preventDefault();
+        $window.open(toState.url, '_self');
+      }
+    });
+})*/
+
+app.config(function($stateProvider, $urlRouterProvider,$httpProvider){
+      
+      $httpProvider.defaults.withCredentials = true;
+
       // For any unmatched url, send to /route1
       $urlRouterProvider.otherwise("/login");
 
+      
       $stateProvider
         .state('login', {
-            url: '/login',
+            //url: STOCKONE,
             template: '<login></login>',
+            //external: true
         })
         .state('home', {
             url: '/home',
@@ -79,7 +95,7 @@ app.config(function($stateProvider, $urlRouterProvider){
           urlService.userData = {'parent_id':$location.$$search.user_id, 'user_name':$location.$$search.user_name, 'VAT':0}
         } else {
 
-          $state.go("login")
+          //$state.go("login")
         }
       }
       $rootScope.$on("$stateChangeStart", function (event) {
@@ -161,4 +177,8 @@ app.factory('printer', ['$rootScope', '$compile', '$http', '$timeout','$q', func
             print: print,
             printFromScope:printFromScope
         }
+
+
 }]);
+
+

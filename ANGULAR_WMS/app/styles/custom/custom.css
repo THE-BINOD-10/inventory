@@ -400,7 +400,7 @@ h1 small {
   }
 }
 .order-list {
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
 }
 .order-list .order-item {
   padding: 10px;
@@ -409,23 +409,23 @@ h1 small {
   color: blue;
 }
 .order-list .order-label {
-  color: #999;
+  color: #999999;
 }
 .order-list .order-bold {
   font-size: 20px;
   color: black;
 }
 .order-list .border-grey {
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid #cccccc;
 }
 .detail-list {
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
 }
 .detail-list .detail-item {
   padding: 10px;
 }
 .detail-list .border-grey {
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid #cccccc;
 }
 .detail-list .detail-bg-grey {
   background: #f0f0f0;
@@ -673,7 +673,7 @@ body {
   top: 8px;
 }
 .layout-sub-header {
-  background: #fff;
+  background: #ffffff;
 }
 .layout-sub-header .filters {
   background: #f0f0f0;
@@ -770,10 +770,12 @@ body {
 .page-pop .modal-body table {
   /*width: 97%;
       margin: 10px;*/
+
 }
 #page-pop .modal-body table tbody > tr > td > input,
 .page-pop .modal-body table tbody > tr > td > input {
   /*width: 90%;*/
+
 }
 #page-pop .modal-body .dropdown-menu > .active > a:hover,
 .page-pop .modal-body .dropdown-menu > .active > a:hover,
@@ -1130,6 +1132,7 @@ rm-blur:active {
   padding: 5px 0;
   padding: 3px;
   /* Position the tooltip */
+
   position: absolute;
   z-index: 1;
   top: -5px;
@@ -1197,6 +1200,7 @@ rm-blur:active {
     }
   }
   */
+
 }
 .tracking .panel-group .panel-body {
   background: #f0f0f0;
@@ -1449,4 +1453,21 @@ pre {
 }
 .row-expansion:hover {
   background: #fff !important;
+}
+.stockone-loader {
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  position: fixed;
+  display: block;
+  opacity: 0.8;
+  background-color: #fff;
+  z-index: 2000;
+  text-align: center;
+  background-image: url('/images/stockone_logo.png');
+  background-repeat: no-repeat;
+  background-size: 100px;
+  background-position: center;
+  cursor: progress;
 }

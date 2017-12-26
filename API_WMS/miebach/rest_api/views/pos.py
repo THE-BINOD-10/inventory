@@ -19,7 +19,7 @@ from miebach_utils import *
 # Create your views here.
 log = init_logger('logs/pos.log')
 
-
+@login_required
 @csrf_exempt
 def validate_sales_person(request):
     response_data = {'status': 'Fail'}
@@ -35,7 +35,7 @@ def validate_sales_person(request):
         response_data['user_id'] = user_id
     return HttpResponse(json.dumps(response_data))
 
-
+@login_required
 @csrf_exempt
 def get_pos_user_data(request):
     user_id = request.GET.get('id')
@@ -66,6 +66,7 @@ def get_pos_user_data(request):
     return HttpResponse("fail")
 
 
+@login_required
 @csrf_exempt
 def get_current_order_id(request):
    user = request.GET.get('user','')
@@ -73,7 +74,8 @@ def get_current_order_id(request):
    return HttpResponse(json.dumps({'order_id': order_id}))
 
 
-def search_customer_data(request):
+@login_required
+def search_pos_customer_data(request):
     search_key = request.GET['key']
     total_data = []
     user = request.user.id
@@ -97,6 +99,7 @@ def search_customer_data(request):
     return HttpResponse(json.dumps(total_data))
 
 
+@login_required
 def search_product_data(request):
     search_key = request.GET['key']
     user_id = request.GET['user']
@@ -152,6 +155,7 @@ def search_product_data(request):
     return HttpResponse(json.dumps(total_data))
 
 
+@login_required
 def add_customer(request):
     new_customers = eval(request.POST.get("customers"))
     user = new_customers[0]["user"]
@@ -242,6 +246,7 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail,\
    return "Success"
 
 
+@login_required
 @csrf_exempt
 def customer_order(request):
     orders = request.POST['order']
@@ -263,7 +268,7 @@ def customer_order(request):
             status = 0 if order['summary']['issue_type'] == "Delivery Challan"\
                        else 1
             order_ids.append(order_id)
-            picklist_number = get_picklist_number(user)
+            picklist_number = get_picklist_number(user) + 1
             if customer_data:
                 customer_id = customer_data[0].id
                 customer_name = customer_data[0].name
@@ -294,6 +299,7 @@ def customer_order(request):
                     if item['return_status'] == "false":
                         only_return = False
                         order_detail = OrderDetail.objects.create(user = user_id,\
+                                                   marketplace = "Offline",\
                                                    order_id = order_id,\
                                                    sku_id = sku.id,\
                                                    customer_id = customer_id,\
@@ -310,8 +316,7 @@ def customer_order(request):
                                                    email_id = cust_dict.get('Email',''),\
                                                    unit_price = item['unit_price'])
                         if status == 0:
-                            stock_diff, invoice_number = item['quantity'],\
-                                                         order['summary']['invoice_number'] + str(order_id)
+                            stock_diff, invoice_number = item['quantity'], order_id
                             stock_detail = StockDetail.objects.exclude(\
                                                               location__zone__zone = 'DAMAGED_ZONE')\
                                                               .filter(sku__wms_code = sku.wms_code,\
@@ -364,6 +369,7 @@ def customer_order(request):
     return HttpResponse(json.dumps({'order_ids': order_ids}))
 
 
+@login_required
 @csrf_exempt
 def print_order_data(request):
     customer_data, summary = {}, {}
@@ -476,6 +482,7 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
     return json.dumps({'data': order_data})
 
 
+@login_required
 def pre_order_data(request):
    data = eval(request.POST['data'])
    order_id = data.get('order_id', '')
@@ -487,6 +494,7 @@ def pre_order_data(request):
    return HttpResponse(order_details)
 
 
+@login_required
 def update_order_status(request):
   full_data = eval(request.POST['data'])
   nw_status = "offline"
@@ -509,7 +517,7 @@ def update_order_status(request):
         sku = order.sku
         user_id = order.user
         user = User.objects.get(id = user_id)
-        picklist_number = get_picklist_number(user)
+        picklist_number = get_picklist_number(user) + 1
         stock_detail = StockDetail.objects.filter(sku = sku, quantity__gt = 0)
         if stock_detail: order.save()
         else:
@@ -545,7 +553,7 @@ def update_order_status(request):
                                          .filter(picklist__order__user = user_id)\
                                          .values('stock__sku_id')\
                                          .annotate(total = Sum('reserved'))
-        invoice_number = 'TI/%s/%s' % (order.creation_date.strftime('%m%y'), order.order_id)
+        invoice_number = order.order_id
         stock_detail = StockDetail.objects.exclude(location__zone__zone = 'DAMAGED_ZONE')\
                                           .filter(sku__wms_code=order.sku.wms_code, sku__user=user_id)
         stock_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']

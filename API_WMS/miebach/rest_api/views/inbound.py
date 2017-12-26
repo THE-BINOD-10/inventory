@@ -992,7 +992,7 @@ def confirm_po(request, user=''):
     company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.POST.get('receipt_type', '')
-    if receipt_type == 'Hosted Warehouse':
+    if request.POST.get('seller_id', ''):
         title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and str(request.POST.get('seller_id').split(":")[1]).lower() == 'shproc':
         company_name = 'SHPROC Procurement Pvt. Ltd.'
@@ -1008,7 +1008,7 @@ def confirm_po(request, user=''):
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'company_name': company_name,
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type, 'title': title,
-                 'gstin_no': gstin_no}
+                 'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile)}
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
@@ -2136,13 +2136,9 @@ def check_returns(request, user=''):
     request_awb = request.GET.get('awb_no', '')
     if request_awb:
         try:
-            get_order_id = OrderAwbMap.objects.get(awb_no = request_awb).original_order_id
+            request_order_id = OrderAwbMap.objects.get(awb_no = request_awb, user = user.id).original_order_id
         except ObjectDoesNotExist:
-            get_order_id = None
-        if get_order_id:
-            request_order_id = get_order_id
-        else:
-            status = 'AWB No. is Invalid'
+            request_order_id = None
     if request_order_id:
         filter_params = {}
         order_id = re.findall('\d+', request_order_id)
@@ -2203,6 +2199,8 @@ def check_returns(request, user=''):
                          'sku_code': order_data.sku.sku_code,
                          'sku_desc': order_data.sku.sku_desc, 'ship_quantity': order_quantity,
                          'return_quantity': order_data.quantity, 'damaged_quantity': order_data.damaged_quantity})
+    else:
+        status = 'AWB No. is Invalid'
     if not status:
         return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder))
     return HttpResponse(status)
@@ -3698,14 +3696,16 @@ def confirm_add_po(request, sales_data = '', user=''):
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     #if receipt_type == 'Hosted Warehouse':
-    title = 'Stock Transfer Note'
+    if request.POST.get('seller_id', ''):
+        title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
         company_name = 'SHPROC Procurement Pvt. Ltd.'
         title = 'Purchase Order'
 
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'user_name': request.user.username,
-                 'total_qty': total_qty, 'company_name': company_name, 'location': profile.location, 'w_address': profile.address,
+                 'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
+                 'w_address': get_purchase_company_address(profile),
                  'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title, 'gstin_no': gstin_no}
 
@@ -3860,7 +3860,8 @@ def confirm_po1(request, user=''):
                          'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
                          'company_name': profile.company_name, 'location': profile.location, 'po_reference': po_reference,
                          'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
-                         'vendor_telephone': vendor_telephone, 'gstin_no': gstin_no}
+                         'vendor_telephone': vendor_telephone, 'gstin_no': gstin_no,
+                         'w_address': get_purchase_company_address(profile)}
 
             t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)
@@ -4394,7 +4395,7 @@ def generate_seller_invoice(request, user=''):
     all_data = OrderedDict()
     seller_po_ids = []
     sell_ids = {}
-    gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
+    gstin_no = user_profile.gst_number
     taxes_dict = {}
     total_taxable_amt = 0
     for data_id in seller_summary_dat:

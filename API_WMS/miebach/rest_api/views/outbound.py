@@ -1541,6 +1541,7 @@ def update_invoice(request, user=''):
         increment_invoice = get_misc_value('increment_invoice', user.id)
         marketplace = request.POST.get("marketplace", "")
         order_reference = request.POST.get("order_reference", "")
+        order_reference_date = request.POST.get("order_reference_date", "")
 
         myDict = dict(request.POST.iterlists())
         if invoice_date:
@@ -1550,8 +1551,14 @@ def update_invoice(request, user=''):
         ord_ids = OrderDetail.objects.filter(Q(order_id = order_id_val, order_code = order_code) | Q(original_order_id=order_ids),
                                              user = user.id)
 
-        if order_reference and ord_ids:
-           ord_ids.update(order_reference = order_reference)
+        if ord_ids:
+            update_dict = {}
+            if order_reference:
+                update_dict['order_reference'] = order_reference
+            if order_reference_date:
+                update_dict['order_reference_date'] = datetime.datetime.strptime(order_reference_date, "%m/%d/%Y").date()
+            if update_dict:
+                ord_ids.update(**update_dict)
 
         if increment_invoice == 'true' and invoice_number:
             invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace)
@@ -1572,6 +1579,7 @@ def update_invoice(request, user=''):
         for order_id in ord_ids:
             if not str(order_id.id) in myDict['id']:
                 continue
+
             unit_price_index = myDict['id'].index(str(order_id.id))
             if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
                 order_id.unit_price = float(myDict['unit_price'][unit_price_index])
@@ -4999,6 +5007,10 @@ def get_customer_orders(request, user=""):
             record['date'] = get_only_date(request, data[0].creation_date)
             record['total_inv_amt'] = round(record['total_inv_amt'], 2)
             record['picked_quantity'] = picked_quantity
+            if record['original_order_id']:
+                record['order_id'] = record['original_order_id']
+            else:
+                record['order_id'] = str(record['order_code']) + str(record['order_id'])
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
 @login_required
@@ -5011,7 +5023,7 @@ def get_customer_order_detail(request, user=""):
     if not order_id:
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
-    order = OrderDetail.objects.filter(order_id = order_id, user=user.id)
+    order = get_order_detail_objs(order_id, user)
     if not order:
         return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
@@ -5029,7 +5041,7 @@ def get_customer_order_detail(request, user=""):
             tax_data = tax_data[0]
             record['invoice_amount'] = record['invoice_amount'] - tax_data.tax_value
 
-    tax = CustomerOrderSummary.objects.filter(order__order_id = order_id, order__user = user.id).aggregate(Sum('tax_value'))['tax_value__sum']
+    tax = CustomerOrderSummary.objects.filter(order_id__in = order, order__user = user.id).aggregate(Sum('tax_value'))['tax_value__sum']
     if not tax:
         tax = 0
 

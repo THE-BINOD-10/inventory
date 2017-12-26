@@ -9,6 +9,8 @@
     that.host = 'http://0.0.0.0:7654/';
     that.url = that.host+'rest_api/';
 
+    that.pos_host = 'http://pos.mieone.com/';
+
     function resetSession () {
 
       angular.extend(that, {

@@ -298,7 +298,7 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
 
   $timeout(function() {
 
-    $('.stk-readonly').datepicker("setDate", new Date(vm.model_data.inv_date) );
+    $('[name="invoice_date"]').datepicker("setDate", new Date(vm.model_data.inv_date) );
   },1000);
   vm.ok = function () {
 

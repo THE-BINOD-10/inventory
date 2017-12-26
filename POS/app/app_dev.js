@@ -78,7 +78,7 @@ app.controller('posController', function($http, $scope, urlService, Fullscreen){
     function get_user_data(key) {
 
         var deferred = $q.defer();
-        $http.get(urlService.mainUrl+'search_customer_data?key='+key)
+        $http.get(urlService.mainUrl+'search_pos_customer_data?key='+key)
           .success( function(data) {
             self.repos = data;
             repos = data;

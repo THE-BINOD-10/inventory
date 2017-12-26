@@ -5,8 +5,8 @@
          .component("pageheader", {
 
            "templateUrl": "/app/header/header.template.html",
-           "controller"  : ["$scope","$mdToast", "urlService", "Fullscreen","$rootScope",
-    function ($scope,$mdToast, urlService, Fullscreen, $rootScope) {
+           "controller"  : ["$scope","$mdToast", "urlService", "Fullscreen","$rootScope","$window",
+    function ($scope,$mdToast, urlService, Fullscreen, $rootScope,$window) {
       var self = this;
 
       $scope.name = "Test";
@@ -48,22 +48,20 @@
                     urlService.hide_loading();
                 }).catch(function(){
                     urlService.hide_loading();
-
                 });
             });
         }else{
             console.log( "offline");
             urlService.hide_loading();
+            urlService.show_toast(NETWORK_ERROR);
         }
 
       };
 
-	
 	urlService.show_loading=function showRefresh(){
 	  $(".glyphicon-refresh").addClass("refresh-spinner");
 	};
 
-	
 	urlService.hide_loading=function hideRefresh(){
 	    $(".glyphicon-refresh").removeClass("refresh-spinner");
 	    checkstorage();
@@ -72,7 +70,7 @@
 	function checkstorage(){
 		checkStoragePercent().then(function(data){
 		if(data){
-		  toast_msg("memory usage exceed 70% .please free the space");        
+		  urlService.show_toast("memory usage exceed 70% .please free the space");        
 		}else{
 		  console.log("memory is not reached 70%");
 		}
@@ -84,27 +82,69 @@
 	//trigger event for getting data at intiallly.
     //$scope.sync();
 
+     navigator.serviceWorker.ready.then(function(reg){
+
+
+	  		reg.addEventListener('updatefound',function(){
+                console.log("service worker update founded");
+                const newWorker = reg.installing;
+                
+                var flag = localStorage.getItem('reload_flag') || '0';
+                    if(flag === '0') {
+                        localStorage.setItem('reload_flag','1');
+                        $window.location.reload();
+                    }  
+                    else {
+                        localStorage.setItem('reload_flag','0');
+                    }  
+                
+                /*newWorker.addEventListener('statechange', function() {
+                  console.log("changed teh status "+newWorker.state);
+                  if(newWorker.state==="activated"){
+                    var flag = localStorage.getItem('reload_flag') || '0';
+                    if(flag === '0') {
+                        localStorage.setItem('reload_flag','1');
+                        $window.location.reload();
+                    }  
+                    else {
+                        localStorage.setItem('reload_flag','0');
+                    }  
+                  }  
+                });*/
+	  			
+	  		reg.addEventListener('controllerchange',function(){
+
+	  			console.log("updated the service worker");
+
+	  		});
+
+	  });
+	 }); 		
+
 	window.addEventListener('load', function(e) {
 	  if (navigator.onLine) {
 	    console.log("online");
-	    toast_msg(CONNECTED_NETWORK);
+	    urlService.show_toast(CONNECTED_NETWORK);
 	  } else {
 	    console.log("offline");
-	    toast_msg(NETWORK_ERROR);
+	    urlService.show_toast(NETWORK_ERROR);
 	  }
 	}, false);
 
 	window.addEventListener('online', function(e) {
 	  console.log("And we're back");
-	  toast_msg(CONNECTED_NETWORK);
+	  urlService.show_toast(CONNECTED_NETWORK);
+	  $scope.sync();
 	}, false);
 
 	window.addEventListener('offline', function(e) {
 	  console.log("Connection is flaky.");
-	  toast_msg(NETWORK_ERROR);
+	  urlService.show_toast(NETWORK_ERROR);
 	}, false);
 
-	function toast_msg(msg){
+	//show toast  message on POS
+	
+	urlService.show_toast=function toast_msg(msg){
 	   $mdToast.show( $mdToast.simple()
 	  	.textContent(msg)
 	  	.position('top right')
@@ -116,7 +156,7 @@
 	 enableNotificaiton().then(function(data){
 
 	  		if(data==false){
-	  		  toast_msg(NOTIIFICATION_ERROR);
+	  		  urlService.show_toast(NOTIIFICATION_ERROR);
 	  		}
 
 	  		  checkPersistent().then(function(data){

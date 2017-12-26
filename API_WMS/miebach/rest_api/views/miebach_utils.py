@@ -777,7 +777,7 @@ ORDER_DETAIL_INGRAM_API_MAPPING = { 'order_id': 'order_increment_id', 'order_sta
                          'sgst_tax':'(sku_item.get("tax_percent", {})).get("sgstTax", "0")',
                          'igst_tax': '(sku_item.get("tax_percent", {})).get("igstTax", "0")',
                          'customer_id': '(orders.get("shipping_address", {})).get("customer_id", "")',
-                         'customer_name': '(orders.get("shipping_address", {})).get("first_name", "")',
+                         'customer_name': '(orders.get("shipping_address", {})).get("firstname", "")',
                          'telephone': '(orders.get("shipping_address", {})).get("telephone", "")',
                          'address': '(orders.get("shipping_address", {})).get("street", "")',
                          'city': '(orders.get("shipping_address", {})).get("city", "")',

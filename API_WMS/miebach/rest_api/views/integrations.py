@@ -247,10 +247,8 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
     try:
         seller_masters = SellerMaster.objects.filter(user=user.id)
         user_profile = UserProfile.objects.get(user_id=user.id)
-        seller_master_dict = {}
-        valid_order = {}
-        sku_ids = []
-        failed_status = []
+        seller_master_dict, valid_order, query_params = {}, {}, {}
+        sku_ids = failed_status = []
         if not orders:
             orders = {}
         orders = eval(order_mapping['items'])
@@ -271,13 +269,14 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
             order_id = ''.join(re.findall('\d+', original_order_id))
             filter_params = {'user': user.id, 'order_id': order_id}
             filter_params1 = {'user': user.id, 'original_order_id': original_order_id}
+            order_details['status'] = order_status_dict[eval(order_mapping['order_status'])]
             if order_mapping.has_key('customer_id'):
-                order_details['customer_id'] = eval(order_mapping['customer_id'])
+                order_details['customer_id'] = int(eval(order_mapping['customer_id']))
                 order_details['customer_name'] = eval(order_mapping['customer_name'])
                 order_details['telephone'] = eval(order_mapping['telephone'])
                 order_details['city'] = eval(order_mapping['city'])
                 order_details['address'] = eval(order_mapping['address'])
-                order_details['status'] = order_status_dict[eval(order_mapping['order_status'])]
+
             if order_code:
                 filter_params['order_code'] = order_code
             order_items = [orders]
@@ -490,6 +489,18 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                         }
                     }
                     break;
+                #Adding Customer Master    
+                
+                if order_details['customer_id']:
+                    query_params['customer_id'] = order_details['customer_id']
+                    query_params['user'] = user.id
+                    customer_obj = CustomerMaster.objects.filter(**query_params)
+                    if not customer_obj:
+                        query_params['name'] = order_details['customer_name']
+                        query_params['city'] = order_details['city']
+                        query_params['phone_number'] = order_details['telephone']
+                        query_params['address'] = order_details['address']
+                        CustomerMaster.objects.create(**query_params)
                 #if order_mapping.has_key('sor_id'):
                 #    seller_order_dict['seller_id'] = seller_master_dict[seller_id]
                 #    seller_order_dict['sor_id'] = eval(order_mapping['sor_id'])

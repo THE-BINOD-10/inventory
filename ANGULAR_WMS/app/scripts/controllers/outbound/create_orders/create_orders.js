@@ -488,10 +488,10 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
  vm.close = function() {
 
-    //angular.copy(empty_data, vm.model_data);
+    angular.copy(empty_data, vm.model_data);
     vm.attributes = [];
     vm.image = "";
-    angular.copy(empty_pop_data, vm.pop_data);
+    //angular.copy(empty_pop_data, vm.pop_data);
     vm.pop_btn = true;
     $state.go('app.outbound.CreateOrders');
   }
@@ -780,9 +780,11 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         if(data.message) {
           if(data.data == 'New Customer Added') {
             vm.close();
-            angular.copy(vm.customer_data, vm.model_data)
+            //angular.copy(vm.customer_data, vm.model_data)
             vm.model_data["customer_name"] = vm.customer_data.name;
             vm.model_data["telephone"] = vm.customer_data.phone_number;
+            vm.model_data["customer_id"] = vm.customer_data.customer_id;
+            vm.model_data["email_id"] = vm.customer_data.email_id;
           } else {
             vm.service.pop_msg(data.data);
           }

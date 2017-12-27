@@ -766,6 +766,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.customer_data = {};
   vm.open_customer_pop = function() {
 
+    angular.copy(empty_data, vm.model_data);
     vm.service.apiCall("get_customer_master_id/").then(function(data){
       if(data.message) {
 

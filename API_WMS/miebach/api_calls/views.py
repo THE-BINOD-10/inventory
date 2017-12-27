@@ -1096,12 +1096,12 @@ def update_so(request):
     try:
         #validation_dict, final_data_dict = validate_orders(orders, user=request.user, company_name='ingram')
         #api_validation = validate_api_params(orders, user=request.user)
-        validation_dict, failed_status, final_data_dict = validate_ingram_orders(orders, user=request.user, company_name='ingram')
+        validation_dict, failed_status, final_data_dict, seller_id = validate_ingram_orders(orders, user=request.user, company_name='ingram')
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
         if failed_status:
             return HttpResponse(json.dumps({ 'status': 'Failed', 'messages': failed_status }))
-        status = update_order_dicts(final_data_dict, user=request.user, company_name='ingram')
+        status = update_order_dicts(final_data_dict, seller_id, user=request.user, company_name='ingram')
         log.info(status)
     except Exception as e:
         import traceback

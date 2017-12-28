@@ -776,6 +776,7 @@ ORDER_DETAIL_INGRAM_API_MAPPING = { 'order_id': 'order_increment_id', 'order_sta
                          'channel_sku': 'sku_item["sku"]',
                          'unit_price': 'sku_item["price"]',
                          'total_price': 'sku_item["row_total"]',
+                         'hsn_code': 'sku_item["hs_code"]',
                          'cgst_tax': '(sku_item.get("tax_percent", {})).get("CGST", "0")',
                          'sgst_tax':'(sku_item.get("tax_percent", {})).get("SGST", "0")',
                          'igst_tax': '(sku_item.get("tax_percent", {})).get("IGST", "0")',

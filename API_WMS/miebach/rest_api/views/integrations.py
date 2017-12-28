@@ -32,8 +32,6 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
 def validate_orders(orders, user='', company_name='', is_cancelled=False):
     order_mapping = eval(LOAD_CONFIG.get(company_name, 'order_mapping_dict', ''))
     NOW = datetime.datetime.now()
-    #insert_status = {'Seller Master does not exists': [], 'SOR ID not found': [], 'Order Status not Matched': [],
-    #                 'Order Exists already': [], 'Invalid SKU Codes': [], 'Invalid Delivery Rescheduled Order': []}
     insert_status = []
     final_data_dict = OrderedDict()
     try:
@@ -43,7 +41,6 @@ def validate_orders(orders, user='', company_name='', is_cancelled=False):
         sku_ids = []
         if not orders:
             orders = {}
-        #doubt
         orders = eval(order_mapping['items'])
         if order_mapping.get('is_dict', False):
             orders = [orders]
@@ -97,7 +94,6 @@ def validate_orders(orders, user='', company_name='', is_cancelled=False):
                         swx_mappings.append({'app_host': 'shotang', 'swx_id': seller_item_id,
                                              'swx_type': 'seller_item_id'})
                     if order_mapping.has_key('seller_parent_item_id'):
-                        #seller_parent_id = eval(order_mapping['seller_parent_item_id'])
                         seller_parent_id = order_mapping['seller_parent_item_id']
                         swx_mappings.append({'app_host': 'shotang', 'swx_id': seller_parent_id,
                                              'swx_type': 'seller_parent_item_id'})
@@ -241,8 +237,6 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
     NOW = datetime.datetime.now()
     seller_id = ''
     seller_master = []
-    #insert_status = {'Seller Master does not exists': [], 'SOR ID not found': [], 'Order Status not Matched': [],
-    #                 'Order Exists already': [], 'Invalid SKU Codes': [], 'Invalid Delivery Rescheduled Order': []}
     insert_status = []
     final_data_dict = OrderedDict()
     try:
@@ -339,7 +333,6 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                 try:
                     shipment_date = NOW # by default shipment date assigned as NOW
                     #shipment_date = eval(order_mapping['shipment_date'])
-                    #shipment_date = datetime.datetime.fromtimestamp(shipment_date)
                 except:
                     shipment_date = NOW
                 if not order_mapping.get('line_items'):
@@ -371,11 +364,6 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                         
                         invoice_amount = float(eval(order_mapping['total_price']))
                         unit_price = float(eval(order_mapping['unit_price']))
-                        '''
-                        if 'unit_price' in order_mapping:
-                            invoice_amount = float(eval(order_mapping['unit_price'])) * float(eval(order_mapping['quantity']))
-                            order_details['unit_price'] = float(eval(order_mapping['unit_price']))
-                        '''
                         if not order_det:
                             order_det = order_det1
 
@@ -402,7 +390,6 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                         
 
                         if not failed_status and not insert_status:
-                            #adding GST for each SKU item
                             order_summary_dict['cgst_tax'] = float(eval(order_mapping['cgst_tax'])) if eval(order_mapping['cgst_tax']) else 0
                             order_summary_dict['sgst_tax'] = float(eval(order_mapping['sgst_tax'])) if eval(order_mapping['sgst_tax']) else 0
                             order_summary_dict['igst_tax'] = float(eval(order_mapping['igst_tax'])) if eval(order_mapping['igst_tax']) else 0
@@ -425,7 +412,6 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                     }
                     break;    
                 
-                #Adding Customer Master
                 if not failed_status and not insert_status and order_details['customer_id']:
                     query_params['customer_id'] = order_details['customer_id']
                     query_params['user'] = user.id

@@ -4314,8 +4314,8 @@ def update_ingram_order_dicts(orders, seller_obj, user='', company_name=''):
                     seller_order_dict['invoice_no'] = ''
                     seller_order_dict['order_status'] = 'PROCESSED'
                     seller_order_dict['status'] = order_obj.status
-                    seller_order_dict['creation_date'] = NOW
-                    seller_order_dict['updation_date'] = NOW
+                    seller_order_dict['creation_date'] = datetime.datetime.now()
+                    seller_order_dict['updation_date'] = datetime.datetime.now()
                     seller_order_obj = SellerOrder.objects.create(**seller_order_dict)
     
             order_charge = OrderCharges.objects.filter(order_id = order_obj.original_order_id, charge_name = 'Shipping Tax', 

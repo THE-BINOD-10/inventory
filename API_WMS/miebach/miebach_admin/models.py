@@ -1087,7 +1087,6 @@ class STOrder(models.Model):
     def __unicode__(self):
         return str(self.picklist_id) + ":" + str(self.stock_transfer)
 
-
 class CustomerOrderSummary(models.Model):
     order = models.ForeignKey(OrderDetail)
     discount = models.FloatField(default = 0)

@@ -284,6 +284,7 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                         ]
                     }
                 })
+                
                 break;
 
             if order_mapping.has_key('customer_id'):
@@ -299,9 +300,6 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
             if order_mapping.get('order_items', ''):
                 order_items = eval(order_mapping['order_items'])
 
-            if not order_items:
-                print "order_items doesn't exists" + original_order_id
-            
             valid_order['user'] = user.id
             valid_order['marketplace'] = channel_name
             valid_order['original_order_id'] = original_order_id
@@ -317,9 +315,9 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
             order_detail_present = OrderDetail.objects.filter(**valid_order)
             if order_detail_present:
                 failed_status.append({ "OrderId": ingram_order_id,
-                    "result": {"errors": [
+                    "Result": {"Errors": [
                         {
-                        "ErrorCode": "5021", "ErrorMessage": message
+                        "ErrorCode": "5001", "ErrorMessage": message
                         }
                         ]
                     }
@@ -348,6 +346,7 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                         filter_params['sku_id'] = sku_master[0].id
                         filter_params1['sku_id'] = sku_master[0].id
                     else:
+                        
                         failed_sku_status.append({
                             "ErrorCode": "5020",
                             "ErrorMessage":"SKU Not found in Stockone",
@@ -404,23 +403,20 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                         order_summary_dict['inter_state'] = 0
                         if order_summary_dict['igst_tax']:
                             order_summary_dict['inter_state'] = 1
-                        #tot_invoice = (float(invoice_amount)/100) * (float(order_summary_dict['cgst_tax']) + float(order_summary_dict['sgst_tax'])\
-                        #                                              + float(order_summary_dict['igst_tax']))
-                        #invoice_amount += float(tot_invoice)
                         final_data_dict = check_and_add_dict(grouping_key, 'order_summary_dict', 
                             order_summary_dict,final_data_dict=final_data_dict)
 
-                    #add code for SKU total invoice amount
                 if len(failed_sku_status):
                     failed_status = {
                         "OrderId": ingram_order_id,
-                        "result": {
-                            "errors": failed_sku_status
+                        "Result": {
+                            "Errors": failed_sku_status
                         }
                     }
                     break;    
                 
-                if order_details['customer_id']:
+                #Adding Customer Master
+                if not failed_status and not insert_status and order_details['customer_id']:
                     query_params['customer_id'] = order_details['customer_id']
                     query_params['user'] = user.id
                     customer_obj = CustomerMaster.objects.filter(**query_params)
@@ -433,6 +429,7 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                         query_params['pincode'] = eval(order_mapping['pin_code'])
                         query_params['country'] = eval(order_mapping['country'])
                         CustomerMaster.objects.create(**query_params)
+
                 if not failed_status and not insert_status and eval(order_mapping.get('seller_name', '')):
                     seller_name = eval(order_mapping.get('seller_name', ''))
                     seller_address = eval(order_mapping.get('seller_address', ''))

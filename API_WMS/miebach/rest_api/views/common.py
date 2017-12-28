@@ -4270,7 +4270,7 @@ def update_order_dicts(orders, user='', company_name=''):
         status = {'status': 1, 'messages': ['Success']}
     return status
 
-def update_ingram_order_dicts(orders, seller_obj, user='', company_name=''):
+def update_ingram_order_dicts(orders, seller_obj, user=''):
     status = {'status': 0, 'messages': ['Something went wrong']}
     success = ['Success']
     if seller_obj:

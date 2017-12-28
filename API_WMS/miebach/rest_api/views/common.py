@@ -4270,6 +4270,75 @@ def update_order_dicts(orders, user='', company_name=''):
         status = {'status': 1, 'messages': ['Success']}
     return status
 
+def update_ingram_order_dicts(orders, seller_obj, user=''):
+    status = {'status': 0, 'messages': ['Something went wrong']}
+    success = ['Success']
+    if seller_obj:
+        seller_obj = seller_obj[0]
+    for order_key, order in orders.iteritems():
+        seller_order_dict = {}
+        order_charge_dict = {}
+        if not order.get('order_details', {}):
+            continue
+        order_det_dict = order['order_details']
+        if not order.get('order_detail_obj', None):
+            order_obj = OrderDetail.objects.filter(original_order_id=order_det_dict['original_order_id'],
+                order_id=order_det_dict['order_id'], order_code=order_det_dict['order_code'], 
+                sku_id=order_det_dict['sku_id'], user=order_det_dict['user'])
+        else:
+            order_obj = [order.get('order_detail_obj', None)]
+        if order_obj:
+            order_obj = order_obj[0]            
+            order_obj.status = order_det_dict.get('status', 0)
+            order_obj.save()
+            order_detail = order_obj
+            message = 'Orders Updated Successfully'
+        else:
+            order_obj = OrderDetail.objects.create(**order['order_details'])
+            message = 'Orders Created Successfully'
+        
+        order_summary_dict = order.get('order_summary_dict', {})
+        if order_summary_dict:
+            order_summary_dict['order'] = order_obj
+            customer_order_summary = CustomerOrderSummary.objects.create(**order_summary_dict)
+        if order_obj:
+            if seller_obj:
+                sor_id = str(seller_obj.id) + '_' + str(order_obj.id)
+                sell_order_present = SellerOrder.objects.filter(order_id=order_obj.id, 
+                    seller__user=user.id, sor_id = sor_id)
+                if not sell_order_present:
+                    seller_order_dict['seller'] = seller_obj
+                    seller_order_dict['sor_id'] = sor_id
+                    seller_order_dict['order'] = order_obj
+                    seller_order_dict['quantity'] = order_obj.quantity
+                    seller_order_dict['invoice_no'] = ''
+                    seller_order_dict['order_status'] = 'PROCESSED'
+                    seller_order_dict['status'] = order_obj.status
+                    seller_order_dict['creation_date'] = datetime.datetime.now()
+                    seller_order_dict['updation_date'] = datetime.datetime.now()
+                    seller_order_obj = SellerOrder.objects.create(**seller_order_dict)
+    
+            order_charge = OrderCharges.objects.filter(order_id = order_obj.original_order_id, charge_name = 'Shipping Tax', 
+                user_id = order_det_dict['user'])
+            if not order_charge:
+                order_charge_dict['order_id'] = order_obj.original_order_id
+                order_charge_dict['charge_name'] = 'Shipping Tax'
+                order_charge_dict['charge_amount'] = order['shipping_tax']
+                order_charge_dict['user_id'] = order_det_dict['user']
+                OrderCharges.objects.create(**order_charge_dict)
+        
+        order_id_pick = order_obj.original_order_id.split('_')
+        status = {
+                  "Status": "Success",
+                  "OrderId": order_id_pick[1],
+                  "Result": {
+                    "Status": order['status_type'],
+                    "Message": message
+                  }
+                }
+
+    return status
+
 def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):
     if seller_order_dict.get('seller_id', ''):
         sell_order_ins = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id, seller__user=user.id)

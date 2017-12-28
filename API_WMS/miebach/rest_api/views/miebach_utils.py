@@ -766,6 +766,39 @@ ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items
                          'seller_parent_item_id': 'sku_item["parentLineItemId"]'
                         }
 
+ORDER_DETAIL_INGRAM_API_MAPPING = { 'order_id': 'order_increment_id', 'order_status': '(orders["order_status"]).upper()', 
+                         'items': 'orders',
+                         'channel': 'orders.get("marketplace", "ingram")', 'order_items': 'orders["items"]', 
+                         'sku': 'sku_item["sku"]', 'title': 'sku_item["name"]', 'quantity': 'sku_item["qty_ordered"]',
+                         'created_at': '(orders.get("created_at", ""))',
+                         'payment_method' : '((orders.get("invoice_details", {})).get("payment_method", {}))',
+                         'shipment_date': '(orders.get("invoice_details", {})).get("shipment_date", "")',
+                         'channel_sku': 'sku_item["sku"]',
+                         'unit_price': 'sku_item["price"]',
+                         'total_price': 'sku_item["row_total"]',
+                         'hsn_code': 'sku_item["hs_code"]',
+                         'cgst_tax': '(sku_item.get("tax_percent", {})).get("CGST", "0")',
+                         'sgst_tax':'(sku_item.get("tax_percent", {})).get("SGST", "0")',
+                         'igst_tax': '(sku_item.get("tax_percent", {})).get("IGST", "0")',
+                         'customer_id': '(orders.get("billing_address", {})).get("customer_id", "")',
+                         'customer_name': '(orders.get("billing_address", {})).get("firstname", "")',
+                         'telephone': '(orders.get("billing_address", {})).get("telephone", "")',
+                         'address': '(orders.get("billing_address", {})).get("street", "")',
+                         'city': '(orders.get("billing_address", {})).get("city", "")',
+                         'last_name': '(orders.get("billing_address", {})).get("last_name", "")',
+                         'pin_code': '(orders.get("billing_address", {})).get("post_code", "")',
+                         'country': '(orders.get("billing_address", {})).get("country", "")',
+                         'seller_name' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_name", "")',
+                         'seller_address' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_address", "")',
+                         'seller_city' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_city", "")',
+                         'seller_region' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_region", "")',
+                         'seller_country' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_country", "")',
+                         'seller_postal' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_postal", "")',
+                         'seller_tax_id' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_tax_id", "")',
+                         'shipping_tax' : '((orders.get("invoice_details", {})).get("shipping_incl_tax", "0"))',
+                         
+                        }
+
 SKU_MASTER_API_MAPPING = OrderedDict(( ('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_name'),
                                        ('sku_brand', 'sku_brand'), ('sku_category', 'sku_category_name'), ('price', 'price'),
                                        ('mrp', 'mrp'), ('product_type', 'product_type'), ('sku_class', 'sku_class'),
@@ -805,7 +838,7 @@ EASYOPS_SHIPPED_ORDER_MAPPING = {'id': 'order["itemId"]', 'order_id': 'orderTrac
                          'unit_price': 'order["unitPrice"]', 'order_items': 'orders["orderItems"]'}
 
 ORDER_SUMMARY_FIELDS = {'discount': 0, 'creation_date': datetime.datetime.now(), 'issue_type': 'order', 'vat': 0, 'tax_value': 0,
-                        'order_taken_by': ''}
+                        'order_taken_by': '', 'sgst_tax' : 0, 'cgst_tax' : 0, 'igst_tax' : 0}
 
 EASYOPS_STOCK_HEADERS = OrderedDict([('Product Name', 'sku_desc'), ('Sku', 'wms_code'), ('Vendor Sku', 'wms_code'),
                                      ('Stock', 'stock_count'), ('Purchase Price', 'purchase_price')])

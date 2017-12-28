@@ -880,7 +880,8 @@ def insert_rwo_po(rw_order, request, user):
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': rw_order.vendor.address, 'order_id': po_order.order_id,
                  'telephone': phone_no, 'name': rw_order.vendor.name, 'order_date': order_date,
                  'total': total, 'user_name': user.username, 'total_qty': total_qty,
-                 'location': profile.location, 'w_address': profile.address, 'company_name': profile.company_name}
+                 'location': profile.location, 'w_address': get_purchase_company_address(profile),
+                 'company_name': profile.company_name}
 
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
@@ -2259,14 +2260,14 @@ def get_grn_json_data(order, user, request):
 
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
     table_headers = ('WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Unit Price', 'Amount', 'SGST', 'CGST', 'IGST', 'UTGST', 'Remarks')
-    profile = UserProfile.objects.get(user=request.user.id)
+    profile = UserProfile.objects.get(user=user.id)
 
     data_dictionary = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                        'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
                        'po_reference': po_reference, 'user_name': request.user.username, 'total_qty': total_qty,
                        'company_name': profile.company_name, 'location': profile.location, 'w_address': profile.address,
                        'vendor_name': vendor_name, 'vendor_address': vendor_address,'vendor_telephone': vendor_telephone,
-                       'gstin_no': gstin_no}
+                       'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile)}
     return data_dictionary
 
 @csrf_exempt

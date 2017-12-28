@@ -964,7 +964,6 @@ def update_order(request):
     except:
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
-    import pdb;pdb.set_trace()
     try:
 
         validation_dict, final_data_dict = validate_orders(orders, user=request.user, company_name='mieone')

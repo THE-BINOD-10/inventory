@@ -346,13 +346,11 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                         filter_params['sku_id'] = sku_master[0].id
                         filter_params1['sku_id'] = sku_master[0].id
                     else:
-                        
                         failed_sku_status.append({
                             "ErrorCode": "5020",
                             "ErrorMessage":"SKU Not found in Stockone",
                             "SKUId":sku_code
                         })
-                        break;
 
                     order_sor_id = ''
                     grouping_key = str(original_order_id) + '<<>>' + str(sku_master[0].sku_code)

@@ -4316,15 +4316,9 @@ def update_ingram_order_dicts(orders, seller_obj, user='', company_name=''):
                     seller_order_dict['status'] = order_obj.status
                     seller_order_dict['creation_date'] = NOW
                     seller_order_dict['updation_date'] = NOW
-                    '''
-                    SellerOrder.objects.create(seller_id=seller_obj.id, sor_id=sor_id, order_id=order_obj.id,
-                                               quantity=order_obj.quantity, order_status='PROCESSED', 
-                                               status = order_obj.status, creation_date=datetime.datetime.now(),
-                                               updation_date=datetime.datetime.now(), invoice_no='' )
-                    '''
-                    #seller_order_obj = SellerOrder.objects.create(**seller_order_dict)
-                    
-            
+        
+                    seller_order_obj = SellerOrder.objects.create(**seller_order_dict)
+    
             order_charge = OrderCharges.objects.filter(order_id = order_obj.original_order_id, charge_name = 'Shipping Tax', 
                 user_id = order_det_dict['user'])
             if not order_charge:

@@ -309,12 +309,20 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                 message = 'Duplicate Order, ignored at Stockone'
             elif order_details['status'] in [4]:
                 valid_order['status__in'] = [3,4]
-                error_code = "5003"
-                message = 'Order is already cancelled at Stockone'
+                if order_details['status'] != [3]:
+                    error_code = "5002"
+                    message = 'Order is already returned at Stockone'
+                else:
+                    error_code = "5003"
+                    message = 'Order is already cancelled at Stockone'
             elif order_details['status'] in [3]:
                 valid_order['status__in'] = [3, 4]
-                error_code = "5002"
-                message = 'Order is already returned at Stockone'
+                if order_details['status'] == [3]:
+                    error_code = "5002"
+                    message = 'Order is already returned at Stockone'
+                else:
+                    error_code = "5003"
+                    message = 'Order is already cancelled at Stockone'
             order_detail_present = OrderDetail.objects.filter(**valid_order)
             if order_detail_present:
                 failed_status.append({ "OrderId": ingram_order_id,

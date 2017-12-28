@@ -4311,12 +4311,11 @@ def update_ingram_order_dicts(orders, seller_obj, user='', company_name=''):
                     seller_order_dict['sor_id'] = sor_id
                     seller_order_dict['order'] = order_obj
                     seller_order_dict['quantity'] = order_obj.quantity
-                    seller_order_dict['invoice_no'] = ''#invoice_increment_id
+                    seller_order_dict['invoice_no'] = ''
                     seller_order_dict['order_status'] = 'PROCESSED'
                     seller_order_dict['status'] = order_obj.status
                     seller_order_dict['creation_date'] = NOW
                     seller_order_dict['updation_date'] = NOW
-        
                     seller_order_obj = SellerOrder.objects.create(**seller_order_dict)
     
             order_charge = OrderCharges.objects.filter(order_id = order_obj.original_order_id, charge_name = 'Shipping Tax', 
@@ -4327,7 +4326,17 @@ def update_ingram_order_dicts(orders, seller_obj, user='', company_name=''):
                 order_charge_dict['charge_amount'] = order['shipping_tax']
                 order_charge_dict['user_id'] = order_det_dict['user']
                 OrderCharges.objects.create(**order_charge_dict)
-        status = {'status': 'Success', 'messages': message}
+        
+        order_id_pick = order_obj.original_order_id.split('_')
+        status = {
+                  "Status": "Success",
+                  "OrderId": order_id_pick[1],
+                  "Result": {
+                    "Status": order['status_type'],
+                    "Message": message
+                  }
+                }
+
     return status
 
 def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):

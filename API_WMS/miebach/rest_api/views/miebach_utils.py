@@ -792,7 +792,7 @@ ORDER_DETAIL_INGRAM_API_MAPPING = { 'order_id': 'order_increment_id', 'order_sta
                          'seller_address' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_address", "")',
                          'seller_city' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_city", "")',
                          'seller_region' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_region", "")',
-                         'seller_country' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_contry", "")',
+                         'seller_country' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_country", "")',
                          'seller_postal' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_postal", "")',
                          'seller_tax_id' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_tax_id", "")',
                          'shipping_tax' : '((orders.get("invoice_details", {})).get("shipping_incl_tax", "0"))',

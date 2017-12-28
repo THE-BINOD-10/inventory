@@ -305,19 +305,22 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
             valid_order['original_order_id'] = original_order_id
             if order_details['status'] in [1]:
                 valid_order['status__in'] = [1, 2, 3, 4, 5]
-                message = 'Duplicate OrderId found at Stockone'
+                error_code = "5001"
+                message = 'Duplicate Order, ignored at Stockone'
+            elif order_details['status'] in [4]:
+                valid_order['status__in'] = [3,4]
+                error_code = "5003"
+                message = 'Order is already cancelled at Stockone'
             elif order_details['status'] in [3]:
                 valid_order['status__in'] = [3, 4]
-                message = 'OrderId has already been returned to Stockone'
-            elif order_details['status'] in [4]:
-                valid_order['status__in'] = [4]
-                message = 'OrderId has already been Cancelled at Stockone'
+                error_code = "5002"
+                message = 'Order is already returned at Stockone'
             order_detail_present = OrderDetail.objects.filter(**valid_order)
             if order_detail_present:
                 failed_status.append({ "OrderId": ingram_order_id,
                     "Result": {"Errors": [
                         {
-                        "ErrorCode": "5001", "ErrorMessage": message
+                        "ErrorCode": error_code, "ErrorMessage": message
                         }
                         ]
                     }
@@ -352,57 +355,58 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                             "SKUId":sku_code
                         })
 
-                    order_sor_id = ''
-                    grouping_key = str(original_order_id) + '<<>>' + str(sku_master[0].sku_code)
-                    order_det = OrderDetail.objects.filter(**filter_params)
-                    order_det1 = OrderDetail.objects.filter(**filter_params1)
-                    
-                    invoice_amount = float(eval(order_mapping['total_price']))
-                    unit_price = float(eval(order_mapping['unit_price']))
-                    '''
-                    if 'unit_price' in order_mapping:
-                        invoice_amount = float(eval(order_mapping['unit_price'])) * float(eval(order_mapping['quantity']))
-                        order_details['unit_price'] = float(eval(order_mapping['unit_price']))
-                    '''
-                    if not order_det:
-                        order_det = order_det1
+                    if sku_master:
+                        order_sor_id = ''
+                        grouping_key = str(original_order_id) + '<<>>' + str(sku_master[0].sku_code)
+                        order_det = OrderDetail.objects.filter(**filter_params)
+                        order_det1 = OrderDetail.objects.filter(**filter_params1)
+                        
+                        invoice_amount = float(eval(order_mapping['total_price']))
+                        unit_price = float(eval(order_mapping['unit_price']))
+                        '''
+                        if 'unit_price' in order_mapping:
+                            invoice_amount = float(eval(order_mapping['unit_price'])) * float(eval(order_mapping['quantity']))
+                            order_details['unit_price'] = float(eval(order_mapping['unit_price']))
+                        '''
+                        if not order_det:
+                            order_det = order_det1
 
-                    order_create = True
+                        order_create = True
 
-                    if order_create:
-                        order_details['original_order_id'] = original_order_id
-                        order_details['order_id'] = order_id
-                        order_details['order_code'] = order_code
+                        if order_create:
+                            order_details['original_order_id'] = original_order_id
+                            order_details['order_id'] = order_id
+                            order_details['order_code'] = order_code
 
-                        order_details['sku_id'] = sku_master[0].id
-                        order_details['title'] = eval(order_mapping['title'])
-                        order_details['user'] = user.id
-                        order_details['quantity'] = eval(order_mapping['quantity'])
-                        order_details['shipment_date'] = shipment_date
-                        order_details['marketplace'] = channel_name
-                        order_details['payment_mode'] = eval(order_mapping['payment_method'])
-                        order_details['invoice_amount'] = float(invoice_amount)
-                        order_details['unit_price'] = float(unit_price)
-                        order_details['creation_date'] = eval(order_mapping['created_at'])
-                        order_details['updation_date'] = eval(order_mapping['created_at'])
-    
-                        final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details, final_data_dict=final_data_dict)
-                    
+                            order_details['sku_id'] = sku_master[0].id
+                            order_details['title'] = eval(order_mapping['title'])
+                            order_details['user'] = user.id
+                            order_details['quantity'] = eval(order_mapping['quantity'])
+                            order_details['shipment_date'] = shipment_date
+                            order_details['marketplace'] = channel_name
+                            order_details['payment_mode'] = eval(order_mapping['payment_method'])
+                            order_details['invoice_amount'] = float(invoice_amount)
+                            order_details['unit_price'] = float(unit_price)
+                            order_details['creation_date'] = eval(order_mapping['created_at'])
+                            order_details['updation_date'] = eval(order_mapping['created_at'])
+        
+                            final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details, final_data_dict=final_data_dict)
+                        
 
-                    if not failed_status and not insert_status:
-                        #adding GST for each SKU item
-                        order_summary_dict['cgst_tax'] = float(eval(order_mapping['cgst_tax'])) if eval(order_mapping['cgst_tax']) else 0
-                        order_summary_dict['sgst_tax'] = float(eval(order_mapping['sgst_tax'])) if eval(order_mapping['sgst_tax']) else 0
-                        order_summary_dict['igst_tax'] = float(eval(order_mapping['igst_tax'])) if eval(order_mapping['igst_tax']) else 0
-                        order_summary_dict['order_taken_by'] = order_details['customer_name']
-                        order_summary_dict['consignee'] = order_details['address']
-                        order_summary_dict['status'] = ''
-                        order_summary_dict['invoice_date'] = order_details['creation_date']
-                        order_summary_dict['inter_state'] = 0
-                        if order_summary_dict['igst_tax']:
-                            order_summary_dict['inter_state'] = 1
-                        final_data_dict = check_and_add_dict(grouping_key, 'order_summary_dict', 
-                            order_summary_dict,final_data_dict=final_data_dict)
+                        if not failed_status and not insert_status:
+                            #adding GST for each SKU item
+                            order_summary_dict['cgst_tax'] = float(eval(order_mapping['cgst_tax'])) if eval(order_mapping['cgst_tax']) else 0
+                            order_summary_dict['sgst_tax'] = float(eval(order_mapping['sgst_tax'])) if eval(order_mapping['sgst_tax']) else 0
+                            order_summary_dict['igst_tax'] = float(eval(order_mapping['igst_tax'])) if eval(order_mapping['igst_tax']) else 0
+                            order_summary_dict['order_taken_by'] = order_details['customer_name']
+                            order_summary_dict['consignee'] = order_details['address']
+                            order_summary_dict['status'] = ''
+                            order_summary_dict['invoice_date'] = order_details['creation_date']
+                            order_summary_dict['inter_state'] = 0
+                            if order_summary_dict['igst_tax']:
+                                order_summary_dict['inter_state'] = 1
+                            final_data_dict = check_and_add_dict(grouping_key, 'order_summary_dict', 
+                                order_summary_dict,final_data_dict=final_data_dict)
 
                 if len(failed_sku_status):
                     failed_status = {
@@ -451,6 +455,7 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                             status = 1, creation_date = datetime.datetime.now(), updation_date = datetime.datetime.now())
 
                 final_data_dict[grouping_key]['shipping_tax'] = eval(order_mapping.get('shipping_tax', ''))
+                final_data_dict[grouping_key]['status_type'] = order_status
 
         return insert_status, failed_status, final_data_dict, seller_master
     except:

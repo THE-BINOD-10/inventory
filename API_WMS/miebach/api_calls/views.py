@@ -1099,7 +1099,11 @@ def update_so(request):
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
         if failed_status:
-            failed_status.update({'Status': 'Failure'})
+            if type(failed_status) == dict:
+                failed_status.update({'Status': 'Failure'})
+            if type(failed_status) == list:
+                failed_status = failed_status[0]
+                failed_status.update({'Status': 'Failure'})
             return HttpResponse(json.dumps(failed_status))
         status = update_ingram_order_dicts(final_data_dict, seller_id, user=request.user, company_name='ingram')
         log.info(status)

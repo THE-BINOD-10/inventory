@@ -244,7 +244,7 @@ class OrderDetail(models.Model):
     updation_date = models.DateTimeField(auto_now=True)
     unit_price = models.FloatField(default=0)
     nw_status = models.CharField(max_length=32, blank=True, null=True)
-    order_type = models.CharField(max_length=64, default='Normal')
+    order_type = models.CharField(max_length=64)
     order_reference = models.CharField(max_length=128,default='')
     order_reference_date = models.DateField(null=True, blank=True)
 

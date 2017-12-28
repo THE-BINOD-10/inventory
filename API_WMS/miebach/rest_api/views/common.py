@@ -4243,7 +4243,34 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
 
     return final_data_dict
 
-def update_order_dicts(orders, seller_obj, user='', company_name=''):
+def update_order_dicts(orders, user='', company_name=''):
+    status = {'status': 0, 'messages': ['Something went wrong']}
+    for order_key, order in orders.iteritems():
+        if not order.get('order_details', {}):
+            continue
+        order_det_dict = order['order_details']
+        if not order.get('order_detail_obj', None):
+            order_obj = OrderDetail.objects.filter(original_order_id=order_det_dict['original_order_id'], order_id=order_det_dict['order_id'],
+                                                   order_code=order_det_dict['order_code'], sku_id=order_det_dict['sku_id'],
+                                                   user=order_det_dict['user'])
+        else:
+            order_obj = [order.get('order_detail_obj', None)]
+        if order_obj:
+            order_obj = order_obj[0]
+            order_obj.quantity = float(order_obj.quantity) + float(order_det_dict.get('quantity', 0))
+            order_obj.invoice_amount = float(order_obj.invoice_amount) + float(order_det_dict.get('invoice_amount', 0))
+            order_obj.save()
+            order_detail = order_obj
+        else:
+            order_detail = OrderDetail.objects.create(**order['order_details'])
+        if order.get('order_summary_dict', {}) and not order_obj:
+            customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
+        if order.get('seller_order_dict', {}):
+            check_create_seller_order(order['seller_order_dict'], order_detail, user, order.get('swx_mappings', []))
+        status = {'status': 1, 'messages': ['Success']}
+    return status
+
+def update_ingram_order_dicts(orders, seller_obj, user='', company_name=''):
     status = {'status': 0, 'messages': ['Something went wrong']}
     success = ['Success']
     if seller_obj:

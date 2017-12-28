@@ -360,18 +360,19 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                     order_det = OrderDetail.objects.filter(**filter_params)
                     order_det1 = OrderDetail.objects.filter(**filter_params1)
                     
-                    invoice_amount = float(data.get('total_price', 0))
-
+                    invoice_amount = float(eval(order_mapping['total_price']))
+                    unit_price = float(eval(order_mapping['unit_price']))
+                    '''
                     if 'unit_price' in order_mapping:
                         invoice_amount = float(eval(order_mapping['unit_price'])) * float(eval(order_mapping['quantity']))
                         order_details['unit_price'] = float(eval(order_mapping['unit_price']))
-
+                    '''
                     if not order_det:
                         order_det = order_det1
 
                     order_create = True
 
-                    if order_create or is_cancelled:
+                    if order_create:
                         order_details['original_order_id'] = original_order_id
                         order_details['order_id'] = order_id
                         order_details['order_code'] = order_code
@@ -382,7 +383,9 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                         order_details['quantity'] = eval(order_mapping['quantity'])
                         order_details['shipment_date'] = shipment_date
                         order_details['marketplace'] = channel_name
+                        order_details['payment_mode'] = eval(order_mapping['payment_method'])
                         order_details['invoice_amount'] = float(invoice_amount)
+                        order_details['unit_price'] = float(unit_price)
                         order_details['creation_date'] = eval(order_mapping['created_at'])
                         order_details['updation_date'] = eval(order_mapping['created_at'])
     
@@ -394,11 +397,6 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                         order_summary_dict['cgst_tax'] = float(eval(order_mapping['cgst_tax'])) if eval(order_mapping['cgst_tax']) else 0
                         order_summary_dict['sgst_tax'] = float(eval(order_mapping['sgst_tax'])) if eval(order_mapping['sgst_tax']) else 0
                         order_summary_dict['igst_tax'] = float(eval(order_mapping['igst_tax'])) if eval(order_mapping['igst_tax']) else 0
-                        #order_summary_dict['cgst_tax'] = eval(order_mapping['cgst_tax'])
-                        #order_summary_dict['sgst_tax'] = eval(order_mapping['sgst_tax'])
-                        #order_summary_dict['igst_tax'] = eval(order_mapping['igst_tax'])
-                        #order_summary_dict['utgst_tax'] = eval(order_mapping['utgst_tax'])
-                        #order_summary_dict['order__original_order_id'] = original_order_id
                         order_summary_dict['order_taken_by'] = order_details['customer_name']
                         order_summary_dict['consignee'] = order_details['address']
                         order_summary_dict['status'] = ''
@@ -433,27 +431,26 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                         query_params['address'] = order_details['address']
                         CustomerMaster.objects.create(**query_params)
 
-                seller_name = eval(order_mapping.get('seller_name', ''))
-                seller_address = eval(order_mapping.get('seller_address', ''))
-                seller_city = eval(order_mapping.get('seller_city', ''))
-                seller_region = eval(order_mapping.get('seller_region', ''))
-                seller_country = eval(order_mapping.get('seller_country', ''))
-                seller_postal = eval(order_mapping.get('seller_postal', ''))
-                seller_tax_id = eval(order_mapping.get('seller_tax_id', ''))
+                if not failed_status and not insert_status and eval(order_mapping.get('seller_name', '')):
+                    seller_name = eval(order_mapping.get('seller_name', ''))
+                    seller_address = eval(order_mapping.get('seller_address', ''))
+                    seller_city = eval(order_mapping.get('seller_city', ''))
+                    seller_region = eval(order_mapping.get('seller_region', ''))
+                    seller_country = eval(order_mapping.get('seller_country', ''))
+                    seller_postal = eval(order_mapping.get('seller_postal', ''))
+                    seller_tax_id = eval(order_mapping.get('seller_tax_id', ''))
 
-                seller_master_obj = SellerMaster.objects.filter(user = user.id)
-                seller_master = seller_master_obj.filter(name=seller_name)
-                if not seller_master:
-                    seller_max_value = seller_master_obj.order_by('-seller_id')[0]
-                    seller_id = seller_max_value.id + 1
-                    seller_master = SellerMaster.objects.create(user = user.id, name = seller_name,
-                        seller_id = seller_id, email_id = '', phone_number = '', address = seller_address,
-                        vat_number = '', tin_number = '', price_type = '', margin = '', supplier = None,
-                        status = 1, creation_date = datetime.datetime.now(), updation_date = datetime.datetime.now())
+                    seller_master_obj = SellerMaster.objects.filter(user = user.id)
+                    seller_master = seller_master_obj.filter(name=seller_name)
+                    if not seller_master:
+                        seller_max_value = seller_master_obj.order_by('-seller_id')[0]
+                        seller_id = seller_max_value.id + 1
+                        seller_master = SellerMaster.objects.create(user = user.id, name = seller_name,
+                            seller_id = seller_id, email_id = '', phone_number = '', address = seller_address,
+                            vat_number = '', tin_number = '', price_type = '', margin = '', supplier = None,
+                            status = 1, creation_date = datetime.datetime.now(), updation_date = datetime.datetime.now())
 
                 final_data_dict[grouping_key]['shipping_tax'] = eval(order_mapping.get('shipping_tax', ''))
-
-                
 
         return insert_status, failed_status, final_data_dict, seller_master
     except:

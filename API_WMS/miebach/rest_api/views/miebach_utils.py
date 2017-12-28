@@ -771,9 +771,11 @@ ORDER_DETAIL_INGRAM_API_MAPPING = { 'order_id': 'order_increment_id', 'order_sta
                          'channel': 'orders.get("marketplace", "ingram")', 'order_items': 'orders["items"]', 
                          'sku': 'sku_item["sku"]', 'title': 'sku_item["name"]', 'quantity': 'sku_item["qty_ordered"]',
                          'created_at': '(orders.get("created_at", ""))',
+                         'payment_method' : '((orders.get("invoice_details", {})).get("payment_method", {}))',
                          'shipment_date': '(orders.get("invoice_details", {})).get("shipment_date", "")',
                          'channel_sku': 'sku_item["sku"]',
-                         'unit_price': 'sku_item["price"]', 
+                         'unit_price': 'sku_item["price"]',
+                         'total_price': 'sku_item["row_total"]',
                          'cgst_tax': '(sku_item.get("tax_percent", {})).get("CGST", "0")',
                          'sgst_tax':'(sku_item.get("tax_percent", {})).get("SGST", "0")',
                          'igst_tax': '(sku_item.get("tax_percent", {})).get("IGST", "0")',
@@ -789,7 +791,8 @@ ORDER_DETAIL_INGRAM_API_MAPPING = { 'order_id': 'order_increment_id', 'order_sta
                          'seller_country' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_contry", "")',
                          'seller_postal' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_postal", "")',
                          'seller_tax_id' : '((orders.get("invoice_details", {})).get("invoice_merchant", {})).get("company_tax_id", "")',
-                         'shipping_tax' : '((orders.get("invoice_details", {})).get("shipping_incl_tax", "0"))'
+                         'shipping_tax' : '((orders.get("invoice_details", {})).get("shipping_incl_tax", "0"))',
+                         
                         }
 
 SKU_MASTER_API_MAPPING = OrderedDict(( ('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_name'),

@@ -429,8 +429,10 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                         query_params['city'] = order_details['city']
                         query_params['phone_number'] = order_details['telephone']
                         query_params['address'] = order_details['address']
+                        query_params['last_name'] = eval(order_mapping['last_name'])
+                        query_params['pincode'] = eval(order_mapping['pin_code'])
+                        query_params['country'] = eval(order_mapping['country'])
                         CustomerMaster.objects.create(**query_params)
-
                 if not failed_status and not insert_status and eval(order_mapping.get('seller_name', '')):
                     seller_name = eval(order_mapping.get('seller_name', ''))
                     seller_address = eval(order_mapping.get('seller_address', ''))
@@ -443,8 +445,11 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                     seller_master_obj = SellerMaster.objects.filter(user = user.id)
                     seller_master = seller_master_obj.filter(name=seller_name)
                     if not seller_master:
-                        seller_max_value = seller_master_obj.order_by('-seller_id')[0]
-                        seller_id = seller_max_value.id + 1
+                        try:
+                            seller_max_value = seller_master_obj.order_by('-seller_id')[0]
+                            seller_id = seller_max_value.id + 1
+                        except:
+                            seller_id = 1
                         seller_master = SellerMaster.objects.create(user = user.id, name = seller_name,
                             seller_id = seller_id, email_id = '', phone_number = '', address = seller_address,
                             vat_number = '', tin_number = '', price_type = '', margin = '', supplier = None,

@@ -2267,7 +2267,7 @@ def get_grn_json_data(order, user, request):
                        'po_reference': po_reference, 'user_name': request.user.username, 'total_qty': total_qty,
                        'company_name': profile.company_name, 'location': profile.location, 'w_address': profile.address,
                        'vendor_name': vendor_name, 'vendor_address': vendor_address,'vendor_telephone': vendor_telephone,
-                       'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile)}
+                       'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile), 'supplier_email': supplier_email}
     return data_dictionary
 
 @csrf_exempt
@@ -2392,7 +2392,7 @@ def confirm_back_order(request, user=''):
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dictionary)
         if get_misc_value('raise_po', user.id) == 'true':
-            write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, str(order_date).split(' ')[0])
+             write_and_mail_pdf(data_dictionary['po_reference'], rendered, request, user, data_dictionary['supplier_email'], data_dictionary['telephone'], data_dictionary['data'], str(data_dictionary['order_date']).split(' ')[0])
 
 
         if not status:

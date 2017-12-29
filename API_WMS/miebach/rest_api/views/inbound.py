@@ -2162,11 +2162,11 @@ def check_returns(request, user=''):
             order_id = picklist.order.original_order_id
             if not order_id:
                 order_id = picklist.order.order_code + str(picklist.order.order_id)
-            cond = (order_id, wms_code, sku_desc)
+            cond = (order_id, wms_code, sku_desc, picklist.order.id)
             all_data.setdefault(cond, 0)
             all_data[cond] += picklist.picked_quantity
         for key, value in all_data.iteritems():
-            order_track_obj = OrderTracking.objects.filter(order_id = key[0], status='returned')
+            order_track_obj = OrderTracking.objects.filter(order_id = key[3], status='returned')
             if order_track_obj:
                 order_track_quantity = int(order_track_obj.aggregate(Sum('quantity'))['quantity__sum'])
                 if value == order_track_quantity:

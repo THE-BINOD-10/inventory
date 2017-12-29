@@ -43,15 +43,17 @@ function BackorderPOPOP($scope, $http, $state, $timeout, Session, colFilters, Se
   }
 
   vm.print_enable = false;
+  vm.confirm_disable = false;
   vm.confirm_po = function(form) {
       if(form.$invalid) {
         return false;
       }
       var elem = $("form:visible").serializeArray();
 
+      vm.confirm_disable = true
       Service.apiCall("confirm_back_order/", "POST", elem, true).then(function(data){
         if(data.message) {
-          vm.confirm_disable = true; vm.message = data.data;
+          vm.message = data.data;
 
           if(data.data.search("<div") != -1) {
                 vm.html = $(data.data)[0];
@@ -62,6 +64,7 @@ function BackorderPOPOP($scope, $http, $state, $timeout, Session, colFilters, Se
              vm.service.pop_msg(data.data);
            }
         };
+        vm.confirm_disable = false;
       });
   }
 

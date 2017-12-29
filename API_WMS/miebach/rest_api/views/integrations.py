@@ -302,7 +302,7 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                 error_code = "5001"
                 message = 'Duplicate Order, ignored at Stockone'
             elif order_details['status'] in [4]:
-                valid_order['status__in'] = [3,4]
+                valid_order['status__in'] = [3, 4]
                 if order_details['status'] != [3]:
                     error_code = "5002"
                     message = 'Order is already returned at Stockone'
@@ -377,7 +377,7 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                             order_details['sku_id'] = sku_master[0].id
                             order_details['title'] = eval(order_mapping['title'])
                             order_details['user'] = user.id
-                            order_details['quantity'] = eval(order_mapping['quantity'])
+                            order_details['quantity'] = float(eval(order_mapping['quantity']))
                             order_details['shipment_date'] = shipment_date
                             order_details['marketplace'] = channel_name
                             order_details['payment_mode'] = eval(order_mapping['payment_method'])

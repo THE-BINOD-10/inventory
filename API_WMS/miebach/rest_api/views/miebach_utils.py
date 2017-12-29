@@ -769,7 +769,7 @@ ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items
 ORDER_DETAIL_INGRAM_API_MAPPING = { 'order_id': 'order_increment_id', 'order_status': '(orders["order_status"]).upper()', 
                          'items': 'orders',
                          'channel': 'orders.get("marketplace", "ingram")', 'order_items': 'orders["items"]', 
-                         'sku': 'sku_item["sku"]', 'title': 'sku_item["name"]', 'quantity': 'sku_item["qty_ordered"]',
+                         'sku': 'sku_item["sku"]', 'title': 'sku_item["name"]', 'quantity': '(sku_item.get("qty_ordered", "0"))',
                          'created_at': '(orders.get("created_at", ""))',
                          'payment_method' : '((orders.get("invoice_details", {})).get("payment_method", {}))',
                          'shipment_date': '(orders.get("invoice_details", {})).get("shipment_date", "")',

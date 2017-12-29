@@ -26,6 +26,12 @@ function BackorderPOPOP($scope, $http, $state, $timeout, Session, colFilters, Se
     Service.apiCall(url_get, "POST", data, true).then(function(data){
       if(data.message) {
         angular.copy(data.data, vm.model_data)
+        angular.forEach(vm.model_data.data_dict, function(sku_data){
+          if(sku_data.selected_item == ""){
+            sku_data.selected_item = {id: "", name: "None"};
+          }
+        })
+        vm.model_data.supplier_list.push({id: "", name: "None"});
         vm.model_data.filter = vm.state_data.filter
       };
     });

@@ -174,13 +174,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
     $scope.awb_marketplace_filter_data = function() {
       vm.service.apiCall("get_awb_marketplaces/?status=2").then(function(data) {
+        vm.market_place = '';
+        vm.courier_name = '';
+        vm.model_data.market_list = [];
+        vm.model_data.courier_name = [];
         if(data.data.status) {
-          vm.model_data.market_list = [];
           vm.model_data.market_list = data.data.marketplaces;
           vm.empty_data.market_list = data.data.marketplaces;
-          vm.model_data.courier_name = [];
           vm.model_data.courier_name = data.data.courier_name;
           vm.empty_data.courier_name = data.data.courier_name;
+          vm.market_place = '';
+          vm.courier_name = '';
         }
       })
     }
@@ -207,6 +211,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
             if(data.data["status"]) {
                 vm.service.showNoty(data.data.message);
                 reloadAllData();
+                $scope.awb_marketplace_filter_data();
               } else {
                 vm.service.showNoty(data.data.message, 'error', 'topRight');
               }
@@ -223,10 +228,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
     vm.get_courier_for_marketplace = function() {
       vm.service.apiCall("get_courier_name_for_marketplaces/?status=2&marketplace="+vm.market_place).then(function(data) {
+        vm.model_data.courier_name = [];
         if(data.data.status) {
-          vm.model_data.courier_name = [];
           vm.model_data.courier_name = data.data.courier_name;
           vm.empty_data.courier_name = data.data.courier_name;
+          vm.courier_name = '';
         }
       })
     }

@@ -132,7 +132,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       	});
 
         if(order_ids.length == 0) {
-          service.showNoty("Please Select Orders First");
+          vm.service.showNoty("Please Select Orders First");
           vm.bt_disable = false;
           return false;
         }
@@ -140,21 +140,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         if(vm.g_data.view == 'ShipmentPickedAlternative'){
           if (vm.group_by == 'order' && order_ids.length > 1) {
             vm.bt_disable = false;
-            service.showNoty("Please Select Single Order");
+            vm.service.showNoty("Please Select Single Order");
             return;
           } else if(vm.group_by == 'marketplace' && mk_places.length > 1) {
             vm.bt_disable = false;
-            service.showNoty("Please Select Single Marketplace");
+            vm.service.showNoty("Please Select Single Marketplace");
             return;
           }
         }
 
         data.push({name:'view', value:vm.g_data.view});
-        service.apiCall(apiUrl, "GET", data).then(function(data){
+        vm.service.apiCall(apiUrl, "GET", data).then(function(data){
           if(data.message) {
             if(data.data["status"]) {
 
-              service.showNoty(data.data.status);
+              vm.service.showNoty(data.data.status);
             } else {
               vm.customer_details = (vm.model_data.customer_id) ? true: false;
               angular.copy(data.data, vm.model_data);
@@ -195,21 +195,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     };
 
     vm.create_shipment_awb_filter = function() {
-      service.apiCall("get_awb_marketplaces/?status=1").then(function(data) {
+      vm.service.apiCall("get_awb_marketplaces/?status=1").then(function(data) {
+        vm.special_key.market_place = '';
+        vm.special_key.courier_name = '';
+        vm.model_data.market_list = [];
+        vm.model_data.courier_name = [];
         if(data.data.status) {
-          vm.model_data.market_list = [];
           vm.model_data.market_list = data.data.marketplaces;
           vm.empty_data.market_list = data.data.marketplaces;
-          vm.model_data.courier_name = [];
           vm.model_data.courier_name = data.data.courier_name;
           vm.empty_data.courier_name = data.data.courier_name;
+          vm.special_key.market_place = '';
+          vm.special_key.courier_name = '';
         }
       })
     }
     vm.create_shipment_awb_filter();
 
     function get_data() {
-      service.apiCall("shipment_info/","GET").then(function(data){
+      vm.service.apiCall("shipment_info/","GET").then(function(data){
         if(data.message) {
           vm.model_data.shipment_number = data.data.shipment_number;
         }
@@ -277,9 +281,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       if(vm.service.check_quantity(vm.model_data.data, 'sub_data', 'shipping_quantity'))  {
         vm.bt_disable = true;
         var data = $("#add-customer:visible").serializeArray();
-        service.apiCall("insert_shipment_info/", "POST", data, true).then(function(data){
+        vm.service.apiCall("insert_shipment_info/", "POST", data, true).then(function(data){
           if(data.data.status) {
-            service.showNoty(data.data.message);
+            vm.service.showNoty(data.data.message);
             vm.close();
             vm.reloadData();
             vm.awb_no = '';
@@ -287,10 +291,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           };
         });
       } else {
-        service.showNoty("Please Enter Quantity");
+        vm.service.showNoty("Please Enter Quantity");
       }
     } else {
-      service.showNoty("Please Fill Required Fields");
+      vm.service.showNoty("Please Fill Required Fields");
     }
   }
 
@@ -299,7 +303,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       event.stopPropagation();
       if (event.keyCode == 13 && imei.length > 0) {
         if (vm.serial_numbers.indexOf(imei) != -1){
-            service.showNoty("IMEI Number Already Exist");
+            vm.service.showNoty("IMEI Number Already Exist");
             vm.imei_number = "";
         } else {
           var imei_order_id = ''
@@ -320,7 +324,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                 vm.update_imei_data(data.data, imei);
                 //vm.check_equal(data2);
               } else {
-                service.showNoty(data.data.status);
+                vm.service.showNoty(data.data.status);
               }
               vm.imei_number = "";
             }
@@ -410,7 +414,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         data.push({ name:'view', value:vm.g_data.view })
         data.push({ name:'marketplace', value: vm.special_key.market_place })
         data.push({ name:'courier_name', value: vm.special_key.courier_name })
-        service.apiCall( apiUrl, "GET", data).then(function(data) {
+        vm.service.apiCall( apiUrl, "GET", data).then(function(data) {
         if(data.message) {
           if(data.data["status"]) {
             vm.service.showNoty(data.data.message);
@@ -434,10 +438,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
     vm.get_courier_for_marketplace = function() {
       service.apiCall("get_courier_name_for_marketplaces/?status=1&marketplace="+vm.special_key.market_place).then(function(data) {
+        vm.model_data.courier_name = [];
         if(data.data.status) {
-          vm.model_data.courier_name = [];
           vm.model_data.courier_name = data.data.courier_name;
           vm.empty_data.courier_name = data.data.courier_name;
+          vm.special_key.courier_name = '';
         }
       })
     }

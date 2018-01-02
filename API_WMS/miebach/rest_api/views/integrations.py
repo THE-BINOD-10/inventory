@@ -299,26 +299,18 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
             valid_order['original_order_id'] = original_order_id
             if order_details['status'] in [1]:
                 valid_order['status__in'] = [1, 2, 3, 4, 5]
-                error_code = "5001"
-                message = 'Duplicate Order, ignored at Stockone'
-            elif order_details['status'] in [4]:
+            elif order_details['status'] in [3, 4]:
                 valid_order['status__in'] = [3, 4]
-                if order_details['status'] != [3]:
-                    error_code = "5002"
-                    message = 'Order is already returned at Stockone'
-                else:
-                    error_code = "5003"
-                    message = 'Order is already cancelled at Stockone'
-            elif order_details['status'] in [3]:
-                valid_order['status__in'] = [3, 4]
-                if order_details['status'] == [3]:
-                    error_code = "5002"
-                    message = 'Order is already returned at Stockone'
-                else:
-                    error_code = "5003"
-                    message = 'Order is already cancelled at Stockone'
             order_detail_present = OrderDetail.objects.filter(**valid_order)
             if order_detail_present:
+                if int(order_detail_present[0].status) == 1:
+                    message = 'Duplicate Order, ignored at Stockone'
+                elif int(order_detail_present[0].status) == 3:
+                    error_code = "5002"
+                    message = 'Order is already returned at Stockone'
+                elif int(order_detail_present[0].status) == 4:
+                    error_code = "5003"
+                    message = 'Order is already cancelled at Stockone'
                 failed_status.append({ "OrderId": ingram_order_id,
                     "Result": {"Errors": [
                         {
@@ -326,9 +318,8 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                         }
                         ]
                     }
-                })
+                })   
                 break;
-            
             for order in order_items:
                 try:
                     shipment_date = NOW # by default shipment date assigned as NOW

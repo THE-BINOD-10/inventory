@@ -1761,35 +1761,84 @@ def get_picked_data(data_id, user, marketplace=''):
 
 @csrf_exempt
 @get_admin_user
+def get_awb_marketplaces(request, user=''):
+    api_status = False
+    marketplace = ''
+    courier_name = ''
+    status = int(request.GET.get('status', 0))
+    awb_marketplace = OrderAwbMap.objects.exclude(marketplace='').filter(status=status, user_id=user.id)
+    if awb_marketplace:
+        marketplace = list(awb_marketplace.values_list('marketplace', flat=True).distinct())
+        courier_name = list(awb_marketplace.values_list('courier_name', flat=True).distinct())
+        api_status = True
+    return HttpResponse(json.dumps({ 'status' : api_status ,'marketplaces': marketplace, 
+                        'courier_name': courier_name }))
+
+
+@csrf_exempt
+@get_admin_user
+def get_courier_name_for_marketplaces(request, user=''):
+    api_status = False
+    marketplace = request.GET.get('marketplace', '')
+    status = int(request.GET.get('status', 0))
+    if not marketplace:
+        awb_marketplace = OrderAwbMap.objects.exclude(marketplace='').filter(status=status, user_id=user.id)
+    else:
+        awb_marketplace = OrderAwbMap.objects.filter(marketplace=marketplace, status=status, user_id=user.id)
+    if awb_marketplace:
+        courier_name = list(awb_marketplace.values_list('courier_name', flat=True).distinct())
+        api_status = True
+    return HttpResponse(json.dumps({ 'status' : api_status, 'courier_name': courier_name }))
+
+
+@csrf_exempt
+@get_admin_user
 def get_awb_view_shipment_info(request, user=''):
-    data = {}
     sku_grouping = request.GET.get('sku_grouping', 'false')
     datatable_view = request.GET.get('view', '')
     search_params = {'user': user.id}
     awb_no = request.GET.get('awb_no','')
-    if awb_no:
-        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, user = user).values('original_order_id')
+    marketplace = request.GET.get('marketplace',[])
+    courier_name = request.GET.get('courier_name',[])
+    message = ''
+    if awb_no:        
+        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, status = 2,user = user).values('original_order_id')
+        if courier_name:
+            order_awb_map = order_awb_map.filter(courier_name = courier_name)
+        if marketplace:
+            order_awb_map = order_awb_map.filter(marketplace = marketplace)
+            if not order_awb_map:
+                message = 'Invalid AWB No. for this Marketplace'
         if order_awb_map.count():
-            data['order_id'] = order_awb_map[0]['original_order_id']
+            order_id_val = order_awb_map[0]['original_order_id']
         else:
-            return HttpResponse(json.dumps({'status': False, 'message' : 'Incorrect AWB No.'}))
-        order_id_val = data['order_id']
-        order_id_search = ''.join(re.findall('\d+', data['order_id']))
-        order_code_search = ''.join(re.findall('\D+', data['order_id']))
-        all_orders = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) | Q(original_order_id=order_id_val), user=user.id)
-
+            if not message:
+                message = 'Incorrect AWB No.'
+            return HttpResponse(json.dumps({'status': False, 'message' : message}))
+        order_id_search = ''.join(re.findall('\d+', order_id_val))
+        order_code_search = ''.join(re.findall('\D+', order_id_val))
+        all_orders = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) | Q(original_order_id=order_id_val), user=user.id, status = 1)
+        if not all_orders:
+            return HttpResponse(json.dumps({'status': status , 'message' : message }))
         tracking = ShipmentTracking.objects.filter(shipment__order__in=all_orders, 
             ship_status__in=['Dispatched', 'In Transit'], shipment__order__user=user.id).values_list('shipment_id')
         if tracking.count():
             ship_info_id = ShipmentInfo.objects.filter(order__in=all_orders, order__user = user.id, 
                 id__in = tracking)
             for ship_info in ship_info_id:
-                ShipmentTracking.objects.create(shipment_id=ship_info.id, ship_status='Out for Delivery',
+                try:
+                    ShipmentTracking.objects.create(shipment_id=ship_info.id, ship_status='Out for Delivery',
                                             creation_date=datetime.datetime.now())
+                except:
+                    import traceback
+                    log.debug(traceback.format_exc())
+                    log.info('Duplicate Entry %s for Shipment Tracking' % (str(user.username)))
+                    return HttpResponse(json.dumps({'status': False, 'message' : 'Error Occured'}))        
                 orig_ship_ref = ship_info.order_packaging.order_shipment.shipment_reference
                 order_shipment = ship_info.order_packaging.order_shipment
                 order_shipment.shipment_reference = orig_ship_ref
                 order_shipment.save()
+                order_awb_map.update(status = 3)
         else:
             return HttpResponse(json.dumps({'status': False, 'message' : 'AWB No. Not Found'}))
     return HttpResponse(json.dumps({'status': True, 'message' : 'Shipped - Out for Delivery Successfully' }))
@@ -1802,24 +1851,36 @@ def get_awb_shipment_details(request, user=''):
     datatable_view = request.GET.get('view', '')
     search_params = {'user': user.id}
     awb_no = request.GET.get('awb_no','');
+    marketplace = request.GET.get('marketplace','')
+    courier_name = request.GET.get('courier_name','')
+    message = ''
     if awb_no:
-        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, status = 1, user = user).values('original_order_id');
+        order_awb_map = OrderAwbMap.objects.filter(awb_no = awb_no, status = 1, user = user).values('original_order_id')
+        if courier_name:
+            order_awb_map = order_awb_map.filter(courier_name = courier_name)
+        if marketplace:
+            order_awb_map = order_awb_map.filter(marketplace = marketplace)
+            if not order_awb_map:
+                message = 'Invalid AWB No. for this Marketplace'
         if order_awb_map.count():
             data['order_id'] = order_awb_map[0]['original_order_id']
         else:
+            if not message:
+                message = 'Incorrect AWB No.'
             return HttpResponse(json.dumps({'status': False , 'message' : 'Incorrect AWB No.'}))
         result_data = 'No Orders found'
         status = False
         order_id_val = data['order_id']
         order_id_search = ''.join(re.findall('\d+', data['order_id']))
         order_code_search = ''.join(re.findall('\D+', data['order_id']))
-        all_orders = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) | Q(original_order_id=order_id_val), user=user.id)
+        all_orders = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) | Q(original_order_id=order_id_val), user=user.id, status = 0)
+        if not all_orders:
+            return HttpResponse(json.dumps({'status': status , 'message' : message }))
         ship_no = get_shipment_number(user)
         ship_orders_data = get_shipment_quantity_for_awb(user, all_orders)
         if ship_orders_data:
             result = { 'data': ship_orders_data, 'shipment_id': '', 'display_fields': '', 'marketplace': '', 'shipment_number': ship_no }
             result_data = awb_direct_insert_shipment_info(result, order_awb_map, user)
-            order_awb_map.update(status = 2)
             status = result_data['status']
             message = result_data['message']
     return HttpResponse(json.dumps({'status': status , 'message' : message }))
@@ -1865,7 +1926,7 @@ def awb_direct_insert_shipment_info(data_params, order_awb_obj, user=''):
                 invoice_number = ''
                 data_dict = copy.deepcopy(ORDER_PACKAGING_FIELDS)
                 shipment_data = copy.deepcopy(SHIPMENT_INFO_FIELDS)
-                order_detail = OrderDetail.objects.get(id=order_id, user = user.id)
+                order_detail = OrderDetail.objects.get(id=order_id, user = user.id, status = 0)
 
                 for key, value in ship_data[i].iteritems():
                     if key in data_dict:
@@ -1946,9 +2007,6 @@ def awb_direct_insert_shipment_info(data_params, order_awb_obj, user=''):
             check_and_update_order_status(shipped_orders_dict, user)
             message = 'Shipment Created Successfully'
             status = True
-        else:
-            status = False
-            message = 'Shipment Creation Failed'
         # Until Here
     except Exception as e:
         import traceback

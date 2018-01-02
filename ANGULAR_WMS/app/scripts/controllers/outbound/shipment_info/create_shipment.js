@@ -196,13 +196,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
     vm.create_shipment_awb_filter = function() {
       service.apiCall("get_awb_marketplaces/?status=1").then(function(data) {
+        vm.special_key.market_place = '';
+        vm.special_key.courier_name = '';
+        vm.model_data.market_list = [];
+        vm.model_data.courier_name = [];
         if(data.data.status) {
-          vm.model_data.market_list = [];
           vm.model_data.market_list = data.data.marketplaces;
           vm.empty_data.market_list = data.data.marketplaces;
-          vm.model_data.courier_name = [];
           vm.model_data.courier_name = data.data.courier_name;
           vm.empty_data.courier_name = data.data.courier_name;
+          vm.special_key.market_place = '';
+          vm.special_key.courier_name = '';
         }
       })
     }
@@ -434,10 +438,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
     vm.get_courier_for_marketplace = function() {
       service.apiCall("get_courier_name_for_marketplaces/?status=1&marketplace="+vm.special_key.market_place).then(function(data) {
+        vm.model_data.courier_name = [];
         if(data.data.status) {
-          vm.model_data.courier_name = [];
           vm.model_data.courier_name = data.data.courier_name;
           vm.empty_data.courier_name = data.data.courier_name;
+          vm.special_key.courier_name = '';
         }
       })
     }

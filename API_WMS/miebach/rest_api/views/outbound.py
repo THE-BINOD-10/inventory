@@ -1817,9 +1817,9 @@ def get_awb_view_shipment_info(request, user=''):
             return HttpResponse(json.dumps({'status': False, 'message' : message}))
         order_id_search = ''.join(re.findall('\d+', order_id_val))
         order_code_search = ''.join(re.findall('\D+', order_id_val))
-        all_orders = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) | Q(original_order_id=order_id_val), user=user.id, status = 1)
+        all_orders = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) | Q(original_order_id=order_id_val), user=user.id, status = 2)
         if not all_orders:
-            return HttpResponse(json.dumps({'status': status , 'message' : message }))
+            return HttpResponse(json.dumps({'status': False , 'message' : message }))
         tracking = ShipmentTracking.objects.filter(shipment__order__in=all_orders, 
             ship_status__in=['Dispatched', 'In Transit'], shipment__order__user=user.id).values_list('shipment_id')
         if tracking.count():

@@ -26,7 +26,7 @@
            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.return_process == 'scan_awb'">
              <div class="form-group">
               <label class="control-label"> Scan AWB No. </label>
-              <textarea id="scan_awb" rows="1" name="scan_awb" class="form-control" ng-model="showCase.model_data.scan_awb_no" ng-keydown="showCase.scan_awb($event, showCase.model_data.scan_awb_no)"></textarea>
+              <textarea id="scan_awb" rows="1" class="form-control" ng-model="showCase.model_data.scan_awb_no" ng-keydown="showCase.scan_awb($event, showCase.model_data.scan_awb_no)"></textarea>
              </div>
            </div>
            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="user.user_profile['user_type'] != 'marketplace_user' && showCase.return_process == 'sku_code'">

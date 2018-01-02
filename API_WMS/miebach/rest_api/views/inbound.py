@@ -992,7 +992,7 @@ def confirm_po(request, user=''):
     company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.POST.get('receipt_type', '')
-    if receipt_type == 'Hosted Warehouse':
+    if request.POST.get('seller_id', ''):
         title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and str(request.POST.get('seller_id').split(":")[1]).lower() == 'shproc':
         company_name = 'SHPROC Procurement Pvt. Ltd.'
@@ -1008,7 +1008,7 @@ def confirm_po(request, user=''):
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'company_name': company_name,
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type, 'title': title,
-                 'gstin_no': gstin_no}
+                 'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile)}
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
@@ -2162,11 +2162,11 @@ def check_returns(request, user=''):
             order_id = picklist.order.original_order_id
             if not order_id:
                 order_id = picklist.order.order_code + str(picklist.order.order_id)
-            cond = (order_id, wms_code, sku_desc)
+            cond = (order_id, wms_code, sku_desc, picklist.order.id)
             all_data.setdefault(cond, 0)
             all_data[cond] += picklist.picked_quantity
         for key, value in all_data.iteritems():
-            order_track_obj = OrderTracking.objects.filter(order_id = key[0], status='returned')
+            order_track_obj = OrderTracking.objects.filter(order_id = key[3], status='returned')
             if order_track_obj:
                 order_track_quantity = int(order_track_obj.aggregate(Sum('quantity'))['quantity__sum'])
                 if value == order_track_quantity:
@@ -3696,14 +3696,16 @@ def confirm_add_po(request, sales_data = '', user=''):
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     #if receipt_type == 'Hosted Warehouse':
-    title = 'Stock Transfer Note'
+    if request.POST.get('seller_id', ''):
+        title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
         company_name = 'SHPROC Procurement Pvt. Ltd.'
         title = 'Purchase Order'
 
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id, 'telephone': str(telephone),
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference, 'user_name': request.user.username,
-                 'total_qty': total_qty, 'company_name': company_name, 'location': profile.location, 'w_address': profile.address,
+                 'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
+                 'w_address': get_purchase_company_address(profile),
                  'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title, 'gstin_no': gstin_no}
 
@@ -3858,7 +3860,8 @@ def confirm_po1(request, user=''):
                          'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
                          'company_name': profile.company_name, 'location': profile.location, 'po_reference': po_reference,
                          'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
-                         'vendor_telephone': vendor_telephone, 'gstin_no': gstin_no}
+                         'vendor_telephone': vendor_telephone, 'gstin_no': gstin_no,
+                         'w_address': get_purchase_company_address(profile)}
 
             t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)
@@ -4392,7 +4395,7 @@ def generate_seller_invoice(request, user=''):
     all_data = OrderedDict()
     seller_po_ids = []
     sell_ids = {}
-    gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
+    gstin_no = user_profile.gst_number
     taxes_dict = {}
     total_taxable_amt = 0
     for data_id in seller_summary_dat:

@@ -1375,13 +1375,19 @@ def validate_inventory_form(open_sheet, user_id):
 
             if col_idx == 1:
                 try:
-                    receipt_date = xldate_as_tuple(cell_data, 0)
+
+                    if isinstance(cell_data, float):
+                        receipt_date = xldate_as_tuple(cell_data, 0)
+                    elif '-' in cell_data:
+                        receipt_date = datetime.datetime.strptime(cell_data, "%Y-%m-%d")
+                    else:
+                        index_status.setdefault(row_idx, set()).add('Invalid Receipt Date format')
                 except:
                     index_status.setdefault(row_idx, set()).add('Invalid Receipt Date format')
 
             if col_idx == 2:
                 if isinstance(cell_data, (int, float)):
-                    cell_data = int(cell_data)
+                    cell_data = str(int(cell_data))
                 try:
                     cell_data = str(re.sub(r'[^\x00-\x7F]+','', cell_data))
                 except:
@@ -1443,8 +1449,11 @@ def inventory_excel_upload(request, open_sheet, user):
             cell_data = open_sheet.cell(row_idx, col_idx).value
 
             if col_idx == 1:
-                year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
-                receipt_date = datetime.datetime(year, month, day, hour, minute, second)
+                if isinstance(cell_data, float):
+                    year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                    receipt_date = datetime.datetime(year, month, day, hour, minute, second)
+                else:
+                    receipt_date = datetime.datetime.strptime(cell_data, "%Y-%m-%d")
 
             if col_idx == 2 and cell_data:
                 if isinstance(cell_data, (int, float)):
@@ -2214,10 +2223,12 @@ def purchase_upload_mail(request, data_to_send, user):
         profile = UserProfile.objects.get(user=request.user.id)
         t = loader.get_template('templates/toggle/po_download.html')
         data_dictionary = { 'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
-                            'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference,
-                            'user_name': request.user.username, 'total_qty': total_qty, 'company_name': profile.company_name,
-                            'location': profile.location, 'w_address': profile.address, 'vendor_name': vendor_name,
-                            'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone, 'customization': customization }
+                            'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
+                            'po_reference': po_reference, 'user_name': request.user.username, 'total_qty': total_qty,
+                            'company_name': profile.company_name, 'location': profile.location,
+                            'w_address': get_purchase_company_address(profile), 'vendor_name': vendor_name,
+                            'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone,
+                            'customization': customization }
         rendered = t.render(data_dictionary)
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, str(order_date).split(' ')[0])
 

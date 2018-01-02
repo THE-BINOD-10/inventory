@@ -8,11 +8,9 @@
 			"type": "image\/png"
 		}
 	],
-  "start_url": "/#/home?user_id=3&user_name=demo",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#bd0000",
+  "background_color": "#cd554c",
+  "theme_color": "#cd554c",
   "orientation":"potrait",
   "gcm_sender_id": "895549824441"
-  
 }

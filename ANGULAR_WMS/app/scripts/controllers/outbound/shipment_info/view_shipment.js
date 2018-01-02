@@ -157,7 +157,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     angular.copy(vm.empty_data, vm.model_data);
 
     vm.submit = function(data) {
-      var send = $("form").eq(3);
+      var send = $("form:visible");
       send = $(send).serializeArray();
       vm.service.apiCall("update_shipment_status/", "GET", send).then(function(data) {
         if(data.message) {

@@ -246,6 +246,7 @@ class OrderDetail(models.Model):
     nw_status = models.CharField(max_length=32, blank=True, null=True)
     order_type = models.CharField(max_length=64, default='Normal')
     order_reference = models.CharField(max_length=128,default='')
+    order_reference_date = models.DateField(null=True, blank=True)
 
     class Meta:
         db_table = 'ORDER_DETAIL'
@@ -1085,7 +1086,6 @@ class STOrder(models.Model):
 
     def __unicode__(self):
         return str(self.picklist_id) + ":" + str(self.stock_transfer)
-
 
 class CustomerOrderSummary(models.Model):
     order = models.ForeignKey(OrderDetail)

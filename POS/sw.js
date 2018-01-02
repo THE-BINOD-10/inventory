@@ -8,7 +8,7 @@ importScripts('/app/data/offlineData.js');
 	"use strict";
 	//service worker version number
 
-	var VERSION="0.0.0.91-build-0.9.0.50"
+	var VERSION="0.0.0.91-build-0.9.0.67"
 
 	//service worker version name
 	var CACHE_NAME="POS"+VERSION;
@@ -118,15 +118,15 @@ importScripts('/app/data/offlineData.js');
     //service worker install event listner
     self.addEventListener("install", function (event) {
 
-             event.waitUntil(caches.open(CACHE_NAME).then(function(cache) {
 
-                           return cache.addAll(FILECACHEDLIST).then(function(){
-                                          self.skipWaiting();
-                                    });
-                          }));
+	     event.waitUntil(caches.open(CACHE_NAME).then(function(cache) {
+
+	                   return cache.addAll(FILECACHEDLIST).then(function(){
+	                                  self.skipWaiting();
+	                            });
+	                  }));
             
 	});
-
 
     self.addEventListener('push', function(event) {
 		  console.log('[Service Worker] Push Received.');
@@ -180,14 +180,15 @@ importScripts('/app/data/offlineData.js');
 	    if (self.clients && clients.claim) {
 	        clients.claim();
 	    }
-
 	    event.waitUntil(caches.keys().then(function (cachesList) {
-
-	        return Promise.all(cachesList.map(function (name) {
+	       	return Promise.all(cachesList.map(function (name) {
 				          if (name !== CACHE_NAME) {
 				            return caches.delete(name);
+				          }else{
+				          	createDB();
 				          }
 	        }));
+	        
 	    }));
     });
 
@@ -310,7 +311,7 @@ importScripts('/app/data/offlineData.js');
 
       	get_POS_sync_CustomersData().
          		then(function(data){
-                   
+                   console.log("sw get sync customers "+data.length);
                    if(data.length>0){
 
                    	var content='customers=' + encodeURIComponent(JSON.stringify(data));
@@ -323,6 +324,7 @@ importScripts('/app/data/offlineData.js');
                    				});
 
                    }else{
+                   		console.log("sw get sync customers less than zero "+data.length);
                    		return resolve(true);
                    }
 
@@ -538,6 +540,7 @@ importScripts('/app/data/offlineData.js');
 		  		 				}
 							}).catch(function(error){
 								console.log(request_url+" sku data is "+error.message);
+								event.ports[0].postMessage(error.message);
 							});
 
   	}
@@ -594,7 +597,7 @@ importScripts('/app/data/offlineData.js');
 				if(response.status==200){
 				   response.text().then(function(data){
 					   // var val_data=JSON.parse(data);
-					    console.log(request_url+"get the  response from network ");
+					    console.log(request_url+" got the  response from network ");
 					  	return resolve(data);
 					  
 				   }).catch(function(error){

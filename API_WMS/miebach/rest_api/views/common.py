@@ -1878,16 +1878,16 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
     # Initializing Default Values
     data, imei_data, customer_details  = [], [], []
     order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address = '', '', '', '', '', '', '', ''
-    tax_type, seller_company , order_reference = '', '', ''
+    tax_type, seller_company , order_reference, order_reference_date = '', '', '', ''
     total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0}
     hsn_summary = {}
     is_gst_invoice = False
     invoice_date = datetime.datetime.now()
-    gstin_no = GSTIN_USER_MAPPING.get(user.username, '')
 
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
+    gstin_no = user_profile.gst_number
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     invoice_remarks = get_misc_value('invoice_remarks', user.id)
@@ -1948,6 +1948,11 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
             order_id = dat.original_order_id
             order_no = str(dat.order_id)
             order_reference = dat.order_reference
+            order_reference_date = ''
+            order_reference_date_field = ''
+            if dat.order_reference_date:
+                order_reference_date_field = dat.order_reference_date.strftime("%m/%d/%Y")
+                order_reference_date = dat.order_reference_date.strftime("%d %b %Y")
             if not order_id:
                 order_id = dat.order_code + str(dat.order_id)
             title = dat.title
@@ -2127,7 +2132,8 @@ def get_invoice_data(order_ids, user, merge_data = "", is_seller_order=False, se
                     'total_tax_words': number_in_words(_total_tax), 'declaration': declaration, 'hsn_summary': hsn_summary,
                     'hsn_summary_display': get_misc_value('hsn_summary', user.id), 'seller_address': seller_address,
                     'customer_address': customer_address, 'invoice_remarks': invoice_remarks, 'show_disc_invoice': show_disc_invoice,
-                    'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference}
+                    'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
+                    'order_reference_date_field': order_reference_date_field, 'order_reference_date': order_reference_date}
 
     return invoice_data
 
@@ -2440,7 +2446,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         file_dump.save()'''
 
 @csrf_exempt
-#@login_required
+@login_required
 #@get_admin_user
 def get_file_checksum(request,user=''):
     name = request.GET.get('name', '')
@@ -2452,7 +2458,7 @@ def get_file_checksum(request,user=''):
     return HttpResponse(json.dumps({'file_data': file_data}))
 
 @csrf_exempt
-#@login_required
+@login_required
 #@get_admin_user
 def get_file_content(request,user=''):
     name = request.GET.get('name', '')
@@ -3490,47 +3496,47 @@ def generate_barcode_dict(pdf_format, myDict, user):
             single['SKUPrintQty'] = quant
             single['Brand'] = sku_data.sku_brand.replace("'",'')
             single['SKUDes'] = sku_data.sku_desc.replace("'",'')
-	    single['UOM'] = sku_data.measurement_type.replace("'",'')
-	    single['Style'] = str(sku_data.style_name).replace("'",'')
-	    single['Color'] = sku_data.color.replace("'",'')
-	    single['Product'] = sku_data.sku_desc
-	    if len(sku_data.sku_desc) >= 25:
-		single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
-            single['Company'] = user_prf.company_name.replace("'",'')
-            single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
-            present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
-	    single["Packed on"] = str(present).replace("'",'')
-	    single['Marketed By'] = user_prf.company_name.replace("'",'')
-	    single['MFD'] = str(present).replace("'",'')
-	    phone_number = user_prf.phone_number
-	    if not phone_number:
-		phone_number = ''
-	    single['Contact No'] = phone_number
-	    single['Email'] = user.email
-	    single["Gender"] = str(sku_data.style_name).replace("'",'')
-	    single['MRP'] = str(sku_data.price).replace("'",'')
-	    order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
+        single['UOM'] = sku_data.measurement_type.replace("'",'')
+        single['Style'] = str(sku_data.style_name).replace("'",'')
+        single['Color'] = sku_data.color.replace("'",'')
+        single['Product'] = sku_data.sku_desc
+        if len(sku_data.sku_desc) >= 25:
+            single['Product'] = sku_data.sku_desc[0:24].replace("'",'') + '...'
+        single['Company'] = user_prf.company_name.replace("'",'')
+        single["DesignNo"] = str(sku_data.sku_class).replace("'",'')
+        present = get_local_date(user, datetime.datetime.now(), send_date = True).strftime("%b %Y")
+        single["Packed on"] = str(present).replace("'",'')
+        single['Marketed By'] = user_prf.company_name.replace("'",'')
+        single['MFD'] = str(present).replace("'",'')
+        phone_number = user_prf.phone_number
+        if not phone_number:
+            phone_number = ''
+        single['Contact No'] = phone_number
+        single['Email'] = user.email
+        single["Gender"] = str(sku_data.style_name).replace("'",'')
+        single['MRP'] = str(sku_data.price).replace("'",'')
+        order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
 
-	    if order_label:
-		order_label = order_label[0]
-		single["Vendor SKU"] = order_label.vendor_sku
-		single["SKUCode"] = order_label.item_sku
-		single['MRP'] = order_label.mrp
-		single['Phone'] = user_prf.phone_number
-		single['Email'] = user.email
-		single["PO No"] = order_label.order.original_order_id
-		single['Color'] = order_label.color.replace("'",'')
-		single['Size'] = str(order_label.size).replace("'",'')
-		if not single["PO No"]:
-		    single["PO No"] = str(order_label[0].order.order_code) + str(order_label[0].order.order_id)
-                address = user_prf.address
-	    if BARCODE_ADDRESS_DICT.get(user.username, ''):
-		address = BARCODE_ADDRESS_DICT.get(user.username)
-                single['Manufactured By'] = address.replace("'",'')
-            if "bulk" in pdf_format.lower():
-                single['Qty'] = single['SKUPrintQty']
-                single['SKUPrintQty'] = "1"
-            barcodes_list.append(single)
+        if order_label:
+            order_label = order_label[0]
+            single["Vendor SKU"] = order_label.vendor_sku
+            single["SKUCode"] = order_label.item_sku
+            single['MRP'] = order_label.mrp
+            single['Phone'] = user_prf.phone_number
+            single['Email'] = user.email
+            single["PO No"] = order_label.order.original_order_id
+            single['Color'] = order_label.color.replace("'",'')
+            single['Size'] = str(order_label.size).replace("'",'')
+            if not single["PO No"]:
+                single["PO No"] = str(order_label[0].order.order_code) + str(order_label[0].order.order_id)
+        address = user_prf.address
+        if BARCODE_ADDRESS_DICT.get(user.username, ''):
+            address = BARCODE_ADDRESS_DICT.get(user.username)
+            single['Manufactured By'] = address.replace("'",'')
+        if "bulk" in pdf_format.lower():
+            single['Qty'] = single['SKUPrintQty']
+            single['SKUPrintQty'] = "1"
+        barcodes_list.append(single)
     log.info(barcodes_list)
     return get_barcodes(make_data_dict(barcodes_list, user_prf, pdf_format))
 
@@ -4262,6 +4268,75 @@ def update_order_dicts(orders, user='', company_name=''):
         if order.get('seller_order_dict', {}):
             check_create_seller_order(order['seller_order_dict'], order_detail, user, order.get('swx_mappings', []))
         status = {'status': 1, 'messages': ['Success']}
+    return status
+
+def update_ingram_order_dicts(orders, seller_obj, user=''):
+    status = {'status': 0, 'messages': ['Something went wrong']}
+    success = ['Success']
+    if seller_obj:
+        seller_obj = seller_obj[0]
+    for order_key, order in orders.iteritems():
+        seller_order_dict = {}
+        order_charge_dict = {}
+        if not order.get('order_details', {}):
+            continue
+        order_det_dict = order['order_details']
+        if not order.get('order_detail_obj', None):
+            order_obj = OrderDetail.objects.filter(original_order_id=order_det_dict['original_order_id'],
+                order_id=order_det_dict['order_id'], order_code=order_det_dict['order_code'], 
+                sku_id=order_det_dict['sku_id'], user=order_det_dict['user'])
+        else:
+            order_obj = [order.get('order_detail_obj', None)]
+        if order_obj:
+            order_obj = order_obj[0]            
+            order_obj.status = order_det_dict.get('status', 0)
+            order_obj.save()
+            order_detail = order_obj
+            message = 'Orders Updated Successfully'
+        else:
+            order_obj = OrderDetail.objects.create(**order['order_details'])
+            message = 'Orders Created Successfully'
+        
+        order_summary_dict = order.get('order_summary_dict', {})
+        if order_summary_dict:
+            order_summary_dict['order'] = order_obj
+            customer_order_summary = CustomerOrderSummary.objects.create(**order_summary_dict)
+        if order_obj:
+            if seller_obj:
+                sor_id = str(seller_obj.id) + '_' + str(order_obj.id)
+                sell_order_present = SellerOrder.objects.filter(order_id=order_obj.id, 
+                    seller__user=user.id, sor_id = sor_id)
+                if not sell_order_present:
+                    seller_order_dict['seller'] = seller_obj
+                    seller_order_dict['sor_id'] = sor_id
+                    seller_order_dict['order'] = order_obj
+                    seller_order_dict['quantity'] = order_obj.quantity
+                    seller_order_dict['invoice_no'] = ''
+                    seller_order_dict['order_status'] = 'PROCESSED'
+                    seller_order_dict['status'] = order_obj.status
+                    seller_order_dict['creation_date'] = datetime.datetime.now()
+                    seller_order_dict['updation_date'] = datetime.datetime.now()
+                    seller_order_obj = SellerOrder.objects.create(**seller_order_dict)
+    
+            order_charge = OrderCharges.objects.filter(order_id = order_obj.original_order_id, charge_name = 'Shipping Tax', 
+                user_id = order_det_dict['user'])
+            if not order_charge:
+                order_charge_dict['order_id'] = order_obj.original_order_id
+                order_charge_dict['charge_name'] = 'Shipping Tax'
+                order_charge_dict['charge_amount'] = order['shipping_tax']
+                order_charge_dict['user_id'] = order_det_dict['user']
+                OrderCharges.objects.create(**order_charge_dict)
+        
+        order_id_pick = order_obj.original_order_id.split('_')
+        status = {
+                  "Status": "Success",
+                  "OrderId": order_id_pick[1],
+                  "Result": {
+                    "Status": order['status_type'],
+                    "Message": message
+                  }
+                }
+
     return status
 
 def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):
@@ -5036,3 +5111,17 @@ def update_profile_data(request, user=''):
     user.email = email
     user.save()
     return HttpResponse('Success')
+
+def get_purchase_company_address(profile):
+    """ Returns Company address for purchase order"""
+
+    address = profile.address
+    if not address:
+        return ''
+    if profile.user.email:
+        address = ("%s, Email:%s") % (address, profile.user.email)
+    if profile.phone_number:
+        address = ("%s, Phone:%s") % (address, profile.phone_number)
+    if profile.gst_number:
+        address = ("%s, GSTINo:%s") % (address, profile.gst_number)
+    return address

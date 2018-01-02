@@ -7,7 +7,7 @@
       <tab heading="Create Shipment">
         <div ng-include="'views/outbound/shipment_info/create_shipment.html'"></div>
       </tab>
-      <tab heading="View Shipment">
+      <tab heading="View Shipment" ng-click="vm.awb_marketplace_filter_data()">
         <div ng-include="'views/outbound/shipment_info/view_shipment.html'"></div>
       </tab>
       <tab heading="Gateout Shipment">

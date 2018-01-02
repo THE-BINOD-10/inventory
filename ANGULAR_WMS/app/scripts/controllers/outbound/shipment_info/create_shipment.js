@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('CreateShipmentCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', 'colFilters', '$timeout', 'Data', ServerSideProcessingCtrl]);
+  .controller('CreateShipmentCtrl',['$scope', '$http', '$state', '$compile', '$rootScope', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', 'colFilters', '$timeout', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, service, colFilters, $timeout, Data) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, service, colFilters, $timeout, Data) {
 
     var vm = this;
     vm.service = service;
@@ -178,7 +178,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     }
 
     vm.empty_data = {"shipment_number":"", "shipment_date":"","truck_number":"","shipment_reference":"","customer_id":"", "marketplace":"",
-                     "market_list":[]};
+                     "market_list":[], "courier_name" : []};
     vm.model_data = {};
     angular.copy(vm.empty_data, vm.model_data);
 
@@ -194,25 +194,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       });
     };
 
-    service.apiCall("get_marketplaces_list/?status=picked").then(function(data){
-      if(data.message) {
-        vm.model_data.market_list = data.data.marketplaces;
-        vm.empty_data.market_list = data.data.marketplaces;
-      }
-    })
+    vm.create_shipment_awb_filter = function() {
+      service.apiCall("get_awb_marketplaces/?status=1").then(function(data) {
+        if(data.data.status) {
+          vm.model_data.market_list = [];
+          vm.model_data.market_list = data.data.marketplaces;
+          vm.empty_data.market_list = data.data.marketplaces;
+          vm.model_data.courier_name = [];
+          vm.model_data.courier_name = data.data.courier_name;
+          vm.empty_data.courier_name = data.data.courier_name;
+        }
+      })
+    }
+    vm.create_shipment_awb_filter();
 
-  function get_data() {
-    service.apiCall("shipment_info/","GET").then(function(data){
-
-      if(data.message) {
-        vm.model_data.shipment_number = data.data.shipment_number;
-      }
-    })
-  }
-  get_data();
+    function get_data() {
+      service.apiCall("shipment_info/","GET").then(function(data){
+        if(data.message) {
+          vm.model_data.shipment_number = data.data.shipment_number;
+        }
+      })
+    }
+    get_data();
 
     vm.change_data = function(){
-
       if (vm.model_data.customer_id.indexOf(":") > -1) {
         vm.model_data.customer_id = vm.model_data.customer_id.split(":")[0]
       }
@@ -402,23 +407,39 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
           service.showNoty("Fill Mandatory Fields", 'error', 'topRight');
           return;
         }
-        data.push({ name:'view', value:vm.g_data.view });
+        data.push({ name:'view', value:vm.g_data.view })
+        data.push({ name:'marketplace', value: vm.special_key.market_place })
+        data.push({ name:'courier_name', value: vm.special_key.courier_name })
         service.apiCall( apiUrl, "GET", data).then(function(data) {
         if(data.message) {
           if(data.data["status"]) {
-            vm.service.showNoty(data.data.message);  
+            vm.service.showNoty(data.data.message);
+            $scope.refreshViewShipment();
+            vm.reloadData();
           } else {
             vm.service.showNoty(data.data.message, 'error', 'topRight');
           }
         }
         vm.awb_no = '';
         vm.bt_disable = true;
-        vm.reloadData();
-        });
+        }); 
       }
     }
-        
     vm.bt_disable = false;
 
-  }
+    $scope.refreshViewShipment = function() {
+      vm.create_shipment_awb_filter();
+      $rootScope.$emit("CallParentMethod", {});
+    }
 
+    vm.get_courier_for_marketplace = function() {
+      service.apiCall("get_courier_name_for_marketplaces/?status=1&marketplace="+vm.special_key.market_place).then(function(data) {
+        if(data.data.status) {
+          vm.model_data.courier_name = [];
+          vm.model_data.courier_name = data.data.courier_name;
+          vm.empty_data.courier_name = data.data.courier_name;
+        }
+      })
+    }
+
+  }

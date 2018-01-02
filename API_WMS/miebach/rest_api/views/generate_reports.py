@@ -9,7 +9,8 @@ reports_list = {'SKU List': get_sku_filter_data, 'Location Wise Stock': get_loca
                 'Receipt Summary': get_receipt_filter_data, 'Dispatch Summary': get_dispatch_data,
                 'SKU Wise': sku_wise_purchase_data}
 
-data_dict = {'sku_list': 'SKU List', 'location_wise_stock': 'Location Wise Stock', 'receipt_note': 'Receipt Summary', 'dispatch_summary': 'Dispatch Summary', 'sku_wise':'SKU Wise'}
+data_dict = {'sku_list': 'SKU List', 'location_wise_stock': 'Location Wise Stock', 'receipt_note': 'Receipt Summary',
+             'dispatch_summary': 'Dispatch Summary', 'sku_wise': 'SKU Wise'}
 
 
 class MailReports:
@@ -75,7 +76,8 @@ class MailReports:
 
             if send_to:
                 subject = '%s Reports dated %s' % (user.username, datetime.datetime.now().date())
-                text = 'Please find the scheduled reports in the attachment dated: %s' % str(datetime.datetime.now().date())
+                text = 'Please find the scheduled reports in the attachment dated: %s' % str(
+                    datetime.datetime.now().date())
                 send_mail_attachment(send_to, subject, text, files=self.report_file_names)
 
 

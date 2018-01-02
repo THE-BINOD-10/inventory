@@ -9,12 +9,14 @@ import sys
 import traceback
 import ConfigParser
 import datetime
-from rest_api.views.miebach_utils  import *
+from rest_api.views.miebach_utils import *
 from utils import *
+
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read('rest_api/views/configuration.cfg')
 
 log = init_logger('logs/integrations.log')
+
 
 class EasyopsAPI:
     def __init__(self, company_name='', warehouse='', token='', user=''):
@@ -31,7 +33,7 @@ class EasyopsAPI:
         self.token = token
         self.user = user
         self.content_type = 'application/json'
-        self.headers = { self.content_type_name : self.content_type }
+        self.headers = {self.content_type_name: self.content_type}
 
     def update_token(self, json_response):
         """ Updating refresh token details to DB """
@@ -43,10 +45,12 @@ class EasyopsAPI:
             access_token.save()
         else:
             user_profile = UserProfile.objects.get(user_id=self.user.id)
-            access_token = UserAccessTokens.objects.create(access_token=json_response.get('access_token'), app_host='easyops',
-                                                           token_type= json_response.get('token_type'),
+            access_token = UserAccessTokens.objects.create(access_token=json_response.get('access_token'),
+                                                           app_host='easyops',
+                                                           token_type=json_response.get('token_type'),
                                                            code=json_response.get('tenant_id'),
-                                                           expires_in=json_response.get('expires_in'),user_profile_id=user_profile.id)
+                                                           expires_in=json_response.get('expires_in'),
+                                                           user_profile_id=user_profile.id)
 
     def get_user_token(self, user=''):
         self.token = ''
@@ -120,7 +124,8 @@ class EasyopsAPI:
         main_json_response = ""
 
         today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
-        data = eval(LOAD_CONFIG.get(self.company_name, 'pending_order_dict', '') % eval(LOAD_CONFIG.get(self.company_name, 'pending_order_values', '')))
+        data = eval(LOAD_CONFIG.get(self.company_name, 'pending_order_dict', '') % eval(
+            LOAD_CONFIG.get(self.company_name, 'pending_order_values', '')))
         offset = 0
         while run_iterator:
             url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'pending_orders', ''))
@@ -160,7 +165,7 @@ class EasyopsAPI:
             self.get_user_token(user)
         run_iterator = 1
         url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'update_stock', ''))
-        #data = eval(LOAD_CONFIG.get(self.company_name, 'update_stock_dict', '') % stock_count)
+        # data = eval(LOAD_CONFIG.get(self.company_name, 'update_stock_dict', '') % stock_count)
         run_limit = len(data)
         offset = 0
         if LOAD_CONFIG.get(self.company_name, 'stock_pagination_limit', ''):
@@ -213,7 +218,8 @@ class EasyopsAPI:
         main_json_response = ""
 
         today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
-        data = eval(LOAD_CONFIG.get(self.company_name, 'shipped_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        data = eval(
+            LOAD_CONFIG.get(self.company_name, 'shipped_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
         offset = 0
         while run_iterator:
 
@@ -248,7 +254,8 @@ class EasyopsAPI:
         main_json_response = ""
 
         today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
-        data = eval(LOAD_CONFIG.get(self.company_name, 'returned_order_dict', '') % eval(LOAD_CONFIG.get(self.company_name, 'returned_order_values', '')))
+        data = eval(LOAD_CONFIG.get(self.company_name, 'returned_order_dict', '') % eval(
+            LOAD_CONFIG.get(self.company_name, 'returned_order_values', '')))
 
         offset = 0
         while run_iterator:
@@ -286,7 +293,8 @@ class EasyopsAPI:
         main_json_response = ""
 
         today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
-        data = eval(LOAD_CONFIG.get(self.company_name, 'cancelled_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        data = eval(
+            LOAD_CONFIG.get(self.company_name, 'cancelled_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
         offset = 0
         while run_iterator:
             url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'cancelled_orders', ''))

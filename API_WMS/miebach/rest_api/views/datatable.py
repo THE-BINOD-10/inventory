@@ -17,51 +17,56 @@ from stock_locator import *
 from miebach_utils import *
 from retailone import *
 
+
 @fn_timer
 def sku_excel_download(search_params, temp_data, headers, user, request):
-    sku_master, sku_master_ids = get_sku_master(user,request.user)
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_profile = UserProfile.objects.get(user=user.id)
     headers = USER_SKU_EXCEL[user_profile.user_type]
     excel_mapping = USER_SKU_EXCEL_MAPPING[user_profile.user_type]
     status_dict = {'1': 'Active', '0': 'Inactive'}
-    #marketplace_list = Marketplaces.objects.filter(user=user.id).values_list('name').distinct()
-    marketplace_list = MarketplaceMapping.objects.filter(sku__user=user.id).values_list('sku_type', flat=True).distinct()
+    # marketplace_list = Marketplaces.objects.filter(user=user.id).values_list('name').distinct()
+    marketplace_list = MarketplaceMapping.objects.filter(sku__user=user.id).values_list('sku_type',
+                                                                                        flat=True).distinct()
     search_terms = {}
-    if search_params.get('search_0',''):
-        search_terms["wms_code__icontains"] = search_params.get('search_0','')
-    if search_params.get('search_1',''):
-        search_terms["sku_desc__icontains"] = search_params.get('search_1','')
-    if search_params.get('search_2',''):
-        search_terms["sku_type__icontains"] = search_params.get('search_2','')
-    if search_params.get('search_3',''):
-        search_terms["sku_category__icontains"] = search_params.get('search_3','')
-    if search_params.get('search_4',''):
-        search_terms["sku_class__icontains"] = search_params.get('search_4','')
-    if search_params.get('search_5',''):
-        search_terms["color__icontains"] = search_params.get('search_5','')
-    if search_params.get('search_6',''):
-        search_terms["zone__zone__icontains"] = search_params.get('search_6','')
-    if search_params.get('search_7',''):
-        if (str(search_params.get('search_7','')).lower() in "active"):
+    if search_params.get('search_0', ''):
+        search_terms["wms_code__icontains"] = search_params.get('search_0', '')
+    if search_params.get('search_1', ''):
+        search_terms["sku_desc__icontains"] = search_params.get('search_1', '')
+    if search_params.get('search_2', ''):
+        search_terms["sku_type__icontains"] = search_params.get('search_2', '')
+    if search_params.get('search_3', ''):
+        search_terms["sku_category__icontains"] = search_params.get('search_3', '')
+    if search_params.get('search_4', ''):
+        search_terms["sku_class__icontains"] = search_params.get('search_4', '')
+    if search_params.get('search_5', ''):
+        search_terms["color__icontains"] = search_params.get('search_5', '')
+    if search_params.get('search_6', ''):
+        search_terms["zone__zone__icontains"] = search_params.get('search_6', '')
+    if search_params.get('search_7', ''):
+        if (str(search_params.get('search_7', '')).lower() in "active"):
             search_terms["status__icontains"] = 1
-        elif (str(search_params.get('search_7','')).lower() in "inactive"):
+        elif (str(search_params.get('search_7', '')).lower() in "inactive"):
             search_terms["status__icontains"] = 0
         else:
             search_terms["status__icontains"] = "none"
-    search_terms["user"] =  user.id
+    search_terms["user"] = user.id
     sku_master = sku_master.filter(**search_terms)
     sku_ids = sku_master.values_list('id', flat=True)
-    master_data = MarketplaceMapping.objects.exclude(sku_type='').filter(sku_id__in=sku_ids, sku_type__in=marketplace_list)
+    master_data = MarketplaceMapping.objects.exclude(sku_type='').filter(sku_id__in=sku_ids,
+                                                                         sku_type__in=marketplace_list)
     marketplaces = master_data.values_list('sku_type', flat=True).distinct()
     if master_data.count():
         for market in marketplaces:
-            headers = headers + [market +' SKU', market + ' Description']
+            headers = headers + [market + ' SKU', market + ' Description']
     excel_headers = headers
     wb, ws = get_work_sheet('skus', excel_headers)
     data_count = 0
     rev_load_units = dict(zip(LOAD_UNIT_HANDLE_DICT.values(), LOAD_UNIT_HANDLE_DICT.keys()))
-    sku_fields = dict(SKUFields.objects.filter(sku__user=user.id, field_type='size_type').values_list('sku_id', 'field_value'))
-    hot_releases = dict(SKUFields.objects.filter(sku__user=user.id, field_type='hot_release').values_list('sku_id', 'field_value'))
+    sku_fields = dict(
+        SKUFields.objects.filter(sku__user=user.id, field_type='size_type').values_list('sku_id', 'field_value'))
+    hot_releases = dict(
+        SKUFields.objects.filter(sku__user=user.id, field_type='hot_release').values_list('sku_id', 'field_value'))
     for data in sku_master:
         data_count += 1
         zone = ''
@@ -101,15 +106,16 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
             ean_number = data.ean_number
         ws.write(data_count, excel_mapping['ean_number'], ean_number)
         if excel_mapping.has_key('load_unit_handle'):
-            ws.write(data_count, excel_mapping['load_unit_handle'], rev_load_units.get(data.load_unit_handle, '').capitalize())
+            ws.write(data_count, excel_mapping['load_unit_handle'],
+                     rev_load_units.get(data.load_unit_handle, '').capitalize())
         ws.write(data_count, excel_mapping['hsn_code'], data.hsn_code)
         if excel_mapping.has_key('sub_category'):
             ws.write(data_count, excel_mapping['sub_category'], data.sub_category)
         ws.write(data_count, excel_mapping['status'], status_dict[str(int(data.status))])
         market_map = master_data.filter(sku_id=data.id).values('sku_id', 'sku_type').distinct()
         for dat in market_map:
-            #map_dat = market_map.values('marketplace_code', 'description')
-            map_dat = market_map.filter(sku_type = dat['sku_type']).values('marketplace_code', 'description')
+            # map_dat = market_map.values('marketplace_code', 'description')
+            map_dat = market_map.filter(sku_type=dat['sku_type']).values('marketplace_code', 'description')
             market_codes = map(operator.itemgetter('marketplace_code'), map_dat)
             market_desc = map(operator.itemgetter('description'), map_dat)
             indices = [i for i, s in enumerate(headers) if dat['sku_type'] in s]
@@ -119,8 +125,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
             except:
                 pass
 
-
-    #return "daya pata karo"
+    # return "daya pata karo"
     file_name = "%s.%s" % (user.id, 'SKU Master')
     folder_path = 'static/excel_files/'
     folder_check(folder_path)
@@ -129,30 +134,34 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
     path_to_file = '../' + path
     return path_to_file
 
+
 @fn_timer
 def easyops_stock_excel_download(search_params, temp_data, headers, user, request):
     headers = EASYOPS_STOCK_HEADERS.keys()
     search_term = request.POST.get("search[value]", '')
     search_terms = {}
-    if search_params.get('search_0',''):
-        search_terms["sku__wms_code__icontains"] = search_params.get('search_0','')
-    if search_params.get('search_1',''):
-        search_terms["sku__sku_desc__icontains"] = search_params.get('search_1','')
-    if search_params.get('search_2',''):
-        search_terms["sku__sku_category__icontains"] = search_params.get('search_2','')
-    if search_params.get('search_3',''):
-        search_terms["total__icontains"] = search_params.get('search_3','')
-    master_data = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'], receipt_number=0).\
-                                      values_list('sku__wms_code', 'sku__sku_desc').distinct().\
-                                          annotate(total=Sum('quantity')).filter(sku__user = user.id, quantity__gt=0, **search_terms).\
-                                          order_by('sku__wms_code')
+    if search_params.get('search_0', ''):
+        search_terms["sku__wms_code__icontains"] = search_params.get('search_0', '')
+    if search_params.get('search_1', ''):
+        search_terms["sku__sku_desc__icontains"] = search_params.get('search_1', '')
+    if search_params.get('search_2', ''):
+        search_terms["sku__sku_category__icontains"] = search_params.get('search_2', '')
+    if search_params.get('search_3', ''):
+        search_terms["total__icontains"] = search_params.get('search_3', '')
+    master_data = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'], receipt_number=0). \
+        values_list('sku__wms_code', 'sku__sku_desc').distinct(). \
+        annotate(total=Sum('quantity')).filter(sku__user=user.id, quantity__gt=0, **search_terms). \
+        order_by('sku__wms_code')
     if search_term:
-        master_data = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'], receipt_number=0).\
-                                          values_list('sku__wms_code', 'sku__sku_desc').distinct().\
-                                          annotate(total=Sum('quantity')).filter(Q(sku__wms_code__icontains=search_term) |
-                                          Q(sku__sku_desc__icontains=search_term) | Q(sku__sku_category__icontains=search_term) |
-                                          Q(total__icontains=search_term), sku__user = user.id, quantity__gt=0, **search_terms).\
-                                          order_by('sku__wms_code')
+        master_data = StockDetail.objects.exclude(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'],
+                                                  receipt_number=0). \
+            values_list('sku__wms_code', 'sku__sku_desc').distinct(). \
+            annotate(total=Sum('quantity')).filter(Q(sku__wms_code__icontains=search_term) |
+                                                   Q(sku__sku_desc__icontains=search_term) | Q(
+            sku__sku_category__icontains=search_term) |
+                                                   Q(total__icontains=search_term), sku__user=user.id, quantity__gt=0,
+                                                   **search_terms). \
+            order_by('sku__wms_code')
     excel_headers = headers
     wb, ws = get_work_sheet('inventory', excel_headers)
     data_count = 0
@@ -176,11 +185,11 @@ def easyops_stock_excel_download(search_params, temp_data, headers, user, reques
 def results_data(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     excel = request.POST.get('excel')
-    temp_data = copy.deepcopy( AJAX_DATA )
+    temp_data = copy.deepcopy(AJAX_DATA)
     if excel == 'true':
         special_keys = search_params
         search_params = {'start': 0, 'draw': 1, 'length': 0, 'order_index': 0, 'order_term': u'asc',
-                        'search_term' : request.POST.get('search[value]','')}
+                         'search_term': request.POST.get('search[value]', '')}
         for key, value in special_keys.iteritems():
             search_params[key] = value
         if request.POST.get('datatable', '') == 'SKUMaster':
@@ -220,7 +229,7 @@ def results_data(request, user=''):
         for key, value in request_data.iteritems():
             if not ('search' in key or key in ['datatable', 'excel']):
                 headers[key] = value
-        excel_data = print_excel(request,temp_data, headers, excel_name=request_data.get('datatable'))
+        excel_data = print_excel(request, temp_data, headers, excel_name=request_data.get('datatable'))
         return excel_data
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')

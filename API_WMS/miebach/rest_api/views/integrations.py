@@ -11,23 +11,27 @@ LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read('rest_api/views/configuration.cfg')
 log = init_logger('logs/integrations.log')
 
+
 def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, is_list=False):
     final_data_dict.setdefault(grouping_key, {})
     final_data_dict[grouping_key].setdefault(key_name, {})
     if is_list:
         final_data_dict[grouping_key].setdefault(key_name, [])
-        final_data_dict[grouping_key][key_name] = copy.deepcopy(list(chain(final_data_dict[grouping_key][key_name], adding_dat)))
+        final_data_dict[grouping_key][key_name] = copy.deepcopy(
+            list(chain(final_data_dict[grouping_key][key_name], adding_dat)))
 
     elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('quantity'):
-        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['quantity'] +\
-                                                                  adding_dat.get('quantity', 0)
+        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['quantity'] + \
+                                                              adding_dat.get('quantity', 0)
     elif grouping_key in final_data_dict.keys() and final_data_dict[grouping_key][key_name].has_key('invoice_amount'):
-        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name]['invoice_amount'] +\
-                                                                  adding_dat.get('invoice_amount', 0)
+        final_data_dict[grouping_key][key_name]['quantity'] = final_data_dict[grouping_key][key_name][
+                                                                  'invoice_amount'] + \
+                                                              adding_dat.get('invoice_amount', 0)
     else:
         final_data_dict[grouping_key][key_name] = copy.deepcopy(adding_dat)
 
     return final_data_dict
+
 
 def validate_orders(orders, user='', company_name='', is_cancelled=False):
     order_mapping = eval(LOAD_CONFIG.get(company_name, 'order_mapping_dict', ''))
@@ -118,8 +122,10 @@ def validate_orders(orders, user='', company_name='', is_cancelled=False):
                         insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
                                               'error': 'Order Status not Matched'})
                         continue
-                    seller_order = SellerOrder.objects.filter(Q(order__original_order_id=original_order_id)|Q(order__order_id=order_id,
-                                                 order__order_code=order_code),sor_id=eval(order_mapping['sor_id']), seller__user=user.id)
+                    seller_order = SellerOrder.objects.filter(
+                        Q(order__original_order_id=original_order_id) | Q(order__order_id=order_id,
+                                                                          order__order_code=order_code),
+                        sor_id=eval(order_mapping['sor_id']), seller__user=user.id)
                     if seller_order and not order_status == 'DELIVERY_RESCHEDULED':
                         if not is_cancelled:
                             insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
@@ -145,14 +151,17 @@ def validate_orders(orders, user='', company_name='', is_cancelled=False):
                     order_sor_id = ''
                     if order_mapping.get('sor_id', ''):
                         order_sor_id = eval(order_mapping['sor_id'])
-                    grouping_key = str(original_order_id) + '<<>>' + str(sku_master[0].sku_code) + '<<>>' +str(order_sor_id)
-                    final_data_dict = check_and_add_dict(grouping_key, 'swx_mappings', swx_mappings, final_data_dict=final_data_dict, is_list=True)
+                    grouping_key = str(original_order_id) + '<<>>' + str(sku_master[0].sku_code) + '<<>>' + str(
+                        order_sor_id)
+                    final_data_dict = check_and_add_dict(grouping_key, 'swx_mappings', swx_mappings,
+                                                         final_data_dict=final_data_dict, is_list=True)
                     order_det = OrderDetail.objects.filter(**filter_params)
                     order_det1 = OrderDetail.objects.filter(**filter_params1)
                     invoice_amount = float(data.get('total_price', 0))
 
                     if 'unit_price' in order_mapping:
-                        invoice_amount = float(eval(order_mapping['unit_price'])) * float(eval(order_mapping['quantity']))
+                        invoice_amount = float(eval(order_mapping['unit_price'])) * float(
+                            eval(order_mapping['quantity']))
                         order_details['unit_price'] = float(eval(order_mapping['unit_price']))
                     if order_mapping.has_key('cgst_tax'):
                         order_summary_dict['cgst_tax'] = eval(order_mapping['cgst_tax'])
@@ -161,25 +170,28 @@ def validate_orders(orders, user='', company_name='', is_cancelled=False):
                         order_summary_dict['inter_state'] = 0
                         if order_summary_dict['igst_tax']:
                             order_summary_dict['inter_state'] = 1
-                        tot_invoice = (float(invoice_amount)/100) * (float(order_summary_dict['cgst_tax']) + float(order_summary_dict['sgst_tax'])\
-                                                                      + float(order_summary_dict['igst_tax']))
+                        tot_invoice = (float(invoice_amount) / 100) * (
+                        float(order_summary_dict['cgst_tax']) + float(order_summary_dict['sgst_tax']) \
+                        + float(order_summary_dict['igst_tax']))
                         invoice_amount += float(tot_invoice)
 
                     if not order_det:
                         order_det = order_det1
 
                     order_create = True
-                    if (order_det and filter_params['sku_id'] in sku_ids) or (order_det and seller_id in seller_master_dict.keys())\
-                        and not order_status == 'DELIVERY_RESCHEDULED':
+                    if (order_det and filter_params['sku_id'] in sku_ids) or (
+                        order_det and seller_id in seller_master_dict.keys()) \
+                            and not order_status == 'DELIVERY_RESCHEDULED':
                         order_det = order_det[0]
-                        #order_det.quantity += float(eval(order_mapping['quantity']))
-                        #order_det.invoice_amount += invoice_amount
-                        #order_det.save()
-                        #final_data_dict = check_and_add_dict(grouping_key, 'order_detail_obj', order_det, final_data_dict=final_data_dict)
+                        # order_det.quantity += float(eval(order_mapping['quantity']))
+                        # order_det.invoice_amount += invoice_amount
+                        # order_det.save()
+                        # final_data_dict = check_and_add_dict(grouping_key, 'order_detail_obj', order_det, final_data_dict=final_data_dict)
                         if order_det and seller_id in seller_master_dict.keys():
                             order_create = False
                         elif is_cancelled:
-                            final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details, final_data_dict=final_data_dict)
+                            final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
+                                                                 final_data_dict=final_data_dict)
                         else:
                             insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': seller_item_id,
                                                   'error': 'Order Exists already'})
@@ -208,7 +220,8 @@ def validate_orders(orders, user='', company_name='', is_cancelled=False):
                         order_details['marketplace'] = channel_name
                         order_details['invoice_amount'] = float(invoice_amount)
 
-                        final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details, final_data_dict=final_data_dict)
+                        final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
+                                                             final_data_dict=final_data_dict)
 
                         if order_mapping.has_key('cgst_tax'):
                             customerorder = CustomerOrderSummary(**order_summary_dict)
@@ -222,7 +235,8 @@ def validate_orders(orders, user='', company_name='', is_cancelled=False):
                         seller_order_dict['sor_id'] = eval(order_mapping['sor_id'])
                         seller_order_dict['order_status'] = eval(order_mapping['order_status'])
                         seller_order_dict['quantity'] = eval(order_mapping['quantity'])
-                        final_data_dict = check_and_add_dict(grouping_key, 'seller_order_dict', seller_order_dict, final_data_dict=final_data_dict)
+                        final_data_dict = check_and_add_dict(grouping_key, 'seller_order_dict', seller_order_dict,
+                                                             final_data_dict=final_data_dict)
 
         return insert_status, final_data_dict
 
@@ -232,7 +246,7 @@ def validate_orders(orders, user='', company_name='', is_cancelled=False):
 
 
 def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False):
-    order_status_dict = {'NEW' : 1, 'RETURN' : 3, 'CANCEL' : 4}
+    order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
     order_mapping = eval(LOAD_CONFIG.get(company_name, 'order_mapping_dict', ''))
     NOW = datetime.datetime.now()
     seller_id = ''
@@ -270,15 +284,17 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
             if order_status in order_status_dict.keys():
                 order_details['status'] = order_status_dict[order_status]
             else:
-                failed_status.append({ "OrderId": ingram_order_id,
-                    "result": {"errors": [
-                        {
-                        "ErrorCode": "5024", "ErrorMessage": 'Invalid Order Status - Should be ' + ','.join(order_status_dict.keys())
-                        }
-                        ]
-                    }
-                })
-                
+                failed_status.append({"OrderId": ingram_order_id,
+                                      "result": {"errors": [
+                                          {
+                                              "ErrorCode": "5024",
+                                              "ErrorMessage": 'Invalid Order Status - Should be ' + ','.join(
+                                                  order_status_dict.keys())
+                                          }
+                                      ]
+                                      }
+                                      })
+
                 break;
 
             if order_mapping.has_key('customer_id'):
@@ -312,19 +328,19 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                 elif int(order_detail_present[0].status) == 4:
                     error_code = "5003"
                     message = 'Order is already cancelled at Stockone'
-                failed_status.append({ "OrderId": ingram_order_id,
-                    "Result": {"Errors": [
-                        {
-                        "ErrorCode": error_code, "ErrorMessage": message
-                        }
-                        ]
-                    }
-                })   
+                failed_status.append({"OrderId": ingram_order_id,
+                                      "Result": {"Errors": [
+                                          {
+                                              "ErrorCode": error_code, "ErrorMessage": message
+                                          }
+                                      ]
+                                      }
+                                      })
                 break;
             for order in order_items:
                 try:
-                    shipment_date = NOW # by default shipment date assigned as NOW
-                    #shipment_date = eval(order_mapping['shipment_date'])
+                    shipment_date = NOW  # by default shipment date assigned as NOW
+                    # shipment_date = eval(order_mapping['shipment_date'])
                 except:
                     shipment_date = NOW
                 if not order_mapping.get('line_items'):
@@ -344,8 +360,8 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                     else:
                         failed_sku_status.append({
                             "ErrorCode": "5020",
-                            "ErrorMessage":"SKU Not found in Stockone",
-                            "SKUId":sku_code
+                            "ErrorMessage": "SKU Not found in Stockone",
+                            "SKUId": sku_code
                         })
 
                     if sku_master:
@@ -353,7 +369,7 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                         grouping_key = str(original_order_id) + '<<>>' + str(sku_master[0].sku_code)
                         order_det = OrderDetail.objects.filter(**filter_params)
                         order_det1 = OrderDetail.objects.filter(**filter_params1)
-                        
+
                         invoice_amount = float(eval(order_mapping['total_price']))
                         unit_price = float(eval(order_mapping['unit_price']))
                         if not order_det:
@@ -377,14 +393,17 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                             order_details['unit_price'] = float(unit_price)
                             order_details['creation_date'] = eval(order_mapping['created_at'])
                             order_details['updation_date'] = eval(order_mapping['created_at'])
-        
-                            final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details, final_data_dict=final_data_dict)
-                        
+
+                            final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
+                                                                 final_data_dict=final_data_dict)
 
                         if not failed_status and not insert_status:
-                            order_summary_dict['cgst_tax'] = float(eval(order_mapping['cgst_tax'])) if eval(order_mapping['cgst_tax']) else 0
-                            order_summary_dict['sgst_tax'] = float(eval(order_mapping['sgst_tax'])) if eval(order_mapping['sgst_tax']) else 0
-                            order_summary_dict['igst_tax'] = float(eval(order_mapping['igst_tax'])) if eval(order_mapping['igst_tax']) else 0
+                            order_summary_dict['cgst_tax'] = float(eval(order_mapping['cgst_tax'])) if eval(
+                                order_mapping['cgst_tax']) else 0
+                            order_summary_dict['sgst_tax'] = float(eval(order_mapping['sgst_tax'])) if eval(
+                                order_mapping['sgst_tax']) else 0
+                            order_summary_dict['igst_tax'] = float(eval(order_mapping['igst_tax'])) if eval(
+                                order_mapping['igst_tax']) else 0
                             order_summary_dict['order_taken_by'] = order_details['customer_name']
                             order_summary_dict['consignee'] = order_details['address']
                             order_summary_dict['status'] = ''
@@ -392,8 +411,8 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                             order_summary_dict['inter_state'] = 0
                             if order_summary_dict['igst_tax']:
                                 order_summary_dict['inter_state'] = 1
-                            final_data_dict = check_and_add_dict(grouping_key, 'order_summary_dict', 
-                                order_summary_dict,final_data_dict=final_data_dict)
+                            final_data_dict = check_and_add_dict(grouping_key, 'order_summary_dict',
+                                                                 order_summary_dict, final_data_dict=final_data_dict)
 
                 if len(failed_sku_status):
                     failed_status = {
@@ -402,8 +421,8 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                             "Errors": failed_sku_status
                         }
                     }
-                    break;    
-                
+                    break;
+
                 if not failed_status and not insert_status and order_details['customer_id']:
                     query_params['customer_id'] = order_details['customer_id']
                     query_params['user'] = user.id
@@ -427,7 +446,7 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                     seller_postal = eval(order_mapping.get('seller_postal', ''))
                     seller_tax_id = eval(order_mapping.get('seller_tax_id', ''))
 
-                    seller_master_obj = SellerMaster.objects.filter(user = user.id)
+                    seller_master_obj = SellerMaster.objects.filter(user=user.id)
                     seller_master = seller_master_obj.filter(name=seller_name)
                     if not seller_master:
                         try:
@@ -435,10 +454,13 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
                             seller_id = seller_max_value.id + 1
                         except:
                             seller_id = 1
-                        seller_master = SellerMaster.objects.create(user = user.id, name = seller_name,
-                            seller_id = seller_id, email_id = '', phone_number = '', address = seller_address,
-                            vat_number = '', tin_number = '', price_type = '', margin = '', supplier = None,
-                            status = 1, creation_date = datetime.datetime.now(), updation_date = datetime.datetime.now())
+                        seller_master = SellerMaster.objects.create(user=user.id, name=seller_name,
+                                                                    seller_id=seller_id, email_id='', phone_number='',
+                                                                    address=seller_address,
+                                                                    vat_number='', tin_number='', price_type='',
+                                                                    margin='', supplier=None,
+                                                                    status=1, creation_date=datetime.datetime.now(),
+                                                                    updation_date=datetime.datetime.now())
 
                 final_data_dict[grouping_key]['shipping_tax'] = eval(order_mapping.get('shipping_tax', ''))
                 final_data_dict[grouping_key]['status_type'] = order_status
@@ -448,11 +470,13 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
         traceback.print_exc()
         return insert_status, failed_status, final_data_dict, seller_master
 
+
 def update_orders(orders, user='', company_name=''):
     order_mapping = eval(LOAD_CONFIG.get(company_name, 'order_mapping_dict', ''))
     NOW = datetime.datetime.now()
 
-    insert_status = {'Orders Inserted': 0, 'Seller Master does not exists': 0, 'SOR ID not found': 0, 'Order Status not Matched': 0,
+    insert_status = {'Orders Inserted': 0, 'Seller Master does not exists': 0, 'SOR ID not found': 0,
+                     'Order Status not Matched': 0,
                      'Order Exists already': 0, 'Invalid SKU Codes': 0, 'Invalid Delivery Rescheduled Order': 0}
 
     try:
@@ -462,7 +486,7 @@ def update_orders(orders, user='', company_name=''):
         sku_ids = []
         if not orders:
             orders = {}
-        #orders = orders.get(order_mapping['items'], [])
+        # orders = orders.get(order_mapping['items'], [])
         orders = eval(order_mapping['items'])
         if order_mapping.get('is_dict', False):
             orders = [orders]
@@ -513,8 +537,10 @@ def update_orders(orders, user='', company_name=''):
                         continue
 
                     seller_master_dict[seller_id] = seller_master[0].id
-                    seller_order = SellerOrder.objects.filter(Q(order__original_order_id=original_order_id)|Q(order__order_id=order_id,
-                                                 order__order_code=order_code),sor_id=eval(order_mapping['sor_id']), seller__user=user.id)
+                    seller_order = SellerOrder.objects.filter(
+                        Q(order__original_order_id=original_order_id) | Q(order__order_id=order_id,
+                                                                          order__order_code=order_code),
+                        sor_id=eval(order_mapping['sor_id']), seller__user=user.id)
                     if seller_order and not order_status == 'DELIVERY_RESCHEDULED':
                         insert_status['Order Exists already'] += 1
                         continue
@@ -536,26 +562,30 @@ def update_orders(orders, user='', company_name=''):
                         filter_params['sku_id'] = sku_master[0].id
                         filter_params1['sku_id'] = sku_master[0].id
                     else:
-                        #SKUMaster.objects.create(sku_code=sku_code, wms_code=sku_code,user=user.id, status=1, creation_date=NOW,
+                        # SKUMaster.objects.create(sku_code=sku_code, wms_code=sku_code,user=user.id, status=1, creation_date=NOW,
                         #                                      online_percentage=0)
-                        #sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
-                        #filter_params['sku_id'] = sku_master[0].id
-                        #filter_params1['sku_id'] = sku_master[0].id
+                        # sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+                        # filter_params['sku_id'] = sku_master[0].id
+                        # filter_params1['sku_id'] = sku_master[0].id
                         reason = ''
                         insert_status['Invalid SKU Codes'] += 1
                         channel_sku = eval(order_mapping['channel_sku'])
                         if sku_code:
                             reason = "SKU Mapping doesn't exists"
-                            orders_track = OrdersTrack.objects.filter(order_id=original_order_id, sku_code=sku_code, user=user.id)
+                            orders_track = OrdersTrack.objects.filter(order_id=original_order_id, sku_code=sku_code,
+                                                                      user=user.id)
                         else:
                             reason = "SKU Code missing"
-                            orders_track = OrdersTrack.objects.filter(order_id=original_order_id, channel_sku = channel_sku, user=user.id)
+                            orders_track = OrdersTrack.objects.filter(order_id=original_order_id,
+                                                                      channel_sku=channel_sku, user=user.id)
                         if not orders_track:
-                            OrdersTrack.objects.create(order_id=original_order_id, sku_code=sku_code, status=1, user=user.id,
-                                                marketplace = channel_name, title = eval(order_mapping['title']), company_name = company_name,
-                                        channel_sku= channel_sku, shipment_date = shipment_date,
-                                                    quantity = eval(order_mapping['quantity']),
-                                                   reason = reason, creation_date = NOW)
+                            OrdersTrack.objects.create(order_id=original_order_id, sku_code=sku_code, status=1,
+                                                       user=user.id,
+                                                       marketplace=channel_name, title=eval(order_mapping['title']),
+                                                       company_name=company_name,
+                                                       channel_sku=channel_sku, shipment_date=shipment_date,
+                                                       quantity=eval(order_mapping['quantity']),
+                                                       reason=reason, creation_date=NOW)
                         continue
 
                     order_det = OrderDetail.objects.filter(**filter_params)
@@ -563,7 +593,8 @@ def update_orders(orders, user='', company_name=''):
                     invoice_amount = float(data.get('total_price', 0))
 
                     if 'unit_price' in order_mapping:
-                        invoice_amount = float(eval(order_mapping['unit_price'])) * float(eval(order_mapping['quantity']))
+                        invoice_amount = float(eval(order_mapping['unit_price'])) * float(
+                            eval(order_mapping['quantity']))
                         order_details['unit_price'] = float(eval(order_mapping['unit_price']))
                     if order_mapping.has_key('cgst_tax'):
                         order_summary_dict['cgst_tax'] = eval(order_mapping['cgst_tax'])
@@ -572,21 +603,23 @@ def update_orders(orders, user='', company_name=''):
                         order_summary_dict['inter_state'] = 0
                         if order_summary_dict['igst_tax']:
                             order_summary_dict['inter_state'] = 1
-                        tot_invoice = (float(invoice_amount)/100) * (float(order_summary_dict['cgst_tax']) + float(order_summary_dict['sgst_tax'])\
-                                                                      + float(order_summary_dict['igst_tax']))
+                        tot_invoice = (float(invoice_amount) / 100) * (
+                        float(order_summary_dict['cgst_tax']) + float(order_summary_dict['sgst_tax']) \
+                        + float(order_summary_dict['igst_tax']))
                         invoice_amount += float(tot_invoice)
 
                     if not order_det:
                         order_det = order_det1
 
                     order_create = True
-                    if (order_det and filter_params['sku_id'] in sku_ids) or (order_det and seller_id in seller_master_dict.keys())\
-                        and not order_status == 'DELIVERY_RESCHEDULED':
+                    if (order_det and filter_params['sku_id'] in sku_ids) or (
+                        order_det and seller_id in seller_master_dict.keys()) \
+                            and not order_status == 'DELIVERY_RESCHEDULED':
                         order_det = order_det[0]
                         order_det.quantity += float(eval(order_mapping['quantity']))
                         order_det.invoice_amount += invoice_amount
 
-                        #order_det.save()
+                        # order_det.save()
                         if order_det and seller_id in seller_master_dict.keys():
                             order_create = False
                         else:
@@ -637,8 +670,9 @@ def update_orders(orders, user='', company_name=''):
                         swx_mappings.append({'app_host': 'shotang', 'swx_id': eval(order_mapping['seller_item_id']),
                                              'swx_type': 'seller_item_id'})
                     if order_mapping.has_key('seller_parent_item_id'):
-                        swx_mappings.append({'app_host': 'shotang', 'swx_id': eval(order_mapping['seller_parent_item_id']),
-                                             'swx_type': 'seller_parent_item_id'})
+                        swx_mappings.append(
+                            {'app_host': 'shotang', 'swx_id': eval(order_mapping['seller_parent_item_id']),
+                             'swx_type': 'seller_parent_item_id'})
                     if order_mapping.has_key('sor_id'):
                         seller_order_dict['seller_id'] = seller_master_dict[seller_id]
                         seller_order_dict['sor_id'] = eval(order_mapping['sor_id'])
@@ -649,10 +683,15 @@ def update_orders(orders, user='', company_name=''):
                     check_create_seller_order(seller_order_dict, order_detail, user, swx_mappings)
                     insert_status['Orders Inserted'] += 1
 
-                    order_issue_objs = OrdersTrack.objects.filter(user = user.id, order_id = original_order_id, sku_code = sku_code).exclude(mapped_sku_code = "", channel_sku = "")
+                    order_issue_objs = OrdersTrack.objects.filter(user=user.id, order_id=original_order_id,
+                                                                  sku_code=sku_code).exclude(mapped_sku_code="",
+                                                                                             channel_sku="")
 
                     if not order_issue_objs:
-                        order_issue_objs = OrdersTrack.objects.filter(user = user.id, order_id = original_order_id, channel_sku= eval(order_mapping['channel_sku'])).exclude(mapped_sku_code = "", sku_code = "")
+                        order_issue_objs = OrdersTrack.objects.filter(user=user.id, order_id=original_order_id,
+                                                                      channel_sku=eval(
+                                                                          order_mapping['channel_sku'])).exclude(
+                            mapped_sku_code="", sku_code="")
 
                     if order_issue_objs:
                         order_issue_objs = order_issue_objs[0]
@@ -664,6 +703,7 @@ def update_orders(orders, user='', company_name=''):
     except:
         traceback.print_exc()
         return insert_status
+
 
 def update_shipped(orders, user='', company_name=''):
     order_mapping = eval(LOAD_CONFIG.get(company_name, 'shipped_mapping_dict', ''))
@@ -692,6 +732,7 @@ def update_shipped(orders, user='', company_name=''):
                     picklist.order.save()
     except:
         traceback.print_exc()
+
 
 def update_returns(orders, user='', company_name=''):
     order_mapping = eval(LOAD_CONFIG.get(company_name, 'returned_mapping_dict', ''))
@@ -728,16 +769,20 @@ def update_returns(orders, user='', company_name=''):
                     else:
                         _order_code = ""
 
-                    sku_obj = SKUMaster.objects.filter(user = user.id, sku_code = sku_code)
+                    sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
 
                     if not sku_obj:
                         continue
                     qty = eval(order_mapping['return_quantity']) + eval(order_mapping['damaged_quantity'])
-                    order_data = OrderDetail.objects.create(user = user.id, order_id = _order_id, order_code = _order_code, status = 4, original_order_id = original_order_id, marketplace = eval(order_mapping['marketplace']), quantity = qty, sku = sku_obj[0], shipment_date = NOW.date())
+                    order_data = OrderDetail.objects.create(user=user.id, order_id=_order_id, order_code=_order_code,
+                                                            status=4, original_order_id=original_order_id,
+                                                            marketplace=eval(order_mapping['marketplace']),
+                                                            quantity=qty, sku=sku_obj[0], shipment_date=NOW.date())
 
                 else:
                     order_data = order_data[0]
-                return_instance = OrderReturns.objects.filter(return_id=return_id, order_id=order_data.id, order__user=user.id)
+                return_instance = OrderReturns.objects.filter(return_id=return_id, order_id=order_data.id,
+                                                              order__user=user.id)
                 if return_instance:
                     continue
                 return_data = copy.deepcopy(RETURN_DATA)
@@ -754,7 +799,6 @@ def update_returns(orders, user='', company_name=''):
                 order_returns.save()
     except:
         traceback.print_exc()
-
 
 
 def update_cancelled(orders, user='', company_name=''):
@@ -788,10 +832,13 @@ def update_cancelled(orders, user='', company_name=''):
                             if picklist.picked_quantity <= 0:
                                 picklist.delete()
                             elif picklist.stock:
-                                cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id, picklist__order__user=user.id)
+                                cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
+                                                                                   picklist__order__user=user.id)
                                 if not cancel_location:
-                                    CancelledLocation.objects.create(picklist_id=picklist.id, quantity=picklist.picked_quantity,
-                                                 location_id=picklist.stock.location_id, creation_date=datetime.datetime.now(), status=1)
+                                    CancelledLocation.objects.create(picklist_id=picklist.id,
+                                                                     quantity=picklist.picked_quantity,
+                                                                     location_id=picklist.stock.location_id,
+                                                                     creation_date=datetime.datetime.now(), status=1)
                                     picklist.status = 'cancelled'
                                     picklist.save()
                             else:
@@ -801,6 +848,7 @@ def update_cancelled(orders, user='', company_name=''):
                         order_det.save()
     except:
         traceback.print_exc()
+
 
 def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, parent_sku=None):
     sku_master = None
@@ -889,7 +937,8 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, parent_
                 sku_attributes.attribute_value = option['value']
                 sku_attributes.save()
             else:
-                SKUAttributes.objects.create(sku_id=sku_master.id, attribute_name=option['name'], attribute_value=option['value'],
+                SKUAttributes.objects.create(sku_id=sku_master.id, attribute_name=option['name'],
+                                             attribute_value=option['value'],
                                              creation_date=datetime.datetime.now())
     if sku_master and parent_sku:
         sku_relation = SKURelation.objects.filter(member_sku_id=sku_master.id, parent_sku_id=parent_sku.id)
@@ -907,7 +956,8 @@ def update_skus(skus, user='', company_name=''):
     sku_mapping = eval(LOAD_CONFIG.get(company_name, 'sku_mapping_dict', ''))
     NOW = datetime.datetime.now()
 
-    insert_status = {'New SKUS Created': [], 'SKUS updated': [], 'Child SKUS Created': [], 'Size Type empty': [], 'Size Type Invalid': [],
+    insert_status = {'New SKUS Created': [], 'SKUS updated': [], 'Child SKUS Created': [], 'Size Type empty': [],
+                     'Size Type Invalid': [],
                      'Size Type Invalid': [], 'Size type and Size not matching': [], 'Invalid Mix SKU Attribute': [],
                      'SKU Code should not be empty': [], 'SKU Type Invalid': []}
 
@@ -923,7 +973,8 @@ def update_skus(skus, user='', company_name=''):
             all_sku_masters.append(sku_master)
             if sku_data.has_key('child_skus'):
                 for child_data in sku_data['child_skus']:
-                    sku_master1, insert_status = sku_master_insert_update(child_data, user, sku_mapping, insert_status, parent_sku=sku_master)
+                    sku_master1, insert_status = sku_master_insert_update(child_data, user, sku_mapping, insert_status,
+                                                                          parent_sku=sku_master)
                     all_sku_masters.append(sku_master1)
 
         insert_update_brands(user)
@@ -943,6 +994,7 @@ def update_skus(skus, user='', company_name=''):
         traceback.print_exc()
         return insert_status
 
+
 def update_customers(customers, user='', company_name=''):
     customer_mapping = eval(LOAD_CONFIG.get(company_name, 'customer_mapping_dict', ''))
     NOW = datetime.datetime.now()
@@ -958,22 +1010,26 @@ def update_customers(customers, user='', company_name=''):
         if not customers:
             customers = {}
         customers = customers.get(customer_mapping['customers'], [])
-        price_types = list(PriceMaster.objects.filter(sku__user=user.id).values_list('price_type', flat=True).distinct())
+        price_types = list(
+            PriceMaster.objects.filter(sku__user=user.id).values_list('price_type', flat=True).distinct())
         for customer_data in customers:
             customer_master = None
             customer_id = customer_data.get(customer_mapping['customer_id'], '')
             if not customer_id:
-                insert_status['Customer ID should not be empty for customer names'].append(str(customer_data.get(customer_mapping['name'], '')))
+                insert_status['Customer ID should not be empty for customer names'].append(
+                    str(customer_data.get(customer_mapping['name'], '')))
                 continue
             elif not isinstance(customer_id, int):
-                insert_status['Customer ID should be number for customer names'].append(str(customer_data.get(customer_mapping['name'], '')))
+                insert_status['Customer ID should be number for customer names'].append(
+                    str(customer_data.get(customer_mapping['name'], '')))
                 continue
             customer_ins = CustomerMaster.objects.filter(user=user.id, customer_id=customer_id)
             if customer_ins:
                 customer_master = customer_ins[0]
             customer_master_dict = {'user': user.id, 'creation_date': datetime.datetime.now()}
             exclude_list = ['customers']
-            number_fields = {'credit_period': 'Credit Period', 'status': 'Status', 'customer_id': 'Customer ID', 'pincode': 'Pin Code',
+            number_fields = {'credit_period': 'Credit Period', 'status': 'Status', 'customer_id': 'Customer ID',
+                             'pincode': 'Pin Code',
                              'phone_number': 'Phone Number'}
             for key, val in customer_mapping.iteritems():
                 if key in exclude_list:
@@ -986,9 +1042,11 @@ def update_customers(customers, user='', company_name=''):
                         value = int(value)
                     except:
                         if insert_status.has_key(number_fields[key] + " should be number for Customer ids"):
-                            insert_status[number_fields[key] + " should be number for Customer ids"].append(str(customer_id))
+                            insert_status[number_fields[key] + " should be number for Customer ids"].append(
+                                str(customer_id))
                         else:
-                            insert_status[number_fields[key] + " should be number for Customer ids"] = [str(customer_id)]
+                            insert_status[number_fields[key] + " should be number for Customer ids"] = [
+                                str(customer_id)]
                 elif key == 'tax_type':
                     if not value:
                         continue
@@ -1027,8 +1085,8 @@ def update_customers(customers, user='', company_name=''):
         traceback.print_exc()
         return insert_status
 
-def validate_sellers(sellers, user=None, seller_mapping=None):
 
+def validate_sellers(sellers, user=None, seller_mapping=None):
     if not sellers or not user or not seller_mapping:
         return [None, None, None]
 
@@ -1041,15 +1099,15 @@ def validate_sellers(sellers, user=None, seller_mapping=None):
 
         if not seller_id:
             is_valid = is_valid and False
-            insert_message(messages, 'No ids', 'Seller ID should not be empty for '+ seller_data['name'])
+            insert_message(messages, 'No ids', 'Seller ID should not be empty for ' + seller_data['name'])
             continue
 
         seller_master_dict = {'user': user.id, 'creation_date': datetime.datetime.now()}
         exclude_list = ['sellers']
-        number_fields = {'status': 'Status','phone_number': 'Phone Number',
-         'seller_id': 'Seller Id', 'margin': 'Margin'}
+        number_fields = {'status': 'Status', 'phone_number': 'Phone Number',
+                         'seller_id': 'Seller Id', 'margin': 'Margin'}
 
-        string_fields = {'name': 'Name', 'address': 'Address', 'gstin_no':'GSTIN number'}
+        string_fields = {'name': 'Name', 'address': 'Address', 'gstin_no': 'GSTIN number'}
 
         for key, val in seller_mapping.iteritems():
             if key in exclude_list:
@@ -1080,7 +1138,7 @@ def update_sellers(sellers, user='', company_name=''):
     seller_mapping = eval(LOAD_CONFIG.get(company_name, 'seller_mapping_dict', ''))
     NOW = datetime.datetime.now()
     status = {}
-    messages= {}
+    messages = {}
     try:
         user_profile = UserProfile.objects.get(user_id=user.id)
         if not sellers:
@@ -1093,7 +1151,7 @@ def update_sellers(sellers, user='', company_name=''):
             for seller in sellers:
                 try:
                     seller_master, created = SellerMaster.objects.get_or_create(
-                    user=seller['user'], seller_id=seller['seller_id'])
+                        user=seller['user'], seller_id=seller['seller_id'])
 
                     for key, value in seller.iteritems():
                         if key == 'tin_number':
@@ -1120,16 +1178,18 @@ def update_sellers(sellers, user='', company_name=''):
         status['messages'] = [e.message]
         return status
 
+
 def insert_message(messages, seller_id, message):
     try:
         statuses = messages.setdefault(
             seller_id, {})
-        statuses.update({'seller_id':seller_id})
+        statuses.update({'seller_id': seller_id})
         statuses.setdefault(
             'messages', []).append(message)
     except Exception as e:
         return False
     return True
+
 
 def update_lineitem_ids(seller_order, swx_mappings):
     for swx_mapping in swx_mappings:
@@ -1164,6 +1224,7 @@ def validate_lineitem_ids(swx_mappings, seller_parent_id, order_det, insert_stat
                                   'error': 'Order Dispatched'})
     return insert_status
 
+
 def update_cancelled_quantity(order_det, seller_order, picklist, cancel_quantity, order_dict, user, field_name):
     if getattr(picklist, field_name) > 0:
         reduced_quantity = 0
@@ -1194,18 +1255,20 @@ def update_cancelled_quantity(order_det, seller_order, picklist, cancel_quantity
         if field_name == 'picked_quantity':
             if picklist.stock:
                 seller_id = order_dict['seller_order_dict']['seller_id']
-                cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id, picklist__order__user=user.id,
-                                                                  seller_id=seller_id, status=1)
+                cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
+                                                                   picklist__order__user=user.id,
+                                                                   seller_id=seller_id, status=1)
                 if not cancel_location:
                     CancelledLocation.objects.create(picklist_id=picklist.id, quantity=reduced_quantity,
-                                    location_id=picklist.stock.location_id, creation_date=datetime.datetime.now(), status=1,
-                                    seller_id=seller_id)
+                                                     location_id=picklist.stock.location_id,
+                                                     creation_date=datetime.datetime.now(), status=1,
+                                                     seller_id=seller_id)
                 else:
                     cancel_location = cancel_location[0]
                     cancel_location.quantity = float(cancel_location.quantity) + reduced_quantity
                     cancel_location.save()
-        picklist_locations = PicklistLocation.objects.filter(picklist_id=picklist.id, picklist__order__user = user.id,
-                                                                status=1)
+        picklist_locations = PicklistLocation.objects.filter(picklist_id=picklist.id, picklist__order__user=user.id,
+                                                             status=1)
         for pick_location in picklist_locations:
             if not reduced_quantity:
                 break
@@ -1224,6 +1287,7 @@ def update_cancelled_quantity(order_det, seller_order, picklist, cancel_quantity
             pick_location.save()
     return cancel_quantity
 
+
 def update_order_cancel(orders_data, user='', company_name=''):
     NOW = datetime.datetime.now()
     insert_status = []
@@ -1236,11 +1300,14 @@ def update_order_cancel(orders_data, user='', company_name=''):
                     seller_parent_id = swx['swx_id']
                     break
             original_order_id = order_dict['order_details']['original_order_id']
-            filter_params = {'user': user.id, 'original_order_id': original_order_id, 'sku_id': order_dict['order_details']['sku_id'],
-                             'order_id': order_dict['order_details']['order_id'], 'order_code': order_dict['order_details']['order_code']}
+            filter_params = {'user': user.id, 'original_order_id': original_order_id,
+                             'sku_id': order_dict['order_details']['sku_id'],
+                             'order_id': order_dict['order_details']['order_id'],
+                             'order_code': order_dict['order_details']['order_code']}
 
             order_det = OrderDetail.objects.exclude(status=3).filter(**filter_params)
-            insert_status= validate_lineitem_ids(order_dict['swx_mappings'], seller_parent_id, order_det, insert_status=insert_status)
+            insert_status = validate_lineitem_ids(order_dict['swx_mappings'], seller_parent_id, order_det,
+                                                  insert_status=insert_status)
             if not order_det:
                 for swx_mapping in order_dict['swx_mappings']:
                     insert_status.append({'parentLineitemId': seller_parent_id, 'lineitemId': swx_mapping['swx_id'],
@@ -1261,7 +1328,7 @@ def update_order_cancel(orders_data, user='', company_name=''):
             seller_order = None
             if order_dict.get('seller_order_dict', {}):
                 seller_orders = SellerOrder.objects.filter(sor_id=order_dict['seller_order_dict']['sor_id'],
-                                                            order_id=order_det.id)
+                                                           order_id=order_det.id)
                 if seller_orders:
                     seller_order = seller_orders[0]
             if int(order_det.status) == 1:
@@ -1288,22 +1355,25 @@ def update_order_cancel(orders_data, user='', company_name=''):
                     if not cancel_quantity:
                         break
                     if picklist.reserved_quantity > 0:
-                        cancel_quantity = update_cancelled_quantity(order_det, seller_order, picklist, cancel_quantity, order_dict,
+                        cancel_quantity = update_cancelled_quantity(order_det, seller_order, picklist, cancel_quantity,
+                                                                    order_dict,
                                                                     user, 'reserved_quantity')
                     if cancel_quantity and picklist.picked_quantity > 0:
                         cancel_quantity = update_cancelled_quantity(order_det, seller_order, picklist, cancel_quantity,
                                                                     order_dict, user, 'picked_quantity')
             if seller_order and order_dict['swx_mappings']:
                 update_lineitem_ids(seller_order, order_dict['swx_mappings'])
-            save_order_tracking_data(order_det, quantity=order_dict['order_details'].get('quantity', 0), status='cancelled', imei='')
+            save_order_tracking_data(order_det, quantity=order_dict['order_details'].get('quantity', 0),
+                                     status='cancelled', imei='')
         return insert_status, "Success"
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         result_data = []
-        log.info('Update Order Cancellation API failed for %s and params are %s and error statement is %s' %\
+        log.info('Update Order Cancellation API failed for %s and params are %s and error statement is %s' % \
                  (str(user.username), str(orders_data), str(e)))
         return ['Internal Server Error'], ''
+
 
 def update_order_returns(orders_data, user='', company_name=''):
     NOW = datetime.datetime.now()
@@ -1312,8 +1382,10 @@ def update_order_returns(orders_data, user='', company_name=''):
         all_data_list = []
         for key, order_dict in orders_data.iteritems():
             original_order_id = order_dict['order_details']['original_order_id']
-            filter_params = {'user': user.id, 'original_order_id': original_order_id, 'sku_id': order_dict['order_details']['sku_id'],
-                             'order_id': order_dict['order_details']['order_id'], 'order_code': order_dict['order_details']['order_code']}
+            filter_params = {'user': user.id, 'original_order_id': original_order_id,
+                             'sku_id': order_dict['order_details']['sku_id'],
+                             'order_id': order_dict['order_details']['order_id'],
+                             'order_code': order_dict['order_details']['order_code']}
             order_objs = OrderDetail.objects.filter(**filter_params)
             seller_parent_item_id = ''
             for swx in order_dict.get('swx_mappings', []):
@@ -1327,21 +1399,26 @@ def update_order_returns(orders_data, user='', company_name=''):
             if int(order_obj.status) == 4:
                 insert_status.append({'parentLineitemId': seller_parent_item_id, 'error': 'Order Returned already'})
             return_total = OrderTracking.objects.filter(order_id=order_obj.id, order__user=user.id,
-                                                          status='returned').aggregate(Sum('quantity'))['quantity__sum']
+                                                        status='returned').aggregate(Sum('quantity'))['quantity__sum']
             if not return_total:
                 return_total = 0
-            if (float(order_obj.quantity) - float(return_total)) - float(order_dict['order_details']['quantity'])< 0:
-                insert_status.append({'parentLineitemId': seller_parent_item_id, 'error': 'Return quantity exceeding order quantity'})
+            if (float(order_obj.quantity) - float(return_total)) - float(order_dict['order_details']['quantity']) < 0:
+                insert_status.append(
+                    {'parentLineitemId': seller_parent_item_id, 'error': 'Return quantity exceeding order quantity'})
                 continue
-            seller_order = SellerOrder.objects.filter(order_id=order_obj.id, sor_id=order_dict['seller_order_dict']['sor_id'])
+            seller_order = SellerOrder.objects.filter(order_id=order_obj.id,
+                                                      sor_id=order_dict['seller_order_dict']['sor_id'])
             if not seller_order:
-                insert_status.append({'parentLineitemId': seller_parent_item_id, 'error': 'Return quantity exceeding order quantity'})
+                insert_status.append(
+                    {'parentLineitemId': seller_parent_item_id, 'error': 'Return quantity exceeding order quantity'})
                 continue
             if not insert_status:
-                returns_dict = {'quantity': order_dict['order_details']['quantity'], 'return_date': datetime.datetime.now(),
+                returns_dict = {'quantity': order_dict['order_details']['quantity'],
+                                'return_date': datetime.datetime.now(),
                                 'sku_id': order_dict['order_details']['sku_id'], 'seller_order_id': seller_order[0].id,
-                                'creation_date': datetime.datetime.now(), 'status': 1, 'order_id': order_obj.id, 'order_obj': order_obj
-                               }
+                                'creation_date': datetime.datetime.now(), 'status': 1, 'order_id': order_obj.id,
+                                'order_obj': order_obj
+                                }
                 all_data_list.append(returns_dict)
 
         if insert_status:
@@ -1351,7 +1428,7 @@ def update_order_returns(orders_data, user='', company_name=''):
             save_order_tracking_data(order_obj, quantity=data_dict['quantity'], status='returned', imei='')
             del data_dict['order_obj']
             tot_sum = OrderTracking.objects.filter(order_id=order_obj.id, order__user=user.id,
-                                            status='returned').aggregate(Sum('quantity'))['quantity__sum']
+                                                   status='returned').aggregate(Sum('quantity'))['quantity__sum']
             if not tot_sum:
                 tot_sum = 0
             if float(order_obj.quantity) <= tot_sum:
@@ -1367,4 +1444,5 @@ def update_order_returns(orders_data, user='', company_name=''):
         import traceback
         log.debug(traceback.format_exc())
         result_data = []
-        log.info('Update Order Returns API failed for %s and params are %s and error statement is %s' % (str(user.username), str(orders_data), str(e)))
+        log.info('Update Order Returns API failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(orders_data), str(e)))

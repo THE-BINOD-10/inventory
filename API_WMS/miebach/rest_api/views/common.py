@@ -1310,7 +1310,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
     if pallet:
         pallet_present = PalletDetail.objects.filter(user = user.id, status = 1, pallet_code = pallet)
         if not pallet_present:
-            pallet_present = PalletDetail.objects.create(user = user.id, status = 1, pallet_code = pallet_code, 
+            pallet_present = PalletDetail.objects.create(user = user.id, status = 1, pallet_code = pallet, 
                 quantity = quantity, creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
 
     total_stock_quantity = 0
@@ -1340,7 +1340,6 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                     setattr(stock, 'quantity', 0)
                     stock.save()
                     remaining_quantity = remaining_quantity - stock_quantity
-        import pdb;pdb.set_trace()
         if not stocks:
             dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(),
                 quantity=quantity, status=1, creation_date=now_date, updation_date=now_date, 

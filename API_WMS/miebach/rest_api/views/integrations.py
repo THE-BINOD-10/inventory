@@ -304,6 +304,7 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
             order_detail_present = OrderDetail.objects.filter(**valid_order)
             if order_detail_present:
                 if int(order_detail_present[0].status) == 1:
+                    error_code = "5001"
                     message = 'Duplicate Order, ignored at Stockone'
                 elif int(order_detail_present[0].status) == 3:
                     error_code = "5002"

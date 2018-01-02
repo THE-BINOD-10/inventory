@@ -207,6 +207,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
             if(data.data["status"]) {
                 vm.service.showNoty(data.data.message);
                 reloadAllData();
+                $scope.awb_marketplace_filter_data();
               } else {
                 vm.service.showNoty(data.data.message, 'error', 'topRight');
               }

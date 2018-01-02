@@ -13,6 +13,7 @@ import datetime
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read('rest_api/views/configuration.cfg')
 
+
 class RetailoneAPI:
     def __init__(self, company_name='retailone', warehouse='', token='', user=''):
         self.company_name = company_name
@@ -24,7 +25,7 @@ class RetailoneAPI:
         self.token = token
         self.user = user
         self.content_type = 'application/json'
-        self.headers = { 'ContentType' : self.content_type }
+        self.headers = {'ContentType': self.content_type}
 
     def update_url(self, url):
         """ Updating url with new access token """
@@ -44,10 +45,12 @@ class RetailoneAPI:
             access_token.save()
         else:
             user_profile = UserProfile.objects.get(user_id=self.user.id)
-            access_token = UserAccessTokens.objects.create(access_token=json_response.get('access_token'), app_host='easyops',
-                                                           token_type= json_response.get('token_type'),
+            access_token = UserAccessTokens.objects.create(access_token=json_response.get('access_token'),
+                                                           app_host='easyops',
+                                                           token_type=json_response.get('token_type'),
                                                            code=json_response.get('tenant_id'),
-                                                           expires_in=json_response.get('expires_in'),user_profile_id=user_profile.id)
+                                                           expires_in=json_response.get('expires_in'),
+                                                           user_profile_id=user_profile.id)
 
     def get_response(self, url, data=None, put=False):
         """ Getting API response using request module """
@@ -55,7 +58,7 @@ class RetailoneAPI:
             self.headers["Authorization"] = "Bearer " + self.token
             response = requests.put(url, headers=self.headers, data=data, verify=False)
         elif data:
-	    data = json.dumps(data)
+            data = json.dumps(data)
             response = requests.post(url, headers=self.headers, data=data, verify=False)
         else:
             response = requests.get(url, headers=self.headers, verify=False)
@@ -75,10 +78,10 @@ class RetailoneAPI:
 
     def refresh_token(self):
         """ Getting token details by using refresh token """
-        data = { 'client_id': self.client_id,
-                 'client_secret': self.secret,
-                 'redirect_uri': self.redirect,
-                 'grant_type': 'refresh_token' }
+        data = {'client_id': self.client_id,
+                'client_secret': self.secret,
+                'redirect_uri': self.redirect,
+                'grant_type': 'refresh_token'}
 
         user_access_token = UserAccessTokens.objects.get(user_profile__user=self.user.id, token_type='Bearer')
         data['refresh_token'] = user_access_token.refresh_token
@@ -89,11 +92,11 @@ class RetailoneAPI:
 
     def get_access_token(self, code=''):
         """ Collecting access token """
-        data = { 'client_id': self.client_id,
-                 'client_secret': self.secret,
-                 'redirect_uri': self.redirect,
-                 'grant_type': 'authorization_code',
-                 'code': code }
+        data = {'client_id': self.client_id,
+                'client_secret': self.secret,
+                'redirect_uri': self.redirect,
+                'grant_type': 'authorization_code',
+                'code': code}
 
         url = urljoin(URL, ACCESS_TOKEN)
         json_response = self.get_response(url, data)
@@ -105,7 +108,7 @@ class RetailoneAPI:
         if token:
             self.token = token
 
-	url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'seller', '')) + self.token
+        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'seller', '')) + self.token
         json_response = self.get_response(url)
         return json_response
 
@@ -116,28 +119,28 @@ class RetailoneAPI:
         if user:
             self.user = user
 
-        #url = urljoin(URL, ALL_SKUS) + self.token
-	url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'all_skus', '')) + self.token
+        # url = urljoin(URL, ALL_SKUS) + self.token
+        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'all_skus', '')) + self.token
         json_response = self.get_response(url)
         return json_response
 
     def get_pending_orders(self, token='', user=''):
         """ Collecting all pending orders for a particular user """
-	if token:
-	    self.token = token
-	if user:
-	    self.user = user
+        if token:
+            self.token = token
+        if user:
+            self.user = user
 
-	#url = urljoin(URL, RETURNED_ORDERS) + self.token
+        # url = urljoin(URL, RETURNED_ORDERS) + self.token
 
-	url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'sync_orders', ''))
+        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'sync_orders', ''))
 
-	#today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())/strftime('%Y-%m-%dT%H:%M:%SZ')
-	#approved_order_dict = {"sync_token": %s, "mp_info_id": '', "states": ['APPROVED', 'Pending', 'UnShipped'], 'user': %s, 'source': 'stockone'}
-	data = eval(LOAD_CONFIG.get(self.company_name, 'approved_order_dict', '') % ("0", int(user.id)))
+        # today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())/strftime('%Y-%m-%dT%H:%M:%SZ')
+        # approved_order_dict = {"sync_token": %s, "mp_info_id": '', "states": ['APPROVED', 'Pending', 'UnShipped'], 'user': %s, 'source': 'stockone'}
+        data = eval(LOAD_CONFIG.get(self.company_name, 'approved_order_dict', '') % ("0", int(user.id)))
 
-	json_response = self.get_response(url, data)
-	return json_response
+        json_response = self.get_response(url, data)
+        return json_response
 
     def get_cancelled_orders(self, token='', user=''):
         """ Collecting all pending orders for a particular user """
@@ -146,8 +149,8 @@ class RetailoneAPI:
         if user:
             self.user = user
 
-        #url = urljoin(URL, CANCELLED_ORDERS) + self.token
-	url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'cancelled_orders', '')) + self.token
+        # url = urljoin(URL, CANCELLED_ORDERS) + self.token
+        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'cancelled_orders', '')) + self.token
         json_response = self.get_response(url)
         return json_response
 
@@ -158,8 +161,8 @@ class RetailoneAPI:
         if user:
             self.user = user
 
-        #url = urljoin(URL, PENDING_SKU_ORDERS % sku) + self.token
-	url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'pending_sku_orders', '')) + self.token
+        # url = urljoin(URL, PENDING_SKU_ORDERS % sku) + self.token
+        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'pending_sku_orders', '')) + self.token
         json_response = self.get_response(url)
         return json_response
 
@@ -170,8 +173,8 @@ class RetailoneAPI:
         if user:
             self.user = user
 
-        #url = urljoin(URL, UPDATE_SKU) % sku_id + self.token
-	url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'get_sku_stock', '')) % (sku_id) + self.token
+        # url = urljoin(URL, UPDATE_SKU) % sku_id + self.token
+        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'get_sku_stock', '')) % (sku_id) + self.token
         json_response = self.get_response(url)
         return json_response
 
@@ -182,10 +185,10 @@ class RetailoneAPI:
         if user:
             self.user = user
 
-        #url = urljoin(URL, UPDATE_SKU) % sku_id + self.token
-        #data = {"stock": stock_count}
-	url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'update_stock', '')) % (sku_id) + self.token
-	data = eval(LOAD_CONFIG.get(self.company_name, 'update_stock_dict', '') % stock_count)
+        # url = urljoin(URL, UPDATE_SKU) % sku_id + self.token
+        # data = {"stock": stock_count}
+        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'update_stock', '')) % (sku_id) + self.token
+        data = eval(LOAD_CONFIG.get(self.company_name, 'update_stock_dict', '') % stock_count)
 
         json_response = self.get_response(url, data, put=True)
         return json_response
@@ -197,8 +200,8 @@ class RetailoneAPI:
         if user:
             self.user = user
 
-        #url = urljoin(URL, UPDATE_ORDER) % order_id
-        #data = '{"status":"PICK_LIST_GEN"}'
+        # url = urljoin(URL, UPDATE_ORDER) % order_id
+        # data = '{"status":"PICK_LIST_GEN"}'
         url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'confirm_picklist', '')) % order_id
         data = eval(LOAD_CONFIG.get(self.company_name, 'confirm_picklist_dict', ''))
         json_response = self.get_response(url, data, put=True)
@@ -211,12 +214,12 @@ class RetailoneAPI:
         if user:
             self.user = user
 
-        #url = urljoin(URL, RETURNED_ORDERS) + self.token
+        # url = urljoin(URL, RETURNED_ORDERS) + self.token
 
         url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'sync_orders', ''))
 
-        #today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())/strftime('%Y-%m-%dT%H:%M:%SZ')
-	data = eval(LOAD_CONFIG.get(self.company_name, 'returned_order_dict', '') % ("0", int(user.id)))
+        # today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())/strftime('%Y-%m-%dT%H:%M:%SZ')
+        data = eval(LOAD_CONFIG.get(self.company_name, 'returned_order_dict', '') % ("0", int(user.id)))
 
         json_response = self.get_response(url, data)
         return json_response
@@ -229,8 +232,9 @@ class RetailoneAPI:
             self.user = user
 
         self.token = self.user.refresh_token
-        #url = urljoin(URL, RETURNS % (order_id, sku)) + self.token
-        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'return_sku_orders', '') % (order_id, sku)) + self.token
+        # url = urljoin(URL, RETURNS % (order_id, sku)) + self.token
+        url = urljoin(self.host,
+                      LOAD_CONFIG.get(self.company_name, 'return_sku_orders', '') % (order_id, sku)) + self.token
 
         json_response = self.get_response(url)
         return json_response
@@ -241,30 +245,31 @@ class RetailoneAPI:
             self.token = token
         if user:
             self.user = user
-	url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'market_data'))
-	if "form" in data:
-	    if data["form"] == "add":
-	        url = url + "?username=root&api_key=28231a94a648d6a7697ee346435f7d7bbfba8c6d"
-	        json_response = self.get_response(url, data = data, put=False)
-	    elif data["form"] in ['update','status']:
-	        data_id = str(int(data['id']))
-	        url = url + '?id=' + data_id
-		json_response = self.get_response(url, data = json.dumps(data), put=True)
+        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'market_data'))
+        if "form" in data:
+            if data["form"] == "add":
+                url = url + "?username=root&api_key=28231a94a648d6a7697ee346435f7d7bbfba8c6d"
+                json_response = self.get_response(url, data=data, put=False)
+            elif data["form"] in ['update', 'status']:
+                data_id = str(int(data['id']))
+                url = url + '?id=' + data_id
+                json_response = self.get_response(url, data=json.dumps(data), put=True)
         return json_response
 
     def get_seller_channels(self, token='', user=''):
         """ Add or Update Marketplace details for a particular User """
-	url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'market_data'))
+        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'market_data'))
         if token:
             self.token = token
         if user:
             self.user = user
-            url = url + '?user=' + str(user.id) + '&source=stockone&email='+str(user.email)+'&username='+str(user.username)
+            url = url + '?user=' + str(user.id) + '&source=stockone&email=' + str(user.email) + '&username=' + str(
+                user.username)
         json_response = self.get_response(url)
         return json_response
 
     def get_all_channel_data(self, token='', user=''):
-	url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'channel_data_url'))
+        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'channel_data_url'))
         if token:
             self.token = token
         url = url + 'all?username=root&api_key=28231a94a648d6a7697ee346435f7d7bbfba8c6d'
@@ -272,15 +277,15 @@ class RetailoneAPI:
         return json_response
 
     def pull_marketplace_data(self, data, token='', user=''):
-	url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'pull_data_url'))
+        url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'pull_data_url'))
         if token:
             self.token = token
-	if user:
-	    self.user = user
-	url = url + data
-	try:
-	    json_response = self.get_response(url)
-	except:
-	    json_response = { 'errorCode' : "Pull Now Failed" }
-        
-	return json_response
+        if user:
+            self.user = user
+        url = url + data
+        try:
+            json_response = self.get_response(url)
+        except:
+            json_response = {'errorCode': "Pull Now Failed"}
+
+        return json_response

@@ -304,13 +304,13 @@ def validate_ingram_orders(orders, user='', company_name='', is_cancelled=False)
             order_detail_present = OrderDetail.objects.filter(**valid_order)
             if order_detail_present:
                 if int(order_detail_present[0].status) == 1:
-                    message = 'Duplicate Order, ignore at Stockone'
+                    message = 'Duplicate Order, ignored at Stockone'
                 elif int(order_detail_present[0].status) == 3:
                     error_code = "5002"
-                    message = 'Order is already return at Stockone'
+                    message = 'Order is already returned at Stockone'
                 elif int(order_detail_present[0].status) == 4:
                     error_code = "5003"
-                    message = 'Order is already cancell at Stockone'
+                    message = 'Order is already cancelled at Stockone'
                 failed_status.append({ "OrderId": ingram_order_id,
                     "Result": {"Errors": [
                         {

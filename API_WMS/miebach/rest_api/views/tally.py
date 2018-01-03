@@ -11,7 +11,7 @@ from django.contrib import auth
 from miebach_admin.models import *
 from common import *
 from miebach_utils import *
-from tally.tally.api import *
+#from tally.tally.api import *
 
 
 class TallyAPI:

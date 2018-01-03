@@ -684,7 +684,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         if isinstance(order_data['order_id'], float):
             order_data['order_id'] = str(int(order_data['order_id'])).upper()
         if isinstance(order_data['original_order_id'], float):
-            order_data['original_order_id'] = str(int(order_data['order_id'])).upper()
+            order_data['original_order_id'] = str(int(order_data['original_order_id'])).upper()
         if order_data['marketplace']:
             order_data['marketplace'] = order_data['marketplace'].upper()
         if order_data.has_key('order_code'):

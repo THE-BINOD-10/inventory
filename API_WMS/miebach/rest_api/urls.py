@@ -5,7 +5,7 @@ from django.conf import settings
 from rest_api.views import *
 from rest_api.views.tally import *
 #urlpatterns = patterns('rest_api.views',
-tally_api = TallyAPI()
+#tally_api = TallyAPI()
 
 # urlpatterns = patterns('rest_api.views',
 urlpatterns = [
@@ -440,9 +440,9 @@ urlpatterns += [
     url(r'update_picklist_loc/', update_picklist_loc),
 
     #Tally API
-    url('^GetItemMaster/', tally_api.get_item_master),
-    url('^GetSupplierMaster/', tally_api.get_supplier_master),
-    url('^GetCustomerMaster/', tally_api.get_customer_master),
+    #url('^GetItemMaster/', tally_api.get_item_master),
+    #url('^GetSupplierMaster/', tally_api.get_supplier_master),
+    #url('^GetCustomerMaster/', tally_api.get_customer_master),
 
     # Barcodes
     url('^get_format_types/', get_format_types)

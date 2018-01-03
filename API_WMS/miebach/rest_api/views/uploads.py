@@ -687,8 +687,11 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             order_data['original_order_id'] = str(int(order_data['order_id'])).upper()
         if order_data['marketplace']:
             order_data['marketplace'] = order_data['marketplace'].upper()
-        if order_data['order_code']:
+        if order_data.has_key('order_code'):
             order_data['order_code'] = order_data['order_code'].upper()
+        if order_data.has_key('telephone'):
+            if isinstance(order_data['telephone'], float):
+                order_data['telephone'] = str(int(order_data['telephone']))
 
         log.info("Order Saving Started %s" % (datetime.datetime.now()))
         sku_ids = check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict,
@@ -1045,6 +1048,8 @@ def validate_upload_orderid_awb(request, reader, user, no_of_rows, fname, file_t
                 if not value:
                     index_status.setdefault(count, set()).add('AWB No. not should not be empty')
                 elif value:
+                    if isinstance(value, float):
+                        value = str(int(value)).upper()
                     orderid_awb_dict['awb_no'] = value
                     if value in awb_list:
                         index_status.setdefault(row_idx, set()).add('Duplicate AWB No. Present in the sheet')
@@ -1053,7 +1058,7 @@ def validate_upload_orderid_awb(request, reader, user, no_of_rows, fname, file_t
                 if not value:
                     index_status.setdefault(count, set()).add('Courier Name should not be empty')
                 elif value:
-                    orderid_awb_dict['courier_name'] = value
+                    orderid_awb_dict['courier_name'] = value.upper()
             elif key == 'marketplace':
                 if value:
                     orderid_awb_dict['marketplace'] = value.upper()

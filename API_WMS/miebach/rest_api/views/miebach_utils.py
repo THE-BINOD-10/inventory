@@ -67,7 +67,8 @@ SUPPLIER_DATA = {'name': '', 'address': '',
 
 SIZE_DATA = {'size_name': '', 'size_value': '', 'creation_date': datetime.datetime.now()}
 
-PRICING_DATA = {'sku': '', 'price_type': '', 'price': 0, 'discount': 0, 'creation_date': datetime.datetime.now()}
+PRICING_DATA = {'sku': '', 'price_type': '', 'price': 0, 'discount': 0,
+                'min_unit_range': 0, 'max_unit_range': 0, 'creation_date': datetime.datetime.now()}
 
 ISSUE_DATA = {'issue_title': '', 'name': '', 'email_id': '',
               'priority': '', 'status': 'Active',
@@ -599,7 +600,7 @@ CUSTOMER_FIELDS = ((('Customer ID *', 'id', 60), ('Customer Name *', 'name', 256
                    (('Address *', 'address'), ('Status', 'status', 11)),)
 
 CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': '',
-                 'tax_type': ''}
+                 'tax_type': '', 'lead_time': 0, 'is_distributor': 0}
 
 PRODUCTION_STAGES = {'Apparel': ['Raw Material Inspection', 'Fabric Washing', 'Finishing'],
                      'Default': ['Raw Material Inspection',
@@ -652,8 +653,8 @@ CUSTOMER_SKU_MAPPING_HEADERS = OrderedDict(
 ADD_USER_DICT = {'username': '', 'first_name': '', 'last_name': '', 'password': '', 'email': ''}
 
 ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', u'state': '', 'pin_code': '',
-                      'address': '',
-                      'phone_number': '', 'prefix': '', 'location': ''}
+                      'address': '', 'phone_number': '', 'prefix': '', 'location': '', 'warehouse_type': '',
+                      'warehouse_level': 0}
 
 PICKLIST_EXCEL = OrderedDict((('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'), ('Zone', 'zone'),
                               ('Location', 'location'),
@@ -899,7 +900,8 @@ PERMISSION_DICT = OrderedDict((
                        ("Customer Master", "add_customermaster"), ("Customer SKU Mapping", "add_customersku"),
                        ("BOM Master", "add_bommaster"),
                        ("Vendor Master", "add_vendormaster"), ("Discount Master", "add_categorydiscount"),
-                       ("Custom SKU Template", "add_productproperties"), ("Size Master", "add_sizemaster"))),
+                       ("Custom SKU Template", "add_productproperties"), ("Size Master", "add_sizemaster"),
+                       ('Pricing Master', 'add_pricemaster'), ('Network Master', 'add_networkmaster'))),
 
     # Inbound
     ("INBOUND_LABEL", (("Raise PO", "add_openpo"), ("Receive PO", "add_purchaseorder"),
@@ -1072,6 +1074,9 @@ STYLE_DETAIL_HEADERS = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description'
                                     ('1-Day Stock', 'physical_stock'), ('3-Day Stock', 'all_quantity')
                                     ))
 
+STYLE_DETAIL_WITHOUT_STATIC_LEADTIME = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description', 'sku_desc'),
+                                                    ('Size', 'sku_size')))
+
 TAX_TYPES = OrderedDict((('DEFAULT', 0), ('VAT', 5.5), ('CST', 2)))
 D_TAX_TYPES = OrderedDict((('DEFAULT', 0), ('VAT', 6), ('CST', 2)))
 
@@ -1112,16 +1117,32 @@ BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details'
 BARCODE_ADDRESS_DICT = {
     'adam_clothing1': 'Adam Exports 401, 4th Floor,\n Pratiek Plazza, S.V.Road,\n Goregaon West, Mumbai - 400062.\n MADE IN INDIA'}
 
-PRICING_MASTER_HEADERS = ['SKU Code', 'Selling Price type', 'Price', 'Discount']
+PRICING_MASTER_HEADERS = ['SKU Code', 'Selling Price type', 'Min Range', 'Max Range', 'Price', 'Discount']
 
-PRICE_DEF_EXCEL = OrderedDict((('sku_id', 0), ('price_type', 1), ('price', 2), ('discount', 3)))
+PRICE_DEF_EXCEL = OrderedDict((('sku_id', 0), ('price_type', 1),
+                               ('min_unit_range', 2), ('max_unit_range', 3),
+                               ('price', 4), ('discount', 5)))
 
 PRICE_MASTER_DATA = {'sku_id': '', 'price_type': '', 'price': 0, 'discount': 0}
 
-SELLER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': '',
-               'margin': 0}
+NETWORK_MASTER_HEADERS = ['Destination Location Code', 'Source Location Code', 'Lead Time',
+                          'Sku Stage', 'Priority']
+NETWORK_MASTER_HEADER = OrderedDict([('Destination Location Code', 'dest_location_code'),
+                                     ('Source Location Code', 'source_location_code'),
+                                     ('Lead Time', 'lead_time'), ('Sku Stage', 'sku_stage'),
+                                     ('Priority', 'priority')])
 
-USER_SKU_EXCEL = {'warehouse_user': SKU_HEADERS, 'marketplace_user': MARKET_USER_SKU_HEADERS, 'customer': SKU_HEADERS}
+NETWORK_DEF_EXCEL = OrderedDict((('dest_location_code', 0), ('source_location_code', 1),
+                                 ('lead_time', 2), ('sku_stage', 3), ('priority', 4)))
+
+NETWORK_MASTER_DATA = {'dest_location_code': '', 'source_location_code': '',
+                       'lead_time': '', 'sku_stage': '', 'priority': ''}
+
+SELLER_DATA = {'name': '', 'address': '', 'phone_number': '',
+               'email_id': '', 'status': 1, 'price_type': '', 'margin': 0}
+
+USER_SKU_EXCEL = {'warehouse_user': SKU_HEADERS, 'marketplace_user': MARKET_USER_SKU_HEADERS,
+                  'customer': SKU_HEADERS}
 
 USER_SKU_EXCEL_MAPPING = {'warehouse_user': SKU_DEF_EXCEL, 'marketplace_user': MARKETPLACE_SKU_DEF_EXCEL,
                           'customer': SKU_DEF_EXCEL}
@@ -1248,7 +1269,7 @@ ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name', 'Marketp
 ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('courier_name', 2), ('marketplace', 3)))
 
 # Company logo names
-COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png'}
+COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 'sm_admin': 'sm-brand.jpg'}
 
 # Configurtions Mapping
 CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 'show_mrp': 'show_mrp',
@@ -1277,7 +1298,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'fifo_switch': 'fifo_switch',
                         'internal_mails': 'Internal Emails', 'increment_invoice': 'increment_invoice',
                         'create_shipment_type': 'create_shipment_type',
-                        'auto_allocate_stock': 'auto_allocate_stock'
+                        'auto_allocate_stock': 'auto_allocate_stock', 'priceband_sync': 'priceband_sync', 'auto_confirm_po': 'auto_confirm_po',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

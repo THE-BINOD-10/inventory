@@ -9,3 +9,4 @@ from uploads import *
 from retailone import *
 from stockone import *
 from pos import *
+from uploaded_pos import *

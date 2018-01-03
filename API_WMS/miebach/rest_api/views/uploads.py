@@ -915,6 +915,17 @@ def pricing_master_form(request, user=''):
 
 @csrf_exempt
 @get_admin_user
+def network_master_form(request, user=''):
+    returns_file = request.GET['download-network-master']
+    if returns_file:
+        return error_file_download(returns_file)
+
+    wb, ws = get_work_sheet('Network', NETWORK_MASTER_HEADERS)
+    return xls_to_response(wb, '%s.network_master_form.xls' % str(user.id))
+
+
+@csrf_exempt
+@get_admin_user
 def order_label_mapping_form(request, user=''):
     label_file = request.GET['order-label-mapping-form']
     if label_file:
@@ -2882,13 +2893,19 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
 
             elif key == 'price_type':
                 if cell_data:
-                    price_types = list(
-                        PriceMaster.objects.filter(sku__user=user.id).values_list('price_type', flat=True).distinct())
-                    if not cell_data in price_types:
+                    price_band_flag = get_misc_value('priceband_sync', user.id)
+                    if price_band_flag == 'true':
+                        admin_user = get_admin(user)
+                        price_types = PriceMaster.objects.filter(sku__user=admin_user.id). \
+                            values_list('price_type', flat=True).distinct()
+                    else:
+                        price_types = PriceMaster.objects.filter(sku__user=user.id).values_list('price_type',
+                                                                                                flat=True).distinct()
+                    if cell_data not in price_types:
                         index_status.setdefault(row_idx, set()).add('Invalid Selling Price Type')
             elif key == 'tax_type':
                 if cell_data:
-                    if not cell_data in TAX_TYPE_ATTRIBUTES.values():
+                    if cell_data not in TAX_TYPE_ATTRIBUTES.values():
                         index_status.setdefault(row_idx, set()).add('Invalid Tax Type')
 
     if not index_status:
@@ -3278,54 +3295,46 @@ def sales_return_order(data, user):
 
 def pricing_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
     price_file_mapping = copy.deepcopy(PRICE_DEF_EXCEL)
+    excel_records_map = {}
     for row_idx in range(1, no_of_rows):
         if not price_file_mapping:
             continue
 
-        data_dict = copy.deepcopy(PRICE_MASTER_DATA)
-        price_master_obj = None
+        each_row_map = copy.deepcopy(PRICE_DEF_EXCEL)
         for key, value in price_file_mapping.iteritems():
-            cell_data = get_cell_data(row_idx, price_file_mapping[key], reader, file_type)
+            each_row_map[key] = get_cell_data(row_idx, value, reader, file_type)
 
-            if key == 'sku_id':
-                if isinstance(cell_data, (int, float)):
-                    cell_data = int(cell_data)
-                cell_data = str(xcode(cell_data))
+        sku_code, price_type = each_row_map['sku_id'], each_row_map['price_type']
+        max_amount, min_amount = each_row_map['max_unit_range'], each_row_map['min_unit_range']
+        discount, price = each_row_map['discount'], each_row_map['price']
+        excel_records_map.setdefault((user, sku_code, price_type), []).append((min_amount, max_amount, price, discount))
 
-                wms_code = cell_data
-                if wms_code:
-                    sku_data = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
-                    data_dict[key] = sku_data[0].id
-                    if price_master_obj:
-                        price_master_obj = price_master_obj[0]
-            elif key == 'price_type':
-                data_dict[key] = cell_data
-                if data_dict['sku_id'] and cell_data:
-                    price_instance = PriceMaster.objects.filter(sku_id=data_dict['sku_id'], sku__user=user.id,
-                                                                price_type=cell_data)
-                    if price_instance:
-                        price_master_obj = price_instance[0]
-                data_dict[key] = cell_data
+    for key, vals in excel_records_map.iteritems():
+        user, sku_code, price_type = key
+        price_obj = PriceMaster.objects.filter(sku__user=user.id, sku__sku_code=sku_code, price_type=price_type)
+        if price_obj:
+            price_obj.delete()
 
-            elif key in ['price', 'discount']:
-                if not cell_data:
-                    cell_data = 0
-                if price_master_obj and cell_data:
-                    setattr(price_master_obj, key, cell_data)
-                data_dict[key] = cell_data
+        sku_data = SKUMaster.objects.filter(wms_code=sku_code, user=user.id)
+        if sku_data:
+            each_row_map['sku_id'] = sku_data[0].id
 
-            elif cell_data:
-                data_dict[key] = cell_data
-                if price_master_obj:
-                    setattr(price_master_obj, key, cell_data)
-                data_dict[key] = cell_data
-        if price_master_obj:
-            price_master_obj.save()
+        for val in vals:
+            min_amount, max_amount, price, discount = val
 
-        if not price_master_obj:
-            price_master = PriceMaster(**data_dict)
-            price_master.save()
+            if not discount:
+                each_row_map['discount'] = 0
 
+            each_row_map['max_unit_range'] = max_amount
+            each_row_map['min_unit_range'] = min_amount
+            each_row_map['price'] = price
+            each_row_map['price_type'] = price_type
+            try:
+                price_master = PriceMaster(**each_row_map)
+                price_master.save()
+            except:
+                import traceback
+                log.debug(traceback.format_exc())
     return 'success'
 
 
@@ -3406,6 +3415,113 @@ def pricing_master_upload(request, user=''):
         return HttpResponse(status)
 
     pricing_excel_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
+
+    return HttpResponse('Success')
+
+
+@csrf_exempt
+def validate_network_form(request, reader, no_of_rows, fname, user, file_type='xls'):
+    index_status = {}
+
+    network_file_mapping = copy.deepcopy(NETWORK_DEF_EXCEL)
+    if not network_file_mapping:
+        return 'Invalid File'
+    warehouse_users = UserGroups.objects.filter(admin_user=user.id).values_list('user_id')
+    for row_idx in range(1, no_of_rows):
+        for key, value in network_file_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, network_file_mapping[key], reader, file_type)
+            if key == 'dest_location_code':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add("Destination Location Code Missing")
+                else:
+                    if cell_data not in warehouse_users:
+                        index_status.setdefault(row_idx, set()).add('Create Destination Location Code first.')
+            elif key == 'source_location_code':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add("Source Location Code Missing")
+                else:
+                    if cell_data not in warehouse_users:
+                        index_status.setdefault(row_idx, set()).add('Create Source Location Code first.')
+            elif key == 'lead_time':
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Invalid Lead Time')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Lead Time Missing')
+            elif key == 'sku_stage':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Sku Stage Missing')
+            elif key == 'priority':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Priority Missing')
+            else:
+                index_status.setdefault(row_idx, set()).add('Invalid Field')
+
+    if not index_status:
+        return 'Success'
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+
+def network_excel_upload(request, reader, no_of_rows, file_type='xls'):
+    network_file_mapping = copy.deepcopy(NETWORK_DEF_EXCEL)
+    for row_idx in range(1, no_of_rows):
+        if not network_file_mapping:
+            continue
+        each_row_map = copy.deepcopy(NETWORK_DEF_EXCEL)
+        for key, value in network_file_mapping.iteritems():
+            each_row_map[key] = get_cell_data(row_idx, value, reader, file_type)
+
+        dest_lc_code, src_lc_code = each_row_map['dest_location_code'], each_row_map['source_location_code']
+        sku_stage = each_row_map['sku_stage']
+        network_obj = NetworkMaster.objects.filter(dest_location_code=dest_lc_code, source_location_code=src_lc_code,
+                                                   sku_stage=sku_stage)
+        if not network_obj:
+            each_row_map['dest_location_code_id'] = each_row_map.pop('dest_location_code')
+            each_row_map['source_location_code_id'] = each_row_map.pop('source_location_code')
+            network_master = NetworkMaster(**dict(each_row_map))
+            network_master.save()
+        else:
+            network_obj[0].lead_time = each_row_map['lead_time']
+            network_obj[0].priority = each_row_map['priority']
+            network_obj[0].save()
+
+    return 'success'
+
+
+@get_admin_user
+def network_master_upload(request, user=''):
+    fname = request.FILES['files']
+    if fname.name.split('.')[-1] != 'xls' and fname.name.split('.')[-1] != 'xlsx':
+        return HttpResponse('Invalid File Format')
+
+    try:
+        open_book = open_workbook(filename=None, file_contents=fname.read())
+        open_sheet = open_book.sheet_by_index(0)
+    except:
+        return HttpResponse('Invalid File')
+
+    file_type = 'xls'
+    reader = open_sheet
+    no_of_rows = reader.nrows
+
+    status = validate_network_form(request, reader, no_of_rows, fname, user, file_type=file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+
+    network_excel_upload(request, reader, no_of_rows, file_type=file_type)
 
     return HttpResponse('Success')
 

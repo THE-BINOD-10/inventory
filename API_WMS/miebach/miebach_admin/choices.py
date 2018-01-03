@@ -1,0 +1,1 @@
+UNIT_TYPE_CHOICES = (('quantity', 'Quantity'), ('amount', 'Amount'))

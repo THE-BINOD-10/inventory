@@ -858,6 +858,7 @@ def switches(request, user=''):
                        'grn_scan_option': 'grn_scan_option',
                        'invoice_titles': 'invoice_titles',
                        'show_imei_invoice': 'show_imei_invoice',
+                       'priceband_sync': 'priceband_sync',
                        'display_remarks_mail': 'display_remarks_mail',
                        'create_seller_order': 'create_seller_order',
                        'invoice_remarks': 'invoice_remarks',
@@ -866,7 +867,10 @@ def switches(request, user=''):
                        'increment_invoice': 'increment_invoice',
                        'create_shipment_type': 'create_shipment_type',
                        'dashboard_order_level': 'dashboard_order_level',
-                       'auto_allocate_stock': 'auto_allocate_stock'
+                       'auto_allocate_stock': 'auto_allocate_stock',
+                       'generic_wh_level': 'generic_wh_level',
+                       'auto_confirm_po': 'auto_confirm_po',
+                       'customer_pdf_remarks': 'customer_pdf_remarks',
                        }
 
         toggle_field, selection = "", ""

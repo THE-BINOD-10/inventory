@@ -1051,11 +1051,15 @@ def validate_upload_orderid_awb(request, reader, user, no_of_rows, fname, file_t
                     orderid_awb_dict['marketplace'] = value.upper()
                 else:
                     orderid_awb_dict['marketplace'] = ''
-                marketplace_valid = list(OrderDetail.objects.filter( original_order_id = orderid_awb_dict['original_order_id'], 
-                    user = user.id).values_list('marketplace', flat=True).distinct())
+            
+                order_id = ''.join(re.findall('\d+', orderid_awb_dict['original_order_id'] ))
+                order_code = ''.join(re.findall('\D+', orderid_awb_dict['original_order_id'] ))
+                marketplace_valid = list(OrderDetail.objects.filter(Q(original_order_id= orderid_awb_dict['original_order_id']) |
+                    Q(order_id=order_id, order_code= order_code), user=user.id).values_list('marketplace', flat=True).distinct())
                 marketplace_valid = list(set(map(lambda x:x.upper(), marketplace_valid)))
                 if not orderid_awb_dict['marketplace'] in marketplace_valid:
                     index_status.setdefault(row_idx, set()).add('Invalid Marketplace for this Order ID')
+
         all_data_list.append(orderid_awb_dict)
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')

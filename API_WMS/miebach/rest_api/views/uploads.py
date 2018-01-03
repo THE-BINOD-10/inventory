@@ -681,6 +681,14 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         if not order_data.get('order_id', ''):
             order_data['order_id'] = get_order_id(user_id)
             order_data['order_code'] = 'MN'
+        if isinstance(order_data['order_id'], float):
+            order_data['order_id'] = str(int(order_data['order_id'])).upper()
+        if isinstance(order_data['original_order_id'], float):
+            order_data['original_order_id'] = str(int(order_data['order_id'])).upper()
+        if order_data['marketplace']:
+            order_data['marketplace'] = order_data['marketplace'].upper()
+        if order_data['order_code']:
+            order_data['order_code'] = order_data['order_code'].upper()
 
         log.info("Order Saving Started %s" % (datetime.datetime.now()))
         sku_ids = check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict,
@@ -1018,11 +1026,11 @@ def validate_upload_orderid_awb(request, reader, user, no_of_rows, fname, file_t
         for key, val in order_mapping.iteritems():
             value = get_cell_data(row_idx, order_mapping[key], reader, file_type)
             if key == 'order_id':
-                if isinstance(value, float):
-                    value = str(int(value))
                 if not value:
                     index_status.setdefault(count, set()).add('Order ID should not be empty')
                 elif value:
+                    if isinstance(value, float):
+                        value = str(int(value)).upper()
                     order_obj = check_get_order_id(value, user)
                     if not order_obj:
                         index_status.setdefault(count, set()).add('Invalid Order ID')

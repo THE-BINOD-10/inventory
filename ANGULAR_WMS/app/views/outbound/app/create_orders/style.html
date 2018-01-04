@@ -64,7 +64,7 @@
               <table class="table table-bordered" ng-if="Style.def_lead_tm">
                 <thead>
                   <tr>
-                    <th ng-repeat="hd in Style.style_data.lead_times" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{hd}}</th>
+                    <th ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{hd}}</th>
                     <th>Quantity</th>
                     <th>Unit Rate</th>
                     <th>Total Price</th>
@@ -72,7 +72,7 @@
                 </thead>
                 <tbody>
                   <tr ng-repeat="style in Style.style_data.data">
-                    <td ng-repeat="hd in Style.style_data.lead_times" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{style[Style.style_headers[hd]]}}</td> 
+                    <td ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{style[Style.style_headers[hd]]}}</td> 
                     <td>
                       <input ng-if="style.quantity_status" class="form-control" size="5" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style);" ng-class="service.get_decimal_perm()">
                       <input ng-if="!style.quantity_status && Style.generic_wharehouse_level == 'false'" class="form-control" size="5" value="{{style.no_items}}" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style);" ng-class="service.get_decimal_perm()" readonly>

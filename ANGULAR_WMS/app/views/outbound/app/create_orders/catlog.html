@@ -72,6 +72,7 @@
         <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
         <br>
         <div style="height: 110px">
+          <div ng-if="permissions.user_type != 'customer'">
           <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.variants[0].style_name }}</p>
           <div class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">
             <span class="pull-left">Stock: <b>{{ item.style_quantity }}</b></span>
@@ -94,15 +95,18 @@
                 </tr>
               </tbody>
             </table>
-          </div> 
-          <!--<p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.sku_class }}</p>
+          </div>
+          </div>
+          <div ng-if="permissions.user_type == 'customer'">
+          <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.sku_class }}</p>
           <span class="style_name" style="font-size: 14px" ng-if="item.variants[0].pricing_price">{{ showCase.service.price_format(item.variants[0].pricing_price) }}</span>
           <span class="style_name" style="font-size: 14px" ng-if="!(item.variants[0].pricing_price) && item.variants[0].price">{{ showCase.service.price_format(item.variants[0].price)  }}</span>
           <p class="style_name" style="font-size: 14px" style="font-size: 12px;" title="{{ item.variants[0].style_name }}">{{ item.variants[0].style_name }}</p>
           <p class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</p>
           <div>
             <span style="font-size: 14px">&#8377; {{ item.variants[0].mrp }}</span>
-          </div>-->
+          </div>
+          </div>
         </div>
       </div>
     </div>

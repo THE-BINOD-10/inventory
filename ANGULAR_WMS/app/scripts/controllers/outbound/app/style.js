@@ -259,7 +259,6 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       });
 
       vm.insert_customer_cart_data(send);
-      vm.service.showNoty("Succesfully Added to Cart", "success", "bottomRight");
     } else {
      
       vm.service.showNoty("Please Enter Quantity", "success", "bottomRight");

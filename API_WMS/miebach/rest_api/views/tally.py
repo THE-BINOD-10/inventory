@@ -11,7 +11,8 @@ from django.contrib import auth
 from miebach_admin.models import *
 from common import *
 from miebach_utils import *
-from tally.tally.api import *
+#from tally.tally.api import *
+
 
 class TallyAPI:
     def __init__(self, user=''):
@@ -21,13 +22,13 @@ class TallyAPI:
         tally_obj = TallyConfiguration.objects.filter(user_id=user)
         if tally_obj:
             self.tally_dict = tally_obj[0].json()
-        self.headers = { 'ContentType' : self.content_type }
+        self.headers = {'ContentType': self.content_type}
 
     def get_item_master(self, limit=10):
         send_ids = []
         user_id = self.user
-        exclude_ids = OrdersAPI.objects.filter(user=user_id, engine_type='Tally', order_type='sku', status__in=[1,9]).\
-                                        values_list('order_id', flat=True)
+        exclude_ids = OrdersAPI.objects.filter(user=user_id, engine_type='Tally', order_type='sku', status__in=[1, 9]). \
+            values_list('order_id', flat=True)
         sku_masters = SKUMaster.objects.exclude(id__in=exclude_ids).filter(user=user_id)[:limit]
         tally_company_name = 'Mieone'
         for sku_master in sku_masters:
@@ -73,7 +74,6 @@ class TallyAPI:
                 credit_period = self.tally_dict.get('credit_perod')
             data_dict['default_credit_period'] = credit_period
             data_dict['maintainBillWiseDetails'] = STATUS_DICT[self.tally_dict.get('maintain_bill', 0)]
-
 
     def get_supplier_master(self, limit=10):
         user_id = self.user

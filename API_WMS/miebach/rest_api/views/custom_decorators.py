@@ -4,7 +4,8 @@ from django.contrib.auth.models import User
 from django.contrib import auth
 from datetime import datetime
 from miebach_admin.models import UserProfile, UserAccessTokens, AdminGroups
-from django.contrib.auth.models import User,Permission,Group
+from django.contrib.auth.models import User, Permission, Group
+
 
 def add_user_tokens(code, token, user_profile):
     """ Adding user tokens to DB """
@@ -16,6 +17,7 @@ def add_user_tokens(code, token, user_profile):
                                   expires_in=token.get('expires_in'))
     user_token.save()
 
+
 def update_token_details(code, token, user):
     """ Update token details on page refresh """
     user_token = UserAccessTokens.objects.get(user_profile__user_id=user.id)
@@ -23,6 +25,7 @@ def update_token_details(code, token, user):
     user_token.access_token = token.get('access_token')
     user_token.refresh_token = token.get('refresh_token')
     user_token.save()
+
 
 def get_user(seller_profile, code, token):
     """ Collecting User details with request.user """
@@ -47,14 +50,16 @@ def get_user(seller_profile, code, token):
 
     return user
 
+
 def login_required(f):
     """Login Decorator """
+
     def wrap(request, *args, **kwargs):
         """ this check the session if userid key exist, if not it will redirect to login page """
-        response_data = {message:"fail"}
+        response_data = {message: "fail"}
         if request.isAuthenticated():
-          response_data.message = "success"
- 
+            response_data.message = "success"
+
         user.backend = 'django.contrib.auth.backends.ModelBackend'
         auth.login(request, user)
 
@@ -63,6 +68,7 @@ def login_required(f):
     wrap.__doc__ = f.__doc__
     wrap.__name__ = f.__name__
     return wrap
+
 
 def get_admin_user(f):
     def wrap(request, *args, **kwargs):
@@ -79,15 +85,15 @@ def get_admin_user(f):
                     break
         if not user:
             user = request.user
-            group,created = Group.objects.get_or_create(name=user.username)
+            group, created = Group.objects.get_or_create(name=user.username)
             admin_dict = {'group_id': group.id, 'user_id': user.id}
-            admin_group  = AdminGroups(**admin_dict)
+            admin_group = AdminGroups(**admin_dict)
             admin_group.save()
             user.groups.add(group)
 
         kwargs['user'] = user
         return f(request, *args, **kwargs)
+
     wrap.__doc__ = f.__doc__
     wrap.__name__ = f.__name__
     return wrap
-

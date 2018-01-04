@@ -4,7 +4,7 @@
       <span class="pull-right" ng-click="showCase.showFilter = false" style="cursor: pointer"> X </span>
     </div>
     <div class="toggle-body">
-      <div class="filter-box">
+      <div class="filter-box" ng-if="permissions.user_type == 'customer'">
         <div class="box-header">
           <span>
             <input type="checkbox" ng-model="showCase.filterData.hotRelease">

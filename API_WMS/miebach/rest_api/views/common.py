@@ -1384,15 +1384,12 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         if not sku:
             return 'Invalid WMS Code'
         sku_id = sku[0].id
-
     if loc:
         location = LocationMaster.objects.filter(location=loc, zone__user=user.id)
         if not location:
             return 'Invalid Location'
-
     if quantity == '':
         return 'Quantity should not be empty'
-
     if pallet:
         pallet_present = PalletDetail.objects.filter(user = user.id, status = 1, pallet_code = pallet)
         if not pallet_present:
@@ -1406,11 +1403,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
     if quantity:
         quantity = float(quantity)
         stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=location[0].id, sku__user=user.id)
-<<<<<<< HEAD
         if pallet:
             stocks = stocks.filter(pallet_detail_id = pallet_present)
-=======
->>>>>>> WMS_DEV
         total_stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
         if not total_stock_quantity:
             total_stock_quantity = 0
@@ -1432,7 +1426,6 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                     setattr(stock, 'quantity', 0)
                     stock.save()
                     remaining_quantity = remaining_quantity - stock_quantity
-<<<<<<< HEAD
         if not stocks:            
             if not pallet:
                 dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(),
@@ -1443,14 +1436,6 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                     quantity=quantity, status=1, creation_date=now_date, updation_date=now_date,
                     location_id=location[0].id, sku_id=sku_id, pallet_detail_id=pallet_present.id)
                 dest_stocks.save()
-=======
-        if not stocks:
-            dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=quantity,
-                                      status=1,
-                                      creation_date=now_date, updation_date=now_date, location_id=location[0].id,
-                                      sku_id=sku_id)
-            dest_stocks.save()
->>>>>>> WMS_DEV
     if quantity == 0:
         StockDetail.objects.filter(sku_id=sku_id, location__location=location[0].location, sku__user=user.id).update(
             quantity=0)
@@ -1483,17 +1468,11 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
     data['adjusted_location'] = location[0].id
     data['creation_date'] = now
     data['updation_date'] = now
-<<<<<<< HEAD
     inv_obj = InventoryAdjustment.objects.filter(cycle__cycle=dat.cycle, adjusted_location=location[0].id, 
         cycle__sku__user=user.id)
     if pallet:
         data['pallet_detail_id'] = pallet_present.id
         inv_obj = inv_obj.filter(pallet_detail_id = pallet_present.id)
-=======
-
-    inv_obj = InventoryAdjustment.objects.filter(cycle__cycle=dat.cycle, adjusted_location=location[0].id,
-                                                 cycle__sku__user=user.id)
->>>>>>> WMS_DEV
     if inv_obj:
         inv_obj = inv_obj[0]
         inv_obj.adjusted_quantity = quantity

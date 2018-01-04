@@ -6762,7 +6762,7 @@ def get_move_inventory(start_index, stop_index, temp_data, search_term, status, 
             if positive_difference == 0:
                 positive_items.remove(positive)
                 break
-
+    
     all_data = []
     if status == 'adj':
         total_items = positive_items + negative_items

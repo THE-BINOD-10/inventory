@@ -563,16 +563,18 @@ def get_adjust_filter_data(search_params, user, sub_user):
     if search_parameters:
         adjustments = InventoryAdjustment.objects.filter(**search_parameters)
     temp_data['recordsTotal'] = len(adjustments)
-    temp_data['recordsFiltered'] = len(adjustments)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:
         adjustments = adjustments[start_index:stop_index]
     for data in adjustments:
         quantity = int(data.cycle.seen_quantity) - int(data.cycle.quantity)
-
-        temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.cycle.sku.sku_code), ('Location', data.cycle.location.location),
-                                                 ('Quantity', quantity), ('Date', str(data.creation_date).split('+')[0]),
-                                                 ('Remarks', data.reason) )))
-
+        temp_data['aaData'].append(OrderedDict(( ('SKU Code', data.cycle.sku.sku_code),
+                                                 ('Location', data.cycle.location.location),
+                                                 ('Quantity', quantity),
+                                                 ('Pallet Code', data.pallet_detail.pallet_code if data.pallet_detail else ''),
+                                                 ('Date', str(data.creation_date).split('+')[0]),
+                                                 ('Remarks', data.reason)
+                                              )))
     return temp_data
 
 

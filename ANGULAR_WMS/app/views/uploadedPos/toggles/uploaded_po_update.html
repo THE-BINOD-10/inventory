@@ -1,0 +1,109 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">{{showCase.title}}</h4>
+      </div>
+      <!-- body-->
+      <div class="modal-body">
+          <div class="clearfix">
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Serial Number </label>
+                  <input type="text" name="serial_no" class="form-control" ng-model="showCase.model_data.data.id" ng-readonly="showCase.update" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Name </label>
+                  <input type="text" name="name" class="form-control" ng-model="showCase.model_data.data.uploaded_user" ng-readonly="showCase.update" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Po Number </label>
+                  <input type="text" name="po_number" class="form-control" ng-model="showCase.model_data.data.po_number" ng-readonly="showCase.update" required>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Date </label>
+                  <input type="text" name="date" class="form-control" ng-model="showCase.model_data.data.uploaded_date" ng-readonly="showCase.update" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Customer Name </label>
+                  <input type="text" name="customer_name" class="form-control" ng-model="showCase.model_data.data.customer_name" ng-readonly="showCase.update" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Validate </label>
+                  <select class="form-control" name="verification_flag" ng-model="showCase.model_data.data.verification_flag">
+                    <option ng-repeat="data in showCase.status" ng-selected="data.value == showCase.model_data.data.verification_flag" value="{{data.value}}">{{data.name}}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+
+            <div class="row">
+              <div class="col-md-8">
+                <div class="form-group">
+                  <label class="control-label"> Remarks </label>
+                  <textarea placeholder="Type here..." rows="5" name="remarks" ng-model="showCase.model_data.data.remarks" class="form-control"></textarea>
+                </div>
+              </div>
+              <div class="col-md-4" style="margin-top:1.9em">
+                <div class="form-group">
+                  <center><a class="btn btn btn-success ng-binding" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;" href="{{showCase.model_data.data.uploaded_file}}">Download PO&nbsp;&nbsp;&nbsp;<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i> </a></center>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 col-md-offset-3">
+                <table class="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>SKU Code</th>
+                      <th>Quantity</th>
+                      <th>Unit Price</th>
+                      <th>Total Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat = "data in showCase.model_data.data.sku_quantity">
+                      <td>{{data.sku_code}}</td>
+                      <td>{{data.quantity}}</td>
+                      <td>{{data.unit_price}}</td>
+                      <td>{{data.invoice_amt}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div ng-include="'views/common/msg.html'"></div>
+        </div>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process" ng-if="!permissions.priceband_sync">
+          <span>Save</span>
+          <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process"></span>
+        </button>
+      </div>
+
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+  </form>
+</div>

@@ -2,8 +2,8 @@
   <div class="row style-menu" style="line-height: 40px;">
     <div class="col-md-4 col-sm-4 col-xs-6">
       <div class="menu-left">
-        <span ng-click="$state.go('user.App.MyOrders')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
-        <span ng-click="$state.go('user.App.MyOrders')" title="Go to Brand Page">Back</span>
+        <span ng-click="$state.go('user.App.MyOrders', {'state': order.status})"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="$state.go('user.App.MyOrders', {'state': order.status})" title="Go to Brand Page">Back</span>
       </div>
     </div>
     <div class="col-md-4 col-sm-4 hidden-xs">
@@ -18,21 +18,34 @@
   </div>
 
   <div class="clearfix app_body" style="padding-top: 40px; padding-bottom:20px;">
-    <div class="row">
+    <div class="row mb20" ng-if="order.loading">
       <div class="col-md-3 col-sm-2 col-xs-hidden">
       </div>
       <div class="col-md-6 col-sm-8 col-xs-12">
         <div class="detail-list">
+          <div class="detail-item border-grey" ng-if="order.loading">
+            <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order View -->
+    <div class="row" ng-if="order.status == 'orders'">
+      <div class="col-md-3 col-sm-2 col-xs-hidden">
+      </div>
+      <div class="col-md-6 col-sm-8 col-xs-12">
+        <div class="detail-list mb20" ng-repeat="order_details in order.order_details.data">
           <div class="detail-item border-grey detail-bg-grey">
             <div class="row">
               <div class="col-md-6 col-sm-6 col-xs-9">
-                <h4 class="detail-black"><b>Order ID: {{order.order_id}}</b></h4>
+                <h4 class="detail-black"><b>Order ID: {{order_details.order_id}}</b></h4>
                 <div class="row border-grey">
                   <div class="col-md-4 col-sm-6 col-xs-6 no-padding">
                     <span>Order Quantity</span>
                   </div>
                   <div class="col-md-4 col-sm-6 col-xs-6 detail-black">
-                    <span>: {{order.order_details.sum_data.quantity}}</span>
+                    <span>: {{order_details.sum_data.quantity}}</span>
                   </div>
                 </div>
                 <div class="row border-grey">
@@ -40,27 +53,29 @@
                     <span>Order Date</span>
                   </div>
                   <div class="col-md-4 col-sm-6 col-xs-6 detail-black">
-                    <span>: {{order.order_details.date}}</span>
+                    <span>: {{order_details.date}}</span>
                   </div>
                 </div>
                 <div class="row">
                   <div class="col-md-4 col-sm-6 col-xs-6 no-padding">
                     <span>Order Value</span>
                   </div>
-                  <div class="col-md-4 col-sm-6 col-xs-6 detail-black">
-                    <span>: Rs. {{order.order_details.sum_data.amount- order.order_details.tax  | number : 2}}</span>
+                  <div class="col-md-6 col-sm-6 col-xs-6 detail-black">
+                    <span>: Rs. {{order_details.sum_data.amount- order_details.tax  | number : 2}}</span>
                   </div>
                 </div>
               </div>
               <div class="col-md-6 col-sm-6 col-xs-3">
-                <span ng-if="order.order_details.status" class="label pull-right text-uppercase" ng-class="(order.getStatus(order.order_details.sum_data.quantity, order.order_details.sum_data.picked_quantity) == 'Open')? 'label-danger': 'label-success';" style="font-size: 12px;">{{order.getStatus(order.order_details.sum_data.quantity, order.order_details.sum_data.picked_quantity)}}</span>
+                <span ng-if="order_details.status" class="label pull-right text-uppercase" ng-class="(order.getStatus(order_details.sum_data.quantity, order_details.sum_data.picked_quantity) == 'Open')? 'label-danger': 'label-success';" style="font-size: 12px;">{{order.getStatus(order_details.sum_data.quantity, order_details.sum_data.picked_quantity)}}</span>
               </div>
             </div>
           </div>
+          
           <div class="detail-item border-grey" ng-if="order.loading">
              <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
           </div>
-          <div class="detail-item border-grey" style="cursor: pointer" ng-repeat="data in order.order_details.data">
+          
+          <div class="detail-item border-grey" ng-repeat="data in order_details.data">
             <div class="row">
               <section class="widget text-center no-margin">
                 <div class="col-md-5 col-sm-5 col-xs-12 no-padding">
@@ -72,29 +87,32 @@
                 </div>
                 <div class="widget-details col-md-7 col-sm-7 col-xs-8 text-left">
                   <small class="order-label">SKU Description</small>
-                  <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.sku__sku_desc}}</p>
+                  <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.sku__sku_desc}}</p><br>
+                  <small class="order-label" ng-if="data.schedule_date">Delivery Schedule Date</small>
+                  <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.schedule_date}}</p>
+                  <!--<span><b>Price:</b> <b style="color:#ed1c24">1234</b></span>-->
                 </div>
                 </div>
                 </div>
                 <div class="col-md-7 col-sm-7 col-xs-12 no-padding">
-                <div class="row">
-                <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-center">
-                  <small class="order-label">Ordered Qty</small>
-                  <p class="no-margin order-bold detail-black">{{data.quantity}}</p>
-                </div>
-                <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-center">
-                  <small class="order-label">Delivered Qty</small>
-                  <p class="no-margin order-bold detail-black">{{data.picked_quantity}}</p>
-                </div>
-                <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-center">
-                  <small class="order-label">Delta Qty</small>
-                  <p class="no-margin order-bold detail-black">{{data.quantity - data.picked_quantity}}</p>
-                </div>
-                <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-right">
-                  <small class="order-label">Amt</small>
-                  <p class="no-margin order-bold detail-black">Rs. {{data.invoice_amount | number : 2}}</p>
-                </div>
-                </div>
+                  <div class="row">
+                    <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-center">
+                      <small class="order-label">Ordered Qty</small>
+                      <p class="no-margin order-bold detail-black">{{data.quantity}}</p>
+                    </div>
+                    <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-center">
+                     <small class="order-label">Delivered Qty</small>
+                      <p class="no-margin order-bold detail-black">{{data.picked_quantity}}</p>
+                    </div>
+                    <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-center">
+                      <small class="order-label">Delta Qty</small>
+                      <p class="no-margin order-bold detail-black">{{data.quantity - data.picked_quantity}}</p>
+                    </div>
+                    <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-right">
+                      <small class="order-label">Amt</small>
+                      <p class="no-margin order-bold detail-black">Rs. {{data.invoice_amount | number : 2}}</p>
+                    </div>
+                  </div>
                 </div>
               </section>
             </div>
@@ -109,7 +127,7 @@
                     <span class="pull-right">Total:</span>
                   </div>
                   <div class="col-xs-4 detail-black">
-                    <span>Rs. {{order.order_details.sum_data.amount-order.order_details.tax  | number : 2}}</span>
+                    <span>Rs. {{order_details.sum_data.amount-order_details.tax  | number : 2}}</span>
                   </div>
                 </div>
                 <div class="row">
@@ -117,7 +135,7 @@
                     <span class="pull-right">Applicable Tax:</span>
                   </div>
                   <div class="col-xs-4 detail-black">
-                    <span>Rs. {{order.order_details.tax  | number : 2}}</span>
+                    <span>Rs. {{order_details.tax  | number : 2}}</span>
                   </div>
                 </div>
                 <div class="row detail-black" style="font-size: 16px;">
@@ -125,14 +143,24 @@
                     <span class="pull-right"><b>Total Amount:</b></span>
                   </div>
                   <div class="col-xs-4">
-                    <span><b>Rs. {{order.order_details.sum_data.amount | number : 2}}</b></span>
+                    <span><b>Rs. {{order_details.sum_data.amount | number : 2}}</b></span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
+          </div>
         </div>
+        <div ng-if="permissions.user_type == 'reseller'" ng-include="'views/outbound/app/create_orders/sku_wise_details.html'"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Enquiry View -->
+    <div class="row mb20" ng-if="order.status == 'enquiry'">
+      <div class="col-md-3 col-sm-2 col-xs-hidden"></div>
+      <div class="col-md-6 col-sm-8 col-xs-12">
+        <div ng-include="'views/outbound/app/create_orders/enquiry_order_detail.html'"></div>
+      </div>
       </div>
     </div>
   </div>

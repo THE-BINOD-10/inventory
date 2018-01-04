@@ -104,6 +104,11 @@
             <span>Pricing Master</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_networkmaster')">
+          <a ui-sref="app.masters.NetworkMaster">
+            <span>Network Master</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="show_tab('add_taxmaster')">
           <a ui-sref="app.masters.TaxMaster">
             <span>Tax Master</span>
@@ -242,7 +247,7 @@
             <span>Seller Stock</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="('add_poimeimapping')">
+        <li ui-sref-active="active" ng-show="show_tab('add_poimeimapping')">
           <a ui-sref="app.stockLocator.IMEITracker">
             <span>Serial Number Tracker</span>
           </a>
@@ -271,6 +276,11 @@
         <li ng-show="show_tab('add_picklistlocation')" ui-sref-active="active">
           <a ui-sref="app.outbound.PullConfirmation">
             <span>Pull Confirmation</span>
+          </a>
+        </li>
+        <li ng-show="permissions.user_type == 'distributor'" ui-sref-active="active">
+          <a ui-sref="app.outbound.EnquiryOrders">
+            <span>Enquiry Orders</span>
           </a>
         </li>
         <li ng-show="show_tab('add_shipmentinfo')" ui-sref-active="active">
@@ -319,6 +329,15 @@
       </a>
     </li>
     <!-- /ready pages -->
+
+    <!-- uploaded pages -->
+    <li ui-sref-active="active">
+      <a ui-sref="app.uploadedPOs">
+      <i class="fa fa-book" aria-hidden="true"></i>
+        <span>Uploaded PO's</span>
+      </a>
+    </li>
+    <!-- /uploaded pages -->
 
     <!-- extras -->
     <li data-ng-class="{open: $state.includes('app.reports')}">

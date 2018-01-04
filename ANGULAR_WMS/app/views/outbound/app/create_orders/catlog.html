@@ -18,6 +18,7 @@
         </a>
         <ul class="dropdown-menu">
           <li><a ng-click="$state.go('user.App.MyOrders');showCase.get_orders();">Your Orders</a></li>
+          <li><a ng-click="$state.go('user.App.CorporateOrders');">Corporate Orders</a></li>
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div>
@@ -29,80 +30,6 @@
   </div>
 
 <div class="app_body" scrolly="showCase.scroll(e)" style="position: relative">
-  <!--<div class="toggle-filter" ng-if="showCase.showFilter">
-    <div class="toggle-header">
-      <span>Filters</span>
-      <span class="pull-right" ng-click="showCase.showFilter = false" style="cursor: pointer"> X </span>
-    </div>
-    <div class="toggle-body">
-      <div class="filter-box">
-        <div class="box-header">
-          <span><b>Brands: </b></span>
-        </div>
-        <div class="box-body">
-            <span ng-repeat="brand in showCase.filterData.brands" ng-hide="!showCase.filterData.brandShow && $index > 5"><input type="checkbox" ng-model="showCase.filterData.selectedBrands[brand]" ng-click="showCase.checkFilters(brand, showCase.filterData.selectedBrands)">{{brand}}</br></span>
-            <a href="" ng-click="showCase.filterData.brandShow = true" ng-if="showCase.filterData.brands.length > 5" ng-hide="showCase.filterData.brandShow" style="text-decoration: underline;">Show More...</a>
-        </div>
-      </div>
-
-      <div class="filter-box">
-        <div class="box-header">
-          <span><b>Categories: </b></span>
-        </div>
-        <div class="box-body">
-            <span ng-repeat="cate in showCase.filterData.categories" ng-hide="!showCase.filterData.catShow && $index > 5"><input type="checkbox" ng-model="showCase.filterData.selectedCats[cate]" ng-click="showCase.checkFilters(cate, showCase.filterData.selectedCats)">{{cate}}</br></span>
-            <a href="" ng-click="showCase.filterData.catShow = true" ng-if="showCase.filterData.categories.length > 5" ng-hide="showCase.filterData.catShow" style="text-decoration: underline;">Show More...</a>
-        </div>
-      </div>
-
-      <div class="filter-box">
-        <div class="box-header">
-          <span><b>Colours: </b></span>
-        </div>
-        <div class="box-body">
-            <span ng-repeat="color in showCase.filterData.colors"  ng-hide="!showCase.filterData.colorShow && $index > 5"><input type="checkbox" ng-model="showCase.filterData.selectedColors[color]" ng-click="showCase.checkFilters(color, showCase.filterData.selectedColors)">{{color}}</br></span>
-            <a href="" ng-click="showCase.filterData.colorShow = true" ng-if="showCase.filterData.colors.length > 5" ng-hide="showCase.filterData.colorShow" style="text-decoration: underline;">Show More...</a>
-        </div>
-      </div>
-
-      <div class="filter-box">
-        <div class="box-header">
-          <span><b>Price Ranges: </b></span>
-        </div>
-        <div class="box-body mt10" style="overflow: auto;">
-          <input type="number" class="form-control pull-left" style="width:70px" ng-model="showCase.filterData.fromPrice">
-          <span class="pull-left mt5 ml5 mr5"> To </span>
-          <input type="number" class="form-control pull-left" style="width:70px" ng-model="showCase.filterData.toPrice">
-        </div>
-      </div>
-
-      <div class="filter-box">
-        <div class="box-header">
-          <span><b>Sizes: </b></span>
-        </div>
-        <div class="box-body mt10" style="overflow: auto;">
-          <table class="table table-bordered filter-table">
-            <thead>
-              <tr>
-                <th>Size</th>
-                <th>Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr ng-repeat="sizewise in showCase.filterData.brand_size_data">
-                <td style="text-align:center">{{sizewise}}</td>
-                <td style="text-align:center"><input name="{{sizewise}}" class="form-control number" type="string" placeholder="Stock Quantity" ng-model="showCase.filterData.size_filter[sizewise]"/></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div>
-        <button type="button" class="btn btn-danger pull-right" ng-click="showCase.applyFilters();">Apply</button>
-        <button type="button" class="btn btn-default pull-right mr10" ng-click="showCase.clearFilters();">Clear</button>
-      </div>
-    </div>
-  </div>-->
   <div class="row search-items mt15 search-box">
     <div class="row">
       <div class="col-md-1 col-sm-1 col-xs-12"></div>
@@ -113,89 +40,14 @@
         </div>
       </div>
       <div class="col-md-2 col-sm-2 col-xs-5" style="text-align: center;">
-        <!--<button class="btn btn-icon-icon" style="background: white;float:left">
-          <i class="fa fa-refresh" style="font-size: 15px;border-radius: 18px;color:white" title="Clear Filters" ng-click="showCase.clearFilters('size')"></i>
-        </button>-->
         <button class="btn btn-icon-icon" style="background: white;float:left;">
           <i class="fa fa-filter" style="font-size: 15px;border-radius: 18px;color:white" title="Show Filters" ng-click="showCase.showFilters()"></i>
         </button>
         <button class="btn btn-icon-icon ml10" style="background: white;float:left">
-          <i class="fa fa-download" style="font-size: 15px;border-radius: 18px;color:white" title="Download PDF" ng-click="showCase.downloadPdf()"></i>
+          <i class="fa fa-download" style="font-size: 15px;border-radius: 18px;color:white" title="Download PDF" ng-click="showCase.downloadPDF()"></i>
         </button>
       </div>
-      <!--<div class="col-md-1 col-sm-1 col-xs-1"></div>-->
     </div>
-    <div class="row hide">
-      <div class="col-md-1 col-sm-1 col-xs-1"></div>
-      <div class="col-md-9 col-sm-9 col-xs-8">
-        <div>
-           <select name="Category" class="form-control" ng-model="showCase.brand" ng-change="showCase.change_brand(showCase.brand);">
-             <option value="" ng-selected="showCase.brand == ''">All Brands</option>
-             <option ng-repeat="cat in showCase.brands" value="{{cat}}" ng-selected="{{showCase.brand == cat}}">{{cat}}</option>
-           </select>
-        </div>
-      </div>
-      <div class="col-md-1 col-sm-1 col-xs-1" style="text-align: center;">
-        <a href="javascript:;" class="btn btn-icon-icon" ng-click="isCollapsed = !isCollapsed" title="Size Wise - Stock Filter">
-            <i style="background-color: #ed1c24;color: white;font-size: 15px;border-radius: 18px;" class="fa fa-arrow-down"></i>
-        </a>
-      </div>
-      <div class="col-md-1 col-sm-1 col-xs-1"></div>
-    </div>
-
-    <div collapse="!isCollapsed">
-    <div class="row">
-      <div class="col-md-12 col-sm-12 col-xs-12 pt15">
-        <form id="size_form" role="form" ui-jq="validate" name="size_field">
-        <div class="col-md-1 col-xs-12 col-sm-12"><div class="col-md-12 col-sm-6 col-xs-6 p10" style="padding-right:0px" ng-if="showCase.brand_size_collect.type2">
-            <span class="mb10" style="vertical-align: top;"> Toggle Size </span>
-            <label class="switch switch-sm switch-danger" style="margin-left:10px"><input type="checkbox" ng-click="showCase.change_size_type(showCase.size_toggle)">
-            <span style="border-color: #ed1c24;box-shadow: #ed1c24 0px 0px 0px 21px inset;background-color: #ed1c24;"><i class="handle"></i></span>
-            </label>
-        </div></div>
-        <div class="col-md-9 col-sm-12 col-xs-12" style="overflow: auto;">
-          <table class="table table-striped table-bordered">
-            <thead>
-              <tr style="min-width:30px">
-                <th style="text-align:center" ng-repeat="sizewise in showCase.brand_size_data">{{sizewise}}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style="min-width:30px">
-                <td style="text-align:center" ng-repeat="sizewise in showCase.brand_size_data"><input style="min-width: 60px" name="{{sizewise}}" class="form-control number" type="string" placeholder="Stock Quantity" ng-model="showCase.size_filter[sizewise]"/></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="col-md-2 col-sm-12 col-xs-12">
-          <div class="col-md-12 col-sm-6 col-xs-6 p10" style="padding-right:0px">
-            <button type="submit" style="background-color: #ed1c24;" class="btn btn-danger btn-sm btn-block" ng-click="showCase.sizeform(form)">Search</button>
-          </div>
-          <div class="col-md-12 col-sm-6 col-xs-6 p10" style="padding-right:0px">
-            <button type="button" class="btn btn-default btn-sm btn-block" ng-click="showCase.sizeform('clear')">Reset</button>
-          </div>
-        </div>
-        </form>
-      </div>
-      <div class="col-md-1 col-sm-1 col-xs-12"></div>
-    </div>
-    </div>
-
-    <!--<div class="tag-display row mt10" ng-if="showCase.size_filter_show" style="font-size: medium;">
-      <div class="col-md-1 col-sm-1 col-xs-12"></div>
-      <div class="col-md-10 col-sm-10 col-xs-12">
-        <span class="bold">Size Filters Applied</span>
-        <span ng-repeat="(key,value) in showCase.size_filter_data">|<span class="bold"> {{key}} </span>: {{value}} |</span>
-      </div>
-    </div>
-
-    <div class="tag-display row mt10">
-      <div class="col-md-1 col-sm-1 col-xs-12">
-      </div>
-      <div class="col-md-10 col-sm-10 col-xs-12">
-        <a ng-repeat="cate in showCase.all_cate" ng-click="showCase.tag_details(cate,showCase.brand)" class="cat-tags" href="" ng-class="(cate == showCase.category)? 'ct-selected': 'not-selected'">{{cate}}</a>
-      </div>
-    </div>-->
   </div>
   <div class="item-display row" ng-if="showCase.catDisplay" style="background: white;">
     <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
@@ -220,16 +72,37 @@
         <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
         <br>
         <div style="height: 110px">
-          <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.sku_class }}</p>
+          <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.variants[0].style_name }}</p>
+          <div class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">
+            <span class="pull-left">Stock: <b>{{ item.style_quantity }}</b></span>
+            <span>MSP: <b>{{ item.variants[0].your_price }}</b></span>
+          </div>
+          <div ng-if="item.variants[0].price_ranges.length > 0">
+            <table class="table table-bordered mb0 mt5" style="font-size:10px;">
+              <tbody>
+                <tr>
+                  <td><b>Qty</b></td>
+                  <td style="padding:2px;" ng-repeat="td in item.variants[0].price_ranges"><center>
+                    <span>{{item.variants[0].price_ranges[$index]['min_unit_range']}}</span><br>
+                    <div style="height: 1px;width: 5px;background: black;margin-bottom: 2px;"></div>
+                    {{item.variants[0].price_ranges[$index]['max_unit_range']}}
+                    </center></td>
+                </tr>
+                <tr>
+                  <td style="padding:2px;width: 46px;" ><b>Price</b></td>
+                  <td style="padding:2px;" ng-repeat="td in item.variants[0].price_ranges"><center><b style="color: #ed1c24">{{item.variants[0].price_ranges[$index]['price']}}</b></center></td>
+                </tr>
+              </tbody>
+            </table>
+          </div> 
+          <!--<p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.sku_class }}</p>
           <span class="style_name" style="font-size: 14px" ng-if="item.variants[0].pricing_price">{{ showCase.service.price_format(item.variants[0].pricing_price) }}</span>
           <span class="style_name" style="font-size: 14px" ng-if="!(item.variants[0].pricing_price) && item.variants[0].price">{{ showCase.service.price_format(item.variants[0].price)  }}</span>
           <p class="style_name" style="font-size: 14px" style="font-size: 12px;" title="{{ item.variants[0].style_name }}">{{ item.variants[0].style_name }}</p>
-          <!-- <p class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;" title="{{showCase.getQuantityList(item.variants)}}">{{ showCase.getQuantityList(item.variants)}}</p>-->
           <p class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</p>
           <div>
             <span style="font-size: 14px">&#8377; {{ item.variants[0].mrp }}</span>
-            <span class="pull-right hide" style="font-size: 14px"><b>Your Price: </b>&#8377; {{item.variants[0].your_price}}</span>
-          </div>
+          </div>-->
         </div>
       </div>
     </div>

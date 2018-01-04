@@ -18,13 +18,22 @@
   </div>
 
   <div class="clearfix app_body" scrolly="orders.scroll(e)" style="padding-top: 40px; padding-bottom:20px;">
+    <div class="row" ng-if="permissions.user_type == 'reseller'">
+      <div class="col-md-3 col-sm-2 col-xs-hidden"></div>
+      <div class="col-md-6 col-sm-8 col-xs-12">
+        <div class="st-c-toggle pull-right">
+          <div class="bt-left bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'orders'})" ng-class="(orders.your_orders)?'bt-red':'';">Orders</div>
+          <div class="bt-right bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'enquiry'})" ng-class="(orders.your_orders)?'':'bt-red';">Enquiry</div>
+        </div>
+      </div>
+    </div>
     <div class="row">
       <div class="col-md-3 col-sm-2 col-xs-hidden">
       </div>
       <div class="col-md-6 col-sm-8 col-xs-12">
         <div class="order-list">
-          <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data" ng-click="$state.go('user.App.OrderDetails', {orderId: order.order_id})" style="cursor: pointer"> <!--ng-click="showCase.open_order_detail(order)">-->
-            <div class="row">
+          <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data" ng-click="$state.go('user.App.OrderDetails', {orderId: order.order_id, state: orders.status})" style="cursor: pointer"> <!--ng-click="showCase.open_order_detail(order)">-->
+            <div class="row" ng-if="orders.your_orders">
               <div class="col-md-6 col-sm-6 col-xs-6">
                 <div class="order-id">
                   <span class="order-label">Order on:</span>
@@ -35,10 +44,10 @@
                 <span class="label pull-right text-uppercase" ng-class="(orders.getStatus(order.total_quantity, order.picked_quantity) == 'Open')? 'label-danger': 'label-success';" style="font-size: 12px;">{{orders.getStatus(order.total_quantity, order.picked_quantity)}}</span>
               </div>
             </div>
-            <div class="row">
+            <div class="row" ng-if="orders.your_orders">
               <section class="widget text-center no-margin">
                 <div class="widget-details col-xs-3 text-left">
-                  <small class="order-label">Order id</small>
+                  <small class="order-label">Order ID</small>
                   <h2 class="no-margin order-bold">{{order.order_id}}</h2></div>
                 <div class="widget-details col-xs-2 text-center">
                   <small class="order-label">Ordered Qty</small>
@@ -55,6 +64,34 @@
                 <div class="widget-details col-xs-3 text-right">
                   <small class="order-label">Order Value</small>
                   <h2 class="no-margin order-bold">Rs. {{order.total_inv_amt}}</h2>
+                </div>
+              </section>
+            </div>
+            <div class="row" ng-if="!orders.your_orders">
+              <section class="widget text-center no-margin">
+                <div class="widget-details col-xs-3 text-left">
+                  <small class="order-label">Enquiry ID</small>
+                  <h2 class="no-margin order-bold">{{order.order_id}}</h2></div>
+                <div class="widget-details col-xs-3 text-center">
+                  <small class="order-label">Quantity</small>
+                  <h2 class="no-margin order-bold">{{order.total_quantity}}</h2>
+                </div>
+                <div class="widget-details col-xs-3 text-right">
+                  <small class="order-label">Amount</small>
+                  <h2 class="no-margin order-bold">Rs. {{order.total_inv_amt}}</h2>
+                </div>
+                <div class="widget-details col-xs-3 text-right">
+                  <small class="order-label"> </small>
+                  <button type='button' class="btn btn-warning mt20 pull-right" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.moveToCart(order, $index, $event)" ng-disabled="orders.moving">{{(orders.moving)? 'Moving': 'Move to Cart';}}</button>
+                </div>
+              </section>
+            </div>
+          </div>
+          <div class="order-item" ng-if="orders.order_data.data.length == 0 && (!orders.orders_loading)">
+            <div class="row">
+              <section class="widget text-center no-margin">
+                <div class="widget-details col-xs-12 text-center">
+                  <h3>{{(orders.your_orders)? 'No Orders Found': 'No Enquiry Orders Found';}}</h3>
                 </div>
               </section>
             </div>

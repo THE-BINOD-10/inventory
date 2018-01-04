@@ -162,7 +162,7 @@
           </tbody>
         </table>
       </div>
-      <div class="row over-x">
+      <div class="row over-x" style="overflow-y: hidden;">
         <table class="table" ng-class="showCase.min_width">
           <thead>
             <tr>
@@ -182,6 +182,7 @@
               <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'inter_state'" class="w10">IGST(%)</th>
               <th ng-show="showCase.fields.indexOf('Total Amount') == -1">Total Amount</th>
               <th ng-show="showCase.fields.indexOf('Remarks') == -1">Remarks</th>
+              <th> Price Ranges </th>
               <th class="plus"></th>
             </tr>
           </thead>
@@ -233,6 +234,25 @@
               </td>
 	      <td ng-show="showCase.fields.indexOf('Remarks') == -1">
                 <input type="text" name="remarks" class="form-control" ng-model="data.remarks">
+              </td>
+              <td class="tooltip" style="border:none; font-size: 12px;">
+                <span style="margin-top: 8px"><a href="">Ranges</a></span>
+                <div class="tooltiptext">
+                  <table>
+                    <tbody>
+                      <tr>
+                        <th>Min Amount</th>
+                        <th>Max Amount</th>
+                        <th>Price</th>
+                      </tr>
+                      <tr ng-repeat="range in data.priceRanges">
+                        <td>{{range.min_unit_range}}</td>
+                        <td>{{range.max_unit_range}}</td>
+                        <td>{{range.price}}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </td>
               <td><i style="font-size: 20px;padding-top: 7px;cursor: pointer;margin-left: -15px;" ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
             </tr>

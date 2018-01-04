@@ -1,3 +1,4 @@
+<form name="form" role="form">
 <div class="modal-header">
   <h4 class="modal-title" id="modal-title">ADD MARGIN</h4>
 </div>
@@ -22,9 +23,71 @@
         <input type="text" name="margin" class="form-control number" ng-model="$ctrl.marginData.margin_value" ng-readonly="$ctrl.marginData.margin_type == $ctrl.margin_types[0] || $ctrl.marginData.margin_type == ''">
       </div>
     </div>
+    <div class="col-md-12"><hr></div>
+  </div>
+  <div class="row">
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-3 control-label">Categories</label>
+        <div class="col-sm-6">
+          <select class="form-control" ng-disabled="$ctrl.categories_loading" ng-model="$ctrl.category" ng-change="$ctrl.get_styles($ctrl.category)">
+            <option ng-selected="$ctrl.category == ''" value="">None</option>
+            <option ng-repeat="category in $ctrl.categories" ng-selected="$ctrl.category == category" value="{{category}}">{{category}}</option>
+          </select>
+        </div>
+        <i ng-if="$ctrl.categories_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
+      </div>
+      <div class="form-group">
+        <label class="col-sm-3 control-label">Styles</label>
+        <div class="col-sm-6">
+          <select class="form-control" ng-disabled="$ctrl.styles_loading || $ctrl.styles.length == 0" ng-model="$ctrl.style" ng-change="$ctrl.get_skus($ctrl.style)">
+            <option ng-selected="$ctrl.style == ''" value="">None</option>
+            <option ng-repeat="style in $ctrl.styles" ng-selected="$ctrl.style == style.sku_class" value="{{style.sku_class}}">{{style.sku_class}}</option>
+          </select>
+        </div>
+        <i ng-if="$ctrl.styles_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
+      </div>
+      <div class="form-group">
+        <label class="col-sm-3 control-label">SKU's</label>
+        <div class="col-sm-6">
+          <select class="form-control" ng-disabled="$ctrl.skus_loading || $ctrl.skus.length == 0" ng-model="$ctrl.sku">
+            <option ng-selected="$ctrl.sku == ''" value="">None</option>
+            <option ng-repeat="sku in $ctrl.skus" ng-selected="$ctrl.sku == sku.wms_code" value="{{sku.wms_code}}">{{sku.wms_code}}</option>
+          </select>
+        </div>
+        <i ng-if="$ctrl.skus_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
+        <i ng-if="$ctrl.sku" class="fa fa-plus fa-2x fa-fw mt5" style="cursor: pointer" ng-click="$ctrl.addSKUData()"></i>
+      </div>
+    </div>
+    <div class="col-md-12">
+      <hr>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>SKU Code</th>
+            <th>MSP</th>
+            <th style="width:100px">Margin *</th>
+            <th style="width:50px" class="plus"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-repeat="sku in $ctrl.sku_data">
+            <td>{{sku.wms_code}}</td>
+            <td>{{sku.price | number}}</td>
+            <td><input class="form-control" decimal-number ng-modal="sku.margin" name="{{sku.wms_code}}" ng-model="sku.margin" ng-required="true"></td>
+            <td><i class="fa fa-minus fa-2x fa-fw mt5" style="cursor: pointer" ng-click="$ctrl.removeSkuData($index)"></i></td>
+          <tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 <div class="modal-footer">
-  <button class="btn btn-primary" type="button" ng-click="$ctrl.ok()">OK</button>
-  <button class="btn btn-warning" type="button" ng-click="$ctrl.cancel()">Cancel</button>
+  <button class="btn btn-warning" type="button" ng-click="$ctrl.cancel()">Close</button>
+  <button class="btn btn-primary" type="submit" ng-click="$ctrl.ok(form)">Save</button>
 </div>
+</form>

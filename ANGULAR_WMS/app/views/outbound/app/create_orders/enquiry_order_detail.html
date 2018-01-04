@@ -1,0 +1,102 @@
+<div>
+<div ng-repeat="order_details in order.order_details.data" class="mb10">
+  <div class="detail-list">
+    <div class="detail-item border-grey detail-bg-grey">
+      <div class="row no-margin">
+        <div class="col-md-6 col-sm-6 col-xs-9">
+          <h4 class="detail-black"><b>Enquiry ID: {{order_details.order_id}}</b></h4>
+          <div class="row border-grey no-margin">
+            <div class="col-md-4 col-sm-6 col-xs-6 no-padding">
+              <span>Quantity</span>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6 detail-black">
+              <span>: {{order_details.sum_data.quantity}}</span>
+            </div>
+          </div>
+          <div class="row border-grey no-margin">
+            <div class="col-md-4 col-sm-6 col-xs-6 no-padding">
+              <span>Date</span>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6 detail-black">
+              <span>: {{order_details.date}}</span>
+            </div>
+          </div>
+          <div class="row no-margin">
+            <div class="col-md-4 col-sm-6 col-xs-6 no-padding">
+              <span>Amount</span>
+            </div>
+            <div class="col-md-6 col-sm-6 col-xs-6 detail-black">
+              <span>: Rs. {{order_details.sum_data.amount- order_details.tax  | number : 2}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="detail-item border-grey" ng-if="order.loading">
+       <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+    </div>
+    <div class="detail-item border-grey" ng-repeat="data in order_details.data">
+      <div class="row no-margin">
+        <section class="widget text-center no-margin">
+          <div class="row no-margin">
+            <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-right">
+              <small class="order-label"></small>
+              <img  style="width: 100%;"ng-src="{{order.service.check_image_url(data.sku__image_url)}}">
+              <p class="text-center detail-black order-bold" style="font-size:12px;overflow-wrap: break-word;">{{data.sku__sku_code}}</p>
+            </div>
+            <div class="widget-details col-md-4 col-sm-4 col-xs-4 text-left">
+            <small class="order-label">SKU Description</small>
+            <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.sku__sku_desc}} (level-{{data.warehouse_level}})</p><br>
+            <small class="order-label" ng-if="data.schedule_date">Delivery Schedule Date</small>
+            <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.schedule_date}}</p>
+            <!--<span><b>Price:</b> <b style="color:#ed1c24">1234</b></span>-->
+          </div>
+          <div class="widget-details col-md-2 col-sm-2 col-xs-2 text-center">
+            <small class="order-label">Qty</small>
+            <p class="no-margin order-bold detail-black">{{data.quantity}}</p>
+          </div>
+          <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-right">
+            <small class="order-label">Amt</small>
+            <p class="no-margin order-bold detail-black">Rs. {{data.invoice_amount | number : 2}}</p>
+          </div>
+          </div>
+        </section>
+      </div>
+    </div>
+     <div class="detail-item border-grey detail-bg-grey">
+      <div class="row no-margin">
+        <div class="col-md-4 col-sm-4 col-xs-3">
+        </div>
+        <div class="col-md-8 col-sm-8 col-xs-9">
+          <div class="row no-margin">
+            <div class="col-xs-8 no-padding">
+              <span class="pull-right">Total:</span>
+            </div>
+            <div class="col-xs-4 detail-black">
+              <span>Rs. {{order_details.sum_data.amount-order_details.tax  | number : 2}}</span>
+            </div>
+          </div>
+          <div class="row no-margin">
+            <div class="col-xs-8 no-padding">
+              <span class="pull-right">Applicable Tax:</span>
+            </div>
+            <div class="col-xs-4 detail-black">
+              <span>Rs. {{order_details.tax  | number : 2}}</span>
+            </div>
+          </div>
+          <div class="row detail-black no-margin" style="font-size: 16px;">
+            <div class="col-xs-8 no-padding">
+              <span class="pull-right"><b>Total Amount:</b></span>
+            </div>
+            <div class="col-xs-4">
+              <span><b>Rs. {{order_details.sum_data.amount | number : 2}}</b></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div ng-include="'views/outbound/app/create_orders/sku_wise_details.html'">
+</div>

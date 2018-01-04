@@ -118,6 +118,12 @@
                 </select>
               </div>
             </div>
+            <div class="col-md-4" ng-if="showCase.model_data.level_2_price_type">
+              <div class="form-group">
+                <label class="control-label"> Level 2 Price Type </label>
+                <input type="text" name="level_2_price_type" class="form-control" ng-model="showCase.model_data.level_2_price_type" ng-readonly="true">
+              </div>
+            </div>
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Margin Percentage </label>
@@ -128,6 +134,22 @@
                 <label class="control-label"> Status </label>
                 <select class="form-control customer_status" ng-model="showCase.model_data.status" name="status">
                   <option ng-repeat="status in showCase.status_data" value="{{status}}">{{status}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4" ng-if="showCase.model_data.is_distributor != 'True' && showCase.model_data.logged_in_user_type != 'warehouse'">
+              <div class="form-group">
+                <label class="control-label"> Lead Time </label>
+                <input type="text" name="lead_time" class="form-control" ng-model="showCase.model_data.lead_time">
+              </div>
+            </div>
+          </div>
+          <div class="row" ng-if="showCase.model_data.logged_in_user_type != 'distributor'">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Distributor Flag </label>
+                <select class="form-control is_distributor" ng-model="showCase.model_data.is_distributor" name="is_distributor">
+                  <option ng-repeat="is_distributor in ['True', 'False']" ng-selected="showCase.model_data.is_distributor==is_distributor" value="{{is_distributor}}">{{is_distributor}}</option>
                 </select>
               </div>
             </div>

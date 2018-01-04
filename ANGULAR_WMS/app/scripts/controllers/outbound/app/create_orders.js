@@ -453,7 +453,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     })
     vm.cal_total();
   }
-  vm.logout = function(){
 
   vm.logout = function(){
     var user_name = Session.parent.userName;
@@ -464,9 +463,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       if (user_name == 'sagar_fab') {
         $state.go("user.sagarfab");
       } else {
-     Auth.logout().then(function(){
-       $state.go("user.sagarfab");
-     })
+        $state.go("user.signin");
+      }
+    })
    }
 
   vm.date_changed = function(){

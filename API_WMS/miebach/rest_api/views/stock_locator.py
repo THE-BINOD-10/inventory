@@ -699,7 +699,6 @@ def get_move_inventory(start_index, stop_index, temp_data, search_term, order_te
     negative_items = []
     positive_items = []
     move_items = []
-
     for count in cycle_count:
         if count.quantity > count.seen_quantity:
             negative_items.append(count)
@@ -721,10 +720,8 @@ def get_move_inventory(start_index, stop_index, temp_data, search_term, order_te
             if positive_difference == 0:
                 positive_items.remove(positive)
                 break
-
     all_data = []
-    data_id = 1
-    
+    data_id = 1    
     if status == 'adj':
         total_items = positive_items + negative_items
         for positive in total_items:

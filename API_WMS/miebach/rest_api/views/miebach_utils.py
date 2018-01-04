@@ -158,7 +158,7 @@ MOVE_INVENTORY_FIELDS = ( (('WMS Code *','wms_code'),('Source Location *','sourc
 
 ADJUST_INVENTORY_FIELDS = ( (('WMS Code *','wms_code'),('Location *','location')),
                             (('Physical Quantity *','quantity'),('Reason','reason')),
-                            (('Pallet No.', 'pallet_no'),) )
+                            (('Pallet Code', 'pallet_no'),) )
 
 MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Location', 'Quantity']
 

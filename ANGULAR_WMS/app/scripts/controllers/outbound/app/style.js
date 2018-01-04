@@ -202,13 +202,15 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       row.row_total_price = 0;
     }
 
-    if (Session.parent.userName != 'sagar_fab'  ) {
+    if (Session.parent.userName != 'sagar_fab') {
 
       if (row.quantity > row.overall_sku_total_quantity) {
 
         row.quantity = row.overall_sku_total_quantity;
         vm.service.showNoty("You can add "+row.overall_sku_total_quantity+" items only", "success", "topRight");
       }
+    } else {
+      console.log(index);
     }
       
     vm.update_levels(index);

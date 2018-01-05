@@ -101,6 +101,23 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
       }
     });
   }
+
+  vm.order_cancel = function(order, index, event) {
+    event.stopPropagation();
+    Service.apiCall("order_cancel/?order_id="+order.order_id).then(function(data) {
+      if(data.message) {
+        console.log(data.data);
+        if(data.data == 'Success') {
+          vm.order_data.data.splice(index, 1);
+          Service.showNoty('Successfully Cancelled the Order');
+        } else {
+          Service.showNoty(data.data, 'warning');
+        }
+      } else {
+        Service.showNoty('Something Went Wrong', 'warning');
+      }
+    });
+  }
 }
 
 angular

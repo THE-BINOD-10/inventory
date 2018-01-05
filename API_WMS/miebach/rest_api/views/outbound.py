@@ -2867,7 +2867,7 @@ def split_orders(**order_data):
 def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, custom_order):
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
-                     'ship_to', 'client_name', 'po_number']
+                     'ship_to', 'client_name', 'po_number', 'corporate_po_number']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     for key, value in request.POST.iteritems():
@@ -2956,7 +2956,7 @@ def get_syncedusers_mapped_sku(wh, sku_id):
     return sku_id
 
 
-def custom_order_data(request, order_detail, ex_image_url):
+def custom_order_data(request, order_detail, ex_image_url, custom_order):
     extra_data = request.POST.get('extra_data', '')
     from_custom_order = request.POST.get('from_custom_order', '')
     if from_custom_order == 'true':
@@ -3032,6 +3032,7 @@ def insert_order_data(request, user=''):
     # Picklist generation
     order_user_sku = {}
     order_user_objs = {}
+    order_sku = {}
     order_objs = []
 
     # Initialize creation date
@@ -3057,6 +3058,7 @@ def insert_order_data(request, user=''):
     ship_to = request.POST.get('ship_to', '')
     po_number = request.POST.get('po_number', '')
     client_name = request.POST.get('client_name', '')
+    corporate_po_number = request.POST.get('corporate_po_number', '')
 
     created_order_id = ''
     ex_image_url = {}
@@ -3216,7 +3218,7 @@ def insert_order_data(request, user=''):
                                                             'data': [{'quantity': order_data['quantity'],
                                                                       'location': myDict['location'][i],
                                                                       'serials': serials}]}
-                    custom_order_data(request, order_detail, ex_image_url)
+                    custom_order_data(request, order_detail, ex_image_url, custom_order)
                 elif order_obj and order_data['sku_id'] in created_skus:
                     order_det = order_obj[0]
                     order_det.quantity += float(order_data['quantity'])
@@ -3274,15 +3276,15 @@ def insert_order_data(request, user=''):
                 log.info("Entered")
                 message = check_stocks(order_user_data, User.objects.get(id=user_id), request, order_objs)
 
-    if user_type == 'customer':
-        # Creating Uploading POs object with file upload pending.
-        upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': po_number,
-                         'uploaded_date': datetime.datetime.today(), 'customer_name': client_name}
-        pending_po_obj = OrderUploads(**upload_po_map)
-        pending_po_obj.save()
+        if user_type == 'customer':
+            # Creating Uploading POs object with file upload pending.
+            upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': corporate_po_number,
+                             'uploaded_date': datetime.datetime.today(), 'customer_name': client_name}
+            pending_po_obj = OrderUploads(**upload_po_map)
+            pending_po_obj.save()
 
-        # Deleting Customer Cart data after successful order creation
-        CustomerCartData.objects.filter(customer_user=request.user.id).delete()
+    # Deleting Customer Cart data after successful order creation
+    CustomerCartData.objects.filter(customer_user=request.user.id).delete()
 
     return HttpResponse(message)
 
@@ -4928,7 +4930,7 @@ def get_view_order_details(request, user=''):
             order_json = OrderJson.objects.filter(order_id=one_order.id)
             if order_json:
                 sku_extra_data = json.loads(order_json[0].json_data)
-                if sku_extra_data['image_data']:
+                if sku_extra_data.get('image_data', ''):
                     for key, value in sku_extra_data['image_data'].iteritems():
                         sku_extra_data['image_data'][key] = resize_image(value, user)
 
@@ -6210,6 +6212,7 @@ def get_customer_cart_data(request, user=""):
     cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id)
 
     if cart_data:
+        cust_user_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         tax_type = CustomerUserMapping.objects.filter(user_id=request.user.id).values_list('customer__tax_type',
                                                                                            flat=True)
         tax = 0
@@ -7357,6 +7360,9 @@ def get_enquiry_data(request, user=''):
 
 @get_admin_user
 def get_customer_enquiry_detail(request, user=''):
+    whole_res_map = {}
+    response_data_list = []
+    sku_wise_details = {}
     enquiry_id = request.GET['enquiry_id']
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     user_profile = UserProfile.objects.filter(user=request.user.id)
@@ -7373,11 +7379,28 @@ def get_customer_enquiry_detail(request, user=''):
     if not em_qs:
         return HttpResponse("No Enquiry Data for Id")
     cm_id = em_qs[0].customer_id
-    res_list = []
+    sku_lbprice_map = {}
+    sku_tot_qty_map ={}
+    sku_tot_inv_map = {}
     for em_obj in em_qs:
         data_vals = list(em_obj.enquiredsku_set.values('sku', 'sku__sku_code', 'sku__image_url',
                                                        'sku__sku_desc', 'quantity', 'levelbase_price',
                                                        'invoice_amount', 'warehouse_level'))
+        for data_val in data_vals:
+            sku_code = data_val['sku__sku_code']
+            qty = data_val['quantity']
+            inv_amt = data_val['invoice_amount']
+            if sku_code not in sku_tot_qty_map:
+                sku_tot_qty_map[sku_code] = qty
+            else:
+                sku_tot_qty_map[sku_code] = sku_tot_qty_map[sku_code] + qty
+            if sku_code not in sku_tot_inv_map:
+                sku_tot_inv_map[sku_code] = inv_amt
+            else:
+                sku_tot_inv_map[sku_code] = sku_tot_inv_map[sku_code] + inv_amt
+
+        for sku_code in sku_tot_qty_map:
+            sku_lbprice_map[sku_code] = sku_tot_inv_map[sku_code] / sku_tot_qty_map[sku_code]
         total_inv_amt = map(sum, [[i['invoice_amount'] for i in em_obj.enquiredsku_set.values()]])[0]
         total_qty = map(sum, [[i['quantity'] for i in em_obj.enquiredsku_set.values()]])[0]
         sum_data = {'amount': round(total_inv_amt, 2), 'quantity': total_qty}
@@ -7385,8 +7408,31 @@ def get_customer_enquiry_detail(request, user=''):
                    'date': get_only_date(request, em_obj.creation_date),
                    'data': data_vals,
                    'sum_data': sum_data}
-        res_list.append(res_map)
-    return HttpResponse(json.dumps(res_list, cls=DjangoJSONEncoder))
+        for sku_rec in data_vals:
+            sku_code = sku_rec['sku__sku_code']
+            if sku_code not in sku_wise_details:
+                sku_qty = sku_rec['quantity']
+                sku_el_price = sku_lbprice_map[sku_code]
+                sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price}
+            else:
+                existing_map = sku_wise_details[sku_code]
+                existing_map['quantity'] = existing_map['quantity'] + sku_rec['quantity']
+                existing_map['el_price'] = sku_lbprice_map[sku_code]
+        response_data_list.append(res_map)
+    sku_whole_map = {'data': [], 'totals': {}}
+    sku_totals = {'sub_total': 0, 'total_amount': 0, 'tax': 0}
+    for sku_code, sku_det in sku_wise_details.items():
+        el_price = sku_det['el_price']
+        qty = sku_det['quantity']
+        total_amt = float(qty) * float(el_price)
+        sku_map = {'sku_code': sku_code, 'quantity': qty, 'landing_price': el_price, 'total_amount': total_amt}
+        sku_totals['sub_total'] = sku_totals['sub_total'] + total_amt
+        sku_totals['total_amount'] = sku_totals['total_amount'] + total_amt  # TODO Tax to be added to Sub total
+        sku_whole_map['data'].append(sku_map)
+        sku_whole_map['totals'] = sku_totals
+    whole_res_map['data'] = response_data_list
+    whole_res_map['sku_wise_details'] = sku_whole_map
+    return HttpResponse(json.dumps(whole_res_map, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt
@@ -7460,3 +7506,34 @@ def delete_order_charges(request, user=''):
         message = 'Order Charges Deletion failed'
 
     return HttpResponse(json.dumps({'status': status, 'message': message}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def order_cancel(request, user=''):
+    message = 'Success'
+    customer_user = CustomerUserMapping.objects.filter(user_id=request.user.id)
+    customer_obj = CustomerMaster.objects.filter(customer_id=customer_user[0].customer.customer_id, user=user.id)
+    if not customer_obj:
+        message = 'Failed'
+        return HttpResponse(message)
+    cm_id = customer_obj[0].id
+    admin_user = get_priceband_admin_user(user)
+    try:
+        if admin_user:
+            gen_ord_id = request.GET.get('order_id', '')
+            if gen_ord_id:
+                gen_qs = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_ord_id, customer_id=cm_id)
+                order_det_ids = gen_qs.values_list('orderdetail_id', flat=True)
+                ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
+                ord_det_qs.delete()
+                gen_qs.delete()
+        else:
+            ord_id = request.GET.get('order_id', '')
+            ord_qs = OrderDetail.objects.filter(order_id=ord_id, user=user)
+            ord_qs.delete()
+    except:
+        import traceback
+        log.debug(traceback.format_exc())
+        message = 'Failed'
+    return HttpResponse(message)

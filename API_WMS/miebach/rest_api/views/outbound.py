@@ -2867,7 +2867,7 @@ def split_orders(**order_data):
 def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, custom_order):
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
-                     'ship_to', 'client_name', 'po_number']
+                     'ship_to', 'client_name', 'po_number', 'corporate_po_number']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     for key, value in request.POST.iteritems():
@@ -2956,7 +2956,7 @@ def get_syncedusers_mapped_sku(wh, sku_id):
     return sku_id
 
 
-def custom_order_data(request, order_detail, ex_image_url):
+def custom_order_data(request, order_detail, ex_image_url, custom_order):
     extra_data = request.POST.get('extra_data', '')
     from_custom_order = request.POST.get('from_custom_order', '')
     if from_custom_order == 'true':
@@ -3032,6 +3032,7 @@ def insert_order_data(request, user=''):
     # Picklist generation
     order_user_sku = {}
     order_user_objs = {}
+    order_sku = {}
     order_objs = []
 
     # Initialize creation date
@@ -3057,6 +3058,7 @@ def insert_order_data(request, user=''):
     ship_to = request.POST.get('ship_to', '')
     po_number = request.POST.get('po_number', '')
     client_name = request.POST.get('client_name', '')
+    corporate_po_number = request.POST.get('corporate_po_number', '')
 
     created_order_id = ''
     ex_image_url = {}
@@ -3216,7 +3218,7 @@ def insert_order_data(request, user=''):
                                                             'data': [{'quantity': order_data['quantity'],
                                                                       'location': myDict['location'][i],
                                                                       'serials': serials}]}
-                    custom_order_data(request, order_detail, ex_image_url)
+                    custom_order_data(request, order_detail, ex_image_url, custom_order)
                 elif order_obj and order_data['sku_id'] in created_skus:
                     order_det = order_obj[0]
                     order_det.quantity += float(order_data['quantity'])
@@ -3274,15 +3276,15 @@ def insert_order_data(request, user=''):
                 log.info("Entered")
                 message = check_stocks(order_user_data, User.objects.get(id=user_id), request, order_objs)
 
-    if user_type == 'customer':
-        # Creating Uploading POs object with file upload pending.
-        upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': po_number,
-                         'uploaded_date': datetime.datetime.today(), 'customer_name': client_name}
-        pending_po_obj = OrderUploads(**upload_po_map)
-        pending_po_obj.save()
+        if user_type == 'customer':
+            # Creating Uploading POs object with file upload pending.
+            upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': corporate_po_number,
+                             'uploaded_date': datetime.datetime.today(), 'customer_name': client_name}
+            pending_po_obj = OrderUploads(**upload_po_map)
+            pending_po_obj.save()
 
-        # Deleting Customer Cart data after successful order creation
-        CustomerCartData.objects.filter(customer_user=request.user.id).delete()
+    # Deleting Customer Cart data after successful order creation
+    CustomerCartData.objects.filter(customer_user=request.user.id).delete()
 
     return HttpResponse(message)
 
@@ -4932,7 +4934,7 @@ def get_view_order_details(request, user=''):
             order_json = OrderJson.objects.filter(order_id=one_order.id)
             if order_json:
                 sku_extra_data = json.loads(order_json[0].json_data)
-                if sku_extra_data['image_data']:
+                if sku_extra_data.get('image_data', ''):
                     for key, value in sku_extra_data['image_data'].iteritems():
                         sku_extra_data['image_data'][key] = resize_image(value, user)
 

@@ -103,6 +103,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
               record['quantity_status'] = true;
             }
 
+            vm.stock_quantity = vm.stock_quantity + Number(record.physical_stock) + Number(record.all_quantity);
           });
 
           vm.levels_data[vm.selLevel] = {
@@ -167,6 +168,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   vm.update_levels = function(index){
 
     vm.sel_items_total_price = 0;
+    vm.sel_items_total_quantity = 0;
     var total_quantity = vm.get_total_level_quantity(index);
     angular.forEach(vm.levels_data, function(level_data, level_name) {
       
@@ -188,6 +190,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       });
       
       vm.sel_items_total_price += level_data.total_price;
+      vm.sel_items_total_quantity += level_data.quantity;
     });
   }
 
@@ -197,7 +200,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.style_total_quantity = 0;
     
     if (Number(row.quantity) == 0) {
-      
+
       row.unit_rate = row.org_price;
       row.row_total_price = 0;
     }
@@ -244,7 +247,9 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
   vm.add_to_cart = function(levels_data) {
 
-    if(vm.sel_items_total_price > 0) {
+    // if(vm.sel_items_total_price > 0) {
+    if(vm.sel_items_total_quantity > 0) {
+      
       var send = [];
 
       angular.forEach(vm.levels_data, function(level_data, level_name) {

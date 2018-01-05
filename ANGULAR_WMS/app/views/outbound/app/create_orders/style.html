@@ -39,14 +39,25 @@
     <div class="style-body">
       <div class="row">
 
-        <div class="col-md-3">
+        <div class="col-md-3 col-sm-3" ng-if="showCase.service.check_image_url(Style.style_details.image_url) && Style.includeDesktopTemplate">
+          <img ng-src="{{ showCase.service.check_image_url(Style.style_details.image_url) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail" ez-plus ezp-model="{thumb: showCase.service.check_image_url(Style.style_details.image_url) , small: showCase.service.check_image_url(Style.style_details.image_url), large:showCase.service.check_image_url(Style.style_details.image_url)}" ezp-options="{scrollZoom: true, easing: true, zoomWindowWidth: 600, zoomWindowHeight: 600}" id="zoom_01">
+          <h5 align="center"><b>{{Style.style_data.data[0].sku_class}}</b></h5>
+          <h5 align="center" ng-if="Style.style_data.data[0].pricing_price"><b>{{showCase.service.price_format(Style.style_data.data[0].pricing_price)}}</b></h5>
+          <h5 align="center" ng-if="!(Style.style_data.data[0].pricing_price) && Style.style_data.data[0].price"><b>{{showCase.service.price_format(Style.style_data.data[0].price)}}</b></h5>
+        </div>
+
+        <div class="col-md-3 col-sm-3" ng-if="showCase.service.check_image_url(Style.style_details.image_url) && Style.includeMobileTemplate">
+          <img ng-src="{{ showCase.service.check_image_url(Style.style_details.image_url) }}" style="border:0px !important;padding: 0px;width:100%" class="img-thumbnail">
+          <h5 align="center"><b>{{Style.style_data.data[0].sku_class}}</b></h5>
+          <h5 align="center" ng-if="Style.style_data.data[0].pricing_price"><b>{{showCase.service.price_format(Style.style_data.data[0].pricing_price)}}</b></h5>
+          <h5 align="center" ng-if="!(Style.style_data.data[0].pricing_price) && Style.style_data.data[0].price"><b>{{showCase.service.price_format(Style.style_data.data[0].price)}}</b></h5> 
+        </div>
+
+        <!-- <div class="col-md-3">
           <img ng-src="{{ showCase.service.check_image_url(Style.style_details.image_url) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail">
           <h5 align="center"><b>{{Style.style_data.data[0].sku_class}}</b></h5>
-          <!--<h5 align="center" ng-if="Style.style_data.data[0].pricing_price"><b>{{showCase.service.price_format(Style.style_data.data[0].pricing_price)}}</b></h5>
-          <h5 align="center" ng-if="!(Style.style_data.data[0].pricing_price) && Style.style_data.data[0].price"><b>{{showCase.service.price_format(Style.style_data.data[0].price)}}</b></h5>-->
-        </div>
-        
-        <div class="col-md-7" ng-if="Style.def_lead_tm">
+        </div> -->
+        <div class="col-md-7 col-sm-7" ng-if="Style.def_lead_tm">
           <div class="row">
             <div class="col-md-9">
               <div class="form-group">
@@ -67,8 +78,8 @@
                     <th ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd])">{{hd}}</th>
                     <!-- <th ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{hd}}</th> -->
                     <th>Quantity</th>
-                    <th>Unit Rate</th>
-                    <th>Total Price</th>
+                    <!-- <th>Unit Rate</th>
+                    <th>Total Price</th> -->
                   </tr>
                 </thead>
                 <tbody>
@@ -78,22 +89,28 @@
                       <input ng-if="style.quantity_status" class="form-control" size="5" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style, $index);" ng-class="service.get_decimal_perm()">
                       <input ng-if="!style.quantity_status && Style.generic_wharehouse_level == 'false'" class="form-control" size="5" value="{{style.no_items}}" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style, $index)" ng-class="service.get_decimal_perm()" readonly>
                     </td>
-                    <td>{{style.unit_rate | number}}</td>
-                    <td>{{style.row_total_price | number}}</td>
+                    <!-- <td>{{style.unit_rate | number}}</td>
+                    <td>{{style.row_total_price | number}}</td> -->
                   </tr>
                   <tr>
                     <td ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd])" style="font-size: 16px;"><b>{{Style.style_total_counts[Style.style_headers[hd]]}}</b></td>
                     <td><b style="font-size:16px">{{Style.style_data.quantity}}</b></td>
-                    <td></td>
-                    <td><b style="font-size:16px">Total: {{Style.sel_items_total_price | number}}</b></td>
+                    <!-- <td></td>
+                    <td><b style="font-size:16px">Total: {{Style.sel_items_total_price | number}}</b></td> -->
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
+
+          <div class="row">
+            <div class="col-md-6 col-sm-6 col-xs-6">
+              <span>Stock: <b style="font-size:24px">{{Style.stock_quantity}}</b></span>
+            </div>
+          </div>
         </div>
 
-        <div class="col-md-2 style cart-item" ng-if="Style.def_lead_tm" style="margin-top: 2.8em">
+        <div class="col-md-2 col-sm-2 style cart-item" ng-if="Style.def_lead_tm" style="margin-top: 2.8em">
           <div class="row">
             <h5><b>WISH LIST</b></h5><hr>
           </div>
@@ -180,7 +197,7 @@
           </div>
         </div>
  -->
-        <div class="col-md-6" ng-if="Style.gen_wh_lead_tm">
+        <div class="col-md-7 col-sm-7" ng-if="Style.gen_wh_lead_tm">
           <div class="row">
             
             <div class="col-md-9">
@@ -241,7 +258,7 @@
           </div>
         </div>
 
-        <div class="col-md-3 style cart-item" ng-if="Style.gen_wh_lead_tm" style="margin-top: 3.8em">
+        <div class="col-md-2 col-sm-2 style cart-item" ng-if="Style.gen_wh_lead_tm" style="margin-top: 3.8em">
           <div class="row">
             <h5><b>WISH LIST</b></h5><hr>
           </div>

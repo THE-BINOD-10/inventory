@@ -1331,18 +1331,21 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
       }
     }
 
-    for(var skuRec = 0; skuRec < data.priceRanges.length; skuRec++){
-    
-      if(data.quantity >= data.priceRanges[skuRec].min_unit_range && data.quantity <= data.priceRanges[skuRec].max_unit_range){
-    
-        data.price = data.priceRanges[skuRec].price;
-        flag = true;
-      }
-    }
+    if(data.priceRanges && data.priceRanges.length > 0) {
 
-    if (!flag) {
+      for(var skuRec = 0; skuRec < data.priceRanges.length; skuRec++){
     
-      data.price = data.priceRanges[data.priceRanges.length-1].price;
+        if(data.quantity >= data.priceRanges[skuRec].min_unit_range && data.quantity <= data.priceRanges[skuRec].max_unit_range){
+    
+          data.price = data.priceRanges[skuRec].price;
+          flag = true;
+        }
+      }
+
+      if (!flag) {
+    
+        data.price = data.priceRanges[data.priceRanges.length-1].price;
+      }
     }
 
     data.invoice_amount = vm.service.multi(data.quantity, data.price);

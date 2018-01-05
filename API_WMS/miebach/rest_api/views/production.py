@@ -1117,14 +1117,15 @@ def rm_picklist_confirmation(request, user=''):
         for val in value:
             if not val['picked_quantity'] or float(val['picked_quantity']) == 0:
                 continue
+            picked_quantity_val = float(val['picked_quantity'])
             for raw_loc in batch_raw_locs:
                 if count == 0:
                     continue
                 picklist = raw_loc.material_picklist
 
                 sku = picklist.jo_material.material_code
-                if float(picklist.reserved_quantity) > float(val['picked_quantity']):
-                    picking_count = float(val['picked_quantity'])
+                if float(picklist.reserved_quantity) > picked_quantity_val:
+                    picking_count = picked_quantity_val
                 else:
                     picking_count = float(picklist.reserved_quantity)
                 picking_count1 = picking_count
@@ -1187,6 +1188,7 @@ def rm_picklist_confirmation(request, user=''):
                             raw_loc.material_picklist.jo_material.status = 2
                             raw_loc.material_picklist.jo_material.save()
                     auto_skus.append(sku.sku_code)
+                picked_quantity_val -= picking_count1
                 if picklist.reserved_quantity < 0:
                     picklist.reserved_quantity = 0
                 if picklist.reserved_quantity == 0:

@@ -166,7 +166,9 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
             if(data.message) {
 
               if(data.data.indexOf("Success") != -1) {
-                vm.uploadPO(vm.model_data.po_number_header, vm.model_data.client_name_header);
+                if (vm.model_data.po_number_header) {
+                  vm.uploadPO(vm.model_data.po_number_header, vm.model_data.client_name_header);
+                }
                 angular.copy(empty_data, vm.model_data);
                 angular.copy(empty_final_data, vm.final_data);
                 Data.my_orders = [];

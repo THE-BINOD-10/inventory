@@ -2867,7 +2867,7 @@ def split_orders(**order_data):
 def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, custom_order):
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
-                     'ship_to', 'client_name', 'po_number']
+                     'ship_to', 'client_name', 'po_number', 'corporate_po_number']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     for key, value in request.POST.iteritems():
@@ -3058,6 +3058,7 @@ def insert_order_data(request, user=''):
     ship_to = request.POST.get('ship_to', '')
     po_number = request.POST.get('po_number', '')
     client_name = request.POST.get('client_name', '')
+    corporate_po_number = request.POST.get('corporate_po_number', '')
 
     created_order_id = ''
     ex_image_url = {}
@@ -3275,15 +3276,15 @@ def insert_order_data(request, user=''):
                 log.info("Entered")
                 message = check_stocks(order_user_data, User.objects.get(id=user_id), request, order_objs)
 
-    if user_type == 'customer':
-        # Creating Uploading POs object with file upload pending.
-        upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': po_number,
-                         'uploaded_date': datetime.datetime.today(), 'customer_name': client_name}
-        pending_po_obj = OrderUploads(**upload_po_map)
-        pending_po_obj.save()
+        if user_type == 'customer':
+            # Creating Uploading POs object with file upload pending.
+            upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': corporate_po_number,
+                             'uploaded_date': datetime.datetime.today(), 'customer_name': client_name}
+            pending_po_obj = OrderUploads(**upload_po_map)
+            pending_po_obj.save()
 
-        # Deleting Customer Cart data after successful order creation
-        CustomerCartData.objects.filter(customer_user=request.user.id).delete()
+    # Deleting Customer Cart data after successful order creation
+    CustomerCartData.objects.filter(customer_user=request.user.id).delete()
 
     return HttpResponse(message)
 

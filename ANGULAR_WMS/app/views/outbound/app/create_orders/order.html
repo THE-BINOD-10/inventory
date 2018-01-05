@@ -180,7 +180,7 @@ input[type="date"]:valid::before {
             <div class="col-md-12 col-sm-12 col-xs-12">
               <h5>PRICE DETAILS</h5><hr>
             </div>
-            <div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="col-md-12 col-sm-12 col-xs-12" ng-if="Cart.user_type !='customer'">
               <div class="row">
                 <div class="col-md-3 col-xs-3 no-padding">
                   <span class="pull-left"><b>SKU Code</b></span>
@@ -194,7 +194,7 @@ input[type="date"]:valid::before {
                 </div>
               </div>
             </div>
-            <div class="col-md-12 col-sm-12 col-xs-12" ng-repeat="data in Cart.sku_group_data">
+            <div class="col-md-12 col-sm-12 col-xs-12" ng-if="Cart.user_type !='customer'" ng-repeat="data in Cart.sku_group_data">
               <div class="row" ng-if="data.quantity">
                 <div class="col-md-3 col-xs-3 no-padding">
                   <span class="pull-left">{{data.sku_code}}</span>

@@ -82,9 +82,10 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
   vm.remove_item = function(index) {
 
-    vm.delete_customer_cart_data(vm.model_data.data[index]);
     var deleted_sku_id = vm.model_data.data[index].sku_id;
+    vm.delete_customer_cart_data(vm.model_data.data[index]); 
     vm.model_data.data.splice(index,1);
+    delete vm.sku_group_data[deleted_sku_id];
 
     if (vm.model_data.data) {
       

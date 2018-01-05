@@ -2826,8 +2826,10 @@ def get_rm_picklist_data(search_params, user, sub_user):
     data = []
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-    for obj in rm_picklist[start_index:stop_index]:
-        data.append(OrderedDict((('Jo Code', obj.material_picklist.jo_material.job_order.job_code),
+    if stop_index:
+      rm_picklist = rm_picklist[start_index:stop_index]
+    for obj in rm_picklist:
+      data.append(OrderedDict((('Jo Code', obj.material_picklist.jo_material.job_order.job_code),
                                  ('Jo Creation Date',
                                   get_local_date(user, obj.material_picklist.jo_material.job_order.creation_date)),
                                  ('FG SKU Code', obj.material_picklist.jo_material.job_order.product_code.sku_code),
@@ -2838,7 +2840,4 @@ def get_rm_picklist_data(search_params, user, sub_user):
                                  ('Quantity', obj.mod_quantity),
                                  ('Processed Date', get_local_date(user, obj.updation_date)),)))
     temp_data['aaData'] = data
-    if stop_index:
-        temp_data['aaData'] = data[start_index:stop_index]
-
     return temp_data

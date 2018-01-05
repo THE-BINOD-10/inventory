@@ -2150,7 +2150,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     if order_ids:
         sor_id = ''
         order_ids = order_ids.split(',')
-        auto_ord_qty_map = get_dist_auto_ord_det_ids(order_ids)
+        price_band_flag = get_misc_value('priceband_sync', user.id)
+        auto_ord_qty_map = {}
+        if price_band_flag == 'true':
+            auto_ord_qty_map = get_dist_auto_ord_det_ids(order_ids)
         order_data = OrderDetail.objects.filter(id__in=order_ids)
         seller_summary = SellerOrderSummary.objects.filter(
             Q(seller_order__order_id__in=order_ids) | Q(order_id__in=order_ids))

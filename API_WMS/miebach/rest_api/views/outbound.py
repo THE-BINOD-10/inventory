@@ -2956,7 +2956,7 @@ def get_syncedusers_mapped_sku(wh, sku_id):
     return sku_id
 
 
-def custom_order_data(request, order_detail, ex_image_url):
+def custom_order_data(request, order_detail, ex_image_url, custom_order):
     extra_data = request.POST.get('extra_data', '')
     from_custom_order = request.POST.get('from_custom_order', '')
     if from_custom_order == 'true':
@@ -3032,6 +3032,7 @@ def insert_order_data(request, user=''):
     # Picklist generation
     order_user_sku = {}
     order_user_objs = {}
+    order_sku = {}
     order_objs = []
 
     # Initialize creation date
@@ -3216,7 +3217,7 @@ def insert_order_data(request, user=''):
                                                             'data': [{'quantity': order_data['quantity'],
                                                                       'location': myDict['location'][i],
                                                                       'serials': serials}]}
-                    custom_order_data(request, order_detail, ex_image_url)
+                    custom_order_data(request, order_detail, ex_image_url, custom_order)
                 elif order_obj and order_data['sku_id'] in created_skus:
                     order_det = order_obj[0]
                     order_det.quantity += float(order_data['quantity'])
@@ -4928,7 +4929,7 @@ def get_view_order_details(request, user=''):
             order_json = OrderJson.objects.filter(order_id=one_order.id)
             if order_json:
                 sku_extra_data = json.loads(order_json[0].json_data)
-                if sku_extra_data['image_data']:
+                if sku_extra_data.get('image_data', ''):
                     for key, value in sku_extra_data['image_data'].iteritems():
                         sku_extra_data['image_data'][key] = resize_image(value, user)
 

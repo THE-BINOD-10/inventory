@@ -6037,26 +6037,26 @@ def construct_order_customer_order_detail(request, order, user):
                                   'sku__sku_category', 'sku__sku_class'))
     total_picked_quantity = 0
     for record in data_list:
-        gen_ord_obj = GenericOrderDetailMapping.objects.filter(orderdetail_id=record['id'])
-        if not gen_ord_obj:
-            continue
-        el_price = gen_ord_obj[0].el_price
-        res_unit_price = gen_ord_obj[0].unit_price
-        print "el_price, res_unit_price::", el_price, res_unit_price
-        tax_data = CustomerOrderSummary.objects.filter(order__id=record['id'], order__user=user)
+        tax_data = CustomerOrderSummary.objects.filter(order__id=record['id'], order__user=user.id)
         picked_quantity = Picklist.objects.filter(order_id=record['id']).values(
             'picked_quantity').aggregate(Sum('picked_quantity'))['picked_quantity__sum']
         if not picked_quantity:
             picked_quantity = 0
         record['picked_quantity'] = picked_quantity
         total_picked_quantity += picked_quantity
-        if res_unit_price:
-            record['invoice_amount'] = float(res_unit_price) * int(record['quantity'])
         if tax_data:
             tax_data = tax_data[0]
             record['invoice_amount'] = record['invoice_amount'] - tax_data.tax_value
-        if el_price:
-            record['el_price'] = el_price
+        gen_ord_obj = GenericOrderDetailMapping.objects.filter(orderdetail_id=record['id'])
+        if gen_ord_obj:
+            el_price = gen_ord_obj[0].el_price
+            res_unit_price = gen_ord_obj[0].unit_price
+            if el_price:
+                record['el_price'] = el_price
+            if res_unit_price:
+                record['invoice_amount'] = float(res_unit_price) * int(record['quantity'])
+            print "el_price, res_unit_price::", el_price, res_unit_price
+
     return data_list, total_picked_quantity
 
 
@@ -6146,13 +6146,13 @@ def get_customer_order_detail(request, user=""):
         response_data_list = get_level_based_customer_order_detail(request, user)
     else:
         response_data_list = []
-        orderdetail_ids = OrderDetail.objects.filter(order_id=order_id, user=user.id).values_list('id', flat=True)
-        if not orderdetail_ids:
+        order = get_order_detail_objs(order_id, user)
+        print order
+        #orderdetail_ids = order.values_list('id', flat=True)
+        if not order:
             return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
-        for ord_det_id in orderdetail_ids:
-            res = construct_order_customer_order_detail(request, ord_det_id, user)
-            response_data_list.append(res)
-    return HttpResponse(json.dumps(response_data_list, cls=DjangoJSONEncoder))
+        response_data_list, total_picked_quantity = construct_order_customer_order_detail(request, order, user)
+    return HttpResponse(json.dumps({'data': response_data_list}, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt

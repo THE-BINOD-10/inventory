@@ -3402,9 +3402,7 @@ def check_stocks(order_sku, user, request, order_objs):
     return "Order created, Picklist generated Successfully"
 
 
-csrf_exempt
-
-
+@csrf_exempt
 @login_required
 @get_admin_user
 def get_warehouses_list(request, user=''):

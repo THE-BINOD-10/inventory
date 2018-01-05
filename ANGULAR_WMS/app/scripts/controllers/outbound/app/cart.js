@@ -10,6 +10,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.model_data = {};
   angular.copy(empty_data, vm.model_data);
   vm.date = new Date();
+  vm.user_type = Session.roles.permissions.user_type;
 
   vm.get_customer_cart_data = function() {
     
@@ -121,61 +122,76 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.insert_cool = true;
   vm.insert_order_data = function(form) {
 
-    if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header)) {
-      vm.service.showNoty("The Shipment Date, PO Number and Client Name are Required Please Select", "success", "bottomRight");
-    } else if (!(vm.model_data.shipment_time_slot)) {
-      vm.service.showNoty("Please Select Shipment Slot", "success", "bottomRight");
-    } else {
-      if(vm.insert_cool && vm.data_status) {
-        var msg = vm.checkDelivarableDates(vm.model_data.shipment_date, vm.model_data.data);
-        swal({
-          title: "Place Order!",
-          text: msg,
-          type: "warning",
-          showCancelButton: true,
-          confirmButtonText: "Sure",
-          closeOnConfirm: true
-          },
-          function(isConfirm){
-            if(isConfirm){
+    if (vm.user_type == 'customer') {
 
-            vm.insert_cool =false
-            vm.data_status = false;
-            var elem = angular.element($('form'));
-            elem = elem[0];
-            elem = $(elem).serializeArray();
-            vm.place_order_loading = true;
-            vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
-              if(data.message) {
-
-                if(data.data.indexOf("Success") != -1) {
-                  vm.uploadPO(vm.model_data.po_number_header, vm.model_data.client_name_header);
-                  angular.copy(empty_data, vm.model_data);
-                  angular.copy(empty_final_data, vm.final_data);
-                  Data.my_orders = [];
-                  swal({
-                    title: "Success!",
-                    text: "Your Order Has Been Placed Successfully",
-                    type: "success",
-                    showCancelButton: false,
-                    confirmButtonText: "OK",
-                    closeOnConfirm: true
-                    },
-                    function(isConfirm){
-                      $state.go("user.App.Brands");
-                    }
-                  )
-                }
-              }
-
-              vm.place_order_loading = false;
-              vm.insert_cool = true
-            })
-
-            }
-          }
-        )
+      if (!(vm.model_data.shipment_date)) {
+      
+        vm.service.showNoty("The Shipment Date is Required Please Select", "success", "bottomRight");
+      } else {
+        vm.order_data_insertion(form);
       }
+    } else {
+      if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header)) {
+        vm.service.showNoty("The Shipment Date, PO Number and Client Name are Required Please Select", "success", "bottomRight");
+      } else if (!(vm.model_data.shipment_time_slot)) {
+        vm.service.showNoty("Please Select Shipment Slot", "success", "bottomRight");
+      } else {
+        vm.order_data_insertion(form);
+      }
+    }
+  }
+
+  vm.order_data_insertion = function(form){
+
+    if(vm.insert_cool && vm.data_status) {
+      var msg = vm.checkDelivarableDates(vm.model_data.shipment_date, vm.model_data.data);
+      swal({
+        title: "Place Order!",
+        text: msg,
+        type: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sure",
+        closeOnConfirm: true
+        },
+        function(isConfirm){
+          if(isConfirm){
+
+          vm.insert_cool =false
+          vm.data_status = false;
+          var elem = angular.element($('form'));
+          elem = elem[0];
+          elem = $(elem).serializeArray();
+          vm.place_order_loading = true;
+          vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
+            if(data.message) {
+
+              if(data.data.indexOf("Success") != -1) {
+                vm.uploadPO(vm.model_data.po_number_header, vm.model_data.client_name_header);
+                angular.copy(empty_data, vm.model_data);
+                angular.copy(empty_final_data, vm.final_data);
+                Data.my_orders = [];
+                swal({
+                  title: "Success!",
+                  text: "Your Order Has Been Placed Successfully",
+                  type: "success",
+                  showCancelButton: false,
+                  confirmButtonText: "OK",
+                  closeOnConfirm: true
+                  },
+                  function(isConfirm){
+                    $state.go("user.App.Brands");
+                  }
+                )
+              }
+            }
+
+            vm.place_order_loading = false;
+            vm.insert_cool = true
+          })
+
+          }
+        }
+      )
     }
   }
 

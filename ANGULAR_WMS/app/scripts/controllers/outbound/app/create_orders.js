@@ -14,6 +14,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.size_filter_data = {};
   vm.size_toggle = true;
   vm.brand_size_collect = {};
+  vm.user_type = Session.roles.permissions.user_type;
 
   vm.order_type_value = "offline";
   vm.service = Service;
@@ -872,6 +873,7 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
   $ctrl.marginData = items;
   $ctrl.sku_data = [];
   angular.copy(Data.marginSKUData.data, $ctrl.sku_data);
+  $ctrl.user_type = Session.roles.permissions.user_type;
 
   $ctrl.margin_types = ['Margin Percentage', 'Margin Value'];
 

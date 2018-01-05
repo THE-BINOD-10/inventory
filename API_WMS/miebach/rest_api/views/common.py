@@ -5671,7 +5671,7 @@ def update_level_price_type(customer_master, level, price_type):
 
 
 def create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, wh, stock_cnt, po_number, client_name,
-                                      order_unit_price, el_price):
+                                      order_unit_price, el_price, del_date):
     order_detail_map = {'generic_order_id': generic_order_id,
                         'orderdetail_id': order_detail.id,
                         'customer_id': cm_id,
@@ -5679,6 +5679,7 @@ def create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, wh,
                         'po_number': po_number,
                         'client_name': client_name,
                         'el_price': el_price,
+                        'schedule_date': del_date
                         }
     gen_ord_dt_map_obj = GenericOrderDetailMapping.objects.filter(**order_detail_map)
     order_detail_map['quantity'] = stock_cnt
@@ -5714,6 +5715,7 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                          order_user_sku, order_user_objs):
     order_unit_price = order_data['unit_price']
     el_price = order_data['el_price']
+    del_date = order_data['del_date']
     if not is_distributor:
 
         sku_code = order_data['sku_code']
@@ -5755,6 +5757,8 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                 dist_order_copy.pop('margin_data')
             if 'el_price' in order_data:
                 dist_order_copy.pop('el_price')
+            if 'del_date' in order_data:
+                dist_order_copy.pop('del_date')
             order_detail = OrderDetail(**dist_order_copy)
             order_detail.save()
 
@@ -5772,6 +5776,9 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
             order_data.pop('margin_data')
         if 'el_price' in order_data:
             order_data.pop('el_price')
+        if 'del_date' in order_data:
+            order_data.pop('del_date')
+            
         if not order_obj:
             order_detail = OrderDetail(**order_data)
             order_detail.save()
@@ -5792,7 +5799,7 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
     order_user_objs[order_detail.user].append(order_detail)
 
     create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, order_data['user'], order_data['quantity'],
-                                      po_number, client_name, order_unit_price, el_price)
+                                      po_number, client_name, order_unit_price, el_price, del_date)
 
 
 def create_ordersummary_data(order_summary_dict, order_detail, ship_to):

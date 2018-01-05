@@ -2940,6 +2940,8 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
             if not value:
                 value = 0
             order_data[key] = value
+        elif key == 'del_date':
+            order_data[key] = datetime.datetime.strptime(myDict[key][i], '%m/%d/%Y')
         else:
             order_data[key] = value
 
@@ -3124,12 +3126,15 @@ def insert_order_data(request, user=''):
                                                            sku_id=mapped_sku_id, order_code=order_data['order_code'])
                     if not order_obj:
                         el_price = order_data['el_price']
+                        del_date = order_data['del_date']
                         if 'warehouse_level' in order_data:
                             order_data.pop('warehouse_level')
                         if 'margin_data' in order_data:
                             order_data.pop('margin_data')
                         if 'el_price' in order_data:
                             order_data.pop('el_price')
+                        if 'del_date' in order_data:
+                            order_data.pop('del_date')
                         order_data['sku_id'] = mapped_sku_id
                         order_obj = OrderDetail(**order_data)
                         order_obj.save()
@@ -3145,7 +3150,7 @@ def insert_order_data(request, user=''):
 
                         create_grouping_order_for_generic(generic_order_id, order_obj, cm_id, user.id,
                                                           order_data['quantity'], po_number, client_name,
-                                                          order_data['unit_price'], el_price)
+                                                          order_data['unit_price'], el_price, del_date)
                 for usr, qty in stock_wh_map.iteritems():
                     order_data['order_id'] = user_order_ids_map[usr]
                     order_data['user'] = usr
@@ -6042,6 +6047,7 @@ def construct_order_customer_order_detail(request, order, user):
             continue
         el_price = gen_ord_obj[0].el_price
         res_unit_price = gen_ord_obj[0].unit_price
+        schedule_date = gen_ord_obj[0].schedule_date
         print "el_price, res_unit_price::", el_price, res_unit_price
         tax_data = CustomerOrderSummary.objects.filter(order__id=record['id'], order__user=user)
         picked_quantity = Picklist.objects.filter(order_id=record['id']).values(
@@ -6057,6 +6063,8 @@ def construct_order_customer_order_detail(request, order, user):
             record['invoice_amount'] = record['invoice_amount'] - tax_data.tax_value
         if el_price:
             record['el_price'] = el_price
+        if schedule_date:
+            record['schedule_date'] = schedule_date.strftime("%m/%d/%Y")
     return data_list, total_picked_quantity
 
 
@@ -6115,19 +6123,19 @@ def get_level_based_customer_order_detail(request, user):
                     else:
                         existing_map = sku_wise_details[sku_code]
                         existing_map['quantity'] = existing_map['quantity'] + sku_rec['quantity']
-    sku_sample = {'data': [], 'totals': {}}
+    sku_whole_map = {'data': [], 'totals': {}}
     sku_totals = {'sub_total': 0, 'total_amount': 0, 'tax': 0}
     for sku_code, sku_det in sku_wise_details.items():
         el_price = sku_det['el_price']
         qty = sku_det['quantity']
         total_amt = float(qty) * float(el_price)
         sku_map = {'sku_code': sku_code, 'quantity': qty, 'landing_price': el_price, 'total_amount': total_amt}
-        sku_totals['sub_total'] = sku_totals['sub_total'] + qty
-        sku_totals['total_amount'] = sku_totals['total_amount'] + total_amt
-        sku_sample['data'].append(sku_map)
-    sku_sample['totals'] = sku_totals
+        sku_totals['sub_total'] = sku_totals['sub_total'] + total_amt
+        sku_totals['total_amount'] = sku_totals['total_amount'] + total_amt  # TODO Tax to be added to Sub total
+        sku_whole_map['data'].append(sku_map)
+        sku_whole_map['totals'] = sku_totals
     whole_res_map['data'] = response_data_list
-    whole_res_map['sku_wise_details'] = sku_sample
+    whole_res_map['sku_wise_details'] = sku_whole_map
     return whole_res_map
 
 
@@ -6222,16 +6230,18 @@ def get_customer_cart_data(request, user=""):
 
         cm_obj = CustomerMaster.objects.get(id=cust_user_obj[0].customer_id)
         is_distributor = cm_obj.is_distributor
-        if is_distributor:
-            dist_mapping = WarehouseCustomerMapping.objects.get(customer_id=cm_obj.id, status=1)
-            dist_wh_id = dist_mapping.warehouse.id
-            price_type = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id,
-                                                      source_location_code_id=user.id). \
-                values_list('price_type')
-        else:
-            price_type = cm_obj.price_type
-
         for record in cart_data:
+            del_date = ''
+            if is_distributor:
+                dist_mapping = WarehouseCustomerMapping.objects.get(customer_id=cm_obj.id, status=1)
+                dist_wh_id = dist_mapping.warehouse.id
+                price_type = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id,
+                                                          source_location_code_id=user.id). \
+                    values_list('price_type')
+                dist_reseller_leadtime = 0
+            else:
+                price_type = cm_obj.price_type
+                dist_reseller_leadtime = cm_obj.lead_time
             json_record = record.json()
             sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=json_record['sku_id'])
             product_type = sku_obj[0].product_type
@@ -6245,8 +6255,19 @@ def get_customer_cart_data(request, user=""):
                 if is_distributor:
                     if price_type:
                         price_type = price_type[0]
+                    if cm_obj:
+                        dist_mapping = WarehouseCustomerMapping.objects.filter(customer_id=cm_obj, status=1)
+                        dist_userid = dist_mapping[0].warehouse_id
+                        lead_times = get_leadtimes(dist_userid, record.warehouse_level)
+                        del_date = min(lead_times.keys())
                 else:
                     price_type = update_level_price_type(cm_obj, record.warehouse_level, price_type)
+                    if record.warehouse_level:
+                        lead_times = get_leadtimes(user.id, record.warehouse_level)
+                        reseller_leadtimes = map(lambda x: x + dist_reseller_leadtime, lead_times)
+                        del_date = reseller_leadtimes[0]
+                    else:
+                        del_date = dist_reseller_leadtime
                 price_master_objs = PriceMaster.objects.filter(price_type=price_type,
                                                                sku__user=central_admin.id,
                                                                sku__sku_code=json_record['sku_id'])
@@ -6269,6 +6290,11 @@ def get_customer_cart_data(request, user=""):
             json_record['invoice_amount'] = json_record['quantity'] * json_record['price']
             json_record['total_amount'] = ((json_record['invoice_amount'] * json_record['tax']) / 100) + \
                                           json_record['invoice_amount']
+            if del_date:
+                date = datetime.datetime.now()
+                date += datetime.timedelta(days=del_date)
+                del_date = date.strftime("%m/%d/%Y")
+            json_record['del_date'] = del_date
 
             response['data'].append(json_record)
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))

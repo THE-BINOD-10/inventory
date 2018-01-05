@@ -11,6 +11,7 @@
       </label>
     </div>
   </div>
+
   <div class="row">
     <div class="col-md-2 col-sm-1"></div>
     <div class="col-md-4 col-sm-5 col-xs-6">
@@ -23,9 +24,10 @@
         <input type="text" name="margin" class="form-control number" ng-model="$ctrl.marginData.margin_value" ng-readonly="$ctrl.marginData.margin_type == $ctrl.margin_types[0] || $ctrl.marginData.margin_type == ''">
       </div>
     </div>
-    <div class="col-md-12"><hr></div>
   </div>
+  
   <div class="row" ng-if="$ctrl.user_type!='customer'">
+    <div class="col-md-12"><hr></div>
     <div class="form-horizontal">
       <div class="form-group">
         <label class="col-sm-3 control-label">Categories</label>
@@ -63,7 +65,7 @@
       <hr>
     </div>
   </div>
-  <div class="row">
+  <div class="row" ng-if="$ctrl.user_type!='customer'">
     <div class="col-md-12">
       <table class="table">
         <thead>

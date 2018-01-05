@@ -149,8 +149,8 @@ input[type="date"]:valid::before {
             <input type="hidden" name="cgst_tax" class="form-control" value="{{data.cgst_tax}}">
             <input type="hidden" name="igst_tax" value="{{data.igst_tax}}">
             <input type="hidden" name="warehouse_level" class="form-control" value="{{data.warehouse_level}}">
-            <input type="hidden" ng-if="showCase.user_type!='customer'" name="warehouse_level" class="form-control" value="{{data.warehouse_level}}">
-            <input type="hidden" ng-if="showCase.user_type!='customer'" name="el_price" class="form-control" value="{{Cart.sku_group_data[data.sku_id].effective_landing_price}}">
+            <input type="hidden" name="el_price" class="form-control" value="{{Cart.sku_group_data[data.sku_id].effective_landing_price}}">
+            <input type="hidden" name="del_date" class="form-control" value="{{data.del_date}}">
             <div class="col-md-6 col-sm-6 col-xs-7">
               <h4 align="left"><b>{{data.sku_id}} </b>
                 <span ng-if="permissions.user_type != 'customer'">

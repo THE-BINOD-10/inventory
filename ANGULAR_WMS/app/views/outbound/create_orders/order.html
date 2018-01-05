@@ -182,7 +182,7 @@
               <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'inter_state'" class="w10">IGST(%)</th>
               <th ng-show="showCase.fields.indexOf('Total Amount') == -1">Total Amount</th>
               <th ng-show="showCase.fields.indexOf('Remarks') == -1">Remarks</th>
-              <th> Price Ranges </th>
+              <th ng-show="showCase.fields.indexOf('Price Ranges') == -1"> Price Ranges </th>
               <th class="plus"></th>
             </tr>
           </thead>
@@ -232,10 +232,10 @@
               <td ng-show="showCase.fields.indexOf('Total Amount') == -1">
                 <input type="text" name="total_amount" class="form-control" ng-model="data.total_amount" ng-change="showCase.cal_total()" decimal-number>
               </td>
-	      <td ng-show="showCase.fields.indexOf('Remarks') == -1">
+  	          <td ng-show="showCase.fields.indexOf('Remarks') == -1">
                 <input type="text" name="remarks" class="form-control" ng-model="data.remarks">
               </td>
-              <td class="tooltip" style="border:none; font-size: 12px;">
+              <td ng-show="showCase.fields.indexOf('Price Ranges') == -1" class="tooltip" style="border:none; font-size: 12px;">
                 <span style="margin-top: 8px"><a href="">Ranges</a></span>
                 <div class="tooltiptext">
                   <table>

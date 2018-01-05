@@ -1068,7 +1068,8 @@ PAYMENT_MODES = ['Credit Card', 'Debit Card', 'Cash', 'NEFT', 'RTGS', 'IMPS', 'O
 
 ORDER_HEADERS_d = OrderedDict(
     (('Unit Price', 'unit_price'), ('Amount', 'amount'), ('Tax', 'tax'), ('Total Amount', 'total_amount'),
-     ('Remarks', 'remarks'), ('Discount', 'discount'), ('Discount Percentage', 'discount_percentage')))
+     ('Remarks', 'remarks'), ('Discount', 'discount'), ('Discount Percentage', 'discount_percentage'),
+     ('Price Ranges', 'price_ranges')))
 
 STYLE_DETAIL_HEADERS = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description', 'sku_desc'), ('Size', 'sku_size'),
                                     ('1-Day Stock', 'physical_stock'), ('3-Day Stock', 'all_quantity')

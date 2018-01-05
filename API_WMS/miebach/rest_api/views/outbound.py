@@ -4338,10 +4338,14 @@ def get_sku_catalogs(request, user=''):
         if remarks:
             remarks = remarks[0].misc_value
         display_stock = request.POST.get('display_stock', '')
+        user_type = request.POST.get('user_type', '')
         admin = get_admin(user)
         image = get_company_logo(admin)
         date = get_local_date(user, datetime.datetime.now())
-        t = loader.get_template('templates/customer_search.html')
+        if user_type in ['reseller', 'distributor']:
+            t = loader.get_template('templates/reseller_search.html')
+        else:
+            t = loader.get_template('templates/customer_search.html')
         rendered = t.render({'data': data, 'user': request.user.first_name, 'date': date,
                              'remarks': remarks, 'display_stock': display_stock, 'image': image})
 

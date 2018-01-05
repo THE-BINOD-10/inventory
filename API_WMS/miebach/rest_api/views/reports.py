@@ -470,9 +470,9 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
         search_parameters['sku__wms_code'] = search_params['wms_code'].upper()
     if 'order_id' in search_params:
         value = search_params['order_id'].strip('OD').strip('MN').strip('SR')
-        search_parameters['order_id'] = value
+        search_parameters['order__order_id'] = value
     if 'customer_id' in search_params:
-        search_parameters['order__customer_id'] = value
+        search_parameters['order__customer_id'] = search_params['customer_id']
     if 'marketplace' in search_params:
         marketplace = search_params['marketplace']
     start_index = search_params.get('start', 0)

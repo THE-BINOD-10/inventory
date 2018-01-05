@@ -5670,13 +5670,13 @@ def update_level_price_type(customer_master, level, price_type):
     return price_type
 
 
-def create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, wh, stock_cnt, po_number, client_name,
-                                      order_unit_price, el_price, del_date):
+def create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, wh, stock_cnt, corporate_po_number,
+                                      client_name, order_unit_price, el_price, del_date):
     order_detail_map = {'generic_order_id': generic_order_id,
                         'orderdetail_id': order_detail.id,
                         'customer_id': cm_id,
                         'cust_wh_id': wh,
-                        'po_number': po_number,
+                        'po_number': corporate_po_number,
                         'client_name': client_name,
                         'el_price': el_price,
                         'schedule_date': del_date
@@ -5711,7 +5711,7 @@ def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):
 
 
 def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_objs, is_distributor,
-                         order_summary_dict, ship_to, po_number, client_name, admin_user, sku_total_qty_map,
+                         order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs):
     order_unit_price = order_data['unit_price']
     el_price = order_data['el_price']
@@ -5761,7 +5761,6 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                 dist_order_copy.pop('del_date')
             order_detail = OrderDetail(**dist_order_copy)
             order_detail.save()
-
         else:
             order_detail = order_obj[0]
 
@@ -5799,7 +5798,7 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
     order_user_objs[order_detail.user].append(order_detail)
 
     create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, order_data['user'], order_data['quantity'],
-                                      po_number, client_name, order_unit_price, el_price, del_date)
+                                      corporate_po_number, client_name, order_unit_price, el_price, del_date)
 
 
 def create_ordersummary_data(order_summary_dict, order_detail, ship_to):

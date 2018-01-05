@@ -3149,7 +3149,7 @@ def insert_order_data(request, user=''):
                         order_user_objs[user.id].append(order_obj)
 
                         create_grouping_order_for_generic(generic_order_id, order_obj, cm_id, user.id,
-                                                          order_data['quantity'], po_number, client_name,
+                                                          order_data['quantity'], corporate_po_number, client_name,
                                                           order_data['unit_price'], el_price, del_date)
                 for usr, qty in stock_wh_map.iteritems():
                     order_data['order_id'] = user_order_ids_map[usr]
@@ -3166,7 +3166,7 @@ def insert_order_data(request, user=''):
                     if not order_obj:
                         order_data['sku_id'] = mapped_sku_id
                         create_generic_order(order_data, cm_id, user.id, generic_order_id, order_objs, is_distributor,
-                                             order_summary_dict, ship_to, po_number, client_name, admin_user,
+                                             order_summary_dict, ship_to, corporate_po_number, client_name, admin_user,
                                              sku_total_qty_map, order_user_sku, order_user_objs)
                     else:
                         created_skus.append(order_data['sku_id'])

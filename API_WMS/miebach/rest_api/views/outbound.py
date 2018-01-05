@@ -6044,7 +6044,7 @@ def construct_order_customer_order_detail(request, order, user):
                                   'sku__sku_category', 'sku__sku_class'))
     total_picked_quantity = 0
     for record in data_list:
-        tax_data = CustomerOrderSummary.objects.filter(order__id=record['id'], order__user=user.id)
+        tax_data = CustomerOrderSummary.objects.filter(order__id=record['id'], order__user=user)
         picked_quantity = Picklist.objects.filter(order_id=record['id']).values(
             'picked_quantity').aggregate(Sum('picked_quantity'))['picked_quantity__sum']
         if not picked_quantity:
@@ -6066,6 +6066,38 @@ def construct_order_customer_order_detail(request, order, user):
     return data_list, total_picked_quantity
 
 
+def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
+    response_data = {}
+    tax = CustomerOrderSummary.objects.filter(order_id__in=det_ids,
+                                              order__user=usr_id).aggregate(Sum('tax_value'))[
+        'tax_value__sum']
+    if not tax:
+        tax = 0
+    order_ids = det_ids
+    data_status = order.filter(status=1)
+    if data_status:
+        status = 'open'
+    else:
+        status = 'closed'
+        pick_status = Picklist.objects.filter(order_id__in=order_ids, status__icontains='open')
+        if pick_status:
+            status = 'open'
+    response_data['status'] = status
+    response_data['date'] = get_only_date(request, order[0].creation_date)
+    response_data['order_id'] = order[0].order_id
+    response_data['tax'] = round(tax, 2)
+    response_data['data'] = []
+    res, total_picked_quantity = construct_order_customer_order_detail(request, order, usr_id)
+    total_inv_amt = map(sum, [[x['invoice_amount'] for x in res]])
+    total_qty = map(sum, [[x['quantity'] for x in res]])
+    sum_data = {'picked_quantity': total_picked_quantity, 'amount': total_inv_amt[0],
+                'quantity': total_qty[0]}
+    response_data['sum_data'] = sum_data
+    response_data['data'].extend(res)
+
+    return response_data, res
+
+
 def get_level_based_customer_order_detail(request, user):
     whole_res_map = {}
     response_data_list = []
@@ -6083,40 +6115,14 @@ def get_level_based_customer_order_detail(request, user):
             ord_det_map.setdefault(int(ord_id), {}).setdefault(usr_id, []).append(det_id)
         for ord_id, usr_det_ids in ord_det_map.items():
             for usr_id, det_ids in usr_det_ids.items():
-                response_data = {}
-                tax = CustomerOrderSummary.objects.filter(order__order_id=ord_id,
-                                                          order__user=usr_id).aggregate(Sum('tax_value'))[
-                    'tax_value__sum']
-                if not tax:
-                    tax = 0
-                order = OrderDetail.objects.filter(order_id=ord_id, user=usr_id)
-                order_ids = det_ids
-                data_status = order.filter(status=1)
-                if data_status:
-                    status = 'open'
-                else:
-                    status = 'closed'
-                    pick_status = Picklist.objects.filter(order_id__in=order_ids, status__icontains='open')
-                    if pick_status:
-                        status = 'open'
-                response_data['status'] = status
-                response_data['date'] = get_only_date(request, order[0].creation_date)
-                response_data['order_id'] = order[0].order_id
-                response_data['tax'] = round(tax, 2)
-                response_data['data'] = []
-                res, total_picked_quantity = construct_order_customer_order_detail(request, order, usr_id)
-                total_inv_amt = map(sum, [[x['invoice_amount'] for x in res]])
-                total_qty = map(sum, [[x['quantity'] for x in res]])
-                sum_data = {'picked_quantity': total_picked_quantity, 'amount': total_inv_amt[0],
-                            'quantity': total_qty[0]}
-                response_data['sum_data'] = sum_data
-                response_data['data'].extend(res)
+                response_data, res = prepare_your_orders_data(request, ord_id, usr_id, det_ids,
+                                                         OrderDetail.objects.filter(id__in=det_ids))
                 response_data_list.append(response_data)
                 for sku_rec in res:
                     sku_code = sku_rec['sku__sku_code']
                     if sku_code not in sku_wise_details:
                         sku_qty = sku_rec['quantity']
-                        sku_el_price = sku_rec['el_price']
+                        sku_el_price = sku_rec.get('el_price', 0)
                         sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price}
                     else:
                         existing_map = sku_wise_details[sku_code]
@@ -6150,15 +6156,20 @@ def get_customer_order_detail(request, user=""):
     admin_user = get_priceband_admin_user(user)
     if admin_user:
         response_data_list = get_level_based_customer_order_detail(request, user)
+        final_data = response_data_list
     else:
-        response_data_list = []
         order = get_order_detail_objs(order_id, user)
-        print order
-        #orderdetail_ids = order.values_list('id', flat=True)
+        det_ids = order.values_list('id', flat=True)
         if not order:
             return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
-        response_data_list, total_picked_quantity = construct_order_customer_order_detail(request, order, user)
-    return HttpResponse(json.dumps({'data': response_data_list}, cls=DjangoJSONEncoder))
+        ord_id = order[0].original_order_id
+        if not ord_id:
+            ord_id = order[0].order_code + str(order[0].order_id)
+        response_data, res = prepare_your_orders_data(request, order_id, user.id, det_ids, order)
+        response_data_list = [response_data]
+        final_data = {'data': response_data_list}
+        #response_data_list, total_picked_quantity = construct_order_customer_order_detail(request, order, user)
+    return HttpResponse(json.dumps(final_data, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt

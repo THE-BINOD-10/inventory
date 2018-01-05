@@ -2836,6 +2836,7 @@ def get_customer_sku_prices(request, user=""):
     try:
         sku_codes = [sku_codes]
         result_data = []
+        price_bands_list = []
         customer_master = ""
 
         inter_state = inter_state_dict.get(tax_type, 2)

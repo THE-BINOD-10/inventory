@@ -1,0 +1,83 @@
+{% load tag_extras %}
+<style>
+  {% include 'toggle/bootstrap.min.css' %}
+  {% include 'toggle/page.css' %}
+</style>
+
+<div class='row'>
+  <div class="print-invoice">
+    <div class="row col-md-12 no-padding" style="background-color: #ed1c24 !important;color: white;">
+      {% if image %}
+      <img src="data:image/jpg;base64, {{image}}" class="pull-left" style="width:100%;width: 70px;margin: 4px 2px;"/>
+      {% endif %}
+      <h4 style="margin-bottom:10px;color:white !important;line-height: 40px;" align="center"><b style="color:white !important;">{{ user }}</b></h4>
+      <span class="pull-right" style="position: absolute;top: 10px;right: 20px;font-size:12px;line-height: 40px;">{{date}}</span>
+    </div>
+{% for obj in data %}
+{% if forloop.first %}
+<div class='row'>
+{% elif forloop.counter|get_page_break %}
+<div class='row' style="page-break-after: always;">
+{% elif not forloop.counter|divisibleby:2 %}
+<div class='row'>
+{% endif %}
+<div class="col-md-6 col-sm-6 col-xs-6" style="border-top: 1px solid #f0f0f0;padding-top:10px;padding-bottom:10px">
+  <div class='row'>
+    <div class="col-md-4 col-sm-4 col-xs-4" style="padding:0px 0px;">
+      <img style="border:0px !important;width: 100%;padding: 0px 0px 2px 0px;" class="img-thumbnail" src="{{  obj.image_url| get_image_code }}">
+    </div>
+    <div class="col-md-8 col-sm-8 col-xs-8" style="padding:0px 0px;">
+      <div>
+        <img style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail hide" src="{{  obj.image_url| get_image_code }}">
+        <div>
+          <span class="style_name" style="font-size: 12px" title="{{ obj.sku_class }}"><b>Style: {{ obj.sku_class }}</b></span><br>
+          <!--<span class="style_name" style="font-size: 12px" >{{ obj.variants.0.price| get_price_code }}</span><br>-->
+          <span class="style_name" style="font-size: 12px" ><b>Style Name:</b>{{ obj.variants.0.style_name }}</span><br>
+          <span class="style_name" style="font-size: 12px" title="{{ obj.sku_class }}"><b>Brand:</b> {{ obj.variants.0.sku_brand }}</span><br>
+          <span class="style_name" style="font-size: 12px" title="{{ obj.sku_class }}"><b>Category:</b> {{ obj.variants.0.sku_category }}</span><br>
+          {% if display_stock == 'true' %}
+            <span style="font-size: 12px;" class="ng-binding"><b>Stock: </b>{{obj.style_quantity}}</span><br>
+            <!--<span style="font-size: 12px;" class="ng-binding"><b>Stock: </b>{{ obj.variants| get_size_wise_stock }}</span><br>-->
+          {% endif %}
+          <!--<span style="font-size: 12px;"><b>MRP:</b> &#8377;{{ obj.variants.0.mrp| floatformat:0 }}&nbsp;&nbsp;</span>-->
+          <!--<span style="font-size: 12px;color: #ed1c24 !important;"><b style="color: #ed1c24 !important;">Selling Price: &#8377;{{ obj.variants.0.your_price| floatformat:0 }}</b></span>-->
+
+          <!--<br>-->
+          {% if obj.variants.0.price_ranges %}
+          <div ng-if="item.variants[0].price_ranges.length > 0">
+            <table class="table table-bordered mb0 mt5" style="font-size:10px;">
+              <tbody>
+                <tr>
+                  <td style="border-color: black !important"><b>Qty</b></td>
+                  {% for qty in obj.variants.0.price_ranges %}
+                  <td style="padding:2px; border-color: black !important" ng-repeat="td in item.variants[0].price_ranges"><center>
+                    <span>{{qty.min_unit_range| floatformat:0}}</span><br>
+                    <div style="height: 1px;width: 5px;background: #616161 !important;margin-bottom: 2px;"></div>
+                      {{qty.max_unit_range| floatformat:0}}
+                    </center></td>
+                  {% endfor %}
+                </tr>
+                <tr>
+                  <td style="padding:2px;width: 40px;border-color: black !important" ><b>Price</b></td>
+                  {% for qty in obj.variants.0.price_ranges %}
+                    <td style="padding:2px; border-color: black !important" ng-repeat="td in item.variants[0].price_ranges"><center><b style="color: #ed1c24 !important">{{qty.price}}</b></center></td>
+                  {% endfor %}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% if forloop.counter|divisibleby:2 %}
+</div>
+{% endif %}
+{% endfor %}
+</div>
+{% if not endif %}
+<p style="margin-top: 20px;width:100%;margin-left:20" class="pre-custom"><b>Note:</b>{{remarks}}</b></p>
+{% endif %}
+</div>

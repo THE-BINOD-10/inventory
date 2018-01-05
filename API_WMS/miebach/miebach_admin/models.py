@@ -282,6 +282,7 @@ class GenericOrderDetailMapping(models.Model):
     el_price = models.FloatField(default=0)
     po_number = models.CharField(max_length=128, default='')
     client_name = models.CharField(max_length=256, default='')
+    schedule_date = models.DateField()
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

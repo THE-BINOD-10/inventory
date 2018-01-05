@@ -3426,7 +3426,7 @@ def validate_network_form(request, reader, no_of_rows, fname, user, file_type='x
     network_file_mapping = copy.deepcopy(NETWORK_DEF_EXCEL)
     if not network_file_mapping:
         return 'Invalid File'
-    warehouse_users = UserGroups.objects.filter(admin_user=user.id).values_list('user_id')
+    warehouse_users = UserGroups.objects.filter(admin_user=user.id).values_list('user_id', flat=True)
     for row_idx in range(1, no_of_rows):
         for key, value in network_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, network_file_mapping[key], reader, file_type)

@@ -4,7 +4,7 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .choices import UNIT_TYPE_CHOICES
+from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES
 
 
 # from longerusername import MAX_USERNAME_LENGTH
@@ -2206,7 +2206,7 @@ class NetworkMaster(models.Model):
     sku_stage = models.CharField(max_length=50, blank=True)
     priority = models.IntegerField(blank=True)
     price_type = models.CharField(max_length=32, default='')
-    charge_remarks = models.CharField(max_length=50, default='')
+    charge_remarks = models.CharField(max_length=50, choices=REMARK_CHOICES, default='')
     supplier = models.ForeignKey(SupplierMaster, null=True, blank=True, default=None)
 
     def json(self):

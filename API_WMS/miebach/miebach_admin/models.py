@@ -704,7 +704,7 @@ class CustomerMaster(models.Model):
     updation_date = models.DateTimeField(auto_now=True)
     customer_type = models.CharField(max_length=64, default='')
     is_distributor = models.BooleanField(default=False)
-    lead_time = models.PositiveIntegerField(blank=True)
+    lead_time = models.PositiveIntegerField(blank=True, default=0)
 
     class Meta:
         db_table = 'CUSTOMER_MASTER'

@@ -45,9 +45,13 @@ def get_updated_pos(request):
     else:
         up_obj = up_obj[0]
     gen_ord_map = get_skucode_quantity(up_obj.po_number, up_obj.customer_name)
+    if up_obj.uploaded_file.name:
+        uploaded_file_url = up_obj.uploaded_file.url
+    else:
+        uploaded_file_url = ''
     data = {'id': up_obj.id, 'uploaded_user': up_obj.uploaded_user.first_name, 'po_number': up_obj.po_number,
             'uploaded_date': up_obj.uploaded_date.strftime('%Y-%m-%d'), 'customer_name': up_obj.customer_name,
-            'uploaded_file': up_obj.uploaded_file.url, 'verification_flag': up_obj.verification_flag,
+            'uploaded_file': uploaded_file_url, 'verification_flag': up_obj.verification_flag,
             'remarks': up_obj.remarks, 'sku_quantity': gen_ord_map}
     return HttpResponse(json.dumps({'data': data}))
 

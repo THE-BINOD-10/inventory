@@ -88,9 +88,8 @@
                 <div class="widget-details col-md-7 col-sm-7 col-xs-8 text-left">
                   <small class="order-label">SKU Description</small>
                   <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.sku__sku_desc}}</p><br>
-                  <small class="order-label" ng-if="data.schedule_date">Delivery Schedule Date</small>
-                  <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.schedule_date}}</p>
-                  <!--<span><b>Price:</b> <b style="color:#ed1c24">1234</b></span>-->
+                  <small class="order-label" ng-if="data.schedule_date"><b>Delivery Schedule Date</b></small>
+                  <p class="no-margin order-bold detail-black" style="font-size:12px"><b>{{data.schedule_date}}</b></p>
                 </div>
                 </div>
                 </div>
@@ -150,7 +149,7 @@
             </div>
           </div>
         </div>
-        <div ng-if="permissions.user_type == 'reseller'" ng-include="'views/outbound/app/create_orders/sku_wise_details.html'"></div>
+        <div ng-if="permissions.user_type != 'customer'" ng-include="'views/outbound/app/create_orders/sku_wise_details.html'"></div>
       </div>
     </div>
     <!-- Enquiry View -->

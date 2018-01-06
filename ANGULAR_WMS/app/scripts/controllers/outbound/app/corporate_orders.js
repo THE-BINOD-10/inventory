@@ -82,8 +82,10 @@ function CorporateOrders($scope, Service, Data, $modal, Session) {
             'success': function(response) {
               if(response == 'Uploaded Successfully') {
 
-                vm.order_data.data.splice(index, 1);
-                Data.corporate_orders = vm.order_data.data;
+                $scope.$apply(function() {
+                  vm.order_data.data.splice(index, 1);
+                  Data.corporate_orders = vm.order_data.data;
+                });
                 Service.showNoty(response);
               } else {
                 Service.showNoty(response, 'warning');

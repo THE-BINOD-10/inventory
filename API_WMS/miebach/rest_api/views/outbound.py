@@ -4390,7 +4390,6 @@ def get_sku_variants(request, user=''):
     customer_data_id = request.POST.get('customer_data_id', '')
     sku_code = request.POST.get('sku_code', '')
     is_catalog = request.POST.get('is_catalog', '')
-    # margin_data = request.POST.get('margin_data', '')
     sale_through = request.POST.get('sale_through', '')
     level = request.POST.get('level', '')
     if level:
@@ -7567,6 +7566,13 @@ def order_cancel(request, user=''):
             gen_ord_id = request.GET.get('order_id', '')
             if gen_ord_id:
                 gen_qs = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_ord_id, customer_id=cm_id)
+                uploaded_po_details = gen_qs.values('po_number', 'client_name').distinct()
+                if uploaded_po_details.count() == 1:
+                    po_number = uploaded_po_details[0]['po_number']
+                    client_name = uploaded_po_details[0]['client_name']
+                    ord_upload_qs = OrderUploads.objects.filter(uploaded_user=request.user.id,
+                                                                po_number=po_number, customer_name=client_name)
+                    ord_upload_qs.delete()
                 order_det_ids = gen_qs.values_list('orderdetail_id', flat=True)
                 ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
                 ord_det_qs.delete()

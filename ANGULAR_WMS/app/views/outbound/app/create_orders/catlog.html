@@ -96,6 +96,33 @@
               </tbody>
             </table>
           </div>
+
+          <div class="tooltip" style="border:none;font-size: 11px;float: left;z-index: 1;font-weight: 600;color: #090001;margin-top: 5px;text-decoration: underline;" ng-click="$event.stopPropagation();">
+            <span style="margin-top: 8px"><a href="">Modify Margin</a></span>
+            <div class="tooltiptext" style="width: 175px;background-color: black;text-align: center;
+              border-radius: 6px;padding: 5px 0;padding: 3px;position: absolute;z-index: 1;top: -340%;
+              right: -130%;">
+              <table>
+                <tbody>
+                  <tr>
+                    <th style="font-size: 11px;">{{(item.variants[0].is_margin_percentage)?'Modify Margin Percentage': 'Modify Margin Value';}}</th>
+                    <th></th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <input class="form-control ng-pristine ng-invalid-required ng-invalid" decimal-number="" ng-model="item.variants[0].margin" ng-required="true" required="required" style="padding: 3px;height: 24px;margin-top: 3px;border-radius: 0px;">
+                    </td>
+                    <td>
+                      <button class="btn btn-icon-icon" style="background: #ee4734;padding: 0px;width: 25px;height: 25px;border-width: 1px;position: relative;overflow: hidden;padding-top: 0;padding-bottom: 0px;padding-left: 0px;border-width: 0;margin-top: 3px;color: black;transition: none;">
+                        <i class="fa fa-check" style="font-size: 13px;border-radius: 0px;color:white;line-height: 25px;" title="Show Filters" ng-click="showCase.modifyMarginEachSKU(item.variants[0], $index)"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           </div>
           <div ng-if="permissions.user_type == 'customer'">
           <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.sku_class }}</p>

@@ -184,6 +184,10 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       
       if (level_data.data[index].quantity) {
         
+        if (Session.roles.permissions.user_type == 'reseller' && vm.selLevel==0 && level_name!=vm.selLevel) {
+          level_data.data[index].quantity = 0;
+          Service.showNoty('Level-'+level_name+' quantity removed', 'warning');
+        }
         level_data.data[index].price = vm.priceRangesCheck(level_data.data[index], total_quantity);
         level_data.data[index].unit_rate = level_data.data[index].price;
         level_data.data[index].row_total_price = level_data.data[index].price * level_data.data[index].quantity;
@@ -217,7 +221,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
     if (Session.parent.userName != 'sagar_fab') {
 
-      if (row.quantity >= row.overall_sku_total_quantity) {
+      if (row.quantity > row.overall_sku_total_quantity) {
 
         vm.full_quantity = true;
         row.quantity = row.overall_sku_total_quantity;

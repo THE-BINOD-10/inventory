@@ -2551,6 +2551,8 @@ def resize_image(url, user):
             from PIL import Image
             temp_url = url[1:]
             image = Image.open(temp_url)
+            if image.size[0] == image.size[1]:
+                height = width = 250
             imageresize = image.resize((height, width), Image.ANTIALIAS)
             imageresize.save(path + folder + "/" + new_file_name, 'JPEG', quality=75)
             url = "/" + path + folder + "/" + new_file_name

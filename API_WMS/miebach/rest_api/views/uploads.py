@@ -11,6 +11,7 @@ from collections import OrderedDict
 from django.contrib.auth import authenticate
 from django.contrib import auth
 from miebach_admin.models import *
+from miebach_admin.choices import *
 from common import *
 from miebach_utils import *
 from django.core import serializers
@@ -3422,11 +3423,18 @@ def pricing_master_upload(request, user=''):
 @csrf_exempt
 def validate_network_form(request, reader, no_of_rows, fname, user, file_type='xls'):
     index_status = {}
-
     network_file_mapping = copy.deepcopy(NETWORK_DEF_EXCEL)
     if not network_file_mapping:
         return 'Invalid File'
-    warehouse_users = UserGroups.objects.filter(admin_user=user.id).values_list('user_id')
+    warehouse_users = UserGroups.objects.filter(admin_user=user.id).values_list('user_id__username', flat=True)
+    price_band_flag = get_misc_value('priceband_sync', user.id)
+    if price_band_flag == 'true':
+        admin_user = get_admin(user)
+        price_types = PriceMaster.objects.filter(sku__user=admin_user.id). \
+            values_list('price_type', flat=True).distinct()
+    else:
+        price_types = PriceMaster.objects.filter(sku__user=user.id).values_list('price_type',
+                                                                                flat=True).distinct()
     for row_idx in range(1, no_of_rows):
         for key, value in network_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, network_file_mapping[key], reader, file_type)
@@ -3454,6 +3462,16 @@ def validate_network_form(request, reader, no_of_rows, fname, user, file_type='x
             elif key == 'priority':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Priority Missing')
+            elif key == 'price_type':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Price Type is Missing')
+                else:
+                    if cell_data not in price_types:
+                        index_status.setdefault(row_idx, set()).add('Invalid Price Type')
+            elif key == 'charge_remarks':
+                remarks_list = [i[0] for i in REMARK_CHOICES]
+                if cell_data and cell_data not in remarks_list:
+                    index_status.setdefault(row_idx, set()).add('Unknown Remarks')
             else:
                 index_status.setdefault(row_idx, set()).add('Invalid Field')
 
@@ -3475,7 +3493,8 @@ def validate_network_form(request, reader, no_of_rows, fname, user, file_type='x
         return f_name
 
 
-def network_excel_upload(request, reader, no_of_rows, file_type='xls'):
+def network_excel_upload(request, reader, no_of_rows, file_type='xls', user=''):
+    users_map = dict(UserGroups.objects.filter(admin_user=user).values_list('user__username', 'user_id'))
     network_file_mapping = copy.deepcopy(NETWORK_DEF_EXCEL)
     for row_idx in range(1, no_of_rows):
         if not network_file_mapping:
@@ -3484,18 +3503,21 @@ def network_excel_upload(request, reader, no_of_rows, file_type='xls'):
         for key, value in network_file_mapping.iteritems():
             each_row_map[key] = get_cell_data(row_idx, value, reader, file_type)
 
-        dest_lc_code, src_lc_code = each_row_map['dest_location_code'], each_row_map['source_location_code']
+        dest_lc_code = users_map[each_row_map.pop('dest_location_code')]
+        src_lc_code = users_map[each_row_map.pop('source_location_code')]
         sku_stage = each_row_map['sku_stage']
         network_obj = NetworkMaster.objects.filter(dest_location_code=dest_lc_code, source_location_code=src_lc_code,
                                                    sku_stage=sku_stage)
         if not network_obj:
-            each_row_map['dest_location_code_id'] = each_row_map.pop('dest_location_code')
-            each_row_map['source_location_code_id'] = each_row_map.pop('source_location_code')
+            each_row_map['dest_location_code_id'] = dest_lc_code
+            each_row_map['source_location_code_id'] = src_lc_code
             network_master = NetworkMaster(**dict(each_row_map))
             network_master.save()
         else:
             network_obj[0].lead_time = each_row_map['lead_time']
             network_obj[0].priority = each_row_map['priority']
+            network_obj[0].price_type = each_row_map['price_type']
+            network_obj[0].remarks = each_row_map['charge_remarks']
             network_obj[0].save()
 
     return 'success'
@@ -3521,7 +3543,7 @@ def network_master_upload(request, user=''):
     if status != 'Success':
         return HttpResponse(status)
 
-    network_excel_upload(request, reader, no_of_rows, file_type=file_type)
+    network_excel_upload(request, reader, no_of_rows, file_type=file_type, user=user)
 
     return HttpResponse('Success')
 

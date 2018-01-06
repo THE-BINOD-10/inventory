@@ -2086,9 +2086,11 @@ def get_dist_auto_ord_det_ids(order_ids):
         cm_id = CustomerMaster.objects.get(user=ord_obj.user, customer_id=ord_obj.customer_id).id
         gen_id = ord_obj.genericorderdetailmapping_set.values_list('generic_order_id')[0]
         auto_id_qty = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_id[0], customer_id=cm_id). \
-            exclude(orderdetail_id=ord_id).values_list('quantity', flat=True)
+            exclude(orderdetail_id=ord_id).aggregate(tot_qty=Sum('quantity'))['tot_qty']
+        if not auto_id_qty:
+            auto_id_qty = 0
         if ord_id not in sister_orderids_map:
-            sister_orderids_map[ord_id] = list(auto_id_qty)
+            sister_orderids_map[ord_id] = auto_id_qty
         else:
             sister_orderids_map[ord_id] = sister_orderids_map[ord_id] + auto_id_qty
     return sister_orderids_map
@@ -2254,7 +2256,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 aggregate(Sum('picked_quantity'))['picked_quantity__sum']
             quantity = picklist
             if str(dat.id) in auto_ord_qty_map:
-                quantity = quantity + int(auto_ord_qty_map[str(dat.id)][0])
+                quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
                 el_price_qs = GenericOrderDetailMapping.objects.filter(orderdetail_id=dat.id).values_list('el_price',
                                                                                                           flat=True)
                 if el_price_qs:
@@ -2265,7 +2267,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 if quantity_picked:
                     quantity = float(quantity_picked)
                     if str(dat.id) in auto_ord_qty_map:
-                        quantity = quantity + int(auto_ord_qty_map[str(dat.id)][0])
+                        quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
                 else:
                     continue
 
@@ -2275,7 +2277,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 if picklist:
                     quantity = picklist[0].total
                     if str(dat.id) in auto_ord_qty_map:
-                        quantity = quantity + int(auto_ord_qty_map[str(dat.id)][0])
+                        quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
 
             if dat.unit_price > 0:
                 unit_price = dat.unit_price
@@ -5670,13 +5672,13 @@ def update_level_price_type(customer_master, level, price_type):
     return price_type
 
 
-def create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, wh, stock_cnt, po_number, client_name,
-                                      order_unit_price, el_price, del_date):
+def create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, wh, stock_cnt, corporate_po_number,
+                                      client_name, order_unit_price, el_price, del_date):
     order_detail_map = {'generic_order_id': generic_order_id,
                         'orderdetail_id': order_detail.id,
                         'customer_id': cm_id,
                         'cust_wh_id': wh,
-                        'po_number': po_number,
+                        'po_number': corporate_po_number,
                         'client_name': client_name,
                         'el_price': el_price,
                         'schedule_date': del_date
@@ -5711,7 +5713,7 @@ def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):
 
 
 def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_objs, is_distributor,
-                         order_summary_dict, ship_to, po_number, client_name, admin_user, sku_total_qty_map,
+                         order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs):
     order_unit_price = order_data['unit_price']
     el_price = order_data['el_price']
@@ -5761,7 +5763,6 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                 dist_order_copy.pop('del_date')
             order_detail = OrderDetail(**dist_order_copy)
             order_detail.save()
-
         else:
             order_detail = order_obj[0]
 
@@ -5799,7 +5800,7 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
     order_user_objs[order_detail.user].append(order_detail)
 
     create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, order_data['user'], order_data['quantity'],
-                                      po_number, client_name, order_unit_price, el_price, del_date)
+                                      corporate_po_number, client_name, order_unit_price, el_price, del_date)
 
 
 def create_ordersummary_data(order_summary_dict, order_detail, ship_to):

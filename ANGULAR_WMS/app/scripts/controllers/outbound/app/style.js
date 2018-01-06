@@ -46,7 +46,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       if (!vm.levels_data[0].data[0].quantity ||
         vm.levels_data[0].data[0].overall_sku_total_quantity > Number(vm.levels_data[0].data[0].quantity)) {
       
-        vm.service.showNoty("You can add items only", "success", "topRight");
+        vm.service.showNoty("You can not change level until the filled quantity is equal to the available quantity", "success", "topRight");
         vm.selLevel  = 0;
         return false;
       }

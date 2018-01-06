@@ -203,7 +203,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           }*/
             console.log(vm.model_data);
             vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
-            invoice_amount: vm.invoice_amount, image_url: vm.img_url, remarks: vm.remarks, default_status: true})
+            invoice_amount: vm.invoice_amount, image_url: vm.img_url, remarks: vm.remarks, default_status: true, sku_status: true})
           });
         });
       }

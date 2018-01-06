@@ -384,6 +384,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
           vm.model_data.data = [];
           Data.enquiry_orders = [];
           Service.showNoty('Successfully added');
+          $state.go("user.App.Brands");
         } else {
 
           Service.showNoty(data.data, 'warning');

@@ -331,7 +331,7 @@
     <!-- /ready pages -->
 
     <!-- uploaded pages -->
-    <li ui-sref-active="active" ng-if="permissions.user_type == 'central_admin' && permissions.user_type == 'distributor'">
+    <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
       <a ui-sref="app.uploadedPOs">
       <i class="fa fa-book" aria-hidden="true"></i>
         <span>Uploaded PO's</span>

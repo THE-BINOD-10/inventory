@@ -1127,17 +1127,19 @@ PRICE_DEF_EXCEL = OrderedDict((('sku_id', 0), ('price_type', 1),
 PRICE_MASTER_DATA = {'sku_id': '', 'price_type': '', 'price': 0, 'discount': 0}
 
 NETWORK_MASTER_HEADERS = ['Destination Location Code', 'Source Location Code', 'Lead Time',
-                          'Sku Stage', 'Priority']
+                          'Sku Stage', 'Priority', 'Price Type', 'Charge Remarks']
 NETWORK_MASTER_HEADER = OrderedDict([('Destination Location Code', 'dest_location_code'),
                                      ('Source Location Code', 'source_location_code'),
                                      ('Lead Time', 'lead_time'), ('Sku Stage', 'sku_stage'),
                                      ('Priority', 'priority')])
 
 NETWORK_DEF_EXCEL = OrderedDict((('dest_location_code', 0), ('source_location_code', 1),
-                                 ('lead_time', 2), ('sku_stage', 3), ('priority', 4)))
+                                 ('lead_time', 2), ('sku_stage', 3), ('priority', 4),
+                                 ('price_type', 5), ('charge_remarks', 6)))
 
 NETWORK_MASTER_DATA = {'dest_location_code': '', 'source_location_code': '',
-                       'lead_time': '', 'sku_stage': '', 'priority': ''}
+                       'lead_time': '', 'sku_stage': '', 'priority': '',
+                       'price_type': '', 'charge_remarks': ''}
 
 SELLER_DATA = {'name': '', 'address': '', 'phone_number': '',
                'email_id': '', 'status': 1, 'price_type': '', 'margin': 0}

@@ -930,7 +930,7 @@ PERMISSION_DICT = OrderedDict((
     ("OTHERS_LABEL", (("Raise Stock Transfer", "add_openst"), ("Create Stock Transfer", "add_stocktransfer"))),
 
     # Payment
-    ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary"))),
+    ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary"),)),
 
 ))
 

@@ -2086,9 +2086,11 @@ def get_dist_auto_ord_det_ids(order_ids):
         cm_id = CustomerMaster.objects.get(user=ord_obj.user, customer_id=ord_obj.customer_id).id
         gen_id = ord_obj.genericorderdetailmapping_set.values_list('generic_order_id')[0]
         auto_id_qty = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_id[0], customer_id=cm_id). \
-            exclude(orderdetail_id=ord_id).values_list('quantity', flat=True)
+            exclude(orderdetail_id=ord_id).aggregate(tot_qty=Sum('quantity'))['tot_qty']
+        if not auto_id_qty:
+            auto_id_qty = 0
         if ord_id not in sister_orderids_map:
-            sister_orderids_map[ord_id] = list(auto_id_qty)
+            sister_orderids_map[ord_id] = auto_id_qty
         else:
             sister_orderids_map[ord_id] = sister_orderids_map[ord_id] + auto_id_qty
     return sister_orderids_map
@@ -2254,7 +2256,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 aggregate(Sum('picked_quantity'))['picked_quantity__sum']
             quantity = picklist
             if str(dat.id) in auto_ord_qty_map:
-                quantity = quantity + int(auto_ord_qty_map[str(dat.id)][0])
+                quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
                 el_price_qs = GenericOrderDetailMapping.objects.filter(orderdetail_id=dat.id).values_list('el_price',
                                                                                                           flat=True)
                 if el_price_qs:
@@ -2265,7 +2267,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 if quantity_picked:
                     quantity = float(quantity_picked)
                     if str(dat.id) in auto_ord_qty_map:
-                        quantity = quantity + int(auto_ord_qty_map[str(dat.id)][0])
+                        quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
                 else:
                     continue
 
@@ -2275,7 +2277,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 if picklist:
                     quantity = picklist[0].total
                     if str(dat.id) in auto_ord_qty_map:
-                        quantity = quantity + int(auto_ord_qty_map[str(dat.id)][0])
+                        quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
 
             if dat.unit_price > 0:
                 unit_price = dat.unit_price

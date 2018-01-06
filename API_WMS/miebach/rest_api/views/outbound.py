@@ -6168,7 +6168,6 @@ def get_customer_order_detail(request, user=""):
         response_data, res = prepare_your_orders_data(request, order_id, user.id, det_ids, order)
         response_data_list = [response_data]
         final_data = {'data': response_data_list}
-        #response_data_list, total_picked_quantity = construct_order_customer_order_detail(request, order, user)
     return HttpResponse(json.dumps(final_data, cls=DjangoJSONEncoder))
 
 

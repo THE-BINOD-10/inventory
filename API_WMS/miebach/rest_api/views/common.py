@@ -3574,6 +3574,10 @@ def get_categories_list(request, user=""):
     return HttpResponse(json.dumps(list(categories_list)))
 
 
+def get_generic_warehouses_list(user):
+   return UserGroups.objects.filter(admin_user=user).values_list('user', flat=True)
+
+
 def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='', customer_data_id='', is_file='',
                     prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0):
     data = []
@@ -3582,7 +3586,11 @@ def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='
     get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand',
                   'sku_size',
                   'style_name', 'sale_through', 'product_type']
-    stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values('sku__sku_class').distinct(). \
+    gen_whs = [user.id]
+    admin = get_priceband_admin_user(user)
+    if admin:
+        gen_whs = get_generic_warehouses_list(admin)
+    stock_objs = StockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0).values('sku__sku_class').distinct(). \
         annotate(in_stock=Sum('quantity'))
     reserved_quantities = PicklistLocation.objects.filter(stock__sku__user=user.id, status=1).values(
         'stock__sku__sku_class').distinct(). \

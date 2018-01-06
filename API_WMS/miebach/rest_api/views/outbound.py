@@ -2941,7 +2941,8 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
                 value = 0
             order_data[key] = value
         elif key == 'del_date':
-            order_data[key] = datetime.datetime.strptime(myDict[key][i], '%m/%d/%Y')
+            if value:
+                order_data[key] = datetime.datetime.strptime(myDict[key][i], '%m/%d/%Y')
         else:
             order_data[key] = value
 
@@ -3199,6 +3200,14 @@ def insert_order_data(request, user=''):
                     order_data['creation_date'] = creation_date
                     if not order_data.get('original_order_id', ''):
                         order_data['original_order_id'] = str(order_data['order_code']) + str(order_data['order_id'])
+                    if 'warehouse_level' in order_data:
+                        order_data.pop('warehouse_level')
+                    if 'margin_data' in order_data:
+                        order_data.pop('margin_data')
+                    if 'el_price' in order_data:
+                        order_data.pop('el_price')
+                    if 'del_date' in order_data:
+                        order_data.pop('del_date')
                     order_detail = OrderDetail(**order_data)
                     order_detail.save()
                     if seller_id:

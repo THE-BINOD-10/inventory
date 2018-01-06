@@ -72,8 +72,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
                 vm.service.apiCall("get_updated_pos/", "POST", poId, true).then(function(data) {
                   if(data.message) {
-                    angular.extend(vm.model_data, data.data);
-                    vm.model_data.data.uploaded_file = Session.host+data.data.data.uploaded_file;
+                    angular.copy(data.data, vm.model_data);
+                    vm.model_data.data.file_path = Session.host+data.data.data.uploaded_file;
                     $state.go('app.uploadedPOs.PO');
                   }
                 });

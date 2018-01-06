@@ -2941,7 +2941,8 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
                 value = 0
             order_data[key] = value
         elif key == 'del_date':
-            order_data[key] = datetime.datetime.strptime(myDict[key][i], '%m/%d/%Y')
+            if value:
+                order_data[key] = datetime.datetime.strptime(myDict[key][i], '%m/%d/%Y')
         else:
             order_data[key] = value
 
@@ -3199,6 +3200,14 @@ def insert_order_data(request, user=''):
                     order_data['creation_date'] = creation_date
                     if not order_data.get('original_order_id', ''):
                         order_data['original_order_id'] = str(order_data['order_code']) + str(order_data['order_id'])
+                    if 'warehouse_level' in order_data:
+                        order_data.pop('warehouse_level')
+                    if 'margin_data' in order_data:
+                        order_data.pop('margin_data')
+                    if 'el_price' in order_data:
+                        order_data.pop('el_price')
+                    if 'del_date' in order_data:
+                        order_data.pop('del_date')
                     order_detail = OrderDetail(**order_data)
                     order_detail.save()
                     if seller_id:
@@ -4381,7 +4390,6 @@ def get_sku_variants(request, user=''):
     customer_data_id = request.POST.get('customer_data_id', '')
     sku_code = request.POST.get('sku_code', '')
     is_catalog = request.POST.get('is_catalog', '')
-    # margin_data = request.POST.get('margin_data', '')
     sale_through = request.POST.get('sale_through', '')
     level = request.POST.get('level', '')
     if level:
@@ -7558,6 +7566,13 @@ def order_cancel(request, user=''):
             gen_ord_id = request.GET.get('order_id', '')
             if gen_ord_id:
                 gen_qs = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_ord_id, customer_id=cm_id)
+                uploaded_po_details = gen_qs.values('po_number', 'client_name').distinct()
+                if uploaded_po_details.count() == 1:
+                    po_number = uploaded_po_details[0]['po_number']
+                    client_name = uploaded_po_details[0]['client_name']
+                    ord_upload_qs = OrderUploads.objects.filter(uploaded_user=request.user.id,
+                                                                po_number=po_number, customer_name=client_name)
+                    ord_upload_qs.delete()
                 order_det_ids = gen_qs.values_list('orderdetail_id', flat=True)
                 ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
                 ord_det_qs.delete()

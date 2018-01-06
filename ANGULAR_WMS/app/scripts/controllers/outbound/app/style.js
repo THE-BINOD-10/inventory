@@ -37,10 +37,20 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   vm.style_total_counts = {};
   vm.data_loading = false;
   vm.page_loading = true;
-
   vm.levels_data = {};
 
-  vm.open_style = function() {
+  vm.open_style = function(user_type) {
+
+    if (user_type == 'reseller' && vm.selLevel  != 0) {
+      
+      if (!vm.levels_data[0].data[0].quantity ||
+        vm.levels_data[0].data[0].overall_sku_total_quantity > Number(vm.levels_data[0].data[0].quantity)) {
+      
+        vm.service.showNoty("You can not change level until the filled quantity is equal to the available quantity", "success", "topRight");
+        vm.selLevel  = 0;
+        return false;
+      }
+    }
 
     if (vm.old_selLevel == "") {
 
@@ -207,15 +217,18 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
     if (Session.parent.userName != 'sagar_fab') {
 
-      if (row.quantity > row.overall_sku_total_quantity) {
+      if (row.quantity >= row.overall_sku_total_quantity) {
 
+        vm.full_quantity = true;
         row.quantity = row.overall_sku_total_quantity;
         vm.service.showNoty("You can add "+row.overall_sku_total_quantity+" items only", "success", "topRight");
+      } else {
+        vm.full_quantity = false;
       }
     } else {
       console.log(index);
     }
-      
+    
     vm.update_levels(index);
   }
 

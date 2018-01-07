@@ -4074,7 +4074,7 @@ def apply_margin_price(sku, each_sku_map, specific_margins, is_margin_percentage
 
 def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id='',
                        prices_dict={}, levels_config=0, dist_wh_id=0, level=0, specific_margins=[],
-                       is_margin_percentage=0, default_margin=0, price_type='', is_catalog=''):
+                       is_margin_percentage=0, default_margin=0, price_type='', is_style_detail=''):
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0). \
         values('sku_id').distinct().annotate(in_stock=Sum('quantity'))
 
@@ -4164,8 +4164,7 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                     else:
                         sku_master[ind]['your_price'] = 0
                 else:
-                    # print "Price Type::", price_type
-                    if is_catalog != 'true':
+                    if is_style_detail != 'true':
                         price_type = 'R-C'
                     if price_type != 'R-C':
                         # Assuming Reseller, taking price type from Customer Master
@@ -4361,7 +4360,8 @@ def get_sku_catalogs(request, user=''):
         else:
             t = loader.get_template('templates/customer_search.html')
         rendered = t.render({'data': data, 'user': request.user.first_name, 'date': date,
-                             'remarks': remarks, 'display_stock': display_stock, 'image': image})
+                             'remarks': remarks, 'display_stock': display_stock, 'image': image,
+                             'style_quantities': eval(request.POST.get('required_quantity', '{}'))})
 
         if not os.path.exists('static/pdf_files/'):
             os.makedirs('static/pdf_files/')
@@ -4396,6 +4396,7 @@ def get_sku_variants(request, user=''):
         level = int(level)
     else:
         level = 0
+    is_style_detail = request.POST.get('is_style_detail', '')
     levels_config = get_misc_value('generic_wh_level', user.id)
     cust_obj = CustomerMaster.objects.filter(user=user.id, name=request.user.first_name)
     if cust_obj:
@@ -4432,7 +4433,7 @@ def get_sku_variants(request, user=''):
                 reseller_leadtimes = [dist_reseller_leadtime]
     sku_master = get_style_variants(sku_master, user, customer_id=customer_id, customer_data_id=customer_data_id,
                                     levels_config=levels_config, dist_wh_id=dist_userid, level=level,
-                                    is_catalog=is_catalog
+                                    is_style_detail=is_style_detail
                                     )
 
     sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime)

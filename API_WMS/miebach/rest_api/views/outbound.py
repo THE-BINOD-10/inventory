@@ -4383,7 +4383,7 @@ def get_sku_variants(request, user=''):
     filter_params = {'user': user.id}
     get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand',
                   'sku_size', 'style_name', 'product_type']
-    reseller_leadtimes = {};
+    reseller_leadtimes = {}
     lead_times = {}
     sku_class = request.POST.get('sku_class', '')
     customer_id = request.POST.get('customer_id', '')
@@ -5955,6 +5955,11 @@ def get_only_date(request, date):
 
 @get_admin_user
 def get_level_based_customer_orders(request, response_data, user=''):
+    index = request.GET.get('index', '')
+    start_index, stop_index = 0, 20
+    if index:
+        start_index = int(index.split(':')[0])
+        stop_index = int(index.split(':')[1])
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if cum_obj:
         cm_id = cum_obj[0].customer_id
@@ -5964,6 +5969,7 @@ def get_level_based_customer_orders(request, response_data, user=''):
                                      annotate(total_quantity=Sum('quantity'),
                                               total_inv_amt=Sum('orderdetail__invoice_amount')). \
                                      order_by('-generic_order_id'))
+        response_data['data'] = response_data['data'][start_index:stop_index]
         for record in response_data['data']:
             order_detail_ids = generic_orders.filter(generic_order_id=record['generic_order_id']).values_list(
                 'orderdetail_id', flat=True)
@@ -5990,7 +5996,6 @@ def get_level_based_customer_orders(request, response_data, user=''):
                 record['order_id'] = record['generic_order_id']
             record['total_inv_amt'] = round(record['total_inv_amt'], 2)
             record['picked_quantity'] = picked_quantity
-    # return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
     return response_data
 
 

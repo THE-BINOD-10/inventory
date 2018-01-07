@@ -1090,9 +1090,10 @@ def get_auto_po_quantity(sku, stock_quantity=''):
 def auto_po_warehouses(sku, qty):
     supplier_id = ''
     price = ''
+    taxes = {}
     wh_customer_map = WarehouseCustomerMapping.objects.filter(warehouse_id=sku.user)
     if not wh_customer_map:
-        return
+        return supplier_id, price, taxes
     cm_id = wh_customer_map[0].customer_id
     generic_order_id = get_generic_order_id(cm_id)
     near_whs = NetworkMaster.objects.filter(dest_location_code_id=sku.user).filter(
@@ -1112,10 +1113,25 @@ def auto_po_warehouses(sku, qty):
         if price_obj:
             unit_price = price_obj[0].price
         usr = near_wh.source_location_code_id
-        sku_id = SKUMaster.objects.get(user=usr, sku_code=sku.sku_code).id
+        usr_sku_master = SKUMaster.objects.get(user=usr, sku_code=sku.sku_code)
+        sku_id = usr_sku_master.id
         order_id = get_order_id(usr)
         customer_master = CustomerMaster.objects.get(id=cm_id)
+        taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
+        if customer_master.tax_type:
+            inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+            inter_state = inter_state_dict.get(customer_master.tax_type, 2)
+            tax_master = TaxMaster.objects.filter(user_id=usr, inter_state=inter_state,
+                                                    product_type=usr_sku_master.product_type,
+                                                    min_amt__lte=unit_price, max_amt__gte=unit_price)
+            if tax_master:
+                tax_master = tax_master[0]
+                taxes['cgst_tax'] = float(tax_master.cgst_tax)
+                taxes['sgst_tax'] = float(tax_master.sgst_tax)
+                taxes['igst_tax'] = float(tax_master.igst_tax)
+                taxes['utgst_tax'] = float(tax_master.utgst_tax)
         invoice_amount = qty * unit_price
+        invoice_amount = invoice_amount + ((invoice_amount/100) * sum(taxes.values()))
         order_data = {'sku_id': sku_id, 'order_id': order_id, 'order_code': 'MN',
                       'original_order_id': 'MN' + str(order_id), 'user': usr, 'quantity': qty,
                       'unit_price': unit_price, 'marketplace': 'Offline', 'customer_id': customer_master.customer_id,
@@ -1124,6 +1140,7 @@ def auto_po_warehouses(sku, qty):
                       'creation_date': datetime.datetime.now()}
         order_summary_dict = {'discount': 0, 'issue_type': 'order', 'vat': 0, 'tax_value': 0, 'status': 1,
                               'shipment_time_slot': '9-12', 'creation_date': datetime.datetime.now()}
+        order_summary_dict.update(taxes)
         order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'], user=usr,
                                                sku_id=sku_id, order_code=order_data['order_code'])
         if not order_obj:
@@ -1131,11 +1148,12 @@ def auto_po_warehouses(sku, qty):
             sku_total_qty_map = {sku_id: qty}
             order_user_sku = {}
             order_user_objs = {}
+            order_data['del_date'] = datetime.datetime.now() + datetime.timedelta(days=near_wh.lead_time)
             create_generic_order(order_data, cm_id, sku.user, generic_order_id, [], True,
                                  order_summary_dict, '', '', '', admin_user,
                                  sku_total_qty_map, order_user_sku, order_user_objs)
         price = unit_price
-    return supplier_id, price
+    return supplier_id, price, taxes
 
 
 @csrf_exempt
@@ -1143,11 +1161,12 @@ def auto_po(wms_codes, user):
     sku_codes = SKUMaster.objects.filter(wms_code__in=wms_codes, user=user, threshold_quantity__gt=0)
     price_band_flag = get_misc_value('priceband_sync', user)
     for sku in sku_codes:
+        taxes = {}
         qty = get_auto_po_quantity(sku)
         if qty > int(sku.threshold_quantity):
             continue
         if price_band_flag == 'true':
-            supplier_master_id, price = auto_po_warehouses(sku, qty)
+            supplier_master_id, price, taxes = auto_po_warehouses(sku, qty)
             moq = qty
             if not supplier_master_id:
                 continue
@@ -1171,6 +1190,7 @@ def auto_po(wms_codes, user):
             po_suggestions['order_quantity'] = moq
             po_suggestions['status'] = 'Automated'
             po_suggestions['price'] = price
+            po_suggestions.update(taxes)
             po = OpenPO(**po_suggestions)
             po.save()
             auto_confirm_po = get_misc_value('auto_confirm_po', user)
@@ -3584,21 +3604,23 @@ def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='
     from rest_api.views.outbound import get_style_variants
     levels_config = get_misc_value('generic_wh_level', user.id)
     get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand',
-                  'sku_size',
-                  'style_name', 'sale_through', 'product_type']
+                  'sku_size', 'style_name', 'sale_through', 'product_type']
     gen_whs = [user.id]
     admin = get_priceband_admin_user(user)
     if admin:
         gen_whs = get_generic_warehouses_list(admin)
     stock_objs = StockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0).values('sku__sku_class').distinct(). \
         annotate(in_stock=Sum('quantity'))
-    reserved_quantities = PicklistLocation.objects.filter(stock__sku__user=user.id, status=1).values(
-        'stock__sku__sku_class').distinct(). \
-        annotate(in_reserved=Sum('reserved'))
+    reserved_quantities = PicklistLocation.objects.filter(stock__sku__user__in=gen_whs, status=1).values(
+        'stock__sku__sku_class').distinct().annotate(in_reserved=Sum('reserved'))
+    enquiry_res_quantities = EnquiredSku.objects.filter(sku__user__in=gen_whs). \
+        values('sku__sku_class').annotate(tot_qty=Sum('quantity'))
     stock_skus = map(lambda d: d['sku__sku_class'], stock_objs)
     stock_quans = map(lambda d: d['in_stock'], stock_objs)
     reserved_skus = map(lambda d: d['stock__sku__sku_class'], reserved_quantities)
     reserved_quans = map(lambda d: d['in_reserved'], reserved_quantities)
+    enq_res_skus = map(lambda d: d['sku__sku_class'], enquiry_res_quantities)
+    enq_res_quans = map(lambda d: d['tot_qty'], enquiry_res_quantities)
     for product in product_styles[start: stop]:
         sku_object = sku_master.filter(user=user.id, sku_class=product)
         sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \
@@ -3608,6 +3630,8 @@ def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='
             total_quantity = stock_quans[stock_skus.index(product)]
         if product in reserved_skus:
             total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
+        if product in enq_res_skus:
+            total_quantity = total_quantity - float(enq_res_quans[enq_res_skus.index(product)])
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
             sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity,
@@ -5726,7 +5750,7 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs):
     order_unit_price = order_data['unit_price']
-    el_price = order_data['el_price']
+    el_price = order_data.get('el_price', 0)
     del_date = order_data['del_date']
     if not is_distributor:
 

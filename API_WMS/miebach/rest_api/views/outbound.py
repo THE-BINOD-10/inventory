@@ -5964,7 +5964,15 @@ def get_level_based_customer_orders(request, response_data, user=''):
     if index:
         start_index = int(index.split(':')[0])
         stop_index = int(index.split(':')[1])
-    cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+    user_profile = UserProfile.objects.get(user=request.user.id)
+    if user_profile.warehouse_type == 'DIST':
+        customer = WarehouseCustomerMapping.objects.filter(warehouse=request.user.id, status=1)
+        if customer:
+            cum_obj = CustomerUserMapping.objects.filter(customer=customer[0].customer.id)
+        else:
+            return response_data
+    else:
+        cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if cum_obj:
         cm_id = cum_obj[0].customer_id
         picklist = Picklist.objects.filter(order__customer_id=cm_id, order__user=user.id)
@@ -6120,7 +6128,14 @@ def get_level_based_customer_order_detail(request, user):
     response_data_list = []
     sku_wise_details = {}
     generic_order_id = request.GET['order_id']
-    cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+    user_profile = UserProfile.objects.get(user=request.user.id)
+    cum_obj = ''
+    if user_profile.warehouse_type == 'DIST':
+        customer = WarehouseCustomerMapping.objects.filter(warehouse=request.user.id, status=1)
+        if customer:
+            cum_obj = CustomerUserMapping.objects.filter(customer=customer[0].customer.id)
+    else:
+        cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if cum_obj:
         cm_id = cum_obj[0].customer_id
         generic_orders = GenericOrderDetailMapping.objects.filter(customer_id=cm_id)

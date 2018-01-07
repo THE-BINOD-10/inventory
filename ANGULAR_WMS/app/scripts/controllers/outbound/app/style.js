@@ -69,7 +69,8 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
     vm.data_loading = true;
     vm.style_data = [];
-    var send = {sku_class:vm.styleId, customer_id: Session.userId, is_catalog: true, level:vm.selLevel}
+    var send = {sku_class:vm.styleId, customer_id: Session.userId, is_catalog: true, level:vm.selLevel,
+                is_style_detail: true}
     Service.apiCall("get_sku_variants/", "POST", send).then(function(data) {
 
       if(data.message) {

@@ -3604,21 +3604,23 @@ def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='
     from rest_api.views.outbound import get_style_variants
     levels_config = get_misc_value('generic_wh_level', user.id)
     get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand',
-                  'sku_size',
-                  'style_name', 'sale_through', 'product_type']
+                  'sku_size', 'style_name', 'sale_through', 'product_type']
     gen_whs = [user.id]
     admin = get_priceband_admin_user(user)
     if admin:
         gen_whs = get_generic_warehouses_list(admin)
     stock_objs = StockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0).values('sku__sku_class').distinct(). \
         annotate(in_stock=Sum('quantity'))
-    reserved_quantities = PicklistLocation.objects.filter(stock__sku__user=user.id, status=1).values(
-        'stock__sku__sku_class').distinct(). \
-        annotate(in_reserved=Sum('reserved'))
+    reserved_quantities = PicklistLocation.objects.filter(stock__sku__user__in=gen_whs, status=1).values(
+        'stock__sku__sku_class').distinct().annotate(in_reserved=Sum('reserved'))
+    enquiry_res_quantities = EnquiredSku.objects.filter(sku__user__in=gen_whs). \
+        values('sku__sku_class').annotate(tot_qty=Sum('quantity'))
     stock_skus = map(lambda d: d['sku__sku_class'], stock_objs)
     stock_quans = map(lambda d: d['in_stock'], stock_objs)
     reserved_skus = map(lambda d: d['stock__sku__sku_class'], reserved_quantities)
     reserved_quans = map(lambda d: d['in_reserved'], reserved_quantities)
+    enq_res_skus = map(lambda d: d['sku__sku_class'], enquiry_res_quantities)
+    enq_res_quans = map(lambda d: d['tot_qty'], enquiry_res_quantities)
     for product in product_styles[start: stop]:
         sku_object = sku_master.filter(user=user.id, sku_class=product)
         sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \
@@ -3628,6 +3630,8 @@ def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='
             total_quantity = stock_quans[stock_skus.index(product)]
         if product in reserved_skus:
             total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
+        if product in enq_res_skus:
+            total_quantity = total_quantity - float(enq_res_quans[enq_res_skus.index(product)])
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
             sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity,

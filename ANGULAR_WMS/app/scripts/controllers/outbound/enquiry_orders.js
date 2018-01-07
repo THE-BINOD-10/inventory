@@ -74,36 +74,4 @@ function EnquiryOrdersCtrl($scope, $http, $state, $compile, Session, DTOptionsBu
   }
 }
 
-stockone.controller('EnquiryOrderDetails', ['$scope', 'Service', '$modalInstance', 'items',
-function($scope, Service, $modalInstance, items) {
-
-  var vm = this;
-  vm.service = Service;
-
-  vm.model_data = items;
-  vm.order_details = [];
-  vm.status = 'enquiry';
-
-  vm.loading = false;
-  vm.getDetails = function() {
-
-    vm.loading = true;
-    Service.apiCall("get_customer_enquiry_detail/", "GET", vm.model_data).then(function(data){
-      if(data.message) {
-
-        console.log(data.data);
-        vm.order_details.data = data.data;
-        vm.order_details.sku_wise_details = {data: [{sku_code: "sku1", quantity: 2, landing_price: 100, total_amount: 200}], totals: {sub_total: 200, tax: 20, total_amount: 220}};
-      }
-      vm.loading = false;
-    })
-  }
-  vm.getDetails();
-
-  vm.ok = function() {
-
-    $modalInstance.close();
-  }
-}]);
-
 })();

@@ -650,6 +650,27 @@ var app = angular.module('urbanApp')
             url: '/InvoiceE',
             templateUrl: 'views/outbound/print/empty_invoice.html'
           })
+        .state('app.inbound.AutoBackOrders', {
+          url: '/AutoBackOrders?state',
+          params: {
+            state: 'orders',
+          },
+          templateUrl: 'views/inbound/auto_back_orders.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/pop_js/enquiry_details.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/app/my_order.js'
+                  ])
+                });
+              }]
+          },
+          data: {
+            title: 'Auto Back Orders',
+          }
+        })
 
       // Production routes
       .state('app.production', {
@@ -1121,8 +1142,12 @@ var app = angular.module('urbanApp')
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
-                  'scripts/controllers/outbound/enquiry_orders.js'
-                ]);
+                  'scripts/controllers/outbound/pop_js/enquiry_details.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/enquiry_orders.js'
+                  ])
+                });
               }]
           },
           data: {

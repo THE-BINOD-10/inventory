@@ -4383,7 +4383,7 @@ def get_sku_variants(request, user=''):
     filter_params = {'user': user.id}
     get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand',
                   'sku_size', 'style_name', 'product_type']
-    reseller_leadtimes = {};
+    reseller_leadtimes = {}
     lead_times = {}
     sku_class = request.POST.get('sku_class', '')
     customer_id = request.POST.get('customer_id', '')

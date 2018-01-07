@@ -1093,7 +1093,7 @@ def auto_po_warehouses(sku, qty):
     taxes = {}
     wh_customer_map = WarehouseCustomerMapping.objects.filter(warehouse_id=sku.user)
     if not wh_customer_map:
-        return
+        return supplier_id, price, taxes
     cm_id = wh_customer_map[0].customer_id
     generic_order_id = get_generic_order_id(cm_id)
     near_whs = NetworkMaster.objects.filter(dest_location_code_id=sku.user).filter(

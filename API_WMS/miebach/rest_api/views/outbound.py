@@ -5159,6 +5159,7 @@ def get_customer_payment_tracker(request, user=''):
 @get_admin_user
 def get_customer_master_id(request, user=''):
     customer_id = 1
+    reseller_price_type = ''
     customer_master = CustomerMaster.objects.filter(user=user.id).values_list('customer_id', flat=True).order_by(
         '-customer_id')
     if customer_master:
@@ -5167,15 +5168,17 @@ def get_customer_master_id(request, user=''):
     price_band_flag = get_misc_value('priceband_sync', user.id)
     level_2_price_type = ''
     if price_band_flag == 'true':
-        user = get_admin(user)
+        admin_user = get_admin(user)
         level_2_price_type = 'D1-R'
+    if user.userprofile.warehouse_type == 'DIST':
+        reseller_price_type = 'D-R'
 
     price_types = list(PriceMaster.objects.exclude(price_type__in=["", 'D1-R', 'R-C']).
-                       filter(sku__user=user.id).values_list('price_type', flat=True).
+                       filter(sku__user=admin_user.id).values_list('price_type', flat=True).
                        distinct())
 
     return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': TAX_VALUES, 'price_types': price_types,
-                                    'level_2_price_type': level_2_price_type}))
+                                    'level_2_price_type': level_2_price_type, 'price_type': reseller_price_type}))
 
 
 @login_required

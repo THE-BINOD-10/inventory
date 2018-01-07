@@ -112,10 +112,11 @@
             <div class="col-md-4" ng-if="show_tab('add_pricemaster')">
               <div class="form-group">
                 <label class="control-label"> Price Type </label>
-                <select class="form-control" name="price_type" ng-model="showCase.model_data.price_type" name="status">
+                <select class="form-control" name="price_type" ng-model="showCase.model_data.price_type" name="status" ng-if="permissions.user_type!='distributor'">
                   <option ng-selected="showCase.model_data.price_type == ''" value="">None</option>
                   <option ng-repeat="status in showCase.model_data.price_type_list" ng-selected="showCase.model_data.price_type == status" value="{{status}}">{{status}}</option>
                 </select>
+                <input type="text" ng-model="showCase.model_data.price_type" ng-if="permissions.user_type=='distributor'" name="price_type" class="form-control" ng-readonly='true'>
               </div>
             </div>
             <div class="col-md-4" ng-if="showCase.model_data.level_2_price_type">

@@ -837,6 +837,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(data) {
       if(data.message) {
         vm.catlog_data.data[index_value] = data.data.data[0];
+      } else {
+        Service.showNoty("Something Went Wrong", "danger")
       }
     });
   };

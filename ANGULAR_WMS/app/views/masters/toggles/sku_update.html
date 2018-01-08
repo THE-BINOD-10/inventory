@@ -30,10 +30,9 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Put Zone * </label>
-                <!-- <select class="form-control zone" name="zone_id" ng-model="showCase.model_data.sku_data.zone" ng-init="showCase.model_data.sku_data.zone" ng-options="zone for zone in showCase.model_data.zones">
-                </select> -->
-                <select class="form-control" ng-init="showCase.model_data.sku_data.zone" name="zone_id" ng-model="showCase.model_data.sku_data.zone">
-                  <option ng-repeat="zone in showCase.model_data.zones">{{zone}}</option>
+                <select name="zone_id" class="form-control" ng-model="showCase.model_data.sku_data.zone" ng-required="true">
+                  <option value="" ng-selected="showCase.model_data.sku_data.zone == ''">None</option>
+                  <option ng-repeat="zone in showCase.model_data.zones" value="{{zone}}" ng-selected="showCase.model_data.sku_data.zone == zone">{{zone}}</option>
                 </select>
               </div>
             </div>

@@ -32,9 +32,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.categories = [];
   vm.category = "";
   vm.brand = "";
-  vm.stock_loading = false;
   vm.filterData = {};
-  vm.box_loading = [];
+  
 
   function change_filter_data() {
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
@@ -821,20 +820,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, sale_through: vm.order_type_value};
 
   vm.modifyMarginEachSKU = function(item, $index) {
-    vm.stock_loading = true;
-    vm.box_loading[$index]=true;
+    item.loading=true;
     var dict_values = {};
     dict_values['margin_data'] = { 'wms_code':item.wms_code, 'price':item.your_price, 'margin' : item.margin }
-    dict_values['margin_values'] = {'brand':item.sku_brand, 'category':item.sku_category, 
-      'sku_class':item.sku_class, 
-      'index':$index, 
-      'is_catalog':true, 
-      'sale_through':item.sale_through, 
-      'size_filter':item.sku_size, 
-      'color':'', 
-      'from_price': '', 
-      'to_price': '', 
-      'is_margin_percentage': item.is_margin_percentage, 
+    dict_values['margin_values'] = {'brand':item.sku_brand, 'category':item.sku_category, 'sku_class':item.sku_class,
+     'index':$index, 'is_catalog':true, 'sale_through':item.sale_through, 'size_filter':item.sku_size, 
+      'color':'', 'from_price': '', 'to_price': '', 'is_margin_percentage': item.is_margin_percentage, 
       'margin':item.margin};
     var data_list = [];
     data_list.push(dict_values['margin_data']);
@@ -846,8 +837,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(data) {
       if(data.message) {
         vm.catlog_data.data[index_value] = data.data.data[0];
-        vm.stock_loading = false;
-        vm.box_loading[$index]=false;
+        item.loading=false;
       }
     });
   };

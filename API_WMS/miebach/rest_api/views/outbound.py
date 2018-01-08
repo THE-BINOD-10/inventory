@@ -3289,7 +3289,13 @@ def insert_order_data(request, user=''):
             if auto_picklist_signal == 'true':
                 log.info("Entered")
                 message = check_stocks(order_user_data, User.objects.get(id=user_id), request, order_objs)
-
+	#qssi push order api call
+        order_detail_id = GenericOrderDetailMapping.objects.latest('id').orderdetail_id
+        order_detail_obj = OrderDetail.objects.filter(id = order_detail_id)
+        if order_detail_obj:
+            original_order_id = order_detail_obj[0].original_order_id
+            resp = order_push(original_order_id, user, "NEW")
+            log.info('New Order Push Status: %s, Order ID: %s' %(resp["Status"], resp["OrderId"]))
         if user_type == 'customer':
             # Creating Uploading POs object with file upload pending.
             upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': corporate_po_number,
@@ -4435,7 +4441,33 @@ def get_sku_variants(request, user=''):
                                     levels_config=levels_config, dist_wh_id=dist_userid, level=level,
                                     is_style_detail=is_style_detail
                                     )
-
+    if get_priceband_admin_user(user):
+        wh_admin = get_priceband_admin_user(user)
+        integration_obj = Integrations.objects.filter(user = user.id)
+        if integration_obj:
+            company_name = integration_obj[0].name
+            integration_users = Integrations.objects.filter(name = company_name).values_list('user', flat=True)
+            for user_id in integration_users:
+                user = User.objects.get(id = user_id)
+                #if qssi, update inventory first
+                if company_name == "qssi":
+                    sku_ids = [item['wms_code'] for item in sku_master]
+                    api_resp = get_inventory(sku_ids, user)
+                    if api_resp["Status"].lower() == "success":
+                        for warehouse in resp["Warehouses"]:
+                            if warehouse["WarehouseId"] == user.username:
+                                for item in warehouse["Result"]["InventoryStatus"]:
+                                    sku_id = item["SKUId"]
+                                    inventory = item["Inventory"]
+                                    sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)
+                                    if sku:
+                                        sku = sku[0]
+                                        stock_detail = StockDetail.objects.filter(sku_id = sku.id)
+                                        if stock_detail:
+                                            stock_detail = stock_detail[0]
+                                            stock_detail.quantity = inventory
+                                            stock_detail.save()
+                                            log.info("Stock updated for sku: %s" %(sku_id))
     sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime)
     _data = {'data': sku_master, 'gen_wh_level_status': levels_config, 'total_qty': total_qty, }
     if not is_distributor:
@@ -7601,6 +7633,14 @@ def order_cancel(request, user=''):
                 ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
                 ord_det_qs.delete()
                 gen_qs.delete()
+            #qssi push order api call to cancel order
+            order_detail_id = GenericOrderDetailMapping.objects.latest('id').orderdetail_id
+            order_detail_obj = OrderDetail.objects.filter(id = order_detail_id)
+            if order_detail_obj:
+                original_order_id = order_detail_obj[0].original_order_id
+                resp = order_push(original_order_id, user, "CANCEL")
+                log.info('Cancel Order Push Status: %s, Order ID: %s' %(resp["Status"], resp["OrderId"]))
+
         else:
             ord_id = request.GET.get('order_id', '')
             ord_qs = OrderDetail.objects.filter(order_id=ord_id, user=user)

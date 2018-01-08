@@ -202,7 +202,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.img_url = vm.service.check_image_url(img_url)
           }*/
             console.log(vm.model_data);
-            vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
+            vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity, unit_price: value.unit_price,
             invoice_amount: vm.invoice_amount, image_url: vm.img_url, remarks: vm.remarks, default_status: true, sku_status: true})
           });
         });

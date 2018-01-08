@@ -3152,6 +3152,7 @@ def insert_order_data(request, user=''):
                         create_grouping_order_for_generic(generic_order_id, order_obj, cm_id, user.id,
                                                           order_data['quantity'], corporate_po_number, client_name,
                                                           order_data['unit_price'], el_price, del_date)
+                        create_ordersummary_data(order_summary_dict, order_obj, ship_to)
                 for usr, qty in stock_wh_map.iteritems():
                     order_data['order_id'] = user_order_ids_map[usr]
                     order_data['user'] = usr
@@ -6086,8 +6087,10 @@ def construct_order_customer_order_detail(request, order, user):
             if el_price:
                 record['el_price'] = el_price
             if res_unit_price:
-                record['invoice_amount'] = float(res_unit_price) * int(record['quantity'])
-            print "el_price, res_unit_price::", el_price, res_unit_price
+                tax_inclusive_inv_amt = record['invoice_amount']
+                tax_exclusive_inv_amt = float(res_unit_price) * int(record['quantity'])
+                record['invoice_amount'] = tax_inclusive_inv_amt
+                record['sku_tax_amt'] = round(tax_inclusive_inv_amt - tax_exclusive_inv_amt, 2)
     return data_list, total_picked_quantity
 
 
@@ -6110,11 +6113,12 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     response_data['status'] = status
     response_data['date'] = get_only_date(request, order[0].creation_date)
     response_data['order_id'] = order[0].order_id
-    response_data['tax'] = round(tax, 2)
     response_data['data'] = []
     res, total_picked_quantity = construct_order_customer_order_detail(request, order, usr_id)
     total_inv_amt = map(sum, [[x['invoice_amount'] for x in res]])
     total_qty = map(sum, [[x['quantity'] for x in res]])
+    total_tax = map(sum, [[x['sku_tax_amt'] for x in res]])
+    response_data['tax'] = round(total_tax[0], 2)
     sum_data = {'picked_quantity': total_picked_quantity, 'amount': total_inv_amt[0],
                 'quantity': total_qty[0]}
     response_data['sum_data'] = sum_data
@@ -6155,19 +6159,24 @@ def get_level_based_customer_order_detail(request, user):
                     if sku_code not in sku_wise_details:
                         sku_qty = sku_rec['quantity']
                         sku_el_price = sku_rec.get('el_price', 0)
-                        sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price}
+                        sku_tax_amt = sku_rec.get('sku_tax_amt', 0)
+                        sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price,
+                                                      'sku_tax_amt': sku_tax_amt}
                     else:
                         existing_map = sku_wise_details[sku_code]
                         existing_map['quantity'] = existing_map['quantity'] + sku_rec['quantity']
+                        existing_map['sku_tax_amt'] = existing_map['sku_tax_amt'] + sku_rec['sku_tax_amt']
     sku_whole_map = {'data': [], 'totals': {}}
     sku_totals = {'sub_total': 0, 'total_amount': 0, 'tax': 0}
     for sku_code, sku_det in sku_wise_details.items():
         el_price = sku_det['el_price']
         qty = sku_det['quantity']
+        tax_amt = sku_det['sku_tax_amt']
         total_amt = float(qty) * float(el_price)
         sku_map = {'sku_code': sku_code, 'quantity': qty, 'landing_price': el_price, 'total_amount': total_amt}
         sku_totals['sub_total'] = sku_totals['sub_total'] + total_amt
-        sku_totals['total_amount'] = sku_totals['total_amount'] + total_amt  # TODO Tax to be added to Sub total
+        sku_totals['tax'] = sku_totals['tax'] + tax_amt
+        sku_totals['total_amount'] =  sku_totals['sub_total'] + sku_totals['tax']
         sku_whole_map['data'].append(sku_map)
         sku_whole_map['totals'] = sku_totals
     whole_res_map['data'] = response_data_list

@@ -34,6 +34,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.category = "";
   vm.brand = "";
   vm.filterData = {};
+  
 
   function change_filter_data() {
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
@@ -797,6 +798,51 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
        Data.marginSKUData.margin = vm.marginData.margin;
     })
   }
+
+  vm.addSKUinData = function(data_list) {
+    var flag = 1;
+    if (Data.marginSKUData.data.length) {
+      for (let index = 0; index < Data.marginSKUData.data.length; index++) {
+        if(Data.marginSKUData.data[index].wms_code == data_list.wms_code) {
+          Data.marginSKUData.data[index].price = data_list.price;
+          Data.marginSKUData.data[index].margin = data_list.margin;
+          flag=0;
+          break;
+        }
+      }
+      if(flag) {
+        Data.marginSKUData.data.push(data_list);  
+      }
+    } else {
+      Data.marginSKUData.data.push(data_list);
+    }
+  }
+
+  vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, sale_through: vm.order_type_value};
+
+  vm.modifyMarginEachSKU = function(item, $index) {
+    vm.catlog_data.data[$index].loading = true
+    var dict_values = {};
+    dict_values['margin_data'] = { 'wms_code':item.wms_code, 'price':item.your_price, 'margin' : item.margin }
+    dict_values['margin_values'] = {'brand':item.sku_brand, 'category':item.sku_category, 'sku_class':item.sku_class,
+     'index':$index, 'is_catalog':true, 'sale_through':item.sale_through, 'size_filter':item.sku_size, 
+      'color':'', 'from_price': '', 'to_price': '', 'is_margin_percentage': item.is_margin_percentage, 
+      'margin':item.margin};
+    var data_list = [];
+    data_list.push(dict_values['margin_data']);
+    vm.addSKUinData(dict_values['margin_data']);
+    var data = dict_values['margin_values'];
+    data['margin_data'] = JSON.stringify(data_list);
+    var index_value = data['index'];
+    data['index'] = '';
+    Service.apiCall("get_sku_catalogs/", "POST", data).then(function(data) {
+      if(data.message) {
+        vm.catlog_data.data[index_value] = data.data.data[0];
+      } else {
+        Service.showNoty("Something Went Wrong", "danger")
+      }
+    });
+  };
 
   vm.downloadPDF = function() {
 

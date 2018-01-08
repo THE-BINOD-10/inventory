@@ -2244,7 +2244,9 @@ def get_price_master_results(start_index, stop_index, temp_data, search_term, or
     if search_term:
         master_data = objs.filter(Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) | Q(
             price_type__icontains=search_term) | Q(price__icontains=search_term) | Q(discount__icontains=search_term),
-                                  sku__user=user.id, **search_params).order_by(order_data)
+                                  sku__user=user.id, **search_params).order_by(order_data).values_list('sku__sku_code', 'sku__sku_desc',
+                                                                                    'price_type', 'price'
+                                                                                    ).distinct()
     else:
         master_data = objs.filter(**search_params).order_by(order_data).values_list('sku__sku_code', 'sku__sku_desc',
                                                                                     'price_type', 'price'

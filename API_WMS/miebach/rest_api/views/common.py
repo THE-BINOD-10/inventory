@@ -5851,3 +5851,39 @@ def get_priceband_admin_user(user):
     else:
         admin_user = None
     return admin_user
+
+def order_push(order_id, user, order_status="NEW"):
+    #cal integration_get_order
+    integrations = Integrations.objects.filter(user=user.id, status=1)
+    from rest_api.views.easyops_api import *
+    for integrate in integrations:
+        integration_module = importlib.import_module("rest_api.views.%s" % (integrate.name))
+        order_dict = integration_module.integration_get_order(order_id, user, order_status)
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        response = obj.qssi_order_push(data=order_dict, user=user)
+    return response
+
+
+def get_inventory(sku_ids, user):
+    #get inventory API call
+    integrations = Integrations.objects.filter(user=user.id, status=1)
+    from rest_api.views.easyops_api import *
+    for integrate in integrations:
+        integration_module = importlib.import_module("rest_api.views.%s" % (integrate.name))
+        sku_dict = integration_module.integration_get_inventory(sku_ids, user) if isinstance(sku_ids, list)\
+                   else sku_ids
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        response = obj.qssi_get_inventory(sku_ids, user=user)
+    return response
+
+
+def order_status_update(order_ids, user):
+    #update order status API call
+    integrations = Integrations.objects.filter(user=user.id, status=1)
+    from rest_api.views.easyops_api import *
+    for integrate in integrations:
+        integration_module = importlib.import_module("rest_api.views.%s" % (integrate.name))
+        order_id_dict = integration_module.integration_get_order_status(order_ids, user)
+        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+        response = obj.qssi_get_order_status(order_id_dict, user=user)
+    return response

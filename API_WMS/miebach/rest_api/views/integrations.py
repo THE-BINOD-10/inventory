@@ -982,7 +982,7 @@ def update_skus(skus, user='', company_name=''):
         all_users = get_related_users(user.id)
         sync_sku_switch = get_misc_value('sku_sync', user.id)
         if all_users and sync_sku_switch == 'true' and all_sku_masters:
-            create_sku(all_sku_masters, all_users)
+            create_update_sku(all_sku_masters, all_users)
         final_status = {}
         for key, value in insert_status.iteritems():
             if not value:
@@ -1446,3 +1446,67 @@ def update_order_returns(orders_data, user='', company_name=''):
         result_data = []
         log.info('Update Order Returns API failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(orders_data), str(e)))
+
+
+def get_order(orig_order_id, user):
+    customer_data, summary = {}, {}
+    sku_data = []
+    total_quantity, total_amount, total_gst, total_mrp = [0]*4
+    customer_master = ''
+
+    order_detail = OrderDetail.objects.filter(original_order_id = orig_order_id,\
+                                              user = user.id)
+    if order_detail:
+        for order in order_detail:
+            order_summary = CustomerOrderSummary.objects.get(order_id = order.id)
+            sku_master = SKUMaster.objects.get(id = order.sku_id)
+            selling_price = order.unit_price if order.unit_price != 0\
+                                             else float(order.invoice_amount)/float(order.quantity)
+            sku_data.append({'name': order.title,
+                             'quantity': order.quantity,
+                             'sku_code': order.sku.sku_code,
+                             'cgst_tax': order_summary.cgst_tax,
+                             'sgst_tax': order_summary.sgst_tax,
+                             'igst_tax': order_summary.igst_tax,
+                             'utgst_tax': order_summary.utgst_tax,
+                             'discount': order_summary.discount,
+                             'price': order.invoice_amount,
+                             'unit_price': order.unit_price,
+                             'selling_price': selling_price})
+            total_quantity += int(order.quantity)
+            total_gst += order_summary.cgst_tax + order_summary.sgst_tax + order_summary.igst_tax +\
+                         order_summary.utgst_tax
+            #total_amount += int(order.invoice_amount)
+            tot = ((order.unit_price * order.quantity) - order_summary.discount)
+            total_amount += tot + tot * (order_summary.cgst_tax + order_summary.sgst_tax)/100
+            tot = ((sku_master.mrp * order.quantity) - order_summary.discount)
+            total_mrp += tot + tot * (order_summary.cgst_tax + order_summary.sgst_tax)/100
+        order = order_detail[0]
+        order_date = order.creation_date.strftime("%Y-%m-%d %H:%M:%S")#get_local_date(user, order.creation_date)
+        if order.customer_id:
+            customer_master = CustomerMaster.objects.filter(id = order.customer_id,\
+                                                     name = order.customer_name,\
+                                                     user = user.id)
+        customer_master = customer_master[0] if customer_master else None
+        customer_data = {'Name': customer_master.name if customer_master else order.customer_name,
+                         'Number': customer_master.phone_number if customer_master else order.telephone,
+                         'ID': customer_master.id if customer_master else order.customer_id,
+                         'address': customer_master.address if customer_master else order.address,
+                         'zip': customer_master.pincode if customer_master else order.pin_code,
+                         'city': customer_master.city if customer_master else order.city,
+                         'state': customer_master.state if customer_master else order.state,
+                         'Email': customer_master.email_id if customer_master else order.email_id}
+        return ({'data':
+                       {'order_id': order.original_order_id if order.original_order_id\
+                                    else '%s%s' % (order.order_code, order.order_id),
+                       'order_date': order_date,
+                       'total_quantity': total_quantity,
+                       'total_amount': total_amount,
+                       'total_mrp': total_mrp,
+                       'total_gst': total_gst,
+                       'customer_data': customer_data,
+                       'sku_data': sku_data},
+                   'status': 'success'})
+    else:
+	return ({'data':{},
+		 'status': 'failure'})

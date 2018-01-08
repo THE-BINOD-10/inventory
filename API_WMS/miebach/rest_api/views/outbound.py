@@ -4073,8 +4073,9 @@ def apply_margin_price(sku, each_sku_map, specific_margins, is_margin_percentage
         elif default_margin:
             each_sku_map['price'] = current_price + float(default_margin)
             each_sku_map['margin'] = float(default_margin)
-        if isinstance(each_sku_map['is_margin_percentage'], str):
-            each_sku_map['is_margin_percentage'] = json.loads(is_margin_percentage)
+        if each_sku_map.has_key('is_margin_percentage'):
+            if isinstance(each_sku_map['is_margin_percentage'], str):
+                each_sku_map['is_margin_percentage'] = json.loads(is_margin_percentage)
     else:
         if sku in spc_margin_sku_map:
             raising_amt = (current_price * float(spc_margin_sku_map[sku])) / 100
@@ -4084,8 +4085,9 @@ def apply_margin_price(sku, each_sku_map, specific_margins, is_margin_percentage
             raising_amt = (current_price * float(default_margin)) / 100
             each_sku_map['price'] = current_price + raising_amt
             each_sku_map['margin'] = float(default_margin)
-        if isinstance(each_sku_map['is_margin_percentage'], str):
-            each_sku_map['is_margin_percentage'] = json.loads(is_margin_percentage)
+        if each_sku_map.has_key('is_margin_percentage'):
+            if isinstance(each_sku_map['is_margin_percentage'], str):
+                each_sku_map['is_margin_percentage'] = json.loads(is_margin_percentage)
 
 
 def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id='',

@@ -37,6 +37,7 @@ from django.db.models.functions import Cast, Concat
 from django.db.models.fields import DateField, CharField
 import re
 import subprocess
+import importlib
 
 from django.template import loader, Context
 from barcodes import *
@@ -5854,6 +5855,7 @@ def get_priceband_admin_user(user):
 
 def order_push(order_id, user, order_status="NEW"):
     #cal integration_get_order
+    response = {}
     integrations = Integrations.objects.filter(user=user.id, status=1)
     from rest_api.views.easyops_api import *
     for integrate in integrations:
@@ -5866,6 +5868,7 @@ def order_push(order_id, user, order_status="NEW"):
 
 def get_inventory(sku_ids, user):
     #get inventory API call
+    response = {}
     integrations = Integrations.objects.filter(user=user.id, status=1)
     from rest_api.views.easyops_api import *
     for integrate in integrations:
@@ -5873,12 +5876,13 @@ def get_inventory(sku_ids, user):
         sku_dict = integration_module.integration_get_inventory(sku_ids, user) if isinstance(sku_ids, list)\
                    else sku_ids
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        response = obj.qssi_get_inventory(sku_ids, user=user)
+        response = obj.qssi_get_inventory(sku_dict, user=user)
     return response
 
 
 def order_status_update(order_ids, user):
     #update order status API call
+    response = {}
     integrations = Integrations.objects.filter(user=user.id, status=1)
     from rest_api.views.easyops_api import *
     for integrate in integrations:

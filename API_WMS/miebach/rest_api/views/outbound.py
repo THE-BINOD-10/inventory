@@ -3289,12 +3289,14 @@ def insert_order_data(request, user=''):
             if auto_picklist_signal == 'true':
                 log.info("Entered")
                 message = check_stocks(order_user_data, User.objects.get(id=user_id), request, order_objs)
-	#qssi push order api call
-        order_detail_id = GenericOrderDetailMapping.objects.latest('id').orderdetail_id
-        order_detail_obj = OrderDetail.objects.filter(id = order_detail_id)
-        if order_detail_obj:
-            original_order_id = order_detail_obj[0].original_order_id
-            resp = order_push(original_order_id, user, "NEW")
+        #qssi push order api call
+        generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
+                                                                   customer_id=cm_id).\
+                                        values('orderdetail__original_order_id', 'orderdetail__user').distinct()
+        for generic_order in generic_orders:
+            original_order_id = generic_order['orderdetail__original_order_id']
+            order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
+            resp = order_push(original_order_id, order_detail_user, "NEW")
             log.info('New Order Push Status: %s, Order ID: %s' %(resp["Status"], resp["OrderId"]))
         if user_type == 'customer':
             # Creating Uploading POs object with file upload pending.
@@ -4453,7 +4455,7 @@ def get_sku_variants(request, user=''):
                 if company_name == "qssi":
                     sku_ids = [item['wms_code'] for item in sku_master]
                     api_resp = get_inventory(sku_ids, user)
-                    if api_resp["Status"].lower() == "success":
+                    if api_resp.get("Status", "").lower() == "success":
                         for warehouse in resp["Warehouses"]:
                             if warehouse["WarehouseId"] == user.username:
                                 for item in warehouse["Result"]["InventoryStatus"]:

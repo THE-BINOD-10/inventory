@@ -820,7 +820,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, sale_through: vm.order_type_value};
 
   vm.modifyMarginEachSKU = function(item, $index) {
-    item.loading=true;
+    vm.catlog_data.data[$index].loading = true
     var dict_values = {};
     dict_values['margin_data'] = { 'wms_code':item.wms_code, 'price':item.your_price, 'margin' : item.margin }
     dict_values['margin_values'] = {'brand':item.sku_brand, 'category':item.sku_category, 'sku_class':item.sku_class,
@@ -837,7 +837,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(data) {
       if(data.message) {
         vm.catlog_data.data[index_value] = data.data.data[0];
-        item.loading=false;
       }
     });
   };

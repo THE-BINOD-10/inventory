@@ -4067,18 +4067,24 @@ def apply_margin_price(sku, each_sku_map, specific_margins, is_margin_percentage
         specific_margins = json.loads(specific_margins)
     specific_margin_skus = [(i['wms_code'], i['margin']) for i in specific_margins]
     spc_margin_sku_map = dict(specific_margin_skus)
+    each_sku_map['margin'] = 0
     if is_margin_percentage == 'false':
         if sku in spc_margin_sku_map:
             each_sku_map['price'] = current_price + float(spc_margin_sku_map[sku])
+            each_sku_map['margin'] = float(spc_margin_sku_map[sku])
         elif default_margin:
             each_sku_map['price'] = current_price + float(default_margin)
+            each_sku_map['margin'] = float(default_margin)
     else:
         if sku in spc_margin_sku_map:
             raising_amt = (current_price * float(spc_margin_sku_map[sku])) / 100
             each_sku_map['price'] = current_price + raising_amt
+            each_sku_map['margin'] = float(spc_margin_sku_map[sku])
         elif default_margin:
             raising_amt = (current_price * float(default_margin)) / 100
             each_sku_map['price'] = current_price + raising_amt
+            each_sku_map['margin'] = float(default_margin)
+    each_sku_map['is_margin_percentage'] = json.loads(is_margin_percentage)
 
 
 def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id='',
@@ -6125,6 +6131,9 @@ def construct_order_customer_order_detail(request, order, user):
                 tax_exclusive_inv_amt = float(res_unit_price) * int(record['quantity'])
                 record['invoice_amount'] = tax_inclusive_inv_amt
                 record['sku_tax_amt'] = round(tax_inclusive_inv_amt - tax_exclusive_inv_amt, 2)
+            schedule_date = gen_ord_obj[0].schedule_date
+            if schedule_date:
+                record['schedule_date'] = schedule_date
     return data_list, total_picked_quantity
 
 

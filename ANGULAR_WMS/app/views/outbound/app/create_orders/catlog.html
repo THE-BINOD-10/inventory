@@ -67,11 +67,12 @@
   </div>
   <div class="item-display row" ng-if="!showCase.catDisplay">
     <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
-    <div class="col-md-2 col-sm-3 col-xs-6 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="$state.go('user.App.Style', {styleId: item.sku_class})"><!--ng-click="showCase.open_style(item.sku_class,item); $state.go('user.App.Style')">-->
+    <div class="col-md-2 col-sm-3 col-xs-6 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="$state.go('user.App.Style', {styleId: item.sku_class})" style="position: relative;">
       <div>
         <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
         <br>
-        <div>
+        <div style="height: 125px">
+          <img ng-if="item.loading" ng-src="https://m.popkey.co/fe4ba7/DYALX.gif" style="border:0px !important;z-index: 12;position:absolute;top:5px;left:5px;height:97%;opacity:0.6;width:95%;" class="img-thumbnail ng-scope" src="https://m.popkey.co/fe4ba7/DYALX.gif" ng-click="$event.stopPropagation();">
           <div style="height: 130px" ng-if="permissions.user_type != 'customer'">
             <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.variants[0].style_name }}</p>
             <div class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">
@@ -97,7 +98,33 @@
               </table>
             </div>
 
-            <div class="tooltip pull-right" style="border:none;font-size: 11px;float: left;z-index: 1;font-weight: 600;color: #090001;margin-top: 5px;text-decoration: underline;" ng-click="$event.stopPropagation();">
+            <div class="tooltip" style="border:none;font-size: 11px;float: left;z-index: 1;font-weight: 600;color: #090001;margin-top: 2px;text-decoration: underline;" ng-click="$event.stopPropagation();">
+            <span style="margin-top: 8px"><a href="">Modify Margin</a></span>
+            <div class="tooltiptext" style="width: 175px;background-color: black;text-align: center;
+              border-radius: 6px;padding: 5px 0;padding: 3px;position: absolute;z-index: 1;top: -340%;
+              right: -130%;">
+              <table>
+                <tbody>
+                  <tr>
+                    <th style="font-size: 11px;">{{(item.variants[0].is_margin_percentage)?'Modify Margin Percentage': 'Modify Margin Value';}}</th>
+                    <th></th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <input class="form-control ng-pristine ng-invalid-required ng-invalid" decimal-number="" ng-model="item.variants[0].margin" ng-required="true" required="required" style="padding: 3px;height: 24px;margin-top: 3px;border-radius: 0px;">
+                    </td>
+                    <td>
+                      <button class="btn btn-icon-icon" style="background: #ee4734;padding: 0px;width: 25px;height: 25px;border-width: 1px;position: relative;overflow: hidden;padding-top: 0;padding-bottom: 0px;padding-left: 0px;border-width: 0;margin-top: 3px;color: black;transition: none;" ng-disabled="item.loading">
+                        <i ng-if="!item.loading" class="fa fa-check" style="font-size: 13px;border-radius: 0px;color:white;line-height: 25px;" title="Show Filters" ng-click="showCase.modifyMarginEachSKU(item.variants[0], $index)"></i>
+                        <i ng-if="item.loading" class="glyphicon glyphicon-refresh glyphicon-refresh-animate" ng-class="(loadingData)?'glyphicon-refresh-animate': '';" style="margin-left: -4px;left: 4px;margin-top: -4px;top: -2px;"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="tooltip pull-right" style="border:none;font-size: 11px;float: left;z-index: 1;font-weight: 600;color: #090001;margin-top: 2px;text-decoration: underline;" ng-click="$event.stopPropagation();">
               <span style="margin-top: 8px"><a href="">Quantity</a></span>
               <div class="tooltiptext" style="width: 100px;background-color: black;text-align: center;
                 border-radius: 6px;padding: 5px 0;padding: 3px;position: absolute;z-index: 1;top: -50px;
@@ -116,6 +143,7 @@
                 </table>
               </div>
             </div>
+          </div>
           </div>
           <div style="height: 110px" ng-if="permissions.user_type == 'customer'">
             <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.sku_class }}</p>

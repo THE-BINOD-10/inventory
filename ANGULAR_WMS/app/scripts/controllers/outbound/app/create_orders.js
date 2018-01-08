@@ -871,7 +871,8 @@ angular
 
 angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance, $modal, items, Service, Data, Session) {
   var $ctrl = this;
-  $ctrl.marginData = items;
+  $ctrl.marginData = {};
+  angular.copy(items, $ctrl.marginData);
   $ctrl.sku_data = [];
   angular.copy(Data.marginSKUData.data, $ctrl.sku_data);
   $ctrl.user_type = Session.roles.permissions.user_type;

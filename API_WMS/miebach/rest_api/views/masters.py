@@ -720,7 +720,8 @@ def update_sku(request, user=''):
             elif key == 'zone_id' and value:
                 zone = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})
                 key = 'zone_id'
-                value = zone.id
+                if zone:
+                    value = zone.id
             elif key == 'ean_number':
                 if not value:
                     value = 0
@@ -751,6 +752,12 @@ def update_sku(request, user=''):
             print "already running"
 
         insert_update_brands(user)
+
+        # Sync sku's with sister warehouses
+        sync_sku_switch = get_misc_value('sku_sync', user.id)
+        if sync_sku_switch == 'true':
+            all_users = get_related_users(user.id)
+            create_update_sku([data], all_users)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -1820,8 +1827,9 @@ def insert_sku(request, user=''):
 
         all_users = get_related_users(user.id)
         sync_sku_switch = get_misc_value('sku_sync', user.id)
-        if all_users and sync_sku_switch == 'true':
-            create_sku([sku_master], all_users)
+        if sync_sku_switch == 'true':
+            all_users = get_related_users(user.id)
+            create_update_sku([sku_master], all_users)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

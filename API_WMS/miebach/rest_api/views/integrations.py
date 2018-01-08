@@ -982,7 +982,7 @@ def update_skus(skus, user='', company_name=''):
         all_users = get_related_users(user.id)
         sync_sku_switch = get_misc_value('sku_sync', user.id)
         if all_users and sync_sku_switch == 'true' and all_sku_masters:
-            create_sku(all_sku_masters, all_users)
+            create_update_sku(all_sku_masters, all_users)
         final_status = {}
         for key, value in insert_status.iteritems():
             if not value:

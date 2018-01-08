@@ -3,8 +3,9 @@ from django.http import HttpResponse
 from django.db.models import Q, F
 from django.contrib.auth import authenticate
 from django.contrib import auth
-from miebach_admin.models import *
 import datetime
+import copy
+from miebach_admin.models import *
 from utils import *
 from dump_user_images import *
 
@@ -21,7 +22,7 @@ def insert_skus(user_id):
 
     all_skus = get_all_skus(all_users)
 
-    create_sku(all_skus, all_users)
+    create_update_sku(all_skus, all_users)
 
     end_time = datetime.datetime.now()
     duration = end_time - st_time
@@ -35,7 +36,7 @@ def update_skus(user_id, sku_codes):
 
     all_users = get_related_users(user_id)
     new_skus = SKUMaster.objects.filter(sku_code__in=sku_codes)
-    create_sku(new_skus, all_users)
+    create_update_sku(new_skus, all_users)
     return "Success"
 
 
@@ -73,35 +74,38 @@ def get_all_skus(all_users):
     return all_skus
 
 
-def create_sku(all_skus, all_users):
+def create_update_sku(all_skus, all_users):
     """ creating SKU for other linked users """
+    from rest_api.views.common import get_misc_value
     dump_sku_codes = []
     for user in all_users:
         for sku in all_skus:
             if sku.user == user:
                 continue
-            p, created = SKUMaster.objects.get_or_create(user=user, sku_code=sku.sku_code, wms_code=sku.wms_code,
-                                                         defaults={'sku_desc': sku.sku_desc, 'sku_group': sku.sku_group,
-                                                                   'sku_type': sku.sku_type,
-                                                                   'sku_category': sku.sku_category,
-                                                                   'sku_class': sku.sku_class,
-                                                                   'sku_brand': sku.sku_brand,
-                                                                   'style_name': sku.style_name,
-                                                                   'sku_size': sku.sku_size, 'sku_size': sku.sku_size,
-                                                                   'product_type': sku.product_type, 'zone': sku.zone,
-                                                                   'threshold_quantity': sku.threshold_quantity,
-                                                                   'online_percentage': sku.online_percentage,
-                                                                   'discount_percentage': sku.discount_percentage,
-                                                                   'price': sku.price, 'mrp': sku.mrp,
-                                                                   'image_url': sku.image_url, 'qc_check': sku.qc_check,
-                                                                   'sequence': sku.sequence, 'status': sku.status,
-                                                                   'relation_type': sku.relation_type,
-                                                                   'measurement_type': sku.measurement_type,
-                                                                   'sale_through': sku.sale_through,
-                                                                   'creation_date': datetime.datetime.now().date(),
-                                                                   'updation_date': datetime.datetime.now().date()})
+            update_sku_dict = {'sku_desc': sku.sku_desc, 'sku_group': sku.sku_group, 'sku_type': sku.sku_type,
+                        'sku_category': sku.sku_category, 'sku_class': sku.sku_class, 'sku_brand': sku.sku_brand,
+                        'style_name': sku.style_name, 'sku_size': sku.sku_size,
+                        'product_type': sku.product_type, 'online_percentage': sku.online_percentage,
+                        'mrp': sku.mrp, 'sequence': sku.sequence, 'status': sku.status,
+                        'measurement_type': sku.measurement_type, 'sale_through': sku.sale_through,
+                        }
+            new_sku_dict = copy.deepcopy(update_sku_dict)
+            new_sku_dict.update({'discount_percentage': sku.discount_percentage, 'price': sku.price,
+                                 'relation_type': sku.relation_type,
+                                 'creation_date': datetime.datetime.now().date(),
+                                 'updation_date': datetime.datetime.now().date()})
+            sku_obj, created = SKUMaster.objects.get_or_create(user=user, sku_code=sku.sku_code, wms_code=sku.wms_code,
+                                                         defaults=new_sku_dict)
             if sku.sku_code not in dump_sku_codes and created:
                 dump_sku_codes.append(sku.sku_code)
+            price_band_flag = get_misc_value('priceband_sync', sku.user)
+            if price_band_flag == 'true' and not created:
+                sku_obj.__dict__.update(**update_sku_dict)
+                print sku_obj.sku_desc, sku_obj.id
+                sku_obj.save()
+                if sku.sku_code not in dump_sku_codes:
+                    dump_sku_codes.append(sku.sku_code)
+
         if dump_sku_codes and all_skus:
             dump_user_images(all_skus[0].user, user, sku_codes=dump_sku_codes)
 

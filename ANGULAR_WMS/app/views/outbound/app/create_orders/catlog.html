@@ -73,31 +73,6 @@
         <br>
         <div style="height: 125px">
           <img ng-if="item.loading" ng-src="https://m.popkey.co/fe4ba7/DYALX.gif" style="border:0px !important;z-index: 12;position:absolute;top:5px;left:5px;height:97%;opacity:0.6;width:95%;" class="img-thumbnail ng-scope" src="https://m.popkey.co/fe4ba7/DYALX.gif" ng-click="$event.stopPropagation();">
-          <div ng-if="permissions.user_type != 'customer'">
-          <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.variants[0].style_name }}</p>
-          <div class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">
-            <span class="pull-left">Stock: <b>{{ item.style_quantity }}</b></span>
-            <span>MSP: <b>{{ item.variants[0].your_price }}</b></span>
-          </div>
-          <div ng-if="item.variants[0].price_ranges.length > 0">
-            <table class="table table-bordered mb0 mt5" style="font-size:10px;">
-              <tbody>
-                <tr>
-                  <td><b>Qty</b></td>
-                  <td style="padding:2px;" ng-repeat="td in item.variants[0].price_ranges"><center>
-                    <span>{{item.variants[0].price_ranges[$index]['min_unit_range']}}</span><br>
-                    <div style="height: 1px;width: 5px;background: black;margin-bottom: 2px;"></div>
-                    {{item.variants[0].price_ranges[$index]['max_unit_range']}}
-                    </center></td>
-                </tr>
-                <tr>
-                  <td style="padding:2px;width: 46px;" ><b>Price</b></td>
-                  <td style="padding:2px;" ng-repeat="td in item.variants[0].price_ranges"><center><b style="color: #ed1c24">{{item.variants[0].price_ranges[$index]['price']}}</b></center></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          </div>
           <div style="height: 130px" ng-if="permissions.user_type != 'customer'">
             <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.variants[0].style_name }}</p>
             <div class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">

@@ -6125,6 +6125,9 @@ def construct_order_customer_order_detail(request, order, user):
                 tax_exclusive_inv_amt = float(res_unit_price) * int(record['quantity'])
                 record['invoice_amount'] = tax_inclusive_inv_amt
                 record['sku_tax_amt'] = round(tax_inclusive_inv_amt - tax_exclusive_inv_amt, 2)
+            schedule_date = gen_ord_obj[0].schedule_date
+            if schedule_date:
+                record['schedule_date'] = schedule_date
     return data_list, total_picked_quantity
 
 

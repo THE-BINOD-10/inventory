@@ -19,7 +19,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.order_type_value = "offline";
   vm.service = Service;
   vm.company_name = Session.user_profile.company_name;
-  vm.model_data = {}
+  vm.model_data = {};
+  vm.required_quantity = {};
 
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
                             customer_id: "", payment_received: "", order_taken_by: "", other_charges: [], shipment_time_slot: "", remarks: ""};
@@ -850,7 +851,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                 sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true,
                 color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice,
                 is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
-                margin_data: JSON.stringify(Data.marginSKUData.data)}
+                margin_data: JSON.stringify(Data.marginSKUData.data), required_quantity: JSON.stringify(vm.required_quantity)}
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/app/create_orders/download_pdf.html',
       controller: 'downloadPDFCtrl',
@@ -916,7 +917,8 @@ angular
 
 angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance, $modal, items, Service, Data, Session) {
   var $ctrl = this;
-  $ctrl.marginData = items;
+  $ctrl.marginData = {};
+  angular.copy(items, $ctrl.marginData);
   $ctrl.sku_data = [];
   angular.copy(Data.marginSKUData.data, $ctrl.sku_data);
   $ctrl.user_type = Session.roles.permissions.user_type;
@@ -1043,6 +1045,9 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
   vm.downloadPDF = function(form) {
 
     var data = vm.pdfData;
+    if (!vm.pdfData.display_total_amount) {
+        delete data.required_quantity;
+    }
     vm.pdfDownloading = true;
     data['user_type'] = Session.roles.permissions.user_type;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {

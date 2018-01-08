@@ -31,19 +31,14 @@
         <img style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail hide" src="{{  obj.image_url| get_image_code }}">
         <div>
           <span class="style_name" style="font-size: 12px" title="{{ obj.sku_class }}"><b>Style: {{ obj.sku_class }}</b></span><br>
-          <!--<span class="style_name" style="font-size: 12px" >{{ obj.variants.0.price| get_price_code }}</span><br>-->
           <span class="style_name" style="font-size: 12px" ><b>Style Name:</b>{{ obj.variants.0.style_name }}</span><br>
           <span class="style_name" style="font-size: 12px" title="{{ obj.sku_class }}"><b>Brand:</b> {{ obj.variants.0.sku_brand }}</span><br>
           <span class="style_name" style="font-size: 12px" title="{{ obj.sku_class }}"><b>Category:</b> {{ obj.variants.0.sku_category }}</span><br>
           {% if display_stock == 'true' %}
-            <span style="font-size: 12px;" class="ng-binding"><b>Stock: </b>{{obj.style_quantity}}</span><br>
-            <!--<span style="font-size: 12px;" class="ng-binding"><b>Stock: </b>{{ obj.variants| get_size_wise_stock }}</span><br>-->
+            <span style="font-size: 12px;" class="ng-binding"><b>Stock: </b>{{obj.style_quantity| floatformat:0}}</span><br>
           {% endif %}
-          <!--<span style="font-size: 12px;"><b>MRP:</b> &#8377;{{ obj.variants.0.mrp| floatformat:0 }}&nbsp;&nbsp;</span>-->
-          <!--<span style="font-size: 12px;color: #ed1c24 !important;"><b style="color: #ed1c24 !important;">Selling Price: &#8377;{{ obj.variants.0.your_price| floatformat:0 }}</b></span>-->
-
-          <!--<br>-->
           {% if obj.variants.0.price_ranges %}
+          {% if not obj.sku_class|get_style_quantity:style_quantities %}
           <div ng-if="item.variants[0].price_ranges.length > 0">
             <table class="table table-bordered mb0 mt5" style="font-size:10px;">
               <tbody>
@@ -66,6 +61,10 @@
               </tbody>
             </table>
           </div>
+          {% else %}
+          <span class="style_name" style="font-size: 12px" ><b>Quantity :</b>{{ obj.sku_class|get_style_quantity:style_quantities }}</span><br>
+          <span class="style_name" style="font-size: 12px" ><b>Total Amount :</b>{{ obj|get_quantity_based_price:style_quantities }}</span>
+          {% endif %}
           {% endif %}
         </div>
       </div>

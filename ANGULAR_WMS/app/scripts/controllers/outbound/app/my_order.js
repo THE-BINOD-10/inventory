@@ -2,7 +2,7 @@
 
 'use strict';
 
-function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, Data) {
+function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, Data, $modal) {
 
   var vm = this;
 
@@ -23,7 +23,6 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   vm.get_orders = function(key){
 
     vm.orders_loading = true;
-
     vm.index = vm.order_data.data.length  + ':' + (vm.order_data.data.length + 20)
     var data = {index: vm.index}
     Service.apiCall(url, 'GET', data).then(function(data){
@@ -57,7 +56,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   // Scrolling Event Function
   vm.scroll = function(e) {
     console.log("scroll")
-    if($(".your_orders:visible").length && !vm.orders_loading && !vm.show_no_data) {
+    if(!vm.orders_loading && !vm.show_no_data) {
         vm.get_orders();
     }
   }
@@ -118,10 +117,36 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
       }
     });
   }
+
+  vm.open_details = function(data) {
+
+    if (Session.user_profile.user_type == 'warehouse_user') {
+
+      var mod_data = {order_id: data['orderId'], url: 'get_customer_order_detail'};
+      var modalInstance = $modal.open({
+        templateUrl: 'views/outbound/toggle/enquiry_order_details.html',
+        controller: 'EnquiryOrderDetails',
+        controllerAs: 'order',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+        resolve: {
+          items: function () {
+            return mod_data;
+          }
+        }
+      });
+      modalInstance.result.then(function (selectedItem) {
+        var data = selectedItem;
+      })
+    } else {
+      $state.go('user.App.OrderDetails', data);
+    }
+  }
 }
 
 angular
   .module('urbanApp')
-  .controller('AppMyOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', 'Data', AppMyOrders]);
+  .controller('AppMyOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', 'Data', '$modal', AppMyOrders]);
 
 })();

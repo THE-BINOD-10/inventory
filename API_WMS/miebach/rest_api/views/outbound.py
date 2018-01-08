@@ -3152,6 +3152,7 @@ def insert_order_data(request, user=''):
                         create_grouping_order_for_generic(generic_order_id, order_obj, cm_id, user.id,
                                                           order_data['quantity'], corporate_po_number, client_name,
                                                           order_data['unit_price'], el_price, del_date)
+                        create_ordersummary_data(order_summary_dict, order_obj, ship_to)
                 for usr, qty in stock_wh_map.iteritems():
                     order_data['order_id'] = user_order_ids_map[usr]
                     order_data['user'] = usr
@@ -3289,7 +3290,13 @@ def insert_order_data(request, user=''):
             if auto_picklist_signal == 'true':
                 log.info("Entered")
                 message = check_stocks(order_user_data, User.objects.get(id=user_id), request, order_objs)
-
+	#qssi push order api call
+        order_detail_id = GenericOrderDetailMapping.objects.latest('id').orderdetail_id
+        order_detail_obj = OrderDetail.objects.filter(id = order_detail_id)
+        if order_detail_obj:
+            original_order_id = order_detail_obj[0].original_order_id
+            resp = order_push(original_order_id, user, "NEW")
+            log.info('New Order Push Status: %s, Order ID: %s' %(resp["Status"], resp["OrderId"]))
         if user_type == 'customer':
             # Creating Uploading POs object with file upload pending.
             upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': corporate_po_number,
@@ -4080,7 +4087,7 @@ def apply_margin_price(sku, each_sku_map, specific_margins, is_margin_percentage
 
 def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id='',
                        prices_dict={}, levels_config=0, dist_wh_id=0, level=0, specific_margins=[],
-                       is_margin_percentage=0, default_margin=0, price_type='', is_catalog=''):
+                       is_margin_percentage=0, default_margin=0, price_type='', is_style_detail=''):
     stock_objs = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0). \
         values('sku_id').distinct().annotate(in_stock=Sum('quantity'))
 
@@ -4170,8 +4177,7 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                     else:
                         sku_master[ind]['your_price'] = 0
                 else:
-                    # print "Price Type::", price_type
-                    if is_catalog != 'true':
+                    if is_style_detail != 'true':
                         price_type = 'R-C'
                     if price_type != 'R-C':
                         # Assuming Reseller, taking price type from Customer Master
@@ -4367,7 +4373,8 @@ def get_sku_catalogs(request, user=''):
         else:
             t = loader.get_template('templates/customer_search.html')
         rendered = t.render({'data': data, 'user': request.user.first_name, 'date': date,
-                             'remarks': remarks, 'display_stock': display_stock, 'image': image})
+                             'remarks': remarks, 'display_stock': display_stock, 'image': image,
+                             'style_quantities': eval(request.POST.get('required_quantity', '{}'))})
 
         if not os.path.exists('static/pdf_files/'):
             os.makedirs('static/pdf_files/')
@@ -4389,7 +4396,7 @@ def get_sku_variants(request, user=''):
     filter_params = {'user': user.id}
     get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand',
                   'sku_size', 'style_name', 'product_type']
-    reseller_leadtimes = {};
+    reseller_leadtimes = {}
     lead_times = {}
     sku_class = request.POST.get('sku_class', '')
     customer_id = request.POST.get('customer_id', '')
@@ -4402,6 +4409,7 @@ def get_sku_variants(request, user=''):
         level = int(level)
     else:
         level = 0
+    is_style_detail = request.POST.get('is_style_detail', '')
     levels_config = get_misc_value('generic_wh_level', user.id)
     cust_obj = CustomerMaster.objects.filter(user=user.id, name=request.user.first_name)
     if cust_obj:
@@ -4438,9 +4446,35 @@ def get_sku_variants(request, user=''):
                 reseller_leadtimes = [dist_reseller_leadtime]
     sku_master = get_style_variants(sku_master, user, customer_id=customer_id, customer_data_id=customer_data_id,
                                     levels_config=levels_config, dist_wh_id=dist_userid, level=level,
-                                    is_catalog=is_catalog
+                                    is_style_detail=is_style_detail
                                     )
-
+    if get_priceband_admin_user(user):
+        wh_admin = get_priceband_admin_user(user)
+        integration_obj = Integrations.objects.filter(user = user.id)
+        if integration_obj:
+            company_name = integration_obj[0].name
+            integration_users = Integrations.objects.filter(name = company_name).values_list('user', flat=True)
+            for user_id in integration_users:
+                user = User.objects.get(id = user_id)
+                #if qssi, update inventory first
+                if company_name == "qssi":
+                    sku_ids = [item['wms_code'] for item in sku_master]
+                    api_resp = get_inventory(sku_ids, user)
+                    if api_resp["Status"].lower() == "success":
+                        for warehouse in resp["Warehouses"]:
+                            if warehouse["WarehouseId"] == user.username:
+                                for item in warehouse["Result"]["InventoryStatus"]:
+                                    sku_id = item["SKUId"]
+                                    inventory = item["Inventory"]
+                                    sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)
+                                    if sku:
+                                        sku = sku[0]
+                                        stock_detail = StockDetail.objects.filter(sku_id = sku.id)
+                                        if stock_detail:
+                                            stock_detail = stock_detail[0]
+                                            stock_detail.quantity = inventory
+                                            stock_detail.save()
+                                            log.info("Stock updated for sku: %s" %(sku_id))
     sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime)
     _data = {'data': sku_master, 'gen_wh_level_status': levels_config, 'total_qty': total_qty, }
     if not is_distributor:
@@ -5164,6 +5198,7 @@ def get_customer_payment_tracker(request, user=''):
 @get_admin_user
 def get_customer_master_id(request, user=''):
     customer_id = 1
+    reseller_price_type = ''
     customer_master = CustomerMaster.objects.filter(user=user.id).values_list('customer_id', flat=True).order_by(
         '-customer_id')
     if customer_master:
@@ -5172,15 +5207,17 @@ def get_customer_master_id(request, user=''):
     price_band_flag = get_misc_value('priceband_sync', user.id)
     level_2_price_type = ''
     if price_band_flag == 'true':
-        user = get_admin(user)
+        admin_user = get_admin(user)
         level_2_price_type = 'D1-R'
+    if user.userprofile.warehouse_type == 'DIST':
+        reseller_price_type = 'D-R'
 
     price_types = list(PriceMaster.objects.exclude(price_type__in=["", 'D1-R', 'R-C']).
-                       filter(sku__user=user.id).values_list('price_type', flat=True).
+                       filter(sku__user=admin_user.id).values_list('price_type', flat=True).
                        distinct())
 
     return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': TAX_VALUES, 'price_types': price_types,
-                                    'level_2_price_type': level_2_price_type}))
+                                    'level_2_price_type': level_2_price_type, 'price_type': reseller_price_type}))
 
 
 @login_required
@@ -5961,7 +5998,20 @@ def get_only_date(request, date):
 
 @get_admin_user
 def get_level_based_customer_orders(request, response_data, user=''):
-    cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+    index = request.GET.get('index', '')
+    start_index, stop_index = 0, 20
+    if index:
+        start_index = int(index.split(':')[0])
+        stop_index = int(index.split(':')[1])
+    user_profile = UserProfile.objects.get(user=request.user.id)
+    if user_profile.warehouse_type == 'DIST':
+        customer = WarehouseCustomerMapping.objects.filter(warehouse=request.user.id, status=1)
+        if customer:
+            cum_obj = CustomerUserMapping.objects.filter(customer=customer[0].customer.id)
+        else:
+            return response_data
+    else:
+        cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if cum_obj:
         cm_id = cum_obj[0].customer_id
         picklist = Picklist.objects.filter(order__customer_id=cm_id, order__user=user.id)
@@ -5970,6 +6020,7 @@ def get_level_based_customer_orders(request, response_data, user=''):
                                      annotate(total_quantity=Sum('quantity'),
                                               total_inv_amt=Sum('orderdetail__invoice_amount')). \
                                      order_by('-generic_order_id'))
+        response_data['data'] = response_data['data'][start_index:stop_index]
         for record in response_data['data']:
             order_detail_ids = generic_orders.filter(generic_order_id=record['generic_order_id']).values_list(
                 'orderdetail_id', flat=True)
@@ -5996,7 +6047,6 @@ def get_level_based_customer_orders(request, response_data, user=''):
                 record['order_id'] = record['generic_order_id']
             record['total_inv_amt'] = round(record['total_inv_amt'], 2)
             record['picked_quantity'] = picked_quantity
-    # return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
     return response_data
 
 
@@ -6075,8 +6125,10 @@ def construct_order_customer_order_detail(request, order, user):
             if el_price:
                 record['el_price'] = el_price
             if res_unit_price:
-                record['invoice_amount'] = float(res_unit_price) * int(record['quantity'])
-            print "el_price, res_unit_price::", el_price, res_unit_price
+                tax_inclusive_inv_amt = record['invoice_amount']
+                tax_exclusive_inv_amt = float(res_unit_price) * int(record['quantity'])
+                record['invoice_amount'] = tax_inclusive_inv_amt
+                record['sku_tax_amt'] = round(tax_inclusive_inv_amt - tax_exclusive_inv_amt, 2)
     return data_list, total_picked_quantity
 
 
@@ -6099,11 +6151,12 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     response_data['status'] = status
     response_data['date'] = get_only_date(request, order[0].creation_date)
     response_data['order_id'] = order[0].order_id
-    response_data['tax'] = round(tax, 2)
     response_data['data'] = []
     res, total_picked_quantity = construct_order_customer_order_detail(request, order, usr_id)
     total_inv_amt = map(sum, [[x['invoice_amount'] for x in res]])
     total_qty = map(sum, [[x['quantity'] for x in res]])
+    total_tax = map(sum, [[x['sku_tax_amt'] for x in res]])
+    response_data['tax'] = round(total_tax[0], 2)
     sum_data = {'picked_quantity': total_picked_quantity, 'amount': total_inv_amt[0],
                 'quantity': total_qty[0]}
     response_data['sum_data'] = sum_data
@@ -6117,7 +6170,14 @@ def get_level_based_customer_order_detail(request, user):
     response_data_list = []
     sku_wise_details = {}
     generic_order_id = request.GET['order_id']
-    cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+    user_profile = UserProfile.objects.get(user=request.user.id)
+    cum_obj = ''
+    if user_profile.warehouse_type == 'DIST':
+        customer = WarehouseCustomerMapping.objects.filter(warehouse=request.user.id, status=1)
+        if customer:
+            cum_obj = CustomerUserMapping.objects.filter(customer=customer[0].customer.id)
+    else:
+        cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if cum_obj:
         cm_id = cum_obj[0].customer_id
         generic_orders = GenericOrderDetailMapping.objects.filter(customer_id=cm_id)
@@ -6137,19 +6197,24 @@ def get_level_based_customer_order_detail(request, user):
                     if sku_code not in sku_wise_details:
                         sku_qty = sku_rec['quantity']
                         sku_el_price = sku_rec.get('el_price', 0)
-                        sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price}
+                        sku_tax_amt = sku_rec.get('sku_tax_amt', 0)
+                        sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price,
+                                                      'sku_tax_amt': sku_tax_amt}
                     else:
                         existing_map = sku_wise_details[sku_code]
                         existing_map['quantity'] = existing_map['quantity'] + sku_rec['quantity']
+                        existing_map['sku_tax_amt'] = existing_map['sku_tax_amt'] + sku_rec['sku_tax_amt']
     sku_whole_map = {'data': [], 'totals': {}}
     sku_totals = {'sub_total': 0, 'total_amount': 0, 'tax': 0}
     for sku_code, sku_det in sku_wise_details.items():
         el_price = sku_det['el_price']
         qty = sku_det['quantity']
+        tax_amt = sku_det['sku_tax_amt']
         total_amt = float(qty) * float(el_price)
         sku_map = {'sku_code': sku_code, 'quantity': qty, 'landing_price': el_price, 'total_amount': total_amt}
         sku_totals['sub_total'] = sku_totals['sub_total'] + total_amt
-        sku_totals['total_amount'] = sku_totals['total_amount'] + total_amt  # TODO Tax to be added to Sub total
+        sku_totals['tax'] = sku_totals['tax'] + tax_amt
+        sku_totals['total_amount'] =  sku_totals['sub_total'] + sku_totals['tax']
         sku_whole_map['data'].append(sku_map)
         sku_whole_map['totals'] = sku_totals
     whole_res_map['data'] = response_data_list
@@ -7583,6 +7648,14 @@ def order_cancel(request, user=''):
                 ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
                 ord_det_qs.delete()
                 gen_qs.delete()
+            #qssi push order api call to cancel order
+            order_detail_id = GenericOrderDetailMapping.objects.latest('id').orderdetail_id
+            order_detail_obj = OrderDetail.objects.filter(id = order_detail_id)
+            if order_detail_obj:
+                original_order_id = order_detail_obj[0].original_order_id
+                resp = order_push(original_order_id, user, "CANCEL")
+                log.info('Cancel Order Push Status: %s, Order ID: %s' %(resp["Status"], resp["OrderId"]))
+
         else:
             ord_id = request.GET.get('order_id', '')
             ord_qs = OrderDetail.objects.filter(order_id=ord_id, user=user)

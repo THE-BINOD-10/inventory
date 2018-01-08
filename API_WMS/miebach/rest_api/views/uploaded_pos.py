@@ -10,6 +10,7 @@ from django.db.models import Q
 from miebach_utils import OrderUploads, GenericOrderDetailMapping
 from common import get_filtered_params
 from miebach_admin.custom_decorators import get_admin_user, login_required
+from miebach_admin.models import CustomerUserMapping
 
 
 def upload_po(request):
@@ -71,6 +72,10 @@ def get_uploaded_pos_by_customers(start_index, stop_index, temp_data, search_ter
     lis = ['id', 'uploaded_user__first_name', 'po_number', 'uploaded_date', 'customer_name', 'verification_flag']
     all_data = OrderedDict()
     filter_params = get_filtered_params(filters, lis)
+    if user.userprofile.warehouse_type == 'DIST':
+        dist_customers = CustomerUserMapping.objects.filter(customer__user=user.id).values_list('user_id', flat=True)
+        if dist_customers:
+            filter_params['uploaded_user_id__in'] = dist_customers
     if search_term:
         results = OrderUploads.objects.filter(Q(uploaded_user__first_name__icontains=search_term) |
                                               Q(po_number__icontains=search_term) |

@@ -392,6 +392,7 @@ urlpatterns += [
     # Integrations
     url(r'^pull_orders_now/$', pull_orders_now),
     url(r'^update_sync_issues/$', update_sync_issues),
+    url(r'^order_push/$', order_push),
 
     # stockone
     url(r'^book_trial/$', book_trial),

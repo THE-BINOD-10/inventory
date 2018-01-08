@@ -97,8 +97,33 @@
               </tbody>
             </table>
           </div>
+          </div>
+          <div style="height: 130px" ng-if="permissions.user_type != 'customer'">
+            <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.variants[0].style_name }}</p>
+            <div class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">
+              <span class="pull-left">Stock: <b>{{ item.style_quantity }}</b></span>
+              <span>MSP: <b>{{ item.variants[0].your_price }}</b></span>
+            </div>
+            <div ng-if="item.variants[0].price_ranges.length > 0">
+              <table class="table table-bordered mb0 mt5" style="font-size:10px;">
+                <tbody>
+                  <tr>
+                    <td><b>Qty</b></td>
+                    <td style="padding:2px;" ng-repeat="td in item.variants[0].price_ranges"><center>
+                      <span>{{item.variants[0].price_ranges[$index]['min_unit_range']}}</span><br>
+                      <div style="height: 1px;width: 5px;background: black;margin-bottom: 2px;"></div>
+                      {{item.variants[0].price_ranges[$index]['max_unit_range']}}
+                      </center></td>
+                  </tr>
+                  <tr>
+                    <td style="padding:2px;width: 46px;" ><b>Price</b></td>
+                    <td style="padding:2px;" ng-repeat="td in item.variants[0].price_ranges"><center><b style="color: #ed1c24">{{item.variants[0].price_ranges[$index]['price']}}</b></center></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-          <div class="tooltip" style="border:none;font-size: 11px;float: left;z-index: 1;font-weight: 600;color: #090001;margin-top: 2px;text-decoration: underline;" ng-click="$event.stopPropagation();">
+            <div class="tooltip" style="border:none;font-size: 11px;float: left;z-index: 1;font-weight: 600;color: #090001;margin-top: 2px;text-decoration: underline;" ng-click="$event.stopPropagation();">
             <span style="margin-top: 8px"><a href="">Modify Margin</a></span>
             <div class="tooltiptext" style="width: 175px;background-color: black;text-align: center;
               border-radius: 6px;padding: 5px 0;padding: 3px;position: absolute;z-index: 1;top: -340%;
@@ -121,20 +146,39 @@
                     </td>
                   </tr>
                 </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="tooltip pull-right" style="border:none;font-size: 11px;float: left;z-index: 1;font-weight: 600;color: #090001;margin-top: 5px;text-decoration: underline;" ng-click="$event.stopPropagation();">
+            <span style="margin-top: 8px"><a href="">Quantity</a></span>
+            <div class="tooltiptext" style="width: 100px;background-color: black;text-align: center;
+              border-radius: 6px;padding: 5px 0;padding: 3px;position: absolute;z-index: 1;top: -50px;
+              right: 0px">
+              <table>
+                <tbody>
+                  <tr>
+                   <th style="font-size: 11px;">Quantity</th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <input class="form-control" decimal-number="" ng-model="showCase.required_quantity[item.variants[0].style_name]" style="padding: 3px;height: 24px;margin-top: 3px;border-radius: 0px;">
+                    </td>
+                  </tr>
+                </tbody>
               </table>
             </div>
           </div>
-
           </div>
-          <div ng-if="permissions.user_type == 'customer'">
-          <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.sku_class }}</p>
-          <span class="style_name" style="font-size: 14px" ng-if="item.variants[0].pricing_price">{{ showCase.service.price_format(item.variants[0].pricing_price) }}</span>
-          <span class="style_name" style="font-size: 14px" ng-if="!(item.variants[0].pricing_price) && item.variants[0].price">{{ showCase.service.price_format(item.variants[0].price)  }}</span>
-          <p class="style_name" style="font-size: 14px" style="font-size: 12px;" title="{{ item.variants[0].style_name }}">{{ item.variants[0].style_name }}</p>
-          <p class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</p>
-          <div>
-            <span style="font-size: 14px">&#8377; {{ item.variants[0].mrp }}</span>
-          </div>
+          <div style="height: 110px" ng-if="permissions.user_type == 'customer'">
+            <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.sku_class }}</p>
+            <span class="style_name" style="font-size: 14px" ng-if="item.variants[0].pricing_price">{{ showCase.service.price_format(item.variants[0].pricing_price) }}</span>
+            <span class="style_name" style="font-size: 14px" ng-if="!(item.variants[0].pricing_price) && item.variants[0].price">{{ showCase.service.price_format(item.variants[0].price)  }}</span>
+            <p class="style_name" style="font-size: 14px" style="font-size: 12px;" title="{{ item.variants[0].style_name }}">{{ item.variants[0].style_name }}</p>
+            <p class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</p>
+            <div>
+              <span style="font-size: 14px">&#8377; {{ item.variants[0].mrp }}</span>
+            </div>
           </div>
         </div>
       </div>

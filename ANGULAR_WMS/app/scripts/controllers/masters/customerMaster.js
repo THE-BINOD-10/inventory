@@ -93,6 +93,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data["price_type_list"] = data.data.price_types;
         vm.model_data["logged_in_user_type"] = data.data.logged_in_user_type;
         vm.model_data["level_2_price_type"] = data.data.level_2_price_type;
+        vm.model_data["price_type"] = data.data.price_type;
       }
     });
   }

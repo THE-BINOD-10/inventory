@@ -56,7 +56,7 @@
             <p class="no-margin order-bold detail-black">{{data.quantity}}</p>
           </div>
           <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-right">
-            <small class="order-label">Amt</small>
+            <small class="order-label">Total</small>
             <p class="no-margin order-bold detail-black">Rs. {{data.invoice_amount | number : 2}}</p>
           </div>
           </div>
@@ -70,7 +70,7 @@
         <div class="col-md-8 col-sm-8 col-xs-9">
           <div class="row no-margin">
             <div class="col-xs-8 no-padding">
-              <span class="pull-right">Total:</span>
+              <span class="pull-right">Sub Total:</span>
             </div>
             <div class="col-xs-4 detail-black">
               <span>Rs. {{order_details.sum_data.amount-order_details.tax  | number : 2}}</span>

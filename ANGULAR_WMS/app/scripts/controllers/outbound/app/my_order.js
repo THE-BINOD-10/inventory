@@ -24,7 +24,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
     vm.orders_loading = true;
     vm.index = vm.order_data.data.length  + ':' + (vm.order_data.data.length + 20)
-    var data = {index: vm.index, is_distributor: vm.is_distributor}
+    var data = {index: vm.index}
     Service.apiCall(url, 'GET', data).then(function(data){
       if(data.message) {
 
@@ -56,7 +56,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   // Scrolling Event Function
   vm.scroll = function(e) {
     console.log("scroll")
-    if($(".your_orders:visible").length && !vm.orders_loading && !vm.show_no_data) {
+    if(!vm.orders_loading && !vm.show_no_data) {
         vm.get_orders();
     }
   }

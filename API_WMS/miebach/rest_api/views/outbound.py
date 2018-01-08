@@ -5159,6 +5159,7 @@ def get_customer_payment_tracker(request, user=''):
 @get_admin_user
 def get_customer_master_id(request, user=''):
     customer_id = 1
+    reseller_price_type = ''
     customer_master = CustomerMaster.objects.filter(user=user.id).values_list('customer_id', flat=True).order_by(
         '-customer_id')
     if customer_master:
@@ -5167,15 +5168,17 @@ def get_customer_master_id(request, user=''):
     price_band_flag = get_misc_value('priceband_sync', user.id)
     level_2_price_type = ''
     if price_band_flag == 'true':
-        user = get_admin(user)
+        admin_user = get_admin(user)
         level_2_price_type = 'D1-R'
+    if user.userprofile.warehouse_type == 'DIST':
+        reseller_price_type = 'D-R'
 
     price_types = list(PriceMaster.objects.exclude(price_type__in=["", 'D1-R', 'R-C']).
-                       filter(sku__user=user.id).values_list('price_type', flat=True).
+                       filter(sku__user=admin_user.id).values_list('price_type', flat=True).
                        distinct())
 
     return HttpResponse(json.dumps({'customer_id': customer_id, 'tax_data': TAX_VALUES, 'price_types': price_types,
-                                    'level_2_price_type': level_2_price_type}))
+                                    'level_2_price_type': level_2_price_type, 'price_type': reseller_price_type}))
 
 
 @login_required
@@ -5961,7 +5964,15 @@ def get_level_based_customer_orders(request, response_data, user=''):
     if index:
         start_index = int(index.split(':')[0])
         stop_index = int(index.split(':')[1])
-    cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+    user_profile = UserProfile.objects.get(user=request.user.id)
+    if user_profile.warehouse_type == 'DIST':
+        customer = WarehouseCustomerMapping.objects.filter(warehouse=request.user.id, status=1)
+        if customer:
+            cum_obj = CustomerUserMapping.objects.filter(customer=customer[0].customer.id)
+        else:
+            return response_data
+    else:
+        cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if cum_obj:
         cm_id = cum_obj[0].customer_id
         picklist = Picklist.objects.filter(order__customer_id=cm_id, order__user=user.id)
@@ -6117,7 +6128,14 @@ def get_level_based_customer_order_detail(request, user):
     response_data_list = []
     sku_wise_details = {}
     generic_order_id = request.GET['order_id']
-    cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+    user_profile = UserProfile.objects.get(user=request.user.id)
+    cum_obj = ''
+    if user_profile.warehouse_type == 'DIST':
+        customer = WarehouseCustomerMapping.objects.filter(warehouse=request.user.id, status=1)
+        if customer:
+            cum_obj = CustomerUserMapping.objects.filter(customer=customer[0].customer.id)
+    else:
+        cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if cum_obj:
         cm_id = cum_obj[0].customer_id
         generic_orders = GenericOrderDetailMapping.objects.filter(customer_id=cm_id)

@@ -14,6 +14,14 @@
     </div>
     <div class="form-horizontal">
       <div class="form-group">
+        <label class="col-sm-4 control-label">Display Total Amount</label>
+        <div class="col-sm-6">
+          <input type="checkbox" ng-model="$ctrl.pdfData.display_total_amount" style="height: 18px;width: 18px;margin-top: 8px;">
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal">
+      <div class="form-group">
         <label class="col-sm-4 control-label">Remarks</label>
         <div class="col-sm-6">
           <textarea rows="2" class="form-control" name="customer_pdf_remarks" ng-model="$ctrl.pdfData.remarks"></textarea>

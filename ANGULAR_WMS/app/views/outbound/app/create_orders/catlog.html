@@ -71,7 +71,7 @@
       <div>
         <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
         <br>
-        <div style="height: 110px">
+        <div style="height: 125px">
           <div ng-if="permissions.user_type != 'customer'">
           <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.variants[0].style_name }}</p>
           <div class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">
@@ -97,7 +97,7 @@
             </table>
           </div>
 
-          <div class="tooltip" style="border:none;font-size: 11px;float: left;z-index: 1;font-weight: 600;color: #090001;margin-top: 5px;text-decoration: underline;" ng-click="$event.stopPropagation();">
+          <div class="tooltip" style="border:none;font-size: 11px;float: left;z-index: 1;font-weight: 600;color: #090001;margin-top: 2px;text-decoration: underline;" ng-click="$event.stopPropagation();">
             <span style="margin-top: 8px"><a href="">Modify Margin</a></span>
             <div class="tooltiptext" style="width: 175px;background-color: black;text-align: center;
               border-radius: 6px;padding: 5px 0;padding: 3px;position: absolute;z-index: 1;top: -340%;

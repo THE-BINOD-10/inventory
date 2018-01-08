@@ -32,6 +32,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.categories = [];
   vm.category = "";
   vm.brand = "";
+  vm.stock_loading = false;
   vm.filterData = {};
 
   function change_filter_data() {
@@ -819,6 +820,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, sale_through: vm.order_type_value};
 
   vm.modifyMarginEachSKU = function(item, $index) {
+    vm.stock_loading = true;
     var dict_values = {};
     dict_values['margin_data'] = { 'wms_code':item.wms_code, 'price':item.your_price, 'margin' : item.margin }
     dict_values['margin_values'] = {'brand':item.sku_brand, 'category':item.sku_category, 
@@ -842,6 +844,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(data) {
       if(data.message) {
         vm.catlog_data.data[index_value] = data.data.data[0];
+        vm.stock_loading = false;
       }
     });
   };

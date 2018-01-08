@@ -738,12 +738,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         size: 'lg',
         backdrop: 'static',
         keyboard: false,
+        windowClass: 'z-2021',
         resolve: {
-          items: function () { 
+          items: function () {
             return vm.model_data;
           }
         }
-      });  
+      });
 
       modalInstance.result.then(function (selectedItem) {
         console.log(selectedItem);

@@ -69,6 +69,7 @@
     <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
     <div class="col-md-2 col-sm-3 col-xs-6 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="$state.go('user.App.Style', {styleId: item.sku_class})"><!--ng-click="showCase.open_style(item.sku_class,item); $state.go('user.App.Style')">-->
       <div>
+        <div class="loader" ng-if="showCase.box_loading[$index]">Loading ...</div>
         <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
         <br>
         <div style="height: 125px">

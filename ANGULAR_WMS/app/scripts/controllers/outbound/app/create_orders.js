@@ -493,7 +493,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       var menu = $(".style-menu").height();
       //var search = $(".search-box").height();
       //search = (search)? search+25 : 0;
-      var cart = $(".cart_button").outerHeight();
+      var cart = $(".cart_button:visible").outerHeight();
       $(".app_body").css('height',height-header-menu-cart);
       $(".app_body").css('overflow-y', 'auto');
     }
@@ -924,6 +924,12 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
   $ctrl.user_type = Session.roles.permissions.user_type;
 
   $ctrl.margin_types = ['Margin Percentage', 'Margin Value'];
+
+  if ($ctrl.marginData.is_margin_percentage) {
+    $ctrl.marginData.margin_type = $ctrl.margin_types[0];
+  } else {
+    $ctrl.marginData.margin_type = $ctrl.margin_types[1];
+  }
 
   $ctrl.ok = function (form) {
 

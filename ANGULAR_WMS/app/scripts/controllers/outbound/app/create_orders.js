@@ -1034,6 +1034,7 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
 
 angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstance, $modal, items, Service, Session) {
   var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
   vm.pdfData = items
   vm.pdfData.display_stock = true;
   vm.pdfData.remarks = '';

@@ -16,6 +16,7 @@ from outbound import *
 from stock_locator import *
 from miebach_utils import *
 from retailone import *
+from uploaded_pos import *
 
 
 @fn_timer

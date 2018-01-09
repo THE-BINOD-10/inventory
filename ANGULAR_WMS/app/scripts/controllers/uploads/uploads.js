@@ -163,7 +163,18 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "pricing_master_upload/",
                    dparam: "download-pricing-master",
                    value: "",
-                   show: "add_pricemaster"
+                   show: true,
+                   perm: "add_pricemaster"
+                 }, {
+                   title: "Network Master Download/ Upload",
+                   download: "Download Network Master Form",
+                   upload: "Upload Network Master Form",
+                   durl: "network_master_form/",
+                   uurl: "network_master_upload/",
+                   dparam: "download-network-master",
+                   value: "",
+                   show: true,
+                   perm: "add_networkmaster"
                  }, {
                    title: "Order Label Mapping Download/ Upload",
                    download: "Download Order Label Mapping Form",

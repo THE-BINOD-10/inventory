@@ -962,7 +962,8 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
           }
         }
         record["taxes"] = data.taxes;
-        record.invoice_amount = Number(record.price)*Number(record.quantity)
+        record.invoice_amount = Number(record.price)*Number(record.quantity);
+        record["priceRanges"] = data.price_bands_map;
         vm.cal_percentage(record);
         vm.update_availabe_stock(record)
       }
@@ -1316,6 +1317,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   vm.change_quantity = function(data) {
 
+    var flag = false;
     if(vm.model_data.blind_order) {
 
       if (! data.location) {
@@ -1328,6 +1330,24 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         vm.service.showNoty("Location capacity "+data["capacity"]);
       }
     }
+
+    if(data.priceRanges && data.priceRanges.length > 0) {
+
+      for(var skuRec = 0; skuRec < data.priceRanges.length; skuRec++){
+    
+        if(data.quantity >= data.priceRanges[skuRec].min_unit_range && data.quantity <= data.priceRanges[skuRec].max_unit_range){
+    
+          data.price = data.priceRanges[skuRec].price;
+          flag = true;
+        }
+      }
+
+      if (!flag) {
+    
+        data.price = data.priceRanges[data.priceRanges.length-1].price;
+      }
+    }
+
     data.invoice_amount = vm.service.multi(data.quantity, data.price);
     vm.cal_percentage(data);
   }

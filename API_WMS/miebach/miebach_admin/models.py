@@ -4,6 +4,7 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES
 
 
 # from longerusername import MAX_USERNAME_LENGTH
@@ -268,6 +269,26 @@ class OrderDetail(models.Model):
 
     def __unicode__(self):
         return str(self.sku) + ':' + str(self.original_order_id)
+
+
+class GenericOrderDetailMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    generic_order_id = models.PositiveIntegerField(default=0)
+    orderdetail = models.ForeignKey(OrderDetail)
+    customer_id = models.PositiveIntegerField(default=0)
+    cust_wh_id = models.PositiveIntegerField(default=0)
+    quantity = models.FloatField(default=0)
+    unit_price = models.FloatField(default=0)
+    el_price = models.FloatField(default=0)
+    po_number = models.CharField(max_length=128, default='')
+    client_name = models.CharField(max_length=256, default='')
+    schedule_date = models.DateField()
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'GENERIC_ORDERDETAIL_MAPPING'
+        unique_together = ('generic_order_id', 'orderdetail', 'customer_id', 'cust_wh_id')
 
 
 class OrderCharges(models.Model):
@@ -683,6 +704,8 @@ class CustomerMaster(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     customer_type = models.CharField(max_length=64, default='')
+    is_distributor = models.BooleanField(default=False)
+    lead_time = models.PositiveIntegerField(blank=True, default=0)
 
     class Meta:
         db_table = 'CUSTOMER_MASTER'
@@ -725,6 +748,8 @@ class UserProfile(models.Model):
     api_hash = models.CharField(max_length=256, default='')
     setup_status = models.CharField(max_length=60, default='completed')
     user_type = models.CharField(max_length=60, default='warehouse_user')
+    warehouse_type = models.CharField(max_length=60, default='')
+    warehouse_level = models.IntegerField(default=0)
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -816,6 +841,19 @@ class UserGroups(models.Model):
 
     class Meta:
         db_table = 'USER_GROUPS'
+
+
+class WarehouseCustomerMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    warehouse = models.ForeignKey(User)
+    customer = models.ForeignKey(CustomerMaster, null=True, blank=True)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'WAREHOUSE_CUSTOMER_MAPPING'
+        unique_together = ('warehouse', 'customer')
 
 
 class AdminGroups(models.Model):
@@ -982,13 +1020,28 @@ class PriceMaster(models.Model):
     price_type = models.CharField(max_length=32, default='')
     price = models.FloatField(default=0)
     discount = models.FloatField(default=0)
+    min_unit_range = models.FloatField(default=0)
+    max_unit_range = models.FloatField(default=0)
+    unit_type = models.CharField(max_length=64, choices=UNIT_TYPE_CHOICES, default='quantity')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'PRICE_MASTER'
-        unique_together = ('sku', 'price_type')
-        index_together = ('sku', 'price_type')
+        unique_together = ('sku', 'price_type', 'min_unit_range', 'max_unit_range', 'unit_type')
+        index_together = ('sku', 'price_type', 'min_unit_range', 'max_unit_range')
+
+    def json(self):
+        return {
+            'id': self.id,
+            'sku': self.sku.sku_code,
+            'price_type': self.price_type,
+            'price': self.price,
+            'discount': self.discount,
+            'min_unit_range': self.min_unit_range,
+            'max_unit_range': self.max_unit_range,
+            'unit_type': self.unit_type,
+        }
 
 
 class SellerMaster(models.Model):
@@ -1930,6 +1983,7 @@ class CustomerCartData(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
     customer_user = models.ForeignKey(User, related_name='customer_user', blank=True, null=True)
+    warehouse_level = models.IntegerField(default=0)
     sku = models.ForeignKey(SKUMaster)
     quantity = models.FloatField(default=1)
     tax = models.FloatField(default=0)
@@ -1940,6 +1994,7 @@ class CustomerCartData(models.Model):
     utgst_tax = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    levelbase_price = models.FloatField(default=0)
 
     class Meta:
         db_table = "CUSTOMER_CART_DATA"
@@ -1958,7 +2013,8 @@ class CustomerCartData(models.Model):
             'cgst_tax': self.cgst_tax,
             'sgst_tax': self.sgst_tax,
             'igst_tax': self.igst_tax,
-            'utgst_tax': self.utgst_tax
+            'utgst_tax': self.utgst_tax,
+            'warehouse_level': self.warehouse_level,
         }
 
 
@@ -2140,3 +2196,103 @@ from django.contrib.auth.models import User
 if User._meta.get_field("first_name").max_length != MAX_USERNAME_LENGTH():
     patch_user_model(User)
 '''
+
+
+class NetworkMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    dest_location_code = models.ForeignKey(User)
+    source_location_code = models.ForeignKey(User, related_name='source_location_code')
+    lead_time = models.PositiveIntegerField(blank=True)
+    sku_stage = models.CharField(max_length=50, blank=True)
+    priority = models.IntegerField(blank=True)
+    price_type = models.CharField(max_length=32, default='')
+    charge_remarks = models.CharField(max_length=50, choices=REMARK_CHOICES, default='')
+    supplier = models.ForeignKey(SupplierMaster, null=True, blank=True, default=None)
+
+    def json(self):
+        return {
+            'id': self.id,
+            'dest_location_code': self.dest_location_code.username,
+            'source_location_code': self.source_location_code.username,
+            'lead_time': self.lead_time,
+            'sku_stage': self.sku_stage,
+            'priority': self.priority,
+            'price_type': self.price_type,
+            'charge_remarks': self.charge_remarks,
+        }
+
+    class Meta:
+        db_table = 'NETWORK_MASTER'
+        unique_together = ('dest_location_code', 'source_location_code', 'sku_stage')
+
+
+class OrderUploads(models.Model):
+    id = BigAutoField(primary_key=True)
+    uploaded_user = models.ForeignKey(User)
+    po_number = models.CharField(max_length=128, default='')
+    uploaded_date = models.DateField()
+    customer_name = models.CharField(max_length=256, default='')
+    uploaded_file = models.FileField(upload_to='static/customer_uploads/')
+    verification_flag = models.CharField(max_length=54, default='to_be_verified')
+    remarks = models.CharField(max_length=256, default='')
+
+    class Meta:
+        db_table = 'ORDER_UPLOADS'
+        unique_together = ('uploaded_user', 'po_number', 'customer_name')
+
+
+class CustomerPricetypes(models.Model):
+    id = BigAutoField(primary_key=True)
+    customer = models.ForeignKey(CustomerMaster)
+    level = models.IntegerField(default=1)
+    price_type = models.CharField(max_length=32, default='')
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CUSTOMER_PRICE_TYPES'
+        unique_together = ('customer', 'level', 'price_type')
+        index_together = (('customer', 'level'), ('customer', 'level', 'price_type'))
+
+
+class EnquiryMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    enquiry_id = models.DecimalField(max_digits=50, decimal_places=0)
+    customer_id = models.PositiveIntegerField(default=0)
+    customer_name = models.CharField(max_length=256, default='')
+    email_id = models.EmailField(max_length=64, default='')
+    address = models.CharField(max_length=256, default='')
+    telephone = models.CharField(max_length=128, default='', blank=True, null=True)
+    vat_percentage = models.FloatField(default=0)
+    city = models.CharField(max_length=60, default='')
+    state = models.CharField(max_length=60, default='')
+    pin_code = models.PositiveIntegerField(default=0)
+    remarks = models.CharField(max_length=128, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ENQUIRY_MASTER'
+        unique_together = ('enquiry_id', 'customer_id', 'user')
+
+        # def __unicode__(self):
+        #     return '{0} : {1}'.format(str(self.sku), str(self.enquiry_id))
+
+
+class EnquiredSku(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster)
+    title = models.CharField(max_length=256, default='')
+    enquiry = models.ForeignKey(EnquiryMaster)
+    quantity = models.FloatField(default=0)
+    invoice_amount = models.FloatField(default=0)
+    status = models.CharField(max_length=32)
+    sku_code = models.CharField(max_length=256, default='')
+    levelbase_price = models.FloatField(default=0)
+    warehouse_level = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'EnquiredSKUS'
+        # unique_together = ('sku', 'enquiry')

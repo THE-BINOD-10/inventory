@@ -4084,7 +4084,6 @@ def apply_margin_price(sku, each_sku_map, specific_margins, is_margin_percentage
             raising_amt = (current_price * float(default_margin)) / 100
             each_sku_map['price'] = current_price + raising_amt
             each_sku_map['margin'] = float(default_margin)
-    each_sku_map['is_margin_percentage'] = json.loads(is_margin_percentage)
 
 
 def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id='',
@@ -6015,8 +6014,9 @@ def get_level_based_customer_orders(request, response_data, user=''):
     else:
         cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if cum_obj:
+        customer_id = cum_obj[0].customer.customer_id
         cm_id = cum_obj[0].customer_id
-        picklist = Picklist.objects.filter(order__customer_id=cm_id, order__user=user.id)
+        picklist = Picklist.objects.filter(order__customer_id=customer_id, order__user=user.id)
         generic_orders = GenericOrderDetailMapping.objects.filter(customer_id=cm_id)
         response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id'). \
                                      annotate(total_quantity=Sum('quantity'),
@@ -6032,11 +6032,11 @@ def get_level_based_customer_orders(request, response_data, user=''):
                 status = 'open'
             else:
                 status = 'closed'
-                pick_status = picklist.filter(order__order_id__in=order_detail_ids,
+                pick_status = picklist.filter(order_id__in=order_detail_ids,
                                               status__icontains='open')
                 if pick_status:
                     status = 'open'
-            picked_quantity = picklist.filter(order__order_id__in=order_detail_ids).aggregate(
+            picked_quantity = picklist.filter(order_id__in=order_detail_ids).aggregate(
                 Sum('picked_quantity'))['picked_quantity__sum']
             if not picked_quantity:
                 picked_quantity = 0

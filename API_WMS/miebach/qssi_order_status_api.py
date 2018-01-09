@@ -24,13 +24,14 @@ def update_order_status(company_name):
             dispatched_orders = resp["Result"].get("Dispatched", [])
             picked_orders = resp["Result"].get("Picked", [])
             cancelled_orders = resp["Result"].get("Cancelled", [])
-            order_update(dispatched_orders, '2')
-            order_update(cancelled_orders, '3')
+            order_update(dispatched_orders, user, '2')
+            #order_update(cancelled_orders, user, '3')
     return "Success"
 
-def order_update(orders, status):
+def order_update(orders, user, status):
     for order in orders:
-        order_detail = OrderDetail.objects.filter(original_order_id = order["OrderId"])
+        temp_order_id = str(order["OrderId"]).replace('%s_' % user.username)
+        order_detail = OrderDetail.objects.filter(original_order_id = temp_order_id, user=user.id)
         for item in order_detail:
             item.status = status
             #picklist confirmation

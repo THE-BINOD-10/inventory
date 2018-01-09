@@ -123,19 +123,20 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.insert_cool = true;
   vm.insert_order_data = function(form) {
 
-    if (vm.user_type == 'customer') {
+    if (vm.user_type == 'reseller') {
 
-      if (!(vm.model_data.shipment_date)) {
-      
-        vm.service.showNoty("The Shipment Date is Required Please Select", "success", "bottomRight");
-      } else {
-        vm.order_data_insertion(form);
-      }
-    } else {
       if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header)) {
         vm.service.showNoty("The Shipment Date, PO Number and Client Name are Required Please Select", "success", "bottomRight");
       } else if (!(vm.model_data.shipment_time_slot)) {
         vm.service.showNoty("Please Select Shipment Slot", "success", "bottomRight");
+      } else {
+        vm.order_data_insertion(form);
+      }
+    } else {
+
+      if (!(vm.model_data.shipment_date)) {
+
+        vm.service.showNoty("The Shipment Date is Required Please Select", "success", "bottomRight");
       } else {
         vm.order_data_insertion(form);
       }

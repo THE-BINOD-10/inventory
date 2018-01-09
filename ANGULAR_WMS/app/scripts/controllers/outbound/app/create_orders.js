@@ -824,10 +824,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.catlog_data.data[$index].loading = true
     var dict_values = {};
     dict_values['margin_data'] = { 'wms_code':item.wms_code, 'price':item.your_price, 'margin' : item.margin }
-    dict_values['margin_values'] = {'brand':item.sku_brand, 'category':item.sku_category, 'sku_class':item.sku_class,
-     'index':$index, 'is_catalog':true, 'sale_through':item.sale_through, 'size_filter':item.sku_size, 
-      'color':'', 'from_price': '', 'to_price': '', 'is_margin_percentage': item.is_margin_percentage, 
-      'margin':item.margin};
+    dict_values['margin_values'] = { 'brand':item.sku_brand, 'category':item.sku_category, 'sku_class':item.sku_class,
+      'index':$index, 'is_catalog':true, 'sale_through':item.sale_through, 'size_filter':item.sku_size, 
+      'color':'', 'from_price': '', 'to_price': '', 'is_margin_percentage': vm.marginData.is_margin_percentage, 
+      'margin':item.margin };
     var data_list = [];
     data_list.push(dict_values['margin_data']);
     vm.addSKUinData(dict_values['margin_data']);

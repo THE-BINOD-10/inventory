@@ -3302,10 +3302,16 @@ def insert_order_data(request, user=''):
             log.info('New Order Push Status: %s' %(str(resp)))
         if user_type == 'customer':
             # Creating Uploading POs object with file upload pending.
+            # upload_po Api is called in front-end if file is present
             upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': corporate_po_number,
-                             'uploaded_date': datetime.datetime.today(), 'customer_name': client_name}
-            pending_po_obj = OrderUploads(**upload_po_map)
-            pending_po_obj.save()
+                             'customer_name': client_name}
+            ord_obj = OrderUploads.objects.filter(**upload_po_map)
+            if not ord_obj:
+                upload_po_map['uploaded_date'] = datetime.datetime.today()
+                ord_obj = OrderUploads(**upload_po_map)
+                ord_obj.save()
+            else:
+                log.info('Uploaded PO Already Created::%s' %(upload_po_map))
 
     # Deleting Customer Cart data after successful order creation
     CustomerCartData.objects.filter(customer_user=request.user.id).delete()
@@ -6162,7 +6168,7 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     res, total_picked_quantity = construct_order_customer_order_detail(request, order, usr_id)
     total_inv_amt = map(sum, [[x['invoice_amount'] for x in res]])
     total_qty = map(sum, [[x['quantity'] for x in res]])
-    total_tax = map(sum, [[x['sku_tax_amt'] for x in res]])
+    total_tax = map(sum, [[x.get('sku_tax_amt', 0) for x in res]])
     response_data['tax'] = round(total_tax[0], 2)
     sum_data = {'picked_quantity': total_picked_quantity, 'amount': total_inv_amt[0],
                 'quantity': total_qty[0]}

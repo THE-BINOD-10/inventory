@@ -6448,10 +6448,10 @@ def update_customer_cart_data(request, user=""):
     """ update customer cart data """
 
     response = {'data': [], 'msg': 0}
-    sku_code = request.GET.get('sku_code', '')
-    quantity = request.GET.get('quantity', '')
-    price = request.GET.get('price', '')
-    level = request.GET.get('level', '')
+    sku_code = request.POST.get('sku_code', '')
+    quantity = request.POST.get('quantity', '')
+    price = request.POST.get('price', '')
+    level = request.POST.get('level', '')
 
     if sku_code:
         cart = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id,

@@ -15,7 +15,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.get_customer_cart_data = function() {
     
     vm.place_order_loading = true; 
-    vm.service.apiCall("get_customer_cart_data").then(function(data){
+    vm.service.apiCall("get_customer_cart_data/").then(function(data){
 
       if(data.message) {
 

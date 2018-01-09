@@ -234,7 +234,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
     vm.loading = true;
     var canceller = $q.defer();
-    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(response) {
+    vm.service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         vm.gotData = response.data;
         canceller.resolve("done");
@@ -537,7 +537,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.open_style = function(data) {
 
     vm.stock_quantity = data.style_quantity;
-    vm.service.apiCall("get_sku_variants/", "GET", {sku_class: data.sku_class, is_catalog: true, customer_data_id: vm.model_data.customer_id}).then(function(data) {
+    vm.service.apiCall("get_sku_variants/", "POST", {sku_class: data.sku_class, is_catalog: true, customer_data_id: vm.model_data.customer_id}).then(function(data) {
 
       if(data.message) {
         vm.style_open = true;
@@ -640,7 +640,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     var sku = item.wms_code;
     record.sku_id = sku;
     record["description"] = item.sku_desc;
-    vm.service.apiCall("get_sku_variants/", "GET", {sku_code: sku, customer_id: vm.model_data.customer_id, is_catalog: true}).then(function(data) {
+    vm.service.apiCall("get_sku_variants/", "POST", {sku_code: sku, customer_id: vm.model_data.customer_id, is_catalog: true}).then(function(data) {
 
       if(data.message) {
         if(data.data.data.length == 1) {

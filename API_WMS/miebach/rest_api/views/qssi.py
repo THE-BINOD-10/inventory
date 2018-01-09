@@ -22,7 +22,7 @@ def integration_get_order(order_id, user, order_status = "NEW"):
         order = get_order["data"]
         sku_data = []
         data = {"Order":
-                    {"Id": order["order_id"],
+                    {"Id": ('%s_%s') % (WarehouseId, str(order["order_id"])),
                      "Status": order_status,
                      "warehouseId": WarehouseId,
                      "StatusDateTime": order["order_date"],
@@ -98,5 +98,6 @@ def integration_get_order_status(order_ids, user):
             "OrderIds": []
            }
     for order_id in order_ids:
-        data["OrderIds"].append({"OrderId": order_id})
+        temp_order_id = ("%s_%s") % (user.username, str(order_id))
+        data["OrderIds"].append({"OrderId": temp_order_id})
     return data

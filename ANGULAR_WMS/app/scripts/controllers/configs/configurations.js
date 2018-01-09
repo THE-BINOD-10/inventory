@@ -240,6 +240,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
+    {
+      name: "Invoice number generation",
+      model_name: "increment_invoice",
+      param_no: 44,
+      class_name: "fa fa-server",
+      display: true
+    },
     { 
       name: "Generic Wharehouse Level",
       model_name: "generic_wh_level",

@@ -19,7 +19,7 @@
         </a>
         <ul class="dropdown-menu">
           <li><a ng-click="$state.go('user.App.MyOrders')">Your Orders</a></li>
-          <li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type!='customer'">Corporate Orders</a></li>
+          <li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div>

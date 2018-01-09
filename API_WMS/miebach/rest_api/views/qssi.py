@@ -24,7 +24,7 @@ def integration_get_order(order_id, user, order_status = "NEW"):
         data = {"Order":
                     {"Id": ('%s_%s') % (WarehouseId, str(order["order_id"])),
                      "Status": order_status,
-                     "warehouseId": WarehouseId,
+                     "WarehouseId": WarehouseId,
                      "StatusDateTime": order["order_date"],
                      "Financials":
                         {
@@ -85,7 +85,7 @@ def integration_get_inventory(sku_ids, user):
     #sku_ids = ['AA-BATTERY', 'AAA-BATTERY', 'AC1SMK']
     for sku in sku_ids:
 	temp = {"SKUId": sku,
-                "warehouseId": user.username
+                #"warehouseId": user.username
                }
 	data["SKUIds"].append(temp)
     return data

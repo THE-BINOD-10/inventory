@@ -3298,7 +3298,7 @@ def insert_order_data(request, user=''):
             original_order_id = generic_order['orderdetail__original_order_id']
             order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
             resp = order_push(original_order_id, order_detail_user, "NEW")
-            log.info('New Order Push Status: %s, Order ID: %s' %(resp["Status"], resp["OrderId"]))
+            log.info('New Order Push Status: %s' %(str(resp)))
         if user_type == 'customer':
             # Creating Uploading POs object with file upload pending.
             upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': corporate_po_number,
@@ -7419,15 +7419,15 @@ def insert_enquiry_data(request, user=''):
         customer_details = {}
         customer_details = get_order_customer_details(customer_details, request)
         customer_details['customer_id'] = cm_id  # Updating Customer Master ID
+        enquiry_map = {'user': user.id, 'enquiry_id': enquiry_id}
+        enquiry_map.update(customer_details)
+        enq_master_obj = EnquiryMaster(**enquiry_map)
+        enq_master_obj.save()
         for cart_item in cart_items:
             enquiry_data = {'customer_id': customer_id, 'warehouse_level': cart_item.warehouse_level,
                             'user': user.id, 'quantity': cart_item.quantity, 'sku_id': cart_item.sku.id}
             stock_wh_map = split_orders(**enquiry_data)
             for wh_code, qty in stock_wh_map.items():
-                enquiry_map = {'user': wh_code, 'enquiry_id': enquiry_id}
-                enquiry_map.update(customer_details)
-                enq_master_obj = EnquiryMaster(**enquiry_map)
-                enq_master_obj.save()
                 wh_sku_id = get_syncedusers_mapped_sku(wh_code, cart_item.sku.id)
                 enq_sku_obj = EnquiredSku()
                 enq_sku_obj.sku_id = wh_sku_id

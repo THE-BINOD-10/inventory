@@ -6166,7 +6166,7 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     res, total_picked_quantity = construct_order_customer_order_detail(request, order, usr_id)
     total_inv_amt = map(sum, [[x['invoice_amount'] for x in res]])
     total_qty = map(sum, [[x['quantity'] for x in res]])
-    total_tax = map(sum, [[x['sku_tax_amt'] for x in res]])
+    total_tax = map(sum, [[x.get('sku_tax_amt', 0) for x in res]])
     response_data['tax'] = round(total_tax[0], 2)
     sum_data = {'picked_quantity': total_picked_quantity, 'amount': total_inv_amt[0],
                 'quantity': total_qty[0]}

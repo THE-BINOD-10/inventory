@@ -3301,10 +3301,16 @@ def insert_order_data(request, user=''):
             log.info('New Order Push Status: %s' %(str(resp)))
         if user_type == 'customer':
             # Creating Uploading POs object with file upload pending.
+            # upload_po Api is called in front-end if file is present
             upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': corporate_po_number,
-                             'uploaded_date': datetime.datetime.today(), 'customer_name': client_name}
-            pending_po_obj = OrderUploads(**upload_po_map)
-            pending_po_obj.save()
+                             'customer_name': client_name}
+            ord_obj = OrderUploads.objects.filter(**upload_po_map)
+            if not ord_obj:
+                upload_po_map['uploaded_date'] = datetime.datetime.today()
+                ord_obj = OrderUploads(**upload_po_map)
+                ord_obj.save()
+            else:
+                log.info('Uploaded PO Already Created::%s' %(upload_po_map))
 
     # Deleting Customer Cart data after successful order creation
     CustomerCartData.objects.filter(customer_user=request.user.id).delete()

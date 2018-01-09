@@ -24,7 +24,7 @@ def integration_get_order(order_id, user, order_status = "NEW"):
         data = {"Order":
                     {"Id": ('%s_%s') % (WarehouseId, str(order["order_id"])),
                      "Status": order_status,
-                     "warehouseId": WarehouseId,
+                     "WarehouseId": WarehouseId,
                      "StatusDateTime": order["order_date"],
                      "Financials":
                         {

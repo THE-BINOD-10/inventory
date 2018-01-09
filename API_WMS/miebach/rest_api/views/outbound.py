@@ -2870,6 +2870,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
                      'ship_to', 'client_name', 'po_number', 'corporate_po_number']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
+    sku_master = {}
     for key, value in request.POST.iteritems():
         if key in continue_list:
             continue

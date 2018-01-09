@@ -2970,7 +2970,7 @@ def custom_order_data(request, order_detail, ex_image_url, custom_order):
         ex_image_url = create_order_json(order_detail, json.loads(extra_data), ex_image_url)
 
 
-def construct_other_charge_amounts_map(created_order_id, myDict, creation_date, other_charge_amounts):
+def construct_other_charge_amounts_map(created_order_id, myDict, creation_date, other_charge_amounts, user):
     if created_order_id and 'charge_name' in myDict.keys():
         for i in range(0, len(myDict['charge_name'])):
             if myDict['charge_name'][i] and myDict['charge_amount'][i]:
@@ -3256,7 +3256,8 @@ def insert_order_data(request, user=''):
                                                   purchase_order_id=po_number.split('_')[-1], status=1,
                                                   creation_date=datetime.datetime.now())
                 other_charge_amounts = construct_other_charge_amounts_map(created_order_id, myDict,
-                                                                          creation_date, other_charge_amounts)
+                                                                          creation_date, other_charge_amounts,
+                                                                          user)
         if generic_order_id:
             check_and_raise_po(generic_order_id, cm_id)
     except Exception as e:
@@ -5213,6 +5214,7 @@ def get_customer_master_id(request, user=''):
 
     price_band_flag = get_misc_value('priceband_sync', user.id)
     level_2_price_type = ''
+    admin_user = user
     if price_band_flag == 'true':
         admin_user = get_admin(user)
         level_2_price_type = 'D1-R'

@@ -189,6 +189,8 @@ def add_user_permissions(request, response_data, user=''):
             warehouse_data = WarehouseCustomerMapping.objects.filter(warehouse=request.user.id, status=1)
             if warehouse_data and warehouse_data[0].customer.is_distributor:
                 user_type = 'distributor'  # distributor warehouse login
+        elif request_user_profile.warehouse_type == 'WH':
+            user_type = 'warehouse'
         elif request_user_profile.user_type == 'customer':
             customer_data = CustomerUserMapping.objects.filter(user=request.user.id)
             if customer_data and not customer_data[0].customer.is_distributor:

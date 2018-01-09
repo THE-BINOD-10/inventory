@@ -42,6 +42,10 @@ body {
   }
 }
 
+select.error {
+  border-color: #D44950;
+}
+
 .image {
     margin: auto;
     width: 150px;
@@ -115,7 +119,7 @@ body {
     overflow: hidden;
     .panel-body {
       padding-left: 0px !important;
-      padding-right: 0px !important;  
+      padding-right: 0px !important;
     }
 
     .tab-content {
@@ -1265,4 +1269,25 @@ pre {
   background-size: 100px;
   background-position: center;
   cursor: progress;
+}
+
+.upload-button {
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 100%;
+  min-height: 100%;
+  font-size: 100px;
+  text-align: right;
+  opacity: 0;
+  outline: none;
+  background: white;
+  cursor: inherit;
+  display: block;
+}
+
+.z-2021 {
+
+  z-index: 2021 !important;
 }

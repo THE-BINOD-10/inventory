@@ -19,7 +19,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
                     'invoice_remarks': '', 'show_disc_invoice': false, 'serial_limit': '',
-                    'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false
+                    'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
+                    'generic_wh_level': false, 'auto_confirm_po': false
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -32,7 +33,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      32: 'hsn_summary', 33: 'display_customer_sku', 34: 'marketplace_model', 35: 'label_generation',
                      36: 'barcode_generate_opt', 37: 'grn_scan_option', 38: 'invoice_titles', 39: 'show_imei_invoice',
                      40: 'display_remarks_mail', 41: 'create_seller_order', 42: 'invoice_remarks', 43: 'show_disc_invoice',
-                     44: 'increment_invoice', 45: 'serial_limit', 46: 'create_shipment_type', 47: 'auto_allocate_stock'}
+                     44: 'increment_invoice', 45: 'serial_limit', 46: 'create_shipment_type', 47: 'auto_allocate_stock',
+                     48: 'priceband_sync', 49: 'generic_wh_level', 50: 'auto_confirm_po'}
 
   vm.check_box_data = [
     {
@@ -148,6 +150,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
+      name: "Auto Confirm PO",
+      model_name: "auto_confirm_po",
+      param_no: 50,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
       name: "Generate Picklist for out of stock orders",
       model_name: "no_stock_switch",
       param_no: 11,
@@ -179,6 +188,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       name: "Sync SKU b/n Users",
       model_name: "sku_sync",
       param_no: 21,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
+      name: "sync customer price grid b/n users.",
+      model_name: "priceband_sync",
+      param_no: 48,
       class_name: "fa fa-refresh",
       display: true
     },
@@ -228,6 +244,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       name: "Invoice number generation",
       model_name: "increment_invoice",
       param_no: 44,
+      class_name: "fa fa-server",
+      display: true
+    },
+    { 
+      name: "Generic Wharehouse Level",
+      model_name: "generic_wh_level",
+      param_no: 49,
       class_name: "fa fa-server",
       display: true
     },

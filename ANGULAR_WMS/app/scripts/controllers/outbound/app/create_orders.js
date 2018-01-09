@@ -1,6 +1,8 @@
+;(function() {
+
 'use strict';
 
-function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $modal, $rootScope) {
+function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $modal, $rootScope, Data) {
 
   $scope.msg = "start";
   var vm = this;
@@ -12,11 +14,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.size_filter_data = {};
   vm.size_toggle = true;
   vm.brand_size_collect = {};
+  vm.user_type = Session.roles.permissions.user_type;
 
   vm.order_type_value = "offline";
   vm.service = Service;
   vm.company_name = Session.user_profile.company_name;
-  vm.model_data = {}
+  vm.model_data = {};
+  vm.required_quantity = {};
 
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
                             customer_id: "", payment_received: "", order_taken_by: "", other_charges: [], shipment_time_slot: "", remarks: ""};
@@ -30,6 +34,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.category = "";
   vm.brand = "";
   vm.filterData = {};
+  
 
   function change_filter_data() {
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
@@ -40,11 +45,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.categories = data.data.categories;
         vm.filterData = data.data;
         console.log(data.data);
-        vm.filterData.brand_size_data = []
-        if(data.data.size.type1) {
-          vm.filterData.brand_size_data = $.unique(data.data.size.type1)
+        vm.filterData.brand_size_data = [];
+        if(["reseller", "dist_customer"].indexOf(Session.roles.permissions.user_type) == -1) {
+          if(data.data.size.type1) {
+            vm.filterData.brand_size_data = $.unique(data.data.size.type1)
+          }
+          vm.filterData.brand_size_data = ['XS','S','M', 'L', 'XL', '2XL', '3XL', '4XL'];
         }
-        vm.filterData.brand_size_data = ['XS','S','M', 'L', 'XL', '2XL', '3XL', '4XL'];
         vm.filterData.brands.push("All");
         vm.filterData.categories.push("All");
         vm.filterData.colors.push("All");
@@ -164,7 +171,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     vm.data_loading = true;
     var canceller = $q.defer();
-    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(response) {
+    vm.service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         vm.gotData = response.data;
         console.log("done");
@@ -205,7 +212,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
                 to_price: vm.toPrice, is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
-                hot_release: vm.hot_release}
+                hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data)};
 
     if(status) {
       angular.copy([], vm.catlog_data.data);
@@ -449,11 +456,19 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     })
     vm.cal_total();
   }
-  vm.logout = function(){
 
-     Auth.logout().then(function(){
-       $state.go("user.sagarfab");
-     })
+  vm.logout = function(){
+    var user_name = Session.parent.userName;
+    Data.my_orders = [];
+    Data.enquiry_orders = [];
+
+    Auth.logout().then(function(){
+      if (user_name == 'sagar_fab') {
+        $state.go("user.sagarfab");
+      } else {
+        $state.go("user.signin");
+      }
+    })
    }
 
   vm.date_changed = function(){
@@ -478,7 +493,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       var menu = $(".style-menu").height();
       //var search = $(".search-box").height();
       //search = (search)? search+25 : 0;
-      var cart = $(".cart_button").outerHeight();
+      var cart = $(".cart_button:visible").outerHeight();
       $(".app_body").css('height',height-header-menu-cart);
       $(".app_body").css('overflow-y', 'auto');
     }
@@ -732,6 +747,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
+  /*
   vm.pdfDownloading = false;
   vm.downloadPdf = function() {
     var size_stock = JSON.stringify(vm.size_filter_data);
@@ -748,10 +764,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       }
       vm.pdfDownloading = false;
     });
-  }
+  }*/
 
   //margin value
-  vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true};
+  vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, sale_through: vm.order_type_value};
   vm.addMargin = function() {
 
     var mod_data = vm.marginData;
@@ -778,7 +794,81 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
          vm.marginData.is_margin_percentage = false;
          vm.marginData.margin = vm.marginData.margin_value;
        }
+       Data.marginSKUData.is_margin_percentage = vm.marginData.is_margin_percentage;
+       Data.marginSKUData.margin = vm.marginData.margin;
     })
+  }
+
+  vm.addSKUinData = function(data_list) {
+    var flag = 1;
+    if (Data.marginSKUData.data.length) {
+      for (let index = 0; index < Data.marginSKUData.data.length; index++) {
+        if(Data.marginSKUData.data[index].wms_code == data_list.wms_code) {
+          Data.marginSKUData.data[index].price = data_list.price;
+          Data.marginSKUData.data[index].margin = data_list.margin;
+          flag=0;
+          break;
+        }
+      }
+      if(flag) {
+        Data.marginSKUData.data.push(data_list);  
+      }
+    } else {
+      Data.marginSKUData.data.push(data_list);
+    }
+  }
+
+  vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, sale_through: vm.order_type_value};
+
+  vm.modifyMarginEachSKU = function(item, $index) {
+    vm.catlog_data.data[$index].loading = true
+    var dict_values = {};
+    dict_values['margin_data'] = { 'wms_code':item.wms_code, 'price':item.your_price, 'margin' : item.margin }
+    dict_values['margin_values'] = { 'brand':item.sku_brand, 'category':item.sku_category, 'sku_class':item.sku_class,
+      'index':$index, 'is_catalog':true, 'sale_through':item.sale_through, 'size_filter':item.sku_size, 
+      'color':'', 'from_price': '', 'to_price': '', 'is_margin_percentage': vm.marginData.is_margin_percentage, 
+      'margin':item.margin };
+    var data_list = [];
+    data_list.push(dict_values['margin_data']);
+    vm.addSKUinData(dict_values['margin_data']);
+    var data = dict_values['margin_values'];
+    data['margin_data'] = JSON.stringify(data_list);
+    var index_value = data['index'];
+    data['index'] = '';
+    Service.apiCall("get_sku_catalogs/", "POST", data).then(function(data) {
+      if(data.message) {
+        vm.catlog_data.data[index_value] = data.data.data[0];
+      } else {
+        Service.showNoty("Something Went Wrong", "danger")
+      }
+    });
+  };
+
+  vm.downloadPDF = function() {
+
+    var size_stock = JSON.stringify(vm.size_filter_data);
+    var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
+                sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true,
+                color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice,
+                is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
+                margin_data: JSON.stringify(Data.marginSKUData.data), required_quantity: JSON.stringify(vm.required_quantity)}
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/app/create_orders/download_pdf.html',
+      controller: 'downloadPDFCtrl',
+      controllerAs: '$ctrl',
+      size: 'md',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      console.log(selectedItem);
+    });
   }
 
   vm.category_image_map = {'Denim Shirt': 'software-catagaies-final_08.png',
@@ -823,19 +913,164 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
 angular
   .module('urbanApp')
-  .controller('appCreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', '$modal', '$rootScope', appCreateOrders]);
+  .controller('appCreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', '$modal', '$rootScope', 'Data', appCreateOrders]);
 
-angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance, $modal, items) {
+angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance, $modal, items, Service, Data, Session) {
   var $ctrl = this;
-  $ctrl.marginData = items;
+  $ctrl.marginData = {};
+  angular.copy(items, $ctrl.marginData);
+  $ctrl.sku_data = [];
+  angular.copy(Data.marginSKUData.data, $ctrl.sku_data);
+  $ctrl.user_type = Session.roles.permissions.user_type;
 
   $ctrl.margin_types = ['Margin Percentage', 'Margin Value'];
 
-  $ctrl.ok = function () {
+  if ($ctrl.marginData.is_margin_percentage) {
+    $ctrl.marginData.margin_type = $ctrl.margin_types[0];
+  } else {
+    $ctrl.marginData.margin_type = $ctrl.margin_types[1];
+  }
+
+  $ctrl.ok = function (form) {
+
+    if(form.$invalid) {
+      return false;
+    }
+    var margin = ($ctrl.marginData.is_margin_percentage)? $ctrl.marginData.margin_percentage: $ctrl.marginData.margin_value;
+    angular.copy({data: $ctrl.sku_data}, Data.marginSKUData);
     $modalInstance.close($ctrl.marginData);
   };
 
   $ctrl.cancel = function () {
     $modalInstance.dismiss('cancel');
   };
+
+
+  $ctrl.category = '';
+  $ctrl.categories = [];
+  $ctrl.categories_loading = true;
+  $ctrl.get_categories = function() {
+
+    var data = {brand: '', sale_through: $ctrl.marginData.sale_through};
+    Service.apiCall("get_sku_categories/", "GET",data).then(function(data){
+      if(data.message) {
+        $ctrl.categories = data.data.categories;
+        $ctrl.category = "";
+      }
+      $ctrl.categories_loading = false;
+    });
+  }
+  $ctrl.get_categories();
+
+  $ctrl.style = '';
+  $ctrl.styles = [];
+  $ctrl.get_styles = function(category){
+
+    if(!category) {
+      $ctrl.style = "";
+      $ctrl.styles = [];
+      $ctrl.sku = "";
+      $ctrl.skus = [];
+      return false;
+    }
+
+    var data = {category: category, sale_through: $ctrl.marginData.sale_through, is_catalog:true, customer_id: Session.userId}
+    $ctrl.styles_loading = true;
+    $ctrl.styles = [];
+    Service.apiCall("get_sku_catalogs/", "POST", data).then(function(data) {
+      if(data.message) {
+        $ctrl.styles = data.data.data;
+        $ctrl.style = "";
+        $ctrl.sku = "";
+        $ctrl.skus = [];
+      }
+      $ctrl.styles_loading = false;
+    });
+  }
+
+  $ctrl.sku = '';
+  $ctrl.skus = [];
+  $ctrl.get_skus = function(style){
+
+    if(!$ctrl.style) {
+      $ctrl.sku = "";
+      $ctrl.skus = [];
+      return false;
+    }
+
+    var data = {sku_class: style, is_catalog:true, customer_id: Session.userId}
+    $ctrl.skus_loading = true;
+    $ctrl.skus = [];
+    Service.apiCall("get_sku_variants/", "POST", data).then(function(data) {
+      if(data.message) {
+        $ctrl.skus = data.data.data;
+        $ctrl.sku = "";
+      }
+      $ctrl.skus_loading = false;
+    });
+  }
+
+  $ctrl.addSKUData = function() {
+
+    if(!$ctrl.sku) {
+      return false;
+    }
+    var sku = {};
+    for(let index = 0; index < $ctrl.skus.length; index++){
+      if($ctrl.skus[index].wms_code == $ctrl.sku) {
+        sku = $ctrl.skus[index];
+        break;
+      }
+    }
+
+    for(let index = 0; index < $ctrl.sku_data.length; index++) {
+      if($ctrl.sku_data[index].wms_code == sku.wms_code){
+        Service.showNoty("SKU Already Added")
+        return false;
+      }
+    }
+    $ctrl.sku_data.push({wms_code: sku.wms_code, price: sku.price});
+  }
+
+  $ctrl.removeSkuData = function(index) {
+
+    $ctrl.sku_data.splice(index,1);
+  }
 });
+
+angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstance, $modal, items, Service, Session) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.pdfData = items
+  vm.pdfData.display_stock = true;
+  vm.pdfData.remarks = '';
+  if (Session.roles.permissions.customer_pdf_remarks) {
+    vm.pdfData.remarks = Session.roles.permissions.customer_pdf_remarks;
+  }
+
+  vm.pdfDownloading = false;
+  vm.downloadPDF = function(form) {
+
+    var data = vm.pdfData;
+    if (!vm.pdfData.display_total_amount) {
+        delete data.required_quantity;
+    }
+    vm.pdfDownloading = true;
+    data['user_type'] = Session.roles.permissions.user_type;
+    Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
+      if(response.message) {
+        window.open(Session.host + response.data, '_blank');
+      }
+      vm.pdfDownloading = false;
+    });
+
+    data = $("form").serialize();
+    Service.apiCall("switches/?"+data);
+  }
+
+  vm.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
+})
+
+})();

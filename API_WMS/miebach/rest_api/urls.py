@@ -68,6 +68,8 @@ urlpatterns = [
     url(r'^update_size/$', update_size),
     url(r'^add_pricing/$', add_pricing),
     url(r'^update_pricing/$', update_pricing),
+    url(r'add_network/$', add_network),
+    url(r'update_network/$', update_network),
     url(r'^get_seller_master_id/$', get_seller_master_id),
     url(r'^insert_seller/$', insert_seller),
     url(r'^get_sellers_list/$', get_sellers_list),
@@ -76,9 +78,12 @@ urlpatterns = [
     url(r'^update_seller_margin/$', update_seller_margin),
     url(r'^search_template_names/$', search_template_names),
     url(r'^get_tax_data/$', get_tax_data),
+    url(r'^get_pricetype_data/$', get_pricetype_data),
+    url(r'^get_network_data/$', get_network_data),
     url(r'^add_or_update_tax/$', add_or_update_tax),
     url(r'^get_zone_data/$', get_zone_data),
     url(r'^search_seller_data/$', search_seller_data),
+    url(r'^search_network_user/$', search_network_user),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),
@@ -238,7 +243,19 @@ urlpatterns = [
     url(r'get_sub_category_styles/$', get_sub_category_styles),
     url(r'^create_custom_skus/$', create_custom_skus),
     url(r'^update_invoice/$', update_invoice),
+    url(r'^get_levels/$', get_levels),
+    url(r'^get_leadtimes/$', get_leadtimes),
+    url(r'^insert_enquiry_data/$', insert_enquiry_data),
+    url(r'^get_enquiry_data/$', get_enquiry_data),
+    url(r'^get_customer_enquiry_detail/$', get_customer_enquiry_detail),
+    url(r'^move_enquiry_to_order/$', move_enquiry_to_order),
+    url(r'^order_cancel/$', order_cancel),
 
+    # Uploaded POs [SWISS MILITARY]
+    url(r'^upload_po/$', upload_po),
+    url(r'^get_updated_pos/$', get_updated_pos),
+    url(r'^validate_po/$', validate_po),
+    url(r'^pending_pos/$', pending_pos),
     # Reports
     # url(r'^location_wise_filter/$',location_wise_filter),
     url(r'^get_report_data/$', get_report_data),
@@ -329,6 +346,8 @@ urlpatterns += [
     url(r'^marketplace_serial_form/$', marketplace_serial_form),
     url(r'^marketplace_serial_upload/$', marketplace_serial_upload),
 
+    url(r'^network_master_form/$', network_master_form),
+    url(r'^network_master_upload/$', network_master_upload),
     # configurations
     url(r'^configurations/$', configurations),
     url(r'^switches/$', switches),
@@ -376,6 +395,7 @@ urlpatterns += [
     # Integrations
     url(r'^pull_orders_now/$', pull_orders_now),
     url(r'^update_sync_issues/$', update_sync_issues),
+    url(r'^order_push/$', order_push),
 
     # stockone
     url(r'^book_trial/$', book_trial),

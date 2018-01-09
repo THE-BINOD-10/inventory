@@ -306,12 +306,16 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
         price_type = ""
         if customer_login:
             login_created = True
-            user = customer_login[0].user
-            user_name = user.username
+            # user = customer_login[0].user
+            user_name = customer_login[0].user.username
+
+        price_band_flag = get_misc_value('priceband_sync', user.id)
+        if price_band_flag == 'true':
+            user = get_admin(data.user)
 
         price_types = list(
-            PriceMaster.objects.exclude(price_type="").filter(sku__user=data.user).values_list('price_type',
-                                                                                               flat=True).distinct())
+            PriceMaster.objects.exclude(price_type__in=["", 'D1-R', 'R-C']).filter(sku__user=user.id).
+                values_list('price_type', flat=True).distinct())
 
         price_type = data.price_type
         phone_number = ''
@@ -327,7 +331,8 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                          ('pincode', data.pincode), ('city', data.city), ('state', data.state),
                          ('country', data.country), ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
                          ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
-                         ('margin', data.margin)
+                         ('margin', data.margin), ('lead_time', data.lead_time),
+                         ('is_distributor', str(data.is_distributor)),
                          )))
 
 
@@ -576,29 +581,31 @@ def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, 
             Q(user__first_name__icontains=search_term) | Q(user__email__icontains=search_term),
             **search_params1).exclude(user_id=user.id). \
             order_by(order_data).values_list('user__username', 'user__first_name',
-                                             'user__email')
+                                             'user__email', 'user__warehouse_type', 'user__warehouse_level')
 
         master_data2 = all_user_groups.exclude(**exclude_admin).filter(
             Q(admin_user__first_name__icontains=search_term) |
             Q(admin_user__email__icontains=search_term), **search_params2). \
             order_by(order_data1).values_list('admin_user__username',
-                                              'admin_user__first_name', 'admin_user__email').distinct()
+                                              'admin_user__first_name', 'admin_user__email', 'admin_user__userprofile__warehouse_type', 'admin_user__userprofile__warehouse_level').distinct()
         master_data = list(chain(master_data1, master_data2))
 
     elif order_term:
         master_data1 = all_user_groups.filter(**search_params1).exclude(user_id=user.id). \
-            order_by(order_data).values_list('user__username', 'user__first_name', 'user__email')
+            order_by(order_data).values_list('user__username', 'user__first_name', 'user__email', 'user__userprofile__warehouse_type', 'user__userprofile__warehouse_level')
         master_data2 = all_user_groups.exclude(**exclude_admin).filter(**search_params2).order_by(order_data1). \
             values_list('admin_user__username',
-                        'admin_user__first_name', 'admin_user__email').distinct()
+                        'admin_user__first_name', 'admin_user__email', 'admin_user__userprofile__warehouse_type', 'admin_user__userprofile__warehouse_level').distinct()
         master_data = list(chain(master_data1, master_data2))
 
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
-        user_profile = UserProfile.objects.get(user__username=data[0])
-        temp_data['aaData'].append({'Username': data[0], 'DT_RowClass': 'results', 'Name': data[1],
-                                    'Email': data[2], 'City': user_profile.city, 'DT_RowId': data[0]})
+        username, name, email, wh_type, wh_level = data
+        user_profile = UserProfile.objects.get(user__username=username)
+        temp_data['aaData'].append({'Username': username, 'DT_RowClass': 'results', 'Name': name,
+                                    'Email': email, 'City': user_profile.city, 'DT_RowId': username,
+                                    'Type': wh_type, 'Level': wh_level})
 
 
 @csrf_exempt
@@ -713,7 +720,8 @@ def update_sku(request, user=''):
             elif key == 'zone_id' and value:
                 zone = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})
                 key = 'zone_id'
-                value = zone.id
+                if zone:
+                    value = zone.id
             elif key == 'ean_number':
                 if not value:
                     value = 0
@@ -744,6 +752,12 @@ def update_sku(request, user=''):
             print "already running"
 
         insert_update_brands(user)
+
+        # Sync sku's with sister warehouses
+        sync_sku_switch = get_misc_value('sku_sync', user.id)
+        if sync_sku_switch == 'true':
+            all_users = get_related_users(user.id)
+            create_update_sku([data], all_users)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -1013,6 +1027,10 @@ def update_customer_values(request, user=''):
         if login_created == 'true':
             if password or name_ch:
                 update_customer_password(data, password, user)
+
+        # Level 2 price type creation
+        create_level_wise_price_type(2, 'D1-R', data, user)
+
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -1022,6 +1040,20 @@ def update_customer_values(request, user=''):
     return HttpResponse('Updated Successfully')
 
 
+def create_level_wise_price_type(level, price_type, customer_master, user):
+    if price_type:
+        customer_price_type = CustomerPricetypes.objects.filter(level=level, price_type=price_type,
+                                                                customer_id=customer_master.id)
+
+        if not customer_price_type:
+            CustomerPricetypes.objects.create(level=level, price_type=price_type,
+                                              customer_id=customer_master.id, status=1,
+                                              creation_date=datetime.datetime.now())
+            log.info('Level type 2 created for %s login for customer %s and price type is %s' % (
+                user.username, customer_master.name, price_type
+            ))
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1029,10 +1061,13 @@ def insert_customer(request, user=''):
     """ Add New Customer"""
     log.info('Add New Customer request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
+        loop_exclude_list = ['create_login', 'password', 'login_created', 'username', 'data-id', 'login-created',
+                             'level_2_price_type']
         customer_id = request.POST['customer_id']
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
         username = request.POST.get('username', '')
+        level_2_price_type = request.POST.get('level_2_price_type', '')
         if not customer_id:
             return HttpResponse('Missing Required Fields')
         data = filter_or_none(CustomerMaster, {'customer_id': customer_id, 'user': user.id})
@@ -1048,7 +1083,7 @@ def insert_customer(request, user=''):
         if not data:
             data_dict = copy.deepcopy(CUSTOMER_DATA)
             for key, value in request.POST.iteritems():
-                if key in ['create_login', 'password', 'login_created', 'username', 'data-id', 'login-created']:
+                if key in loop_exclude_list:
                     continue
                 if key == 'status':
                     if value == 'Active':
@@ -1062,6 +1097,9 @@ def insert_customer(request, user=''):
             data_dict['user'] = user.id
             customer_master = CustomerMaster(**data_dict)
             customer_master.save()
+
+            # Level 2 price type creation
+            create_level_wise_price_type(2, level_2_price_type, customer_master, user)
             status_msg = 'New Customer Added'
             if create_login == 'true':
                 if not username:
@@ -1322,14 +1360,59 @@ def insert_discount(request, user=''):
     return HttpResponse('Updated Successfully')
 
 
+def validate_customer_warehouse(customer_name, user, warehouse=''):
+    customer_status = False
+    child_warehouse = UserGroups.objects.filter(admin_user=user).values_list('user_id', flat=True)
+    if not child_warehouse:
+        customer_status = True
+    customer = CustomerUserMapping.objects.filter(customer__user__in=child_warehouse, user__username=customer_name)
+    if not customer:
+        customer_status = True
+    if customer_status:
+        return "Customer Not Found", {}
+    customer_check = WarehouseCustomerMapping.objects.filter(customer=customer[0].customer, status=1)
+    if customer_check:
+        if warehouse:
+            if warehouse != customer_check[0].warehouse.id:
+                return "Customer Already Mapped", {}
+        else:
+            return "Customer Already Mapped", {}
+    return "", customer[0]
+
+
 @csrf_exempt
+@login_required
+@get_admin_user
 def update_warehouse_user(request, user=''):
     username = request.POST['username']
     user_dict = copy.deepcopy(ADD_USER_DICT)
     user_profile_dict = copy.deepcopy(ADD_WAREHOUSE_DICT)
     user_profile = UserProfile.objects.get(user__username=username)
+    customer_name = request.POST.get('customer_name', '')
+    if customer_name:
+        status, customer = validate_customer_warehouse(customer_name, user, user_profile.user.id)
+        if status:
+            return HttpResponse(status)
+        mapping = WarehouseCustomerMapping.objects.filter(warehouse=user_profile.user, status=1)
+        if mapping:
+            mapping = mapping[0]
+            if mapping.customer_id != customer.customer.id:
+                mapping.status = 0
+                mapping.save()
+                mapping = WarehouseCustomerMapping.objects.filter(warehouse=user_profile.user,
+                                                                  customer_id=customer.customer.id, status=0)
+                if mapping:
+                    mapping = mapping[0]
+                    mapping.status = 1
+                    mapping.save()
+                else:
+                    WarehouseCustomerMapping.objects.create(warehouse_id=user_profile.user.id,
+                                                            customer_id=customer.customer.id)
+        else:
+            WarehouseCustomerMapping.objects.create(warehouse_id=user_profile.user.id, customer_id=customer.customer.id)
+
     for key, value in request.POST.iteritems():
-        if key in user_dict.keys() and not key == 'username':
+        if key in user_dict.keys() and not key in ['username', 'customer_name']:
             setattr(user_profile.user, key, value)
         if key in user_profile_dict.keys():
             setattr(user_profile, key, value)
@@ -1353,6 +1436,13 @@ def add_warehouse_user(request, user=''):
             user_profile_dict[key] = value
     if not user_dict['password'] == request.POST['re_password']:
         status = "Passwords doesn't match"
+
+    customer_name = request.POST.get('customer_name', '')
+    if customer_name:
+        customer_status, customer = validate_customer_warehouse(customer_name, user)
+        if customer_status:
+            return HttpResponse(customer_status)
+
     user_exists = User.objects.filter(username=user_dict['username'])
     if not user_exists and not status:
         user_dict['last_login'] = datetime.datetime.now()
@@ -1377,6 +1467,8 @@ def add_warehouse_user(request, user=''):
         new_user.groups.add(group)
         warehouse_admin = get_warehouse_admin(user)
         UserGroups.objects.create(admin_user_id=warehouse_admin.id, user_id=new_user.id)
+        if customer_name:
+            WarehouseCustomerMapping.objects.create(warehouse_id=new_user.id, customer_id=customer.customer.id)
         status = 'Added Successfully'
     else:
         status = 'Username already exists'
@@ -1387,12 +1479,21 @@ def add_warehouse_user(request, user=''):
 def get_warehouse_user_data(request, user=''):
     username = request.GET['username']
     user_profile = UserProfile.objects.get(user__username=username)
+    mapping = WarehouseCustomerMapping.objects.filter(warehouse=user_profile.user, status=1)
+    customer_username = ''
+    customer_fullname = ''
+    if mapping:
+        mapping = mapping[0]
+        customer_profile = CustomerUserMapping.objects.filter(customer__id=mapping.customer.id)
+        if customer_profile:
+            customer_username = customer_profile[0].user.username
+            customer_fullname = customer_profile[0].user.first_name
     data = {'username': user_profile.user.username, 'first_name': user_profile.user.first_name,
-            'last_name': user_profile.user.last_name,
-            'phone_number': user_profile.phone_number, 'email': user_profile.user.email,
-            'country': user_profile.country,
-            'state': user_profile.state, 'city': user_profile.city, 'address': user_profile.address,
-            'pin_code': user_profile.pin_code}
+            'last_name': user_profile.user.last_name, 'phone_number': user_profile.phone_number,
+            'email': user_profile.user.email, 'country': user_profile.country, 'state': user_profile.state,
+            'city': user_profile.city, 'address': user_profile.address, 'pin_code': user_profile.pin_code,
+            'warehouse_type': user_profile.warehouse_type, 'warehouse_level': user_profile.warehouse_level,
+            'customer_name': customer_username, 'customer_fullname': customer_fullname}
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -1726,8 +1827,9 @@ def insert_sku(request, user=''):
 
         all_users = get_related_users(user.id)
         sync_sku_switch = get_misc_value('sku_sync', user.id)
-        if all_users and sync_sku_switch == 'true':
-            create_sku([sku_master], all_users)
+        if sync_sku_switch == 'true':
+            all_users = get_related_users(user.id)
+            create_update_sku([sku_master], all_users)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -2129,6 +2231,10 @@ def generate_barcodes(request, user=''):
 @csrf_exempt
 def get_price_master_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                              filters={}):
+    price_band_flag = get_misc_value('priceband_sync', user.id)
+    if price_band_flag == 'true':
+        user = get_admin(user)
+
     objs = PriceMaster.objects.filter(sku__user=user.id)
     lis = ['sku__sku_code', 'sku__sku_desc', 'price_type', 'price', 'discount']
     order_data = PRICING_MASTER_HEADER.values()[col_num]
@@ -2138,16 +2244,26 @@ def get_price_master_results(start_index, stop_index, temp_data, search_term, or
     if search_term:
         master_data = objs.filter(Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) | Q(
             price_type__icontains=search_term) | Q(price__icontains=search_term) | Q(discount__icontains=search_term),
-                                  sku__user=user.id, **search_params).order_by(order_data)
+                                  sku__user=user.id, **search_params).order_by(order_data).values_list('sku__sku_code', 'sku__sku_desc',
+                                                                                    'price_type', 'price'
+                                                                                    ).distinct()
     else:
-        master_data = objs.filter(**search_params).order_by(order_data)
-    temp_data['recordsTotal'] = len(master_data)
+        master_data = objs.filter(**search_params).order_by(order_data).values_list('sku__sku_code', 'sku__sku_desc',
+                                                                                    'price_type', 'price'
+                                                                                    ).distinct()
+
+    temp_map = OrderedDict()
+    for data in master_data:
+        sku_code, sku_desc, price_type, price = data
+        temp_map.setdefault((sku_code, sku_desc, price_type), []).append(price)
+
+    temp_data['recordsTotal'] = len(temp_map)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    for data in master_data[start_index:stop_index]:
-        temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code), ('SKU Description', data.sku.sku_desc),
-                                                ('Selling Price Type', data.price_type), ('Price', data.price),
-                                                ('Discount', data.discount),
-                                                ('data-id', data.id))))
+
+    for key, val in temp_map.items()[start_index:stop_index]:
+        sku_code, sku_desc, price_type = key
+        temp_data['aaData'].append(OrderedDict((('SKU Code', sku_code), ('SKU Description', sku_desc),
+                                                ('Selling Price Type', price_type), ('Price', val))))
 
 
 @csrf_exempt
@@ -2155,32 +2271,39 @@ def get_price_master_results(start_index, stop_index, temp_data, search_term, or
 @get_admin_user
 def add_pricing(request, user=''):
     ''' add pricing '''
-    sku_code = request.POST['sku_code']
-    price_type = request.POST['price_type']
+    post_data_dict = dict(request.POST.iterlists())
+    sku_code = post_data_dict['sku_code'][0]
+    price_type = post_data_dict['price_type'][0]
+    min_unit_ranges = post_data_dict['min_unit_range']
+    max_unit_ranges = post_data_dict['max_unit_range']
+    prices = post_data_dict['price']
+    discounts = post_data_dict['discount']
     if not sku_code and price_type:
         return HttpResponse('Missing Required Fields')
     sku = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
     if not sku:
         return HttpResponse('Invalid SKU Code')
-    price_data = PriceMaster.objects.filter(sku__user=user.id, sku__sku_code=sku_code, price_type=price_type)
-    if price_data:
-        return HttpResponse('Price type already exist in Pricing Master')
-    else:
-        data_dict = copy.deepcopy(PRICING_DATA)
-        for key, value in request.POST.iteritems():
-            if key == 'sku_code':
-                sku_id = SKUMaster.objects.filter(sku_code=value.upper(), user=user.id)
-                if not sku_id:
-                    return HttpResponse('Wrong SKU Code')
-                key = 'sku'
-                value = sku_id[0]
-            if value == '':
-                continue
-            data_dict[key] = value
-
-        pricing_master = PriceMaster(**data_dict)
-        pricing_master.save()
-        return HttpResponse('New Pricing Added')
+    for i in range(len(max_unit_ranges)):
+        min_unit_range = min_unit_ranges[i]
+        max_unit_range = max_unit_ranges[i]
+        price = prices[i]
+        discount = discounts[i]
+        price_data = PriceMaster.objects.filter(sku__user=user.id, sku__sku_code=sku_code, price_type=price_type,
+                                                min_unit_range=min_unit_range, max_unit_range=max_unit_range)
+        if price_data:
+            return HttpResponse('Price type already exist in Pricing Master')
+        else:
+            data_dict = copy.deepcopy(PRICING_DATA)
+            data_dict['sku'] = sku[0]
+            data_dict['max_unit_range'] = max_unit_range
+            data_dict['min_unit_range'] = min_unit_range
+            data_dict['price_type'] = price_type
+            data_dict['price'] = price
+            if discount:
+                data_dict['discount'] = float(discount)
+            pricing_master = PriceMaster(**data_dict)
+            pricing_master.save()
+    return HttpResponse('New Pricing Added')
 
 
 @csrf_exempt
@@ -2188,20 +2311,184 @@ def add_pricing(request, user=''):
 @get_admin_user
 def update_pricing(request, user=''):
     ''' update pricing '''
-    sku_code = request.POST['sku_code']
-    price_type = request.POST['price_type']
-    price_data = PriceMaster.objects.filter(sku__user=user.id, sku__sku_code=sku_code, price_type=price_type)
-    if not price_data:
+    post_data_dict = dict(request.POST.iterlists())
+    sku_code = post_data_dict['sku_code'][0]
+    price_type = post_data_dict['price_type'][0]
+    price_master_data = PriceMaster.objects.filter(sku__user=user.id, sku__sku_code=sku_code, price_type=price_type)
+    if not price_master_data:
         return HttpResponse('Invalid data')
-    price_data = price_data[0]
-    price = request.POST['price']
-    discount = request.POST['discount']
-    if price:
-        price_data.price = price
-    if discount:
-        price_data.discount = discount
-    price_data.save()
+
+    db_set = set(price_master_data.values_list('min_unit_range', 'max_unit_range'))
+    ui_set = set()
+    ui_map = {}
+    for i in range(len(post_data_dict['max_unit_range'])):
+        min_amt, max_amt = float(post_data_dict['min_unit_range'][i]), float(post_data_dict['max_unit_range'][i])
+        ui_discount = post_data_dict['discount'][i]
+        ui_price = post_data_dict['price'][i]
+        if ui_discount:
+            discount = float(ui_discount)
+        else:
+            discount = 0.0
+        if ui_price:
+            price = float(ui_price)
+        ui_set.add((min_amt, max_amt))
+        ui_map[(float(post_data_dict['min_unit_range'][i]), float(post_data_dict['max_unit_range'][i]))] = (
+        price, discount)
+
+    sku = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+
+    new_ranges = ui_set - db_set
+    existing_ranges = db_set - ui_set
+    common_ranges = ui_set.intersection(db_set)
+    if existing_ranges:
+        # Delete
+        for existing_range in existing_ranges:
+            min_unit_range, max_unit_range = existing_range
+            price_master_data.filter(min_unit_range=min_unit_range, max_unit_range=max_unit_range).delete()
+    if common_ranges:
+        # Update
+        for common_range in common_ranges:
+            min_unit_range, max_unit_range = common_range
+            price, discount = ui_map[(min_unit_range, max_unit_range)]
+            p = price_master_data.filter(min_unit_range=min_unit_range, max_unit_range=max_unit_range)[0]
+            print p.id, min_unit_range, max_unit_range
+            p.price = price
+            p.discount = discount
+            p.save()
+    if new_ranges:
+        for new_range in new_ranges:
+            min_unit_range, max_unit_range = new_range
+            price, discount = ui_map[(min_unit_range, max_unit_range)]
+            new_price_map = {'sku': sku[0], 'price_type': price_type, 'min_unit_range': min_unit_range,
+                             'max_unit_range': max_unit_range, 'price': price, 'discount': discount}
+            pricing_master = PriceMaster(**new_price_map)
+            pricing_master.save()
+
     return HttpResponse('Updated Successfully')
+
+
+def create_network_supplier(dest, src):
+    ''' creating supplier in destination with source details '''
+
+    user_profile = UserProfile.objects.get(user_id=src.id)
+    max_sup_id = SupplierMaster.objects.count()
+    phone_number = ''
+    if user_profile.phone_number:
+        phone_number = user_profile.phone_number
+    supplier = SupplierMaster.objects.create(id=max_sup_id, user=dest.id, name=user_profile.user.username,
+                                             email_id=user_profile.user.email,
+                                             phone_number=phone_number,
+                                             address=user_profile.address, status=1)
+    return supplier
+
+
+@csrf_exempt
+def add_network(request):
+    dest_loc_code = request.POST.get('destination_location_code', '')
+    src_loc_code = request.POST.get('source_location_code', '')
+    sku_stage = request.POST.get('sku_stage', '')
+    lead_time = request.POST.get('lead_time', '')
+    priority = request.POST.get('priority', '')
+    price_type = request.POST.get('price_type', '')
+    charge_remarks = request.POST.get('charge_remarks', '')
+
+    if dest_loc_code:
+        dest_user_obj = User.objects.filter(id=dest_loc_code)
+        if not dest_user_obj:
+            return HttpResponse('Destination Location Code not present')
+    if src_loc_code:
+        src_user_obj = User.objects.filter(id=src_loc_code)
+        if not src_user_obj:
+            return HttpResponse('Source Location Code not present')
+
+    network_map = {'dest_location_code_id': dest_loc_code, 'source_location_code_id': src_loc_code,
+                   'sku_stage': sku_stage, 'lead_time': lead_time, 'priority': priority,
+                   'price_type': price_type, 'charge_remarks': charge_remarks}
+
+    nw_obj = NetworkMaster.objects.filter(dest_location_code_id=dest_loc_code, source_location_code_id=src_loc_code,
+                                          sku_stage=sku_stage)
+    if nw_obj:
+        return HttpResponse('Network object is already exist')
+    else:
+        nw_obj = NetworkMaster(**network_map)
+        supplier = create_network_supplier(dest_user_obj[0], src_user_obj[0])
+        nw_obj.supplier_id = supplier.id
+        nw_obj.save()
+    return HttpResponse('New Network object is created')
+
+
+@csrf_exempt
+def update_network(request):
+    dest_loc_code = request.POST.get('destination_location_code', '')
+    src_loc_code = request.POST.get('source_location_code', '')
+    sku_stage = request.POST.get('sku_stage', '')
+    lead_time = request.POST.get('lead_time', '')
+    priority = request.POST.get('priority', '')
+    price_type = request.POST.get('price_type', '')
+    charge_remarks = request.POST.get('charge_remarks', '')
+    if not dest_loc_code and src_loc_code and sku_stage and lead_time and priority and price_type:
+        return HttpResponse('Values missing')
+
+    nw_obj = NetworkMaster.objects.filter(dest_location_code__username=dest_loc_code,
+                                          source_location_code__username=src_loc_code,
+                                          sku_stage=sku_stage)
+    if nw_obj:
+        nw_obj[0].lead_time = lead_time
+        nw_obj[0].priority = priority
+        nw_obj[0].price_type = price_type
+        nw_obj[0].charge_remarks = charge_remarks
+        if not nw_obj[0].supplier_id:
+            supplier = create_network_supplier(nw_obj[0].dest_location_code, nw_obj[0].source_location_code)
+            nw_obj[0].supplier_id = supplier.id
+        nw_obj[0].save()
+        return HttpResponse('Updated Successfully')
+    else:
+        return HttpResponse('Record not found')
+
+
+@csrf_exempt
+def get_network_master_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                               filters={}):
+    objs = NetworkMaster.objects.filter()
+    lis = ['dest_location_code__username', 'source_location_code__username', 'lead_time',
+           'sku_stage', 'priority', 'price_type', 'charge_remarks']
+    order_data = NETWORK_MASTER_HEADER.values()[col_num]
+    search_params = get_filtered_params(filters, lis)
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        master_data = objs.filter(Q(dest_location_code__username__icontains=search_term) |
+                                  Q(source_location_code__username__icontains=search_term) |
+                                  Q(lead_time__icontains=search_term) |
+                                  Q(sku_stage__icontains=search_term) |
+                                  Q(priority__icontains=search_term) |
+                                  Q(price_type__icontains=search_term) |
+                                  Q(charge_remarks__icontains=search_term),
+                                  **search_params).order_by(order_data).values_list('dest_location_code__username',
+                                                                                    'source_location_code__username',
+                                                                                    'lead_time', 'sku_stage',
+                                                                                    'priority', 'price_type',
+                                                                                    'charge_remarks'
+                                                                                    ).distinct()
+    else:
+        master_data = objs.filter(**search_params).order_by(order_data).values_list('dest_location_code__username',
+                                                                                    'source_location_code__username',
+                                                                                    'lead_time', 'sku_stage',
+                                                                                    'priority', 'price_type',
+                                                                                    'charge_remarks'
+                                                                                    ).distinct()
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data[start_index:stop_index]:
+        dst_user, src_user, lead_time, sku_stage, priority, price_type, charge_remarks = data
+        temp_data['aaData'].append(OrderedDict((('Destination Location Code', dst_user),
+                                                ('Source Location Code', src_user),
+                                                ('Lead Time', lead_time),
+                                                ('Sku Stage', sku_stage),
+                                                ('Priority', priority),
+                                                ('Price Type', price_type),
+                                                ('Remarks', charge_remarks))))
 
 
 @csrf_exempt
@@ -2488,6 +2775,55 @@ def get_tax_data(request, user=''):
     return HttpResponse(json.dumps(response))
 
 
+@get_admin_user
+def get_pricetype_data(request, user=''):
+    """ Get all PriceType Details."""
+    price_band_flag = get_misc_value('priceband_sync', user.id)
+    if price_band_flag == 'true':
+        user = get_admin(user)
+
+    response = {'status': 0, 'msg': ''}
+    sku_code = request.GET.get('sku_code', '')
+    price_type = request.GET.get('price_type', '')
+    if not sku_code and price_type:
+        response['msg'] = 'fail'
+        return HttpResponse(response)
+
+    price_master_objs = PriceMaster.objects.filter(sku__user=user.id, sku__sku_code=sku_code, price_type=price_type)
+    if not price_master_objs:
+        response['msg'] = 'Price Master values not found'
+        return HttpResponse(response)
+    resp = {'data': [], 'sku_code': sku_code, 'selling_price_type': price_type}
+    for price_master_obj in price_master_objs:
+        temp = price_master_obj.json()
+        resp['data'].append(temp)
+
+    response['status'] = 1
+    response['data'] = resp
+    return HttpResponse(json.dumps(response))
+
+
+def get_network_data(request):
+    response = {'status': 0, 'msg': ''}
+    dest_loc_code = request.GET.get('destination_location_code', '')
+    src_loc_code = request.GET.get('source_location_code', '')
+    sku_stage = request.GET.get('sku_stage', '')
+    if not dest_loc_code and src_loc_code and sku_stage:
+        response['msg'] = 'fail'
+        return HttpResponse(response)
+
+    network_master_objs = NetworkMaster.objects.filter(dest_location_code__username=dest_loc_code,
+                                                       source_location_code__username=src_loc_code,
+                                                       sku_stage=sku_stage)
+    if not network_master_objs:
+        response['msg'] = 'Network Master Values not found'
+        return HttpResponse(response)
+    else:
+        response['status'] = 1
+        response['data'] = {'data': network_master_objs[0].json()}
+        return HttpResponse(json.dumps(response))
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -2560,4 +2896,20 @@ def search_seller_data(request, user=''):
             status = 'Active'
 
         total_data.append(data.json())
+    return HttpResponse(json.dumps(total_data))
+
+
+@get_admin_user
+def search_network_user(request, user=''):
+    search_key = request.GET.get('q', '')
+    total_data = []
+
+    if not search_key:
+        return HttpResponse(json.dumps(total_data))
+
+    users_data = UserGroups.objects.filter(Q(user_id__username__icontains=search_key) |
+                                           Q(user_id__id__icontains=search_key))
+    for user_data in users_data[:30]:
+        total_data.append({"user_id": str(user_data.user.id), "user_name": str(user_data.user.username)})
+
     return HttpResponse(json.dumps(total_data))

@@ -68,7 +68,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.update_customer_cart_data = function(data) {
 
     var send = {'sku_code': data.sku_id, 'quantity': data.quantity, 'level': data.warehouse_level, 'price': data.price}
-    vm.service.apiCall("update_customer_cart_data", "POST", send).then(function(response){
+    vm.service.apiCall("update_customer_cart_data/", "POST", send).then(function(response){
 
     });
   }

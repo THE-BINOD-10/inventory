@@ -925,6 +925,12 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
 
   $ctrl.margin_types = ['Margin Percentage', 'Margin Value'];
 
+  if ($ctrl.marginData.is_margin_percentage) {
+    $ctrl.marginData.margin_type = $ctrl.margin_types[0];
+  } else {
+    $ctrl.marginData.margin_type = $ctrl.margin_types[1];
+  }
+
   $ctrl.ok = function (form) {
 
     if(form.$invalid) {

@@ -3298,7 +3298,7 @@ def insert_order_data(request, user=''):
             original_order_id = generic_order['orderdetail__original_order_id']
             order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
             resp = order_push(original_order_id, order_detail_user, "NEW")
-            log.info('New Order Push Status: %s, Order ID: %s' %(resp["Status"], resp["OrderId"]))
+            log.info('New Order Push Status: %s' %(str(resp)))
         if user_type == 'customer':
             # Creating Uploading POs object with file upload pending.
             upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': corporate_po_number,

@@ -15,7 +15,7 @@ from utils import *
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read('rest_api/views/configuration.cfg')
 
-log = init_logger('logs/integrations.log')
+log = init_logger('logs/integration_requests.log')
 
 
 class EasyopsAPI:
@@ -87,6 +87,8 @@ class EasyopsAPI:
                     import traceback
                     log.debug(traceback.format_exc())
                     response = {'status': 'Internal Server Error'}
+        log.info("API call for url is %s headers is %s request is %s and response is %s" %
+                        (url, str(self.headers), str(data), str(response)))
         return response
 
     def get_access_token(self, user=''):

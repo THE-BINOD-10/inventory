@@ -4469,7 +4469,11 @@ def get_sku_variants(request, user=''):
                     sku_ids = [item['wms_code'] for item in sku_master]
                     api_resp = get_inventory(sku_ids, user)
                     if api_resp.get("Status", "").lower() == "success":
-                        for warehouse in resp["Warehouses"]:
+                        for warehouse in api_resp["Warehouses"]:
+                            location_master = LocationMaster.objects.filter(zone__zone="DEFAULT", zone__user=user.id)
+                            if not location_master:
+                                continue
+                            location_id = location_master[0].id
                             if warehouse["WarehouseId"] == user.username:
                                 for item in warehouse["Result"]["InventoryStatus"]:
                                     sku_id = item["SKUId"]
@@ -4483,6 +4487,14 @@ def get_sku_variants(request, user=''):
                                             stock_detail.quantity = inventory
                                             stock_detail.save()
                                             log.info("Stock updated for sku: %s" %(sku_id))
+                                        else:
+                                            new_stock_dict = {"receipt_number":1,
+                                                              "receipt_date":datetime.datetime.now(),
+                                                              "quantity": inventory, "status": 1, "sku_id": sku.id,
+                                                              "location_id": location_id}
+                                            StockDetail.objects.create(**new_stock_dict)
+                                            log.info("New stock created for user %s for sku %s" %
+                                                     (user.username, str(sku.sku_code)))
     sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime)
     _data = {'data': sku_master, 'gen_wh_level_status': levels_config, 'total_qty': total_qty, }
     if not is_distributor:

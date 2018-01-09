@@ -1442,10 +1442,12 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
     # get_user_sku_data(user)
     insert_update_brands(user)
 
-    all_users = get_related_users(user.id)
+    # Sync sku's with sister warehouses
     sync_sku_switch = get_misc_value('sku_sync', user.id)
-    if all_users and sync_sku_switch == 'true' and all_sku_masters:
-        create_sku(all_sku_masters, all_users)
+    if sync_sku_switch == 'true':
+        all_users = get_related_users(user.id)
+        create_update_sku(all_sku_masters, all_users)
+
     return 'success'
 
 

@@ -114,12 +114,12 @@
             <span>Tax Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
           <a ui-sref="app.masters.SellerMaster">
             <span>Seller Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
           <a ui-sref="app.masters.SellerMarginMapping">
             <span>Seller Margin Mapping</span>
           </a>
@@ -160,12 +160,12 @@
             <span>Sales Returns</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
           <a ui-sref="app.inbound.SellerInvoice">
             <span>Seller Invoices</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="permissions.user_type == 'distributor'">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'distributor'">
           <a ui-sref="app.inbound.AutoBackOrders">
             <span>Auto Back Orders</span>
           </a>
@@ -247,7 +247,7 @@
             <span>Warehouse's Stock</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
           <a ui-sref="app.stockLocator.SellerStock">
             <span>Seller Stock</span>
           </a>
@@ -303,7 +303,7 @@
             <span>Customer Invoices</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="user.userName == 'sagar_fab'">
+        <li ui-sref-active="active" ng-show="user.userName == 'sagar_fab'">
           <a ui-sref="app.outbound.CreateCustomOrder">
             <span>Create Custom Order</span>
           </a>
@@ -426,7 +426,7 @@
             <span>Open JO</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
           <a ui-sref="app.reports.SellerInvoiceDetails">
             <span>Seller Invoice Details</span>
           </a>

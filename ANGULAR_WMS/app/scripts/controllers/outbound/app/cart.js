@@ -263,7 +263,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
     if (record.price != price) {
 
       record.price = price;
-      vm.update_customer_cart_data(record);
+      //vm.update_customer_cart_data(record);
     } else {
 
       record.price = price;
@@ -299,7 +299,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
     vm.update_sku_levels(vm.model_data.data, data);
 
-    //vm.update_customer_cart_data(data);
+    vm.update_customer_cart_data(data);
     vm.cal_total();
   }
 

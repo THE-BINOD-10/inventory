@@ -1,4 +1,8 @@
 <div class="clearfix" ng-controller="AppStyle as Style">
+  <div ng-if="Style.place_order_loading" style="position: fixed;z-index: 2001;width: 100%;height: 100%;top: 0px;background: rgba(0, 0, 0, 0.5);padding-top: 125px;">
+    <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+  </div>
+
   <div class="row style-menu" style="line-height: 40px;">
     <div class="col-md-4 col-sm-4 col-xs-8">
       <div class="menu-left">
@@ -15,6 +19,7 @@
         </a>
         <ul class="dropdown-menu">
           <li><a ng-click="$state.go('user.App.MyOrders')">Your Orders</a></li>
+          <li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div>
@@ -24,69 +29,280 @@
       </a>
     </div>
   </div>
+
+  <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="Style.page_loading">
+    <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+  </div>
+
   <div class="app_body">
     </br>
     <div class="style-body">
       <div class="row">
-        <div class="col-md-4 col-sm-4" ng-if="Style.style_data.length > 0 && Style.includeDesktopTemplate">
-          <img ng-src="{{ showCase.service.check_image_url(Style.style_data[0]['image_url']) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail" ez-plus ezp-model="{thumb: showCase.service.check_image_url(Style.style_data[0]['image_url']) , small: showCase.service.check_image_url(Style.style_data[0]['image_url']), large:showCase.service.check_image_url(Style.style_data[0]['image_url'])}" ezp-options="{scrollZoom: true, easing: true, zoomWindowWidth: 600, zoomWindowHeight: 600}" id="zoom_01">
-          <h5 align="center"><b>{{Style.style_data[0].sku_class}}</b></h5>
-          <h5 align="center" ng-if="Style.style_data[0].pricing_price"><b>{{showCase.service.price_format(Style.style_data[0].pricing_price)}}</b></h5>
-          <h5 align="center" ng-if="!(Style.style_data[0].pricing_price) && Style.style_data[0].price"><b>{{showCase.service.price_format(Style.style_data[0].price)}}</b></h5>
+
+        <div class="col-md-3 col-sm-3 col-xs-12" ng-if="showCase.service.check_image_url(Style.style_details.image_url) && Style.includeDesktopTemplate">
+          <img ng-src="{{ showCase.service.check_image_url(Style.style_details.image_url) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail" ez-plus ezp-model="{thumb: showCase.service.check_image_url(Style.style_details.image_url) , small: showCase.service.check_image_url(Style.style_details.image_url), large:showCase.service.check_image_url(Style.style_details.image_url)}" ezp-options="{scrollZoom: true, easing: true, zoomWindowWidth: 600, zoomWindowHeight: 600}" id="zoom_01">
+          <h5 align="center"><b>{{Style.style_data.data[0].sku_class}}</b></h5>
+          <h5 align="center" ng-if="Style.style_data.data[0].pricing_price"><b>{{showCase.service.price_format(Style.style_data.data[0].pricing_price)}}</b></h5>
+          <h5 align="center" ng-if="!(Style.style_data.data[0].pricing_price) && Style.style_data.data[0].price"><b>{{showCase.service.price_format(Style.style_data.data[0].price)}}</b></h5>
         </div>
-        <div class="col-md-4 col-sm-4" ng-if="Style.style_data.length > 0 && Style.includeMobileTemplate">
-          <img ng-src="{{ showCase.service.check_image_url(Style.style_data[0]['image_url']) }}" style="border:0px !important;padding: 0px;width:100%" class="img-thumbnail">
-          <h5 align="center"><b>{{Style.style_data[0].sku_class}}</b></h5>
-          <h5 align="center" ng-if="Style.style_data[0].pricing_price"><b>{{showCase.service.price_format(Style.style_data[0].pricing_price)}}</b></h5>
-          <h5 align="center" ng-if="!(Style.style_data[0].pricing_price) && Style.style_data[0].price"><b>{{showCase.service.price_format(Style.style_data[0].price)}}</b></h5> 
+
+        <div class="col-md-3 col-sm-3 col-xs-12" ng-if="showCase.service.check_image_url(Style.style_details.image_url) && Style.includeMobileTemplate">
+          <img ng-src="{{ showCase.service.check_image_url(Style.style_details.image_url) }}" style="border:0px !important;padding: 0px;width:100%" class="img-thumbnail">
+          <h5 align="center"><b>{{Style.style_data.data[0].sku_class}}</b></h5>
+          <h5 align="center" ng-if="Style.style_data.data[0].pricing_price"><b>{{showCase.service.price_format(Style.style_data.data[0].pricing_price)}}</b></h5>
+          <h5 align="center" ng-if="!(Style.style_data.data[0].pricing_price) && Style.style_data.data[0].price"><b>{{showCase.service.price_format(Style.style_data.data[0].price)}}</b></h5> 
         </div>
-        <div class="col-md-8 col-sm-8">
+
+        <!-- <div class="col-md-3">
+          <img ng-src="{{ showCase.service.check_image_url(Style.style_details.image_url) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail">
+          <h5 align="center"><b>{{Style.style_data.data[0].sku_class}}</b></h5>
+        </div> -->
+        <div class="col-md-6 col-sm-6 col-xs-12" ng-if="Style.def_lead_tm">
           <div class="row">
+            <div class="col-md-9">
+              <div class="form-group">
+                  <label class="control-label" style="margin-top:10px"> {{Style.charge_remarks}} </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="Style.data_loading">
+            <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+          </div>
+
+          <div class="row" ng-if="!Style.data_loading">
             <div>
-              <table class="table table-bordered">
+              <table class="table table-bordered" ng-if="Style.def_lead_tm">
                 <thead>
                   <tr>
                     <th ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{hd}}</th>
+                    <!-- <th ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{hd}}</th> -->
                     <th>Quantity</th>
+                    <!-- <th>Unit Rate</th>
+                    <th>Total Price</th> -->
                   </tr>
                 </thead>
                 <tbody>
-                  <tr ng-repeat="style in Style.style_data">
+                  <tr ng-repeat="style in Style.style_data.data">
                     <td ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{style[Style.style_headers[hd]]}}</td> 
-                    <td><input class="form-control" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data);" ng-class="service.get_decimal_perm()"></td>
+                    <td>
+                      <input ng-if="style.quantity_status" class="form-control" size="5" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style, $index);" ng-class="service.get_decimal_perm()">
+                      <input ng-if="!style.quantity_status && Style.generic_wharehouse_level == 'false'" class="form-control" size="5" value="{{style.no_items}}" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style, $index)" ng-class="service.get_decimal_perm()" readonly>
+                    </td>
+                    <!-- <td>{{style.unit_rate | number}}</td>
+                    <td>{{style.row_total_price | number}}</td> -->
                   </tr>
                   <tr>
                     <td ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1" style="font-size: 16px;"><b>{{Style.style_total_counts[Style.style_headers[hd]]}}</b></td>
-                    <td></td>
+                    <td><b style="font-size:16px">{{Style.style_data.quantity}}</b></td>
+                    <!-- <td></td>
+                    <td><b style="font-size:16px">Total: {{Style.sel_items_total_price | number}}</b></td> -->
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
+
           <div class="row">
             <div class="col-md-6 col-sm-6 col-xs-6">
               <span>Stock: <b style="font-size:24px">{{Style.stock_quantity}}</b></span>
             </div>
-            <div class="col-md-6 col-sm-6 col-xs-6">
-              <span class="pull-right">Total: <b style="font-size:24px">{{Style.style_total_quantity}}</b></span>
+          </div>
+        </div>
+
+        <div class="col-md-3 col-sm-3 col-xs-12 style cart-item" ng-if="Style.def_lead_tm" style="margin-top: 2.8em">
+          <div class="row">
+            <h5><b>WISH LIST</b></h5><hr>
+          </div>
+          <span ng-if="!Style.style_data.quantity"><b>No items selected</b></span>
+          <div class="row" ng-repeat="level_data in Style.levels_data">
+            <div ng-repeat="data in level_data.data" ng-if="data.quantity">
+              <div class="col-md-6 col-xs-6 no-padding">
+                <span class="pull-left">{{data.wms_code}}</span>
+              </div>
+              <div class="col-md-2 col-xs-2">{{data.quantity}}</div>
+              <div class="col-md-4 col-sm-4 no-padding">
+                <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.row_total_price | number}}</span>
+              </div>
             </div>
           </div>
+          <!-- <hr>
           <div class="row">
-            <!--<div class="cart visible-xs-block visible-sm-block">
-             <div class="row" style="border-top:1px solid rgba(0,0,0,.1);">
-                <button type="button" id ="place_order" class="btn btn-warning btn-lg col-xs-12" ng-click="Style.add_to_cart(Style.style_data);Style.make_empty()" style="transform: translate3d(0,0,0);">ADD TO CART</button>
-              </div>-->
-            <!--</div>-->
-            <div class="col-md-6 col-sm-6 col-xs-6 hide">
-              <button type="button" class="hide btn btn-warning btn-round btn-outline btn-lg pull-right" ng-click="showCase.enable_stock()" ng-if="showCase.service.dyn_data.style_detail.check_stock['sagar_fab']">CHECK STOCK</button>
+            <div class="col-md-6 col-xs-6 no-padding">
+              <span class="pull-left">Tax Amount</span>
             </div>
-            <div class="col-md-12 col-sm-12 col-xs-12 hidden-xs hidden-sm">
-              <button style="display:block;margin:auto" type="button" class="btn btn-warning btn-round btn-lg" ng-click="Style.add_to_cart(Style.style_data);Style.make_empty();">ADD TO CART</button>
+            <div class="col-md-6 col-sm-6 no-padding">
+              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> 0</span>
             </div>
+          </div> -->
+          <hr>
+          <div class="row">
+            <div class="col-md-6 col-xs-6 no-padding">
+              <span class="pull-left">Total Amount</span>
+            </div>
+            <div class="col-md-6 col-xs-6 no-padding">
+              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> <b>{{Style.sel_items_total_price | number}}</b></span>
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <button style="display:block;margin:auto" type="button" class="btn btn-warning btn-round" ng-click="Style.add_to_cart(Style.level_data)">ADD TO CART</button>
+          </div>
+        </div>
+
+        <!-- <div class="col-md-2 style cart-item" ng-if="Style.def_lead_tm" style="margin-top: 2.8em">
+          <div class="row">
+            <h5><b>WISH LIST</b></h5><hr>
+          </div>
+          <span ng-if="Style.sel_items_total_price == 0"><b>No items selected</b></span>
+          
+          <div class="row" ng-repeat="data in Style.sel_cart_info">
+            <div ng-if="data.quantity">
+              <div class="col-md-5 col-xs-5 no-padding">
+                <span class="pull-left">{{data.wms_code}}</span>
+              </div>
+              <div class="col-md-3 col-xs-3">{{data.quantity}}</div>
+              <div class="col-md-4 col-sm-4 no-padding">
+                <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.row_total_price | number}}</span>
+              </div>
+            </div>
+          </div>
+          
+          <hr>
+          
+          <div class="row">
+            <div class="col-md-6 col-xs-6 no-padding">
+              <span class="pull-left">Tax Amount</span>
+            </div>
+            <div class="col-md-6 col-sm-6 no-padding">
+              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> 0</span>
+            </div>
+          </div>
+          
+          <hr>
+          
+          <div class="row">
+            <div class="col-md-6 col-xs-6 no-padding">
+              <span class="pull-left">Total Amount</span>
+            </div>
+            <div class="col-md-6 col-xs-6 no-padding">
+              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> <b>{{Style.sel_items_total_price | number}}</b></span>
+            </div>
+          </div>
+          
+          <hr>
+          
+          <div class="row">
+            <button style="display:block;margin:auto" type="button" class="btn btn-warning btn-round" ng-click="Style.add_to_cart(Style.style_data.data);Style.make_empty();">ADD TO CART</button>
+          </div>
+        </div>
+ -->
+        <div class="col-md-6 col-sm-6 col-xs-12" ng-if="Style.gen_wh_lead_tm">
+          <div class="row">
+            
+            <div class="col-md-9">
+              <div class="form-group">
+                  <label class="control-label" style="margin-top:10px"> {{Style.charge_remarks}} </label>
+              </div>
+            </div>
+
+            <div class="col-md-3 no-padding">
+              <div class="form-group">
+                <select class="form-control" name="level_flag" ng-model="Style.selLevel" ng-change="Style.open_style(permissions.user_type)">
+                  <option ng-repeat="data in Style.levels" value="{{data}}">Level-{{data}}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="Style.data_loading">
+            <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+          </div>
+          
+          <div class="row" ng-if="!Style.data_loading">
+            <div>
+              <table class="table table-bordered" ng-if="Style.gen_wh_lead_tm">
+                <thead>
+                  <tr>
+                    <th>SKU Code</th>
+                    <th ng-repeat="hd in Style.style_data.lead_times" ng-show="Style.gen_wh_lead_tm">{{hd}}-Day(s) Stock</th>
+                    <th>Quantity</th>
+                    <th>Unit Rate</th>
+                    <th>Total Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="style in Style.style_data.data">
+                    <td>{{style.wms_code}}</td>
+                    <td ng-repeat="hd in Style.style_data.lead_times">
+
+                      <span ng-if="style[hd]">{{style[hd]}}</span>
+                      <span ng-if="!style[hd]">No stock</span>
+                    </td> 
+                    <td>
+                      <input class="form-control" size="5" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style, $index)" ng-class="service.get_decimal_perm()" ng-readonly="!style.overall_sku_total_quantity">
+
+                    </td>
+                    <td>{{style.unit_rate | number}}</td>
+                    <td>{{style.row_total_price | number}}</td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td ng-repeat="hd in Style.style_data.lead_times" style="font-size: 16px;"><b>{{Style.style_data.total_stocks[hd]}}</b></td>
+                    <td><b style="font-size:16px">{{Style.style_data.quantity}}</b></td>
+                    <td></td>
+                    <td><b>Total: {{Style.style_data.total_price | number}}</b></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-3 col-sm-3 col-xs-12 style cart-item" ng-if="Style.gen_wh_lead_tm" style="margin-top: 3.8em">
+          <div class="row">
+            <h5><b>WISH LIST</b></h5><hr>
+          </div>
+          <span ng-if="!Style.style_data.quantity"><b>No items selected</b></span>
+          <div class="row" ng-repeat="level_data in Style.levels_data">
+            <div ng-repeat="data in level_data.data" ng-if="data.quantity">
+              <div class="col-md-2 col-xs-2 no-padding">
+                <span class="pull-left">Level-{{data.level}}</span>
+              </div>
+              <div class="col-md-4 col-xs-4 no-padding">
+                <span class="pull-left">{{data.wms_code}}</span>
+              </div>
+              <div class="col-md-2 col-xs-2">{{data.quantity}}</div>
+              <div class="col-md-4 col-sm-4 no-padding">
+                <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.row_total_price | number}}</span>
+              </div>
+            </div>
+          </div>
+          <!-- <hr>
+          <div class="row">
+            <div class="col-md-6 col-xs-6 no-padding">
+              <span class="pull-left">Tax Amount</span>
+            </div>
+            <div class="col-md-6 col-sm-6 no-padding">
+              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> 0</span>
+            </div>
+          </div> -->
+          <hr>
+          <div class="row">
+            <div class="col-md-6 col-xs-6 no-padding">
+              <span class="pull-left">Total Amount</span>
+            </div>
+            <div class="col-md-6 col-xs-6 no-padding">
+              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> <b>{{Style.sel_items_total_price | number}}</b></span>
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <button style="display:block;margin:auto" type="button" class="btn btn-warning btn-round" ng-click="Style.add_to_cart(Style.level_data)">ADD TO CART</button>
           </div>
         </div>
       </div>
     </div>
   </div>
-  <button type="button" id="place_order" class="btn btn-lg btn-warning visible-xs-block visible-sm-block cart_button" ng-click="Style.add_to_cart(Style.style_data);Style.make_empty()" style="width: 100%">ADD TO CART</button>
+  <!-- <button type="button" id="place_order" class="btn btn-lg btn-warning visible-xs-block visible-sm-block cart_button" ng-click="Style.add_to_cart(Style.style_data);Style.make_empty()" style="width: 100%">ADD TO CART</button> -->
 </div>

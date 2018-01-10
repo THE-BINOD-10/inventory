@@ -89,7 +89,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       ],
                       "market_list":["Flipkart","Snapdeal","Paytm","Amazon","Shopclues","HomeShop18","Jabong","Indiatimes","Myntra",
                                      "Voonik","Mr Voonik","Vilara", "Limeroad"],
-                      "sizes_list":[]
+                      "sizes_list":[],
+                      sku_rel_imgs_show:[],
+                      sku_files:[],
                     }
     vm.model_data = {};
     angular.copy(empty_data, vm.model_data);
@@ -106,12 +108,56 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.market_data = [];
     vm.files = [];
     vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_group"};
+    
+    function readImage(input) {
+      var deferred = $.Deferred();
+
+      var files = input.file;
+      if (files) {
+          var fr= new FileReader();
+          fr.onload = function(e) {
+              deferred.resolve(e.target.result);
+          };
+          fr.readAsDataURL( files );
+      } else {
+          deferred.resolve(undefined);
+      }
+
+      return deferred.promise();
+    }
+
     $scope.$on("fileSelected", function (event, args) {
-        $scope.$apply(function () {
-            vm.files.push(args.file);
+      console.log(vm.model_data.sku_files);
+      vm.model_data.sku_files.push(args.file);
+      if (args.url.split(":")[1] == "sku_rel_imgs") {
+        readImage(args).done(function(base64Data){
+          $("#sku_files").val('');
+
+          $scope.$apply(function () {
+            vm.model_data.sku_rel_imgs_show.push(base64Data);
+          });
         });
+      } else {
+        $scope.$apply(function () {
+          vm.files.push(args.file);
+        });
+      }
     });
-    vm.isEmptyMarket = false;
+
+    vm.fileClose = function($index, sku_code, url){
+      if (url != undefined) {
+        vm.service.apiCall(url, "GET", {sku_code:sku_code, index: $index}).then(function(data) {
+          if (data.message == 'Deleted Successfuly') {
+            console.log('Success');
+          }
+        });
+      } else {
+        vm.model_data.sku_rel_imgs_show.splice($index,1);
+        vm.model_data.sku_files.splice($index,1);
+      }
+    }
+
+    vm.isEmptyMarket = false 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
@@ -195,8 +241,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         elem[i].value = vm.status_data[parseInt(elem[i].value)];
       } else if(elem[i].name == "qc_check") {
         elem[i].value = (elem[i].value == "?") ? "": vm.qc_data[parseInt(elem[i].value)];
-      } else if(elem[i].name == "zone_id") {
-        elem[i].value = (elem[i].value == "?") ? "": vm.model_data.zones[parseInt(elem[i].value)];
       } else if(elem[i].name == "sku_type") {
         elem[i].value = (elem[i].value == "?") ? "": vm.sku_types[parseInt(elem[i].value)];
       }
@@ -204,6 +248,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     var formData = new FormData()
     var files = $("#update_sku").find('[name="files"]')[0].files;
+    $.each(files, function(i, file) {
+        formData.append('files-' + i, file);
+    });
+    // SKU Related Files
+    $.each(vm.model_data.sku_files, function(i, file) {
+        formData.append('sku-related-files-' + i, file);
+    });
+
+    vm.related_files = $("#update_sku").find('[name="files"]')[0].files;
     $.each(files, function(i, file) {
         formData.append('files-' + i, file);
     });
@@ -358,6 +411,36 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       })
     }
+  }
+
+  vm.uploadFile = function (input) {
+      if (input.files && input.files[0]) {
+          var reader = new FileReader();
+          reader.readAsDataURL(input.files[0]);
+          reader.onload = function (e) {
+
+              $('#photo-id').attr('src', e.target.result);                    
+              var canvas = document.createElement("canvas");
+              var imageElement = document.createElement("img");
+
+              imageElement.setAttribute = $('<img>', { src: e.target.result });
+              var context = canvas.getContext("2d");
+              imageElement.setAttribute.load(function()
+              {
+                  // debugger;
+                  canvas.width = this.width;
+                  canvas.height = this.height;
+
+
+                  context.drawImage(this, 0, 0);
+                  var base64Image = canvas.toDataURL("image/png");
+
+                  var data = base64Image.replace(/^data:image\/\w+;base64,/, "");
+
+                  vm.model.Logo = data;
+              });
+          }
+      }
   }
 }
 

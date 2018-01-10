@@ -17,8 +17,13 @@ input[type="date"]:valid::before {
 
 </style>
 
-
 <div ng-controller="AppCart as Cart">
+  <div ng-if="Cart.place_order_loading" style="position: fixed;z-index: 2001;width: 100%;height: 100%;top: 0px;background: rgba(0, 0, 0, 0.5);padding-top: 125px;">
+    <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+  </div>
+
+  <div ui-view></div>
+
   <div class="row style-menu" style="line-height: 40px;">
     <div class="col-md-6 col-sm-6 col-xs-8">
       <div class="menu-left">
@@ -33,28 +38,44 @@ input[type="date"]:valid::before {
         </a>
         <ul class="dropdown-menu">
           <li><a ng-click="$state.go('user.App.MyOrders')">Your Orders</a></li>
+          <li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div>
       <a class="hide fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="Cart.logout()"></a>
     </div>
-    <div class="col-md-12" style="background: #fff;overflow: hidden;padding-top: 10px;margin-bottom: -3px;padding-bottom:5px;margin-right: -2px;z-index: 100;box-shadow: 0px 4px 8px -2px #888;">
-      <div class="col-md-2 col-sm-3 col-xs-6">
-        <input type="text" class="form-control stk-readonly pull-left" ng-model="Cart.model_data.shipment_date" id="shipment_date" ng-change="Cart.date_changed()" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Shipment Date">
-            <!--<input type='date' class="form-control" ng-model="Cart.model_data.shipment_date_new" id="shipment_date" ng-change="Cart.date_changed()" required placeholder="Shipment Date" />-->
-      </div>
+    <div class="col-md-12" style="background: #fff;overflow: hidden; margin-bottom: -3px;padding-bottom:10px;margin-right: -2px;z-index: 100;box-shadow: 0px 4px 8px -2px #888;">
+      <div class="row">
+        <div class="col-md-2 col-sm-6 col-xs-6 mt10">
+          <input type="text" class="form-control stk-readonly pull-left" ng-model="Cart.model_data.shipment_date" id="shipment_date" ng-change="Cart.date_changed()" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Shipment Date" data-date-start-date="{{Cart.date}}">
+        </div>
 
-      <div class="col-md-2 col-sm-3 col-xs-6">
-        <select ng-model="Cart.model_data.shipment_time_slot" ng-init = "Cart.model_data.shipment_time_slot = ''" class="form-control" name="shipment_time_slot">
-          <option value="" ng-selected="Cart.model_data.shipment_time_slot == ''">Time Slot</option>
-          <option value="9:00 AM - 12:00 PM" ng-selected="Cart.model_data.shipment_time_slot == '9:00 AM - 12:00 PM'">9:00 AM - 12:00 PM</option>
-          <option value="12:00 PM - 3:00 PM" ng-selected="Cart.model_data.shipment_time_slot == '12:00 PM - 3:00 PM'">12:00 PM - 3:00 PM</option>
-          <option value="3:00 PM - 6:00 PM" ng-selected="Cart.model_data.shipment_time_slot == '3:00 PM - 6:00 PM'">3:00 PM - 6:00 PM</option>
-        </select>
+        <div class="col-md-2 col-sm-6 col-xs-6 mt10">
+          <select ng-model="Cart.model_data.shipment_time_slot" ng-init = "Cart.model_data.shipment_time_slot = ''" class="form-control" name="shipment_time_slot">
+            <option value="" ng-selected="Cart.model_data.shipment_time_slot == ''">Time Slot</option>
+            <option value="9:00 AM - 12:00 PM" ng-selected="Cart.model_data.shipment_time_slot == '9:00 AM - 12:00 PM'">9:00 AM - 12:00 PM</option>
+            <option value="12:00 PM - 3:00 PM" ng-selected="Cart.model_data.shipment_time_slot == '12:00 PM - 3:00 PM'">12:00 PM - 3:00 PM</option>
+            <option value="3:00 PM - 6:00 PM" ng-selected="Cart.model_data.shipment_time_slot == '3:00 PM - 6:00 PM'">3:00 PM - 6:00 PM</option>
+          </select>
+        </div>
+
+        <div class="col-md-2 col-sm-6 col-xs-6 mt10" ng-if="showCase.user_type=='reseller'">
+          <input type="text" class="form-control stk-readonly pull-left" ng-model="Cart.model_data.po_number_header" name="po_number_header" required placeholder="PO Number">
+        </div>
+
+        <div class="col-md-2 col-sm-6 col-xs-6 mt10" ng-if="showCase.user_type=='reseller'">
+          <input type="text" name="client_name" class="form-control stk-readonly pull-left" ng-model="Cart.model_data.client_name_header" required placeholder="Customer Name">
+        </div>
+
+        <div class="col-md-2 col-sm-6 col-xs-6" ng-if="showCase.user_type=='reseller'">
+          <div class="btn btn-primary up-btn mt10" style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 100%;">Select File
+            <input class="btn btn-primary upload-button" value="Upload" type = "file" name="file" id="po-upload">
+          </div>
+        </div>
       </div>
     </div>
   </div>
-
+<!-- style="border:1px solid red; color:red" -->
 
   <form id="order-create" name="form" role="form" ui-jq="validate">
     <div class="clearfix hide">
@@ -100,6 +121,12 @@ input[type="date"]:valid::before {
             <textarea rows="4" class="form-control" cols="27" name="address" ng-model="Cart.model_data.address"></textarea>
           </div>
         </div>
+        <div class="col-md-4" ng-if="showCase.user_type=='reseller'">
+          <div class="form-group">
+            <input name="client_name" class="form-control" type="hidden" value="{{Cart.model_data.client_name_header}}">
+            <input name="corporate_po_number" class="form-control" type="hidden" value="{{Cart.model_data.po_number_header}}">
+          </div>
+        </div>
       </div>
     </div>
     <div class="form-group clearfix app_body" style="padding: 0px 10px;padding-top: 10px; margin-bottom: 40px;">
@@ -121,19 +148,27 @@ input[type="date"]:valid::before {
             <input type="hidden" name="sgst_tax" class="form-control" value="{{data.sgst_tax}}">
             <input type="hidden" name="cgst_tax" class="form-control" value="{{data.cgst_tax}}">
             <input type="hidden" name="igst_tax" value="{{data.igst_tax}}">
+            <input type="hidden" name="warehouse_level" class="form-control" value="{{data.warehouse_level}}">
+            <input type="hidden" name="el_price" class="form-control" value="{{Cart.sku_group_data[data.sku_id].effective_landing_price}}">
+            <input type="hidden" name="del_date" class="form-control" value="{{data.del_date}}">
             <div class="col-md-6 col-sm-6 col-xs-7">
-              <h4 align="left"><b>{{data.sku_id}}</b></h4>
+              <h4 align="left"><b>{{data.sku_id}} </b>
+                <span ng-if="permissions.user_type != 'customer'">
+                  <span>(Level-{{data.warehouse_level}})</span>
+                  <span ng-if="data.del_date">(Sch.date: {{data.del_date}})</span>
+                </span>
+              </h4>
               <p align="left">{{data.sku_desc}}</p>
               <h5 align="left" style="margin-bottom:0px;font-size: 16px;"><b>Rs {{data.invoice_amount}}</b></h5>
               <p align="left" class="text-success" ng-if="data.quantity > 1" style="font-size: 12px;">{{data.quantity}} X Rs.{{data.price}}</p>
-              <p align="left"><span ng-click="Cart.remove_item($index)" class="text-danger">Remove</span></p>
+              <div><span ng-click="Cart.remove_item($index)" style="cursor: pointer;" title="Delete Order" class="btn-sm btn-danger "><i class="fa fa-trash-o" aria-hidden="true"></i> Remove</span></div>
             </div>
             <div class="col-md-6 col-sm-6 col-xs-5">
               <div class="col-md-12 col-sm-12 col-xs-12">
                 <img style="display: block;margin: auto;height: 100px;" ng-src="{{Cart.service.check_image_url(data.image_url)}}" style="height: 100px;"></img>
                 <p align="center" class="quantity">
                   <i class="fa fa-minus" ng-click="Cart.change_cart_quantity(data, false)"></i>
-                  <input class="form-control" name="quantity" ng-model="data.quantity" ng-change="Cart.change_amount(data)">
+                  <input class="form-control" name="quantity" ng-model="data.quantity" ng-blur="Cart.change_amount(data)">
                   <i class="fa fa-plus" ng-click="Cart.change_cart_quantity(data, true)"></i>
                 </p>
               </div>
@@ -141,9 +176,38 @@ input[type="date"]:valid::before {
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-12">
-          <div class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="Cart.final_data.total_quantity">
+          <div class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="Cart.final_data.total_quantity && Cart.model_data.data.length > 0">
             <div class="col-md-12 col-sm-12 col-xs-12">
               <h5>PRICE DETAILS</h5><hr>
+            </div>
+            <div class="col-md-12 col-sm-12 col-xs-12" ng-if="Cart.user_type !='customer'">
+              <div class="row">
+                <div class="col-md-3 col-xs-3 no-padding">
+                  <span class="pull-left"><b>SKU Code</b></span>
+                </div>
+                <div class="col-md-3 col-xs-3 no-padding" title="Effective Landing Price">
+                  <center><b>Landing Price</b></center>
+                </div>
+                <div class="col-md-3 col-xs-3"><center><b>Quantity</b></center></div>
+                <div class="col-md-3 col-sm-3 no-padding">
+                  <span class="pull-right"><b>Amount</b></span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-12 col-sm-12 col-xs-12" ng-if="Cart.user_type !='customer'" ng-repeat="data in Cart.sku_group_data">
+              <div class="row" ng-if="data.quantity">
+                <div class="col-md-3 col-xs-3 no-padding">
+                  <span class="pull-left">{{data.sku_code}}</span>
+                </div>
+                <div class="col-md-3 col-xs-3 no-padding">
+                  <center>{{data.effective_landing_price | number : 2}}</center>
+                </div>
+                <div class="col-md-3 col-xs-3 no-padding"><center>{{data.quantity}}</center></div>
+                <div class="col-md-3 col-sm-3 no-padding">
+                  <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.total_amount | number : 2}}</span>
+                </div>
+              </div>
+              <div ng-if="$last"><hr></div>
             </div>
             <div class="col-md-12 col-sm-12 col-xs-12">
               <span class="pull-left">SubTotal({{Cart.final_data.total_quantity}} Quantity)</span>
@@ -157,6 +221,9 @@ input[type="date"]:valid::before {
               <hr>
               <span class="pull-left">Total Amount</span>
               <span class="pull-right">Rs {{Cart.final_data.total_amount | number : 2}}</span>
+            </div>
+            <div>
+              <button type="button" class="btn btn-primary btn-round pull-right mt20" ng-show="permissions.user_type == 'reseller'" ng-click="$state.go('user.App.Products')">CONTINUE</button>
             </div>
           </div>
         </div>
@@ -175,9 +242,10 @@ input[type="date"]:valid::before {
     <div class="row">
         <!--<div class="cart">-->
           <!--<div class="row" style="border-top:1px solid rgba(0,0,0,.1)">-->
-            <button type="button" class="btn btn-white btn-lg col-xs-6 cart_button" ng-click="$state.go('user.App.Products')" style="position: fixed; left: 0; bottom: 0; background: #f0f0f0;z-index: 2000">CONTINUE</button>
+            <button type="button" class="btn btn-primary btn-lg col-xs-6 cart_button" ng-click="Cart.place_enquiry()" style="position: fixed; left: 0; bottom: 0; z-index: 2000" ng-show="permissions.user_type == 'reseller'">PLACE ENQUIRY</button>
+            <button type="button" class="btn btn-white btn-lg col-xs-6 cart_button" ng-click="$state.go('user.App.Products')" style="position: fixed; left: 0; bottom: 0; background: #f0f0f0;z-index: 2000" ng-show="permissions.user_type != 'reseller'">CONTINUE</button>
             <button type="button" id ="place_order" class="btn btn-warning btn-lg col-xs-6" ng-click="Cart.insert_order_data()" style="position: fixed; right: 0; bottom: 0;z-index: 2000">PLACE ORDER</button>
-            <button type="button" class="btn btn-warning btn-lg col-xs-12 hide" ng-if="Cart.model_data.data.length == 0" ng-click="Cart.catlog=false;Cart.details=true;Cart.detailed_list=false;Cart.orderspage=false">SHOP NOW</button>
+            <!--<button type="button" class="btn btn-warning btn-lg col-xs-12 hide" ng-if="Cart.model_data.data.length == 0" ng-click="Cart.catlog=false;Cart.details=true;Cart.detailed_list=false;Cart.orderspage=false">SHOP NOW</button>-->
 <!--          </div>-->
         <!--</div>-->
       </div>

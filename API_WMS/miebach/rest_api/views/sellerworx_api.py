@@ -24,6 +24,7 @@ UPDATE_SKU = '/api/v5/skus/%s?access_token='
 UPDATE_ORDER = '/api/v5/orders/%s'
 SELLER = '/api/v5/seller?access_token='
 
+
 class SellerworxAPI:
     def __init__(self, url=URL, client_id=CLIENT_ID, secret=SECRET, redirect=REDIRECT, user=''):
         self.url = url
@@ -33,7 +34,7 @@ class SellerworxAPI:
         self.token = ''
         self.user = user
         self.content_type = 'application/json'
-        self.headers = { 'ContentType' : self.content_type }
+        self.headers = {'ContentType': self.content_type}
 
     def update_url(self, url):
         """ Updating url with new access token """
@@ -75,10 +76,10 @@ class SellerworxAPI:
 
     def refresh_token(self):
         """ Getting token details by using refresh token """
-        data = { 'client_id': self.client_id,
-                 'client_secret': self.secret,
-                 'redirect_uri': self.redirect,
-                 'grant_type': 'refresh_token' }
+        data = {'client_id': self.client_id,
+                'client_secret': self.secret,
+                'redirect_uri': self.redirect,
+                'grant_type': 'refresh_token'}
 
         user_access_token = UserAccessTokens.objects.get(user_profile__user=self.user.id, token_type='Bearer')
         data['refresh_token'] = user_access_token.refresh_token
@@ -89,11 +90,11 @@ class SellerworxAPI:
 
     def get_access_token(self, code=''):
         """ Collecting access token """
-        data = { 'client_id': self.client_id,
-                 'client_secret': self.secret,
-                 'redirect_uri': self.redirect,
-                 'grant_type': 'authorization_code',
-                 'code': code }
+        data = {'client_id': self.client_id,
+                'client_secret': self.secret,
+                'redirect_uri': self.redirect,
+                'grant_type': 'authorization_code',
+                'code': code}
 
         url = urljoin(URL, ACCESS_TOKEN)
         json_response = self.get_response(url, data)
@@ -210,4 +211,3 @@ class SellerworxAPI:
         url = urljoin(URL, RETURNS % (order_id, sku)) + self.token
         json_response = self.get_response(url)
         return json_response
-

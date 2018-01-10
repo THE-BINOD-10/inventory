@@ -1,0 +1,72 @@
+<div class="your_orders" ng-controller="CorporateOrders as orders">
+  <div class="row style-menu" style="line-height: 40px;">
+    <div class="col-md-4 col-sm-4 col-xs-6">
+      <div class="menu-left">
+        <span ng-click="$state.go('user.App.Brands')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="$state.go('user.App.Brands')" title="Go to Brand Page">Back To Brands</span>
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-4 hidden-xs">
+      <h4 align="center">CORPORATE ORDERS</h4>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-6">
+      <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>
+      <a href="" class="pull-right hide" ng-click="$state.go('user.App.Cart')">
+          <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" title="Go To Cart Page"></i>
+      </a>
+    </div>
+  </div>
+
+  <div class="clearfix app_body" scrolly="orders.scroll(e)" style="padding-top: 40px; padding-bottom:20px;">
+    <div class="row">
+      <div class="col-md-3 col-sm-2 col-xs-hidden">
+      </div>
+      <div class="col-md-6 col-sm-8 col-xs-12">
+        <div class="order-list">
+          <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data">
+            <div class="row">
+              <section class="widget text-center no-margin">
+                <div class="widget-details col-xs-3 text-left">
+                  <small class="order-label">PO Number</small>
+                  <h2 class="no-margin order-bold">{{order.po_number}}</h2></div>
+                <div class="widget-details col-xs-2 text-center">
+                  <small class="order-label">Customer Name</small>
+                  <h2 class="no-margin order-bold">{{order.customer_name}}</h2>
+                </div>
+                <div class="widget-details col-xs-4 text-center">
+                  <small class="order-label">File</small>
+                  <center>
+                    <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;overflow: hidden;width: 75px;height: 26px;padding: 2px;">Select File
+                      <input class="btn btn-primary upload-button" value="Upload" type = "file" name="file" id="{{order.po_number}}">
+                    </span>
+                  </center>
+                </div>
+                <div class="widget-details col-xs-3 text-center">
+                  <small class="order-label"> </small>
+                  <center>
+                    <button type='button' class="btn btn-warning mt20" style="width: 75px;height: 26px;padding: 2px;" ng-click="orders.uploadPO(order, $index)" ng-disabled="order.uploading">{{(order.uploading)? 'Uploading': 'Upload';}}</button>
+                  </center>
+                </div>
+              </section>
+            </div>
+          </div>
+          <div class="order-item" ng-if="orders.order_data.data.length == 0 && (!orders.orders_loading)">
+            <div class="row">
+              <section class="widget text-center no-margin">
+                <div class="widget-details col-xs-12 text-center">
+                  <h3>No Pending PO's to be uploaded</h3>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+        <div class="order-list" ng-if="orders.orders_loading">
+          <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+        </div>
+        <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="orders.show_no_data" style="color:Red;text-align:center;">
+          <h5>------ END OF DATA ------</h5>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

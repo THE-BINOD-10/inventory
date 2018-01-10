@@ -9,12 +9,14 @@ import sys
 import traceback
 import ConfigParser
 import datetime
-from rest_api.views.miebach_utils  import *
+from rest_api.views.miebach_utils import *
 from utils import *
+
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read('rest_api/views/configuration.cfg')
 
-log = init_logger('logs/integrations.log')
+log = init_logger('logs/integration_requests.log')
+
 
 class EasyopsAPI:
     def __init__(self, company_name='', warehouse='', token='', user=''):
@@ -28,14 +30,15 @@ class EasyopsAPI:
         self.access_token_name = LOAD_CONFIG.get(self.company_name, 'access_token_name', '')
         self.is_full_link = LOAD_CONFIG.get(self.company_name, 'is_full_link', False)
         self.content_type_name = LOAD_CONFIG.get(self.company_name, 'content_type_name', False)
+        self.use_exist_auth = LOAD_CONFIG.get(self.company_name, 'use_exist_auth', False)
         self.token = token
         self.user = user
         self.content_type = 'application/json'
-        self.headers = { self.content_type_name : self.content_type }
+        self.headers = {self.content_type_name: self.content_type}
 
     def update_token(self, json_response):
         """ Updating refresh token details to DB """
-        access_token = UserAccessTokens.objects.filter(user_profile__user=self.user, app_host='easyops')
+        access_token = UserAccessTokens.objects.filter(user_profile__user=self.user, app_host=self.company_name)
         if access_token:
             access_token = access_token[0]
             access_token.access_token = json_response.get('access_token', '')
@@ -43,10 +46,10 @@ class EasyopsAPI:
             access_token.save()
         else:
             user_profile = UserProfile.objects.get(user_id=self.user.id)
-            access_token = UserAccessTokens.objects.create(access_token=json_response.get('access_token'), app_host='easyops',
-                                                           token_type= json_response.get('token_type'),
-                                                           code=json_response.get('tenant_id'),
-                                                           expires_in=json_response.get('expires_in'),user_profile_id=user_profile.id)
+            access_token = UserAccessTokens.objects.create(access_token=json_response.get('access_token', ''), app_host=self.company_name,
+                                                    token_type= json_response.get('token_type', ''),
+                                                    code=json_response.get('tenant_id', ''),
+                                                    expires_in=json_response.get('expires_in', 0),user_profile_id=user_profile.id)
 
     def get_user_token(self, user=''):
         self.token = ''
@@ -84,12 +87,18 @@ class EasyopsAPI:
                     import traceback
                     log.debug(traceback.format_exc())
                     response = {'status': 'Internal Server Error'}
+        log.info("API call for url is %s headers is %s request is %s and response is %s" %
+                        (url, str(self.headers), str(data), str(response)))
         return response
 
     def get_access_token(self, user=''):
         """ Collecting access token """
         self.user = user
         data = eval(self.auth_data)
+        if self.use_exist_auth and data:
+            self.token = data[1]
+            self.update_token({'access_token': data[1]})
+            return {}
         integrations = Integrations.objects.filter(user=user.id, name=self.company_name)
         if integrations:
             self.client_id = integrations[0].client_id
@@ -120,7 +129,8 @@ class EasyopsAPI:
         main_json_response = ""
 
         today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
-        data = eval(LOAD_CONFIG.get(self.company_name, 'pending_order_dict', '') % eval(LOAD_CONFIG.get(self.company_name, 'pending_order_values', '')))
+        data = eval(LOAD_CONFIG.get(self.company_name, 'pending_order_dict', '') % eval(
+            LOAD_CONFIG.get(self.company_name, 'pending_order_values', '')))
         offset = 0
         while run_iterator:
             url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'pending_orders', ''))
@@ -160,7 +170,7 @@ class EasyopsAPI:
             self.get_user_token(user)
         run_iterator = 1
         url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'update_stock', ''))
-        #data = eval(LOAD_CONFIG.get(self.company_name, 'update_stock_dict', '') % stock_count)
+        # data = eval(LOAD_CONFIG.get(self.company_name, 'update_stock_dict', '') % stock_count)
         run_limit = len(data)
         offset = 0
         if LOAD_CONFIG.get(self.company_name, 'stock_pagination_limit', ''):
@@ -213,7 +223,8 @@ class EasyopsAPI:
         main_json_response = ""
 
         today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
-        data = eval(LOAD_CONFIG.get(self.company_name, 'shipped_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        data = eval(
+            LOAD_CONFIG.get(self.company_name, 'shipped_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
         offset = 0
         while run_iterator:
 
@@ -248,7 +259,8 @@ class EasyopsAPI:
         main_json_response = ""
 
         today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
-        data = eval(LOAD_CONFIG.get(self.company_name, 'returned_order_dict', '') % eval(LOAD_CONFIG.get(self.company_name, 'returned_order_values', '')))
+        data = eval(LOAD_CONFIG.get(self.company_name, 'returned_order_dict', '') % eval(
+            LOAD_CONFIG.get(self.company_name, 'returned_order_values', '')))
 
         offset = 0
         while run_iterator:
@@ -286,7 +298,8 @@ class EasyopsAPI:
         main_json_response = ""
 
         today_start = datetime.datetime.combine(datetime.datetime.now() - datetime.timedelta(days=30), datetime.time())
-        data = eval(LOAD_CONFIG.get(self.company_name, 'cancelled_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        data = eval(
+            LOAD_CONFIG.get(self.company_name, 'cancelled_order_dict', '') % today_start.strftime('%Y-%m-%dT%H:%M:%SZ'))
         offset = 0
         while run_iterator:
             url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'cancelled_orders', ''))
@@ -333,3 +346,44 @@ class EasyopsAPI:
                 url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'cancel_order', ''))
         json_response = self.get_response(url, data)
         return json_response
+
+
+    def qssi_order_push(self, data={}, user=''):
+        """ API to push order (QSSI)"""
+        if user:
+            self.user = user
+            self.get_user_token(user)
+
+        if self.is_full_link:
+            url = LOAD_CONFIG.get(self.company_name, 'order_push', '')
+        else:
+            url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'order_push', ''))
+        json_response = self.get_response(url, data)
+        return json_response
+
+
+    def qssi_get_inventory(self, data={}, user=''):
+        """ API to get inventory (QSSI)"""
+        if user:
+            self.user = user
+            self.get_user_token(user)
+
+        if self.is_full_link:
+            url = LOAD_CONFIG.get(self.company_name, 'get_inventory', '')
+        else:
+            url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'get_inventory', ''))
+        json_response = self.get_response(url, data)
+        return json_response
+
+    def qssi_get_order_status(self, data={}, user=''):
+        """ API to get order status (QSSI)"""
+        if user:
+            self.user = user
+            self.get_user_token(user)
+        if self.is_full_link:
+            url = LOAD_CONFIG.get(self.company_name, 'get_order_status', '')
+        else:
+            url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'get_order_status', ''))
+        json_response = self.get_response(url, data)
+        return json_response
+

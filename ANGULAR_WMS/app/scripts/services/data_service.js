@@ -141,6 +141,11 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
       self.other_view.view = 'OrderView'
     }
 
+    /** customer login **/
+    self.marginSKUData = {data: []};
+    self.enquiry_orders = [];
+    self.my_orders = [];
+
     /** login page maintainance **/
     self.login_data = {
 

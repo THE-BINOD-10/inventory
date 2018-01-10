@@ -168,3 +168,18 @@ def get_page_break(count):
         return True
     else:
         return False
+
+@register.filter
+def get_style_quantity(name, quantities):
+    if quantities.get(name, ''):
+        return str(quantities[name])
+    else:
+        return ''
+
+@register.filter
+def get_quantity_based_price(obj, quantities):
+    quantity = int(quantities[obj['sku_class']])
+    for rg in obj['variants'][0]['price_ranges']:
+        if rg['max_unit_range'] >= quantity and quantity >= rg['min_unit_range']:
+            return rg['price']*quantity
+

@@ -184,8 +184,8 @@ angular
           return Session.roles.labels[data];
         }else if(special.indexOf(data) > -1) {
           return Session.roles.permissions[data];
-        } else if (Boolean(Session.roles.permissions["is_staff"]) || Boolean(Session.roles.permissions["is_superuser"])) {
-          return true;
+        //} else if (Boolean(Session.roles.permissions["is_staff"]) || Boolean(Session.roles.permissions["is_superuser"])) {
+        //  return true;
         } else if (!(Session.roles.permissions[data])) {
           return false;
         } else {

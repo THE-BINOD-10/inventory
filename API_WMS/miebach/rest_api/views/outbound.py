@@ -6037,8 +6037,10 @@ def get_level_based_customer_orders(request, response_data, user=''):
     if cum_obj:
         customer_id = cum_obj[0].customer.customer_id
         cm_id = cum_obj[0].customer_id
-        picklist = Picklist.objects.filter(order__customer_id=customer_id, order__user=user.id)
         generic_orders = GenericOrderDetailMapping.objects.filter(customer_id=cm_id)
+        generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
+        picklist = Picklist.objects.filter(order__customer_id=customer_id,
+                                           order_id__in=generic_details_ids)
         response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id'). \
                                      annotate(total_quantity=Sum('quantity'),
                                               total_inv_amt=Sum('orderdetail__invoice_amount')). \

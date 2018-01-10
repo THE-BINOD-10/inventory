@@ -1096,6 +1096,7 @@ def rm_picklist_confirmation(request, user=''):
     if status:
         return HttpResponse(status)
 
+    decimal_limit = get_decimal_value(user.id)
     for key, value in data.iteritems():
         if key == 'code':
             continue
@@ -1141,26 +1142,30 @@ def rm_picklist_confirmation(request, user=''):
                     if picking_count == 0:
                         break
                     if picking_count > stock.quantity:
-                        picking_count -= stock.quantity
-                        picklist.reserved_quantity -= stock.quantity
+                        picking_count = truncate_float(picking_count - stock.quantity, decimal_limit)
+                        picklist.reserved_quantity = truncate_float(picklist.reserved_quantity - stock.quantity,
+                                                                    decimal_limit)
                         stock.quantity = 0
                     else:
-                        stock.quantity -= picking_count
-                        picklist.reserved_quantity -= picking_count
+                        stock.quantity = truncate_float(stock.quantity - picking_count, decimal_limit)
+                        picklist.reserved_quantity = truncate_float(picklist.reserved_quantity - picking_count,
+                                                                    decimal_limit)
                         picking_count = 0
 
                         if float(stock.location.filled_capacity) - picking_count1 >= 0:
-                            setattr(stock.location, 'filled_capacity',
-                                    float(stock.location.filled_capacity) - picking_count1)
+                            filled_capacity = float(stock.location.filled_capacity) - picking_count1
+                            filled_capacity = truncate_float(filled_capacity, decimal_limit)
+                            setattr(stock.location, 'filled_capacity', filled_capacity)
                             stock.location.save()
 
                         pick_loc = RMLocation.objects.filter(material_picklist_id=picklist.id,
                                                              stock__location_id=stock.location_id,
                                                              material_picklist__jo_material__material_code__user=user.id,
                                                              status=1)
+                        picking_count1 = truncate_float(picking_count1, decimal_limit)
                         update_picked = picking_count1
                         if pick_loc:
-                            update_picklist_locations(pick_loc, picklist, update_picked)
+                            update_picklist_locations(pick_loc, picklist, update_picked, '', decimal_limit)
                         else:
                             data = RMLocation(material_picklist_id=picklist.id, stock=stock, quantity=picking_count1,
                                               reserved=0,
@@ -1169,12 +1174,12 @@ def rm_picklist_confirmation(request, user=''):
                             data.save()
                             exist_pics = RMLocation.objects.exclude(id=data.id).filter(material_picklist_id=picklist.id,
                                                                                        status=1, reserved__gt=0)
-                            update_picklist_locations(exist_pics, picklist, update_picked, 'true')
+                            update_picklist_locations(exist_pics, picklist, update_picked, 'true', decimal_limit)
 
                         picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
 
                     raw_loc = RMLocation.objects.get(id=raw_loc.id)
-
+                    stock.quantity = truncate_float(stock.quantity, decimal_limit)
                     stock.save()
                     mod_locations.append(stock.location.location)
                     if stock.location.zone.zone == 'BAY_AREA':
@@ -1189,6 +1194,7 @@ def rm_picklist_confirmation(request, user=''):
                             raw_loc.material_picklist.jo_material.save()
                     auto_skus.append(sku.sku_code)
                 picked_quantity_val -= picking_count1
+                picked_quantity_val = truncate_float(picked_quantity_val, decimal_limit)
                 if picklist.reserved_quantity < 0:
                     picklist.reserved_quantity = 0
                 if picklist.reserved_quantity == 0:

@@ -34,6 +34,7 @@ def order_update(orders, user, status):
         order_detail = OrderDetail.objects.filter(original_order_id = temp_order_id, user=user.id)
         for item in order_detail:
             item.status = status
+            log.info("Status changed to %s for order %s, user %s" % (str(status), str(item.id), str(user.username)))
             #picklist confirmation
             if status == '2':
                 picklist_obj = Picklist.objects.filter(order_id = item.id)
@@ -47,6 +48,8 @@ def order_update(orders, user, status):
                         picklist_location.reserved = 0
                         picklist_location.status = '0'
                         picklist_location.save()
+                        log.info("Updated stock in Picklist location obj %s : quantity=%s" %
+                                 (str(picklist_location.id), str(picklist_location.quantity)))
                         stock_id = picklist_location.stock_id
                     stock_obj = StockDetail.objects.filter(id=stock_id)
                     if stock_obj:
@@ -57,11 +60,18 @@ def order_update(orders, user, status):
                         picklist_obj.status = "picked"
                         picklist_obj.save()
                         stock_obj.save()
+                        log.info("Picklist id %s confirmed and Stock id %s quantity \
+                                  reduced to %s; user : %s" %
+                                  (str(picklist_obj.id), str(stock_obj.id), str(stock_obj.quantity),\
+                                   str(user.username)))
                     seller_order_summary = SellerOrderSummary.objects.create(pick_number = 1,\
                                                 seller_order = None,\
                                                 order = item,\
                                                 picklist = picklist_obj,\
                                                 quantity = item.quantity)
+                    log.info("Seller Order Summary created: id = %s, order_id = %s, picklist_id = %s,\
+                             quantity = %s") % (str(seller_order_summary.id), str(item.id),\
+                             str(picklist_obj.id), str(item.quantity))
             item.save()
     return "Status Updated"
 

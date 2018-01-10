@@ -6147,11 +6147,15 @@ def construct_order_customer_order_detail(request, order, user):
         if gen_ord_obj:
             el_price = gen_ord_obj[0].el_price
             res_unit_price = gen_ord_obj[0].unit_price
+            cm_id = gen_ord_obj[0].customer_id
+            qty = record['quantity']
+            user = gen_ord_obj[0].cust_wh_id
+            sku_code = record['sku__sku_code']
             if el_price:
                 record['el_price'] = el_price
             if res_unit_price:
-                tax_inclusive_inv_amt = record['invoice_amount']
                 tax_exclusive_inv_amt = float(res_unit_price) * int(record['quantity'])
+                tax_inclusive_inv_amt = get_tax_inclusive_invoice_amt(cm_id, res_unit_price, qty, user, sku_code)
                 record['invoice_amount'] = tax_inclusive_inv_amt
                 record['sku_tax_amt'] = round(tax_inclusive_inv_amt - tax_exclusive_inv_amt, 2)
             schedule_date = gen_ord_obj[0].schedule_date
@@ -7497,27 +7501,6 @@ def get_enquiry_data(request, user=''):
                    'total_inv_amt': round(total_inv_amt[enq_id], 2)}
         response_data['data'].append(res_map)
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
-
-
-def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code):
-    usr_sku_master = SKUMaster.objects.get(user=usr, sku_code=sku_code)
-    customer_master = CustomerMaster.objects.get(id=cm_id)
-    taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
-    if customer_master.tax_type:
-        inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
-        inter_state = inter_state_dict.get(customer_master.tax_type, 2)
-        tax_master = TaxMaster.objects.filter(user_id=usr, inter_state=inter_state,
-                                              product_type=usr_sku_master.product_type,
-                                              min_amt__lte=unit_price, max_amt__gte=unit_price)
-        if tax_master:
-            tax_master = tax_master[0]
-            taxes['cgst_tax'] = float(tax_master.cgst_tax)
-            taxes['sgst_tax'] = float(tax_master.sgst_tax)
-            taxes['igst_tax'] = float(tax_master.igst_tax)
-            taxes['utgst_tax'] = float(tax_master.utgst_tax)
-    invoice_amount = qty * unit_price
-    invoice_amount = invoice_amount + ((invoice_amount / 100) * sum(taxes.values()))
-    return invoice_amount
 
 
 @get_admin_user

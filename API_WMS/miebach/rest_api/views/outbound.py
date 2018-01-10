@@ -7696,6 +7696,15 @@ def order_cancel(request, user=''):
         if admin_user:
             gen_ord_id = request.GET.get('order_id', '')
             if gen_ord_id:
+                #qssi push order api call to cancel order
+                generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_ord_id,
+                                                                          customer_id=cm_id). \
+                    values('orderdetail__original_order_id', 'orderdetail__user').distinct()
+                for generic_order in generic_orders:
+                    original_order_id = generic_order['orderdetail__original_order_id']
+                    order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
+                    resp = order_push(original_order_id, order_detail_user, "CANCEL")
+                    log.info('Cancel Order Push Status: %s' % (str(resp)))
                 gen_qs = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_ord_id, customer_id=cm_id)
                 uploaded_po_details = gen_qs.values('po_number', 'client_name').distinct()
                 if uploaded_po_details.count() == 1:
@@ -7708,14 +7717,6 @@ def order_cancel(request, user=''):
                 ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
                 ord_det_qs.delete()
                 gen_qs.delete()
-            #qssi push order api call to cancel order
-            order_detail_id = GenericOrderDetailMapping.objects.latest('id').orderdetail_id
-            order_detail_obj = OrderDetail.objects.filter(id = order_detail_id)
-            if order_detail_obj:
-                original_order_id = order_detail_obj[0].original_order_id
-                resp = order_push(original_order_id, user, "CANCEL")
-                log.info('Cancel Order Push Status: %s, Order ID: %s' %(resp["Status"], resp["OrderId"]))
-
         else:
             ord_id = request.GET.get('order_id', '')
             ord_qs = OrderDetail.objects.filter(order_id=ord_id, user=user)

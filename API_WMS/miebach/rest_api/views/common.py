@@ -5893,3 +5893,24 @@ def order_status_update(order_ids, user):
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
         response = obj.qssi_get_order_status(order_id_dict, user=user)
     return response
+
+
+def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code):
+    usr_sku_master = SKUMaster.objects.get(user=usr, sku_code=sku_code)
+    customer_master = CustomerMaster.objects.get(id=cm_id)
+    taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
+    if customer_master.tax_type:
+        inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+        inter_state = inter_state_dict.get(customer_master.tax_type, 2)
+        tax_master = TaxMaster.objects.filter(user_id=usr, inter_state=inter_state,
+                                              product_type=usr_sku_master.product_type,
+                                              min_amt__lte=unit_price, max_amt__gte=unit_price)
+        if tax_master:
+            tax_master = tax_master[0]
+            taxes['cgst_tax'] = float(tax_master.cgst_tax)
+            taxes['sgst_tax'] = float(tax_master.sgst_tax)
+            taxes['igst_tax'] = float(tax_master.igst_tax)
+            taxes['utgst_tax'] = float(tax_master.utgst_tax)
+    invoice_amount = qty * unit_price
+    invoice_amount = invoice_amount + ((invoice_amount / 100) * sum(taxes.values()))
+    return invoice_amount

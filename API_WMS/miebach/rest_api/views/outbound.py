@@ -1735,8 +1735,14 @@ def update_invoice(request, user=''):
             if not str(order_id.id) in myDict['id']:
                 continue
 
+            discount_percentage = 0
             unit_price_index = myDict['id'].index(str(order_id.id))
             if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
+                cust_obj = order_id.customerordersummary_set.all()
+                if cust_obj:
+                    cust_obj = cust_obj[0]
+                    if (order_id.quantity * order_id.unit_price):
+                        discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
                 order_id.unit_price = float(myDict['unit_price'][unit_price_index])
                 order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index])
                 order_id.save()
@@ -1746,6 +1752,8 @@ def update_invoice(request, user=''):
                 cust_obj.consignee = consignee
                 if invoice_date:
                     cust_obj.invoice_date = invoice_date
+                if discount_percentage:
+                    cust_obj.discount = ((order_id.quantity * order_id.unit_price)/100) * float(discount_percentage)
                 cust_obj.save()
 
         # Updating or Creating Order other charges Table

@@ -1,7 +1,7 @@
 ;(function (angular) {
     "use strict";
   
-    angular.module("sku", ["ngMaterial"])
+   angular.module("sku", ["ngMaterial"])
            .component("sku", {
   
              "templateUrl": "/app/sku/sku.template.html",
@@ -27,7 +27,96 @@
   
       self.names = ['Delivery Challan', 'Pre Order'];//['Delivery Challan', 'sample', 'R&D']
       self.nw_status = "";
-  
+
+      $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
+           .then( function(data) {
+				self.sku_data_filtered = data.data.file_content.slice(0,500);
+				self.sku_data = data.data.file_content;
+				self.slice_from = 0;
+				self.slice_to = 500;
+                self.selected_skus = [];
+            },function(error){
+              getData("").then(function(data){
+                if(data.length==0){
+                  urlService.show_toast("offline has no sku's");
+                }else{
+                self.sku_data_filtered =data.slice(0,500);
+                self.sku_data = data;
+                self.slice_from = 0;
+                self.slice_to = 500;
+                self.selected_skus = [];
+                }
+              });
+            });
+
+
+	  //check sku
+	  self.check_sku = check_sku;
+	  self.checked_sku = false;
+	  function check_sku(sku_code) {
+		var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
+		if(check_box.prop("checked")) {
+			check_box.prop("checked", false);
+            var indx = self.selected_skus.indexOf(sku_code);
+            self.selected_skus.splice(indx, 1);
+            for (var sk in self.sku_data_filtered) {
+                if(self.sku_data_filtered[sk]["SKUCode"] === sku_code) {
+                    self.sku_data_filtered[sk]["quantity"] = 0;
+                    self.sku_data_filtered[sk]["sku_code"] = sku_code;
+                    changeQuantity(self.sku_data_filtered[sk]);
+                }
+            }
+            console.log(self.selected_skus);
+		} else {
+			check_box.prop("checked", true);
+            self.selected_skus.push(sku_code);
+            console.log(self.selected_skus);
+			for (var sk in self.sku_data_filtered) {
+				if(self.sku_data_filtered[sk]["SKUCode"] === sku_code) {
+                    self.sku_data_filtered[sk]["checked"] = true;
+					update_search_results([self.sku_data_filtered[sk]], sku_code);
+                    cal_total();
+				}
+			}
+		}
+	  }
+
+	  //sku pagination
+	  self.sku_pagination = sku_pagination;
+	  function sku_pagination(type) {
+		//$(".preloader").removeClass("ng-hide").addClass("ng-show");
+		if(type === "next") {
+			self.slice_from += 500;
+			self.slice_to += 500;
+		} else {
+			self.slice_from -= 500;
+			self.slice_to -= 500;
+		}
+		self.sku_data_filtered = self.sku_data.slice(self.slice_from, self.slice_to);
+        for (var sk in self.sku_data_filtered) {
+            if(self.selected_skus.indexOf(self.sku_data_filtered[sk]["SKUCode"]) === -1) {
+                self.sku_data_filtered[sk]["checked"] = false;
+            } else {
+                self.sku_data_filtered[sk]["checked"] = true;
+            }
+        }
+	  }
+
+	  self.hide_load = hide_load;
+	  function hide_load(last) {
+		//last ? $(".preloader").addClass("ng-hide") : $(".preloader").removeClass("ng-hide");
+	  }
+	  self.checkbox_click = checkbox_click;
+	 function checkbox_click($event, sku_code) {
+		//$event.stopPropagation();
+		var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
+		if(check_box.prop("checked")) {
+			check_box.prop("checked", false);
+		} else {
+			check_box.prop("checked", true);
+		}
+	 }
+
       //calculate total items
       self.cal_total = cal_total;
       function cal_total(){
@@ -41,6 +130,7 @@
         urlService.current_order.summary.cgst = 0;
         urlService.current_order.summary.igst = 0;
         urlService.current_order.summary.utgst = 0;
+        urlService.current_order.summary.gst_based = {};
         for (var i = 0; i < self.skus.length; i++){
 
 		  if(self.skus[i].return_status === "true") {
@@ -57,6 +147,23 @@
           urlService.current_order.summary.cgst += (self.skus[i].igst * self.skus[i].quantity);
           urlService.current_order.summary.cgst += (self.skus[i].utgst * self.skus[i].quantity);
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
+
+          if(Object.keys(urlService.current_order.summary.gst_based).includes(self.skus[i].cgst_percent.toString())) {
+              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["taxable_amt"] += self.skus[i].price;
+              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent *
+                                               (self.skus[i].price)/100);
+              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] += (self.skus[i].sgst_percent *
+                                               (self.skus[i].price)/100);
+          } else {
+              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent] =
+                            {"taxable_amt": self.skus[i].price,
+                             "cgst_percent" : self.skus[i].cgst_percent,
+                             "sgst_percent" : self.skus[i].sgst_percent,
+                             "cgst": (self.skus[i].cgst_percent * (self.skus[i].price)/100),
+                             "sgst": (self.skus[i].sgst_percent * (self.skus[i].price)/100)
+                            }
+          }
+
 		  if (self.skus[i].return_status === "true" ) {
 			urlService.current_order.summary.total_discount += 0;
             urlService.current_order.summary.total_returned += -self.skus[i].price;
@@ -111,7 +218,9 @@
       function print_order(data,user) {
   
         var date = new Date().toDateString();
-        printer.print('/app/views/print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '', 'date': date});
+        debugger;
+        printer.print('/app/views/print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
+                      'date': date, 'print_type': ''});
       }
   
       self.store_data = store_data;
@@ -277,6 +386,7 @@
       self.get_product_data = get_product_data;
   
       function update_search_results(filter_data, key) {
+          //debugger;
           for (var i=0; i<filter_data.length; i++) {
            if(filter_data.length === 1) {
             if(filter_data[i].SKUCode===key) {
@@ -502,7 +612,13 @@
       function searchTextChange(text) {
         $log.info('Text changed to ' + text);
       }
-  
+
+      //multi select sku popup
+      self.all_skus_popup = all_skus_popup;
+      function all_skus_popup() {
+              $('#skuModal').modal('show');
+      }
+
       self.skus = [] //urlService.current_order.sku_data;
       function selectedItemChange(item) {
         if (!(typeof(item) == "undefined")) {

@@ -103,7 +103,7 @@
                     if(find_key!=undefined && find_key.length>0){
                         var foundIds = {};
                         POS_TABLES.sku_search_words.where("word").
-                        startsWithIgnoreCase(find_key).limit(30).
+                        startsWithIgnoreCase(find_key).limit(200).
                         each(function (wordToSKUMapping) {
                             foundIds[wordToSKUMapping.SKUCode.toString()] = true;
                         }).

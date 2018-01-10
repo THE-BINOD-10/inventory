@@ -42,8 +42,8 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   vm.open_style = function(user_type) {
 
     if (user_type == 'reseller' && vm.selLevel  != 0) {
-      
-      if (!vm.levels_data[0].data[0].quantity ||
+
+      if ((!vm.levels_data[0].data[0].quantity && vm.levels_data[0].data[0].overall_sku_total_quantity != 0) ||
         vm.levels_data[0].data[0].overall_sku_total_quantity > Number(vm.levels_data[0].data[0].quantity)) {
       
         vm.service.showNoty("You can not change level until the filled quantity is equal to the available quantity", "success", "topRight");

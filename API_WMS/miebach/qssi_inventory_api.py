@@ -37,6 +37,8 @@ def update_inventory(company_name):
                                 stock_detail = stock_detail[0]
                                 stock_detail.quantity = inventory
                                 stock_detail.save()
+                                log.info("Stock updated for user %s for sku %s, new stock is %s" %
+                                         (user.username, str(sku.sku_code), str(inventory)))
                             else:
                                 new_stock_dict = {"receipt_number": 1,
                                                   "receipt_date": datetime.datetime.now(),

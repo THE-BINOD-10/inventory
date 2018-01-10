@@ -478,10 +478,10 @@ def get_sales_return_filter_data(search_params, user, request_user, is_excel=Fal
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     search_parameters['sku__user'] = user.id
-    sales_return = OrderReturns.objects.filter(**search_parameters)
+    sales_return = OrderReturns.objects.filter(**search_parameters).exclude(quantity=0, damaged_quantity=0)
     if marketplace:
         sales_return = OrderReturns.objects.filter(Q(order__marketplace=marketplace) | Q(marketplace=marketplace),
-                                                   **search_parameters)
+                                                   **search_parameters).exclude(quantity=0, damaged_quantity=0)
     temp_data['recordsTotal'] = len(sales_return)
     temp_data['recordsFiltered'] = len(sales_return)
     if stop_index:
@@ -550,44 +550,11 @@ def get_sales_return_filter(request, user=''):
 
 @get_admin_user
 def print_sales_returns(request, user=''):
-    search_parameters = {}
     headers, search_params, filter_params = get_search_params(request)
-    if 'creation_date' in search_params:
-        from_date = search_params['creation_date'].split('/')
-        search_parameters['creation_date__startswith'] = datetime.date(int(from_date[2]), int(from_date[0]),
-                                                                       int(from_date[1]))
-    if 'sku_code' in search_params:
-        search_parameters['sku__sku_code'] = search_params['sku_code'].upper()
-    if 'wms_code' in search_params:
-        search_parameters['sku__wms_code'] = search_params['wms_code'].upper()
-    if 'order_id' in search_params:
-        value = search_params['order_id'].strip('OD').strip('MN').strip('SR')
-        search_parameters['order_id'] = value
-    if 'customer_id' in search_params:
-        search_parameters['order__customer_id'] = value
-    search_parameters['sku__user'] = user.id
-    if search_parameters:
-        sales_return = OrderReturns.objects.filter(**search_parameters)
-    else:
-        sales_return = OrderReturns.objects.filter(user=user.id)
-    report_data = []
-    for data in sales_return:
-        order_id = ''
-        customer_id = ''
-        if data.order:
-            order_id = data.order.order_id
-            customer_id = data.order.customer_id
-        reasons = OrderReturnReasons.objects.filter(order_return=data.id)
-        if reasons:
-            for reason in reasons:
-                report_data.append((data.sku.sku_code, order_id, customer_id, str(data.creation_date).split('+')[0],
-                                    data.quantity, reason.reason, reason.status))
-            continue
-        report_data.append((data.sku.sku_code, order_id, customer_id, str(data.creation_date).split('+')[0],
-                            data.quantity, data.reason, data.status))
-
-    headers = ('SKU Code', 'Order ID', 'Customer ID', 'Return Date', 'Quantity', 'Reason', 'Status')
-    html_data = create_reports_table(headers, report_data)
+    report_data = get_sales_return_filter_data(search_params, user, request.user, is_excel=True)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
 
 

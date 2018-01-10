@@ -66,12 +66,21 @@ def get_company_logo(user):
     return image
 
 
-def get_decimal_limit(user_id, value):
+def get_decimal_value(user_id):
     decimal_limit = 0
     if get_misc_value('float_switch', user_id) == 'true':
         decimal_limit = 1
         if get_misc_value('float_switch', user_id, number=True):
             decimal_limit = get_misc_value('decimal_limit', user_id, number=True)
+    return decimal_limit
+
+
+def get_decimal_limit(user_id, value):
+    decimal_limit = get_decimal_value(user_id)
+    return truncate_float(value, decimal_limit)
+
+
+def truncate_float(value, decimal_limit):
     return float(("%." + str(decimal_limit) + "f") % (value))
 
 
@@ -1577,15 +1586,15 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
     return 'Added Successfully'
 
 
-def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity=''):
+def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity='', decimal_limit=0):
     for pic_loc in pick_loc:
         if float(pic_loc.reserved) >= update_picked:
-            pic_loc.reserved = float(pic_loc.reserved) - update_picked
+            pic_loc.reserved = truncate_float(float(pic_loc.reserved) - update_picked, decimal_limit)
             if update_quantity:
-                pic_loc.quantity = float(pic_loc.quantity) - update_picked
+                pic_loc.quantity = truncate_float(float(pic_loc.quantity) - update_picked, decimal_limit)
             update_picked = 0
         elif float(pic_loc.reserved) < update_picked:
-            update_picked = update_picked - pic_loc.reserved
+            update_picked = truncate_float(update_picked - pic_loc.reserved, decimal_limit)
             if update_quantity:
                 pic_loc.quantity = 0
             pic_loc.reserved = 0
@@ -5893,3 +5902,24 @@ def order_status_update(order_ids, user):
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
         response = obj.qssi_get_order_status(order_id_dict, user=user)
     return response
+
+
+def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code):
+    usr_sku_master = SKUMaster.objects.get(user=usr, sku_code=sku_code)
+    customer_master = CustomerMaster.objects.get(id=cm_id)
+    taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
+    if customer_master.tax_type:
+        inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+        inter_state = inter_state_dict.get(customer_master.tax_type, 2)
+        tax_master = TaxMaster.objects.filter(user_id=usr, inter_state=inter_state,
+                                              product_type=usr_sku_master.product_type,
+                                              min_amt__lte=unit_price, max_amt__gte=unit_price)
+        if tax_master:
+            tax_master = tax_master[0]
+            taxes['cgst_tax'] = float(tax_master.cgst_tax)
+            taxes['sgst_tax'] = float(tax_master.sgst_tax)
+            taxes['igst_tax'] = float(tax_master.igst_tax)
+            taxes['utgst_tax'] = float(tax_master.utgst_tax)
+    invoice_amount = qty * unit_price
+    invoice_amount = invoice_amount + ((invoice_amount / 100) * sum(taxes.values()))
+    return invoice_amount

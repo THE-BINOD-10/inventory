@@ -157,6 +157,7 @@ def get_barcodes(data_dict):
 
             lquiet = data['width'] - code.width
             code.lquiet = lquiet / 2 if lquiet > 0 else 0
+            code.lquiet += f.leftPadding
 
             story.append(code)
             story.append(Spacer(2 * mm, 2 * mm))

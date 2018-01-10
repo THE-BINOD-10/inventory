@@ -201,7 +201,7 @@
 	          typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')"
 	          typeahead-loading="loadingLocations" class="form-control" name="item_code" ng-model="data.item_code" 
 	          typeahead-on-select="showCase.get_sku_data(data, $item)" ng-readonly="data.default_status">
-              <!-- <img ng-src="{{data.image_url}}" style="height: 75px; padding-top: 2%; padding-left: 30%;"></img> -->
+              <img ng-src="{{data.image_url}}" style="padding-top: 10px;width: 120px;"></img>
 	        </td>
             <td>
               <input type="text" class="form-control" name="product_title" ng-model="data.product_title" ng-readonly="data.default_status">

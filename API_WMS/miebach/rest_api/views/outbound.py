@@ -6037,8 +6037,10 @@ def get_level_based_customer_orders(request, response_data, user=''):
     if cum_obj:
         customer_id = cum_obj[0].customer.customer_id
         cm_id = cum_obj[0].customer_id
-        picklist = Picklist.objects.filter(order__customer_id=customer_id, order__user=user.id)
         generic_orders = GenericOrderDetailMapping.objects.filter(customer_id=cm_id)
+        generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
+        picklist = Picklist.objects.filter(order__customer_id=customer_id,
+                                           order_id__in=generic_details_ids)
         response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id'). \
                                      annotate(total_quantity=Sum('quantity'),
                                               total_inv_amt=Sum('orderdetail__invoice_amount')). \
@@ -6145,11 +6147,15 @@ def construct_order_customer_order_detail(request, order, user):
         if gen_ord_obj:
             el_price = gen_ord_obj[0].el_price
             res_unit_price = gen_ord_obj[0].unit_price
+            cm_id = gen_ord_obj[0].customer_id
+            qty = record['quantity']
+            user = gen_ord_obj[0].cust_wh_id
+            sku_code = record['sku__sku_code']
             if el_price:
                 record['el_price'] = el_price
             if res_unit_price:
-                tax_inclusive_inv_amt = record['invoice_amount']
                 tax_exclusive_inv_amt = float(res_unit_price) * int(record['quantity'])
+                tax_inclusive_inv_amt = get_tax_inclusive_invoice_amt(cm_id, res_unit_price, qty, user, sku_code)
                 record['invoice_amount'] = tax_inclusive_inv_amt
                 record['sku_tax_amt'] = round(tax_inclusive_inv_amt - tax_exclusive_inv_amt, 2)
             schedule_date = gen_ord_obj[0].schedule_date
@@ -7497,27 +7503,6 @@ def get_enquiry_data(request, user=''):
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
 
-def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code):
-    usr_sku_master = SKUMaster.objects.get(user=usr, sku_code=sku_code)
-    customer_master = CustomerMaster.objects.get(id=cm_id)
-    taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
-    if customer_master.tax_type:
-        inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
-        inter_state = inter_state_dict.get(customer_master.tax_type, 2)
-        tax_master = TaxMaster.objects.filter(user_id=usr, inter_state=inter_state,
-                                              product_type=usr_sku_master.product_type,
-                                              min_amt__lte=unit_price, max_amt__gte=unit_price)
-        if tax_master:
-            tax_master = tax_master[0]
-            taxes['cgst_tax'] = float(tax_master.cgst_tax)
-            taxes['sgst_tax'] = float(tax_master.sgst_tax)
-            taxes['igst_tax'] = float(tax_master.igst_tax)
-            taxes['utgst_tax'] = float(tax_master.utgst_tax)
-    invoice_amount = qty * unit_price
-    invoice_amount = invoice_amount + ((invoice_amount / 100) * sum(taxes.values()))
-    return invoice_amount
-
-
 @get_admin_user
 def get_customer_enquiry_detail(request, user=''):
     whole_res_map = {}
@@ -7694,6 +7679,15 @@ def order_cancel(request, user=''):
         if admin_user:
             gen_ord_id = request.GET.get('order_id', '')
             if gen_ord_id:
+                #qssi push order api call to cancel order
+                generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_ord_id,
+                                                                          customer_id=cm_id). \
+                    values('orderdetail__original_order_id', 'orderdetail__user').distinct()
+                for generic_order in generic_orders:
+                    original_order_id = generic_order['orderdetail__original_order_id']
+                    order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
+                    resp = order_push(original_order_id, order_detail_user, "CANCEL")
+                    log.info('Cancel Order Push Status: %s' % (str(resp)))
                 gen_qs = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_ord_id, customer_id=cm_id)
                 uploaded_po_details = gen_qs.values('po_number', 'client_name').distinct()
                 if uploaded_po_details.count() == 1:
@@ -7706,14 +7700,6 @@ def order_cancel(request, user=''):
                 ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
                 ord_det_qs.delete()
                 gen_qs.delete()
-            #qssi push order api call to cancel order
-            order_detail_id = GenericOrderDetailMapping.objects.latest('id').orderdetail_id
-            order_detail_obj = OrderDetail.objects.filter(id = order_detail_id)
-            if order_detail_obj:
-                original_order_id = order_detail_obj[0].original_order_id
-                resp = order_push(original_order_id, user, "CANCEL")
-                log.info('Cancel Order Push Status: %s, Order ID: %s' %(resp["Status"], resp["OrderId"]))
-
         else:
             ord_id = request.GET.get('order_id', '')
             ord_qs = OrderDetail.objects.filter(order_id=ord_id, user=user)

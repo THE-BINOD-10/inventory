@@ -597,7 +597,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
                 vm.model_data.data[0]['tax'] = vm.tax;
                 vm.model_data.data[0]['total_amount'] = ((vm.model_data.data[0].invoice_amount/100)*vm.tax)+vm.model_data.data[0].invoice_amount;
               } else {
-                var temp = {sku_id: data.wms_code, description: data.sku_desc, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax}
+                var temp = {sku_id: data.wms_code, description: data.sku_desc, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax, discount: ""}
                 temp['total_amount'] = ((temp.invoice_amount/100)*vm.tax)+temp.invoice_amount;
                 vm.model_data.data.push(temp)
               }

@@ -3120,7 +3120,7 @@ def insert_order_data(request, user=''):
                     order_data['warehouse_level'] = 0
                 stock_wh_map = split_orders(**order_data)
                 fetch_order_ids(stock_wh_map, user_order_ids_map)
-                if not is_distributor and user_order_ids_map.has_key(user.id):
+                if not is_distributor and user_order_ids_map.has_key(user.id) and stock_wh_map.has_key(user.id):
                     order_data['order_id'] = user_order_ids_map[user.id]
                     order_data['user'] = user.id
                     mapped_sku_id = get_syncedusers_mapped_sku(user.id, order_data['sku_id'])

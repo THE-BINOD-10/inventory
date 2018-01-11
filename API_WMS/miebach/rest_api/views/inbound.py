@@ -2338,18 +2338,21 @@ def confirmation_location(record, data, total_quantity, temp_dict=''):
     return total_quantity
 
 
-def returns_order_tracking(order_id, quantity, status='', imei=''):
+def returns_order_tracking(order_returns, user, quantity, status='', imei=''):
     now = datetime.datetime.now()
     try:
-        log.info('Order Tracking Data Request Params %s, %s, %s, %s' % (str(order_id), str(quantity),
-                                                                        str(status), str(imei)))
-        OrderTracking.objects.create(order_id=order_id, status=status, imei=imei, quantity=quantity,
-                                     creation_date=now, updation_date=now)
+        if order_returns.order_id:
+            log.info('Order Tracking Data Request Params %s, %s, %s, %s' % (str(order_returns.order_id), str(quantity),
+                                                                            str(status), str(imei)))
+            OrderTracking.objects.create(order_id=order_returns.order_id, status=status, imei=imei, quantity=quantity,
+                                         creation_date=now, updation_date=now)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info(
-            'Order Tracking Insert failed for %s and params are %s and error statement is %s' % (str(order), str(e)))
+            'Order Tracking Insert failed for %s and params are %s and error statement is %s' % (user.username,
+                                                                                                 str(order_returns.id),
+                                                                                                 str(e)))
     return True
 
 
@@ -2788,7 +2791,7 @@ def confirm_sales_return(request, user=''):
             else:
                 total_quantity = int(return_dict['return'])
                 if total_quantity:
-                    returns_order_tracking(return_dict['order_id'], total_quantity, 'returned', '')
+                    returns_order_tracking(order_returns[0], user, total_quantity, 'returned', '')
         if user.userprofile.user_type == 'marketplace_user':
             check_and_update_order_status_data(mp_return_data, user, status='RETURNED')
     except Exception as e:

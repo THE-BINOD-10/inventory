@@ -210,7 +210,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "job_order_upload/",
                    dparam: "job-order-file",
                    value: "",
-                   show: Session.roles.permissions.add_jomaterial
+                   show: Session.roles.permissions.add_jomaterial,
+                   perm: "add_jomaterial"
                  }, {
                    title: "Marketplace Order Serial Download/ Upload",
                    download: "Download Marketplace Serial Form",

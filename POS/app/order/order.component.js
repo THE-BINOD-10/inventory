@@ -25,7 +25,7 @@
                 if(data.status == "success") {
                   printer.print('/app/views/print.html', {'data': data.data,
                                                           'user':urlService.userData,
-                                                          'print': 'Reprint',
+                                                          'print_type': 'DUPLICATE',
                                                           'date':data.data.order_date});
                 }
             }

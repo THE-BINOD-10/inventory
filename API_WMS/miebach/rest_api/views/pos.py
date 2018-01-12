@@ -131,11 +131,12 @@ def search_product_data(request):
         discount_percentage = data.discount_percentage
         discount_price = price
         if not data.discount_percentage:
-          category = CategoryDiscount.objects.filter(category = data.sku_category)
-          if category:
-            category = category[0]
+            category = CategoryDiscount.objects.filter(category = data.sku_category,\
+                                                       user_id = user_id)
+            if category:
+                category = category[0]
             if category.discount:
-              discount_percentage = category.discount
+                discount_percentage = category.discount
         if discount_percentage:
             discount_price = price - ((price * discount_percentage) / 100)
         stock_quantity = StockDetail.objects.exclude(location__zone__zone = 'DAMAGED_ZONE')\

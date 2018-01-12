@@ -895,7 +895,8 @@ def order_dispatch_message(order, user, order_qt=""):
     send_sms(telephone, data)
 
 
-def enable_mail_reports(request):
+@get_admin_user
+def enable_mail_reports(request, user=''):
     data = request.GET.get('data').split(',')
     data_enabled = []
     data_disabled = []
@@ -906,20 +907,20 @@ def enable_mail_reports(request):
     data_disabled = set(MAIL_REPORTS_DATA.values()) - set(data_enabled)
 
     for d in data_disabled:
-        misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type=d)
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=d)
         if misc_detail:
             misc_detail[0].misc_value = 'false'
             misc_detail[0].save()
             continue
-        data_obj = MiscDetail(user=request.user.id, misc_type=d, misc_value='false')
+        data_obj = MiscDetail(user=user.id, misc_type=d, misc_value='false')
 
     for d in data_enabled:
-        misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type=d)
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=d)
         if misc_detail:
             misc_detail[0].misc_value = 'true'
             misc_detail[0].save()
             continue
-        data_obj = MiscDetail(user=request.user.id, misc_type=d, misc_value='true')
+        data_obj = MiscDetail(user=user.id, misc_type=d, misc_value='true')
         data_obj.save()
 
     return HttpResponse('Success')
@@ -2035,16 +2036,20 @@ def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_i
 
 def check_and_update_order(user, order_id):
     from rest_api.views.easyops_api import *
-    user = User.objects.get(id=user)
-    user_profile = UserProfile.objects.get(user_id=user)
-    integrations = Integrations.objects.filter(user=user.id, status=1)
-    for integrate in integrations:
-        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        try:
-            if not user_profile.user_type == 'marketplace_user':
-                obj.confirm_picklist(order_id, user=user)
-        except:
-            continue
+    try:
+        log.info("User %s" % str(user))
+        user = User.objects.get(id=user)
+        user_profile = UserProfile.objects.get(user_id=user)
+        integrations = Integrations.objects.filter(user=user.id, status=1)
+        for integrate in integrations:
+            obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+            try:
+                if not user_profile.user_type == 'marketplace_user':
+                    obj.confirm_picklist(order_id, user=user)
+            except:
+                continue
+    except:
+        log.info("Order Push failed")
 
 
 def get_financial_year(date):

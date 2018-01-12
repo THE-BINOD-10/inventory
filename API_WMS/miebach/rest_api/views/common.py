@@ -895,7 +895,8 @@ def order_dispatch_message(order, user, order_qt=""):
     send_sms(telephone, data)
 
 
-def enable_mail_reports(request):
+@get_admin_user
+def enable_mail_reports(request, user=''):
     data = request.GET.get('data').split(',')
     data_enabled = []
     data_disabled = []
@@ -906,20 +907,20 @@ def enable_mail_reports(request):
     data_disabled = set(MAIL_REPORTS_DATA.values()) - set(data_enabled)
 
     for d in data_disabled:
-        misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type=d)
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=d)
         if misc_detail:
             misc_detail[0].misc_value = 'false'
             misc_detail[0].save()
             continue
-        data_obj = MiscDetail(user=request.user.id, misc_type=d, misc_value='false')
+        data_obj = MiscDetail(user=user.id, misc_type=d, misc_value='false')
 
     for d in data_enabled:
-        misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type=d)
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=d)
         if misc_detail:
             misc_detail[0].misc_value = 'true'
             misc_detail[0].save()
             continue
-        data_obj = MiscDetail(user=request.user.id, misc_type=d, misc_value='true')
+        data_obj = MiscDetail(user=user.id, misc_type=d, misc_value='true')
         data_obj.save()
 
     return HttpResponse('Success')

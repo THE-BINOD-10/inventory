@@ -2035,16 +2035,20 @@ def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_i
 
 def check_and_update_order(user, order_id):
     from rest_api.views.easyops_api import *
-    user = User.objects.get(id=user)
-    user_profile = UserProfile.objects.get(user_id=user)
-    integrations = Integrations.objects.filter(user=user.id, status=1)
-    for integrate in integrations:
-        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        try:
-            if not user_profile.user_type == 'marketplace_user':
-                obj.confirm_picklist(order_id, user=user)
-        except:
-            continue
+    try:
+        log.info("User %s" % str(user))
+        user = User.objects.get(id=user)
+        user_profile = UserProfile.objects.get(user_id=user)
+        integrations = Integrations.objects.filter(user=user.id, status=1)
+        for integrate in integrations:
+            obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+            try:
+                if not user_profile.user_type == 'marketplace_user':
+                    obj.confirm_picklist(order_id, user=user)
+            except:
+                continue
+    except:
+        log.info("Order Push failed")
 
 
 def get_financial_year(date):

@@ -9,9 +9,22 @@ from django.contrib.auth import authenticate
 from django.contrib import auth
 
 from miebach_admin.custom_decorators import login_required, get_admin_user
+from miebach_admin.models import GenericOrderDetailMapping, CustomerMaster
 
 # Create your views here.
 #log = init_logger('logs/qssi.log')
+
+
+def update_linked_consignee_data(order_detail_id, data):
+    generic_order = GenericOrderDetailMapping.objects.filter(orderdetail_id=order_detail_id)
+    if generic_order:
+        generic_order = generic_order[0]
+        customer_master = CustomerMaster.objects.get(id=generic_order.customer_id)
+        data["Buyer"]["AddressInfo"]["ShippingAddress"]["Name"] =  customer_master.name
+        data["Buyer"]["AddressInfo"]["ShippingAddress"]["address"] =  customer_master.address
+        data["Buyer"]["AddressInfo"]["ShippingAddress"]["city"] = customer_master.city
+        data["Buyer"]["AddressInfo"]["ShippingAddress"]["state"] =  customer_master.state
+        data["Buyer"]["AddressInfo"]["ShippingAddress"]["zip"] = customer_master.pincode
 
 
 def integration_get_order(order_id, user, order_status = "NEW"):
@@ -71,7 +84,9 @@ def integration_get_order(order_id, user, order_status = "NEW"):
                         "Code": ''#what to send
                     }
                }
-        for sku in order["sku_data"]:
+        for ind, sku in enumerate(order["sku_data"]):
+            if ind == 0:
+                update_linked_consignee_data(sku["id"], data)
             sku_data.append({"SKUID": sku["sku_code"],
                              "Quantity": str(sku["quantity"]),
                              "Offer": {}

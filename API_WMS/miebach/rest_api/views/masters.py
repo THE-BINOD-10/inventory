@@ -953,11 +953,12 @@ def insert_mapping(request, user=''):
     data = SKUSupplier.objects.filter(supplier_id=supplier, sku_id=sku_id[0].id)
     if data:
         return HttpResponse('Duplicate Entry')
-    preference_data = SKUSupplier.objects.filter(sku_id=sku_id[0].id).order_by('-preference')
+    preference_data = SKUSupplier.objects.filter(sku_id=sku_id[0].id).order_by('-preference').\
+                                            values_list('preference', flat=True)
     min_preference = 0
     if preference_data:
-        min_preference = int(preference_data[0].preference)
-    if int(preference) <= min_preference:
+        min_preference = int(preference_data[0])
+    if int(preference) in preference_data:
         return HttpResponse('Duplicate Priority, Next incremantal value is %s' % str(min_preference + 1))
 
     sku_supplier = SKUSupplier(**data_dict)

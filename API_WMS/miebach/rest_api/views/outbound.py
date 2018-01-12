@@ -4289,8 +4289,9 @@ def get_stock_qty_leadtime(item, wh_code):
 
 def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_leadtime=0):
     stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
-    if stock_display_warehouse != "false":
-        stock_display_warehouse = map(int, stock_display_warehouse.split(','))
+    if stock_display_warehouse and stock_display_warehouse != "false":
+        stock_display_warehouse = stock_display_warehouse.split(',')
+        stock_display_warehouse = map(int, stock_display_warehouse)
     else:
         stock_display_warehouse = get_same_level_warehouses(level)
     stock_qty_all = dict(StockDetail.objects.filter(sku__user__in=stock_display_warehouse,

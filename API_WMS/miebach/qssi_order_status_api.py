@@ -71,8 +71,8 @@ def order_update(orders, user, status):
                                                 picklist = picklist_obj,\
                                                 quantity = item.quantity)
                     log.info("Seller Order Summary created: id = %s, order_id = %s, picklist_id = %s,\
-                             quantity = %s") % (str(seller_order_summary.id), str(item.id),\
-                             str(picklist_obj.id), str(item.quantity))
+                             quantity = %s" % (str(seller_order_summary.id), str(item.id),\
+                             str(picklist_obj.id), str(item.quantity)))
             item.save()
     return "Status Updated"
 

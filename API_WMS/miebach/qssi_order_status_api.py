@@ -17,7 +17,8 @@ def update_order_status(company_name):
     integration_users = Integrations.objects.filter(name = company_name).values_list('user', flat=True)
     for user_id in integration_users:
         user = User.objects.get(id = user_id)
-        open_orders = OrderDetail.objects.filter(user = user_id, status = 1).values_list('original_order_id', flat=True).distinct()
+        open_orders = OrderDetail.objects.filter(user = user_id, status = 0,\
+                      picklist__status__icontains = 'open').values_list('original_order_id', flat=True).distinct()
         resp = order_status_update(open_orders, user)
         log.info(resp)
         if resp["Status"].lower() == "success":

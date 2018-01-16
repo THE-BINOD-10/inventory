@@ -13,6 +13,8 @@
 
     self.simulateQuery = false;
     self.isDisabled    = false;
+    self.extra_fields_flag = false;
+    self.extra_fields = {};
 
     self.repos;
     self.querySearch   = querySearch;
@@ -21,10 +23,46 @@
 
     self.customer = {};
     self.searchText;
+    urlService.current_order.customer_extra = {};
+
+    //get extra fields
+    $http.get(urlService.mainUrl+'rest_api/get_extra_fields/?user='+urlService.userData.parent_id)
+    .then( function(data) {
+        self.extra_fields = data.data;
+        self.customer.extra_fields = {};
+        for (var typ in self.extra_fields) {
+            for(var field in self.extra_fields[typ]) {
+                //var temp = self.extra_fields[typ][field].toLowerCase().trim().replace(" ","_");
+                self.customer.extra_fields[self.extra_fields[typ][field]] = "";
+            }
+        }
+
+    });
+    //store extra data in urlservice on change modal
+
+    //on change issue type to 'Pre Order' display the extra fields
+    $scope.$on('change_issue_type', function(){
+        $scope.issue_type = $rootScope.issue_type;
+        if($scope.issue_type === "Pre Order") {
+            self.extra_fields_flag = true;
+        }
+        else {
+            self.extra_fields_flag = false;
+        }
+    });
+
+    //on change text in customer extra fields, save it in urlService
+    self.save_extra_fields = save_extra_fields;
+    function save_extra_fields() {
+        for(var  field in self.customer.extra_fields) {
+            urlService.current_order.customer_extra[field] = self.customer.extra_fields[field] || '';
+        }
+    }
+
 
     // Get data from backend to show below the search box
     self.get_user_data = get_user_data;
-   /* 
+   /*
    function get_user_data(key) {
 
         self.search_term = key;
@@ -162,6 +200,9 @@
                          "secondName": self.customer.LastName || '',
                          "mail": self.customer.Email || '',
                          "number": parseInt(self.searchText) || ''};
+      for(var  field in self.customer.extra_fields) {
+        user_details[field] = self.customer.extra_fields[field] || '';
+      }
 
       data = data.concat(user_details);
       data = $.param({
@@ -170,7 +211,7 @@
       $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
             $http.post(urlService.mainUrl+'rest_api/add_customer/', data)
               .then( function(data) {
-                 data=data.data; 
+                 data=data.data;
                  if(data.message === "invalid user") {
                         $window.location.reload();
                     } else {
@@ -178,7 +219,7 @@
                  self.customerButton = false;
                }
               },function(error){
-                console.log("offline");   
+                console.log("offline");
                 $rootScope.sync_status = true;
                 $rootScope.$broadcast('change_sync_status');
                 setSynCustomerData(user_details).

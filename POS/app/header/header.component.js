@@ -82,45 +82,6 @@
 	//trigger event for getting data at intiallly.
     //$scope.sync();
 
-     navigator.serviceWorker.ready.then(function(reg){
-
-
-	  		reg.addEventListener('updatefound',function(){
-                console.log("service worker update founded");
-                const newWorker = reg.installing;
-                
-                var flag = localStorage.getItem('reload_flag') || '0';
-                    if(flag === '0') {
-                        localStorage.setItem('reload_flag','1');
-                        $window.location.reload();
-                    }  
-                    else {
-                        localStorage.setItem('reload_flag','0');
-                    }  
-                
-                /*newWorker.addEventListener('statechange', function() {
-                  console.log("changed teh status "+newWorker.state);
-                  if(newWorker.state==="activated"){
-                    var flag = localStorage.getItem('reload_flag') || '0';
-                    if(flag === '0') {
-                        localStorage.setItem('reload_flag','1');
-                        $window.location.reload();
-                    }  
-                    else {
-                        localStorage.setItem('reload_flag','0');
-                    }  
-                  }  
-                });*/
-	  			
-	  		reg.addEventListener('controllerchange',function(){
-
-	  			console.log("updated the service worker");
-
-	  		});
-
-	  });
-	 }); 		
-
 	window.addEventListener('load', function(e) {
 	  if (navigator.onLine) {
 	    console.log("online");

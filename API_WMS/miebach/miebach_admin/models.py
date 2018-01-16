@@ -273,6 +273,7 @@ class OrderDetail(models.Model):
 
 class GenericOrderDetailMapping(models.Model):
     id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
     generic_order_id = models.PositiveIntegerField(default=0)
     orderdetail = models.ForeignKey(OrderDetail)
     customer_id = models.PositiveIntegerField(default=0)
@@ -290,6 +291,17 @@ class GenericOrderDetailMapping(models.Model):
         db_table = 'GENERIC_ORDERDETAIL_MAPPING'
         unique_together = ('generic_order_id', 'orderdetail', 'customer_id', 'cust_wh_id')
 
+class OrderFields(models.Model):
+    id = BigAutoField(primary_key=True)
+    original_order_id = models.CharField(max_length=128, default='')
+    name = models.CharField(max_length=256, default='')
+    value = models.CharField(max_length=256, default='')
+
+    class Meta:
+        db_table = 'ORDER_FIELDS'
+
+    def __unicode__(self):
+        return str(self.original_order_id)
 
 class OrderCharges(models.Model):
     id = BigAutoField(primary_key=True)

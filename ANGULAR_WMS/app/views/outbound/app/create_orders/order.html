@@ -45,6 +45,7 @@ input[type="date"]:valid::before {
       <a class="hide fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="Cart.logout()"></a>
     </div>
     <div class="col-md-12" style="background: #fff;overflow: hidden; margin-bottom: -3px;padding-bottom:10px;margin-right: -2px;z-index: 100;box-shadow: 0px 4px 8px -2px #888;">
+    <form id="uploaded_po" name="file_upload" role="form" ui-jq="validate">
       <div class="row">
         <div class="col-md-2 col-sm-6 col-xs-6 mt10">
           <input type="text" class="form-control stk-readonly pull-left" ng-model="Cart.model_data.shipment_date" id="shipment_date" ng-change="Cart.date_changed()" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Shipment Date" data-date-start-date="{{Cart.date}}">
@@ -68,11 +69,13 @@ input[type="date"]:valid::before {
         </div>
 
         <div class="col-md-2 col-sm-6 col-xs-6" ng-if="showCase.user_type=='reseller'">
-          <div class="btn btn-primary up-btn mt10" style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 100%;">Select File
-            <input class="btn btn-primary upload-button" value="Upload" type = "file" name="file" id="po-upload">
+          <div class="btn btn-primary up-btn mt10" style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 100%;">Upload PO
+            <input class="btn btn-primary upload-button" value="Upload" type = "file" ng-model="Cart.model_data.uploaded_po" name="file" id="po-upload">&nbsp;
+            <i class="fa fa-cloud-upload fa-1g" aria-hidden="true"></i>
           </div>
         </div>
       </div>
+      </form>
     </div>
   </div>
 <!-- style="border:1px solid red; color:red" -->

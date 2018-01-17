@@ -24,7 +24,11 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
     vm.orders_loading = true;
     vm.index = vm.order_data.data.length  + ':' + (vm.order_data.data.length + 20)
-    var data = {index: vm.index}
+    var data = {index: vm.index, autobackorder: false}
+    var page_url = window.location.href
+    if(page_url.indexOf('AutoBackOrders') > 0){
+      data['autobackorder'] = true;
+    }
     Service.apiCall(url, 'GET', data).then(function(data){
       if(data.message) {
 

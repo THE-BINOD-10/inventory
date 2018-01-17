@@ -412,6 +412,7 @@ urlpatterns += [
     url('^print_order_data/$', print_order_data),
     url('^pre_order_data/$', pre_order_data),
     url('^update_order_status/$', update_order_status),
+    url('^get_extra_fields/$', get_extra_fields),
 
 ]
 

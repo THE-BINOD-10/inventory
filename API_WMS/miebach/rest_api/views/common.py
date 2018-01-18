@@ -296,6 +296,7 @@ def create_user(request):
                                                           api_hash=hash_code,
                                                           is_trail=1, prefix=prefix, setup_status='')
                 user_profile.save()
+                add_user_type_permissions(user_profile)
             user.is_staff = 1
             user.save()
             user = authenticate(username=username, password=password)

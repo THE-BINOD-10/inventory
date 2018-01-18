@@ -28,18 +28,43 @@
     //get extra fields
     $http.get(urlService.mainUrl+'rest_api/get_extra_fields/?user='+urlService.userData.parent_id)
     .then( function(data) {
-        self.extra_fields = data.data;
-        self.customer.extra_fields = {};
-        for (var typ in self.extra_fields) {
-            for(var field in self.extra_fields[typ]) {
-                //var temp = self.extra_fields[typ][field].toLowerCase().trim().replace(" ","_");
-                self.customer.extra_fields[self.extra_fields[typ][field]] = "";
-            }
-        }
+        extraFieldsresposne(data.data);
+        //save extra fields locally  
+        setCheckSum(setCheckSumFormate(JSON.stringify(data.data),EXTRA_FIELDS)).
+                          then(function(data){
+                              console.log("user data saved on locally "+data); 
+                            }).catch(function(error){
+
+                          });
+    },function(error){
+
+         getChecsumByName(EXTRA_FIELDS).
+                      then(function(result){
+                        if(Object.keys(result).indexOf("checksum")!=-1){
+                          extraFieldsresposne(JSON.parse(result.checksum));    
+                        }else{
+                          urlservice.show_toast("No extra fields");
+                          console.log("extra fields error " +error.message);
+                        }
+                      }).catch(function(error){
+                        urlservice.show_toast("No extra fields");
+                        console.log("extra fields error " +error.message);
+                      });
 
     });
-    //store extra data in urlservice on change modal
 
+    
+  //store extra data in urlservice on change modal
+  function extraFieldsresposne(data){
+        self.extra_fields = data;
+          self.customer.extra_fields = {};
+          for (var typ in self.extra_fields) {
+              for(var field in self.extra_fields[typ]) {
+                  //var temp = self.extra_fields[typ][field].toLowerCase().trim().replace(" ","_");
+                  self.customer.extra_fields[self.extra_fields[typ][field]] = "";
+              }
+          }
+      }
     //on change issue type to 'Pre Order' display the extra fields
     $scope.$on('change_issue_type', function(){
         $scope.issue_type = $rootScope.issue_type;

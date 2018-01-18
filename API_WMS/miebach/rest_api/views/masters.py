@@ -1353,7 +1353,7 @@ def insert_discount(request, user=''):
             category.discount = float(save['category_discount'].strip('%'))
             category.save()
         else:
-            category = CategoryDiscount(discount=float(save['category_discount']),
+            category = CategoryDiscount(discount=float(save['category_discount'].strip('%')),
                                         category=save.get('category', ''),
                                         creation_date=datetime.datetime.now(), user_id=user.id)
             category.save()

@@ -234,9 +234,14 @@
       function print_order(data,user) {
   
         var date = new Date().toDateString();
-        debugger;
-        printer.print('/app/views/print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
-                      'date': date, 'print_type': ''});
+
+        if (data.summary.issue_type == 'Delivery Challan') {
+           printer.print('/app/views/print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
+                        'date': date, 'print_type': ''});
+         } else {
+           printer.print('/app/views/pre_order_print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
+                       'date': date, 'print_type': ''});
+         }
       }
   
       self.store_data = store_data;

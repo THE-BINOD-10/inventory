@@ -125,8 +125,8 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
     if (vm.user_type == 'reseller') {
 
-      // if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header) || !($('#uploaded_po').find('[name="file"]')[0].files.length)) {
-      if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header)) {
+      if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header) || !($('#uploaded_po').find('[name="file"]')[0].files.length)) {
+      // if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header)) {
         vm.service.showNoty("The Shipment Date, PO Number, Client Name and Uploaded PO's are Required Please Select", "success", "bottomRight");
       } else if (!(vm.model_data.shipment_time_slot)) {
         vm.service.showNoty("Please Select Shipment Slot", "success", "bottomRight");

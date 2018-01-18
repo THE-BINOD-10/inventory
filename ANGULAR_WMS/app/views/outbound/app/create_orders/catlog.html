@@ -17,6 +17,7 @@
           <i class="fa fa-user fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;"></i>
         </a>
         <ul class="dropdown-menu">
+          <li><a ng-click="showCase.addMargin()">Add Margin</a></li>
           <li><a ng-click="$state.go('user.App.MyOrders');showCase.get_orders();">Your Orders</a></li>
           <li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>
           <li><a ng-click="showCase.logout()">Logout</a></li>
@@ -49,6 +50,7 @@
       </div>
     </div>
   </div>
+  
   <div class="item-display row" ng-if="showCase.catDisplay" style="background: white;">
     <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
     <div class="col-md-2 col-sm-3 col-xs-4" ng-repeat="cat in showCase.all_cate" ng-click="showCase.change_category(cat)" style="padding: 10px 5px 0px 5px;">
@@ -77,7 +79,8 @@
             <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.variants[0].style_name }}</p>
             <div class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">
               <span class="pull-left">Stock: <b>{{ item.style_quantity }}</b></span>
-              <span>MSP: <b>{{ item.variants[0].your_price }}</b></span>
+              <span>MSP: <b>{{ item.variants[0].your_price }}</b></span></br>
+              <span style="float: left">MRP: <b>{{ item.variants[0].mrp }}</b></span>
             </div>
             <div ng-if="item.variants[0].price_ranges.length > 0">
               <table class="table table-bordered mb0 mt5" style="font-size:10px;">

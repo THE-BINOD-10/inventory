@@ -145,6 +145,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.marginSKUData = {data: []};
     self.enquiry_orders = [];
     self.my_orders = [];
+    self.styleId = '';
 
     /** login page maintainance **/
     self.login_data = {

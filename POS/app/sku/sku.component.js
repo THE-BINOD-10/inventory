@@ -189,7 +189,7 @@
 	  //select customer first
 	  self.isCustomer = isCustomer;
 	  function isCustomer() {
-		if(Object.keys(urlService.current_order.customer_data).length===0) {
+		if(Object.keys(urlService.current_order.customer_data).length===0 && self.issue_selected === "Pre Order") {
 			alert("Please select a customer");
 		}
 	  }
@@ -198,29 +198,50 @@
       function submit_data() {
             //debugger;
 
-        if (urlService.current_order.sku_data.length > 0 && urlService.current_order.customer_data.FirstName.length > 0) {
-          if (urlService.current_order.customer_data.Number == null) {
-            urlService.current_order.customer_data.Number = "";
-          }
-          if (urlService.current_order.customer_data.value == null) {
-            urlService.current_order.customer_data.value = "";
-          }
-          urlService.current_order["user"] = urlService.userData
-          urlService.current_order.summary.issue_type = self.issue_selected;
-          self.customer_order(urlService.current_order);
+        if(self.issue_selected !== "Pre Order") {
+            if (urlService.current_order.sku_data.length > 0) {
+                if (urlService.current_order.customer_data.Number == null) {
+                    urlService.current_order.customer_data.Number = "";
+                }
+                if (urlService.current_order.customer_data.value == null) {
+                    urlService.current_order.customer_data.value = "";
+                }
+                urlService.current_order["user"] = urlService.userData
+                urlService.current_order.summary.issue_type = self.issue_selected;
+                self.customer_order(urlService.current_order);
+            } else {
+                self.submit_enable = false;
+            }
         } else {
-          self.submit_enable = false;
+            if (urlService.current_order.sku_data.length > 0 && urlService.current_order.customer_data.FirstName.length > 0) {
+                if (urlService.current_order.customer_data.Number == null) {
+                    urlService.current_order.customer_data.Number = "";
+                }
+                if (urlService.current_order.customer_data.value == null) {
+                    urlService.current_order.customer_data.value = "";
+                }
+                urlService.current_order["user"] = urlService.userData
+                urlService.current_order.summary.issue_type = self.issue_selected;
+                self.customer_order(urlService.current_order);
+            } else {
+                self.submit_enable = false;
+            }
         }
     }
-  
+
       //print order
       self.print_order = print_order;
       function print_order(data,user) {
   
         var date = new Date().toDateString();
-        debugger;
-        printer.print('/app/views/print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
-                      'date': date, 'print_type': ''});
+
+        if (data.summary.issue_type == 'Delivery Challan') {
+           printer.print('/app/views/print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
+                        'date': date, 'print_type': ''});
+         } else {
+           printer.print('/app/views/pre_order_print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
+                       'date': date, 'print_type': ''});
+         }
       }
   
       self.store_data = store_data;
@@ -252,6 +273,12 @@
       }
 
       //change issue type
+      self.change_issue_type = change_issue_type;
+      function change_issue_type(issue_type){
+        $rootScope.issue_type = issue_type;
+        $rootScope.$broadcast('change_issue_type');
+
+      }
       /*self.change_issue_type = change_issue_type;
       function change_issue_type(){
        // debugger;
@@ -274,7 +301,7 @@
       // ajax call to send data to backend
       self.customer_order = customer_order;
       function customer_order(data) {
-        
+ 
         data["summary"]["nw_status"] = 'online';
         self.submit_enable = true;
 

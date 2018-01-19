@@ -107,9 +107,13 @@ def search_product_data(request):
     user_id = request.GET['user']
     user = User.objects.filter(id = user_id)[0]
     total_data = []
-    master_data = SKUMaster.objects.exclude(sku_type = 'RM')\
-                           .filter(Q(wms_code__icontains = search_key) |\
-                            Q(sku_desc__icontains = search_key), user = user_id)
+    try:
+        master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
+                                        Q(sku_desc__icontains=search_key) | Q(ean_number = int(search_key)),
+                                        user = user_id)
+    except:
+        master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
+                                                Q(sku_desc__icontains=search_key), user=user_id)
     for data in master_data[:30]:
         status = 'Inactive'
         if data.status:
@@ -145,7 +149,7 @@ def search_product_data(request):
         stock_quantity = stock_quantity['quantity__sum']
         if not stock_quantity:
             stock_quantity = 0
-        total_data.append({'search': str(data.wms_code) + " " + data.sku_desc,
+        total_data.append({'search': str(data.wms_code) + " " + data.sku_desc + " " + str(data.ean_number),
                            'SKUCode': data.wms_code,
                            'ProductDescription': data.sku_desc,
                            'price': discount_price,
@@ -260,7 +264,7 @@ def customer_order(request):
     for order in orders:
             user_id = order['user']['parent_id']
             user = User.objects.get(id = user_id)
-            if not order['customer_data']:
+            if not order['customer_data'] and order['summary']['issue_type'] == "Pre Order":
                 return HttpResponse(json.dumps({'message': 'Missing Customer Data'}))
             cust_dict = order['customer_data']
             number = order['customer_data']['Number']
@@ -293,7 +297,8 @@ def customer_order(request):
             val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
             val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
             val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)"""
-            if customer_name:
+            if (customer_name and order['summary']['issue_type'] == "Pre Order") or\
+               order['summary']['issue_type'] == "Delivery Challan":
                 for item in order['sku_data']:
 
                     sku = SKUMaster.objects.get(wms_code = item['sku_code'],\
@@ -329,6 +334,11 @@ def customer_order(request):
                                               stock_quantity, order_detail,\
                                               picklist_number, stock_diff,\
                                               item, user, invoice_number)
+                        #store extra details
+                        else:
+                            for field, val in order["customer_data"]["extra_fields"].iteritems():
+                                OrderFields.objects.create(original_order_id = order_detail.original_order_id,\
+                                                name = field, value = val)
                     # return item : increase stock
                     else:
                         sku_stocks_ = StockDetail.objects.filter(sku__user = user_id,\
@@ -580,3 +590,14 @@ def update_order_status(request):
         picklist_creation(request, stock_detail, stock_quantity, order,\
                           picklist_number, stock_diff, item, user, invoice_number)
   return HttpResponse("Delivered Successfully !")
+
+
+@login_required
+def get_extra_fields(request):
+    user_id = request.GET.get('user')
+    extra_fields = {}
+    extra_fields_obj = MiscDetail.objects.filter(user = user_id, misc_type__icontains = "pos_extra_fields_")
+    for item in extra_fields_obj:
+        typ = item.misc_type.replace("pos_extra_fields_", "")
+        extra_fields[typ] = item.misc_value.split(",")
+    return HttpResponse(json.dumps(extra_fields))

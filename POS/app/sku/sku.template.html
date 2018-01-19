@@ -23,7 +23,7 @@
   <p style='text-align: right'>Issue Type*
   <select ng-init="$ctrl.issue_selected=$ctrl.names[0]"
         ng-model="$ctrl.issue_selected"
-        ng-change="$ctrl.change_issue_type()"
+        ng-change="$ctrl.change_issue_type($ctrl.issue_selected)"
         ng-options="x for x in $ctrl.names">
   </select>
   </p>

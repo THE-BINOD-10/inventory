@@ -1343,17 +1343,17 @@ def insert_discount(request, user=''):
             return HttpResponse("Given SKU not found")
 
         sku = sku[0]
-        sku.discount_percentage = float(save['sku_discount'])
+        sku.discount_percentage = float(save['sku_discount'].strip('%'))
         sku.save()
 
     if save.get('category'):
         category = CategoryDiscount.objects.filter(category=save.get('category', ''), user_id=user.id)
         if category:
             category = category[0]
-            category.discount = float(save['category_discount'])
+            category.discount = float(save['category_discount'].strip('%'))
             category.save()
         else:
-            category = CategoryDiscount(discount=float(save['category_discount']),
+            category = CategoryDiscount(discount=float(save['category_discount'].strip('%')),
                                         category=save.get('category', ''),
                                         creation_date=datetime.datetime.now(), user_id=user.id)
             category.save()

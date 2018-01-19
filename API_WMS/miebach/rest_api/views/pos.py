@@ -335,7 +335,7 @@ def customer_order(request):
                                               item, user, invoice_number)
                         #store extra details
                         else:
-                            for field, val in order["customer_data"]["extra_fields"].iteritems():
+                            for field, val in order["customer_data"].get("extra_fields", {}).iteritems():
                                 OrderFields.objects.create(original_order_id = order_detail.original_order_id,\
                                                 name = field, value = val)
                     # return item : increase stock
@@ -600,3 +600,10 @@ def get_extra_fields(request):
         typ = item.misc_type.replace("pos_extra_fields_", "")
         extra_fields[typ] = item.misc_value.split(",")
     return HttpResponse(json.dumps(extra_fields))
+
+
+@login_required
+def get_staff_members_list(request):
+    members = ['Staff-1', 'Staff-2', 'Staff-3']
+    return HttpResponse(json.dumps({'members': members}))
+

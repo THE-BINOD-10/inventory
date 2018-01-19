@@ -107,14 +107,13 @@ def search_product_data(request):
     user_id = request.GET['user']
     user = User.objects.filter(id = user_id)[0]
     total_data = []
-    master_data = SKUMaster.objects.exclude(sku_type = 'RM')\
-                           .filter(Q(wms_code__icontains = search_key) |\
-                            Q(sku_desc__icontains = search_key), user = user_id)
     try:
-        master_data = SKUMaster.objects.exclude(sku_type = 'RM')\
-                               .filter(Q(ean_number = int(search_key)), user = user_id)
+        master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
+                                        Q(sku_desc__icontains=search_key) | Q(ean_number = int(search_key)),
+                                        user = user_id)
     except:
-        pass
+        master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
+                                                Q(sku_desc__icontains=search_key), user=user_id)
     for data in master_data[:30]:
         status = 'Inactive'
         if data.status:

@@ -6027,60 +6027,88 @@ def get_only_date(request, date):
     return date
 
 
-@get_admin_user
-def get_level_based_customer_orders(request, response_data, user=''):
+def get_level_based_customer_orders(request, response_data, user):
     index = request.GET.get('index', '')
     start_index, stop_index = 0, 20
+    is_autobackorder = request.GET.get('autobackorder', 'false')
     if index:
         start_index = int(index.split(':')[0])
         stop_index = int(index.split(':')[1])
-    user_profile = UserProfile.objects.get(user=request.user.id)
-    if user_profile.warehouse_type == 'DIST':
-        customer = WarehouseCustomerMapping.objects.filter(warehouse=request.user.id, status=1)
+    user_profile = UserProfile.objects.get(user=user.id)
+    if is_autobackorder == 'true':
+        filter_dict = {'cust_wh_id__in': [user.id]}
+        customer = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
         if customer:
             cum_obj = CustomerUserMapping.objects.filter(customer=customer[0].customer.id)
-        else:
-            return response_data
+            filter_dict['cust_wh_id__in'].append(cum_obj[0].customer.user)
+    elif user_profile.warehouse_type == 'WH':
+        filter_dict = {'cust_wh_id__in': [user.id]}
+        cus_mapping = CustomerUserMapping.objects.filter(user_id=request.user.id)
+        if cus_mapping:
+            customer = WarehouseCustomerMapping.objects.filter(customer_id=cus_mapping[0].customer_id, status=1)
+            if customer:
+                filter_dict['cust_wh_id__in'].append(customer[0].warehouse_id)
     else:
         cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
-    if cum_obj:
-        customer_id = cum_obj[0].customer.customer_id
-        cm_id = cum_obj[0].customer_id
-        generic_orders = GenericOrderDetailMapping.objects.filter(customer_id=cm_id)
-        generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
-        picklist = Picklist.objects.filter(order__customer_id=customer_id,
-                                           order_id__in=generic_details_ids)
-        response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id'). \
-                                     annotate(total_quantity=Sum('quantity'),
-                                              total_inv_amt=Sum('orderdetail__invoice_amount')). \
-                                     order_by('-generic_order_id'))
-        response_data['data'] = response_data['data'][start_index:stop_index]
-        for record in response_data['data']:
-            order_detail_ids = generic_orders.filter(generic_order_id=record['generic_order_id']).values_list(
-                'orderdetail_id', flat=True)
-            data = OrderDetail.objects.filter(id__in=order_detail_ids)
-            data_status = data.filter(status=1)
-            if data_status:
+        cm_ids = cum_obj.values_list('customer_id', flat=True)
+        filter_dict = {'customer_id__in': cm_ids}
+    generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
+    '''if is_autobackorder == 'true':
+        cum_obj = CustomerUserMapping.objects.filter(customer__user=user.id)
+        cm_ids = cum_obj.values_list('customer_id', flat=True)
+        print cm_ids
+        customer_ids = cum_obj.values_list('customer__customer_id', flat=True)
+    elif user_profile.warehouse_type == 'WH':
+        cum_obj = CustomerMaster.objects.filter(user=user.id)
+        cm_ids = cum_obj.values_list('id', flat=True)
+        print cm_ids
+        customer_ids = cum_obj.values_list('customer_id', flat=True)
+    else:
+        cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+        cm_ids = cum_obj.values_list('customer_id', flat=True)
+        customer_ids = cum_obj.values_list('customer__customer_id', flat=True)
+    if not cm_ids:
+        return response_data
+    #else:
+    #    return response_data
+    #customer = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
+    #if customer:
+    #    cum_obj = CustomerUserMapping.objects.filter(customer=customer[0].customer.id)
+
+    generic_orders = GenericOrderDetailMapping.objects.filter(customer_id__in=cm_ids)'''
+    generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
+    picklist = Picklist.objects.filter(order_id__in=generic_details_ids)
+    response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id'). \
+                                 annotate(total_quantity=Sum('quantity'),
+                                          total_inv_amt=Sum('orderdetail__invoice_amount')). \
+                                 order_by('-generic_order_id'))
+    response_data['data'] = response_data['data'][start_index:stop_index]
+    for record in response_data['data']:
+        order_detail_ids = generic_orders.filter(generic_order_id=record['generic_order_id']).values_list(
+            'orderdetail_id', flat=True)
+        data = OrderDetail.objects.filter(id__in=order_detail_ids)
+        data_status = data.filter(status=1)
+        if data_status:
+            status = 'open'
+        else:
+            status = 'closed'
+            pick_status = picklist.filter(order_id__in=order_detail_ids,
+                                          status__icontains='open')
+            if pick_status:
                 status = 'open'
-            else:
-                status = 'closed'
-                pick_status = picklist.filter(order_id__in=order_detail_ids,
-                                              status__icontains='open')
-                if pick_status:
-                    status = 'open'
-            picked_quantity = picklist.filter(order_id__in=order_detail_ids).aggregate(
-                Sum('picked_quantity'))['picked_quantity__sum']
-            if not picked_quantity:
-                picked_quantity = 0
-            record['status'] = status
-            if data:
-                record['date'] = get_only_date(request, data[0].creation_date)
-            else:
-                record['date'] = ''
-            if record['generic_order_id']:
-                record['order_id'] = record['generic_order_id']
-            record['total_inv_amt'] = round(record['total_inv_amt'], 2)
-            record['picked_quantity'] = picked_quantity
+        picked_quantity = picklist.filter(order_id__in=order_detail_ids).aggregate(
+            Sum('picked_quantity'))['picked_quantity__sum']
+        if not picked_quantity:
+            picked_quantity = 0
+        record['status'] = status
+        if data:
+            record['date'] = get_only_date(request, data[0].creation_date)
+        else:
+            record['date'] = ''
+        if record['generic_order_id']:
+            record['order_id'] = record['generic_order_id']
+        record['total_inv_amt'] = round(record['total_inv_amt'], 2)
+        record['picked_quantity'] = picked_quantity
     return response_data
 
 
@@ -6096,8 +6124,7 @@ def get_customer_orders(request, user=""):
     response_data = {'data': []}
     admin_user = get_priceband_admin_user(user)
     if admin_user:
-        get_level_based_customer_orders(request, response_data)
-
+        get_level_based_customer_orders(request, response_data, user)
     else:
         customer = CustomerUserMapping.objects.filter(user=request.user.id)
 

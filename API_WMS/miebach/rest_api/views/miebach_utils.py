@@ -170,8 +170,9 @@ RAISE_PO_FIELDS1 = OrderedDict(
 MOVE_INVENTORY_FIELDS = ((('WMS Code *', 'wms_code'), ('Source Location *', 'source_loc')),
                          (('Destination Location *', 'dest_loc'), ('Quantity *', 'quantity')),)
 
-ADJUST_INVENTORY_FIELDS = ((('WMS Code *', 'wms_code'), ('Location *', 'location')),
-                           (('Physical Quantity *', 'quantity'), ('Reason', 'reason')),)
+ADJUST_INVENTORY_FIELDS = ( (('WMS Code *','wms_code'),('Location *','location')),
+                            (('Physical Quantity *','quantity'),('Reason','reason')),
+                            (('Pallet Code', 'pallet_no'),) )
 
 MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Location', 'Quantity']
 

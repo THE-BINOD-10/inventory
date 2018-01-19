@@ -125,8 +125,9 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
     if (vm.user_type == 'reseller') {
 
-      if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header)) {
-        vm.service.showNoty("The Shipment Date, PO Number and Client Name are Required Please Select", "success", "bottomRight");
+      if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header) || !($('#uploaded_po').find('[name="file"]')[0].files.length)) {
+      // if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header)) {
+        vm.service.showNoty("The Shipment Date, PO Number, Client Name and Uploaded PO's are Required Please Select", "success", "bottomRight");
       } else if (!(vm.model_data.shipment_time_slot)) {
         vm.service.showNoty("Please Select Shipment Slot", "success", "bottomRight");
       } else {
@@ -377,33 +378,41 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   }
 
   vm.place_enquiry = function() {
+    if (vm.user_type == 'reseller') {
 
-    if (vm.model_data.data.length == 0) {
+      if (!vm.model_data.client_name_header) {
 
-      Service.showNoty('Please Items To Cart First');
-      return false;
-    }
-    vm.place_order_loading = true;
-    Service.apiCall("insert_enquiry_data/").then(function(data){
-
-      if(data.message) {
-
-        if(data.data == 'Success') {
-
-          vm.model_data.data = [];
-          Data.enquiry_orders = [];
-          Service.showNoty('Successfully added');
-          $state.go("user.App.Brands");
-        } else {
-
-          Service.showNoty(data.data, 'warning');
-        }
+        vm.service.showNoty("The Customer Name is Required Please Select", "success", "bottomRight");
       } else {
 
-        Service.showNoty("Something Went Wrong");
+        if (vm.model_data.data.length == 0) {
+
+          Service.showNoty('Please Items To Cart First');
+          return false;
+        }
+        vm.place_order_loading = true;
+        Service.apiCall("insert_enquiry_data/").then(function(data){
+
+          if(data.message) {
+
+            if(data.data == 'Success') {
+
+              vm.model_data.data = [];
+              Data.enquiry_orders = [];
+              Service.showNoty('Successfully added');
+              $state.go("user.App.Brands");
+            } else {
+
+              Service.showNoty(data.data, 'warning');
+            }
+          } else {
+
+            Service.showNoty("Something Went Wrong");
+          }
+          vm.place_order_loading = false;
+        });
       }
-      vm.place_order_loading = false;
-    });
+    }
   }
 }
 

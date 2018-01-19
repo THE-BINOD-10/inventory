@@ -6053,34 +6053,10 @@ def get_level_based_customer_orders(request, response_data, user):
         cm_ids = cum_obj.values_list('customer_id', flat=True)
         filter_dict = {'customer_id__in': cm_ids}
     generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
-    '''if is_autobackorder == 'true':
-        cum_obj = CustomerUserMapping.objects.filter(customer__user=user.id)
-        cm_ids = cum_obj.values_list('customer_id', flat=True)
-        print cm_ids
-        customer_ids = cum_obj.values_list('customer__customer_id', flat=True)
-    elif user_profile.warehouse_type == 'WH':
-        cum_obj = CustomerMaster.objects.filter(user=user.id)
-        cm_ids = cum_obj.values_list('id', flat=True)
-        print cm_ids
-        customer_ids = cum_obj.values_list('customer_id', flat=True)
-    else:
-        cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
-        cm_ids = cum_obj.values_list('customer_id', flat=True)
-        customer_ids = cum_obj.values_list('customer__customer_id', flat=True)
-    if not cm_ids:
-        return response_data
-    #else:
-    #    return response_data
-    #customer = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
-    #if customer:
-    #    cum_obj = CustomerUserMapping.objects.filter(customer=customer[0].customer.id)
-
-    generic_orders = GenericOrderDetailMapping.objects.filter(customer_id__in=cm_ids)'''
     generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
     picklist = Picklist.objects.filter(order_id__in=generic_details_ids)
     response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id'). \
-                                 annotate(total_quantity=Sum('quantity'),
-                                          total_inv_amt=Sum('orderdetail__invoice_amount')). \
+                                 annotate(total_quantity=Sum('quantity')).
                                  order_by('-generic_order_id'))
     response_data['data'] = response_data['data'][start_index:stop_index]
     for record in response_data['data']:
@@ -6107,7 +6083,23 @@ def get_level_based_customer_orders(request, response_data, user):
             record['date'] = ''
         if record['generic_order_id']:
             record['order_id'] = record['generic_order_id']
-        record['total_inv_amt'] = round(record['total_inv_amt'], 2)
+        for ord_det_id in order_detail_ids:
+            gen_ord_obj = generic_orders.filter(orderdetail_id=ord_det_id)
+            if gen_ord_obj:
+                el_price = gen_ord_obj[0].el_price
+                res_unit_price = gen_ord_obj[0].unit_price
+                cm_id = gen_ord_obj[0].customer_id
+                qty = gen_ord_obj[0].quantity
+                user = gen_ord_obj[0].cust_wh_id
+                sku_code = OrderDetail.objects.get(id=gen_ord_obj[0].orderdetail_id).sku_code
+                if el_price:
+                    record['el_price'] = el_price
+                if res_unit_price:
+                    tax_inclusive_inv_amt = get_tax_inclusive_invoice_amt(cm_id, res_unit_price, qty, user, sku_code)
+                    if 'total_inv_amt' not in record:
+                        record['total_inv_amt'] = round(tax_inclusive_inv_amt, 2)
+                    else:
+                        record['total_inv_amt'] = record['total_inv_amt'] + round(tax_inclusive_inv_amt, 2)
         record['picked_quantity'] = picked_quantity
     return response_data
 
@@ -6264,8 +6256,8 @@ def get_level_based_customer_order_detail(request, user):
                     sku_code = sku_rec['sku__sku_code']
                     if sku_code not in sku_wise_details:
                         sku_qty = sku_rec['quantity']
-                        sku_el_price = sku_rec.get('el_price', 0)
-                        sku_tax_amt = sku_rec.get('sku_tax_amt', 0)
+                        sku_el_price = round(sku_rec.get('el_price', 0), 2)
+                        sku_tax_amt = round(sku_rec.get('sku_tax_amt', 0), 2)
                         sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price,
                                                       'sku_tax_amt': sku_tax_amt}
                     else:
@@ -6281,8 +6273,8 @@ def get_level_based_customer_order_detail(request, user):
         total_amt = float(qty) * float(el_price)
         sku_map = {'sku_code': sku_code, 'quantity': qty, 'landing_price': el_price, 'total_amount': total_amt}
         sku_totals['sub_total'] = sku_totals['sub_total'] + total_amt
-        sku_totals['tax'] = sku_totals['tax'] + tax_amt
-        sku_totals['total_amount'] =  sku_totals['sub_total'] + sku_totals['tax']
+        sku_totals['tax'] = round(sku_totals['tax'] + tax_amt, 2)
+        sku_totals['total_amount'] = round(sku_totals['sub_total'] + sku_totals['tax'], 2)
         sku_whole_map['data'].append(sku_map)
         sku_whole_map['totals'] = sku_totals
     whole_res_map['data'] = response_data_list
@@ -7494,10 +7486,12 @@ def insert_enquiry_data(request, user=''):
                 wh_sku_id = get_syncedusers_mapped_sku(wh_code, cart_item.sku.id)
                 enq_sku_obj = EnquiredSku()
                 enq_sku_obj.sku_id = wh_sku_id
-                enq_sku_obj.title = cart_item.sku.style_name  # TODO Need to check
+                enq_sku_obj.title = cart_item.sku.style_name
                 enq_sku_obj.enquiry = enq_master_obj
                 enq_sku_obj.quantity = cart_item.quantity
-                enq_sku_obj.invoice_amount = cart_item.quantity * cart_item.levelbase_price
+                tot_amt = get_tax_inclusive_invoice_amt(cm_id, cart_item.levelbase_price, cart_item.quantity,
+                                                        user.id, cart_item.sku.sku_code)
+                enq_sku_obj.invoice_amount = tot_amt
                 enq_sku_obj.status = 1
                 enq_sku_obj.sku_code = cart_item.sku.sku_code
                 enq_sku_obj.levelbase_price = cart_item.levelbase_price
@@ -7572,21 +7566,22 @@ def get_customer_enquiry_detail(request, user=''):
             qty = data_val['quantity']
             inv_amt = data_val['invoice_amount']
             lb_price = data_val['levelbase_price']
-            tot_amt = get_tax_inclusive_invoice_amt(cm_id, lb_price, qty, user.id, sku_code)
-            data_val['invoice_amount'] = tot_amt
+            sub_total = qty * lb_price
+            data_val['invoice_amount'] = inv_amt
+            data_val['tax_excl_inv_amt'] = sub_total
             if sku_code not in sku_tot_qty_map:
                 sku_tot_qty_map[sku_code] = qty
             else:
                 sku_tot_qty_map[sku_code] = sku_tot_qty_map[sku_code] + qty
             if sku_code not in sku_tot_inv_map:
-                sku_tot_inv_map[sku_code] = inv_amt
+                sku_tot_inv_map[sku_code] = sub_total
             else:
-                sku_tot_inv_map[sku_code] = sku_tot_inv_map[sku_code] + inv_amt
+                sku_tot_inv_map[sku_code] = sku_tot_inv_map[sku_code] + sub_total
 
         for sku_code in sku_tot_qty_map:
             sku_lbprice_map[sku_code] = sku_tot_inv_map[sku_code] / sku_tot_qty_map[sku_code]
-        total_inv_amt = map(sum, [[i['invoice_amount'] for i in em_obj.enquiredsku_set.values()]])[0]
-        tot_amt_inc_taxes = map(sum, [[i['invoice_amount'] for i in data_vals]])[0]
+        tot_amt_inc_taxes = map(sum, [[i['invoice_amount'] for i in em_obj.enquiredsku_set.values()]])[0]
+        total_inv_amt = map(sum, [[i['tax_excl_inv_amt'] for i in data_vals]])[0]
         total_tax_amt = round(tot_amt_inc_taxes - total_inv_amt, 2)
         total_qty = map(sum, [[i['quantity'] for i in em_obj.enquiredsku_set.values()]])[0]
         sum_data = {'amount': round(tot_amt_inc_taxes, 2), 'quantity': total_qty}
@@ -7595,18 +7590,16 @@ def get_customer_enquiry_detail(request, user=''):
                    'data': data_vals, 'sum_data': sum_data, 'tax': total_tax_amt}
         for sku_rec in data_vals:
             sku_code = sku_rec['sku__sku_code']
+            tot_amt = sku_rec['invoice_amount']
             if sku_code not in sku_wise_details:
                 sku_qty = sku_rec['quantity']
                 sku_el_price = sku_lbprice_map[sku_code]
-                tot_amt = get_tax_inclusive_invoice_amt(cm_id, sku_el_price, sku_qty, user.id, sku_code)
                 sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price,
                                               'tot_inc_tax_inv_amt': tot_amt}
             else:
                 existing_map = sku_wise_details[sku_code]
                 existing_map['quantity'] = existing_map['quantity'] + sku_rec['quantity']
                 existing_map['el_price'] = sku_lbprice_map[sku_code]
-                tot_amt = get_tax_inclusive_invoice_amt(cm_id, sku_lbprice_map[sku_code], sku_rec['quantity'],
-                                                        user.id, sku_code)
                 existing_map['tot_inc_tax_inv_amt'] = tot_amt
         response_data_list.append(res_map)
     sku_whole_map = {'data': [], 'totals': {}}

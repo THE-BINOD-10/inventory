@@ -176,9 +176,11 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   }
 
   vm.sel_items_total_price = 0;
+  vm.sel_items_tax = 0;
   vm.update_levels = function(index){
 
     vm.sel_items_total_price = 0;
+    vm.sel_items_tax = 0;
     vm.sel_items_total_quantity = 0;
     var total_quantity = vm.get_total_level_quantity(index);
     angular.forEach(vm.levels_data, function(level_data, level_name) {
@@ -206,7 +208,11 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       
       vm.sel_items_total_price += level_data.total_price;
       vm.sel_items_total_quantity += level_data.quantity;
+      if (Number(level_data.data[0].quantity)) {
+        vm.sel_items_tax = (vm.sel_items_total_price / 100) * (level_data.data[0].taxes[0].cgst_tax + level_data.data[0].taxes[0].sgst_tax + level_data.data[0].taxes[0].igst_tax);
+      }
     });
+    vm.sel_items_total_price += vm.sel_items_tax;
   }
 
   vm.style_total_quantity = 0;
@@ -218,6 +224,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
       row.unit_rate = row.org_price;
       row.row_total_price = 0;
+      vm.sel_items_tax = 0;
     }
 
     if (Session.roles.permissions.user_type != 'customer') {

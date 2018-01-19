@@ -239,9 +239,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
           angular.copy([], vm.catlog_data.data);
         }
         vm.catlog_data.index = data.data.next_index;
-        angular.forEach(data.data.data, function(item){
-          vm.catlog_data.data.push(item);
-        })
+
+        vm.margin_add_to_categoris(data.data.data);
       //}
       vm.scroll_data = true;
       vm.add_scroll();
@@ -255,6 +254,15 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       }
     }
     })
+  }
+
+  vm.margin_add_to_categoris = function(data){
+    angular.forEach(data, function(item){
+      if (Data.marginSKUData[vm.category]) {
+        item.variants[0].your_price = Data.marginSKUData[vm.category];
+      }
+      // vm.catlog_data.data[item];
+    });
   }
 
   vm.scroll_data = true;
@@ -818,6 +826,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
         Data.marginSKUData[vm.category] = vm.marginData.margin;
       }
+      vm.margin_add_to_categoris(vm.catlog_data.data);
     })
   }
 
@@ -982,7 +991,7 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
       return false;
     }
     var margin = ($ctrl.marginData.is_margin_percentage)? $ctrl.marginData.margin_percentage: $ctrl.marginData.margin_value;
-    angular.copy({data: $ctrl.sku_data}, Data.marginSKUData);
+    // angular.copy({data: $ctrl.sku_data}, Data.marginSKUData);
     $modalInstance.close($ctrl.marginData);
   };
 

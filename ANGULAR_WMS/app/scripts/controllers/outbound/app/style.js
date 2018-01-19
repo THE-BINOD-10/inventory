@@ -2,7 +2,7 @@
 
 'use strict';
 
-function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $stateParams, $modal) {
+function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $stateParams, $modal, Data) {
 
   console.log($state);
   console.log($stateParams);
@@ -301,6 +301,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         
         vm.service.showNoty("Succesfully Added to Cart", "success", "bottomRight");
         $state.go('user.App.Cart');
+        Data.styleId = vm.styleId;
        }
     });
 
@@ -348,7 +349,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
 angular
   .module('urbanApp')
-  .controller('AppStyle', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', '$stateParams', '$modal', AppStyle]);
+  .controller('AppStyle', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', '$stateParams', '$modal', 'Data', AppStyle]);
 
 
 })();

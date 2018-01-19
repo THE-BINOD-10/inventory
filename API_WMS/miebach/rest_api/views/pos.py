@@ -139,8 +139,8 @@ def search_product_data(request):
                                                        user_id = user_id)
             if category:
                 category = category[0]
-            if category.discount:
-                discount_percentage = category.discount
+                if category.discount:
+                    discount_percentage = category.discount
         if discount_percentage:
             discount_price = price - ((price * discount_percentage) / 100)
         stock_quantity = StockDetail.objects.exclude(location__zone__zone = 'DAMAGED_ZONE')\
@@ -336,7 +336,7 @@ def customer_order(request):
                                               item, user, invoice_number)
                         #store extra details
                         else:
-                            for field, val in order["customer_data"]["extra_fields"].iteritems():
+                            for field, val in order["customer_data"].get("extra_fields", {}).iteritems():
                                 OrderFields.objects.create(original_order_id = order_detail.original_order_id,\
                                                 name = field, value = val)
                     # return item : increase stock

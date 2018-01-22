@@ -10,6 +10,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
+    vm.permissions = Session.roles.permissions;
+    vm.pallet_switch = (vm.permissions.pallet_switch == true) ? true: false;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -167,8 +169,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     })
   }
-
-  
 
   }
 

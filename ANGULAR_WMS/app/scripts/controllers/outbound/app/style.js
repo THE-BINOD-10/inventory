@@ -109,7 +109,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
             
             record['org_price'] = record.price;
 
-            if (vm.total_quantity > 0 || Session.parent.userName == 'sagar_fab') {
+            if (vm.total_quantity > 0 || Session.roles.permissions.user_type == 'customer') {
             
               record['quantity_status'] = true;
             }
@@ -220,7 +220,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       row.row_total_price = 0;
     }
 
-    if (Session.parent.userName != 'sagar_fab') {
+    if (Session.roles.permissions.user_type != 'customer') {
 
       if (row.quantity > row.overall_sku_total_quantity) {
 

@@ -347,7 +347,7 @@ def customer_order(request):
                         else:
                             for field, val in order["customer_data"].get("extra_fields", {}).iteritems():
                                 OrderFields.objects.create(original_order_id = order_detail.original_order_id,\
-                                                name = field, value = val)
+                                                name = field, value = val, user = user_id)
                     # return item : increase stock
                     else:
                         sku_stocks_ = StockDetail.objects.filter(sku__user = user_id,\
@@ -390,21 +390,18 @@ def customer_order(request):
     if only_return: order_ids=['return']
     return HttpResponse(json.dumps({'order_ids': order_ids}))
 
-
-@login_required
-@csrf_exempt
-def print_order_data(request):
+def prepare_delivery_challan_json(request, order_id, user_id):
+    json_data = {}
     customer_data, summary, gst_based = {}, {}, {}
     sku_data = []
     total_quantity, total_amount, subtotal = [0]*3
     status = 'fail'
     order_date = NOW
-    user_id = request.GET['user']
     user = User.objects.get(id = user_id)
-    order_id = request.GET['order_id']
     order_date = get_local_date(user, NOW)
     order_detail = OrderDetail.objects.filter(order_id = order_id,\
                                        user = user_id, quantity__gt = 0)
+
     for order in order_detail:
         selling_price = order.unit_price if order.unit_price != 0\
                                          else float(order.invoice_amount)/float(order.quantity)
@@ -437,6 +434,9 @@ def print_order_data(request):
         order = order_detail[0]
         customer_id = ''
         order_date = get_local_date(user, order.creation_date)
+        extra_fields = OrderFields.objects.filter(original_order_id = order.original_order_id, user = user_id)\
+                                  .exclude(name__icontains = "payment_").values('name', 'value')
+        extra_fields = extra_fields.__dict__["_result_cache"]
         if order.customer_id:
             customer_master = CustomerMaster.objects.filter(id = order.customer_id,\
                                                      name = order.customer_name,\
@@ -457,13 +457,19 @@ def print_order_data(request):
                        'subtotal': total_amount,
                        'gst_based': gst_based,
                        'issue_type': order_summary.issue_type}
-    return HttpResponse(json.dumps({'data':
-                                        {'customer_data': customer_data,
-                                         'summary': summary,
-                                         'sku_data': sku_data,
-                                         'order_id': order_id,
-                                         'order_date': order_date},
-                                    'status': status}))
+            json_data = {'data':{'customer_data': customer_data, 'summary': summary,
+                                 'sku_data': sku_data, 'order_id': order_id,
+                                 'order_date': order_date}, 'status': status,
+                                 'customer_extra': extra_fields}
+    return json_data
+
+@login_required
+@csrf_exempt
+def print_order_data(request):
+    user_id = request.GET['user']
+    order_id = request.GET['order_id']
+    json_data = prepare_delivery_challan_json(request, order_id, user_id)
+    return HttpResponse(json.dumps(json_data))
 
 
 def get_order_details(order_id, user_id, mobile, customer_name, request_from):
@@ -549,11 +555,12 @@ def update_order_status(request):
       if data['delete_order'] == "true":
         order_detail.delete()
         if nw_status=="online":
-            return HttpResponse("Deleted Successfully !")
+            return HttpResponse(json.dumps({"message": "Deleted Successfully !", "data": {}}))
         else:
             continue
       for order in order_detail:
         order.status = 0
+        order.payment_received = order.invoice_amount
         sku = order.sku
         user_id = order.user
         user = User.objects.get(id = user_id)
@@ -561,7 +568,7 @@ def update_order_status(request):
         stock_detail = StockDetail.objects.filter(sku = sku, quantity__gt = 0)
         if stock_detail: order.save()
         else:
-           if nw_status=="online": return HttpResponse("Error")
+           if nw_status=="online": return HttpResponse(json.dumps({"message": "Error", "data": {}}))
            order.save()
            continue
 
@@ -599,7 +606,8 @@ def update_order_status(request):
         stock_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
         picklist_creation(request, stock_detail, stock_quantity, order,\
                           picklist_number, stock_diff, item, user, invoice_number)
-  return HttpResponse("Delivered Successfully !")
+  json_data = prepare_delivery_challan_json(request, full_data[0]['order_id'], request.user.id)
+  return HttpResponse(json.dumps({"message": "Delivered Successfully !", "data": json_data}))
 
 
 @login_required
@@ -611,3 +619,10 @@ def get_extra_fields(request):
         typ = item.misc_type.replace("pos_extra_fields_", "")
         extra_fields[typ] = item.misc_value.split(",")
     return HttpResponse(json.dumps(extra_fields))
+
+
+@login_required
+def get_staff_members_list(request):
+    members = ['Staff-1', 'Staff-2', 'Staff-3']
+    return HttpResponse(json.dumps({'members': members}))
+

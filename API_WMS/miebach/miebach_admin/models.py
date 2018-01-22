@@ -296,6 +296,7 @@ class OrderFields(models.Model):
     original_order_id = models.CharField(max_length=128, default='')
     name = models.CharField(max_length=256, default='')
     value = models.CharField(max_length=256, default='')
+    user = models.PositiveIntegerField()
 
     class Meta:
         db_table = 'ORDER_FIELDS'

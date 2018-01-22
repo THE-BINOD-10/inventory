@@ -293,6 +293,7 @@ class GenericOrderDetailMapping(models.Model):
 
 class OrderFields(models.Model):
     id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
     original_order_id = models.CharField(max_length=128, default='')
     name = models.CharField(max_length=256, default='')
     value = models.CharField(max_length=256, default='')
@@ -565,6 +566,7 @@ class InventoryAdjustment(models.Model):
     adjusted_location = models.CharField(max_length=64)
     adjusted_quantity = models.FloatField(default=0)
     reason = models.TextField()
+    pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

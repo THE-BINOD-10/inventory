@@ -1472,7 +1472,8 @@ def get_order(orig_order_id, user):
                              'discount': order_summary.discount,
                              'price': order.invoice_amount,
                              'unit_price': order.unit_price,
-                             'selling_price': selling_price})
+                             'selling_price': selling_price,
+                             'id': order.id})
             total_quantity += int(order.quantity)
             total_gst += order_summary.cgst_tax + order_summary.sgst_tax + order_summary.igst_tax +\
                          order_summary.utgst_tax

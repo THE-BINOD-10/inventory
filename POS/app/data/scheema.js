@@ -29,7 +29,7 @@ var POS_TABLES=DATABASE._allTables;
     DATABASE.version(3).stores({
      customer:"ID,FirstName,LastName,Number,Address,Email"
     });
-        
+
     openDB().then(function(){
       console.log("opened");
     }).catch(function(error){

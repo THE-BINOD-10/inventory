@@ -27,6 +27,7 @@
   
       self.names = ['Delivery Challan', 'Pre Order'];//['Delivery Challan', 'sample', 'R&D']
       self.nw_status = "";
+      self.sku_data_filtered = [];
 
       $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
            .then( function(data) {
@@ -40,11 +41,9 @@
                 if(data.length==0){
                   urlService.show_toast("offline has no sku's");
                 }else{
-                self.sku_data_filtered =data.slice(0,500);
-                self.sku_data = data;
-                self.slice_from = 0;
-                self.slice_to = 500;
-                self.selected_skus = [];
+                  self.sku_data = data;
+                  intialiseMultiSelectData(self.sku_data);
+                  self.selected_skus = [];
                 }
               });
             });
@@ -117,12 +116,21 @@
 	  function sku_pagination(type) {
 		//$(".preloader").removeClass("ng-hide").addClass("ng-show");
 		if(type === "next") {
-			self.slice_from += 500;
-			self.slice_to += 500;
+      if(self.sku_data_filtered.length<=self.sku_data.length){
+  			self.slice_from += 500;
+  			self.slice_to += 500;
+      }else{
+        urlService.show_toast("sku ends");
+      }
 		} else {
-			self.slice_from -= 500;
-			self.slice_to -= 500;
+      if(self.slice_from!=0){
+  			self.slice_from -= 500;
+  			self.slice_to -= 500;
+      }else{
+        urlService.show_toast("skus begin");
+      }
 		}
+
 		self.sku_data_filtered = self.sku_data.slice(self.slice_from, self.slice_to);
         for (var sk in self.sku_data_filtered) {
             if(self.selected_skus.indexOf(self.sku_data_filtered[sk]["SKUCode"]) === -1) {
@@ -133,18 +141,55 @@
         }
 	  }
 
+    //uncheck all the select sku fields
+    function uncheckMultiSelectSkus(){
+      for (var sk in self.sku_data) {
+              if(self.selected_skus.indexOf(self.sku_data[sk].SKUCode) != -1) {
+                self.sku_data[sk].checked = false;
+            } 
+        }
+        angular.forEach(self.sku_data_filtered, function(row){
+          if (row.checked) {
+            row.checked = false;
+          }
+        });
+
+      // for (var sk in self.sku_data_filtered) {
+      //        if(self.selected_skus.indexOf(self.sku_data_filtered[sk].SKUCode) !== -1) {
+      //           self.sku_data_filtered[sk].checked = false;
+      //           self.sku_data_filtered[index].checked = true;
+      //       } 
+      //   }        
+      //clear selected skus  
+      self.selected_skus=[]; 
+      //self.sku_data_filtered=[];
+      //intialise the first 500 items
+      
+       // intialiseMultiSelectData(self.sku_data);
+    
+    }
+
+     //intialise first data
+     function intialiseMultiSelectData(data){
+      self.slice_from = 0;
+      self.slice_to = 500;
+      self.sku_data_filtered=data.slice(self.slice_from,self.slice_to );
+     }
+    
 	  self.hide_load = hide_load;
 	  function hide_load(last) {
 		//last ? $(".preloader").addClass("ng-hide") : $(".preloader").removeClass("ng-hide");
 	  }
 	  self.checkbox_click = checkbox_click;
-	 function checkbox_click($event, sku_code) {
+	 function checkbox_click($event, sku_code, index) {
 		//$event.stopPropagation();
 		var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
 		if(check_box.prop("checked")) {
-			check_box.prop("checked", false);
+			// check_box.prop("checked", false);
+      self.sku_data_filtered[index].checked = true;
 		} else {
-			check_box.prop("checked", true);
+      self.sku_data_filtered[index].checked = false;
+			// check_box.prop("checked", true);
 		}
 	 }
 
@@ -289,8 +334,14 @@
       function print_order(data,user) {
   
         var date = new Date().toDateString();
-        printer.print('/app/views/print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
-                      'date': date, 'print_type': ''});
+
+        if (data.summary.issue_type == 'Delivery Challan') {
+           printer.print('/app/views/print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
+                        'date': date, 'print_type': ''});
+         } else {
+           printer.print('/app/views/pre_order_print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
+                       'date': date, 'print_type': ''});
+         }
       }
   
       self.store_data = store_data;
@@ -319,6 +370,9 @@
                                     "money_data": {}};
         self.skus= urlService.current_order.sku_data;
         manageData.prepForBroadcast("clear");
+
+        //clear the selected skus in multi select
+        uncheckMultiSelectSkus();
       }
 
       //change issue type

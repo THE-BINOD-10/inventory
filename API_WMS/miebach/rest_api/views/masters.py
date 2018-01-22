@@ -953,11 +953,12 @@ def insert_mapping(request, user=''):
     data = SKUSupplier.objects.filter(supplier_id=supplier, sku_id=sku_id[0].id)
     if data:
         return HttpResponse('Duplicate Entry')
-    preference_data = SKUSupplier.objects.filter(sku_id=sku_id[0].id).order_by('-preference')
+    preference_data = SKUSupplier.objects.filter(sku_id=sku_id[0].id).order_by('-preference').\
+                                            values_list('preference', flat=True)
     min_preference = 0
     if preference_data:
-        min_preference = int(preference_data[0].preference)
-    if int(preference) <= min_preference:
+        min_preference = int(preference_data[0])
+    if int(preference) in preference_data:
         return HttpResponse('Duplicate Priority, Next incremantal value is %s' % str(min_preference + 1))
 
     sku_supplier = SKUSupplier(**data_dict)
@@ -1342,17 +1343,17 @@ def insert_discount(request, user=''):
             return HttpResponse("Given SKU not found")
 
         sku = sku[0]
-        sku.discount_percentage = float(save['sku_discount'])
+        sku.discount_percentage = float(save['sku_discount'].strip('%'))
         sku.save()
 
     if save.get('category'):
         category = CategoryDiscount.objects.filter(category=save.get('category', ''), user_id=user.id)
         if category:
             category = category[0]
-            category.discount = float(save['category_discount'])
+            category.discount = float(save['category_discount'].strip('%'))
             category.save()
         else:
-            category = CategoryDiscount(discount=float(save['category_discount']),
+            category = CategoryDiscount(discount=float(save['category_discount'].strip('%')),
                                         category=save.get('category', ''),
                                         creation_date=datetime.datetime.now(), user_id=user.id)
             category.save()

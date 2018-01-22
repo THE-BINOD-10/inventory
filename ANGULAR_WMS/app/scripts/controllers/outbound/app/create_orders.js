@@ -899,6 +899,29 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'Travel Gear ': 'travel-gear.jpg',
                            'Writing Instruments ': 'writing.jpg',
                            'TMT Steel': 'TMT_category.jpg',
+
+                           //swiss military
+
+                           'ACCESSORIES': 'ACCESSORIES.jpg',
+                           'APPARELS': 'APPARELS.jpg',
+                           'ELECTRONICS': 'ELECTRONICS.jpg',
+                           'GARMENTS': 'ELECTRONICS.jpg',
+                           'LEATHER ITEMS': 'LEATHER ITEMS.jpg',
+                           'PENS': 'PENS.jpg',
+                           'PU ITEMS': 'PU ITEMS.jpg',
+                           'SUNGLASSES': 'SUNGLASSES.jpg',
+                           'TG-BACKPACKS': 'TG-BACKPACKS.jpg',
+                           'TG-CANVAS BAGS': 'TG-CANVAS BAGS.jpg',
+                           'TG-FOLDABLE BAGS': 'TG-FOLDABLE BAGS.jpg',
+                           'TG-GYM BAGS': 'TG-GYM BAGS.jpg',
+                           'TG-HARD LUGGAGE': 'TG-HARD LUGGAGE.jpg',
+                           'TG-LAPTOP STROLLYS': 'TG-LAPTOP STROLLYS.jpg',
+                           'TG-SLING BAGS': 'TG-SLING BAGS.jpg',
+                           'TG-SOFT LUGGAGE': 'TG-SOFT LUGGAGE.jpg',
+                           'TG-TOILETARY BAGS': 'TG-TOILETARY BAGS.jpg',
+                           'TG-TRAVEL WALLETS': 'TG-TRAVEL WALLETS.jpg',
+                           'TOYS': 'TOYS.jpg',
+                           'TRAVEL GEAR': 'TRAVEL GEAR.jpg'
                            };
 
   vm.get_category_image = function(category) {

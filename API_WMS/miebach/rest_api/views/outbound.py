@@ -1735,8 +1735,14 @@ def update_invoice(request, user=''):
             if not str(order_id.id) in myDict['id']:
                 continue
 
+            discount_percentage = 0
             unit_price_index = myDict['id'].index(str(order_id.id))
             if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
+                cust_obj = order_id.customerordersummary_set.all()
+                if cust_obj:
+                    cust_obj = cust_obj[0]
+                    if (order_id.quantity * order_id.unit_price):
+                        discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
                 order_id.unit_price = float(myDict['unit_price'][unit_price_index])
                 order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index])
                 order_id.save()
@@ -1746,6 +1752,8 @@ def update_invoice(request, user=''):
                 cust_obj.consignee = consignee
                 if invoice_date:
                     cust_obj.invoice_date = invoice_date
+                if discount_percentage:
+                    cust_obj.discount = ((order_id.quantity * order_id.unit_price)/100) * float(discount_percentage)
                 cust_obj.save()
 
         # Updating or Creating Order other charges Table
@@ -3120,7 +3128,7 @@ def insert_order_data(request, user=''):
                     order_data['warehouse_level'] = 0
                 stock_wh_map = split_orders(**order_data)
                 fetch_order_ids(stock_wh_map, user_order_ids_map)
-                if not is_distributor and user_order_ids_map.has_key(user.id):
+                if not is_distributor and user_order_ids_map.has_key(user.id) and stock_wh_map.has_key(user.id):
                     order_data['order_id'] = user_order_ids_map[user.id]
                     order_data['user'] = user.id
                     mapped_sku_id = get_syncedusers_mapped_sku(user.id, order_data['sku_id'])
@@ -4281,8 +4289,9 @@ def get_stock_qty_leadtime(item, wh_code):
 
 def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_leadtime=0):
     stock_display_warehouse = get_misc_value('stock_display_warehouse', user.id)
-    if stock_display_warehouse != "false":
-        stock_display_warehouse = map(int, stock_display_warehouse.split(','))
+    if stock_display_warehouse and stock_display_warehouse != "false":
+        stock_display_warehouse = stock_display_warehouse.split(',')
+        stock_display_warehouse = map(int, stock_display_warehouse)
     else:
         stock_display_warehouse = get_same_level_warehouses(level)
     stock_qty_all = dict(StockDetail.objects.filter(sku__user__in=stock_display_warehouse,

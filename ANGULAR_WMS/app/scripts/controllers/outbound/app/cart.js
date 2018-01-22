@@ -186,7 +186,15 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
                     $state.go("user.App.Brands");
                   }
                 )
+              } else {
+                vm.insert_cool = true;
+                vm.data_status = true;
+                vm.service.showNoty(data.data, "danger", "bottomRight");
               }
+            } else {
+              vm.insert_cool = true;
+              vm.data_status = true;
+              vm.service.showNoty(data.data, "danger", "bottomRight");
             }
 
             vm.place_order_loading = false;

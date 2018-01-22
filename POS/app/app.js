@@ -1,5 +1,5 @@
 
-var app=angular.module('App', ['ngMaterial','ui.router','FBAngular','ngAnimate','ui.bootstrap','customer','sku', 'money','login','summary', 'pending', 'order', 'pageheader', 'more', 'pageheader']);
+var app=angular.module('App', ['ngMaterial','ui.router','FBAngular','ngAnimate','ui.bootstrap','customer','sku', 'money', 'paymenttype', 'login', 'summary', 'pending', 'order', 'pageheader', 'more', 'pageheader']);
 
 app.service('urlService', function($rootScope){
 

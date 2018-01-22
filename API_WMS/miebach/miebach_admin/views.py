@@ -6761,8 +6761,7 @@ def get_move_inventory(start_index, stop_index, temp_data, search_term, status, 
 
             if positive_difference == 0:
                 positive_items.remove(positive)
-                break
-
+                break    
     all_data = []
     if status == 'adj':
         total_items = positive_items + negative_items
@@ -6782,7 +6781,6 @@ def get_move_inventory(start_index, stop_index, temp_data, search_term, status, 
                                         'Description': positive.sku.sku_desc, 'Total Quantity': positive.quantity,
                                         'Physical Quantity': positive.seen_quantity, 'Reason': "<input type='text'>",
                                         'DT_RowClass': 'results'})
-
     else:
         for items in move_items[start_index:stop_index]:
             data_dict = {'cycle_id': items[0].id, 'adjusted_location': items[1].location_id, 'adjusted_quantity': items[2],
@@ -8407,8 +8405,6 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
             return 'Invalid Location'
     if not quantity:
         return 'Quantity should not be empty'
-
-    quantity = int(quantity)
     total_stock_quantity = 0
     stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=location[0].id, sku__user=user.id)
     for stock in stocks:

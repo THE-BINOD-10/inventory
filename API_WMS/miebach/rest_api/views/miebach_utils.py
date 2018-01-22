@@ -170,8 +170,9 @@ RAISE_PO_FIELDS1 = OrderedDict(
 MOVE_INVENTORY_FIELDS = ((('WMS Code *', 'wms_code'), ('Source Location *', 'source_loc')),
                          (('Destination Location *', 'dest_loc'), ('Quantity *', 'quantity')),)
 
-ADJUST_INVENTORY_FIELDS = ((('WMS Code *', 'wms_code'), ('Location *', 'location')),
-                           (('Physical Quantity *', 'quantity'), ('Reason', 'reason')),)
+ADJUST_INVENTORY_FIELDS = ( (('WMS Code *','wms_code'),('Location *','location')),
+                            (('Physical Quantity *','quantity'),('Reason','reason')),
+                            (('Pallet Code', 'pallet_no'),) )
 
 MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Location', 'Quantity']
 
@@ -1224,18 +1225,6 @@ TAX_VALUES = [{'tax_name': 'Inter State', 'tax_value': 'inter_state'},
               {'tax_name': 'Intra State', 'tax_value': 'intra_state'}]
 
 SUMMARY_INTER_STATE_STATUS = {0: 'intra_state', 1: 'inter_state', '2': 'default'}
-
-# Username and GST Tin Mapping
-
-GSTIN_USER_MAPPING = {'sagar_fab': '29ABEFS4899J1ZA', 'adam_clothing1': '2788OFB3466F1ZB',
-                      'adam_abstract': '2788OFB3466F1ZB',
-                      'dazzle_export': '26AHQPP2057B1ZB', 'legends_overseas': '27AAGFL3290D1ZF',
-                      'TranceHomeLinen': '29ADOPS6189BIZX',
-                      'demo': 'ABC12345678', 'sjpmg': '07BDBPS8474F1Z7', 'tshirt_inc': '36AAHFT9169L1ZC',
-                      'scholar_clothing': '29AMPPN7507A1ZW', 'campus_sutra': '29AAIFC4655P1ZQ',
-                      'Subhas_Publishing': '29AABHS0537D1ZD'}
-
-# End of Username and GST Tin Mapping
 
 # ORDER LABEL MAPPING EXCEL (Campus Sutra)
 

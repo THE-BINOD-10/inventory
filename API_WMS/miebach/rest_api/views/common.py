@@ -296,6 +296,7 @@ def create_user(request):
                                                           api_hash=hash_code,
                                                           is_trail=1, prefix=prefix, setup_status='')
                 user_profile.save()
+                add_user_type_permissions(user_profile)
             user.is_staff = 1
             user.save()
             user = authenticate(username=username, password=password)
@@ -895,7 +896,8 @@ def order_dispatch_message(order, user, order_qt=""):
     send_sms(telephone, data)
 
 
-def enable_mail_reports(request):
+@get_admin_user
+def enable_mail_reports(request, user=''):
     data = request.GET.get('data').split(',')
     data_enabled = []
     data_disabled = []
@@ -906,20 +908,20 @@ def enable_mail_reports(request):
     data_disabled = set(MAIL_REPORTS_DATA.values()) - set(data_enabled)
 
     for d in data_disabled:
-        misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type=d)
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=d)
         if misc_detail:
             misc_detail[0].misc_value = 'false'
             misc_detail[0].save()
             continue
-        data_obj = MiscDetail(user=request.user.id, misc_type=d, misc_value='false')
+        data_obj = MiscDetail(user=user.id, misc_type=d, misc_value='false')
 
     for d in data_enabled:
-        misc_detail = MiscDetail.objects.filter(user=request.user.id, misc_type=d)
+        misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=d)
         if misc_detail:
             misc_detail[0].misc_value = 'true'
             misc_detail[0].save()
             continue
-        data_obj = MiscDetail(user=request.user.id, misc_type=d, misc_value='true')
+        data_obj = MiscDetail(user=user.id, misc_type=d, misc_value='true')
         data_obj.save()
 
     return HttpResponse('Success')
@@ -1494,7 +1496,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
     return 'Added Successfully'
 
 
-def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
+def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet=''):
     now_date = datetime.datetime.now()
     now = str(now_date)
     if wmscode:
@@ -1508,11 +1510,21 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
             return 'Invalid Location'
     if quantity == '':
         return 'Quantity should not be empty'
+    if pallet:
+        pallet_present = PalletDetail.objects.filter(user = user.id, status = 1, pallet_code = pallet)
+        if not pallet_present:
+            pallet_present = PalletDetail.objects.create(user = user.id, status = 1, pallet_code = pallet, 
+                quantity = quantity, creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+        else:
+            pallet_present.update(quantity = quantity)
+            pallet_present = pallet_present[0]
 
     total_stock_quantity = 0
     if quantity:
         quantity = float(quantity)
         stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=location[0].id, sku__user=user.id)
+        if pallet:
+            stocks = stocks.filter(pallet_detail_id = pallet_present)
         total_stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
         if not total_stock_quantity:
             total_stock_quantity = 0
@@ -1534,12 +1546,16 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
                     setattr(stock, 'quantity', 0)
                     stock.save()
                     remaining_quantity = remaining_quantity - stock_quantity
-        if not stocks:
-            dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=quantity,
-                                      status=1,
-                                      creation_date=now_date, updation_date=now_date, location_id=location[0].id,
-                                      sku_id=sku_id)
-            dest_stocks.save()
+        if not stocks:            
+            if not pallet:
+                dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(),
+                    quantity=quantity, status=1, creation_date=now_date, updation_date=now_date, 
+                    location_id=location[0].id, sku_id=sku_id, pallet_detail_id='')
+            else:
+                dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(),
+                    quantity=quantity, status=1, creation_date=now_date, updation_date=now_date,
+                    location_id=location[0].id, sku_id=sku_id, pallet_detail_id=pallet_present.id)
+                dest_stocks.save()
     if quantity == 0:
         StockDetail.objects.filter(sku_id=sku_id, location__location=location[0].location, sku__user=user.id).update(
             quantity=0)
@@ -1572,9 +1588,11 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user):
     data['adjusted_location'] = location[0].id
     data['creation_date'] = now
     data['updation_date'] = now
-
-    inv_obj = InventoryAdjustment.objects.filter(cycle__cycle=dat.cycle, adjusted_location=location[0].id,
-                                                 cycle__sku__user=user.id)
+    inv_obj = InventoryAdjustment.objects.filter(cycle__cycle=dat.cycle, adjusted_location=location[0].id, 
+        cycle__sku__user=user.id)
+    if pallet:
+        data['pallet_detail_id'] = pallet_present.id
+        inv_obj = inv_obj.filter(pallet_detail_id = pallet_present.id)
     if inv_obj:
         inv_obj = inv_obj[0]
         inv_obj.adjusted_quantity = quantity
@@ -2035,16 +2053,20 @@ def get_order_json_data(user, mapping_id='', mapping_type='', sku_id='', order_i
 
 def check_and_update_order(user, order_id):
     from rest_api.views.easyops_api import *
-    user = User.objects.get(id=user)
-    user_profile = UserProfile.objects.get(user_id=user)
-    integrations = Integrations.objects.filter(user=user.id, status=1)
-    for integrate in integrations:
-        obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
-        try:
-            if not user_profile.user_type == 'marketplace_user':
-                obj.confirm_picklist(order_id, user=user)
-        except:
-            continue
+    try:
+        log.info("User %s" % str(user))
+        user = User.objects.get(id=user)
+        user_profile = UserProfile.objects.get(user_id=user)
+        integrations = Integrations.objects.filter(user=user.id, status=1)
+        for integrate in integrations:
+            obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
+            try:
+                if not user_profile.user_type == 'marketplace_user':
+                    obj.confirm_picklist(order_id, user=user)
+            except:
+                continue
+    except:
+        log.info("Order Push failed")
 
 
 def get_financial_year(date):

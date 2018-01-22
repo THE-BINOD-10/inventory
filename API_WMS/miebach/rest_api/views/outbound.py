@@ -6230,17 +6230,38 @@ def get_level_based_customer_order_detail(request, user):
     response_data_list = []
     sku_wise_details = {}
     generic_order_id = request.GET['order_id']
+    is_autobackorder = request.GET.get('autobackorder', 'false')
     user_profile = UserProfile.objects.get(user=request.user.id)
     cum_obj = ''
-    if user_profile.warehouse_type == 'DIST':
-        customer = WarehouseCustomerMapping.objects.filter(warehouse=request.user.id, status=1)
+    if is_autobackorder == 'true':
+        filter_dict = {'cust_wh_id__in': [user.id]}
+        customer = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
         if customer:
             cum_obj = CustomerUserMapping.objects.filter(customer=customer[0].customer.id)
+            filter_dict['cust_wh_id__in'].append(cum_obj[0].customer.user)
+    elif user_profile.warehouse_type == 'WH':
+        filter_dict = {'cust_wh_id__in': [user.id]}
+        cus_mapping = CustomerUserMapping.objects.filter(user_id=request.user.id)
+        if cus_mapping:
+            customer = WarehouseCustomerMapping.objects.filter(customer_id=cus_mapping[0].customer_id, status=1)
+            if customer:
+                filter_dict['cust_wh_id__in'].append(customer[0].warehouse_id)
     else:
         cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+        cm_ids = cum_obj.values_list('customer_id', flat=True)
+        filter_dict = {'customer_id__in': cm_ids}
+
+    # if user_profile.warehouse_type == 'DIST':
+    #     customer = WarehouseCustomerMapping.objects.filter(warehouse=request.user.id, status=1)
+    #     if customer:
+    #         cum_obj = CustomerUserMapping.objects.filter(customer=customer[0].customer.id)
+    # else:
+    #     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if cum_obj:
-        cm_id = cum_obj[0].customer_id
-        generic_orders = GenericOrderDetailMapping.objects.filter(customer_id=cm_id)
+        # cm_id = cum_obj[0].customer_id
+        # generic_orders = GenericOrderDetailMapping.objects.filter(customer_id=cm_id)
+        generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
+        # generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
         order_detail_ids = generic_orders.filter(generic_order_id=generic_order_id).values_list(
             'orderdetail_id', flat=True)
         ord_det_qs = OrderDetail.objects.filter(id__in=order_detail_ids).values_list('order_id', 'id', 'user')
@@ -6426,6 +6447,11 @@ def get_customer_cart_data(request, user=""):
                         json_record.setdefault('prices', []).append(pm_obj_map)
                         if pm_obj.min_unit_range == 0:
                             json_record['price'] = pm_obj.price
+                res_address = cm_obj.address
+                dist_cm_obj = WarehouseCustomerMapping.objects.get(warehouse_id=cm_obj.user).customer
+                dist_address = dist_cm_obj.address
+                json_record['reseller_addr'] = res_address
+                json_record['distributor_addr'] = dist_address
             else:
                 price_master_obj = PriceMaster.objects.filter(price_type=price_type,
                                                               sku__id=record.sku_id)
@@ -7542,7 +7568,7 @@ def get_customer_enquiry_detail(request, user=''):
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     user_profile = UserProfile.objects.filter(user=request.user.id)
     filters = {'enquiry_id': float(enquiry_id)}
-    if user_profile and user_profile[0].warehouse_type == 'DIST':
+    if user_profile and (user_profile[0].warehouse_type == 'DIST' or user_profile[0].warehouse_type == 'CENTRAL_ADMIN'):
         if not request.GET.get('customer_id', ''):
             return HttpResponse("Please Send Customer ID")
         filters['customer_id'] = request.GET.get('customer_id', '')
@@ -7623,7 +7649,10 @@ def get_customer_enquiry_detail(request, user=''):
 @csrf_exempt
 def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                        filters={}, user_dict={}):
-    em_qs = EnquiryMaster.objects.filter(user=user.id)
+    if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+        em_qs = EnquiryMaster.objects.all()
+    else:
+        em_qs = EnquiryMaster.objects.filter(user=user.id)
     for em_obj in em_qs:
         enq_id = int(em_obj.enquiry_id)
         total_qty = map(sum, [[i['quantity'] for i in em_obj.enquiredsku_set.values()]])[0]

@@ -921,7 +921,8 @@ PERMISSION_DICT = OrderedDict((
 
     # Outbound
     ("OUTBOUND_LABEL", (("Create Orders", "add_orderdetail"), ("View Orders", "add_picklist"),
-                        ("Pull Confirmation", "add_picklistlocation"))),
+                        ("Pull Confirmation", "add_picklistlocation"), ("Enquiry Orders", "add_enquirymaster"),
+                        ("Customer Invoices", "add_sellerordersummary"))),
 
     # Shipment Info
     ("SHIPMENT_LABEL", (("Shipment Info", "add_shipmentinfo"))),

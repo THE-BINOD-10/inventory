@@ -222,12 +222,14 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail,\
                                           status = 'batch_picked',\
                                           order_id = order_detail.id,\
                                           stock_id = '', creation_date=NOW)
-   CustomerOrderSummary.objects.create(order_id = order_detail.id,\
-                                       discount = item['discount'],\
-                                       issue_type = order_detail.order_code,\
-                                       cgst_tax = item['cgst_percent'],\
-                                       sgst_tax = item['sgst_percent'],\
-                                       creation_date = NOW)
+   obj, created = CustomerOrderSummary.objects.get_or_create(order_id = order_detail.id)
+   if created:
+       obj.discount = item['discount']
+       obj.issue_type = order_detail.order_code
+       obj.cgst_tax = item['cgst_percent']
+       obj.sgst_tax = item['sgst_percent']
+       obj.creation_date = NOW
+       obj.save()
    stock_diff = 0
    for stock in stock_detail:
        stock_count, stock_diff = get_stock_count(request, order_detail, stock,\
@@ -322,6 +324,13 @@ def customer_order(request):
                                                    status = status,\
                                                    email_id = cust_dict.get('Email',''),\
                                                    unit_price = item['unit_price'])
+		        CustomerOrderSummary.objects.create(order_id = order_detail.id,\
+							   discount = item['discount'],\
+							   issue_type = order_detail.order_code,\
+							   cgst_tax = item['cgst_percent'],\
+							   sgst_tax = item['sgst_percent'],\
+							   creation_date = NOW)
+
                         if status == 0:
                             stock_diff, invoice_number = item['quantity'], order_id
                             stock_detail = StockDetail.objects.exclude(\
@@ -335,7 +344,7 @@ def customer_order(request):
                                               item, user, invoice_number)
                         #store extra details
                         else:
-                            for field, val in order["customer_data"]["extra_fields"].iteritems():
+                            for field, val in order["customer_data"].get("extra_fields", {}).iteritems():
                                 OrderFields.objects.create(original_order_id = order_detail.original_order_id,\
                                                 name = field, value = val)
                     # return item : increase stock
@@ -398,10 +407,11 @@ def print_order_data(request):
     for order in order_detail:
         selling_price = order.unit_price if order.unit_price != 0\
                                          else float(order.invoice_amount)/float(order.quantity)
-        tax_master = {'cgst_tax':0, 'sgst_tax':0, 'igst_tax':0, 'utgst_tax':0} if not order.sku else TaxMaster.objects\
-                                                            .filter(user=user_id, product_type=order.sku.product_type,\
-                                                            max_amt__gte=order.sku.price, min_amt__lte=order.sku.price)\
-                                                            .values('sgst_tax', 'cgst_tax', 'igst_tax', 'utgst_tax')[0]
+	order_summary = CustomerOrderSummary.objects.filter(order_id = order.id)
+	if order_summary:
+	    tax_master = order_summary.values('sgst_tax', 'cgst_tax', 'igst_tax', 'utgst_tax')[0]
+	else:
+            tax_master = {'cgst_tax':0, 'sgst_tax':0, 'igst_tax':0, 'utgst_tax':0}
         gst_based.setdefault(tax_master['cgst_tax'], {'taxable_amt': 0,
                                                       'cgst_percent': tax_master["cgst_tax"],
                                                       'sgst_percent': tax_master["sgst_tax"],

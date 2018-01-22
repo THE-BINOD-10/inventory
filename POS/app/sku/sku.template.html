@@ -114,7 +114,7 @@
             </div>
             <div class="modal-body" style="height: 320px;overflow-y: scroll;">
                 <div class="row">
-                    <table style="width: 95%; margin:auto">
+                    <table style="width: 95%; margin:auto" >
                         <thead ng-show="$ctrl.sku_data.length">
                             <tr>
                                 <!--<th style="padding-left: 10px;"></th>-->
@@ -130,8 +130,13 @@
                                 ng-click="$ctrl.check_sku(item.SKUCode)">
                                 <td><input type="checkbox" style="width:17px;height:17px;margin:8px"
                                            name="selected_sku" value="{{item.SKUCode}}"
+                                           ng-checked="item.checked"
+                                           ng-model="item.checked"
+                                           ng-click="$ctrl.checkbox_click($event,item.SKUCode,$index)"></td>
+                                           <!-- <td><input type="checkbox" style="width:17px;height:17px;margin:8px"
+                                           name="selected_sku" value="{{item.SKUCode}}"
                                            ng-checked="{{item.checked}}"
-                                           ng-click="$ctrl.checkbox_click($event,item.SKUCode)"></td>
+                                           ng-click="$ctrl.checkbox_click($event,item.SKUCode)"></td> -->
                                 <td style="">{{item.SKUCode| limitTo : 15 : 0}}</td>
                                 <td class="">{{item.ProductDescription| limitTo : 15 : 0}}</td>
 								<td class="">{{item.stock_quantity}}</td>

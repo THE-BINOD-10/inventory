@@ -19,7 +19,17 @@ var POS_TABLES=DATABASE._allTables;
        pre_orders:"order_id,order_data",
        order_delivered:"order_id,delete_order,user"
     });
-    
+
+     //delete the the table for for change the primery key
+    DATABASE.version(2).stores({
+    customer:null
+    });
+
+    //create the customer table and hte primery key is customer id
+    DATABASE.version(3).stores({
+     customer:"ID,FirstName,LastName,Number,Address,Email"
+    });
+        
     openDB().then(function(){
       console.log("opened");
     }).catch(function(error){

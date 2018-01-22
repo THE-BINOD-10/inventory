@@ -20,6 +20,14 @@
             ng-init="$ctrl.qty_switch=false">
   </md-switch>
 
+  <span style="float: left;margin:5px 5px 5px 30px;">Inclusive Of Tax: </span>
+  <md-switch class="switch"
+            ng-model="$ctrl.inclusive_tax_switch"
+            aria-label="Switch"
+            style="float: left;margin: 0"
+            ng-init="$ctrl.inclusive_tax_switch=false">
+  </md-switch>
+
   <p style='text-align: right'>Issue Type*
   <select ng-init="$ctrl.issue_selected=$ctrl.names[0]"
         ng-model="$ctrl.issue_selected"

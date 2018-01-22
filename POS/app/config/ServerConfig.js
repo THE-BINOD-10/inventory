@@ -1,4 +1,6 @@
-var ENDPOINT="https:wms.mieone.com/";//"https://api.stockone.in/";
+//var ENDPOINT="http://0.0.0.0:8081/";//"https://api.stockone.in/";
+//var STOCKONE = "http://0.0.0.0:1234/";
+var ENDPOINT="https:wms.mieone.com/";
 var STOCKONE = "http://beta.stockone.in/";
 var APIENDPOINT=ENDPOINT+"rest_api/";
 var GET_SKU_MASTER_CHECKSUM_API=APIENDPOINT+"get_file_checksum/?name=sku_master";

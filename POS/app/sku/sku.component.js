@@ -196,8 +196,11 @@
       //customer order
       self.submit_data = submit_data;
       function submit_data() {
-            //debugger;
-
+        self.payment = {}
+        angular.forEach(urlService.current_order.summary.paymenttype_values, function (index_value, index) {
+          self.payment[index_value['type_name']] = index_value['type_value'];
+        })
+        urlService.current_order.summary.payment = self.payment;
         if(self.issue_selected !== "Pre Order") {
             if (urlService.current_order.sku_data.length > 0) {
                 if (urlService.current_order.customer_data.Number == null) {
@@ -227,7 +230,7 @@
                 self.submit_enable = false;
             }
         }
-    }
+      }
 
       //print order
       self.print_order = print_order;
@@ -413,7 +416,6 @@
       self.get_product_data = get_product_data;
   
       function update_search_results(filter_data, key) {
-          //debugger;
           for (var i=0; i<filter_data.length; i++) {
            if(filter_data.length === 1) {
             if(filter_data[i].SKUCode===key) {

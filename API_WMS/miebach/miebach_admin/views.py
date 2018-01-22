@@ -2584,8 +2584,8 @@ def switches(request, user=''):
                     'pos_switch': request.GET.get('pos_switch', ''),
                     'auto_po_switch': request.GET.get('auto_po_switch', ''),
                     'no_stock_switch': request.GET.get('no_stock_switch', ''),
+                    'tax_inclusive': request.GET.get('tax_inclusive', ''),
                   }
-
 
     for key, value in toggle_data.iteritems():
         if not value:
@@ -2721,6 +2721,16 @@ def manage_users(request):
     headers = ['User Name', 'Name', 'Email', 'Member of Groups']
     return render(request, 'templates/manage_users.html',{'headers': headers})
 
+#POS
+@csrf_exempt
+@login_required
+@get_admin_user
+def pos_tax_inclusive(request, user=''):
+    data = {}
+    tax_inclusive = get_misc_value('tax_inclusive', user.id)
+    data['tax_inclusive_switch'] = json.loads(tax_inclusive);
+    return HttpResponse(json.dumps(data), content_type='application/json')
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -2799,6 +2809,8 @@ def configurations(request, user=''):
                                                              'all_groups': all_groups, 'display_pos': display_pos,
                                                              'auto_po_switch': auto_po_switch, 'no_stock_switch': no_stock_switch,
                                                              'all_stages': all_stages})
+
+#tax_inclusive_pos = get_misc_value('tax_inclusive', user.id)
 
 @csrf_exempt
 @login_required

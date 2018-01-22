@@ -22,10 +22,11 @@
 
   <span style="float: left;margin:5px 5px 5px 30px;">Inclusive Of Tax: </span>
   <md-switch class="switch"
-            ng-model="$ctrl.inclusive_tax_switch"
+            ng-model="$ctrl.tax_inclusive"
             aria-label="Switch"
             style="float: left;margin: 0"
-            ng-init="$ctrl.inclusive_tax_switch=false">
+            ng-init="$ctrl.tax_inclusive=false"
+            ng-change="$ctrl.change_config($ctrl.tax_inclusive, 'tax_inclusive')">
   </md-switch>
 
   <p style='text-align: right'>Issue Type*

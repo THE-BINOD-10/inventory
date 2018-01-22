@@ -103,7 +103,7 @@ function enableHook(){
 function getAllWords(text) {
     
     if (text) {
-        var allWordsIncludingDups = text.toLowerCase().split(/[!@#$%^&*-_.,=?+]+/);
+        var allWordsIncludingDups = text.toLowerCase().split(/[\b\s!@#$%^&*-.,=?+]+/);
         allWordsIncludingDups.push(text);
         allWordsIncludingDups.filter(Boolean);
         var remove_duplicates=new Set(allWordsIncludingDups);

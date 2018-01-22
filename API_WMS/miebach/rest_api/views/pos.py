@@ -258,7 +258,6 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail,\
 @login_required
 @csrf_exempt
 def customer_order(request):
-    import pdb;pdb.set_trace()
     orders = request.POST['order']
     orders = eval(orders)
     order_ids = []

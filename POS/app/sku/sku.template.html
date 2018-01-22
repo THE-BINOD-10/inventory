@@ -128,15 +128,15 @@
                         <tbody>
                             <tr class="sku" ng-repeat = "item in $ctrl.sku_data_filtered"
                                 ng-click="$ctrl.check_sku(item.SKUCode)">
-                                <td><input type="checkbox" style="width:17px;height:17px;margin:8px"
+                                <!--<td><input type="checkbox" style="width:17px;height:17px;margin:8px"
                                            name="selected_sku" value="{{item.SKUCode}}"
                                            ng-checked="item.checked"
                                            ng-model="item.checked"
-                                           ng-click="$ctrl.checkbox_click($event,item.SKUCode,$index)"></td>
-                                           <!-- <td><input type="checkbox" style="width:17px;height:17px;margin:8px"
+                                           ng-click="$ctrl.checkbox_click($event,item.SKUCode,$index)"></td>-->
+                                           <td><input type="checkbox" style="width:17px;height:17px;margin:8px"
                                            name="selected_sku" value="{{item.SKUCode}}"
                                            ng-checked="{{item.checked}}"
-                                           ng-click="$ctrl.checkbox_click($event,item.SKUCode)"></td> -->
+                                           ng-click="$ctrl.checkbox_click($event,item.SKUCode)"></td>
                                 <td style="">{{item.SKUCode| limitTo : 15 : 0}}</td>
                                 <td class="">{{item.ProductDescription| limitTo : 15 : 0}}</td>
 								<td class="">{{item.stock_quantity}}</td>

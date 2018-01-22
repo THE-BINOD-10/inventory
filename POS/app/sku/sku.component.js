@@ -85,18 +85,18 @@
 	  function sku_pagination(type) {
 		//$(".preloader").removeClass("ng-hide").addClass("ng-show");
 		if(type === "next") {
-      if(self.sku_data_filtered.length<=self.sku_data.length){
+      if(self.slice_from < self.sku_data.length){
   			self.slice_from += 500;
   			self.slice_to += 500;
       }else{
-        urlService.show_toast("sku ends");
+        urlService.show_toast("No more SKUs to show");
       }
 		} else {
-      if(self.slice_from!=0){
+      if(self.slice_from != 0){
   			self.slice_from -= 500;
   			self.slice_to -= 500;
       }else{
-        urlService.show_toast("skus begin");
+        urlService.show_toast("Already at begining");
       }
 		}
 
@@ -112,32 +112,14 @@
 
     //uncheck all the select sku fields
     function uncheckMultiSelectSkus(){
-      for (var sk in self.sku_data) {
-              if(self.selected_skus.indexOf(self.sku_data[sk].SKUCode) != -1) {
-                self.sku_data[sk].checked = false;
-            } 
-        }
-        angular.forEach(self.sku_data_filtered, function(row){
-          if (row.checked) {
-            row.checked = false;
-          }
-        });
-
-      // for (var sk in self.sku_data_filtered) {
-      //        if(self.selected_skus.indexOf(self.sku_data_filtered[sk].SKUCode) !== -1) {
-      //           self.sku_data_filtered[sk].checked = false;
-      //           self.sku_data_filtered[index].checked = true;
-      //       } 
-      //   }        
-      //clear selected skus  
-      self.selected_skus=[]; 
-      //self.sku_data_filtered=[];
-      //intialise the first 500 items
-      
-       // intialiseMultiSelectData(self.sku_data);
-    
+       for(var sk in self.sku_data_filtered) {
+          self.sku_data_filtered[sk]["checked"] = false;
+       }
+       for (var sk in self.sku_data) {
+          $('input[name="selected_sku"][value="'+self.sku_data[sk]["SKUCode"]+'"]').prop("checked", false);
+       }
+       self.selected_skus = [];
     }
-
      //intialise first data
      function intialiseMultiSelectData(data){
       self.slice_from = 0;
@@ -154,11 +136,9 @@
 		//$event.stopPropagation();
 		var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
 		if(check_box.prop("checked")) {
-			// check_box.prop("checked", false);
-      self.sku_data_filtered[index].checked = true;
+			check_box.prop("checked", false);
 		} else {
-      self.sku_data_filtered[index].checked = false;
-			// check_box.prop("checked", true);
+			check_box.prop("checked", true);
 		}
 	 }
 

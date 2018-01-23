@@ -170,6 +170,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                  if (data.message) {
                   data = data.data;
                   vm.update=true;
+                  vm.model_data.user_type = vm.permissions.user_type;
                   vm.model_data.sku_data = data.sku_data;
                   vm.model_data.market_data = data.market_data;
                   vm.model_data.zones = data.zones;

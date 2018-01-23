@@ -452,6 +452,8 @@ MARKET_USER_SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU G
                            'Sale Through',
                            'Color', 'EAN Number', 'HSN Code', 'Status']
 
+RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Unit Handling(Options: Enable, Disable)']
+
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity',
                          'Return Date(YYYY-MM-DD)', 'Reason']
 
@@ -748,6 +750,9 @@ ITEM_MASTER_EXCEL = OrderedDict(
 
 SHOTANG_SKU_MASTER_EXCEL = OrderedDict(
     (('wms_code', 2), ('sku_desc', 3), ('color', 4), ('sku_brand', 7), ('sku_category', 8)))
+
+SM_WH_SKU_MASTER_EXCEL = OrderedDict((('wms_code', 0), ('zone_id', 1), ('threshold_quantity', 2),
+                                     ('load_unit_handle', 3)))
 
 # End of SKU Master U[pload templates
 
@@ -1146,7 +1151,7 @@ SELLER_DATA = {'name': '', 'address': '', 'phone_number': '',
                'email_id': '', 'status': 1, 'price_type': '', 'margin': 0}
 
 USER_SKU_EXCEL = {'warehouse_user': SKU_HEADERS, 'marketplace_user': MARKET_USER_SKU_HEADERS,
-                  'customer': SKU_HEADERS}
+                  'customer': SKU_HEADERS, 'WH': RESTRICTED_SKU_HEADERS, 'warehouse': RESTRICTED_SKU_HEADERS}
 
 USER_SKU_EXCEL_MAPPING = {'warehouse_user': SKU_DEF_EXCEL, 'marketplace_user': MARKETPLACE_SKU_DEF_EXCEL,
                           'customer': SKU_DEF_EXCEL}

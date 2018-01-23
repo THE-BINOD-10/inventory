@@ -760,8 +760,10 @@ def sku_form(request, user=''):
     if sku_file:
         return error_file_download(sku_file)
     user_profile = UserProfile.objects.get(user_id=user.id)
-
-    wb, ws = get_work_sheet('skus', USER_SKU_EXCEL[user_profile.user_type])
+    if user_profile.warehouse_type in ('WH', 'DIST'):
+        wb, ws = get_work_sheet('skus', USER_SKU_EXCEL[user_profile.warehouse_type])
+    else:
+        wb, ws = get_work_sheet('skus', USER_SKU_EXCEL[user_profile.user_type])
 
     return xls_to_response(wb, '%s.sku_form.xls' % str(user.id))
 
@@ -1298,6 +1300,8 @@ def get_sku_file_mapping(reader, file_type, user=''):
     elif get_cell_data(0, 0, reader, file_type) == 'product_id' and get_cell_data(0, 1, reader,
                                                                                   file_type) == 'product_variant_id':
         sku_file_mapping = copy.deepcopy(SHOTANG_SKU_MASTER_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'WMS Code' and get_cell_data(0, 1, reader, file_type) == 'Put Zone':
+        sku_file_mapping = copy.deepcopy(SM_WH_SKU_MASTER_EXCEL)
 
     return sku_file_mapping
 

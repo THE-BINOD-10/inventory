@@ -1272,7 +1272,7 @@
                         if(delete_order=="true")
                             return resolve("Deleted sucessfully");
                         else
-                            return resolve("Delivered sucessfully");
+                            return resolve("Delivered Successfully !");
                     }).catch(function(error){
                         return reject(error.message);
                     });
@@ -1314,7 +1314,7 @@
                                     if(delete_order=="true")
                                         return resolve("Deleted sucessfully");
                                     else
-                                        return resolve("Delivered sucessfully");
+                                        return resolve("Delivered Successfully !");
                                 }).catch(function(error){
                                     return reject(error.message);
                                 });

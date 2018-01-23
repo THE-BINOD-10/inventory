@@ -1,5 +1,5 @@
 <div class="paymenttype summary" style="width: 100%; margin-left:0px">
-  <h5>Payment Type</h5>
+  <h5>Payment</h5>
   <div class="summary-row cal" style="color: black;padding: 10px">
     <label> Choose :</label>
     <select ng-model="$ctrl.paymenttype_value" ng-options="c.key as c.value for c in $ctrl.paymenttypes" style="width:55%;padding:5px;">
@@ -14,7 +14,7 @@
             {{ market.type_name }} :
           </td>
           <td style="width: 160px;">
-            <input type="number" name="type_value" class="ng-pristine ng-valid" ng-model="market.type_value" min=0 style="padding-left: 0px;">
+            <input type="number" name="type_value" class="ng-pristine ng-valid" ng-model="market.type_value" min=0 style="padding-left: 0px;" ng-change="$ctrl.payment_valid(market, $index)">
           </td>
           <td style="text-align: center;padding-top: 5px;">
             <i class="glyphicon glyphicon-minus" ng-click="$ctrl.remove_payment_type($index)" style="padding-top: 5px;cursor: pointer;color: #666666;"></i>

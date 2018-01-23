@@ -239,10 +239,10 @@
           urlService.current_order.summary.sgst = Math.abs(urlService.current_order.summary.sgst);
           /*if (self.tax_inclusive) {
             urlService.current_order.summary.subtotal = urlService.current_order.summary.subtotal - urlService.current_order.summary.sgst - urlService.current_order.summary.cgst;
-          }*/
-          if (self.tax_inclusive) {
-            self.skus[i].price = 
           }
+          if (self.tax_inclusive) {
+            self.skus[i].price = ;
+          }*/
 		  if (self.skus[i].return_status === "true" ) {
 			    urlService.current_order.summary.total_discount += 0;
           urlService.current_order.summary.total_returned += -self.skus[i].price;
@@ -255,8 +255,7 @@
           if ((self.skus.length-1) == i) {
             urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount;
 
-              urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount + urlService.current_order.summary.sgst + urlService.current_order.summary.cgst + urlService.current_order.summary.igst + urlService.current_order.summary.utgst;
-
+            urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount + urlService.current_order.summary.sgst + urlService.current_order.summary.cgst + urlService.current_order.summary.igst + urlService.current_order.summary.utgst;
           }
         }
         urlService.current_order.summary.issue_type = self.issue_selected;

@@ -874,7 +874,6 @@ def switches(request, user=''):
                        'tax_inclusive' : 'tax_inclusive',
                        }
         toggle_field, selection = "", ""
-        import pdb;pdb.set_trace()
         for key, value in request.GET.iteritems():
             toggle_field = toggle_data.get(key, '')
             selection = value

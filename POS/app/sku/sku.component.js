@@ -207,28 +207,26 @@
         urlService.current_order.summary.utgst = 0;
         urlService.current_order.summary.gst_based = {};
         for (var i = 0; i < self.skus.length; i++){
-
     		  if(self.skus[i].return_status === "true") {
       			self.skus[i].unit_price = self.skus[i].unit_price < 0 ? self.skus[i].unit_price : -self.skus[i].unit_price;
-      			//self.skus[i].price = -self.skus[i].price;
       			self.skus[i].sgst = self.skus[i].cgst = self.skus[i].igst = self.skus[i].utgst = 0;
   		    }
-
-          self.skus[i].price = self.skus[i].quantity * self.skus[i].unit_price;
-
+          
+          if (!self.tax_inclusive) {
+            self.skus[i].price = self.skus[i].quantity * self.skus[i].unit_price;
+          }
+          
           urlService.current_order.summary.total_amount += self.skus[i].price;
           urlService.current_order.summary.subtotal += self.skus[i].price;
-          
-          if (self.tax_inclusive) {
-            urlService.current_order.summary.sgst += (self.skus[i].sgst * self.skus[i].quantity);
-            urlService.current_order.summary.cgst += (self.skus[i].cgst * self.skus[i].quantity);
-            urlService.current_order.summary.cgst += (self.skus[i].igst * self.skus[i].quantity);
-            urlService.current_order.summary.cgst += (self.skus[i].utgst * self.skus[i].quantity);
-          } else {
-            urlService.current_order.summary.sgst -= (self.skus[i].sgst * self.skus[i].quantity);
-            urlService.current_order.summary.cgst -= (self.skus[i].cgst * self.skus[i].quantity);
-            urlService.current_order.summary.cgst -= (self.skus[i].igst * self.skus[i].quantity);
-            urlService.current_order.summary.cgst -= (self.skus[i].utgst * self.skus[i].quantity);
+          urlService.current_order.summary.sgst += (self.skus[i].sgst * self.skus[i].quantity);
+          urlService.current_order.summary.cgst += (self.skus[i].cgst * self.skus[i].quantity);
+          urlService.current_order.summary.igst += (self.skus[i].igst * self.skus[i].quantity);
+          urlService.current_order.summary.utgst += (self.skus[i].utgst * self.skus[i].quantity);
+          if (!self.tax_inclusive) {
+            urlService.current_order.summary.sgst = -urlService.current_order.summary.sgst;
+            urlService.current_order.summary.cgst = -urlService.current_order.summary.cgst;
+            urlService.current_order.summary.igst = -urlService.current_order.summary.igst;
+            urlService.current_order.summary.utgst = -urlService.current_order.summary.utgst;
           }
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
 
@@ -264,23 +262,21 @@
           urlService.current_order.summary.total_returned += -self.skus[i].price;
           }
 		  else
-            urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
+            if (!self.tax_inclusive) {
+              urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
+            }
 
           if ((self.skus.length-1) == i) {
             urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount;
             if (!self.tax_inclusive) {
               urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount + urlService.current_order.summary.sgst + urlService.current_order.summary.cgst + urlService.current_order.summary.igst + urlService.current_order.summary.utgst;
-            } else {
-              self.skus[i].unit_price = self.skus[i].unit_price - urlService.current_order.summary.cgst - urlService.current_order.summary.sgst;
             }
           }
         }
         urlService.current_order.summary.issue_type = self.issue_selected;
         var date=new Date();
         urlService.current_order.summary.invoice_number = "TI/"+(date.getMonth()+1)+date.getFullYear().toString().substr(2)+"/";
-  
         self.table_headers = (self.skus.length > 0) ? true : false;
-        console.log("total");
       }
 
 	  //select customer first
@@ -682,6 +678,9 @@
               self.skus[i].quantity = parseInt(item.quantity);
               self.skus[i].discount = (item.discount) ? parseInt(item.discount) : 0;
               self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
+              if(self.tax_inclusive) {
+                self.skus[i].unit_price = self.skus[i].unit_price - self.skus[i].cgst - self.skus[i].sgst;
+              }
               cal_total();
             }
             break;

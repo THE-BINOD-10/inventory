@@ -294,7 +294,6 @@
           self.payment[index_value['type_name']] = index_value['type_value'];
         })
         delete(urlService.current_order.summary.paymenttype_values);
-        
         urlService.current_order.summary.payment = self.payment;
         if(self.issue_selected !== "Pre Order") {
             if (urlService.current_order.sku_data.length > 0) {

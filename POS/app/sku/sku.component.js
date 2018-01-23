@@ -68,7 +68,7 @@
       //Session.roles.permissions[switch_name] = switch_value;
     }
 
-    var temp_url=urlService.mainUrl+"pos_tax_inclusive/";
+    /*var temp_url=urlService.mainUrl+"pos_tax_inclusive/";
     $http({
       method: 'GET',
       url:temp_url,
@@ -78,7 +78,7 @@
         $(".preloader").removeClass("ng-show").addClass("ng-hide");
       }).error(function() {
         $(".preloader").removeClass("ng-show").addClass("ng-hide");
-    });
+    });*/
 
 	  //check sku
 	  self.check_sku = check_sku;
@@ -193,10 +193,6 @@
   		    }
           self.skus[i].price = self.skus[i].quantity * self.skus[i].unit_price;
           
-          /*if (!self.tax_inclusive) {
-            self.skus[i].unit_price = 
-          }*/
-          
           urlService.current_order.summary.total_amount += self.skus[i].price;
           urlService.current_order.summary.subtotal += self.skus[i].price;
           urlService.current_order.summary.sgst += (self.skus[i].sgst * self.skus[i].quantity);
@@ -237,12 +233,9 @@
           }
           urlService.current_order.summary.cgst = Math.abs(urlService.current_order.summary.cgst);
           urlService.current_order.summary.sgst = Math.abs(urlService.current_order.summary.sgst);
-          /*if (self.tax_inclusive) {
-            urlService.current_order.summary.subtotal = urlService.current_order.summary.subtotal - urlService.current_order.summary.sgst - urlService.current_order.summary.cgst;
-          }
           if (self.tax_inclusive) {
-            self.skus[i].price = ;
-          }*/
+            self.skus[i].price = self.skus[i].price + (self.skus[i].cgst * self.skus[i].quantity) + (self.skus[i].sgst * self.skus[i].quantity);
+          }
 		  if (self.skus[i].return_status === "true" ) {
 			    urlService.current_order.summary.total_discount += 0;
           urlService.current_order.summary.total_returned += -self.skus[i].price;

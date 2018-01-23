@@ -58,6 +58,10 @@
       }
     }
 
+    $scope.$on('empty_payment_values', function(){
+      self.paymentTypeInput = [];
+    })
+
   }]
  });
 }(window.angular));

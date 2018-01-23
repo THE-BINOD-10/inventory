@@ -68,7 +68,7 @@
       //Session.roles.permissions[switch_name] = switch_value;
     }
 
-    /*var temp_url=urlService.mainUrl+"pos_tax_inclusive/";
+    var temp_url=urlService.mainUrl+"pos_tax_inclusive/";
     $http({
       method: 'GET',
       url:temp_url,
@@ -78,7 +78,7 @@
         $(".preloader").removeClass("ng-show").addClass("ng-hide");
       }).error(function() {
         $(".preloader").removeClass("ng-show").addClass("ng-hide");
-    });*/
+    });
 
 	  //check sku
 	  self.check_sku = check_sku;
@@ -272,6 +272,7 @@
           self.payment[index_value['type_name']] = index_value['type_value'];
         })
         delete(urlService.current_order.summary.paymenttype_values);
+        $rootScope.$broadcast('empty_payment_values');
         urlService.current_order.summary.payment = self.payment;
         if(self.issue_selected !== "Pre Order") {
             if (urlService.current_order.sku_data.length > 0) {
@@ -489,7 +490,7 @@
       }
   
       self.get_product_data = get_product_data;
-  
+
       function update_search_results(filter_data, key) {
           for (var i=0; i<filter_data.length; i++) {
            if(filter_data.length === 1) {
@@ -544,7 +545,7 @@
             }
            }
           }
-      }
+        }
   
       function get_product_data(key) {
 
@@ -576,8 +577,9 @@
                 }).then(function() {
                   deferred.resolve(querySearch (key));
                   deferred.promise.then(function(data){
-                    update_search_results(data, key)
-                    cal_total();
+                    angular.forEach(self.skus, function(value, index) {
+                      self.changeQuantity(value);
+                    });
                   });
                 });
              return deferred.promise;

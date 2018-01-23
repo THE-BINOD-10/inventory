@@ -273,7 +273,6 @@ class OrderDetail(models.Model):
 
 class GenericOrderDetailMapping(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.PositiveIntegerField()
     generic_order_id = models.PositiveIntegerField(default=0)
     orderdetail = models.ForeignKey(OrderDetail)
     customer_id = models.PositiveIntegerField(default=0)

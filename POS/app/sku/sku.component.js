@@ -491,62 +491,6 @@
   
       self.get_product_data = get_product_data;
 
-      function mod_update_search_results(filter_data, key) {
-          for (var i=0; i<filter_data.length; i++) {
-           if(filter_data.length === 1) {
-            if(filter_data[i].SKUCode===key) {
-              self.searchText = "";
-              self.repeated_data = false;
-              for (var j=0; j< self.skus.length; j++) {
-                if (self.skus[j].sku_code === key) {
-                  var quantity = 0;
-
-                  if (!self.qty_switch && !self.return_switch && self.issue_selected === "Delivery Challan" &&
-                                            self.skus[j].stock_quantity == self.skus[j].quantity) {
-
-                    alert("Given Quantity is more than Stock Quantity.");
-                  } else {
-                    quantity = 1;
-                  }
-                  self.skus[j].quantity = parseInt(self.skus[j].quantity) + quantity;
-                  self.skus[j].price = self.skus[j].quantity * self.skus[j].unit_price;
-                  self.repeated_data = true;
-                  self.skus[j].return_status = self.return_switch.toString();
-                  break;
-                }
-              }
-              if (!self.repeated_data) {
-             
-                if (!self.qty_switch && !self.return_switch && self.issue_selected === "Delivery Challan" && filter_data[i].stock_quantity == 0) {
-                  alert("Given SKU stock is empty.");
-                  $("input[name='selected_sku'][value='"+filter_data[0]["SKUCode"]+"']").prop("checked", false);
-                  break;
-                } else {
-  
-                  //var quantity = (filter_data[i].stock_quantity > 0) ? 1: 0;
-                  //Change the quantity to 1
-                  var quantity = 1;
-
-                  var sgst = filter_data[i].price * filter_data[i].sgst / 100;
-                          var cgst = filter_data[i].price * filter_data[i].cgst / 100;
-                          var igst = filter_data[i].price * filter_data[i].igst / 100;
-                        var utgst= filter_data[i].price * filter_data[i].utgst / 100;
-                  self.skus.push({'name': filter_data[i].ProductDescription, 'unit_price': filter_data[i].price, 'quantity': quantity,
-                                  'sku_code': filter_data[i].SKUCode, 'price': filter_data[i].price ,'discount':filter_data[i].discount,
-                                  'selling_price':filter_data[i].selling_price, 'stock_quantity': filter_data[i].stock_quantity,
-                                  'sgst': sgst, 'cgst': cgst, 'igst': igst, 'utgst': utgst, 'sgst_percent': filter_data[i].sgst,
-                                  'cgst_percent': filter_data[i].cgst, 'igst_percent': filter_data[i].igst,
-                                  'utgst_percent': filter_data[i].utgst, 'return_status': self.return_switch.toString()});
-                  urlService.current_order.sku_data = self.skus;
-                  break;
-  
-                }
-              }
-            }
-           }
-          }
-        }
-
       function update_search_results(filter_data, key) {
           for (var i=0; i<filter_data.length; i++) {
            if(filter_data.length === 1) {
@@ -633,8 +577,6 @@
                 }).then(function() {
                   deferred.resolve(querySearch (key));
                   deferred.promise.then(function(data){
-                    //mod_update_search_results(data, key)
-                    //cal_total();
                     angular.forEach(self.skus, function(value, index) {
                       self.changeQuantity(value);
                     });

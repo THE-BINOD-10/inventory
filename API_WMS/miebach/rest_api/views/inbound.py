@@ -871,10 +871,9 @@ def switches(request, user=''):
                        'generic_wh_level': 'generic_wh_level',
                        'auto_confirm_po': 'auto_confirm_po',
                        'customer_pdf_remarks': 'customer_pdf_remarks',
+                       'tax_inclusive' : 'tax_inclusive',
                        }
-
         toggle_field, selection = "", ""
-
         for key, value in request.GET.iteritems():
             toggle_field = toggle_data.get(key, '')
             selection = value

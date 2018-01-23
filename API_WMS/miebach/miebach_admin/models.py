@@ -293,6 +293,7 @@ class GenericOrderDetailMapping(models.Model):
 
 class OrderFields(models.Model):
     id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
     original_order_id = models.CharField(max_length=128, default='')
     name = models.CharField(max_length=256, default='')
     value = models.CharField(max_length=256, default='')

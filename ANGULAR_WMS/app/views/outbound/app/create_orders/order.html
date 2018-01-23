@@ -179,6 +179,27 @@ input[type="date"]:valid::before {
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-12">
+          <div class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="permissions.user_type != 'distributor'">
+            <div class="col-md-12 col-sm-12 col-xs-12">
+              <h5><b>Delivering Details</b></h5><hr>
+            </div>
+            <hr>
+            <div class="row">
+              <div class="col-md-6 no-padding" ng-repeat="address in Cart.deliver_address">
+                <input type="radio" name="default-address" ng-checked="(Cart.checked_address == address)?'checked': '';" ng-model="Cart.checked_address" value="{{address}}" />
+                <span style="font-size: 14px;">{{address}}</span><br>
+              </div>
+            </div><hr>
+            <div class="row">
+              <div class="col-md-6">
+                {{Cart.model_data.data[0].distributor_addr}}
+              </div>
+              <div class="col-md-6">
+                {{Cart.model_data.data[0].reseller_addr}}
+              </div>
+            </div>
+          </div>
+
           <div class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="Cart.final_data.total_quantity && Cart.model_data.data.length > 0">
             <div class="col-md-12 col-sm-12 col-xs-12">
               <h5>PRICE DETAILS</h5><hr>

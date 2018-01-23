@@ -471,6 +471,7 @@
              
                 if (!self.qty_switch && !self.return_switch && self.issue_selected === "Delivery Challan" && filter_data[i].stock_quantity == 0) {
                   alert("Given SKU stock is empty.");
+                  $("input[name='selected_sku'][value='"+filter_data[0]["SKUCode"]+"']").prop("checked", false);
                   break;
                 } else {
   

@@ -258,7 +258,6 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail,\
 @login_required
 @csrf_exempt
 def customer_order(request):
-    import pdb;pdb.set_trace()
     orders = request.POST['order']
     orders = eval(orders)
     order_ids = []
@@ -435,9 +434,10 @@ def prepare_delivery_challan_json(request, order_id, user_id):
         order = order_detail[0]
         customer_id = ''
         order_date = get_local_date(user, order.creation_date)
-        extra_fields = OrderFields.objects.filter(original_order_id = order.original_order_id, user = user_id)\
-                                  .exclude(name__icontains = "payment_").values('name', 'value')
-        extra_fields = extra_fields.__dict__["_result_cache"]
+        extra_field_obj = list(OrderFields.objects.filter(original_order_id = order.original_order_id, user = user_id)\
+                                  .exclude(name__icontains = "payment_").values_list('name', 'value'))
+        extra_fields = {}
+        [extra_fields.update({a[0]:a[1]}) for a in extra_field_obj]
         if order.customer_id:
             customer_master = CustomerMaster.objects.filter(id = order.customer_id,\
                                                      name = order.customer_name,\
@@ -460,8 +460,10 @@ def prepare_delivery_challan_json(request, order_id, user_id):
                        'issue_type': order_summary.issue_type}
             json_data = {'data':{'customer_data': customer_data, 'summary': summary,
                                  'sku_data': sku_data, 'order_id': order_id,
-                                 'order_date': order_date}, 'status': status,
-                                 'customer_extra': extra_fields}
+                                 'order_date': order_date,
+                                 'customer_extra': extra_fields},
+                        'status': status
+                        }
     return json_data
 
 @login_required

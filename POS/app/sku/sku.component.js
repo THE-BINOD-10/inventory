@@ -723,6 +723,8 @@
             }
         }
       }
+
+      
   
       // Internal methods
       function querySearch (query) {

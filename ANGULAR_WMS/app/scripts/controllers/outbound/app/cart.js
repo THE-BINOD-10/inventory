@@ -11,6 +11,8 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   angular.copy(empty_data, vm.model_data);
   vm.date = new Date();
   vm.user_type = Session.roles.permissions.user_type;
+  vm.deliver_address = ['Distributor Address', 'Your Address'];
+  vm.checked_address = vm.deliver_address[0];
 
   vm.get_customer_cart_data = function() {
     
@@ -164,6 +166,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
           var elem = angular.element($('form'));
           elem = elem[0];
           elem = $(elem).serializeArray();
+          elem.push({'name': 'address_selected', 'value': vm.checked_address});
           vm.place_order_loading = true;
           vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
             if(data.message) {
@@ -391,7 +394,8 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
           return false;
         }
         vm.place_order_loading = true;
-        Service.apiCall("insert_enquiry_data/").then(function(data){
+        var send = {'name': vm.model_data.client_name_header};
+        Service.apiCall("insert_enquiry_data/", "POST", send).then(function(data){
 
           if(data.message) {
 

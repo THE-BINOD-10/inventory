@@ -3,12 +3,12 @@
   
    angular.module("sku", ["ngMaterial"])
            .component("sku", {
-  
              "templateUrl": "/app/sku/sku.template.html",
              "controller"  : ["$http", "$scope", "$timeout", "$q", "$log", "urlService",
                               "manageData","printer", "$rootScope", "$location", "$window",
       function ($http, $scope, $timeout, $q, $log, urlService, manageData, printer, $rootScope, $location, $window) {
         var self = this;
+        self.tax_inclusive = false;
   
       self.simulateQuery = false;
       self.isDisabled    = false;
@@ -48,6 +48,37 @@
               });
             });
 
+    self.change_config = change_config;
+    function change_config(switch_value, switch_name) {
+      var temp_url=urlService.mainUrl+"switches/?"+switch_name+"="+String(switch_value);
+      $http({
+        method: 'GET',
+        url:temp_url,
+        withCredential: true,
+        }).success(function(data, status, headers, config) {
+          $(".preloader").removeClass("ng-show").addClass("ng-hide");
+          if (data == "Success") {
+            angular.forEach(self.skus, function(value, index) {
+              self.changeQuantity(value);
+            });
+          }
+        }).error(function() {
+          $(".preloader").removeClass("ng-show").addClass("ng-hide");
+        });
+      //Session.roles.permissions[switch_name] = switch_value;
+    }
+
+    var temp_url=urlService.mainUrl+"pos_tax_inclusive/";
+    $http({
+      method: 'GET',
+      url:temp_url,
+      withCredential: true,
+      }).success(function(data, status, headers, config) {
+        self.tax_inclusive = data.tax_inclusive_switch;
+        $(".preloader").removeClass("ng-show").addClass("ng-hide");
+      }).error(function() {
+        $(".preloader").removeClass("ng-show").addClass("ng-hide");
+    });
 
 	  //check sku
 	  self.check_sku = check_sku;
@@ -145,7 +176,6 @@
       //calculate total items
       self.cal_total = cal_total;
       function cal_total(){
-  
         urlService.current_order.summary.total_amount = 0;
         urlService.current_order.summary.total_quantity = 0;
         urlService.current_order.summary.total_discount = 0;
@@ -157,28 +187,41 @@
         urlService.current_order.summary.utgst = 0;
         urlService.current_order.summary.gst_based = {};
         for (var i = 0; i < self.skus.length; i++){
-
-		  if(self.skus[i].return_status === "true") {
-			self.skus[i].unit_price = self.skus[i].unit_price < 0 ? self.skus[i].unit_price : -self.skus[i].unit_price;
-			//self.skus[i].price = -self.skus[i].price;
-			self.skus[i].sgst = self.skus[i].cgst = self.skus[i].igst = self.skus[i].utgst = 0;
-		  }
-
+    		  if(self.skus[i].return_status === "true") {
+      			self.skus[i].unit_price = self.skus[i].unit_price < 0 ? self.skus[i].unit_price : -self.skus[i].unit_price;
+      			self.skus[i].sgst = self.skus[i].cgst = self.skus[i].igst = self.skus[i].utgst = 0;
+  		    }
           self.skus[i].price = self.skus[i].quantity * self.skus[i].unit_price;
+          
           urlService.current_order.summary.total_amount += self.skus[i].price;
           urlService.current_order.summary.subtotal += self.skus[i].price;
           urlService.current_order.summary.sgst += (self.skus[i].sgst * self.skus[i].quantity);
           urlService.current_order.summary.cgst += (self.skus[i].cgst * self.skus[i].quantity);
-          urlService.current_order.summary.cgst += (self.skus[i].igst * self.skus[i].quantity);
-          urlService.current_order.summary.cgst += (self.skus[i].utgst * self.skus[i].quantity);
+          urlService.current_order.summary.igst += (self.skus[i].igst * self.skus[i].quantity);
+          urlService.current_order.summary.utgst += (self.skus[i].utgst * self.skus[i].quantity);
+          if (!self.tax_inclusive) {
+            urlService.current_order.summary.sgst = -urlService.current_order.summary.sgst;
+            urlService.current_order.summary.cgst = -urlService.current_order.summary.cgst;
+            urlService.current_order.summary.igst = -urlService.current_order.summary.igst;
+            urlService.current_order.summary.utgst = -urlService.current_order.summary.utgst;
+          }
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
 
           if(Object.keys(urlService.current_order.summary.gst_based).includes(self.skus[i].cgst_percent.toString())) {
               urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["taxable_amt"] += self.skus[i].price;
-              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent *
-                                               (self.skus[i].price)/100);
-              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] += (self.skus[i].sgst_percent *
-                                               (self.skus[i].price)/100);
+              
+              if (self.tax_inclusive) {
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent *
+                                                 (self.skus[i].price)/100);
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] += (self.skus[i].sgst_percent *
+                                                 (self.skus[i].price)/100);
+              } else {
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] -= (self.skus[i].cgst_percent *
+                                                 (self.skus[i].price)/100);
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] -= (self.skus[i].sgst_percent *
+                                                 (self.skus[i].price)/100);
+              }
+
           } else {
               urlService.current_order.summary.gst_based[self.skus[i].cgst_percent] =
                             {"taxable_amt": self.skus[i].price,
@@ -188,27 +231,30 @@
                              "sgst": (self.skus[i].sgst_percent * (self.skus[i].price)/100)
                             }
           }
-
+          urlService.current_order.summary.cgst = Math.abs(urlService.current_order.summary.cgst);
+          urlService.current_order.summary.sgst = Math.abs(urlService.current_order.summary.sgst);
+          if (self.tax_inclusive) {
+            self.skus[i].price = self.skus[i].price + (self.skus[i].cgst * self.skus[i].quantity) + (self.skus[i].sgst * self.skus[i].quantity);
+          }
 		  if (self.skus[i].return_status === "true" ) {
-			urlService.current_order.summary.total_discount += 0;
-            urlService.current_order.summary.total_returned += -self.skus[i].price;
+			    urlService.current_order.summary.total_discount += 0;
+          urlService.current_order.summary.total_returned += -self.skus[i].price;
           }
 		  else
-            urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
+            if (!self.tax_inclusive) {
+              urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
+            }
 
           if ((self.skus.length-1) == i) {
+            urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount;
 
-            urlService.current_order.summary.total_amount = urlService.current_order.summary.sgst + urlService.current_order.summary.cgst +
-                                                            urlService.current_order.summary.igst + urlService.current_order.summary.utgst +
-                                                            urlService.current_order.summary.total_amount;
+            urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount + urlService.current_order.summary.sgst + urlService.current_order.summary.cgst + urlService.current_order.summary.igst + urlService.current_order.summary.utgst;
           }
         }
         urlService.current_order.summary.issue_type = self.issue_selected;
         var date=new Date();
         urlService.current_order.summary.invoice_number = "TI/"+(date.getMonth()+1)+date.getFullYear().toString().substr(2)+"/";
-  
         self.table_headers = (self.skus.length > 0) ? true : false;
-        console.log("total");
       }
 
 	  //select customer first
@@ -225,6 +271,8 @@
         angular.forEach(urlService.current_order.summary.paymenttype_values, function (index_value, index) {
           self.payment[index_value['type_name']] = index_value['type_value'];
         })
+        delete(urlService.current_order.summary.paymenttype_values);
+        $rootScope.$broadcast('empty_payment_values');
         urlService.current_order.summary.payment = self.payment;
         if(self.issue_selected !== "Pre Order") {
             if (urlService.current_order.sku_data.length > 0) {
@@ -442,7 +490,7 @@
       }
   
       self.get_product_data = get_product_data;
-  
+
       function update_search_results(filter_data, key) {
           for (var i=0; i<filter_data.length; i++) {
            if(filter_data.length === 1) {
@@ -471,6 +519,7 @@
              
                 if (!self.qty_switch && !self.return_switch && self.issue_selected === "Delivery Challan" && filter_data[i].stock_quantity == 0) {
                   alert("Given SKU stock is empty.");
+                  $("input[name='selected_sku'][value='"+filter_data[0]["SKUCode"]+"']").prop("checked", false);
                   break;
                 } else {
   
@@ -496,7 +545,7 @@
             }
            }
           }
-      }
+        }
   
       function get_product_data(key) {
 
@@ -528,8 +577,9 @@
                 }).then(function() {
                   deferred.resolve(querySearch (key));
                   deferred.promise.then(function(data){
-                    update_search_results(data, key)
-                    cal_total();
+                    angular.forEach(self.skus, function(value, index) {
+                      self.changeQuantity(value);
+                    });
                   });
                 });
              return deferred.promise;
@@ -610,6 +660,9 @@
               self.skus[i].quantity = parseInt(item.quantity);
               self.skus[i].discount = (item.discount) ? parseInt(item.discount) : 0;
               self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
+              if(self.tax_inclusive) {
+                self.skus[i].unit_price = self.skus[i].unit_price - self.skus[i].cgst - self.skus[i].sgst;
+              }
               cal_total();
             }
             break;
@@ -652,6 +705,8 @@
             }
         }
       }
+
+      
   
       // Internal methods
       function querySearch (query) {

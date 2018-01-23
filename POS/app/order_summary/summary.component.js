@@ -11,8 +11,6 @@
       var self = this;
       self.VAT = urlService.VAT;
       self.order = urlService.current_order.summary;
-
-
 		if (urlService.user_update) {
 
         

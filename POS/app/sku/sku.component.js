@@ -3,12 +3,12 @@
   
    angular.module("sku", ["ngMaterial"])
            .component("sku", {
-  
              "templateUrl": "/app/sku/sku.template.html",
              "controller"  : ["$http", "$scope", "$timeout", "$q", "$log", "urlService",
                               "manageData","printer", "$rootScope", "$location", "$window",
       function ($http, $scope, $timeout, $q, $log, urlService, manageData, printer, $rootScope, $location, $window) {
         var self = this;
+        self.tax_inclusive = false;
   
       self.simulateQuery = false;
       self.isDisabled    = false;
@@ -27,6 +27,7 @@
   
       self.names = ['Delivery Challan', 'Pre Order'];//['Delivery Challan', 'sample', 'R&D']
       self.nw_status = "";
+      self.sku_data_filtered = [];
 
       $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
            .then( function(data) {
@@ -40,15 +41,44 @@
                 if(data.length==0){
                   urlService.show_toast("offline has no sku's");
                 }else{
-                self.sku_data_filtered =data.slice(0,500);
-                self.sku_data = data;
-                self.slice_from = 0;
-                self.slice_to = 500;
-                self.selected_skus = [];
+                  self.sku_data = data;
+                  intialiseMultiSelectData(self.sku_data);
+                  self.selected_skus = [];
                 }
               });
             });
 
+    self.change_config = change_config;
+    function change_config(switch_value, switch_name) {
+      var temp_url=urlService.mainUrl+"switches/?"+switch_name+"="+String(switch_value);
+      $http({
+        method: 'GET',
+        url:temp_url,
+        withCredential: true,
+        }).success(function(data, status, headers, config) {
+          $(".preloader").removeClass("ng-show").addClass("ng-hide");
+          if (data == "Success") {
+            angular.forEach(self.skus, function(value, index) {
+              self.changeQuantity(value);
+            });
+          }
+        }).error(function() {
+          $(".preloader").removeClass("ng-show").addClass("ng-hide");
+        });
+      //Session.roles.permissions[switch_name] = switch_value;
+    }
+
+    var temp_url=urlService.mainUrl+"pos_tax_inclusive/";
+    $http({
+      method: 'GET',
+      url:temp_url,
+      withCredential: true,
+      }).success(function(data, status, headers, config) {
+        self.tax_inclusive = data.tax_inclusive_switch;
+        $(".preloader").removeClass("ng-show").addClass("ng-hide");
+      }).error(function() {
+        $(".preloader").removeClass("ng-show").addClass("ng-hide");
+    });
 
 	  //check sku
 	  self.check_sku = check_sku;
@@ -86,12 +116,21 @@
 	  function sku_pagination(type) {
 		//$(".preloader").removeClass("ng-hide").addClass("ng-show");
 		if(type === "next") {
-			self.slice_from += 500;
-			self.slice_to += 500;
+      if(self.slice_from < self.sku_data.length){
+  			self.slice_from += 500;
+  			self.slice_to += 500;
+      }else{
+        urlService.show_toast("No more SKUs to show");
+      }
 		} else {
-			self.slice_from -= 500;
-			self.slice_to -= 500;
+      if(self.slice_from != 0){
+  			self.slice_from -= 500;
+  			self.slice_to -= 500;
+      }else{
+        urlService.show_toast("Already at begining");
+      }
 		}
+
 		self.sku_data_filtered = self.sku_data.slice(self.slice_from, self.slice_to);
         for (var sk in self.sku_data_filtered) {
             if(self.selected_skus.indexOf(self.sku_data_filtered[sk]["SKUCode"]) === -1) {
@@ -102,12 +141,29 @@
         }
 	  }
 
+    //uncheck all the select sku fields
+    function uncheckMultiSelectSkus(){
+       for(var sk in self.sku_data_filtered) {
+          self.sku_data_filtered[sk]["checked"] = false;
+       }
+       for (var sk in self.sku_data) {
+          $('input[name="selected_sku"][value="'+self.sku_data[sk]["SKUCode"]+'"]').prop("checked", false);
+       }
+       self.selected_skus = [];
+    }
+     //intialise first data
+     function intialiseMultiSelectData(data){
+      self.slice_from = 0;
+      self.slice_to = 500;
+      self.sku_data_filtered=data.slice(self.slice_from,self.slice_to );
+     }
+    
 	  self.hide_load = hide_load;
 	  function hide_load(last) {
 		//last ? $(".preloader").addClass("ng-hide") : $(".preloader").removeClass("ng-hide");
 	  }
 	  self.checkbox_click = checkbox_click;
-	 function checkbox_click($event, sku_code) {
+	 function checkbox_click($event, sku_code, index) {
 		//$event.stopPropagation();
 		var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
 		if(check_box.prop("checked")) {
@@ -120,7 +176,6 @@
       //calculate total items
       self.cal_total = cal_total;
       function cal_total(){
-  
         urlService.current_order.summary.total_amount = 0;
         urlService.current_order.summary.total_quantity = 0;
         urlService.current_order.summary.total_discount = 0;
@@ -132,28 +187,41 @@
         urlService.current_order.summary.utgst = 0;
         urlService.current_order.summary.gst_based = {};
         for (var i = 0; i < self.skus.length; i++){
-
-		  if(self.skus[i].return_status === "true") {
-			self.skus[i].unit_price = self.skus[i].unit_price < 0 ? self.skus[i].unit_price : -self.skus[i].unit_price;
-			//self.skus[i].price = -self.skus[i].price;
-			self.skus[i].sgst = self.skus[i].cgst = self.skus[i].igst = self.skus[i].utgst = 0;
-		  }
-
+    		  if(self.skus[i].return_status === "true") {
+      			self.skus[i].unit_price = self.skus[i].unit_price < 0 ? self.skus[i].unit_price : -self.skus[i].unit_price;
+      			self.skus[i].sgst = self.skus[i].cgst = self.skus[i].igst = self.skus[i].utgst = 0;
+  		    }
           self.skus[i].price = self.skus[i].quantity * self.skus[i].unit_price;
+          
           urlService.current_order.summary.total_amount += self.skus[i].price;
           urlService.current_order.summary.subtotal += self.skus[i].price;
           urlService.current_order.summary.sgst += (self.skus[i].sgst * self.skus[i].quantity);
           urlService.current_order.summary.cgst += (self.skus[i].cgst * self.skus[i].quantity);
-          urlService.current_order.summary.cgst += (self.skus[i].igst * self.skus[i].quantity);
-          urlService.current_order.summary.cgst += (self.skus[i].utgst * self.skus[i].quantity);
+          urlService.current_order.summary.igst += (self.skus[i].igst * self.skus[i].quantity);
+          urlService.current_order.summary.utgst += (self.skus[i].utgst * self.skus[i].quantity);
+          if (!self.tax_inclusive) {
+            urlService.current_order.summary.sgst = -urlService.current_order.summary.sgst;
+            urlService.current_order.summary.cgst = -urlService.current_order.summary.cgst;
+            urlService.current_order.summary.igst = -urlService.current_order.summary.igst;
+            urlService.current_order.summary.utgst = -urlService.current_order.summary.utgst;
+          }
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
 
           if(Object.keys(urlService.current_order.summary.gst_based).includes(self.skus[i].cgst_percent.toString())) {
               urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["taxable_amt"] += self.skus[i].price;
-              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent *
-                                               (self.skus[i].price)/100);
-              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] += (self.skus[i].sgst_percent *
-                                               (self.skus[i].price)/100);
+              
+              if (self.tax_inclusive) {
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent *
+                                                 (self.skus[i].price)/100);
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] += (self.skus[i].sgst_percent *
+                                                 (self.skus[i].price)/100);
+              } else {
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] -= (self.skus[i].cgst_percent *
+                                                 (self.skus[i].price)/100);
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] -= (self.skus[i].sgst_percent *
+                                                 (self.skus[i].price)/100);
+              }
+
           } else {
               urlService.current_order.summary.gst_based[self.skus[i].cgst_percent] =
                             {"taxable_amt": self.skus[i].price,
@@ -163,64 +231,93 @@
                              "sgst": (self.skus[i].sgst_percent * (self.skus[i].price)/100)
                             }
           }
-
+          urlService.current_order.summary.cgst = Math.abs(urlService.current_order.summary.cgst);
+          urlService.current_order.summary.sgst = Math.abs(urlService.current_order.summary.sgst);
+          if (self.tax_inclusive) {
+            self.skus[i].price = self.skus[i].price + (self.skus[i].cgst * self.skus[i].quantity) + (self.skus[i].sgst * self.skus[i].quantity);
+          }
 		  if (self.skus[i].return_status === "true" ) {
-			urlService.current_order.summary.total_discount += 0;
-            urlService.current_order.summary.total_returned += -self.skus[i].price;
+			    urlService.current_order.summary.total_discount += 0;
+          urlService.current_order.summary.total_returned += -self.skus[i].price;
           }
 		  else
-            urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
+            if (!self.tax_inclusive) {
+              urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
+            }
 
           if ((self.skus.length-1) == i) {
+            urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount;
 
-            urlService.current_order.summary.total_amount = urlService.current_order.summary.sgst + urlService.current_order.summary.cgst +
-                                                            urlService.current_order.summary.igst + urlService.current_order.summary.utgst +
-                                                            urlService.current_order.summary.total_amount;
+            urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount + urlService.current_order.summary.sgst + urlService.current_order.summary.cgst + urlService.current_order.summary.igst + urlService.current_order.summary.utgst;
           }
         }
         urlService.current_order.summary.issue_type = self.issue_selected;
         var date=new Date();
         urlService.current_order.summary.invoice_number = "TI/"+(date.getMonth()+1)+date.getFullYear().toString().substr(2)+"/";
-  
         self.table_headers = (self.skus.length > 0) ? true : false;
-        console.log("total");
       }
 
 	  //select customer first
 	  self.isCustomer = isCustomer;
 	  function isCustomer() {
-		if(Object.keys(urlService.current_order.customer_data).length===0) {
+		if(Object.keys(urlService.current_order.customer_data).length===0 && self.issue_selected === "Pre Order") {
 			alert("Please select a customer");
 		}
 	  }
       //customer order
       self.submit_data = submit_data;
       function submit_data() {
-            //debugger;
-
-        if (urlService.current_order.sku_data.length > 0 && urlService.current_order.customer_data.FirstName.length > 0) {
-          if (urlService.current_order.customer_data.Number == null) {
-            urlService.current_order.customer_data.Number = "";
-          }
-          if (urlService.current_order.customer_data.value == null) {
-            urlService.current_order.customer_data.value = "";
-          }
-          urlService.current_order["user"] = urlService.userData
-          urlService.current_order.summary.issue_type = self.issue_selected;
-          self.customer_order(urlService.current_order);
+        self.payment = {}
+        angular.forEach(urlService.current_order.summary.paymenttype_values, function (index_value, index) {
+          self.payment[index_value['type_name']] = index_value['type_value'];
+        })
+        delete(urlService.current_order.summary.paymenttype_values);
+        $rootScope.$broadcast('empty_payment_values');
+        urlService.current_order.summary.payment = self.payment;
+        if(self.issue_selected !== "Pre Order") {
+            if (urlService.current_order.sku_data.length > 0) {
+                if (urlService.current_order.customer_data.Number == null) {
+                    urlService.current_order.customer_data.Number = "";
+                }
+                if (urlService.current_order.customer_data.value == null) {
+                    urlService.current_order.customer_data.value = "";
+                }
+                urlService.current_order["user"] = urlService.userData
+                urlService.current_order.summary.issue_type = self.issue_selected;
+                self.customer_order(urlService.current_order);
+            } else {
+                self.submit_enable = false;
+            }
         } else {
-          self.submit_enable = false;
+            if (urlService.current_order.sku_data.length > 0 && urlService.current_order.customer_data.FirstName.length > 0) {
+                if (urlService.current_order.customer_data.Number == null) {
+                    urlService.current_order.customer_data.Number = "";
+                }
+                if (urlService.current_order.customer_data.value == null) {
+                    urlService.current_order.customer_data.value = "";
+                }
+                urlService.current_order["user"] = urlService.userData
+                urlService.current_order.summary.issue_type = self.issue_selected;
+                self.customer_order(urlService.current_order);
+            } else {
+                self.submit_enable = false;
+            }
         }
-    }
-  
+      }
+
       //print order
       self.print_order = print_order;
       function print_order(data,user) {
   
         var date = new Date().toDateString();
-        debugger;
-        printer.print('/app/views/print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
-                      'date': date, 'print_type': ''});
+
+        if (data.summary.issue_type == 'Delivery Challan') {
+           printer.print('/app/views/print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
+                        'date': date, 'print_type': ''});
+         } else {
+           printer.print('/app/views/pre_order_print.html', {'data': urlService.current_order, 'user':urlService.userData, 'print': '',
+                       'date': date, 'print_type': ''});
+         }
       }
   
       self.store_data = store_data;
@@ -249,9 +346,18 @@
                                     "money_data": {}};
         self.skus= urlService.current_order.sku_data;
         manageData.prepForBroadcast("clear");
+
+        //clear the selected skus in multi select
+        uncheckMultiSelectSkus();
       }
 
       //change issue type
+      self.change_issue_type = change_issue_type;
+      function change_issue_type(issue_type){
+        $rootScope.issue_type = issue_type;
+        $rootScope.$broadcast('change_issue_type');
+
+      }
       /*self.change_issue_type = change_issue_type;
       function change_issue_type(){
        // debugger;
@@ -274,7 +380,7 @@
       // ajax call to send data to backend
       self.customer_order = customer_order;
       function customer_order(data) {
-        
+ 
         data["summary"]["nw_status"] = 'online';
         self.submit_enable = true;
 
@@ -384,9 +490,8 @@
       }
   
       self.get_product_data = get_product_data;
-  
+
       function update_search_results(filter_data, key) {
-          //debugger;
           for (var i=0; i<filter_data.length; i++) {
            if(filter_data.length === 1) {
             if(filter_data[i].SKUCode===key) {
@@ -414,6 +519,7 @@
              
                 if (!self.qty_switch && !self.return_switch && self.issue_selected === "Delivery Challan" && filter_data[i].stock_quantity == 0) {
                   alert("Given SKU stock is empty.");
+                  $("input[name='selected_sku'][value='"+filter_data[0]["SKUCode"]+"']").prop("checked", false);
                   break;
                 } else {
   
@@ -439,7 +545,7 @@
             }
            }
           }
-      }
+        }
   
       function get_product_data(key) {
 
@@ -471,8 +577,9 @@
                 }).then(function() {
                   deferred.resolve(querySearch (key));
                   deferred.promise.then(function(data){
-                    update_search_results(data, key)
-                    cal_total();
+                    angular.forEach(self.skus, function(value, index) {
+                      self.changeQuantity(value);
+                    });
                   });
                 });
              return deferred.promise;
@@ -553,6 +660,9 @@
               self.skus[i].quantity = parseInt(item.quantity);
               self.skus[i].discount = (item.discount) ? parseInt(item.discount) : 0;
               self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
+              if(self.tax_inclusive) {
+                self.skus[i].unit_price = self.skus[i].unit_price - self.skus[i].cgst - self.skus[i].sgst;
+              }
               cal_total();
             }
             break;
@@ -595,6 +705,8 @@
             }
         }
       }
+
+      
   
       // Internal methods
       function querySearch (query) {

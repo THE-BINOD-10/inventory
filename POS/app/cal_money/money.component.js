@@ -13,7 +13,6 @@
     self.returnMoney = 0;
     self.cal_retun_money = cal_retun_money;
     function cal_retun_money(money) {
-
       if (urlService.current_order.summary.total_amount > 0){
         self.returnMoney = money - urlService.current_order.summary.total_amount;
       };

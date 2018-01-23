@@ -20,15 +20,24 @@
             ng-init="$ctrl.qty_switch=false">
   </md-switch>
 
+  <span style="float: left;margin:5px 5px 5px 30px;">Inclusive Of Tax: </span>
+  <md-switch class="switch"
+            ng-model="$ctrl.tax_inclusive"
+            aria-label="Switch"
+            style="float: left;margin: 0"
+            ng-init="$ctrl.tax_inclusive=false"
+            ng-change="$ctrl.change_config($ctrl.tax_inclusive, 'tax_inclusive')">
+  </md-switch>
+
   <p style='text-align: right'>Issue Type*
   <select ng-init="$ctrl.issue_selected=$ctrl.names[0]"
         ng-model="$ctrl.issue_selected"
-        ng-change="$ctrl.change_issue_type()"
+        ng-change="$ctrl.change_issue_type($ctrl.issue_selected)"
         ng-options="x for x in $ctrl.names">
   </select>
   </p>
   </div>
-  <div layout="column" ng-cloak>
+  <div layout="column" style="display:block;" ng-cloak>
   <div class="row">
     <div class="col-md-10">
       <md-content layout-padding layout="column">
@@ -114,7 +123,7 @@
             </div>
             <div class="modal-body" style="height: 320px;overflow-y: scroll;">
                 <div class="row">
-                    <table style="width: 95%; margin:auto">
+                    <table style="width: 95%; margin:auto" >
                         <thead ng-show="$ctrl.sku_data.length">
                             <tr>
                                 <!--<th style="padding-left: 10px;"></th>-->
@@ -128,7 +137,12 @@
                         <tbody>
                             <tr class="sku" ng-repeat = "item in $ctrl.sku_data_filtered"
                                 ng-click="$ctrl.check_sku(item.SKUCode)">
-                                <td><input type="checkbox" style="width:17px;height:17px;margin:8px"
+                                <!--<td><input type="checkbox" style="width:17px;height:17px;margin:8px"
+                                           name="selected_sku" value="{{item.SKUCode}}"
+                                           ng-checked="item.checked"
+                                           ng-model="item.checked"
+                                           ng-click="$ctrl.checkbox_click($event,item.SKUCode,$index)"></td>-->
+                                           <td><input type="checkbox" style="width:17px;height:17px;margin:8px"
                                            name="selected_sku" value="{{item.SKUCode}}"
                                            ng-checked="{{item.checked}}"
                                            ng-click="$ctrl.checkbox_click($event,item.SKUCode)"></td>

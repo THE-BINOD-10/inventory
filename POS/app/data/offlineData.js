@@ -1018,9 +1018,10 @@
     }
 
     //Bulk add pre-orders data
-    function addPreOrdersBulkItems(preoder_list){
+    function addPreOrdersBulkItems(data_preoder_list){
 
-        console.log("get the bulk preorders "+preoder_data.length);
+        console.log("get the bulk preorders "+Object.keys(data_preoder_list).length);
+        var preoder_list=Object.keys(data_preoder_list);
         return new Promise(function(resolve,reject){
 
             openDB().then(function(){
@@ -1033,18 +1034,24 @@
 
                     for(var preorder_item=1;preorder_item<=preoder_list.length;preorder_item++){
 
-                        var preorderData=preoder_list.splice(0,1000);
+                        var preorderData=preoder_list.slice(0,1000);
 
                         var data=[];
-                        Object.keys(preorderData).forEach(function(key){
+                           for(var key=1;key<=preorderData.length;key++){
+                            var preoder_key=preorderData[key];
+                            data.push({order_id:preoder_key,
+                                order_data:JSON.stringify(data_preoder_list[preoder_key])});
+                           }                                             
+                        /*Object.keys(preorderData).forEach(function(key){
                             data.push({"order_id":key,"order_data":JSON.stringify(preoder_list[key])});
-                        });
+                        });*/
 
-                        POS_TABLES.pre_orders.bulkPut(data).then(function(res){
+                        yield POS_TABLES.pre_orders.bulkPut(data).then(function(res){
                             console.log("add bulk predorders data is "+res);
                             console.log("sku successfully insert the list "+preorder_item +" of 1000 items");
                              preoder_list.splice(0,1000);
                              console.log("sku remove the list "+preorder_item +" of 1000 items");
+                            
                             
                         }).catch(function(error){
                             console.log("get an error adding bulk preorders "+error.stack);
@@ -1054,11 +1061,14 @@
                                 console.log("some preorders saving failed "+error.failures.length);
                                 return reject("some preorder saving failed "+error.failures.length);
                             }
+                            preoder_list.splice(0,1000);
+
                         });
 
                         if(preoder_list==0){
-                            return resolve(true);
-                        }
+                                return resolve(true);
+                            }
+                        
                     }
                 });
             }).catch(function(error){
@@ -1269,10 +1279,18 @@
 
                     setOrderDeliveredItems(user_id,order_id,delete_order).
                     then(function(data){
-                        if(delete_order=="true")
-                            return resolve("Deleted sucessfully");
-                        else
-                            return resolve("Delivered sucessfully");
+                        var result_data={};
+                         result_data.data=data;
+                        if(delete_order=="true"){
+                            result_data.message="Deleted Successfully !";
+                            return resolve(result_data);
+                        } else{
+                           if(result_data.data.status){
+                                result_data.data.status="sucess";
+                            }
+                            result_data.message="Delivered Successfully !";
+                            return resolve(result_data);
+                        }
                     }).catch(function(error){
                         return reject(error.message);
                     });
@@ -1282,54 +1300,64 @@
                 }
             }else{
 
+                    var sync_order_data=[];
                     //check order in syn_orders
-                    get_POS_Sync_OrdersByID(order_id).
+                    yield get_POS_Sync_OrdersByID(order_id).
                     then(function(data){
-                        if(data.length>0){
+                        sync_order_data=data;
+                            
+                    }).catch(function(error){
+                        return reject(error.message);
+                    });
 
-                            var order_data=JSON.parse(data[0].order);
-                            if(Object.keys(order_data).indexOf("status")>0){
-                                order_data.status=status;
+                    if(sync_order_data.length>0){
+                        var order_data=JSON.parse(sync_order_data[0].order);
+                        if(Object.keys(order_data).indexOf("status")>0){
+                            order_data.status=status;
+                             //reduce sku qty
+                            reduceSKUQty(order_data).then(function(){
+                                console.log("sucess to reduce sku qty ");
+                            }).catch(function(error){
+                                console.log("error at reduce sku qty "+error.message);
+                            }); 
+                                        
+                           yield POS_TABLES.sync_orders.
+                                    where("order_id").equals(order_id).
+                                    modify(function(data){
+                                        data.order=JSON.stringify(order_data);
+                                    }).then(function(data){
+                                        console.log("changed the status of preorder "+JSON.stringify(data));
+                                    }).catch(function(error){
+                                        return reject(error.message);
+                                    }); 
 
-                                //reduce sku qty
-                                
-                                reduceSKUQty(order_data).then(function(){
-                                    console.log("sucess to reduce sku qty ");
-                                }).catch(function(error){
-                                    console.log("error at reduce sku qty "+error.message);
-                                }); 
-                                
-                                POS_TABLES.sync_orders.
-                                where("order_id").equals(order_id).
-                                modify(function(data){
-                                    data.order=JSON.stringify(order_data);
-                                }).then(function(data){
-                                    console.log("changed the status of preorder "+JSON.stringify(data));
-                                }).catch(function(error){
-                                    return reject(error.message);
-                                }); 
+                            yield setOrderDeliveredItems(user_id,order_id,delete_order).
+                                    then(function(data){
+                                        var result_data={};
+                                        result_data.data={};
+                                        result_data.data.data=order_data;
+                                        if(delete_order=="true"){
+                                            result_data.message="Deleted Successfully !";
+                                            return resolve(result_data);
+                                        } else{
+                                            if(result_data.data.status){
+                                                result_data.data.status="sucess";
+                                            }
+                                            result_data.message="Delivered Successfully !";
+                                            return resolve(result_data);
+                                        }
+                                    }).catch(function(error){
+                                        return reject(error.message);
+                                    });
 
-                                setOrderDeliveredItems(user_id,order_id,delete_order).
-                                then(function(data){
-                                    if(delete_order=="true")
-                                        return resolve("Deleted sucessfully");
-                                    else
-                                        return resolve("Delivered sucessfully");
-                                }).catch(function(error){
-                                    return reject(error.message);
-                                });
-                                                  
                         }else{
                             return reject("order has not a status");
                         }
-
                     }else{
                         return reject("unable to get the order information in offline");
-                    }       
-                }).catch(function(error){
-                    return reject(error.message);
-                });
-                
+                    }          
+
+               
             }
             
         }).catch(function(error){
@@ -1389,13 +1417,27 @@
 
         return new Promise(function(resolve,reject){
             openDB().then(function(){
-
+            var result_data={};
+            result_data.data={};
             POS_TABLES.order_delivered.put({"user":user_id,
                 "order_id":order_id,
                 "delete_order":delete_order}).
-            then(function(data){
-                return resolve();
+            then(function(){
+                getPreOrderData(order_id).then(function(result){
+                    if(result.length>0){
+                        result_data.data=JSON.parse(result[0].order_data);
+                        return resolve(result_data);
+                    }else{
+                        
+                        return resolve(result_data);
+                    }
+                }).catch(function(error){
+                       result_data.data={};
+                       return resolve(result_data);
+                });
+                                
             }).catch(function(error){
+                console.log(error);
                 return reject(error);
             });
             }).catch(function(error){

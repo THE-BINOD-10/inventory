@@ -23,10 +23,17 @@
             } else {
                 console.log(data);
                 if(data.status == "success") {
-                  printer.print('/app/views/print.html', {'data': data.data,
+                  if(data.data.summary.issue_type === "Pre Order") {
+                      printer.print('/app/views/pre_order_print.html', {'data': data.data,
+                                                            'user':urlService.userData,
+                                                            'print_type': 'DUPLICATE',
+                                                            'date':data.data.order_date});
+                  } else {
+                      printer.print('/app/views/print.html', {'data': data.data,
                                                           'user':urlService.userData,
                                                           'print_type': 'DUPLICATE',
                                                           'date':data.data.order_date});
+                 }
                 }
             }
         })

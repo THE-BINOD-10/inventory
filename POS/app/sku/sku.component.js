@@ -236,7 +236,9 @@
           }
           urlService.current_order.summary.cgst = Math.abs(urlService.current_order.summary.cgst);
           urlService.current_order.summary.sgst = Math.abs(urlService.current_order.summary.sgst);
-
+          if (self.tax_inclusive) {
+            urlService.current_order.summary.subtotal = urlService.current_order.summary.subtotal - urlService.current_order.summary.sgst - urlService.current_order.summary.cgst;
+          }
 		  if (self.skus[i].return_status === "true" ) {
 			    urlService.current_order.summary.total_discount += 0;
           urlService.current_order.summary.total_returned += -self.skus[i].price;

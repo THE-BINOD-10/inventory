@@ -42,18 +42,20 @@
      <input type="text" class="custom-input" placeholder="Email" ng-model="$ctrl.customer.Email" ng-change="$ctrl.updateCustomer($ctrl.customer.Email, 'email')">
     <i ng-if="$ctrl.customer_status" style="float: right;" class="material-icons">done</i>
     <md-button ng-if="$ctrl.customerButton" class="md-raised" ng-click = "$ctrl.addCustomer()">Add Customer</md-button>
+    <select ng-model="$ctrl.staff_member" ng-options="c as c for c in $ctrl.staff_members" style="width:21%;padding:5px;">
+    </select>
   </div>
-    <div class="col-md-12 extra_fields_row">
-        <span ng-if="$ctrl.extra_fields_flag" ng-repeat="(typ, field) in $ctrl.extra_fields">
-            <span class="extra_fields" ng-repeat="item in field">
-                <input type="text" class="custom-input" placeholder= "{{item}}" ng-change="$ctrl.save_extra_fields()", ng-model="$ctrl.customer.extra_fields[item]"
-                ng-if="typ=='input'">
-                <textarea rows="2" ng-change="$ctrl.save_extra_fields()" placeholder= "{{item}}"
-                ng-model="$ctrl.customer.extra_fields[item]"
-                ng-if="typ=='textarea'"></textarea>
-            </span>
-        </span>
-    </div>
+  <div class="col-md-12 extra_fields_row">
+      <span ng-if="$ctrl.extra_fields_flag" ng-repeat="(typ, field) in $ctrl.extra_fields">
+          <span class="extra_fields" ng-repeat="item in field">
+              <input type="text" class="custom-input" placeholder= "{{item}}" ng-change="$ctrl.save_extra_fields()", ng-model="$ctrl.customer.extra_fields[item]"
+              ng-if="typ=='input'">
+              <textarea rows="2" ng-change="$ctrl.save_extra_fields()" placeholder= "{{item}}"
+              ng-model="$ctrl.customer.extra_fields[item]"
+              ng-if="typ=='textarea'"></textarea>
+          </span>
+      </span>
+  </div>
 
 
 </div>

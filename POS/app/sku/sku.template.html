@@ -12,7 +12,7 @@
               style="float: left;margin: 0"
               ng-init="$ctrl.return_switch=false">
   </md-switch>
-  <span style="float: left;margin:5px 5px 5px 30px;">SKU qty accept zero: </span>
+  <span style="float: left;margin:5px 5px 5px 10px;">SKU qty accept zero: </span>
   <md-switch class="switch"
             ng-model="$ctrl.qty_switch"
             aria-label="Switch"
@@ -20,22 +20,27 @@
             ng-init="$ctrl.qty_switch=false">
   </md-switch>
 
-  <span style="float: left;margin:5px 5px 5px 30px;">Inclusive Of Tax: </span>
+  <span style="float: left;margin:5px 5px 5px 10px;">Inclusive Of Tax: </span>
   <md-switch class="switch"
             ng-model="$ctrl.tax_inclusive"
             aria-label="Switch"
-            style="float: left;margin: 0"
+            style="float: left;margin: 0;margin-right: 10px;"
             ng-init="$ctrl.tax_inclusive=false"
             ng-change="$ctrl.change_config($ctrl.tax_inclusive, 'tax_inclusive')">
   </md-switch>
 
-  <p style='text-align: right'>Issue Type*
-  <select ng-init="$ctrl.issue_selected=$ctrl.names[0]"
+  <p style="text-align: left;">
+    <div>
+      <h5> Issue Type* </h5>
+      <select ng-init="$ctrl.issue_selected=$ctrl.names[0]"
         ng-model="$ctrl.issue_selected"
         ng-change="$ctrl.change_issue_type($ctrl.issue_selected)"
-        ng-options="x for x in $ctrl.names">
-  </select>
+        ng-options="x for x in $ctrl.names"
+        style="width: 25%;margin: 0px;">
+      </select>
+    </div>
   </p>
+
   </div>
   <div layout="column" style="display:block;" ng-cloak>
   <div class="row">

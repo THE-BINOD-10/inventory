@@ -22,6 +22,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.model_data = {};
   vm.required_quantity = {};
   vm.margin_types = ['Margin Percentage', 'Margin Value'];
+  Data.styles_data = {};
 
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
                             customer_id: "", payment_received: "", order_taken_by: "", other_charges: [], shipment_time_slot: "", remarks: ""};

@@ -50,7 +50,7 @@
 
     self.change_config = change_config;
     function change_config(switch_value, switch_name) {
-      var temp_url=urlService.mainUrl+"switches/?"+switch_name+"="+String(switch_value);
+      var temp_url=urlService.mainUrl+"rest_api/switches/?"+switch_name+"="+String(switch_value);
       $http({
         method: 'GET',
         url:temp_url,

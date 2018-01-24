@@ -327,7 +327,6 @@ urlpatterns += [
     url('^get_sku_total_data/$', get_sku_total_data),
     url('^validate_sales_person/$', validate_sales_person),
     url('^update_returns_data/$', update_returns_data),
-    url('^pos_tax_inclusive/$', pos_tax_inclusive),
 
     # Multiuploader
     url('^image_upload/$', image_upload),

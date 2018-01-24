@@ -45,10 +45,9 @@ input[type="date"]:valid::before {
       <a class="hide fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="Cart.logout()"></a>
     </div>
     <div class="col-md-12" style="background: #fff;overflow: hidden; margin-bottom: -3px;padding-bottom:10px;margin-right: -2px;z-index: 100;box-shadow: 0px 4px 8px -2px #888;">
-    <form id="uploaded_po" name="file_upload" role="form" ui-jq="validate">
       <div class="row">
         <div class="col-md-2 col-sm-6 col-xs-6 mt10">
-          <input type="text" class="form-control stk-readonly pull-left" ng-model="Cart.model_data.shipment_date" id="shipment_date" ng-change="Cart.date_changed()" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Shipment Date" data-date-start-date="{{Cart.date}}">
+          <input type="text" class="form-control stk-readonly pull-left" name="shipment_date" ng-model="Cart.model_data.shipment_date" id="shipment_date" ng-change="Cart.date_changed()" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Shipment Date" data-date-start-date="{{Cart.date}}">
         </div>
 
         <div class="col-md-2 col-sm-6 col-xs-6 mt10">
@@ -186,7 +185,7 @@ input[type="date"]:valid::before {
             <hr>
             <div class="row">
               <div class="col-md-6 no-padding" ng-repeat="address in Cart.deliver_address">
-                <input type="radio" name="default-address" ng-checked="(Cart.checked_address == address)?'checked': '';" ng-model="Cart.checked_address" value="{{address}}" />
+                <input type="radio" name="address_selected" ng-checked="(Cart.checked_address == address)?'checked': '';" ng-model="Cart.checked_address" value="{{address}}" />
                 <span style="font-size: 14px;">{{address}}</span><br>
               </div>
             </div><hr>

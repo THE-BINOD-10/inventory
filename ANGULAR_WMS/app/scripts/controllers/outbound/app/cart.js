@@ -127,8 +127,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
     if (vm.user_type == 'reseller') {
 
-      if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header) || !($('#uploaded_po').find('[name="file"]')[0].files.length)) {
-      // if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header)) {
+      if (!(vm.model_data.shipment_date) || !(vm.model_data.po_number_header) || !(vm.model_data.client_name_header) || !($("#po-upload")[0].files.length)) {
         vm.service.showNoty("The Shipment Date, PO Number, Client Name and Uploaded PO's are Required Please Select", "success", "bottomRight");
       } else if (!(vm.model_data.shipment_time_slot)) {
         vm.service.showNoty("Please Select Shipment Slot", "success", "bottomRight");
@@ -166,7 +165,6 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
           var elem = angular.element($('form'));
           elem = elem[0];
           elem = $(elem).serializeArray();
-          elem.push({'name': 'address_selected', 'value': vm.checked_address});
           vm.place_order_loading = true;
           vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
             if(data.message) {

@@ -414,7 +414,7 @@ urlpatterns += [
     url('^update_order_status/$', update_order_status),
     url('^get_extra_fields/$', get_extra_fields),
     url('^get_staff_members_list/$', get_staff_members_list),
-    url('^pos_tax_inclusive/$', pos_tax_inclusive),
+    url(r'^pos_tax_inclusive/$', pos_tax_inclusive),
 
 ]
 

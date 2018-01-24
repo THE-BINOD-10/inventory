@@ -664,9 +664,9 @@ PICKLIST_EXCEL = OrderedDict((('WMS Code', 'wms_code'), ('Title', 'title'), ('Ca
                               ))
 
 # Campus Sutra
-SHOPCLUES_EXCEL = {'original_order_id': 0, 'order_id': 0, 'quantity': 14, 'title': 7, 'invoice_amount': 46,
+SHOPCLUES_EXCEL = {'original_order_id': 0, 'order_id': 0, 'quantity': 14, 'title': 7, 'invoice_amount': 44,
                    'address': 10,
-                   'customer_name': 9, 'marketplace': 'Shopclues', 'sku_code': 19}
+                   'customer_name': 9, 'marketplace': 'Shopclues', 'sku_code': 48}
 
 # SHOPCLUES_EXCEL1 = {'order_id': 0, 'quantity': 13, 'title': 6, 'invoice_amount': 45, 'address': 9, 'customer_name': 8,
 #                    'marketplace': 'Shopclues', 'sku_code': 48}

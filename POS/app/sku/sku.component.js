@@ -68,7 +68,7 @@
       //Session.roles.permissions[switch_name] = switch_value;
     }
 
-    var temp_url=urlService.mainUrl+"pos_tax_inclusive/";
+    var temp_url=urlService.mainUrl+"rest_api/pos_tax_inclusive/";
     $http({
       method: 'GET',
       url:temp_url,

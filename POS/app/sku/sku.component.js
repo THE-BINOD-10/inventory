@@ -473,19 +473,19 @@
       self.hold_data = hold_data;
       function hold_data() {
         if (urlService.current_order.sku_data.length > 0 && urlService.current_order.customer_data.FirstName.length > 0) {
-        console.log("data stored");
-        var state = 0
-        store_data(urlService.current_order, state);
-        urlService.current_order = {"customer_data" : {},
-                                    "sku_data" : [],
-                                    "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
-                                    "issue_type": self.issue_selected,"order_id":0, "nw_status":"online", 'invoice_number': '',
-                                    "order_date":''},
-                                    "money_data": {}};
-        console.log(urlService.hold_data);
-        self.skus = urlService.current_order.sku_data;
-      self.table_headers = false;
-        manageData.prepForBroadcast("clear");
+          console.log("data stored");
+          var state = 0
+          store_data(urlService.current_order, state);
+          urlService.current_order = {"customer_data" : {},
+                                      "sku_data" : [],
+                                      "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
+                                      "issue_type": self.issue_selected,"order_id":0, "nw_status":"online", 'invoice_number': '',
+                                      "order_date":''},
+                                      "money_data": {}};
+          console.log(urlService.hold_data);
+          self.skus = urlService.current_order.sku_data;
+          self.table_headers = false;
+          manageData.prepForBroadcast("clear");
         }
       }
   

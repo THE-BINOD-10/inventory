@@ -102,6 +102,23 @@
 
         self.order = urlService.current_order.summary;
       });
+
+
+      var temp_url=urlService.mainUrl+"rest_api/get_staff_members_list/";
+      $http({
+        method: 'GET',
+        url:temp_url,
+        withCredential: true,
+        }).success(function(data, status, headers, config) {
+          self.staff_members = data.members;
+          $(".preloader").removeClass("ng-show").addClass("ng-hide");
+          self.staff_member = self.staff_members[0];
+          urlService.current_order.summary.staff_member = self.staff_member;
+        }).error(function() {
+          $(".preloader").removeClass("ng-show").addClass("ng-hide");
+      });
+
+
     }]
   });
 }(window.angular));

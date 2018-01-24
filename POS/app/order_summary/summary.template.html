@@ -1,4 +1,11 @@
 <div class="summary">
+  
+  <div style="margin-top:10px">
+    <label>Order Taken By : </label>
+    <select ng-model="$ctrl.staff_member" ng-options="c as c for c in $ctrl.staff_members" style="padding: 5px;margin-left: 11px;width: 55%;">
+    </select>
+  </div>
+
   <h5>Order Summary</h5>
   <div class="summary-row">
     <div class="pull-left">

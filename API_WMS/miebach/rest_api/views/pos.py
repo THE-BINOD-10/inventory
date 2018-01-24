@@ -650,3 +650,13 @@ def get_extra_fields(request):
 def get_staff_members_list(request):
     members = ['Staff-1', 'Staff-2', 'Staff-3']
     return HttpResponse(json.dumps({'members': members}))
+
+#POS
+@csrf_exempt
+@login_required
+@get_admin_user
+def pos_tax_inclusive(request, user=''):
+    data = {}
+    tax_inclusive = get_misc_value('tax_inclusive', user.id)
+    data['tax_inclusive_switch'] = json.loads(tax_inclusive)
+    return HttpResponse(json.dumps(data), content_type='application/json')

@@ -2721,16 +2721,6 @@ def manage_users(request):
     headers = ['User Name', 'Name', 'Email', 'Member of Groups']
     return render(request, 'templates/manage_users.html',{'headers': headers})
 
-#POS
-@csrf_exempt
-@login_required
-@get_admin_user
-def pos_tax_inclusive(request, user=''):
-    data = {}
-    tax_inclusive = get_misc_value('tax_inclusive', user.id)
-    data['tax_inclusive_switch'] = json.loads(tax_inclusive);
-    return HttpResponse(json.dumps(data), content_type='application/json')
-
 @csrf_exempt
 @login_required
 @get_admin_user

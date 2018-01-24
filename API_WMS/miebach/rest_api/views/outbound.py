@@ -2875,7 +2875,7 @@ def split_orders(**order_data):
 def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, custom_order):
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
-                     'ship_to', 'client_name', 'po_number', 'corporate_po_number']
+                     'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -3071,6 +3071,7 @@ def insert_order_data(request, user=''):
     po_number = request.POST.get('po_number', '')
     client_name = request.POST.get('client_name', '')
     corporate_po_number = request.POST.get('corporate_po_number', '')
+    address_selected = request.POST.get('address_selected', '')
 
     created_order_id = ''
     ex_image_url = {}
@@ -3178,7 +3179,7 @@ def insert_order_data(request, user=''):
                         order_data['sku_id'] = mapped_sku_id
                         create_generic_order(order_data, cm_id, user.id, generic_order_id, order_objs, is_distributor,
                                              order_summary_dict, ship_to, corporate_po_number, client_name, admin_user,
-                                             sku_total_qty_map, order_user_sku, order_user_objs)
+                                             sku_total_qty_map, order_user_sku, order_user_objs, address_selected)
                     else:
                         created_skus.append(order_data['sku_id'])
                         items.append(
@@ -6436,6 +6437,11 @@ def get_customer_cart_data(request, user=""):
                         del_date = reseller_leadtimes[0]
                     else:
                         del_date = dist_reseller_leadtime
+                    res_address = cm_obj.address
+                    dist_cm_obj = WarehouseCustomerMapping.objects.get(warehouse_id=cm_obj.user).customer
+                    dist_address = dist_cm_obj.address
+                    json_record['reseller_addr'] = res_address
+                    json_record['distributor_addr'] = dist_address
                 price_master_objs = PriceMaster.objects.filter(price_type=price_type,
                                                                sku__user=central_admin.id,
                                                                sku__sku_code=json_record['sku_id'])
@@ -6447,11 +6453,6 @@ def get_customer_cart_data(request, user=""):
                         json_record.setdefault('prices', []).append(pm_obj_map)
                         if pm_obj.min_unit_range == 0:
                             json_record['price'] = pm_obj.price
-                res_address = cm_obj.address
-                dist_cm_obj = WarehouseCustomerMapping.objects.get(warehouse_id=cm_obj.user).customer
-                dist_address = dist_cm_obj.address
-                json_record['reseller_addr'] = res_address
-                json_record['distributor_addr'] = dist_address
             else:
                 price_master_obj = PriceMaster.objects.filter(price_type=price_type,
                                                               sku__id=record.sku_id)

@@ -1500,7 +1500,8 @@ def get_warehouse_user_data(request, user=''):
             'email': user_profile.user.email, 'country': user_profile.country, 'state': user_profile.state,
             'city': user_profile.city, 'address': user_profile.address, 'pin_code': user_profile.pin_code,
             'warehouse_type': user_profile.warehouse_type, 'warehouse_level': user_profile.warehouse_level,
-            'customer_name': customer_username, 'customer_fullname': customer_fullname}
+            'customer_name': customer_username, 'customer_fullname': customer_fullname,
+            'min_order_val': user_profile.min_order_val}
     return HttpResponse(json.dumps({'data': data}))
 
 

@@ -5766,7 +5766,7 @@ def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):
 
 def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_objs, is_distributor,
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
-                         order_user_sku, order_user_objs):
+                         order_user_sku, order_user_objs, address_selected=''):
     order_unit_price = order_data['unit_price']
     el_price = order_data.get('el_price', 0)
     del_date = order_data['del_date']
@@ -5799,7 +5799,8 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
             dist_order_copy['telephone'] = customer_user[0].customer.phone_number
             dist_order_copy['email_id'] = customer_user[0].customer.email_id
             dist_order_copy['address'] = customer_user[0].customer.address
-            ship_to = CustomerMaster.objects.get(id=cm_id).address
+            if address_selected == 'Your Address':  # If reseller selects his address while placing order.
+                ship_to = CustomerMaster.objects.get(id=cm_id).address
         order_obj = OrderDetail.objects.filter(order_id=dist_order_copy['order_id'],
                                                sku_id=dist_order_copy['sku_id'],
                                                order_code=dist_order_copy['order_code'],

@@ -115,8 +115,7 @@
             <h5><b>WISH LIST</b></h5><hr>
           </div>
           <span ng-if="!Style.style_data.quantity"><b>No items selected</b></span>
-          <div class="row" ng-repeat="level_data in Style.levels_data">
-            <div ng-repeat="data in level_data.data" ng-if="data.quantity">
+          <div class="row" ng-repeat="data in Style.wish_list">
               <div class="col-md-6 col-xs-6 no-padding">
                 <span class="pull-left">{{data.wms_code}}</span>
               </div>
@@ -124,7 +123,6 @@
               <div class="col-md-4 col-sm-4 no-padding">
                 <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.row_total_price | number}}</span>
               </div>
-            </div>
           </div>
           <!-- <hr>
           <div class="row">
@@ -141,7 +139,7 @@
               <span class="pull-left">Total Amount</span>
             </div>
             <div class="col-md-6 col-xs-6 no-padding">
-              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> <b>{{Style.sel_items_total_price | number}}</b></span>
+              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> <b>{{Style.wish_data.total_amount | number}}</b></span>
             </div>
           </div>
           <hr>
@@ -263,9 +261,8 @@
           <div class="row">
             <h5><b>WISH LIST</b></h5><hr>
           </div>
-          <span ng-if="!Style.style_data.quantity"><b>No items selected</b></span>
-          <div class="row" ng-repeat="level_data in Style.levels_data">
-            <div ng-repeat="data in level_data.data" ng-if="data.quantity">
+          <span ng-if="!Style.wish_data.total_qty"><b>No items selected</b></span>
+          <div class="row" ng-repeat="data in Style.wish_list">
               <div class="col-md-2 col-xs-2 no-padding">
                 <span class="pull-left">L-{{data.level}}</span>
               </div>
@@ -279,7 +276,6 @@
               <div class="col-md-3 col-sm-3 no-padding">
                 <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.row_total_price | number}}</span>
               </div>
-            </div>
           </div>
           <hr>
           <div class="row">
@@ -287,7 +283,7 @@
               <span class="pull-left">Tax Amount</span>
             </div>
             <div class="col-md-6 col-sm-6 no-padding">
-              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{Style.sel_items_tax | number}}</span>
+              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{Style.wish_data.total_tax | number}}</span>
             </div>
           </div>
           <hr>
@@ -296,7 +292,7 @@
               <span class="pull-left">Total Amount</span>
             </div>
             <div class="col-md-6 col-xs-6 no-padding">
-              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> <b>{{Style.sel_items_total_price | number}}</b></span>
+              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> <b>{{Style.wish_data.total_amount | number}}</b></span>
             </div>
           </div>
           <hr>

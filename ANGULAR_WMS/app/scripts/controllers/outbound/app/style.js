@@ -14,6 +14,12 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.styleId = $stateParams.styleId;
   }
 
+  if(Session.roles.permissions.user_type == 'customer') {
+    vm.wish_list = {}
+  } else {
+    vm.wish_list = Data.styles_data;
+  }
+
   vm.style_headers = {};
   vm.style_detail_hd = [];
   
@@ -85,7 +91,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
           vm.style_details = style_data[0];
         }
         vm.style_total_counts = data.data.total_qty;
-        
+        var wish_status = false;
         if(style_data.length > 0) {
  
           angular.forEach(style_data, function(record, index){
@@ -115,6 +121,11 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
             }
 
             vm.stock_quantity = vm.stock_quantity + Number(record.physical_stock) + Number(record.all_quantity);
+
+            if(Session.roles.permissions.user_type != 'customer' && vm.wish_list[record.wms_code+":"+vm.selLevel]){
+              wish_status = true;
+              record.quantity = vm.wish_list[record.wms_code+":"+vm.selLevel].quantity;
+            }
           });
 
           vm.levels_data[vm.selLevel] = {
@@ -140,7 +151,14 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         } else{
           
           vm.def_lead_tm = true;
+          wish_status = false;
           vm.style_detail_hd = Object.keys(vm.style_headers);
+        }
+
+        if(wish_status) {
+          vm.update_levels(0);
+        } else {
+          vm.cal_wish_list();
         }
       }
       vm.data_loading = false;
@@ -194,7 +212,13 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         level_data.data[index].price = vm.priceRangesCheck(level_data.data[index], total_quantity);
         level_data.data[index].unit_rate = level_data.data[index].price;
         level_data.data[index].row_total_price = level_data.data[index].price * level_data.data[index].quantity;
+        vm.wish_list[level_data.data[index].wms_code+":"+level_name] = level_data.data[index];
+      } else {
+        if (vm.wish_list[level_data.data[index].wms_code+":"+level_name]){
+          delete vm.wish_list[level_data.data[index].wms_code+":"+level_name];
+        }
       }
+      Data.styles_data = vm.wish_list;
 
       level_data.quantity = 0;
       level_data.total_price = 0;
@@ -208,11 +232,28 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       
       vm.sel_items_total_price += level_data.total_price;
       vm.sel_items_total_quantity += level_data.quantity;
-      if (Number(level_data.data[0].quantity)) {
+      vm.sel_items_tax = 0;
+      if (Number(level_data.data[0].quantity) && level_data.data[0].taxes[0]) {
         vm.sel_items_tax = (vm.sel_items_total_price / 100) * (level_data.data[0].taxes[0].cgst_tax + level_data.data[0].taxes[0].sgst_tax + level_data.data[0].taxes[0].igst_tax);
       }
     });
     vm.sel_items_total_price += vm.sel_items_tax;
+    vm.cal_wish_list()
+  }
+
+  vm.wish_data = {total_tax: 0, total_amount: 0};
+  vm.cal_wish_list = function() {
+
+    vm.wish_data = {total_tax: 0, total_amount: 0, total_qty: 0};
+    angular.forEach(vm.wish_list, function(data, key){
+
+      var temp_amount = data.row_total_price;
+      if(data.taxes[0]) {
+        vm.wish_data.total_tax  += (temp_amount / 100) * (data.taxes[0].cgst_tax + data.taxes[0].sgst_tax + data.taxes[0].igst_tax);
+      }
+      vm.wish_data.total_amount += temp_amount;
+      vm.wish_data.total_qty += Number(data.quantity);
+    });
   }
 
   vm.style_total_quantity = 0;
@@ -273,14 +314,14 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   vm.add_to_cart = function(levels_data) {
 
     // if(vm.sel_items_total_price > 0) {
-    if(vm.sel_items_total_quantity > 0) {
+    if(vm.wish_data.total_qty > 0) {
       
       var send = [];
 
-      angular.forEach(vm.levels_data, function(level_data, level_name) {
+      //angular.forEach(vm.levels_data, function(level_data, level_name) {
 
-        angular.forEach(level_data.data, function(data){
-
+      //  angular.forEach(level_data.data, function(data){
+        angular.forEach(vm.wish_list, function(data, name) {
           if (data['quantity']) {
 
             var temp = {sku_id: data.wms_code, quantity: Number(data.quantity), invoice_amount: data.price * Number(data.quantity), price: data.price, tax: vm.tax, image_url: data.image_url, level: data.level, overall_sku_total_quantity: data.overall_sku_total_quantity}
@@ -288,7 +329,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
             send.push(temp);
           }
         });
-      });
+      //});
 
       vm.insert_customer_cart_data(send);
     } else {
@@ -305,7 +346,8 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.service.apiCall('insert_customer_cart_data/?data='+send).then(function(data){
        
        if (data.message) {
-        
+       
+        Data.styles_data = {};
         vm.service.showNoty("Succesfully Added to Cart", "success", "bottomRight");
         $state.go('user.App.Cart');
         Data.styleId = vm.styleId;

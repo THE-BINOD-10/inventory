@@ -568,6 +568,13 @@
                         })
                     }
                  }
+                 deferred.resolve(querySearch (key));
+                      deferred.promise.then(function(data){
+                        angular.forEach(self.skus, function(value, index) {
+                          self.changeQuantity(value);
+                        });
+                      });
+                      
                 },function(error){
                   console.log("offline");
                    getData(key).then(function(data){
@@ -577,14 +584,21 @@
                          repo.value = repo.search.toLowerCase();
                        return repo;
                       })
-                    });
+                    }).then(function(){
+                      deferred.resolve(querySearch (key));
+                      deferred.promise.then(function(data){
+                        angular.forEach(self.skus, function(value, index) {
+                          self.changeQuantity(value);
+                        });
+                      });
+                    })
                 }).then(function() {
-                  deferred.resolve(querySearch (key));
+                  /*deferred.resolve(querySearch (key));
                   deferred.promise.then(function(data){
                     angular.forEach(self.skus, function(value, index) {
                       self.changeQuantity(value);
                     });
-                  });
+                  });*/
                 });
              return deferred.promise;
         }

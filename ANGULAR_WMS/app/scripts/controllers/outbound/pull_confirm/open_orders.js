@@ -41,7 +41,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         DTColumnBuilder.newColumn('customer').withTitle('Customer / Marketplace').notSortable(),
         DTColumnBuilder.newColumn('picklist_note').withTitle('Picklist Note'),
         DTColumnBuilder.newColumn('reserved_quantity').withTitle('Reserved Quantity').notSortable(),
-        DTColumnBuilder.newColumn('shipment_date').withTitle('Shipment Date'),
+        DTColumnBuilder.newColumn('shipment_date').withTitle('Exp Delivery Date'),
         DTColumnBuilder.newColumn('date').withTitle('Date'),
         DTColumnBuilder.newColumn('id').withTitle('').notSortable().withOption('width', '35px').renderWith(actionsHtml)
     ];

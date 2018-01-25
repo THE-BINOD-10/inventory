@@ -210,6 +210,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     if(vm.category == "All") {
       cat_name = "";
+    } else if(vm.category == "") {
+      vm.category = "All";
+      cat_name = "";
     }
 
     if($.type(vm.size_filter_data) != "string"){

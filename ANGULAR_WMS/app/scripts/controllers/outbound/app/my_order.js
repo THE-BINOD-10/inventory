@@ -33,7 +33,6 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
         vm.order_data.data = vm.order_data.data.concat(data.data.data);
         
         angular.forEach(vm.order_data.data, function(item){
-          item['extend_date'] = 'Extend Date';
           item['extended_date'] = '';
         });
         vm.show_extend_date = false;
@@ -90,14 +89,20 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   vm.confirm_to_extend = function(order, form){
     
     if (form.$valid) {
-      order.extend_date = 'Pending';
-      order.show_extend_date = false;
       var send = angular.element($('form'));
           send = send[0];
           send = $(send).serializeArray();
 
       Service.apiCall('extend_enquiry_date/', 'GET', send).then(function(data) {
-        Service.showNoty('Your request sent, pleae wait warehouse conformation');
+        if (data.message) {
+          if (data.data == 'Success') {
+            order.extend_status = 'pending';
+            order.show_extend_date = false;
+            Service.showNoty('Your request sent, pleae wait warehouse conformation');
+          }
+        } else {
+          Service.showNoty('Something went wrong');
+        }
       });
     } else {
       Service.showNoty('Please fill with extend date');

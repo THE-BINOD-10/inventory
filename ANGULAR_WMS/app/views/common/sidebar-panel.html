@@ -283,7 +283,8 @@
             <span>Pull Confirmation</span>
           </a>
         </li>
-        <li ng-show="permissions.user_type == 'distributor'" ui-sref-active="active">
+        <!--<li ng-show="permissions.user_type == 'distributor'" ui-sref-active="active">-->
+        <li ng-show="show_tab('add_enquirymaster') && (permissions.user_type == 'distributor' || permissions.user_type == 'central_admin')" ui-sref-active="active">
           <a ui-sref="app.outbound.EnquiryOrders">
             <span>Enquiry Orders</span>
           </a>
@@ -298,7 +299,8 @@
             <span>Create Stock Transfer</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <!--<li ui-sref-active="active">-->
+        <li ng-show="show_tab('add_sellerordersummary')" ui-sref-active="active">
           <a ui-sref="app.outbound.CustomerInvoices">
             <span>Customer Invoices</span>
           </a>

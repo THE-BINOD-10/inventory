@@ -25,7 +25,11 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
     vm.orders_loading = true;
     vm.index = vm.order_data.data.length  + ':' + (vm.order_data.data.length + 20)
-    var data = {index: vm.index}
+    var data = {index: vm.index, autobackorder: false}
+    var page_url = window.location.href
+    if(page_url.indexOf('AutoBackOrders') > 0){
+      data['autobackorder'] = true;
+    }
     Service.apiCall(url, 'GET', data).then(function(data){
       if(data.message) {
 
@@ -157,6 +161,10 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
     if (Session.user_profile.user_type == 'warehouse_user') {
 
       var mod_data = {order_id: data['orderId'], url: 'get_customer_order_detail'};
+      var page_url = window.location.href
+      if(page_url.indexOf('AutoBackOrders') > 0){
+        mod_data['autobackorder'] = true;
+      }
       var modalInstance = $modal.open({
         templateUrl: 'views/outbound/toggle/enquiry_order_details.html',
         controller: 'EnquiryOrderDetails',

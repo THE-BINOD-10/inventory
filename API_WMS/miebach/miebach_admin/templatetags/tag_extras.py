@@ -170,6 +170,13 @@ def get_page_break(count):
         return False
 
 @register.filter
+def get_header_status(count):
+    if (count)%10 == 0:
+        return True
+    else:
+        return False
+
+@register.filter
 def get_style_quantity(name, quantities):
     if quantities.get(name, ''):
         return str(quantities[name])

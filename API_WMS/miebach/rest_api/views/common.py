@@ -1166,6 +1166,10 @@ def auto_po_warehouses(sku, qty):
             create_generic_order(order_data, cm_id, sku.user, generic_order_id, [], True,
                                  order_summary_dict, '', '', '', admin_user,
                                  sku_total_qty_map, order_user_sku, order_user_objs)
+            #qssi order push
+            user = User.objects.get(id=usr)
+            resp = order_push(order_data['original_order_id'], user, "NEW")
+            log.info('New Order Push Status: %s' %(str(resp)))
         price = unit_price
     return supplier_id, price, taxes
 

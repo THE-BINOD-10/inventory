@@ -1151,7 +1151,7 @@ SELLER_DATA = {'name': '', 'address': '', 'phone_number': '',
                'email_id': '', 'status': 1, 'price_type': '', 'margin': 0}
 
 USER_SKU_EXCEL = {'warehouse_user': SKU_HEADERS, 'marketplace_user': MARKET_USER_SKU_HEADERS,
-                  'customer': SKU_HEADERS, 'WH': RESTRICTED_SKU_HEADERS, 'warehouse': RESTRICTED_SKU_HEADERS}
+                  'customer': SKU_HEADERS, 'WH': RESTRICTED_SKU_HEADERS, 'DIST': RESTRICTED_SKU_HEADERS}
 
 USER_SKU_EXCEL_MAPPING = {'warehouse_user': SKU_DEF_EXCEL, 'marketplace_user': MARKETPLACE_SKU_DEF_EXCEL,
                           'customer': SKU_DEF_EXCEL}

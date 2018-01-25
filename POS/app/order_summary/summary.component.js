@@ -118,6 +118,11 @@
           $(".preloader").removeClass("ng-show").addClass("ng-hide");
       });
 
+      self.staff_member_value = staff_member_value;
+      function staff_member_value (staff_member_value) {
+        self.staff_member = staff_member_value;
+        urlService.current_order.summary.staff_member = self.staff_member;
+      }
 
     }]
   });

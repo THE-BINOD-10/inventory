@@ -2768,7 +2768,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if is_file:
         start, stop = 0, len(product_styles)
 
-    data = get_styles_data(user, product_styles, sku_master, start, stop, customer_id=customer_id,
+    data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id=customer_id,
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
                            is_margin_percentage=is_margin_percentage)
@@ -3615,13 +3615,39 @@ def get_categories_list(request, user=""):
 def get_generic_warehouses_list(user):
    return UserGroups.objects.filter(admin_user=user).values_list('user', flat=True)
 
+def get_cal_style_data(style_data, quantity):
 
-def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='', customer_data_id='', is_file='',
+    quantity = int(quantity)
+    unit_price = style_data['variants'][0]['price']
+    if style_data['variants'][0]['price_ranges']:
+        status = False
+        for price in style_data['variants'][0]['price_ranges']:
+            if quantity >= price['min_unit_range'] and quantity <= price['max_unit_range']:
+                unit_price = price['price']
+                status = True
+                break
+        if not status:
+            unit_price = style_data['variants'][0]['price_ranges'][0]['price']
+    amount = unit_price * quantity
+    tax_percentage = 0
+    tax_value = 0
+    if style_data['variants'][0]['taxes']:
+        tax = style_data['variants'][0]['taxes'][0]
+        tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
+        tax_value = (amount / 100) * tax_percentage
+    data = {'unit_price': int(unit_price), 'quantity': int(quantity), 'amount': int(amount),
+            'tax_percentage': '%.1f'%tax_percentage, 'tax_value': int(tax_value),
+            'total_amount': amount + tax_value}
+    return data
+
+
+def get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id='', customer_data_id='', is_file='',
                     prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0):
     data = []
+    style_quantities = eval(request.POST.get('required_quantity', '{}'))
     from rest_api.views.outbound import get_style_variants
     levels_config = get_misc_value('generic_wh_level', user.id)
-    get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand',
+    get_values = ['wms_code', 'sku_desc', 'hsn_code', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand',
                   'sku_size', 'style_name', 'sale_through', 'product_type']
     gen_whs = [user.id]
     admin = get_priceband_admin_user(user)
@@ -3652,6 +3678,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='
             total_quantity = total_quantity - float(enq_res_quans[enq_res_skus.index(product)])
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
+            sku_variants[0]['hsn_code'] = int(sku_variants[0]['hsn_code'])
             sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity,
                                               customer_data_id=customer_data_id, prices_dict=prices_dict,
                                               levels_config=levels_config, price_type=price_type,
@@ -3661,7 +3688,9 @@ def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='
             sku_styles[0]['style_quantity'] = total_quantity
 
             sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'], user)
-
+            if style_quantities.get(sku_styles[0]['sku_class'], ''):
+                sku_styles[0]['style_data'] = get_cal_style_data(sku_styles[0],\
+                                              style_quantities[sku_styles[0]['sku_class']])
             data.append(sku_styles[0])
         if not is_file and len(data) >= 20:
             break

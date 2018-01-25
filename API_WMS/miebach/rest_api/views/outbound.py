@@ -7264,7 +7264,7 @@ def get_custom_template_styles(request, user=''):
     sku_master = sku_master.order_by('sequence')
     product_styles = sku_master.values_list('sku_class', flat=True).distinct()
     product_styles = list(OrderedDict.fromkeys(product_styles))
-    data = get_styles_data(user, product_styles, sku_master, start, stop, customer_id='', customer_data_id='',
+    data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id='', customer_data_id='',
                            is_file='')
     return HttpResponse(json.dumps({'data': data}))
 

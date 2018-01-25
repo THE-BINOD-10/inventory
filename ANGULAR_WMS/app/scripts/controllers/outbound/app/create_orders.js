@@ -1129,7 +1129,8 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
   vm.pdfDownloading = false;
   vm.downloadPDF = function(form) {
 
-    var data = vm.pdfData;
+    var data = {};
+    angular.copy(vm.pdfData, data);
     if (!vm.pdfData.display_total_amount) {
         delete data.required_quantity;
     }

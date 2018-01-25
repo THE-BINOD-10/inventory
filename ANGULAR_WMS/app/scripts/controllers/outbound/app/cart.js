@@ -112,7 +112,8 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
     var status = true;
     for(let index = 0; index < data.length; index++) {
       if (data[index].del_date) {
-        let date2 = new Date(data[index].del_date);
+        let temp = data[index].del_date.split("/");
+        let date2 = new Date(temp[1]+"/"+temp[0]+"/"+temp[2]);
         if(date2 > date1) {
           return "Products Will Deliver As Per Delivery Shedule";
         }

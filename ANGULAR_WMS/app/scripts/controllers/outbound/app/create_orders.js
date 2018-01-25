@@ -39,11 +39,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   
   vm.goBack = function(){
 
-    if (Data.styleId) {
-      $state.go('user.App.Style', {styleId: Data.styleId});
-    } else {
-      $state.go('user.App.Brands');
-    }
+    $state.go('user.App.Brands');
   }
 
   function change_filter_data() {

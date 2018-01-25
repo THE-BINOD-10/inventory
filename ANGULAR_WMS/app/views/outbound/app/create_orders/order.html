@@ -209,10 +209,10 @@ input[type="date"]:valid::before {
                 <div class="col-md-3 col-xs-3 no-padding">
                   <span class="pull-left"><b>SKU Code</b></span>
                 </div>
-                <div class="col-md-3 col-xs-3 no-padding" title="Effective Landing Price">
-                  <center><b>Landing Price</b></center>
+                <div class="col-md-4 col-xs-4 no-padding" title="Effective Landing Price">
+                  <center><b>Avg Landing Price</b></center>
                 </div>
-                <div class="col-md-3 col-xs-3"><center><b>Quantity</b></center></div>
+                <div class="col-md-2 col-xs-2"><center><b>Quantity</b></center></div>
                 <div class="col-md-3 col-sm-3 no-padding">
                   <span class="pull-right"><b>Amount</b></span>
                 </div>
@@ -223,10 +223,10 @@ input[type="date"]:valid::before {
                 <div class="col-md-3 col-xs-3 no-padding">
                   <span class="pull-left">{{data.sku_code}}</span>
                 </div>
-                <div class="col-md-3 col-xs-3 no-padding">
+                <div class="col-md-4 col-xs-4 no-padding">
                   <center>{{data.effective_landing_price | number : 2}}</center>
                 </div>
-                <div class="col-md-3 col-xs-3 no-padding"><center>{{data.quantity}}</center></div>
+                <div class="col-md-2 col-xs-2 no-padding"><center>{{data.quantity}}</center></div>
                 <div class="col-md-3 col-sm-3 no-padding">
                   <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.total_amount | number : 2}}</span>
                 </div>
@@ -247,7 +247,7 @@ input[type="date"]:valid::before {
               <span class="pull-right">Rs {{Cart.final_data.total_amount | number : 2}}</span>
             </div>
             <div>
-              <button type="button" class="btn btn-primary btn-round pull-right mt20" ng-show="permissions.user_type == 'reseller'" ng-click="$state.go('user.App.Products')">CONTINUE</button>
+              <button type="button" class="btn btn-primary btn-round pull-right mt20" ng-show="permissions.user_type == 'reseller'" ng-click="$state.go('user.App.Products')">CONTINUE TO SHOPPING</button>
             </div>
           </div>
         </div>

@@ -6023,7 +6023,7 @@ def order_delete(request, user=""):
 def get_only_date(request, date):
     """" return only data like 01/01/17 """
     date = get_local_date(request.user, date, True)
-    date = date.strftime("%m/%d/%Y")
+    date = date.strftime("%d/%m/%Y")
     return date
 
 
@@ -6188,7 +6188,7 @@ def construct_order_customer_order_detail(request, order, user):
                 record['sku_tax_amt'] = round(tax_inclusive_inv_amt - tax_exclusive_inv_amt, 2)
             schedule_date = gen_ord_obj[0].schedule_date
             if schedule_date:
-                record['schedule_date'] = schedule_date
+                record['schedule_date'] = schedule_date.strftime('%d/%m/%Y')
     return data_list, total_picked_quantity
 
 
@@ -6440,7 +6440,7 @@ def get_customer_cart_data(request, user=""):
             if del_date:
                 date = datetime.datetime.now()
                 date += datetime.timedelta(days=del_date)
-                del_date = date.strftime("%m/%d/%Y")
+                del_date = date.strftime("%d/%m/%Y")
             json_record['del_date'] = del_date
 
             response['data'].append(json_record)

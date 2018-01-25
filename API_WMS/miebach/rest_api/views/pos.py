@@ -343,6 +343,7 @@ def customer_order(request):
                                                         issue_type=order_detail.order_code, \
                                                         cgst_tax=item['cgst_percent'], \
                                                         sgst_tax=item['sgst_percent'], \
+                                                        order_taken_by=order['summary']['staff_member'], \
                                                         creation_date=NOW)
                     order_created = True
                     if status == 0:
@@ -476,6 +477,7 @@ def prepare_delivery_challan_json(request, order_id, user_id):
                        'total_amount': total_amount,
                        'subtotal': total_amount,
                        'gst_based': gst_based,
+                       'staff_member': order_summary.order_taken_by,
                        'issue_type': order_summary.issue_type}
             json_data = {'data':{'customer_data': customer_data, 'summary': summary,
                                  'sku_data': sku_data, 'order_id': order_id,
@@ -648,10 +650,11 @@ def get_extra_fields(request):
 
 @login_required
 def get_staff_members_list(request):
+    user = request.user
     members = ['Staff-1', 'Staff-2', 'Staff-3']
     return HttpResponse(json.dumps({'members': members}))
 
-#POS
+
 @csrf_exempt
 @login_required
 @get_admin_user

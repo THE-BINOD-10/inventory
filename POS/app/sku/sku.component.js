@@ -559,11 +559,15 @@
                  } else {
                   console.log("online");
                   self.repos = data;
-                  return self.repos.map( function (repo) {
-                    repo.value = repo.search.toLowerCase();
-                    return repo;
-                  })
-                 } 
+                  if(data.length === 1){
+                    update_search_results(data, data[0].SKUCode);
+                  } else {
+                        return self.repos.map( function (repo) {
+                        repo.value = repo.search.toLowerCase();
+                        return repo;
+                        })
+                    }
+                 }
                 },function(error){
                   console.log("offline");
                    getData(key).then(function(data){

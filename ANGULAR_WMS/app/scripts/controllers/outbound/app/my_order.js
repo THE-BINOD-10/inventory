@@ -20,6 +20,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   vm.order_data = {data: []};
   vm.index = '';
   vm.show_no_data = false;
+  vm.date = new Date();
   vm.get_orders = function(key){
 
     vm.orders_loading = true;
@@ -34,6 +35,13 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
         console.log(data.data);
         vm.order_data.data = vm.order_data.data.concat(data.data.data);
+        
+        angular.forEach(vm.order_data.data, function(item){
+          item['extend_date'] = 'Extend Date';
+          item['extended_date'] = '';
+        });
+        vm.show_extend_date = false;
+
         Data[key] = vm.order_data.data;
         if(data.data.data.length == 0) {
           vm.show_no_data = true
@@ -76,6 +84,27 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
     } else {
 
       return "Partially Dispatched";
+    }
+  }
+
+  vm.extend_order_date = function(order){
+    order['show_extend_date'] = true;
+  }
+
+  vm.confirm_to_extend = function(order, form){
+    
+    if (form.$valid) {
+      order.extend_date = 'Pending';
+      order.show_extend_date = false;
+      var send = angular.element($('form'));
+          send = send[0];
+          send = $(send).serializeArray();
+
+      Service.apiCall('extend_enquiry_date/', 'GET', send).then(function(data) {
+        Service.showNoty('Your request sent, pleae wait warehouse conformation');
+      });
+    } else {
+      Service.showNoty('Please fill with extend date');
     }
   }
 

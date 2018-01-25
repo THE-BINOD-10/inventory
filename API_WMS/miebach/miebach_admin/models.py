@@ -2272,6 +2272,7 @@ class EnquiryMaster(models.Model):
     pin_code = models.PositiveIntegerField(default=0)
     remarks = models.CharField(max_length=128, default='')
     extend_status = models.CharField(max_length=54, default='')
+    extend_date = models.DateField()
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

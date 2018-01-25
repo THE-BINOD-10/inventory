@@ -7501,7 +7501,8 @@ def insert_enquiry_data(request, user=''):
         customer_details = {}
         customer_details = get_order_customer_details(customer_details, request)
         customer_details['customer_id'] = cm_id  # Updating Customer Master ID
-        enquiry_map = {'user': user.id, 'enquiry_id': enquiry_id}
+        enquiry_map = {'user': user.id, 'enquiry_id': enquiry_id,
+                       'extend_date': datetime.datetime.date() + datetime.timedelta(days=10)}
         enquiry_map.update(customer_details)
         enq_master_obj = EnquiryMaster(**enquiry_map)
         enq_master_obj.save()
@@ -7694,6 +7695,27 @@ def move_enquiry_to_order(request, user=''):
         message = 'Failed'
     else:
         em_qs.delete()  # Removing item from Enquiry Table after converting it to Order
+    return HttpResponse(message)
+
+
+def extend_enquiry_date(request):
+    message = 'Success'
+    extended_date = request.GET.get('extended_date', '')
+    enquiry_id = request.GET.get('order_id', '')
+    cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+    if not cum_obj:
+        return "No Customer User Mapping Object"
+    try:
+        cm_id = cum_obj[0].customer_id
+        enq_qs = EnquiryMaster.objects.filter(enquiry_id=enquiry_id, customer_id=cm_id)
+        if enq_qs:
+            enq_qs[0].extend_status = 'pending'
+            enq_qs[0].extend_date = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
+            enq_qs[0].save()
+    except:
+        import traceback
+        log.debug(traceback.format_exc())
+        message = 'Failed'
     return HttpResponse(message)
 
 

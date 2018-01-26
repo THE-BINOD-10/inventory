@@ -27,8 +27,8 @@ input[type="date"]:valid::before {
   <div class="row style-menu" style="line-height: 40px;">
     <div class="col-md-6 col-sm-6 col-xs-8">
       <div class="menu-left">
-        <span ng-click="$state.go('user.App.Brands')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
-        <span ng-click="$state.go('user.App.Brands')" title="Go to Brand Page">Back To Brands</span>
+        <span ng-click="$state.go('user.App.Products'); showCase.get_category(false)"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="$state.go('user.App.Products'); showCase.get_category(false)" title="Go to Brand Page">Back To Styles</span>
       </div>
     </div>
     <div class="col-md-6 col-sm-6 col-xs-4">
@@ -47,7 +47,7 @@ input[type="date"]:valid::before {
     <div class="col-md-12" style="background: #fff;overflow: hidden; margin-bottom: -3px;padding-bottom:10px;margin-right: -2px;z-index: 100;box-shadow: 0px 4px 8px -2px #888;">
       <div class="row">
         <div class="col-md-2 col-sm-6 col-xs-6 mt10">
-          <input type="text" class="form-control stk-readonly pull-left" ng-model="Cart.model_data.shipment_date" id="shipment_date" ng-change="Cart.date_changed()" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Shipment Date" data-date-start-date="{{Cart.date}}">
+          <input type="text" class="form-control stk-readonly pull-left" name="shipment_date" ng-model="Cart.model_data.shipment_date" id="shipment_date" ng-change="Cart.date_changed()" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Shipment Date" data-date-start-date="{{Cart.date}}">
         </div>
 
         <div class="col-md-2 col-sm-6 col-xs-6 mt10">
@@ -68,11 +68,13 @@ input[type="date"]:valid::before {
         </div>
 
         <div class="col-md-2 col-sm-6 col-xs-6" ng-if="showCase.user_type=='reseller'">
-          <div class="btn btn-primary up-btn mt10" style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 100%;">Select File
-            <input class="btn btn-primary upload-button" value="Upload" type = "file" name="file" id="po-upload">
+          <div class="btn btn-primary up-btn mt10" style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 100%;">Upload PO
+            <input class="btn btn-primary upload-button" value="Upload" type = "file" ng-model="Cart.model_data.uploaded_po" name="file" id="po-upload">&nbsp;
+            <i class="fa fa-cloud-upload fa-1g" aria-hidden="true"></i>
           </div>
         </div>
       </div>
+      </form>
     </div>
   </div>
 <!-- style="border:1px solid red; color:red" -->
@@ -176,6 +178,27 @@ input[type="date"]:valid::before {
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-12">
+          <div class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="permissions.user_type == 'reseller' && Cart.model_data.data.length">
+            <div class="col-md-12 col-sm-12 col-xs-12">
+              <h5><b>Delivering Details</b></h5><hr>
+            </div>
+            <hr>
+            <div class="row">
+              <div class="col-md-6 no-padding" ng-repeat="address in Cart.deliver_address">
+                <input type="radio" name="address_selected" ng-checked="(Cart.checked_address == address)?'checked': '';" ng-model="Cart.checked_address" value="{{address}}" />
+                <span style="font-size: 14px;">{{address}}</span><br>
+              </div>
+            </div><hr>
+            <div class="row">
+              <div class="col-md-6">
+                {{Cart.model_data.data[0].distributor_addr}}
+              </div>
+              <div class="col-md-6">
+                {{Cart.model_data.data[0].reseller_addr}}
+              </div>
+            </div>
+          </div>
+
           <div class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="Cart.final_data.total_quantity && Cart.model_data.data.length > 0">
             <div class="col-md-12 col-sm-12 col-xs-12">
               <h5>PRICE DETAILS</h5><hr>
@@ -185,10 +208,10 @@ input[type="date"]:valid::before {
                 <div class="col-md-3 col-xs-3 no-padding">
                   <span class="pull-left"><b>SKU Code</b></span>
                 </div>
-                <div class="col-md-3 col-xs-3 no-padding" title="Effective Landing Price">
-                  <center><b>Landing Price</b></center>
+                <div class="col-md-4 col-xs-4 no-padding" title="Effective Landing Price">
+                  <center><b>Avg Landing Price</b></center>
                 </div>
-                <div class="col-md-3 col-xs-3"><center><b>Quantity</b></center></div>
+                <div class="col-md-2 col-xs-2"><center><b>Quantity</b></center></div>
                 <div class="col-md-3 col-sm-3 no-padding">
                   <span class="pull-right"><b>Amount</b></span>
                 </div>
@@ -199,10 +222,10 @@ input[type="date"]:valid::before {
                 <div class="col-md-3 col-xs-3 no-padding">
                   <span class="pull-left">{{data.sku_code}}</span>
                 </div>
-                <div class="col-md-3 col-xs-3 no-padding">
+                <div class="col-md-4 col-xs-4 no-padding">
                   <center>{{data.effective_landing_price | number : 2}}</center>
                 </div>
-                <div class="col-md-3 col-xs-3 no-padding"><center>{{data.quantity}}</center></div>
+                <div class="col-md-2 col-xs-2 no-padding"><center>{{data.quantity}}</center></div>
                 <div class="col-md-3 col-sm-3 no-padding">
                   <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.total_amount | number : 2}}</span>
                 </div>
@@ -222,9 +245,9 @@ input[type="date"]:valid::before {
               <span class="pull-left">Total Amount</span>
               <span class="pull-right">Rs {{Cart.final_data.total_amount | number : 2}}</span>
             </div>
-            <div>
+            <!-- <div>
               <button type="button" class="btn btn-primary btn-round pull-right mt20" ng-show="permissions.user_type == 'reseller'" ng-click="$state.go('user.App.Products')">CONTINUE</button>
-            </div>
+            </div> -->
           </div>
         </div>
       </div>

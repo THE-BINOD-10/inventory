@@ -21,6 +21,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.company_name = Session.user_profile.company_name;
   vm.model_data = {};
   vm.required_quantity = {};
+  vm.margin_types = ['Margin Percentage', 'Margin Value'];
+  Data.styles_data = {};
 
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
                             customer_id: "", payment_received: "", order_taken_by: "", other_charges: [], shipment_time_slot: "", remarks: ""};
@@ -35,6 +37,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.brand = "";
   vm.filterData = {};
   
+  vm.goBack = function(){
+
+    $state.go('user.App.Brands');
+  }
 
   function change_filter_data() {
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
@@ -147,9 +153,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
         angular.copy([], vm.catlog_data.data);
         vm.catlog_data.index = data.data.next_index;
-	    angular.forEach(data.data.data, function(item){
+	      angular.forEach(data.data.data, function(item){
           vm.catlog_data.data.push(item);
-        })
+        });
         vm.scroll_data = true;
   	//  }
 	  vm.loading = false;
@@ -201,6 +207,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     if(vm.category == "All") {
       cat_name = "";
+    } else if(vm.category == "") {
+      vm.category = "All";
+      cat_name = "";
     }
 
     if($.type(vm.size_filter_data) != "string"){
@@ -230,9 +239,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
           angular.copy([], vm.catlog_data.data);
         }
         vm.catlog_data.index = data.data.next_index;
-        angular.forEach(data.data.data, function(item){
-          vm.catlog_data.data.push(item);
-        })
+        
+        if(!Data.marginSKUData.category){
+          Data.marginSKUData['category'] = {};
+        }
+
+        vm.margin_add_to_categoris(data.data.data, Data.marginSKUData.category[vm.category]);
       //}
       vm.scroll_data = true;
       vm.add_scroll();
@@ -329,7 +341,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         $state.go('user.App.Products');
       }
       vm.pdfDownloading = false;
-    })
+    });
   }
 
   vm.change_category = function(category) {
@@ -766,10 +778,23 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     });
   }*/
 
+  vm.cat_level_margin = {};
+
   //margin value
   vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, sale_through: vm.order_type_value};
   vm.addMargin = function() {
 
+    if (!Data.marginSKUData.category && vm.category) {
+      vm.marginData.margin = Data.marginSKUData.category[vm.category];
+      vm.marginData.margin_value = Data.marginSKUData.category[vm.category];
+    } else if (Data.marginSKUData.margin) {
+      vm.marginData.margin = Data.marginSKUData.margin;
+      vm.marginData.margin_value = Data.marginSKUData.margin;
+    } else {
+      vm.marginData.margin = 0;
+      vm.marginData.margin_value = 0;
+    }
+ 
     var mod_data = vm.marginData;
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/app/create_orders/add_margin.html',
@@ -786,17 +811,59 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     });
 
     modalInstance.result.then(function (selectedItem) {
-       vm.marginData = selectedItem;
-       if (vm.marginData.margin_type == 'Margin Percentage') {
-         vm.marginData.is_margin_percentage = true;
-         vm.marginData.margin = vm.marginData.margin_percentage;
-       } else {
-         vm.marginData.is_margin_percentage = false;
-         vm.marginData.margin = vm.marginData.margin_value;
-       }
-       Data.marginSKUData.is_margin_percentage = vm.marginData.is_margin_percentage;
-       Data.marginSKUData.margin = vm.marginData.margin;
+      vm.marginData = selectedItem;
+      if (vm.marginData.margin_type == 'Margin Percentage') {
+        
+        vm.marginData.is_margin_percentage = true;
+        vm.marginData.margin = vm.marginData.margin_percentage;
+      } else {
+        
+        vm.marginData.is_margin_percentage = false;
+        vm.marginData.margin = vm.marginData.margin_value;
+      }
+
+      Data.marginSKUData.is_margin_percentage = vm.marginData.is_margin_percentage;
+
+      if (!Data.marginSKUData.margin) {
+        
+        Data.marginSKUData.margin = vm.marginData.margin;
+      }
+      if (vm.category && !Data.marginSKUData.category[vm.category]) {
+        Data.marginSKUData.category[vm.category] = vm.marginData.margin;
+      }
+      vm.margin_add_to_categoris(vm.catlog_data.data, vm.marginData.margin_value);
     })
+  }
+
+  vm.margin_add_to_categoris = function(data, default_margin){
+    vm.checked_margin = default_margin;
+    if (data.length) {
+      angular.forEach(data, function(item){
+
+        if (Data.marginSKUData.category[vm.category] && vm.checked_margin) {
+
+          if (Data.marginSKUData.category[vm.category] != vm.checked_margin) {
+
+            item.variants[0].your_price = vm.changed_margin;
+            Data.marginSKUData.category[vm.category] = vm.checked_margin;
+          }
+          else {
+            item.variants[0].your_price = Data.marginSKUData.category[vm.category];
+          }
+        } else {
+          if (Data.marginSKUData.margin) {
+            item.variants[0].your_price = Data.marginSKUData.margin;
+          }
+        }
+      });
+
+      angular.forEach(data, function(item){
+        vm.catlog_data.data.push(item);
+      });
+    } else {
+      Data.marginSKUData.category = {};
+      default_margin = Data.marginSKUData.margin;
+    }
   }
 
   vm.addSKUinData = function(data_list) {
@@ -905,7 +972,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'ACCESSORIES': 'ACCESSORIES.jpg',
                            'APPARELS': 'APPARELS.jpg',
                            'ELECTRONICS': 'ELECTRONICS.jpg',
-                           'GARMENTS': 'ELECTRONICS.jpg',
+                           'GARMENTS': 'GARMENTS.jpg',
                            'LEATHER ITEMS': 'LEATHER ITEMS.jpg',
                            'PENS': 'PENS.jpg',
                            'PU ITEMS': 'PU ITEMS.jpg',
@@ -960,7 +1027,7 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
       return false;
     }
     var margin = ($ctrl.marginData.is_margin_percentage)? $ctrl.marginData.margin_percentage: $ctrl.marginData.margin_value;
-    angular.copy({data: $ctrl.sku_data}, Data.marginSKUData);
+    // angular.copy({data: $ctrl.sku_data}, Data.marginSKUData);
     $modalInstance.close($ctrl.marginData);
   };
 
@@ -1074,7 +1141,8 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
   vm.pdfDownloading = false;
   vm.downloadPDF = function(form) {
 
-    var data = vm.pdfData;
+    var data = {};
+    angular.copy(vm.pdfData, data);
     if (!vm.pdfData.display_total_amount) {
         delete data.required_quantity;
     }

@@ -78,6 +78,11 @@ def create_update_sku(all_skus, all_users):
     """ creating SKU for other linked users """
     from rest_api.views.common import get_misc_value
     dump_sku_codes = []
+    wh_type = ''
+    if all_skus:
+        user_profile = UserProfile.objects.filter(user_id=all_skus[0].user)
+        if user_profile:
+            wh_type = user_profile[0].warehouse_type
     for user in all_users:
         for sku in all_skus:
             if sku.user == user:
@@ -88,6 +93,7 @@ def create_update_sku(all_skus, all_users):
                         'product_type': sku.product_type, 'online_percentage': sku.online_percentage,
                         'mrp': sku.mrp, 'sequence': sku.sequence, 'status': sku.status,
                         'measurement_type': sku.measurement_type, 'sale_through': sku.sale_through,
+                        'hsn_code': sku.hsn_code,
                         }
             new_sku_dict = copy.deepcopy(update_sku_dict)
             new_sku_dict.update({'discount_percentage': sku.discount_percentage, 'price': sku.price,
@@ -99,7 +105,7 @@ def create_update_sku(all_skus, all_users):
             if sku.sku_code not in dump_sku_codes and created:
                 dump_sku_codes.append(sku.sku_code)
             price_band_flag = get_misc_value('priceband_sync', sku.user)
-            if price_band_flag == 'true' and not created:
+            if (price_band_flag == 'true' or wh_type == 'CENTRAL_ADMIN')and not created:
                 sku_obj.__dict__.update(**update_sku_dict)
                 print sku_obj.sku_desc, sku_obj.id
                 sku_obj.save()

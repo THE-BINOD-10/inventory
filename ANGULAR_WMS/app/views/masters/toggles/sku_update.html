@@ -12,19 +12,19 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> WMS SKU Code *</label>
-                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-readonly="showCase.update" required>
+                <input type="text" name="wms_code" class="form-control" ng-model="showCase.model_data.sku_data.sku_code" ng-disabled="showCase.update" required>
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Product Description * </label>
-                <input type="text" name="sku_desc" class="form-control" ng-model="showCase.model_data.sku_data.sku_desc" maxlength="256" required>
+                <input type="text" name="sku_desc" class="form-control" ng-model="showCase.model_data.sku_data.sku_desc" maxlength="256" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" required>
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> SKU Type </label>
-                <select class="form-control zone" name="sku_type" ng-model="showCase.model_data.sku_data.sku_type" ng-init="showCase.model_data.sku_data.sku_type" ng-options="type for type in showCase.sku_types"></select>
+                <select class="form-control zone" name="sku_type" ng-model="showCase.model_data.sku_data.sku_type" ng-init="showCase.model_data.sku_data.sku_type" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" ng-options="type for type in showCase.sku_types"></select>
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -39,13 +39,13 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> SKU Class </label>
-                <input type="text" name="sku_class" class="form-control" ng-model="showCase.model_data.sku_data.sku_class" maxlength="60"> 
+                <input type="text" name="sku_class" class="form-control" ng-model="showCase.model_data.sku_data.sku_class" maxlength="60" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'"> 
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> SKU Group </label>
-                <select class="form-control" name="sku_group" ng-model="showCase.model_data.sku_data.sku_group">
+                <select class="form-control" name="sku_group" ng-model="showCase.model_data.sku_data.sku_group" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
                   <option ng-selected="showCase.model_data.sku_data.sku_group == ''" value="">Default</option>
                   <option ng-repeat="group in showCase.model_data.groups" ng-selected="showCase.model_data.sku_data.sku_group == group" value="{{group}}">{{group}}</option>
                 </select>
@@ -54,19 +54,19 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> SKU Category </label>
-                <input type="text" name="sku_category" class="form-control" ng-model="showCase.model_data.sku_data.sku_category" maxlength="60">
+                <input type="text" name="sku_category" class="form-control" ng-model="showCase.model_data.sku_data.sku_category" maxlength="60" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Brand </label>
-                <input type="text" name="sku_brand" class="form-control" ng-model="showCase.model_data.sku_data.sku_brand" maxlength="60">
+                <input type="text" name="sku_brand" class="form-control" ng-model="showCase.model_data.sku_data.sku_brand" maxlength="60" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="user.user_profile['user_type'] != 'marketplace_user'">
               <div class="form-group">
                 <label class="control-label"> Size Type </label>
-                <select class="form-control" name="size_type" ng-model="showCase.model_data.sku_data.size_type" ng-change="showCase.change_size_type(showCase.model_data.sku_data.size_type)">
+                <select class="form-control" name="size_type" ng-model="showCase.model_data.sku_data.size_type" ng-change="showCase.change_size_type(showCase.model_data.sku_data.size_type)" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
                   <option ng-repeat = "type in showCase.model_data.sizes_list" value="{{type.size_name}}" ng-selected="type.size_name == showCase.model_data.sku_data.size_type">{{type.size_name}}</option>
                 </select>
               </div>
@@ -74,7 +74,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="user.user_profile['user_type'] != 'marketplace_user'">
               <div class="form-group">
                 <label class="control-label"> Size </label>
-                <select class="form-control" name="sku_size" ng-model="showCase.model_data.sku_data.sku_size">
+                <select class="form-control" name="sku_size" ng-model="showCase.model_data.sku_data.sku_size" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
                   <option value ="" ng-selected="showCase.model_data.sku_data.sku_size == ''"> None </option>
                   <option ng-repeat = "size in showCase.model_data.sizes" value="{{size}}" ng-selected="showCase.model_data.sku_data.sku_size == size">{{size}}</option>
                 </select>
@@ -83,13 +83,13 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Style Name</label>
-                <input type="text" name="style_name" class="form-control" ng-model="showCase.model_data.sku_data.style_name" maxlength="60">
+                <input type="text" name="style_name" class="form-control" ng-model="showCase.model_data.sku_data.style_name" maxlength="60" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Product Type</label>
-                <select class="form-control" name="product_type" ng-model="showCase.model_data.sku_data.product_type">
+                <select class="form-control" name="product_type" ng-model="showCase.model_data.sku_data.product_type" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
                   <option value ="" ng-selected="showCase.model_data.sku_data.product_type == ''"> Default </option>
                   <option ng-repeat = "type in showCase.model_data.product_types" value="{{type}}" ng-selected="showCase.model_data.sku_data.product_type == type">{{type}}</option>
                 </select>
@@ -98,13 +98,13 @@
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="user.userName == 'sagar_fab'">
               <div class="form-group">
                 <label class="control-label"> Primary Category</label>
-                <input type="text" name="primary_category" class="form-control" ng-model="showCase.model_data.sku_data.primary_category" maxlength="60">
+                <input type="text" name="primary_category" class="form-control" ng-model="showCase.model_data.sku_data.primary_category" maxlength="60" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="user.userName == 'sagar_fab'">
               <div class="form-group">
                 <label class="control-label"> Sub Category</label>
-                <select class="form-control" name="sub_category" ng-model="showCase.model_data.sku_data.sub_category">
+                <select class="form-control" name="sub_category" ng-model="showCase.model_data.sku_data.sub_category" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
                   <option value ="" ng-selected="showCase.model_data.sku_data.sub_category == ''"> Default </option>
                   <option ng-repeat = "(key, value) in showCase.model_data.sub_categories" value="{{value}}" ng-selected="showCase.model_data.sku_data.sub_category == value">{{value}}</option>
                 </select>
@@ -113,7 +113,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Mix SKU </label>
-                <select class="form-control" name="mix_sku" ng-model="showCase.model_data.sku_data.mix_sku">
+                <select class="form-control" name="mix_sku" ng-model="showCase.model_data.sku_data.mix_sku" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
                   <option ng-selected="showCase.model_data.sku_data.mix_sku == ''" value="">Default</option>
                   <option ng-repeat="(k,v) in showCase.mix_sku_list" ng-selected="showCase.model_data.sku_data.mix_sku == v" value="{{v}}">{{k}}</option>
                 </select>
@@ -122,14 +122,14 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Status </label>
-                  <select class="form-control" name="status" ng-model="showCase.model_data.sku_data.status" ng-options="qc for qc in showCase.status_data">
+                  <select class="form-control" name="status" ng-model="showCase.model_data.sku_data.status" ng-options="qc for qc in showCase.status_data" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
                 </select>
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.permissions.add_qualitycheck">
               <div class="form-group">
                 <label class="control-label"> Quality Check </label>
-                <select class="form-control qc_check" name="qc_check" ng-model="showCase.model_data.sku_data.qc_check" ng-options="qc for qc in showCase.qc_data">
+                <select class="form-control qc_check" name="qc_check" ng-model="showCase.model_data.sku_data.qc_check" ng-options="qc for qc in showCase.qc_data" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
                 </select>
               </div>
             </div>
@@ -142,27 +142,27 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Price </label>
-                <input type="text" name="price" class="form-control" ng-model="showCase.model_data.sku_data.price" decimal-number>
+                <input type="text" name="price" class="form-control" ng-model="showCase.model_data.sku_data.price" decimal-number ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
 
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> MRP </label>
-                <input type="text" name="mrp" class="form-control" ng-model="showCase.model_data.sku_data.mrp" decimal-number>
+                <input type="text" name="mrp" class="form-control" ng-model="showCase.model_data.sku_data.mrp" decimal-number ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
 
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Color </label>
-                <input type="text" name="color" class="form-control" ng-model="showCase.model_data.sku_data.color">
+                <input type="text" name="color" class="form-control" ng-model="showCase.model_data.sku_data.color" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> EAN Number </label>
-                <input type="text" name="ean_number" class="form-control" ng-model="showCase.model_data.sku_data.ean_number" decimal-number>
+                <input type="text" name="ean_number" class="form-control" ng-model="showCase.model_data.sku_data.ean_number" decimal-number ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="user.user_profile['user_type'] != 'marketplace_user'">
@@ -177,13 +177,13 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> HSN Code </label>
-                <input type="text" name="hsn_code" class="form-control" ng-model="showCase.model_data.sku_data.hsn_code" decimal-number>
+                <input type="text" name="hsn_code" class="form-control" ng-model="showCase.model_data.sku_data.hsn_code" decimal-number ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Hot Release </label>
-                <select class="form-control" name="hot_release" ng-model="showCase.model_data.sku_data.hot_release">
+                <select class="form-control" name="hot_release" ng-model="showCase.model_data.sku_data.hot_release" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
                   <option ng-selected="showCase.model_data.sku_data.hot_release == 1" value="Enable">Enable</option>
                   <option ng-selected="showCase.model_data.sku_data.hot_release == 0" value="Disable">Disable</option>
                 </select>
@@ -258,7 +258,7 @@
                                 outline: none;
                                 background: white;
                                 cursor: inherit;
-                                display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload" image-upload multiple/>
+                                display: block;" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" class="btn btn-primary" type = "file" name="files" id="image-upload" image-upload multiple/>
               </span>
                 <!-- <input type="file" id="image-upload" name="files" file-upload multiple=""> -->
               </div>

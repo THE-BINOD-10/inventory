@@ -6,7 +6,9 @@
       </div>
       <div class="col-md-8 col-sm-12 col-xs-12">
         <div class="row pb10">
-          <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-3" style="width: 150px;" ng-click="showCase.add()">New SKU</button>
+          <div ng-if="showCase.permissions.user_type != 'warehouse' or showCase.permissions.user_type != 'distributor'">
+            <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-3" style="width: 150px;" ng-click="showCase.add()">New SKU</button>
+          </div>
           <div ng-include="'views/common/excel_button.html'"></div>
           <button type="button" class="btn btn-primary col-md-3 col-sm-3 col-xs-3" style="width: 150px;"
                   ng-click="$state.go('app.masters.ImageBulkUpload')">Image Upload</button>

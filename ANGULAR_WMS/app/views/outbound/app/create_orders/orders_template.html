@@ -1,3 +1,20 @@
+<style>
+input[type="date"]::before {
+    color: #999999;
+    content: attr(placeholder);
+}
+input[type="date"] {
+    color: #ffffff;
+}
+input[type="date"]:focus,
+input[type="date"]:valid {
+    color: #666666;
+}
+input[type="date"]:focus::before,
+input[type="date"]:valid::before {
+    content: "" !important;
+}
+</style>
         <div class="order-list">
           <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data" ng-click="orders.open_details({orderId: order.order_id, state: orders.status})" style="cursor: pointer">
             <div class="row" ng-if="orders.your_orders">
@@ -37,10 +54,13 @@
             </div>
             <div class="row" ng-if="!orders.your_orders">
               <section class="widget text-center no-margin">
-                <div class="widget-details col-xs-3 text-left">
+                <div class="widget-details col-xs-2 text-left">
                   <small class="order-label">Enquiry ID</small>
                   <h2 class="no-margin order-bold">{{order.order_id}}</h2></div>
-                <div class="widget-details col-xs-3 text-center">
+                <div class="widget-details col-xs-3 text-left">
+                  <small class="order-label">Date</small>
+                  <h2 class="no-margin order-bold">{{order.date}}</h2></div>
+                <div class="widget-details col-xs-2 text-center">
                   <small class="order-label">Quantity</small>
                   <h2 class="no-margin order-bold">{{order.total_quantity}}</h2>
                 </div>
@@ -48,11 +68,34 @@
                   <small class="order-label">Amount</small>
                   <h2 class="no-margin order-bold">Rs. {{order.total_inv_amt}}</h2>
                 </div>
-                <div class="widget-details col-xs-3 text-right">
-                  <small class="order-label"> </small>
-                  <button type='button' class="btn btn-warning mt20 pull-right" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.moveToCart(order, $index, $event)" ng-disabled="orders.moving">{{(orders.moving)? 'Moving': 'Move to Cart';}}</button>
+                <div class="widget-details col-xs-2 text-center">
+                    <small class="order-label">Days Left</small>
+                    <h2 class="no-margin order-bold" ng-if="order.extend_status!='pending'">{{order.days_left}}</h2>
+                  <div ng-if="order.extend_status=='pending'">
+                    <span style="color: #33cc66;">Pending...</span>
+                  </div>
                 </div>
               </section>
+            </div>
+            <div class="row m10" ng-if="!orders.your_orders">
+              <div class="widget-details col-xs-5 text-left no-padding"></div>
+              <div class="widget-details col-xs-5 mt10 text-right no-padding" ng-if="!order.show_extend_date && order.extend_status!='pending'">
+                <a href="" ng-click="orders.extend_order_date(order); $event.stopPropagation()" style="text-decoration: underline; color: #33cc66;">Extend Date</a>
+              </div>
+              <form  ng-if="order.show_extend_date" id="order-create" name="form" role="form" ui-jq="validate">
+                <div class="widget-details col-xs-3">
+                  <input name="extended_date" ui-jq="datepicker" ng-click="$event.stopPropagation()" ng-model="order.extended_date" placeholder="Select Date" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{orders.date}}" readonly="true" style="height: 26px">
+                  <input type="hidden" name="order_id" value="{{order.order_id}}">
+                </div>
+                
+                <div class="widget-details col-xs-2">
+                  <button type='button' class="btn btn-primary" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.confirm_to_extend(order, form); $event.stopPropagation()">Save</button>
+                </div>
+              </form>
+              <div class="widget-details col-xs-2 pull-right">
+                <small class="order-label"> </small>
+                <button type='button' class="btn btn-warning pull-right" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.moveToCart(order, $index, $event)" ng-disabled="orders.moving">{{(orders.moving)? 'Moving': 'Move to Cart';}}</button>
+              </div>
             </div>
           </div>
           <div class="order-item" ng-if="orders.order_data.data.length == 0 && (!orders.orders_loading)">

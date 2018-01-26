@@ -12,7 +12,6 @@ function EnquiryOrdersCtrl($scope, $http, $state, $compile, Session, DTOptionsBu
   vm.apply_filters = colFilters;
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
-
   vm.filters = {'datatable': 'EnquiryOrders', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
   vm.dtOptions = DTOptionsBuilder.newOptions()
     .withOption('ajax', {
@@ -33,7 +32,7 @@ function EnquiryOrdersCtrl($scope, $http, $state, $compile, Session, DTOptionsBu
       //vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
     });
 
-  vm.dtColumns = vm.service.build_colums(['Enquiry ID', 'Customer Name', 'Quantity', 'Date']);
+  vm.dtColumns = vm.service.build_colums(['Enquiry ID', 'Customer Name', 'Zone', 'Quantity', 'Date', 'Extend Status', 'Days Left']);
   vm.dtInstance = {};
 
   $scope.$on('change_filters_data', function(){

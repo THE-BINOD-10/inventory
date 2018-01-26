@@ -92,7 +92,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'STAGING',
         'USER': 'root',
-        'PASSWORD': '0510^2017',
+        'PASSWORD': 'krothapalli',
         'TEST_MIRROR': 'default',
     }
 }

@@ -892,6 +892,23 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     return columns;
   }
 
+  vm.build_colums2 = function(data, not_sort)  {
+
+    if (!not_sort) {
+      not_sort = [];
+    }
+    var columns = [];
+    angular.forEach(data, function(key, value) {
+
+      if(not_sort.indexOf(value) > -1) {
+        columns.push(DTColumnBuilder.newColumn(value).withTitle(key).notSortable());
+      } else {
+        columns.push(DTColumnBuilder.newColumn(value).withTitle(key));
+      }
+    })
+    return columns;
+  }
+
   vm.channels_logo_base_path = function(data) {
     return "images/marketplaces/";
   }

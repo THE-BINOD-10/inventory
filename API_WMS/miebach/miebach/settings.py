@@ -90,7 +90,7 @@ WSGI_APPLICATION = 'miebach.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'SM_RELEASE_1',
+        'NAME': 'STAGING',
         'USER': 'root',
         'PASSWORD': 'krothapalli',
         'TEST_MIRROR': 'default',

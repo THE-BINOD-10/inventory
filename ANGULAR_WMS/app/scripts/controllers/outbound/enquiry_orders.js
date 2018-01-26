@@ -32,7 +32,7 @@ function EnquiryOrdersCtrl($scope, $http, $state, $compile, Session, DTOptionsBu
       //vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
     });
 
-  vm.dtColumns = vm.service.build_colums(['Enquiry ID', 'Customer Name', 'Quantity', 'Date', 'Extend Status', 'Days Left']);
+  vm.dtColumns = vm.service.build_colums(['Enquiry ID', 'Customer Name', 'Zone', 'Quantity', 'Date', 'Extend Status', 'Days Left']);
   vm.dtInstance = {};
 
   $scope.$on('change_filters_data', function(){

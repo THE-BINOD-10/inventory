@@ -86,17 +86,19 @@ def get_uploaded_pos_by_customers(start_index, stop_index, temp_data, search_ter
         results = OrderUploads.objects.filter(**filter_params)
     for result in results:
         cond = (result.id, result.uploaded_user, result.po_number, result.uploaded_date,
-                result.customer_name, result.uploaded_file, result.verification_flag, result.remarks)
+                result.customer_name, result.uploaded_file, result.verification_flag, result.remarks,
+                result.uploaded_user.userprofile.zone)
         all_data.setdefault(cond, 0)
     temp_data['recordsTotal'] = len(all_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for key, value in all_data.iteritems():
-        _id, uploaded_user, po_number, uploaded_date, customer_name, uploaded_file, verification_flag, remarks = key
+        _id, uploaded_user, po_number, uploaded_date, customer_name, uploaded_file, \
+        verification_flag, remarks, zone = key
         temp_data['aaData'].append(
             {'id': _id, 'uploaded_user': uploaded_user.first_name, 'po_number': po_number,
              'uploaded_date': uploaded_date.strftime('%Y-%m-%d'),
              'customer_name': customer_name, 'uploaded_file': str(uploaded_file),
-             'verification_flag': verification_flag})
+             'verification_flag': verification_flag, 'zone': zone})
     sort_col = lis[col_num]
 
     if order_term == 'asc':

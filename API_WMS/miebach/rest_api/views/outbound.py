@@ -7502,7 +7502,7 @@ def insert_enquiry_data(request, user=''):
         customer_details = get_order_customer_details(customer_details, request)
         customer_details['customer_id'] = cm_id  # Updating Customer Master ID
         enquiry_map = {'user': user.id, 'enquiry_id': enquiry_id,
-                       'extend_date': datetime.datetime.date() + datetime.timedelta(days=10)}
+                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=10)}
         enquiry_map.update(customer_details)
         enq_master_obj = EnquiryMaster(**enquiry_map)
         enq_master_obj.save()
@@ -7651,6 +7651,8 @@ def get_customer_enquiry_detail(request, user=''):
         sku_whole_map['totals'] = sku_totals
     whole_res_map['data'] = response_data_list
     whole_res_map['sku_wise_details'] = sku_whole_map
+    whole_res_map['extend_status'] = em_qs[0].extend_status
+    whole_res_map['extend_date'] = em_qs[0].extend_date
     return HttpResponse(json.dumps(whole_res_map, cls=DjangoJSONEncoder))
 
 
@@ -7664,11 +7666,20 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
     for em_obj in em_qs:
         enq_id = int(em_obj.enquiry_id)
         total_qty = map(sum, [[i['quantity'] for i in em_obj.enquiredsku_set.values()]])[0]
-        customer_name = CustomerMaster.objects.get(id=em_obj.customer_id).name
+        cm_obj = CustomerMaster.objects.get(id=em_obj.customer_id)
+        customer_name = cm_obj.name
+        zone = ''
         date = em_obj.creation_date.strftime('%Y-%m-%d')
+        extend_status = em_obj.extend_status
+        if em_obj.extend_date:
+            days_left_obj = em_obj.extend_date - datetime.datetime.today().date()
+            days_left = days_left_obj.days
+        else:
+            days_left = 0
         temp_data['aaData'].append(OrderedDict((('Enquiry ID', enq_id), ('Customer Name', customer_name),
-                                                ('Quantity', total_qty), ('Date', date),
-                                                ('Customer ID', em_obj.customer_id))))
+                                                ('Zone', zone), ('Quantity', total_qty), ('Date', date),
+                                                ('Customer ID', em_obj.customer_id),
+                                                ('Extend Status', extend_status), ('Days Left', days_left))))
     temp_data['recordsTotal'] = len(temp_data['aaData'])
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -7708,14 +7719,23 @@ def extend_enquiry_date(request):
     message = 'Success'
     extended_date = request.GET.get('extended_date', '')
     enquiry_id = request.GET.get('order_id', '')
-    cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
-    if not cum_obj:
-        return "No Customer User Mapping Object"
-    try:
+    if not enquiry_id:
+        enquiry_id = request.GET.get('enquiry_id', '')
+    user_profile = UserProfile.objects.filter(user=request.user.id)
+    customer_id = request.GET.get('customer_id', '')
+    extend_status = request.GET.get('extend_status', 'pending')
+    if user_profile[0].warehouse_type == 'CENTRAL_ADMIN' and customer_id:
+        cm_id = int(customer_id)
+    else:
+        cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+        if not cum_obj and not customer_id:
+            log.info("No Customer User Mapping Object")
+            message = 'Failed'
         cm_id = cum_obj[0].customer_id
+    try:
         enq_qs = EnquiryMaster.objects.filter(enquiry_id=enquiry_id, customer_id=cm_id)
         if enq_qs:
-            enq_qs[0].extend_status = 'pending'
+            enq_qs[0].extend_status = extend_status
             enq_qs[0].extend_date = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             enq_qs[0].save()
     except:

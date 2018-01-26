@@ -751,6 +751,7 @@ class UserProfile(models.Model):
     warehouse_type = models.CharField(max_length=60, default='')
     warehouse_level = models.IntegerField(default=0)
     min_order_val = models.PositiveIntegerField(default=0)
+    level_name = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'USER_PROFILE'

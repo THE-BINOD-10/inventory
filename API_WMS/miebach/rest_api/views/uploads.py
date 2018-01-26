@@ -1429,6 +1429,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                 data_dict[key] = cell_data
         if sku_data:
             sku_data.save()
+            all_sku_masters.append(sku_data)
 
         if not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']

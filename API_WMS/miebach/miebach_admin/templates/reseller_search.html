@@ -6,6 +6,8 @@
 
 <div class='row'>
   <div class="print-invoice">
+{% for obj in data %}
+{% if forloop.first %}
     <div class="row col-md-12 no-padding" style="background-color: #ed1c24 !important;color: white;">
       {% if image %}
       <img src="data:image/jpg;base64, {{image}}" class="pull-left" style="width:100%;width: 70px;margin: 4px 2px;"/>
@@ -13,15 +15,13 @@
       <h4 style="margin-bottom:10px;color:white !important;line-height: 40px;" align="center"><b style="color:white !important;">{{ user }}</b></h4>
       <span class="pull-right" style="position: absolute;top: 10px;right: 20px;font-size:12px;line-height: 40px;">{{date}}</span>
     </div>
-{% for obj in data %}
-{% if forloop.first %}
 <div class='row'>
 {% elif forloop.counter|get_page_break %}
 <div class='row' style="page-break-after: always;">
 {% elif not forloop.counter|divisibleby:2 %}
 <div class='row'>
 {% endif %}
-<div class="col-md-6 col-sm-6 col-xs-6" style="border-top: 1px solid #f0f0f0;padding-top:10px;padding-bottom:10px">
+<div class="col-md-6 col-sm-6 col-xs-6" style="border-top: 1px solid #f0f0f0;padding-top:5px;padding-bottom:5px">
   <div class='row'>
     <div class="col-md-4 col-sm-4 col-xs-4" style="padding:0px 0px;">
       <img style="border:0px !important;width: 100%;padding: 0px 0px 2px 0px;" class="img-thumbnail" src="{{  obj.image_url| get_image_code }}">
@@ -30,15 +30,23 @@
       <div>
         <img style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail hide" src="{{  obj.image_url| get_image_code }}">
         <div>
-          <span class="style_name" style="font-size: 12px" title="{{ obj.sku_class }}"><b>Style: {{ obj.sku_class }}</b></span><br>
-          <span class="style_name" style="font-size: 12px" ><b>Style Name:</b>{{ obj.variants.0.style_name }}</span><br>
-          <span class="style_name" style="font-size: 12px" title="{{ obj.sku_class }}"><b>Brand:</b> {{ obj.variants.0.sku_brand }}</span><br>
-          <span class="style_name" style="font-size: 12px" title="{{ obj.sku_class }}"><b>Category:</b> {{ obj.variants.0.sku_category }}</span><br>
-          {% if display_stock == 'true' %}
-            <span style="font-size: 12px;" class="ng-binding"><b>Stock: </b>{{obj.style_quantity| floatformat:0}}</span><br>
+          <span class="style_name" style="font-size: 12px"><b>Style : {{ obj.sku_class }}</b></span><br>
+          <span class="style_name" style="font-size: 12px" ><b>Style Name : </b>{{ obj.variants.0.style_name }}</span><br>
+          {% if obj.variants.0.hsn_code %}
+          <span class="style_name" style="font-size: 12px"><b>HSN Code :</b> {{ obj.variants.0.hsn_code }}</span><br>
           {% endif %}
+          <span class="style_name" style="font-size: 12px"><b>Brand : </b> {{ obj.variants.0.sku_brand }}</span><br>
+          <span class="style_name" style="font-size: 12px"><b>Category : </b> {{ obj.variants.0.sku_category }}</span><br>
+          {% if display_stock == 'true' %}
+          <div>
+            <span class="style_name" style="font-size: 12px"><b>MRP : <span style="color: #ed1c24 !important;">{{ obj.variants.0.mrp }}</span></b></span>
+            <span style="font-size: 12px;" class="style_name pull-right"><b>Stock : </b>{{obj.style_quantity| floatformat:0}}</span>
+          </div>
+          {% else %}
+          <span class="style_name" style="font-size: 12px"><b>MRP : <span style="color: #ed1c24 !important;">{{ obj.variants.0.mrp }}</span></b></span><br>
+          {% endif %}
+          {% if not obj.style_data %}
           {% if obj.variants.0.price_ranges %}
-          {% if not obj.sku_class|get_style_quantity:style_quantities %}
           <div ng-if="item.variants[0].price_ranges.length > 0">
             <table class="table table-bordered mb0 mt5" style="font-size:10px;">
               <tbody>
@@ -61,10 +69,19 @@
               </tbody>
             </table>
           </div>
-          {% else %}
-          <span class="style_name" style="font-size: 12px" ><b>Quantity :</b>{{ obj.sku_class|get_style_quantity:style_quantities }}</span><br>
-          <span class="style_name" style="font-size: 12px" ><b>Total Amount :</b>{{ obj|get_quantity_based_price:style_quantities }}</span>
           {% endif %}
+          {% else %}
+          <div style="width: 100%">
+            <span class="style_name" style="font-size: 12px"><b>Unit Price :</b> {{obj.style_data.unit_price}}</span>
+            <span class="style_name pull-right" style="font-size: 12px"><b>Qty : {{obj.style_data.quantity }}</b> </span>
+          </div>
+          <div>
+            <span class="style_name" style="font-size: 12px"><b>Amt : </b> {{obj.style_data.amount}}</span>
+            <span class="style_name pull-right" style="font-size: 12px"><b>Tax({{obj.style_data.tax_percentage}}%) : </b> {{obj.style_data.tax_value}}</span>
+          </div>
+          <span class="style_name" style="font-size: 12px"><b>Total Amt : </b> {{obj.style_data.total_amount}}</span>
+          <!--<span class="style_name" style="font-size: 12px" ><b>Quantity : </b>{{ obj.sku_class|get_style_quantity:style_quantities }}</span><br>
+          <span class="style_name" style="font-size: 12px" ><b>Total Amount : </b>{{ obj|get_quantity_based_price:style_quantities }}</span>-->
           {% endif %}
         </div>
       </div>
@@ -73,6 +90,15 @@
 </div>
 {% if forloop.counter|divisibleby:2 %}
 </div>
+{% endif %}
+{% if forloop.counter|get_header_status %}
+  <div class="row col-md-12 no-padding" style="background-color: #ed1c24 !important;color: white;">
+      {% if image %}
+      <img src="data:image/jpg;base64, {{image}}" class="pull-left" style="width:100%;width: 70px;margin: 4px 2px;"/>
+      {% endif %}
+      <h4 style="margin-bottom:10px;color:white !important;line-height: 40px;" align="center"><b style="color:white !important;">{{ user }}</b></h4>
+      <span class="pull-right" style="position: absolute;top: 10px;right: 20px;font-size:12px;line-height: 40px;">{{date}}</span>
+    </div>
 {% endif %}
 {% endfor %}
 </div>

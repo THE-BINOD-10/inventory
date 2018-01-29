@@ -22,6 +22,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.model_data = {};
   vm.required_quantity = {};
   vm.margin_types = ['Margin Percentage', 'Margin Value'];
+  Data.styles_data = {};
 
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
                             customer_id: "", payment_received: "", order_taken_by: "", other_charges: [], shipment_time_slot: "", remarks: ""};
@@ -38,11 +39,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   
   vm.goBack = function(){
 
-    if (Data.styleId) {
-      $state.go('user.App.Style', {styleId: Data.styleId});
-    } else {
-      $state.go('user.App.Brands');
-    }
+    $state.go('user.App.Brands');
   }
 
   function change_filter_data() {
@@ -1144,7 +1141,8 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
   vm.pdfDownloading = false;
   vm.downloadPDF = function(form) {
 
-    var data = vm.pdfData;
+    var data = {};
+    angular.copy(vm.pdfData, data);
     if (!vm.pdfData.display_total_amount) {
         delete data.required_quantity;
     }

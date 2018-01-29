@@ -580,32 +580,38 @@ def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, 
         master_data1 = all_user_groups.filter(
             Q(user__first_name__icontains=search_term) | Q(user__email__icontains=search_term),
             **search_params1).exclude(user_id=user.id). \
-            order_by(order_data).values_list('user__username', 'user__first_name',
-                                             'user__email', 'user__warehouse_type', 'user__warehouse_level')
+            order_by(order_data).values_list('user__username', 'user__first_name', 'user__email',
+                                             'user__warehouse_type', 'user__warehouse_level', 'user__min_order_val')
 
         master_data2 = all_user_groups.exclude(**exclude_admin).filter(
             Q(admin_user__first_name__icontains=search_term) |
             Q(admin_user__email__icontains=search_term), **search_params2). \
             order_by(order_data1).values_list('admin_user__username',
-                                              'admin_user__first_name', 'admin_user__email', 'admin_user__userprofile__warehouse_type', 'admin_user__userprofile__warehouse_level').distinct()
+                                              'admin_user__first_name', 'admin_user__email',
+                                              'admin_user__userprofile__warehouse_type',
+                                              'admin_user__userprofile__warehouse_level',
+                                              'admin_user__userprofile__min_order_val').distinct()
         master_data = list(chain(master_data1, master_data2))
 
     elif order_term:
         master_data1 = all_user_groups.filter(**search_params1).exclude(user_id=user.id). \
-            order_by(order_data).values_list('user__username', 'user__first_name', 'user__email', 'user__userprofile__warehouse_type', 'user__userprofile__warehouse_level')
+            order_by(order_data).values_list('user__username', 'user__first_name', 'user__email',
+                                             'user__userprofile__warehouse_type', 'user__userprofile__warehouse_level',
+                                             'user__userprofile__min_order_val')
         master_data2 = all_user_groups.exclude(**exclude_admin).filter(**search_params2).order_by(order_data1). \
-            values_list('admin_user__username',
-                        'admin_user__first_name', 'admin_user__email', 'admin_user__userprofile__warehouse_type', 'admin_user__userprofile__warehouse_level').distinct()
+            values_list('admin_user__username', 'admin_user__first_name', 'admin_user__email',
+                        'admin_user__userprofile__warehouse_type', 'admin_user__userprofile__warehouse_level',
+                        'admin_user__userprofile__min_order_val').distinct()
         master_data = list(chain(master_data1, master_data2))
 
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
-        username, name, email, wh_type, wh_level = data
+        username, name, email, wh_type, wh_level, min_order_val = data
         user_profile = UserProfile.objects.get(user__username=username)
         temp_data['aaData'].append({'Username': username, 'DT_RowClass': 'results', 'Name': name,
                                     'Email': email, 'City': user_profile.city, 'DT_RowId': username,
-                                    'Type': wh_type, 'Level': wh_level})
+                                    'Type': wh_type, 'Level': wh_level, 'Min Order Value': min_order_val})
 
 
 @csrf_exempt
@@ -1343,17 +1349,17 @@ def insert_discount(request, user=''):
             return HttpResponse("Given SKU not found")
 
         sku = sku[0]
-        sku.discount_percentage = float(save['sku_discount'])
+        sku.discount_percentage = float(save['sku_discount'].strip('%'))
         sku.save()
 
     if save.get('category'):
         category = CategoryDiscount.objects.filter(category=save.get('category', ''), user_id=user.id)
         if category:
             category = category[0]
-            category.discount = float(save['category_discount'])
+            category.discount = float(save['category_discount'].strip('%'))
             category.save()
         else:
-            category = CategoryDiscount(discount=float(save['category_discount']),
+            category = CategoryDiscount(discount=float(save['category_discount'].strip('%')),
                                         category=save.get('category', ''),
                                         creation_date=datetime.datetime.now(), user_id=user.id)
             category.save()
@@ -1494,7 +1500,8 @@ def get_warehouse_user_data(request, user=''):
             'email': user_profile.user.email, 'country': user_profile.country, 'state': user_profile.state,
             'city': user_profile.city, 'address': user_profile.address, 'pin_code': user_profile.pin_code,
             'warehouse_type': user_profile.warehouse_type, 'warehouse_level': user_profile.warehouse_level,
-            'customer_name': customer_username, 'customer_fullname': customer_fullname}
+            'customer_name': customer_username, 'customer_fullname': customer_fullname,
+            'min_order_val': user_profile.min_order_val}
     return HttpResponse(json.dumps({'data': data}))
 
 

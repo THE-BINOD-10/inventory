@@ -2619,6 +2619,9 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     color = request_data.get('color', '')
     custom_margin = request_data.get('margin', 0)
     hot_release = request_data.get('hot_release', '')
+    quantity = request_data.get('quantity', 0)
+    if not quantity:
+        quantity = 0
     try:
         custom_margin = float(custom_margin)
     except:
@@ -2771,7 +2774,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id=customer_id,
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
-                           is_margin_percentage=is_margin_percentage)
+                           is_margin_percentage=is_margin_percentage, stock_quantity=quantity)
     return data, start, stop
 
 
@@ -3642,7 +3645,8 @@ def get_cal_style_data(style_data, quantity):
 
 
 def get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id='', customer_data_id='', is_file='',
-                    prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0):
+                    prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0,
+                    stock_quantity=0):
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     from rest_api.views.outbound import get_style_variants
@@ -3691,7 +3695,8 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             if style_quantities.get(sku_styles[0]['sku_class'], ''):
                 sku_styles[0]['style_data'] = get_cal_style_data(sku_styles[0],\
                                               style_quantities[sku_styles[0]['sku_class']])
-            data.append(sku_styles[0])
+            if total_quantity >= int(stock_quantity):
+                data.append(sku_styles[0])
         if not is_file and len(data) >= 20:
             break
     return data
@@ -5959,3 +5964,18 @@ def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code):
     invoice_amount = qty * unit_price
     invoice_amount = invoice_amount + ((invoice_amount / 100) * sum(taxes.values()))
     return invoice_amount
+
+
+def get_level_name_with_level(user, warehouse_level, users_list=[]):
+    ''' Getting Level name by using level'''
+    if warehouse_level == 0:
+        return 'Source Distributor'
+    if not users_list:
+        central_admin = get_admin(user)
+        users_list = UserGroups.objects.filter(admin_user=central_admin.id).values_list('user').distinct()
+    level_name = 'Level-%s' % (str(warehouse_level))
+    level_name_objs = UserProfile.objects.exclude(level_name='').filter(user_id__in=users_list,
+                                                                        warehouse_level=warehouse_level)
+    if level_name_objs:
+        level_name = level_name_objs[0].level_name
+    return level_name

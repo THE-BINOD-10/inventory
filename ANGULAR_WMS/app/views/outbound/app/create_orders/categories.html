@@ -1,4 +1,4 @@
-<div class="clearfix render-items" style="padding-top: 60px;">
+<div class="clearfix render-items" style="padding-top: 20px;">
   <!--<div ng-if="showCase.pdfDownloading" style="position: fixed;z-index: 101;width: 100%;height: 100%;top: 0px;background: rgba(0, 0, 0, 0.1);padding-top: 125px;"><img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;"></div>-->
   <div class="row style-menu" style="height: 60px;position: absolute;top:0px;width:100%;z-index:100">
     <div class="col-md-4 col-sm-4 col-xs-4">
@@ -53,8 +53,8 @@
       </div>
     </div>
   </div>
-  <!-- <div class="item-display row" ng-if="!showCase.catDisplay"> -->
-  <div class="item-display row">
+  <div class="item-display row" ng-if="!showCase.catDisplay">
+  <!-- <div class="item-display row"> -->
     <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
     <div class="col-md-2 col-sm-3 col-xs-6 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="$state.go('user.App.Style', {styleId: item.sku_class})" style="position: relative;">
       <div>

@@ -2,7 +2,7 @@
 
 'use strict';
 
-function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $modal, $rootScope, Data) {
+function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $modal, $rootScope, Data, $location) {
 
   $scope.msg = "start";
   var vm = this;
@@ -23,6 +23,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.required_quantity = {};
   vm.margin_types = ['Margin Percentage', 'Margin Value'];
   Data.styles_data = {};
+  vm.location = $location.$$path;
 
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
                             customer_id: "", payment_received: "", order_taken_by: "", other_charges: [], shipment_time_slot: "", remarks: ""};
@@ -103,7 +104,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         'FE550':'FE550.jpg',
         'FE600':'FE600.jpg', 
         }
-        //vm.change_brand('');
+        if (vm.location == '/App/Products') {
+          vm.change_brand('');
+        } else if(vm.location == '/App/Categories'){
+          vm.change_category('');
+        }
       }
     });
   }
@@ -328,7 +333,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.fromPrice = vm.filterData.fromPrice;
     vm.toPrice = vm.filterData.toPrice;
     vm.quantity = vm.filterData.quantity;
-    vm.size_filter_data = vm.filterData.size_filter
+    vm.size_filter_data = vm.filterData.size_filter;
 
     vm.showFilter = false;
     //vm.get_category(true);
@@ -358,6 +363,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.showFilter = false;
     vm.from_cats = true;
     vm.get_category(true);
+    $state.go('user.App.Categories');
   }
 
   vm.change_size_type = function(toggle) {
@@ -1011,7 +1017,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
 angular
   .module('urbanApp')
-  .controller('appCreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', '$modal', '$rootScope', 'Data', appCreateOrders]);
+  .controller('appCreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', '$modal', '$rootScope', 'Data', '$location', appCreateOrders]);
 
 angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance, $modal, items, Service, Data, Session) {
   var $ctrl = this;

@@ -29,7 +29,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('City').withTitle('City'),
         DTColumnBuilder.newColumn('Type').withTitle('Type'),
         DTColumnBuilder.newColumn('Level').withTitle('Level'),
-        DTColumnBuilder.newColumn('Min Order Value').withTitle('Min Order Value')
+        DTColumnBuilder.newColumn('Min Order Value').withTitle('Min Order Value'),
+        DTColumnBuilder.newColumn('Zone').withTitle('Zone')
     ];
 
     vm.dtInstance = {};

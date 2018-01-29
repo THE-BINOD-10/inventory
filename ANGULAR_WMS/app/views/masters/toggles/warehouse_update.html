@@ -11,7 +11,7 @@
             <div class="col-md-4"></div>
             <div class="col-md-4"></div>
             <div class="col-md-4">
-              <div class="pull-right">
+              <div class="pull-right" ng-show="permissions.user_type=='central_admin'">
               <label class="control-label-">Customer&nbsp;Portal</label>
                 <toggle ng-model="showCase.customer_name" on="Yes" off="No" onstyle="btn-success" offstyle="btn-warning" size="btn-sm"></toggle>
               </div>
@@ -48,7 +48,7 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label">Last Name</label>
-                <input type="text" name="last_name" class="form-control" ng-model="showCase.model_data.last_name"> 
+                <input type="text" name="last_name" class="form-control" ng-model="showCase.model_data.last_name">
               </div>
             </div>
           </div>
@@ -56,7 +56,7 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label">Phone Number</label>
-                <input type="text" name="phone_number" class="form-control numvalid" ng-model="showCase.model_data.phone_number" maxlength="10" ng-pattern="/^\+?\d{2}[- ]?\d{3}[- ]?\d{5}$/"> 
+                <input type="text" name="phone_number" class="form-control numvalid" ng-model="showCase.model_data.phone_number" maxlength="10" ng-pattern="/^\+?\d{2}[- ]?\d{3}[- ]?\d{5}$/">
               </div>
             </div>
             <div class="col-md-4">
@@ -68,31 +68,31 @@
             <div class="col-md-4" ng-if="(!(showCase.update))">
               <div class="form-group">
                 <label class="control-label">Password *</label>
-                <input type="password" name="password" class="form-control" ng-model="showCase.model_data.password" required> 
+                <input type="password" name="password" class="form-control" ng-model="showCase.model_data.password" required>
               </div>
             </div>
             <div class="col-md-4" ng-if="(!(showCase.update))">
               <div class="form-group">
                 <label class="control-label">Re-type Password *</label>
-                <input type="password" name="re_password" class="form-control" ng-model="showCase.model_data.re_password" required> 
+                <input type="password" name="re_password" class="form-control" ng-model="showCase.model_data.re_password" required>
               </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label">Country</label>
-                <input type="text" name="country" class="form-control" ng-model="showCase.model_data.country"> 
+                <input type="text" name="country" class="form-control" ng-model="showCase.model_data.country">
               </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label">State</label>
-                <input type="text" name="state" class="form-control" ng-model="showCase.model_data.state"> 
+                <input type="text" name="state" class="form-control" ng-model="showCase.model_data.state">
               </div>
             </div>
             <div class="col-md-4" ng-if="showCase.update">
               <div class="form-group">
                 <label class="control-label">City</label>
-                <input type="text" name="city" class="form-control" ng-model="showCase.model_data.city">  
+                <input type="text" name="city" class="form-control" ng-model="showCase.model_data.city">
               </div>
             </div>
             <div class="col-md-4" ng-if="showCase.update">
@@ -114,7 +114,7 @@
                 <div class="col-md-12">
                   <div class="form-group">
                     <label class="control-label">City</label>
-                    <input type="text" name="city" class="form-control" ng-model="showCase.model_data.city"> 
+                    <input type="text" name="city" class="form-control" ng-model="showCase.model_data.city">
                   </div>
                 </div>
               </div>
@@ -128,42 +128,34 @@
               </div>
             </div>
 
-            <div class="col-md-4" ng-if="((showCase.update))">
+            <div class="col-md-4" ng-if="((showCase.update)) && permissions.user_type=='central_admin'">
               <div class="row">
                 <div class="col-md-12">
                   <div class="form-group">
                     <label class="control-label">Type</label>
-                    <input type="text" name="warehouse_type" class="form-control" ng-model="showCase.model_data.warehouse_type"> 
+                    <input type="text" name="warehouse_type" class="form-control" ng-model="showCase.model_data.warehouse_type">
                   </div>
                 </div>
               </div>
-            
+
               <div class="row">
                 <div class="col-md-12">
                   <div class="form-group">
                     <label class="control-label">Level</label>
-                    <input type="text" name="warehouse_level" class="form-control" ng-model="showCase.model_data.warehouse_level"> 
-                  </div>
-                </div>
-              </div>
-              <div class="row">
-                <div class="col-md-12">
-                  <div class="form-group">
-                    <label class="control-label">Min Order Val</label>
-                    <input type="text" name="min_order_val" class="form-control" ng-model="showCase.model_data.min_order_val">
+                    <input type="text" name="warehouse_level" class="form-control" ng-model="showCase.model_data.warehouse_level">
                   </div>
                 </div>
               </div>
             </div>
 
           </div>
-          <div class="row" ng-if="(!(showCase.update))">
+          <div class="row" ng-if="(!(showCase.update)) && permissions.user_type=='central_admin'">
             <div class="col-md-4">
               <div class="row">
                 <div class="col-md-12">
                   <div class="form-group">
                     <label class="control-label">Type</label>
-                    <input type="text" name="warehouse_type" class="form-control" ng-model="showCase.model_data.warehouse_type"> 
+                    <input type="text" name="warehouse_type" class="form-control" ng-model="showCase.model_data.warehouse_type">
                   </div>
                 </div>
               </div>
@@ -173,7 +165,7 @@
                 <div class="col-md-12">
                   <div class="form-group">
                     <label class="control-label">Level</label>
-                    <input type="text" name="warehouse_level" class="form-control" ng-model="showCase.model_data.warehouse_level"> 
+                    <input type="text" name="warehouse_level" class="form-control" ng-model="showCase.model_data.warehouse_level">
                   </div>
                 </div>
               </div>
@@ -186,6 +178,46 @@
                     <input type="text" name="min_order_val" class="form-control" ng-model="showCase.model_data.min_order_val">
                   </div>
                 </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="form-group">
+                    <label class="control-label">Level Name</label>
+                    <input type="text" name="level_name" class="form-control" ng-model="showCase.model_data.level_name">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="form-group">
+                    <label class="control-label">Zone</label>
+                    <input type="text" name="zone" class="form-control" ng-model="showCase.model_data.zone">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row" ng-if="((showCase.update)) && permissions.user_type=='central_admin'">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label">Min Order Val</label>
+                <input type="text" name="min_order_val" class="form-control" ng-model="showCase.model_data.min_order_val">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label">Level Name</label>
+                <input type="text" name="level_name" class="form-control" ng-model="showCase.model_data.level_name">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label">Zone</label>
+                <input type="text" name="zone" class="form-control" ng-model="showCase.model_data.zone">
               </div>
             </div>
           </div>

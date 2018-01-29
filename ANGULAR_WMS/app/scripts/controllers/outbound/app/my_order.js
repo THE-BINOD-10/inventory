@@ -5,7 +5,7 @@
 function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, Data, $modal) {
 
   var vm = this;
-
+  vm.page_url = $state.href($state.current.name, $state.params, {absolute: true})
   vm.your_orders = ($state.params.state == "orders")? true: false;
   vm.status = ($state.params.state == "orders")? "orders": "enquiry";
 
@@ -26,8 +26,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
     vm.orders_loading = true;
     vm.index = vm.order_data.data.length  + ':' + (vm.order_data.data.length + 20)
     var data = {index: vm.index, autobackorder: false}
-    var page_url = window.location.href
-    if(page_url.indexOf('AutoBackOrders') > 0){
+    if(vm.page_url.indexOf('AutoBackOrders') > 0){
       data['autobackorder'] = true;
     }
     Service.apiCall(url, 'GET', data).then(function(data){

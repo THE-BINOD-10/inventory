@@ -4240,10 +4240,16 @@ def get_levels(request, user=''):
     if cust_obj:
         is_distributor = cust_obj[0].is_distributor
     if is_distributor:
-        levels = list(UserProfile.objects.exclude(warehouse_level=0).values_list('warehouse_level',
-                                                                                 flat=True).distinct())
+        wh_levels = list(UserProfile.objects.exclude(warehouse_level=0).values_list('warehouse_level',
+                                                                                    flat=True).distinct())
     else:
-        levels = list(UserProfile.objects.values_list('warehouse_level', flat=True).distinct())
+        wh_levels = list(UserProfile.objects.values_list('warehouse_level', flat=True).distinct())
+    levels = []
+    central_admin = get_admin(user)
+    users_list = UserGroups.objects.filter(admin_user=central_admin.id).values_list('user').distinct()
+    for wh_level in wh_levels:
+        levels.append({'warehouse_level': wh_level,
+                       'level_name': get_level_name_with_level(user, wh_level, users_list=users_list)})
     return HttpResponse(json.dumps(levels))
 
 
@@ -4391,9 +4397,12 @@ def get_sku_catalogs(request, user=''):
             t = loader.get_template('templates/reseller_search.html')
         else:
             t = loader.get_template('templates/customer_search.html')
+        import math
+        pages = math.ceil(float(len(data))/10)
         rendered = t.render({'data': data, 'user': request.user.first_name, 'date': date,
                              'remarks': remarks, 'display_stock': display_stock, 'image': image,
-                             'style_quantities': eval(request.POST.get('required_quantity', '{}'))})
+                             'style_quantities': eval(request.POST.get('required_quantity', '{}')),
+                             'pages': int(pages), 'style_count': len(data)})
 
         if not os.path.exists('static/pdf_files/'):
             os.makedirs('static/pdf_files/')
@@ -6273,19 +6282,22 @@ def get_level_based_customer_order_detail(request, user):
             for usr_id, det_ids in usr_det_ids.items():
                 response_data, res = prepare_your_orders_data(request, ord_id, usr_id, det_ids,
                                                          OrderDetail.objects.filter(id__in=det_ids))
-                response_data_list.append(response_data)
+                ord_usr_profile = UserProfile.objects.get(user_id=usr_id)
+                response_data['warehouse_level'] = ord_usr_profile.warehouse_level
+                response_data['level_name'] = ord_usr_profile.level_name
+                response_data_list. append(response_data)
                 for sku_rec in res:
                     sku_code = sku_rec['sku__sku_code']
+                    sku_qty = sku_rec['quantity']
+                    sku_el_price = round(sku_rec.get('el_price', 0), 2)
+                    sku_tax_amt = round(sku_rec.get('sku_tax_amt', 0), 2)
                     if sku_code not in sku_wise_details:
-                        sku_qty = sku_rec['quantity']
-                        sku_el_price = round(sku_rec.get('el_price', 0), 2)
-                        sku_tax_amt = round(sku_rec.get('sku_tax_amt', 0), 2)
                         sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price,
                                                       'sku_tax_amt': sku_tax_amt}
                     else:
                         existing_map = sku_wise_details[sku_code]
-                        existing_map['quantity'] = existing_map['quantity'] + sku_rec['quantity']
-                        existing_map['sku_tax_amt'] = existing_map['sku_tax_amt'] + sku_rec['sku_tax_amt']
+                        existing_map['quantity'] = existing_map['quantity'] + sku_qty
+                        existing_map['sku_tax_amt'] = existing_map['sku_tax_amt'] + sku_tax_amt
     sku_whole_map = {'data': [], 'totals': {}}
     sku_totals = {'sub_total': 0, 'total_amount': 0, 'tax': 0}
     for sku_code, sku_det in sku_wise_details.items():
@@ -6420,6 +6432,11 @@ def get_customer_cart_data(request, user=""):
                 json_record['tax'] = get_tax_value(user, json_record, product_type, tax_type)
             if price_band_flag == 'true':
                 central_admin = get_admin(user)
+                #Getting level name
+                users_list = UserGroups.objects.filter(admin_user=central_admin.id).values_list('user').distinct()
+                level_name = get_level_name_with_level(user, json_record['warehouse_level'],
+                                                       users_list=users_list)
+                json_record['level_name'] = level_name
                 # level = json_record['warehouse_level']
                 if is_distributor:
                     if price_type:
@@ -6467,7 +6484,7 @@ def get_customer_cart_data(request, user=""):
             if del_date:
                 date = datetime.datetime.now()
                 date += datetime.timedelta(days=del_date)
-                del_date = date.strftime("%d/%m/%Y")
+                del_date = date.strftime("%m/%d/%Y")
             json_record['del_date'] = del_date
 
             response['data'].append(json_record)
@@ -7489,6 +7506,7 @@ def create_custom_skus(request, user=''):
 def insert_enquiry_data(request, user=''):
     message = 'Success'
     customer_id = request.user.id
+    corporate_name = request.POST.get('name', '')
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if not cum_obj:
         return "No Customer User Mapping Object"
@@ -7502,7 +7520,9 @@ def insert_enquiry_data(request, user=''):
         customer_details = get_order_customer_details(customer_details, request)
         customer_details['customer_id'] = cm_id  # Updating Customer Master ID
         enquiry_map = {'user': user.id, 'enquiry_id': enquiry_id,
-                       'extend_date': datetime.datetime.date() + datetime.timedelta(days=10)}
+                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=10)}
+        if corporate_name:
+            enquiry_map['corporate_name'] = corporate_name
         enquiry_map.update(customer_details)
         enq_master_obj = EnquiryMaster(**enquiry_map)
         enq_master_obj.save()
@@ -7547,12 +7567,12 @@ def get_enquiry_data(request, user=''):
         return HttpResponse("No Customer User Mapping Object")
     cm_id = cum_obj[0].customer_id
     em_qs = EnquiryMaster.objects.filter(customer_id=cm_id)
-    em_vals = em_qs.values_list('enquiry_id', 'extend_status', 'extend_date').distinct()
+    em_vals = em_qs.values_list('enquiry_id', 'extend_status', 'extend_date', 'corporate_name').distinct()
     total_qty = dict(em_qs.values_list('enquiry_id').distinct().annotate(quantity=Sum('enquiredsku__quantity')))
     total_inv_amt = dict(
         em_qs.values_list('enquiry_id').distinct().annotate(inv_amt=Sum('enquiredsku__invoice_amount')))
-    for enq_id, ext_status, ext_date in em_vals[start_index:stop_index]:
-        enq_id, ext_status, ext_date = int(enq_id), ext_status, ext_date
+    for enq_id, ext_status, ext_date, corp_name in em_vals[start_index:stop_index]:
+        enq_id, ext_status, ext_date, corp_name = int(enq_id), ext_status, ext_date, corp_name
         if ext_date:
             days_left_obj = ext_date - datetime.datetime.today().date()
             days_left = days_left_obj.days
@@ -7562,7 +7582,7 @@ def get_enquiry_data(request, user=''):
                    'total_quantity': total_qty[enq_id],
                    'date': get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date),
                    'total_inv_amt': round(total_inv_amt[enq_id], 2),
-                   'extend_status': ext_status, 'days_left': days_left}
+                   'extend_status': ext_status, 'days_left': days_left, 'corporate_name': corp_name}
         response_data['data'].append(res_map)
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
@@ -7651,6 +7671,8 @@ def get_customer_enquiry_detail(request, user=''):
         sku_whole_map['totals'] = sku_totals
     whole_res_map['data'] = response_data_list
     whole_res_map['sku_wise_details'] = sku_whole_map
+    whole_res_map['extend_status'] = em_qs[0].extend_status
+    whole_res_map['extend_date'] = em_qs[0].extend_date
     return HttpResponse(json.dumps(whole_res_map, cls=DjangoJSONEncoder))
 
 
@@ -7664,11 +7686,20 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
     for em_obj in em_qs:
         enq_id = int(em_obj.enquiry_id)
         total_qty = map(sum, [[i['quantity'] for i in em_obj.enquiredsku_set.values()]])[0]
-        customer_name = CustomerMaster.objects.get(id=em_obj.customer_id).name
+        cm_obj = CustomerMaster.objects.get(id=em_obj.customer_id)
+        customer_name = cm_obj.name
+        zone = ''
         date = em_obj.creation_date.strftime('%Y-%m-%d')
+        extend_status = em_obj.extend_status
+        if em_obj.extend_date:
+            days_left_obj = em_obj.extend_date - datetime.datetime.today().date()
+            days_left = days_left_obj.days
+        else:
+            days_left = 0
         temp_data['aaData'].append(OrderedDict((('Enquiry ID', enq_id), ('Customer Name', customer_name),
-                                                ('Quantity', total_qty), ('Date', date),
-                                                ('Customer ID', em_obj.customer_id))))
+                                                ('Zone', zone), ('Quantity', total_qty), ('Date', date),
+                                                ('Customer ID', em_obj.customer_id),
+                                                ('Extend Status', extend_status), ('Days Left', days_left))))
     temp_data['recordsTotal'] = len(temp_data['aaData'])
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -7708,14 +7739,23 @@ def extend_enquiry_date(request):
     message = 'Success'
     extended_date = request.GET.get('extended_date', '')
     enquiry_id = request.GET.get('order_id', '')
-    cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
-    if not cum_obj:
-        return "No Customer User Mapping Object"
-    try:
+    if not enquiry_id:
+        enquiry_id = request.GET.get('enquiry_id', '')
+    user_profile = UserProfile.objects.filter(user=request.user.id)
+    customer_id = request.GET.get('customer_id', '')
+    extend_status = request.GET.get('extend_status', 'pending')
+    if user_profile[0].warehouse_type == 'CENTRAL_ADMIN' and customer_id:
+        cm_id = int(customer_id)
+    else:
+        cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+        if not cum_obj and not customer_id:
+            log.info("No Customer User Mapping Object")
+            message = 'Failed'
         cm_id = cum_obj[0].customer_id
+    try:
         enq_qs = EnquiryMaster.objects.filter(enquiry_id=enquiry_id, customer_id=cm_id)
         if enq_qs:
-            enq_qs[0].extend_status = 'pending'
+            enq_qs[0].extend_status = extend_status
             enq_qs[0].extend_date = datetime.datetime.strptime(extended_date, '%m/%d/%Y')
             enq_qs[0].save()
     except:

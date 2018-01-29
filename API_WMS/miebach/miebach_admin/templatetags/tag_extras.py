@@ -190,3 +190,9 @@ def get_quantity_based_price(obj, quantities):
         if rg['max_unit_range'] >= quantity and quantity >= rg['min_unit_range']:
             return rg['price']*quantity
 
+@register.filter
+def get_page_number(index, total):
+
+    for i in range(total):
+        if i*10 <= index and (i+1)*10 > index:
+            return i+1

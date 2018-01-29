@@ -4391,9 +4391,12 @@ def get_sku_catalogs(request, user=''):
             t = loader.get_template('templates/reseller_search.html')
         else:
             t = loader.get_template('templates/customer_search.html')
+        import math
+        pages = math.ceil(float(len(data))/10)
         rendered = t.render({'data': data, 'user': request.user.first_name, 'date': date,
                              'remarks': remarks, 'display_stock': display_stock, 'image': image,
-                             'style_quantities': eval(request.POST.get('required_quantity', '{}'))})
+                             'style_quantities': eval(request.POST.get('required_quantity', '{}')),
+                             'pages': int(pages), 'style_count': len(data)})
 
         if not os.path.exists('static/pdf_files/'):
             os.makedirs('static/pdf_files/')

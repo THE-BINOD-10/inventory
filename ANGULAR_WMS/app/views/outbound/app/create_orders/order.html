@@ -27,8 +27,8 @@ input[type="date"]:valid::before {
   <div class="row style-menu" style="line-height: 40px;">
     <div class="col-md-6 col-sm-6 col-xs-8">
       <div class="menu-left">
-        <span ng-click="showCase.goBack()"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
-        <span ng-click="showCase.goBack()" title="Go to Brand Page">Back To Brands</span>{{showCase.styleId}}
+        <span ng-click="$state.go('user.App.Products'); showCase.get_category(false)"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="$state.go('user.App.Products'); showCase.get_category(false)" title="Go to Brand Page">Back To Styles</span>
       </div>
     </div>
     <div class="col-md-6 col-sm-6 col-xs-4">
@@ -208,10 +208,10 @@ input[type="date"]:valid::before {
                 <div class="col-md-3 col-xs-3 no-padding">
                   <span class="pull-left"><b>SKU Code</b></span>
                 </div>
-                <div class="col-md-3 col-xs-3 no-padding" title="Effective Landing Price">
-                  <center><b>Landing Price</b></center>
+                <div class="col-md-4 col-xs-4 no-padding" title="Effective Landing Price">
+                  <center><b>Avg Landing Price</b></center>
                 </div>
-                <div class="col-md-3 col-xs-3"><center><b>Quantity</b></center></div>
+                <div class="col-md-2 col-xs-2"><center><b>Quantity</b></center></div>
                 <div class="col-md-3 col-sm-3 no-padding">
                   <span class="pull-right"><b>Amount</b></span>
                 </div>
@@ -222,10 +222,10 @@ input[type="date"]:valid::before {
                 <div class="col-md-3 col-xs-3 no-padding">
                   <span class="pull-left">{{data.sku_code}}</span>
                 </div>
-                <div class="col-md-3 col-xs-3 no-padding">
+                <div class="col-md-4 col-xs-4 no-padding">
                   <center>{{data.effective_landing_price | number : 2}}</center>
                 </div>
-                <div class="col-md-3 col-xs-3 no-padding"><center>{{data.quantity}}</center></div>
+                <div class="col-md-2 col-xs-2 no-padding"><center>{{data.quantity}}</center></div>
                 <div class="col-md-3 col-sm-3 no-padding">
                   <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.total_amount | number : 2}}</span>
                 </div>
@@ -245,9 +245,9 @@ input[type="date"]:valid::before {
               <span class="pull-left">Total Amount</span>
               <span class="pull-right">Rs {{Cart.final_data.total_amount | number : 2}}</span>
             </div>
-            <div>
+            <!-- <div>
               <button type="button" class="btn btn-primary btn-round pull-right mt20" ng-show="permissions.user_type == 'reseller'" ng-click="$state.go('user.App.Products')">CONTINUE</button>
-            </div>
+            </div> -->
           </div>
         </div>
       </div>

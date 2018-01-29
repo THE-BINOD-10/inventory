@@ -1,4 +1,24 @@
 <div>
+  <div class="row no-margin">
+    <form id="order-create" name="form" role="form" ui-jq="validate">
+      <div class="col-md-4 col-sm-4 col-xs-12">
+        <div class="form-group">
+          <select class="form-control" ng-model="order.extend_type" name="extend_type">
+            <option value=""> Extend Status </option>
+            <option ng-repeat="one in order.extend_status">{{one}}</option>
+          </select>
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-4 col-xs-12">
+        <div class="form-group">
+          <input name="extended_date" ui-jq="datepicker" ng-model="order.extended_date" placeholder="Select Date" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{order.date}}" readonly="true">
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-4 col-xs-12">
+        <button type='button' class="btn btn-primary" ng-click="order.confirm_to_extend()">Save</button>
+      </div>
+    </form>
+  </div>
 <div ng-repeat="order_details in order.order_details.data" class="mb10">
   <div class="detail-list">
     <div class="detail-item border-grey detail-bg-grey">

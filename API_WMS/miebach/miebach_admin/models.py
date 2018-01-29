@@ -752,6 +752,7 @@ class UserProfile(models.Model):
     warehouse_level = models.IntegerField(default=0)
     min_order_val = models.PositiveIntegerField(default=0)
     level_name = models.CharField(max_length=64, default='')
+    zone = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -2272,6 +2273,8 @@ class EnquiryMaster(models.Model):
     state = models.CharField(max_length=60, default='')
     pin_code = models.PositiveIntegerField(default=0)
     remarks = models.CharField(max_length=128, default='')
+    extend_status = models.CharField(max_length=54, default='')
+    extend_date = models.DateField()
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

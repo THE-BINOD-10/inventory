@@ -39,11 +39,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   
   vm.goBack = function(){
 
-    if (Data.styleId) {
-      $state.go('user.App.Style', {styleId: Data.styleId});
-    } else {
-      $state.go('user.App.Brands');
-    }
+    $state.go('user.App.Brands');
   }
 
   function change_filter_data() {
@@ -210,6 +206,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var cat_name = vm.category;
 
     if(vm.category == "All") {
+      cat_name = "";
+    } else if(vm.category == "") {
+      vm.category = "All";
       cat_name = "";
     }
 
@@ -1142,7 +1141,8 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
   vm.pdfDownloading = false;
   vm.downloadPDF = function(form) {
 
-    var data = vm.pdfData;
+    var data = {};
+    angular.copy(vm.pdfData, data);
     if (!vm.pdfData.display_total_amount) {
         delete data.required_quantity;
     }

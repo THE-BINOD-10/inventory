@@ -656,7 +656,7 @@ ADD_USER_DICT = {'username': '', 'first_name': '', 'last_name': '', 'password': 
 
 ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', u'state': '', 'pin_code': '',
                       'address': '', 'phone_number': '', 'prefix': '', 'location': '', 'warehouse_type': '',
-                      'warehouse_level': 0, 'min_order_val': 0, 'level_name': ''}
+                      'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': ''}
 
 PICKLIST_EXCEL = OrderedDict((('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'), ('Zone', 'zone'),
                               ('Location', 'location'),
@@ -1151,7 +1151,7 @@ SELLER_DATA = {'name': '', 'address': '', 'phone_number': '',
                'email_id': '', 'status': 1, 'price_type': '', 'margin': 0}
 
 USER_SKU_EXCEL = {'warehouse_user': SKU_HEADERS, 'marketplace_user': MARKET_USER_SKU_HEADERS,
-                  'customer': SKU_HEADERS, 'WH': RESTRICTED_SKU_HEADERS, 'warehouse': RESTRICTED_SKU_HEADERS}
+                  'customer': SKU_HEADERS, 'WH': RESTRICTED_SKU_HEADERS, 'DIST': RESTRICTED_SKU_HEADERS}
 
 USER_SKU_EXCEL_MAPPING = {'warehouse_user': SKU_DEF_EXCEL, 'marketplace_user': MARKETPLACE_SKU_DEF_EXCEL,
                           'customer': SKU_DEF_EXCEL}

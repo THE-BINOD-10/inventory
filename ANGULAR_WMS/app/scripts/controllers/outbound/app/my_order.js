@@ -166,7 +166,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
         mod_data['autobackorder'] = true;
       }
       var modalInstance = $modal.open({
-        templateUrl: 'views/outbound/toggle/enquiry_order_details.html',
+        templateUrl: 'views/inbound/toggle/order_details.html',
         controller: 'EnquiryOrderDetails',
         controllerAs: 'order',
         size: 'lg',

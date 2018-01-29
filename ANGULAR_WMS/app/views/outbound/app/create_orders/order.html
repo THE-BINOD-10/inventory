@@ -156,7 +156,7 @@ input[type="date"]:valid::before {
             <div class="col-md-6 col-sm-6 col-xs-7">
               <h4 align="left"><b>{{data.sku_id}} </b>
                 <span ng-if="permissions.user_type != 'customer'">
-                  <span>(Level-{{data.warehouse_level}})</span>
+                  <span>({{data.level_name}})</span>
                   <span ng-if="data.del_date">(Sch.date: {{data.del_date}})</span>
                 </span>
               </h4>

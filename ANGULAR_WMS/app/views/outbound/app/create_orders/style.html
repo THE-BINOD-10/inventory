@@ -207,7 +207,7 @@
             <div class="col-md-3 no-padding">
               <div class="form-group">
                 <select class="form-control" name="level_flag" ng-model="Style.selLevel" ng-change="Style.open_style(permissions.user_type)">
-                  <option ng-repeat="data in Style.levels" value="{{data}}">Level-{{data}}</option>
+                  <option ng-repeat="data in Style.levels" value="{{data.warehouse_level}}">{{data.level_name}}</option>
                 </select>
               </div>
             </div>

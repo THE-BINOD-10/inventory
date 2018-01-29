@@ -4240,10 +4240,16 @@ def get_levels(request, user=''):
     if cust_obj:
         is_distributor = cust_obj[0].is_distributor
     if is_distributor:
-        levels = list(UserProfile.objects.exclude(warehouse_level=0).values_list('warehouse_level',
-                                                                                 flat=True).distinct())
+        wh_levels = list(UserProfile.objects.exclude(warehouse_level=0).values_list('warehouse_level',
+                                                                                    flat=True).distinct())
     else:
-        levels = list(UserProfile.objects.values_list('warehouse_level', flat=True).distinct())
+        wh_levels = list(UserProfile.objects.values_list('warehouse_level', flat=True).distinct())
+    levels = []
+    central_admin = get_admin(user)
+    users_list = UserGroups.objects.filter(admin_user=central_admin.id).values_list('user').distinct()
+    for wh_level in wh_levels:
+        levels.append({'warehouse_level': wh_level,
+                       'level_name': get_level_name_with_level(user, wh_level, users_list=users_list)})
     return HttpResponse(json.dumps(levels))
 
 
@@ -4424,6 +4430,7 @@ def get_sku_variants(request, user=''):
     is_catalog = request.POST.get('is_catalog', '')
     sale_through = request.POST.get('sale_through', '')
     level = request.POST.get('level', '')
+    #level = 0
     if level:
         level = int(level)
     else:
@@ -6420,6 +6427,11 @@ def get_customer_cart_data(request, user=""):
                 json_record['tax'] = get_tax_value(user, json_record, product_type, tax_type)
             if price_band_flag == 'true':
                 central_admin = get_admin(user)
+                #Getting level name
+                users_list = UserGroups.objects.filter(admin_user=central_admin.id).values_list('user').distinct()
+                level_name = get_level_name_with_level(user, json_record['warehouse_level'],
+                                                       users_list=users_list)
+                json_record['level_name'] = level_name
                 # level = json_record['warehouse_level']
                 if is_distributor:
                     if price_type:

@@ -4430,7 +4430,6 @@ def get_sku_variants(request, user=''):
     is_catalog = request.POST.get('is_catalog', '')
     sale_through = request.POST.get('sale_through', '')
     level = request.POST.get('level', '')
-    #level = 0
     if level:
         level = int(level)
     else:
@@ -6280,7 +6279,10 @@ def get_level_based_customer_order_detail(request, user):
             for usr_id, det_ids in usr_det_ids.items():
                 response_data, res = prepare_your_orders_data(request, ord_id, usr_id, det_ids,
                                                          OrderDetail.objects.filter(id__in=det_ids))
-                response_data_list.append(response_data)
+                ord_usr_profile = UserProfile.objects.get(user_id=usr_id)
+                response_data['warehouse_level'] = ord_usr_profile.warehouse_level
+                response_data['level_name'] = ord_usr_profile.level_name
+                response_data_list. append(response_data)
                 for sku_rec in res:
                     sku_code = sku_rec['sku__sku_code']
                     if sku_code not in sku_wise_details:

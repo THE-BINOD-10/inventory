@@ -4,7 +4,7 @@
     <div class="col-md-4 col-sm-4 col-xs-4">
       <div class="menu-left" style="line-height: 60px">
         <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
-        <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;" title="Go to Brand Page">Back</span>
+        <span ng-click="showCase.change_brand(showCase.brand)" title="Go to Brand Page">Back</span>
       </div>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-4 brand-title">
@@ -53,25 +53,8 @@
       </div>
     </div>
   </div>
-  <!-- Categories start -->
-  <div class="item-display row" ng-if="showCase.catDisplay" style="background: white;">
-    <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
-    <div class="col-md-2 col-sm-3 col-xs-4" ng-repeat="cat in showCase.all_cate" ng-click="showCase.change_category(cat)" style="padding: 10px 5px 0px 5px;">
-      <div>
-        <img ng-src="{{ showCase.service.check_image_url(showCase.categories_details[cat]) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail hide">
-        <img ng-src="{{ showCase.get_category_image(cat) }}" style="border:0px !important;width: 100%;padding: 0px;cursor: pointer;background: transparent" class="img-thumbnail">
-        <br>
-        <div ng-if="!showCase.category_image_map[cat]">
-          <p class="style_name" style="font-size: 16px;position: absolute;bottom: 15px;width: 100%;" title="{{ item.sku_class }}">{{cat}}</p>
-        </div>
-      </div>
-    </div>
-    <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="showCase.all_cate.length == 0" style="color:white">
-      <h5>------ No Category Found ------</h5>
-    </div>
-  </div>
-  <!-- Categories End -->
-  <div class="item-display row" ng-if="!showCase.catDisplay">
+  <!-- <div class="item-display row" ng-if="!showCase.catDisplay"> -->
+  <div class="item-display row">
     <div ng-include="'views/outbound/app/create_orders/filters.html'"></div>
     <div class="col-md-2 col-sm-3 col-xs-6 class-item" ng-repeat="item in showCase.catlog_data.data" ng-click="$state.go('user.App.Style', {styleId: item.sku_class})" style="position: relative;">
       <div>

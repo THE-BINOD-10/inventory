@@ -473,12 +473,15 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.logout = function(){
     var user_name = Session.parent.userName;
+    var sm_user_type = Session.roles.permissions.user_type;
     Data.my_orders = [];
     Data.enquiry_orders = [];
 
     Auth.logout().then(function(){
       if (user_name == 'sagar_fab') {
         $state.go("user.sagarfab");
+      } else if(sm_user_type == 'reseller'){
+        $state.go("user.smlogin");
       } else {
         $state.go("user.signin");
       }

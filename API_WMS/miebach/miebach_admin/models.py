@@ -2289,6 +2289,7 @@ class EnquiryMaster(models.Model):
     remarks = models.CharField(max_length=128, default='')
     extend_status = models.CharField(max_length=54, default='')
     extend_date = models.DateField()
+    corporate_name = models.CharField(max_length=256, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

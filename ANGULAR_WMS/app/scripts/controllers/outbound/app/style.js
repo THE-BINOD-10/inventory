@@ -172,7 +172,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.service.apiCall('get_levels/', 'GET', {sku_class:vm.styleId, customer_id: Session.userId}).then(function(data){
     
       vm.levels = data.data;
-      vm.selLevel = Number(data.data[0]);
+      vm.selLevel = Number(data.data[0].warehouse_level);
       vm.open_style();
     });
   }

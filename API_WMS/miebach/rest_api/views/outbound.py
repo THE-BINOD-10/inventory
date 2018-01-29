@@ -6470,7 +6470,7 @@ def get_customer_cart_data(request, user=""):
             if del_date:
                 date = datetime.datetime.now()
                 date += datetime.timedelta(days=del_date)
-                del_date = date.strftime("%d/%m/%Y")
+                del_date = date.strftime("%m/%d/%Y")
             json_record['del_date'] = del_date
 
             response['data'].append(json_record)
@@ -7492,6 +7492,7 @@ def create_custom_skus(request, user=''):
 def insert_enquiry_data(request, user=''):
     message = 'Success'
     customer_id = request.user.id
+    corporate_name = request.POST.get('name', '')
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if not cum_obj:
         return "No Customer User Mapping Object"
@@ -7506,6 +7507,8 @@ def insert_enquiry_data(request, user=''):
         customer_details['customer_id'] = cm_id  # Updating Customer Master ID
         enquiry_map = {'user': user.id, 'enquiry_id': enquiry_id,
                        'extend_date': datetime.datetime.today() + datetime.timedelta(days=10)}
+        if corporate_name:
+            enquiry_map['corporate_name'] = corporate_name
         enquiry_map.update(customer_details)
         enq_master_obj = EnquiryMaster(**enquiry_map)
         enq_master_obj.save()
@@ -7550,12 +7553,12 @@ def get_enquiry_data(request, user=''):
         return HttpResponse("No Customer User Mapping Object")
     cm_id = cum_obj[0].customer_id
     em_qs = EnquiryMaster.objects.filter(customer_id=cm_id)
-    em_vals = em_qs.values_list('enquiry_id', 'extend_status', 'extend_date').distinct()
+    em_vals = em_qs.values_list('enquiry_id', 'extend_status', 'extend_date', 'corporate_name').distinct()
     total_qty = dict(em_qs.values_list('enquiry_id').distinct().annotate(quantity=Sum('enquiredsku__quantity')))
     total_inv_amt = dict(
         em_qs.values_list('enquiry_id').distinct().annotate(inv_amt=Sum('enquiredsku__invoice_amount')))
-    for enq_id, ext_status, ext_date in em_vals[start_index:stop_index]:
-        enq_id, ext_status, ext_date = int(enq_id), ext_status, ext_date
+    for enq_id, ext_status, ext_date, corp_name in em_vals[start_index:stop_index]:
+        enq_id, ext_status, ext_date, corp_name = int(enq_id), ext_status, ext_date, corp_name
         if ext_date:
             days_left_obj = ext_date - datetime.datetime.today().date()
             days_left = days_left_obj.days
@@ -7565,7 +7568,7 @@ def get_enquiry_data(request, user=''):
                    'total_quantity': total_qty[enq_id],
                    'date': get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date),
                    'total_inv_amt': round(total_inv_amt[enq_id], 2),
-                   'extend_status': ext_status, 'days_left': days_left}
+                   'extend_status': ext_status, 'days_left': days_left, 'corporate_name': corp_name}
         response_data['data'].append(res_map)
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 

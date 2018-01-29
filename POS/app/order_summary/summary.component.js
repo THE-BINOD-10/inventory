@@ -114,9 +114,29 @@
           $(".preloader").removeClass("ng-show").addClass("ng-hide");
           self.staff_member = self.staff_members[0];
           urlService.current_order.summary.staff_member = self.staff_member;
+           //save user staff members in local db
+          setCheckSum(setCheckSumFormate(JSON.stringify(data.members),STAFF_MEMBERS)).
+            then(function(data){
+              console.log("staff members saved in local db "+data);
+            }).catch(function(error){
+              console.log("staff members saving issue in local db "+error);
+            });
+                  
         }).error(function() {
-          $(".preloader").removeClass("ng-show").addClass("ng-hide");
-      });
+          getChecsumByName(STAFF_MEMBERS).
+            then(function(result){
+              $scope.$apply(function(){
+                console.log("staff members get from local db "+result);
+                self.staff_members = JSON.parse(result.checksum);
+                $(".preloader").removeClass("ng-show").addClass("ng-hide");
+                self.staff_member = self.staff_members[0];
+                urlService.current_order.summary.staff_member = self.staff_member;
+              });
+          }).catch(function(error){
+              console.log("staff members get from local db error "+error);
+              $(".preloader").removeClass("ng-show").addClass("ng-hide");
+            });
+        });
 
       self.staff_member_value = staff_member_value;
       function staff_member_value (staff_member_value) {

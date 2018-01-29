@@ -134,7 +134,7 @@ input[type="date"]:valid::before {
     <div class="form-group clearfix app_body" style="padding: 0px 10px;padding-top: 10px; margin-bottom: 40px;">
       <!--<hr>-->
       <div class="row">
-        <div class="col-md-12 col-sm-12 col-xs-12 mb10 mt5">
+        <div class="row mb10 mt5">
            <div class="col-md-4 col-sm-5 col-xs-12">
              <input type="text" class="form-control pull-left" placeholder="Enter Remarks" ng-model="Cart.model_data.remarks" ng-change="Cart.change_remarks(Cart.model_data.remarks)">
            </div>
@@ -180,7 +180,7 @@ input[type="date"]:valid::before {
         <div class="col-md-4 col-sm-4 col-xs-12">
           <div class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="permissions.user_type == 'reseller' && Cart.model_data.data.length">
             <div class="col-md-12 col-sm-12 col-xs-12">
-              <h5><b>Delivering Details</b></h5><hr>
+              <h5><b>SHIPMENT DETAILS</b></h5><hr>
             </div>
             <hr>
             <div class="row">
@@ -201,7 +201,7 @@ input[type="date"]:valid::before {
 
           <div class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="Cart.final_data.total_quantity && Cart.model_data.data.length > 0">
             <div class="col-md-12 col-sm-12 col-xs-12">
-              <h5>PRICE DETAILS</h5><hr>
+              <h5><b>PRICE DETAILS</b></h5><hr>
             </div>
             <div class="col-md-12 col-sm-12 col-xs-12" ng-if="Cart.user_type !='customer'">
               <div class="row">

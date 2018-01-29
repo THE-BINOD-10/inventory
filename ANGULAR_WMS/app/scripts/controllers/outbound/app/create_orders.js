@@ -220,8 +220,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
-                to_price: vm.toPrice, is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
-                hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data)};
+                to_price: vm.toPrice, quantity: vm.quantity, is_margin_percentage: vm.marginData.is_margin_percentage,
+                margin: vm.marginData.margin, hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data)};
 
     if(status) {
       angular.copy([], vm.catlog_data.data);
@@ -324,8 +324,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.color = "";
     vm.filterData.fromPrice = "";
     vm.filterData.toPrice = "";
+    vm.filterData.quantity = "";
     vm.fromPrice = vm.filterData.fromPrice;
     vm.toPrice = vm.filterData.toPrice;
+    vm.quantity = vm.filterData.quantity;
     vm.size_filter_data = vm.filterData.size_filter
 
     vm.showFilter = false;
@@ -644,6 +646,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     //vm.primary_data = JSON.stringify(temp_primary_data);
     vm.fromPrice = vm.filterData.fromPrice;
     vm.toPrice = vm.filterData.toPrice;
+    vm.quantity = vm.filterData.quantity;
     vm.showFilter = false;
     vm.from_cats = false;
     vm.hot_release = vm.filterData.hotRelease;
@@ -698,10 +701,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.color = "";
       vm.filterData.fromPrice = "";
       vm.filterData.toPrice = "";
+      vm.filterData.quantity = "";
       vm.filterData.hotRelease = false;
       vm.hot_release = vm.filterData.hotRelease;
       vm.fromPrice = vm.filterData.fromPrice;
       vm.toPrice = vm.filterData.toPrice;
+      vm.quantity = vm.filterData.quantity;
 
     vm.catlog_data.index = "";
     vm.size_filter_data = vm.filterData.size_filter
@@ -916,7 +921,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var size_stock = JSON.stringify(vm.size_filter_data);
     var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
                 sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true,
-                color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice,
+                color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice, quantity: vm.quantity,
                 is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
                 margin_data: JSON.stringify(Data.marginSKUData.data), required_quantity: JSON.stringify(vm.required_quantity)}
     var modalInstance = $modal.open({

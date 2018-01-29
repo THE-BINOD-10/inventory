@@ -5,11 +5,11 @@ function($scope, Service, $modalInstance, items) {
   vm.service = Service;
 
   vm.model_data = items;
-  vm.order_details = []; 
+  vm.order_details = {};
   vm.status = 'enquiry';
   vm.date = new Date();
 
-  vm.extend_status = ['Pending', 'Approval', 'Rejected'];
+  vm.extend_statuses = ['pending', 'approval', 'rejected'];
 
   vm.loading = false;
   var url = "get_customer_enquiry_detail/";
@@ -20,9 +20,9 @@ function($scope, Service, $modalInstance, items) {
 
   vm.confirm_to_extend = function(){
     
-    if (vm.extend_type && vm.extended_date) {
-      vm.model_data['extend_status'] = vm.extend_type;
-      vm.model_data['extended_date'] = vm.extended_date;
+    if (vm.order_details.extend_status && vm.order_details.extend_date) {
+      vm.model_data['extend_status'] = vm.order_details.extend_status;
+      vm.model_data['extended_date'] = vm.order_details.extend_date;
 
       Service.apiCall('extend_enquiry_date/', 'GET', vm.model_data).then(function(data) {
         if (data.message) {
@@ -44,6 +44,10 @@ function($scope, Service, $modalInstance, items) {
 
         console.log(data.data);
         vm.order_details = data.data;
+        if(vm.order_details.extend_date) {
+          var date = vm.order_details.extend_date.split("-")
+          vm.order_details.extend_date = date[1]+"/"+date[2]+"/"+date[0];
+        }
       }   
       vm.loading = false;
     })  

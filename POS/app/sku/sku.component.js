@@ -559,31 +559,35 @@
                  } else {
                   console.log("online");
                   self.repos = data;
-                  if(data.length === 1){
+                  self.repos.map( function (repo) {
+                    repo.value = repo.search.toLowerCase();
+                    return repo;
+                    });
+                    
+                 if(data.length === 1)
                     update_search_results(data, data[0].SKUCode);
-                  } else {
-                        return self.repos.map( function (repo) {
-                        repo.value = repo.search.toLowerCase();
-                        return repo;
-                        })
-                    }
+                  
                  }
                  deferred.resolve(querySearch (key));
-                      deferred.promise.then(function(data){
-                        angular.forEach(self.skus, function(value, index) {
-                          self.changeQuantity(value);
-                        });
-                      });
+                 deferred.promise.then(function(data){
+                  angular.forEach(self.skus, function(value, index) {
+                    self.changeQuantity(value);
+                  });
+                 });
                       
                 },function(error){
                   console.log("offline");
                    getData(key).then(function(data){
                       self.repos = data;
                       //deferred.resolve(data);
-                      return self.repos.map( function (repo) {
-                         repo.value = repo.search.toLowerCase();
-                       return repo;
-                      })
+                      self.repos.map( function (repo) {
+                        repo.value = repo.search.toLowerCase();
+                        return repo;
+                        });
+                      
+                      if(data.length === 1)
+                        update_search_results(data, data[0].SKUCode);
+
                     }).then(function(){
                       deferred.resolve(querySearch (key));
                       deferred.promise.then(function(data){
@@ -591,7 +595,8 @@
                           self.changeQuantity(value);
                         });
                       });
-                    })
+                    });
+
                 }).then(function() {
                   /*deferred.resolve(querySearch (key));
                   deferred.promise.then(function(data){

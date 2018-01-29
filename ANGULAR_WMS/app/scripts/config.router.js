@@ -19,7 +19,7 @@ var app = angular.module('urbanApp')
       FastClick.attach(document.body);
 
       var skipAsync = false;
-      var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create']
+      var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create', 'user.smlogin']
 
             $rootScope.$on("$stateChangeStart", function (event, next, toPrms, from, fromPrms) {
 
@@ -1785,6 +1785,19 @@ var app = angular.module('urbanApp')
             contentClasses: 'full-height'
           }
         })
+        .state('user.smlogin', {
+          url: '/sm_login',
+          templateUrl: 'own/views/sm_login.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/controllers/session.js');
+                    }]
+          },
+          data: {
+            appClasses: 'bg-white usersession',
+            contentClasses: 'full-height'
+          }
+        })
         .state('user.forgot', {
           url: '/forgot',
           templateUrl: 'views/extras-forgot.html',
@@ -1857,6 +1870,10 @@ var app = angular.module('urbanApp')
           .state('user.App.Products', {
             url: '/Products',
             templateUrl: 'views/outbound/app/create_orders/catlog.html'
+          })
+          .state('user.App.Categories', {
+            url: '/Categories',
+            templateUrl: 'views/outbound/app/create_orders/categories.html'
           })
           .state('user.App.Style', {
             url: '/Style?styleId',

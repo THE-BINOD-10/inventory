@@ -6288,16 +6288,16 @@ def get_level_based_customer_order_detail(request, user):
                 response_data_list. append(response_data)
                 for sku_rec in res:
                     sku_code = sku_rec['sku__sku_code']
+                    sku_qty = sku_rec['quantity']
+                    sku_el_price = round(sku_rec.get('el_price', 0), 2)
+                    sku_tax_amt = round(sku_rec.get('sku_tax_amt', 0), 2)
                     if sku_code not in sku_wise_details:
-                        sku_qty = sku_rec['quantity']
-                        sku_el_price = round(sku_rec.get('el_price', 0), 2)
-                        sku_tax_amt = round(sku_rec.get('sku_tax_amt', 0), 2)
                         sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price,
                                                       'sku_tax_amt': sku_tax_amt}
                     else:
                         existing_map = sku_wise_details[sku_code]
-                        existing_map['quantity'] = existing_map['quantity'] + sku_rec['quantity']
-                        existing_map['sku_tax_amt'] = existing_map['sku_tax_amt'] + sku_rec['sku_tax_amt']
+                        existing_map['quantity'] = existing_map['quantity'] + sku_qty
+                        existing_map['sku_tax_amt'] = existing_map['sku_tax_amt'] + sku_tax_amt
     sku_whole_map = {'data': [], 'totals': {}}
     sku_totals = {'sub_total': 0, 'total_amount': 0, 'tax': 0}
     for sku_code, sku_det in sku_wise_details.items():

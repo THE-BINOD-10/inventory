@@ -195,6 +195,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
   vm.sel_items_total_price = 0;
   vm.sel_items_tax = 0;
+  vm.wish_list_total_qty = 0;
   vm.update_levels = function(index){
 
     vm.sel_items_total_price = 0;

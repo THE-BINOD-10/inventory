@@ -1874,6 +1874,7 @@ var app = angular.module('urbanApp')
           .state('user.App.Categories', {
             url: '/Categories',
             templateUrl: 'views/outbound/app/create_orders/categories.html'
+            // templateUrl: 'views/outbound/app/create_orders/catlog.html'
           })
           .state('user.App.Style', {
             url: '/Style?styleId',

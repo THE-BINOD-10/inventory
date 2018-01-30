@@ -681,7 +681,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.from_cats = false;
     vm.hot_release = vm.filterData.hotRelease;
     vm.get_category(true);
-    if( $state.$current.name == "user.App.Brands") {
+    if( $state.$current.name == "user.App.Brands" || $state.$current.name == "user.App.Categories") {
       $state.go('user.App.Products');
     }
     $window.scrollTo(0, angular.element(".app_body").offsetTop);

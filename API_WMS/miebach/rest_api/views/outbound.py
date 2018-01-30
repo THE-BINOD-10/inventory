@@ -6485,7 +6485,7 @@ def get_customer_cart_data(request, user=""):
             if del_date:
                 date = datetime.datetime.now()
                 date += datetime.timedelta(days=del_date)
-                del_date = date.strftime("%m/%d/%Y")
+                del_date = date.strftime("%d/%m/%Y")
             json_record['del_date'] = del_date
 
             response['data'].append(json_record)

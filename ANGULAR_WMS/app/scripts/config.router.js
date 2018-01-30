@@ -1151,7 +1151,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Enquiry Orders',
+            title: 'Marketing Enquiry Orders',
           }
         })
         .state('app.outbound.ShipmentInfo', {

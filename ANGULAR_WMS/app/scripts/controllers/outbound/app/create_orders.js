@@ -105,9 +105,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         'FE600':'FE600.jpg', 
         }
         if (vm.location == '/App/Products') {
-          vm.change_brand('');
-        } else if(vm.location == '/App/Categories'){
+          // vm.change_brand('');
           vm.change_category('');
+        } else if(vm.location == '/App/Categories'){
+          // vm.change_category('');
+          vm.change_brand('');
         }
       }
     });
@@ -191,6 +193,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.showFilter = false;
       }
     });
+
     vm.cancel = function() {
       console.log("cancel")
       canceller.resolve("cancelled");
@@ -245,11 +248,14 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         }
         vm.catlog_data.index = data.data.next_index;
         
+        angular.forEach(data.data.data, function(item){
+          vm.catlog_data.data.push(item);
+        });
+
         if(!Data.marginSKUData.category){
           Data.marginSKUData['category'] = {};
         }
-
-        vm.margin_add_to_categoris(data.data.data, Data.marginSKUData.category[vm.category]);
+        // vm.margin_add_to_categoris(data.data.data, Data.marginSKUData.category[vm.category]);
       //}
       vm.scroll_data = true;
       vm.add_scroll();
@@ -262,7 +268,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.scroll_data = false;
       }
     }
-    })
+    });
   }
 
   vm.scroll_data = true;
@@ -345,7 +351,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       if(data.message) {
         vm.all_cate = data.data.categories;
         vm.categories_details = data.data.categories_details;
-        $state.go('user.App.Products');
+        $state.go('user.App.Categories');
       }
       vm.pdfDownloading = false;
     });
@@ -363,7 +369,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.showFilter = false;
     vm.from_cats = true;
     vm.get_category(true);
-    $state.go('user.App.Categories');
+    $state.go('user.App.Products');
   }
 
   vm.change_size_type = function(toggle) {
@@ -797,17 +803,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   //margin value
   vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, sale_through: vm.order_type_value};
   vm.addMargin = function() {
-
-    if (!Data.marginSKUData.category && vm.category) {
-      vm.marginData.margin = Data.marginSKUData.category[vm.category];
-      vm.marginData.margin_value = Data.marginSKUData.category[vm.category];
-    } else if (Data.marginSKUData.margin) {
-      vm.marginData.margin = Data.marginSKUData.margin;
-      vm.marginData.margin_value = Data.marginSKUData.margin;
-    } else {
-      vm.marginData.margin = 0;
-      vm.marginData.margin_value = 0;
-    }
  
     var mod_data = vm.marginData;
     var modalInstance = $modal.open({
@@ -837,15 +832,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       }
 
       Data.marginSKUData.is_margin_percentage = vm.marginData.is_margin_percentage;
+      Data.marginSKUData.margin = vm.marginData.margin;
+      Data.marginSKUData.data = [];
 
-      if (!Data.marginSKUData.margin) {
-        
-        Data.marginSKUData.margin = vm.marginData.margin;
-      }
-      if (vm.category && !Data.marginSKUData.category[vm.category]) {
-        Data.marginSKUData.category[vm.category] = vm.marginData.margin;
-      }
-      vm.margin_add_to_categoris(vm.catlog_data.data, vm.marginData.margin_value);
+      vm.catlog_data.index = '';
+      vm.get_category(true, true);
+
     })
   }
 
@@ -867,13 +859,15 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         } else {
           if (Data.marginSKUData.margin) {
             item.variants[0].your_price = Data.marginSKUData.margin;
+          } else {
+            vm.catlog_data.data.push(item);
           }
         }
       });
 
-      angular.forEach(data, function(item){
-        vm.catlog_data.data.push(item);
-      });
+      // angular.forEach(data, function(item){
+      //   vm.catlog_data.data.push(item);
+      // });
     } else {
       Data.marginSKUData.category = {};
       default_margin = Data.marginSKUData.margin;
@@ -1041,7 +1035,7 @@ angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance,
       return false;
     }
     var margin = ($ctrl.marginData.is_margin_percentage)? $ctrl.marginData.margin_percentage: $ctrl.marginData.margin_value;
-    // angular.copy({data: $ctrl.sku_data}, Data.marginSKUData);
+    angular.copy({data: $ctrl.sku_data}, Data.marginSKUData);
     $modalInstance.close($ctrl.marginData);
   };
 

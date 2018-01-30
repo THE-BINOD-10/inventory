@@ -638,8 +638,9 @@ def update_order_status(request):
 
 
 @login_required
-def get_extra_fields(request):
-    user_id = request.GET.get('user')
+@get_admin_user
+def get_extra_fields(request, user=''):
+    user_id = user.id if user else request.GET.get('user')
     extra_fields = {}
     extra_fields_obj = MiscDetail.objects.filter(user=user_id, misc_type__icontains="pos_extra_fields_")
     for item in extra_fields_obj:
@@ -651,7 +652,7 @@ def get_extra_fields(request):
 @login_required
 def get_staff_members_list(request):
     user = request.user
-    members = []
+    members = ['Staff-1', 'Staff-2', 'Staff-3']
     if user.username == "bcbs_retail":
         members = ['Staff-1', 'Staff-2', 'Staff-3']
     elif user.username == "bcgs_retail":

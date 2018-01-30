@@ -212,6 +212,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.show_no_data = false;
     var size_stock = "";
     var cat_name = vm.category;
+    // vm.required_quantity = {};
 
     if(vm.category == "All") {
       cat_name = "";
@@ -249,6 +250,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.catlog_data.index = data.data.next_index;
         
         angular.forEach(data.data.data, function(item){
+          if (vm.quantity) {
+            vm.required_quantity[item.variants[0].style_name] = vm.quantity;
+          }
           vm.catlog_data.data.push(item);
         });
 
@@ -313,6 +317,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     vm.brand = data;
     vm.catlog_data.index = "";
+    vm.required_quantity = {};
     angular.copy([], vm.catlog_data.data);
     vm.category = '';
     vm.style='';
@@ -368,6 +373,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
     vm.showFilter = false;
     vm.from_cats = true;
+    vm.required_quantity = {};
     vm.get_category(true);
     $state.go('user.App.Products');
   }
@@ -521,9 +527,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       //search = (search)? search+25 : 0;
       var cart = $(".cart_button:visible").outerHeight();
       
-      if(vm.location != '/App/Categories'){
+      // if(vm.location != '/App/Categories'){
         $(".app_body").css('height',height-header-menu-cart);
-      }
+      // }
       
       $(".app_body").css('overflow-y', 'auto');
     }
@@ -731,6 +737,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.clearFilters = function(data) {
 
     vm.clearFilterData();
+    vm.required_quantity = {};
     if( $state.$current.name == "user.App.Brands") {
       return false;
     } else {

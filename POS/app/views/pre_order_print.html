@@ -103,21 +103,21 @@ table, td, th {
           <td>{{$index+1}}</td>
           <td>{{item.name}}</td>
           <td class="text_right">{{item.quantity}}</td>
-          <td class="text_right">{{item.unit_price}}</td>
-          <td class="text_right">{{item.quantity * item.unit_price}}</td>
+          <td class="text_right">{{item.unit_price | number:2}}</td>
+          <td class="text_right">{{item.quantity * item.unit_price | number:2}}</td>
         </tr>
         <tr style="height: 150px; vertical-align: top;">
           <td></td>
           <td></td>
           <td></td>
           <td><strong>Sub Total GST</strong></td>
-          <td class="text_right"><strong>{{data.summary.cgst + data.summary.sgst}}</strong></td>
+          <td class="text_right"><strong>{{data.summary.cgst + data.summary.sgst | number:2}}</strong></td>
         </tr>
         <tr>
-          <td colspan="2"><strong>Rupees In Words:</strong></n>
+          <td colspan="2"><!--<strong>Rupees In Words:</strong>--></n>
           </td>
           <td colspan="2" valign="top"><strong>Total</strong></td>
-          <td valign="top" class="text_right"><strong>{{data.summary.total_amount}}</strong></td>
+          <td valign="top" class="text_right"><strong>{{data.summary.total_amount | number:2}}</strong></td>
         </tr>
         <tr>
           <td style="text-align: right;" colspan="5">For {{user.company | uppercase}}.<br><br>

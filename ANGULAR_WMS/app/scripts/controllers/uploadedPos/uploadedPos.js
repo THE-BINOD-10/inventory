@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.user_type = Session.roles.permissions.user_type;
     vm.filters = {'datatable': 'UploadedPos', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {

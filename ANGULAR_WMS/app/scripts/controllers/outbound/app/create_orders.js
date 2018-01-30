@@ -85,6 +85,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         'FE500D':'FE500D.jpg',
         'FE550':'FE550.jpg',
         'FE600':'FE600.jpg',
+        'MARSH':'MARSH.jpg',
         }
 
         vm.brands_logos = {'6 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
@@ -102,7 +103,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         'FE500':'FE500.jpg',
         'FE500D':'FE500D.jpg',
         'FE550':'FE550.jpg',
-        'FE600':'FE600.jpg', 
+        'FE600':'FE600.jpg',
+        'MARSH':'MARSH.jpg',
         }
         if (vm.location == '/App/Products') {
           // vm.change_brand('');
@@ -366,6 +368,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.filterData.selectedCats = {};
       vm.filterData.selectedCats[category] = true;
     }
+
+    if(!vm.filterData.subCats[category]) {
+      vm.filterData.subCats[category] = {};
+    }
+    vm.filterData.subCats[category][category] = true;
     vm.showFilter = false;
     vm.from_cats = true;
     vm.get_category(true);
@@ -1000,7 +1007,15 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'TG-TOILETARY BAGS': 'TG-TOILETARY BAGS.jpg',
                            'TG-TRAVEL WALLETS': 'TG-TRAVEL WALLETS.jpg',
                            'TOYS': 'TOYS.jpg',
-                           'TRAVEL GEAR': 'TRAVEL GEAR.jpg'
+                           'TRAVEL GEAR': 'TRAVEL GEAR.jpg',
+
+                           //SAILESH
+                           'FULL SLEEVE SHIRT': 'FULL SLEEVE SHIRT.png',
+                           'HONEY COMBED DRY FIT': 'HONEY COMBED DRY FIT.png',
+                           'HOODIES WITHOUT ZIP': 'HOODIES WITHOUT ZIP.png',
+                           'HOODIES WITH ZIP': 'HOODIES WITH ZIP.png',
+                           'POLO': 'POLO.png',
+                           'ROUND NECK': 'ROUND NECK.png',
                            };
 
   vm.get_category_image = function(category) {

@@ -3622,7 +3622,7 @@ def get_cal_style_data(style_data, quantity):
 
     quantity = int(quantity)
     unit_price = style_data['variants'][0]['price']
-    if style_data['variants'][0]['price_ranges']:
+    if style_data['variants'][0].get('price_ranges', ''):
         status = False
         for price in style_data['variants'][0]['price_ranges']:
             if quantity >= price['min_unit_range'] and quantity <= price['max_unit_range']:

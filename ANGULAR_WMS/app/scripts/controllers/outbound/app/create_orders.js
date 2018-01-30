@@ -250,9 +250,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.catlog_data.index = data.data.next_index;
         
         angular.forEach(data.data.data, function(item){
-          if (vm.quantity) {
-            vm.required_quantity[item.variants[0].style_name] = vm.quantity;
-          }
+          vm.required_quantity[item.variants[0].style_name] = vm.quantity;
           vm.catlog_data.data.push(item);
         });
 

@@ -162,7 +162,7 @@ def get_barcodes(data_dict):
 
             frames.append(f)
             page_frames.append(f)
-
+	    """
             if paper == '':
                 '''Page completely filled with items'''
 
@@ -170,7 +170,7 @@ def get_barcodes(data_dict):
                 pages.append(PageTemplate('normal',frames=page_frames))
                 page_frames = []
                 continue
-
+	    """
             if column_items % rows[0] == 0:
                 '''Row is completely filled and started new Row'''
                 prev_height = data_dict.get('styles').get('MarginLeft', 0)

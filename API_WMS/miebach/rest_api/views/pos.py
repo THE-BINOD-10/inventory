@@ -651,7 +651,17 @@ def get_extra_fields(request):
 @login_required
 def get_staff_members_list(request):
     user = request.user
-    members = ['Staff-1', 'Staff-2', 'Staff-3']
+    members = []
+    if user.username == "bcbs_retail":
+        members = ['Staff-1', 'Staff-2', 'Staff-3']
+    elif user.username == "bcgs_retail":
+        members = ['Staff-4', 'Staff-5', 'Staff-6']
+    elif user.username == "ssrvm_retail":
+        members = ['Staff-7', 'Staff-8', 'Staff-9']
+    elif user.username == "stjohns_retail":
+        members = ['Staff-10', 'Staff-11', 'Staff-12']
+    elif user.username == "vps_retail":
+        members = ['Staff-13', 'Staff-14', 'Staff-15']
     return HttpResponse(json.dumps({'members': members}))
 
 

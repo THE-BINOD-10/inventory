@@ -76,8 +76,25 @@
       }).success(function(data, status, headers, config) {
         self.tax_inclusive = data.tax_inclusive_switch;
         $(".preloader").removeClass("ng-show").addClass("ng-hide");
+        setCheckSum(setCheckSumFormate(JSON.stringify(data.tax_inclusive_switch),TAX_INCLUSIVE)).
+            then(function(data){
+              console.log("tax_inclusive_switch saved in local db "+data);
+            }).catch(function(error){
+              console.log("tax_inclusive_switch saving issue in local db "+error);
+            });
       }).error(function() {
-        $(".preloader").removeClass("ng-show").addClass("ng-hide");
+          getChecsumByName(TAX_INCLUSIVE).
+            then(function(result){
+              $scope.$apply(function(){
+                console.log("tax_inclusive_switch get data from  local db "+result);
+                self.tax_inclusive = JSON.parse(result.checksum);
+                $(".preloader").removeClass("ng-show").addClass("ng-hide");
+              });
+            }).catch(function(error){
+              console.log("tax_inclusive_switch issue getting data from local db "+error);
+              $(".preloader").removeClass("ng-show").addClass("ng-hide");
+            });  
+         
     });
 
 	  //check sku
@@ -559,35 +576,51 @@
                  } else {
                   console.log("online");
                   self.repos = data;
-                  if(data.length === 1){
+                  self.repos.map( function (repo) {
+                    repo.value = repo.search.toLowerCase();
+                    return repo;
+                    });
+                    
+                 if(data.length === 1)
                     update_search_results(data, data[0].SKUCode);
-                  } else {
-                        return self.repos.map( function (repo) {
-                        repo.value = repo.search.toLowerCase();
-                        return repo;
-                        })
-                    }
+                  
                  }
+                 deferred.resolve(querySearch (key));
+                 deferred.promise.then(function(data){
+                  angular.forEach(self.skus, function(value, index) {
+                    self.changeQuantity(value);
+                  });
+                 });
+                      
                 },function(error){
                   console.log("offline");
                    getData(key).then(function(data){
                       self.repos = data;
-                      if(data.length === 1){
+                      //deferred.resolve(data);
+                      self.repos.map( function (repo) {
+                        repo.value = repo.search.toLowerCase();
+                        return repo;
+                        });
+                      
+                      if(data.length === 1)
                         update_search_results(data, data[0].SKUCode);
-                      } else {
-                            return self.repos.map( function (repo) {
-                            repo.value = repo.search.toLowerCase();
-                            return repo;
-                            })
-                        }
+
+                    }).then(function(){
+                      deferred.resolve(querySearch (key));
+                      deferred.promise.then(function(data){
+                        angular.forEach(self.skus, function(value, index) {
+                          self.changeQuantity(value);
+                        });
+                      });
                     });
+
                 }).then(function() {
-                  deferred.resolve(querySearch (key));
+                  /*deferred.resolve(querySearch (key));
                   deferred.promise.then(function(data){
                     angular.forEach(self.skus, function(value, index) {
                       self.changeQuantity(value);
                     });
-                  });
+                  });*/
                 });
              return deferred.promise;
         }

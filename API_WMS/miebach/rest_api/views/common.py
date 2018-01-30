@@ -3682,7 +3682,8 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             total_quantity = total_quantity - float(enq_res_quans[enq_res_skus.index(product)])
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
-            sku_variants[0]['hsn_code'] = int(sku_variants[0]['hsn_code'])
+            for index, i in enumerate(sku_variants):
+                sku_variants[index]['hsn_code'] = int(i['hsn_code'])
             sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity,
                                               customer_data_id=customer_data_id, prices_dict=prices_dict,
                                               levels_config=levels_config, price_type=price_type,

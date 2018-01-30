@@ -6281,7 +6281,8 @@ def get_level_based_customer_order_detail(request, user):
                                                          OrderDetail.objects.filter(id__in=det_ids))
                 ord_usr_profile = UserProfile.objects.get(user_id=usr_id)
                 response_data['warehouse_level'] = ord_usr_profile.warehouse_level
-                response_data['level_name'] = ord_usr_profile.level_name
+                response_data['level_name'] = get_level_name_with_level(user, ord_usr_profile.warehouse_level,
+                                                                        users_list=[usr_id])
                 response_data_list. append(response_data)
                 for sku_rec in res:
                     sku_code = sku_rec['sku__sku_code']
@@ -7636,6 +7637,9 @@ def get_customer_enquiry_detail(request, user=''):
         res_map = {'order_id': em_obj.enquiry_id, 'customer_id': cm_id,
                    'date': get_only_date(request, em_obj.creation_date),
                    'data': data_vals, 'sum_data': sum_data, 'tax': total_tax_amt}
+        res_map['level_name'] = ''
+        if data_vals:
+            res_map['level_name'] = get_level_name_with_level(user, data_vals[0]['warehouse_level'], users_list=[])
         for sku_rec in data_vals:
             sku_code = sku_rec['sku__sku_code']
             tot_amt = sku_rec['invoice_amount']

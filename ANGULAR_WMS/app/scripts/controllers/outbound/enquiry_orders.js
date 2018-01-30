@@ -69,6 +69,7 @@ function EnquiryOrdersCtrl($scope, $http, $state, $compile, Session, DTOptionsBu
     });
     modalInstance.result.then(function (selectedItem) {
       var data = selectedItem;
+      $state.reload();
     })
   }
 }

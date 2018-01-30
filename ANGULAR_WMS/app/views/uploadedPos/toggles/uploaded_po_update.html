@@ -46,7 +46,7 @@
               <div class="col-md-4">
                 <div class="form-group">
                   <label class="control-label"> Validate </label>
-                  <select class="form-control" name="verification_flag" ng-model="showCase.model_data.data.verification_flag">
+                  <select class="form-control" name="verification_flag" ng-model="showCase.model_data.data.verification_flag" ng-disabled="showCase.user_type=='distributor'">
                     <option ng-repeat="data in showCase.status" ng-selected="data.value == showCase.model_data.data.verification_flag" value="{{data.value}}">{{data.name}}</option>
                   </select>
                 </div>
@@ -61,7 +61,7 @@
                   <textarea placeholder="Type here..." rows="5" name="remarks" ng-model="showCase.model_data.data.remarks" class="form-control"></textarea>
                 </div>
               </div>
-              <div class="col-md-4" ng-if="showCase.model_data.data.uploaded_file" style="margin-top:1.9em">
+              <div class="col-md-4" ng-if="showCase.model_data.data.uploaded_file && showCase.user_type!='distributor'" style="margin-top:1.9em">
                 <div class="form-group">
                   <center><a class="btn btn btn-success ng-binding" target="_blank" style="position: relative; font-weight: 600;width: 250px;font-size: 15px;" href="{{showCase.model_data.data.file_path}}">Download PO&nbsp;&nbsp;&nbsp;<i class="fa fa-cloud-download" aria-hidden="true" style="font-size: 15px"></i> </a></center>
                 </div>

@@ -4517,6 +4517,10 @@ def get_sku_variants(request, user=''):
                                                      (user.username, str(sku.sku_code)))
     sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime)
     _data = {'data': sku_master, 'gen_wh_level_status': levels_config, 'total_qty': total_qty, }
+    if level == 2:
+        _data['freight_charges'] = "true"
+    else:
+        _data['freight_charges'] = "false"
     if not is_distributor:
         _data['lead_times'] = reseller_leadtimes
     else:
@@ -6438,6 +6442,10 @@ def get_customer_cart_data(request, user=""):
                 level_name = get_level_name_with_level(user, json_record['warehouse_level'],
                                                        users_list=users_list)
                 json_record['level_name'] = level_name
+                if json_record['warehouse_level'] == 2:
+                    json_record['freight_charges'] = "true"
+                else:
+                    json_record['freight_charges'] = "false"
                 # level = json_record['warehouse_level']
                 if is_distributor:
                     if price_type:
@@ -7658,14 +7666,14 @@ def get_customer_enquiry_detail(request, user=''):
                 existing_map = sku_wise_details[sku_code]
                 existing_map['quantity'] = existing_map['quantity'] + sku_rec['quantity']
                 existing_map['el_price'] = sku_lbprice_map[sku_code]
-                existing_map['tot_inc_tax_inv_amt'] = tot_amt
+                existing_map['tot_inc_tax_inv_amt'] = existing_map['tot_inc_tax_inv_amt'] + tot_amt
         response_data_list.append(res_map)
     sku_whole_map = {'data': [], 'totals': {}}
     sku_totals = {'sub_total': 0, 'total_amount': 0, 'tax': 0}
     for sku_code, sku_det in sku_wise_details.items():
-        el_price = sku_det['el_price']
+        el_price = round(sku_det['el_price'], 2)
         qty = sku_det['quantity']
-        total_amt = float(qty) * float(el_price)
+        total_amt = round(float(qty) * float(el_price), 2)
         tax_amt = sku_det['tot_inc_tax_inv_amt'] - total_amt
         sku_map = {'sku_code': sku_code, 'quantity': qty, 'landing_price': el_price, 'total_amount': total_amt}
         sku_totals['sub_total'] = sku_totals['sub_total'] + total_amt

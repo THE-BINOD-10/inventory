@@ -1,0 +1,18 @@
+<div class="panel" ng-controller="TandCMaster as showCase">
+  <div class="panel-header">
+    <button type="button" class="btn btn-success pull-right ml10" ng-click="showCase.add()">New Terms and Conditions</button>
+  </div>
+  <div class="panel-body">
+    <div class="list-group">
+      <div class="list-group-item" ng-repeat="item in showCase.items">{{ item }}</div>
+    </div>
+  </div>
+  <!--<div class="panel-footer">
+    <button type="button" class="pull-right btn btn-success" style="margin-left:10px;" ng-click="showCase.confirm_po1()" ng-disabled="showCase.bt_disable || process">
+      Confirm PO
+    </button>
+    <button type="button" class="pull-right btn btn-danger" ng-disabled="showCase.bt_disable || process" ng-click="showCase.delete_po_group();">
+      Delete PO
+    </button>
+  </div>-->
+</div>

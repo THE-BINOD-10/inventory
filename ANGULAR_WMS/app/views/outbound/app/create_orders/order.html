@@ -28,7 +28,7 @@ input[type="date"]:valid::before {
     <div class="col-md-6 col-sm-6 col-xs-8">
       <div class="menu-left">
         <span ng-click="$state.go('user.App.Products'); showCase.get_category(false)"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
-        <span ng-click="$state.go('user.App.Products'); showCase.get_category(false)" title="Go to Brand Page">Back To Styles</span>
+        <span ng-click="$state.go('user.App.Products'); showCase.get_category(false)" title="Go to Brand Page">Continue Shopping</span>
       </div>
     </div>
     <div class="col-md-6 col-sm-6 col-xs-4">
@@ -38,7 +38,7 @@ input[type="date"]:valid::before {
         </a>
         <ul class="dropdown-menu">
           <li><a ng-click="$state.go('user.App.MyOrders')">Your Orders</a></li>
-          <li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>
+          <!--<li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>-->
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div>

@@ -1,25 +1,22 @@
 <div class="center-wrapper" data-ng-controller="sessionCtrl">
-  <div class="center-content sm-login-bg">
-    <div style="position: absolute; top: 20px; right: 20px;">
-      <p><b><i style="color:#fff; margin: 0 15px;font-size: 16px;">-Powered by StockOne</i></b></p>
-    </div>
+  <div class="center-content" style="background-color: #5dadff;">
     <div class="row no-margin">
-      <div class="col-xs-10 col-xs-offset-1 col-sm-6 col-sm-offset-3 col-md-4 col-md-offset-4 bg-transparency" style="opacity: 0.8">
+      <div class="col-xs-10 col-xs-offset-1 col-sm-6 col-sm-offset-3 col-md-4 col-md-offset-4">
         <form role="form" class="form-layout">
           <div class="text-center mb15">
-            <img ng-src="images/sm_login.png" style="width: 50%;">
+            <!--<h1 align="center">Stockone</h1>-->
+            <img ng-src="images/marsh_logo.png" style="width: 100%;">
           </div>
 
-          <h3 class="text-center" style="color:#E63832;text-transform: uppercase;">Welcome to Swiss Military</h3>
-          <p class="text-center">Please sign in to your account</p>
+          <p class="text-center mb30" style="color:#fff">Welcome to Marsh Cloathing. Please sign in to your account</p>
 
           <div class="alert alert-warning" ng-show="invalid">
             <span class="close" ng-click="invalid = false">&times;</span>
-            <strong>Warning!</strong> Invalid Email/Password.
+            <strong>Warning!</strong> Invalid Username/Password.
           </div>
 
           <div class="form-inputs">
-            <input type="text" class="form-control input-lg" ng-model="username" placeholder="Username" required>
+            <input type="username" class="form-control input-lg" ng-model="username" placeholder="Username" required>
             <input type="password" class="form-control input-lg" ng-model="password" placeholder="Password" required>
           </div>
 
@@ -36,5 +33,6 @@
         </form>
       </div>
     </div>
+
   </div>
 </div>

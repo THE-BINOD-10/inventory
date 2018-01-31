@@ -4,58 +4,10 @@ angular.module('urbanApp', ['datatables'])
   .controller('TandCMaster',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
-    var vm = this;
-    vm.apply_filters = colFilters;
-    vm.service = Service;
 
-    vm.filters = {'datatable': 'SellerMarginMapping', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
-    vm.dtOptions = DTOptionsBuilder.newOptions()
-       .withOption('ajax', {
-              url: Session.url+'results_data/',
-              type: 'POST',
-              data: vm.filters,
-              xhrFields: {
-                withCredentials: true
-              }
-           })
-       .withDataProp('data')
-       .withOption('processing', true)
-       .withOption('serverSide', true)
-       .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback)
-       .withOption('initComplete', function( settings ) {
-         vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
-       });
-
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn('seller_id').withTitle('Seller ID'),
-        DTColumnBuilder.newColumn('name').withTitle('Seller Name'),
-        DTColumnBuilder.newColumn('sku_code').withTitle('SKU Code'),
-        DTColumnBuilder.newColumn('sku_desc').withTitle('SKU Description'),
-        DTColumnBuilder.newColumn('margin').withTitle('Margin')
-    ];
-
-    vm.dtInstance = {};
-
-    $scope.$on('change_filters_data', function(){
-      vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
-      vm.service.refresh(vm.dtInstance);
-    });
-
-    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
-            $scope.$apply(function() {
-                angular.copy(aData, vm.model_data);
-                vm.update = true;
-                vm.title = "Update Mapping";
-                vm.message ="";
-                $state.go('app.masters.SellerMarginMapping.Mapping');
-            });
-        });
-    }
-
-  vm.items = ["dsfdsf", "sdfbshjdfs"]
+  var vm = this;
+  vm.servie = Service;
+  vm.items = [];
 
   var empty_data = {seller: "", sku_code: "", margin: ""};
   vm.model_data = {};
@@ -75,29 +27,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 
   vm.sellers = [];
-  vm.get_sellers = function() {
+  vm.get_data = function() {
 
-    vm.service.apiCall("get_sellers_list/").then(function(data){
+    Service.apiCall("get_terms_and_conditions/?tc_type=sales").then(function(data){
       if(data.message) {
 
-        vm.sellers = data.data.sellers;
+        vm.items = data.data.tc_list;
       }
     });
   }
 
-  vm.add = add;
-  function add() {
+  vm.get_data();
 
-    vm.base();
-    //vm.get_sellers();
-    $state.go('app.masters.TandCMaster.Mapping');
-  }
-
-  vm.seller = function(url) {
+  vm.saveTC = function(term) {
     var send = {}
-    angular.copy(vm.model_data, send)
+    angular.copy(term, send)
     var data = $.param(send);
-    vm.service.apiCall(url, 'POST', send).then(function(data){
+    Service.apiCall("confirm_terms_and_conditions/", 'POST', send).then(function(data){
       if(data.message) {
         if(data.data == 'Added Successfully' || data.data == 'Updated Successfully') {
           vm.service.refresh(vm.dtInstance);
@@ -108,19 +54,5 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     });
   }
-
-  vm.submit = submit;
-  function submit(data) {
-    if (data.$valid) {
-      if ("Add Mapping" == vm.title) {
-        vm.seller('insert_seller_margin/');
-      } else {
-        vm.seller('update_seller_margin/');
-      }
-    } else {
-      vm.service.pop_msg('Please fill required fields');
-    }
-  }
-
 }
 

@@ -255,6 +255,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       vm.wish_data.total_amount += temp_amount;
       vm.wish_data.total_qty += Number(data.quantity);
     });
+    vm.wish_data.total_amount += vm.wish_data.total_tax;
   }
 
   vm.style_total_quantity = 0;

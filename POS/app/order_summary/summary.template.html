@@ -2,7 +2,7 @@
   
   <div style="margin-top:10px">
     <label>Order Taken By : </label>
-    <select ng-model="$ctrl.staff_member" ng-options="c as c for c in $ctrl.staff_members" style="padding: 5px;margin-left: 11px;width: 55%;" ng-change="$ctrl.staff_member_value($ctrl.staff_member)">
+    <select ng-model="$ctrl.staff_member" ng-init="$ctrl.staff_members[0]" ng-options="c as c for c in $ctrl.staff_members" style="padding: 5px;margin-left: 11px;width: 55%;" ng-change="$ctrl.staff_member_value($ctrl.staff_member)">
     </select>
   </div>
 

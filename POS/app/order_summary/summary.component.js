@@ -114,6 +114,7 @@
           $(".preloader").removeClass("ng-show").addClass("ng-hide");
           self.staff_member = self.staff_members[0];
           urlService.current_order.summary.staff_member = self.staff_member;
+          urlService.default_staff_member = self.staff_member;
            //save user staff members in local db
           setCheckSum(setCheckSumFormate(JSON.stringify(data.members),STAFF_MEMBERS)).
             then(function(data){
@@ -131,6 +132,7 @@
                 $(".preloader").removeClass("ng-show").addClass("ng-hide");
                 self.staff_member = self.staff_members[0];
                 urlService.current_order.summary.staff_member = self.staff_member;
+                urlService.default_staff_member = self.staff_member;
               });
           }).catch(function(error){
               console.log("staff members get from local db error "+error);
@@ -142,6 +144,7 @@
       function staff_member_value (staff_member_value) {
         self.staff_member = staff_member_value;
         urlService.current_order.summary.staff_member = self.staff_member;
+        urlService.default_staff_member = self.staff_member;
       }
 
     }]

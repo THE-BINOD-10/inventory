@@ -4390,6 +4390,7 @@ def get_sku_catalogs(request, user=''):
             remarks = remarks[0].misc_value
         display_stock = request.POST.get('display_stock', '')
         user_type = request.POST.get('user_type', '')
+        terms_list = (request.POST.get('terms_list', '')).split('<>');
         admin = get_admin(user)
         image = get_company_logo(admin)
         date = get_local_date(user, datetime.datetime.now())
@@ -4402,7 +4403,7 @@ def get_sku_catalogs(request, user=''):
         rendered = t.render({'data': data, 'user': request.user.first_name, 'date': date,
                              'remarks': remarks, 'display_stock': display_stock, 'image': image,
                              'style_quantities': eval(request.POST.get('required_quantity', '{}')),
-                             'pages': int(pages), 'style_count': len(data)})
+                             'terms_list': terms_list, 'pages': int(pages), 'style_count': len(data)})
 
         if not os.path.exists('static/pdf_files/'):
             os.makedirs('static/pdf_files/')
@@ -4414,7 +4415,8 @@ def get_sku_catalogs(request, user=''):
         file_.close()
         os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
         return HttpResponse("static/pdf_files/" + str(request.user.id) + "_customer_search.pdf")
-    return HttpResponse(json.dumps({'data': data, 'next_index': str(start + 20) + ':' + str(stop + 20)}))
+    return HttpResponse(json.dumps({'data': data, 'next_index': str(start + 20) + ':' + str(stop + 20)},
+                                   cls=DjangoJSONEncoder))
 
 
 @csrf_exempt

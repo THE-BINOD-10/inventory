@@ -38,7 +38,7 @@ class TallyAPI:
         self.user_id = request.POST.get('user_id', 3)
         self.updation_date = self.get_updation_date(request)
 	tally_config = self.tally_configuration()
-        seller_summary = SellerOrderSummary.objects.filter(order__user=self.user_id)
+        seller_summary = SellerOrderSummary.objects.filter(order__user=self.user_id).order_by('-updation_date')[:10]
         if self.updation_date:
             seller_summary = seller_summary.filter(updation_date__gt = self.updation_date)
         seller_summary = seller_summary.values('id',\
@@ -49,25 +49,28 @@ class TallyAPI:
                             'order__payment_received', 'order__unit_price', 'order__order_type',\
                             'order__shipment_date', 'order__sku__product_type', 'order__customer_id',\
                             'order__original_order_id', 'order__sku__sku_desc', 'order__sku__measurement_type',
-                            'creation_date')[:10]
+                            'creation_date', 'order__customer_name', 'order_id')
         invoices = []
         from decimal import Decimal
+        #import pdb;pdb.set_trace()
+        s_obj = {}
         for obj in seller_summary:
-            s_obj = {}
+            key_value = obj['order__original_order_id']
+            s_obj.setdefault(key_value, {})
             customer_info = CustomerMaster.objects.filter(user=self.user_id, customer_id=obj['order__customer_id'])\
                             .values('customer_id', 'name', 'address', 'state', 'city', 'state', 'country',\
                             'tin_number', 'cst_number', 'pan_number', 'price_type', 'tax_type')
             customer_info = customer_info[0] if customer_info else {}
 
-            s_obj['tally_company_name'] = tally_config.get('company_name', 'Mieone')
-            s_obj['voucher_foreign_key'] = obj['invoice_number'] if obj['invoice_number'] else obj['order__order_id']
-            s_obj['dt_of_voucher'] = obj['creation_date'].strftime('%d/%m/%Y')
-            s_obj['voucher_type_name'] = 'Sales'
-    	    s_obj['buyer_state'] = obj['order__state']
+            s_obj[key_value]['tally_company_name'] = tally_config.get('company_name', '')
+            s_obj[key_value]['voucher_foreign_key'] = obj['invoice_number'] if obj['invoice_number'] else obj['order__order_id']
+            s_obj[key_value]['dt_of_voucher'] = obj['creation_date'].strftime('%d/%m/%Y')
+            s_obj[key_value]['voucher_type_name'] = 'Sales'
+    	    s_obj[key_value]['buyer_state'] = obj['order__state']
             if obj['order__original_order_id']:
-                s_obj['orders'] = [{"order_no": obj['order__original_order_id'], 'order_date': obj['creation_date'].strftime('%d/%m/%Y')}]
+                s_obj[key_value]['orders'] = [{"order_no": obj['order__original_order_id'], 'order_date': obj['creation_date'].strftime('%d/%m/%Y')}]
             else:
-                s_obj['orders'] = [{"order_no": "".join([obj['order__order_code'], str(obj['order__order_id'])]), "order_date": obj['creation_date'].strftime('%d/%m/%Y')}]
+                s_obj[key_value]['orders'] = [{"order_no": "".join([obj['order__order_code'], str(obj['order__order_id'])]), "order_date": obj['creation_date'].strftime('%d/%m/%Y')}]
 
             item_obj = {}
             item_obj['is_deemeed_positive'] = True
@@ -79,43 +82,58 @@ class TallyAPI:
             item_obj['rate_unit'] = item_obj['unit']
             item_obj['amount'] = item_obj['rate'] * item_obj['billed_qty']
 
-            s_obj.setdefault('items', [])
-            s_obj['items'].append(item_obj)
+            s_obj[key_value].setdefault('items', [])
+            s_obj[key_value]['items'].append(item_obj)
 
             ledger_obj = GroupLedgerMapping.objects.filter(user_id = self.user_id, ledger_type = 'sales', product_group = obj['order__sku__product_type'], state = obj['order__state'])
             item_obj['ledger_name'] = ''
             if ledger_obj:
                 item_obj['ledger_name'] = ledger_obj[0].name
-
             party_ledger_obj = {}
-            party_ledger_obj['name'] =  'Sandhani'
+            party_ledger_obj['name'] = customer_info.get('name', '')
+            if not party_ledger_obj['name']:
+                party_ledger_obj['name'] = obj['order__customer_name']
             party_ledger_obj['is_deemeed_positive'] = True
-            COD = CustomerOrderSummary.objects.filter(order=obj['order__order_id'], order__user = self.user_id).values('dispatch_through', 'payment_terms', 'tax_type')
-            COD = COD[0] if COD else {}
+            COD = {}
+            COD_obj = CustomerOrderSummary.objects.filter(order=obj['order_id'], order__user = self.user_id)
+            if COD_obj:
+                COD = COD_obj.values('dispatch_through', 'payment_terms', 'tax_type', 'cgst_tax', 'sgst_tax', 'igst_tax')[0]
+
             cgst_tax = COD.get('cgst_tax', 0)
             sgst_tax = COD.get('sgst_tax', 0)
             igst_tax = COD.get('igst_tax', 0)
             utgst_tax = COD.get('utgst_tax', 0)
+
             party_ledger_total_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax
             party_amount = 0
             if item_obj['billed_qty'] and item_obj['rate']:
-                party_amount = int(item_obj['billed_qty']) * int(item_obj['rate'])
-    	    total_amount = party_amount + ( (party_amount/100) * party_ledger_total_tax )
+                party_amount = int(item_obj['billed_qty']) * float(item_obj['rate'])
+            total_amount = party_amount + ( (party_amount/100) * party_ledger_total_tax )
             party_ledger_obj['amount'] = total_amount
-	    s_obj.setdefault('party_ledger', {})
-            s_obj['party_ledger'].update(party_ledger_obj)
+	    s_obj[key_value].setdefault('party_ledger', {})
+            party_ledger_obj['amount'] += s_obj[key_value]['party_ledger'].get('amount', 0)
+            s_obj[key_value]['party_ledger'].update(party_ledger_obj)
 
-            party_ledger_tax_obj = {}
-            party_ledger_tax_obj['is_deemeed_positive'] = True
-            party_ledger_tax_obj['entry_rate'] = party_ledger_total_tax
-            party_ledger_tax_obj['amount'] = total_amount
-            vat_ledger = VatLedgerMapping.objects.filter(tax_percentage = party_ledger_total_tax, tax_type = 'sales', user = self.user_id)
-            party_ledger_tax_obj['name'] = ''
-            if vat_ledger:
-                party_ledger_tax_obj['name'] = vat_ledger[0].ledger_name
+	    s_obj[key_value].setdefault('party_ledger_tax', [])
 
-	    s_obj.setdefault('party_ledger_tax', {})
-            s_obj['party_ledger_tax'].update(party_ledger_tax_obj)
+            party_ledger_tax_obj = []
+            vat_ledger = []
+	    if igst_tax:
+            	vat_ledger = VatLedgerMapping.objects.filter(tax_percentage = igst_tax, tax_type = 'sales', user = self.user_id, ledger_name__icontains='igst')
+	    if sgst_tax:
+		vat_ledger = VatLedgerMapping.objects.exclude(ledger_name__icontains='igst').filter(tax_percentage = sgst_tax, tax_type = 'sales',
+                                                                user = self.user_id)
+		if not vat_ledger:
+		    total_tax = cgst_tax + sgst_tax
+		    vat_ledger = VatLedgerMapping.objects.filter(tax_percentage = total_tax, tax_type = 'sales', user = self.user_id)
+	    for vat_obj in vat_ledger:
+                party_ledger_tax_dict = {}
+	        party_ledger_tax_dict['is_deemeed_positive'] = True
+                party_ledger_tax_dict['entry_rate'] = vat_obj.tax_percentage
+                party_ledger_tax_dict['amount'] = (party_amount /100) * vat_obj.tax_percentage
+		party_ledger_tax_dict['name'] = vat_obj.ledger_name
+                party_ledger_tax_obj.append(party_ledger_tax_dict)
+            s_obj[key_value]['party_ledger_tax'] = s_obj[key_value]['party_ledger_tax'] + party_ledger_tax_obj
 
             #s_obj['items'] = []
 	        #[obj['order__sku__sku_code']]
@@ -125,32 +143,32 @@ class TallyAPI:
             #COD = CustomerOrderSummary.objects.filter(order=obj['order__order_id']).values('dispatch_through', 'payment_terms', 'tax_type')
             #COD = COD[0] if COD else {}
             #s_obj['party_ledger_tax'] = COD.get('tax_type', '')
-            s_obj['voucher_no'] = '' if int(tally_config.get('automatic_voucher', 0)) else obj['order__order_id']
-            s_obj['reference'] = obj['order__order_id']
-            s_obj['despatch_doc_no'] = obj['order__order_code']
-            s_obj['despatched_through'] = COD.get('dispatch_through', '')
-            s_obj['destination'] =  customer_info.get('address', '')
-            s_obj['bill_of_lading_no'] = ''
-            s_obj['bill_of_lading_dt'] = ''
-            s_obj['carrier_name'] = ''
-            s_obj['terms_of_payment'] =  COD.get('payment_terms', '')
-            s_obj['other_reference'] = ''
-            s_obj['terms_of_delivery_1'] = ''
-            s_obj['buyer_name'] = customer_info.get('customer_name', '')
-            s_obj['address_line1'] = ''
-            s_obj['buyer_tin_no'] = customer_info.get('tin_num', '')
-            s_obj['buyer_cst_no'] = customer_info.get('cst_num', '')
-            s_obj['type_of_dealer'] = ''
-            s_obj['narration'] = ''
+            s_obj[key_value]['voucher_no'] = '' if int(tally_config.get('automatic_voucher', 1)) else obj['order__order_id']
+            s_obj[key_value]['reference'] = obj['order__order_id']
+            s_obj[key_value]['despatch_doc_no'] = obj['order__order_code']
+            s_obj[key_value]['despatched_through'] = COD.get('dispatch_through', '')
+            s_obj[key_value]['destination'] =  customer_info.get('address', '')
+            s_obj[key_value]['bill_of_lading_no'] = ''
+            s_obj[key_value]['bill_of_lading_dt'] = ''
+            s_obj[key_value]['carrier_name'] = ''
+            s_obj[key_value]['terms_of_payment'] =  COD.get('payment_terms', '')
+            s_obj[key_value]['other_reference'] = ''
+            s_obj[key_value]['terms_of_delivery_1'] = ''
+            s_obj[key_value]['buyer_name'] = customer_info.get('customer_name', '')
+            s_obj[key_value]['address_line1'] = ''
+            s_obj[key_value]['buyer_tin_no'] = customer_info.get('tin_num', '')
+            s_obj[key_value]['buyer_cst_no'] = customer_info.get('cst_num', '')
+            s_obj[key_value]['type_of_dealer'] = ''
+            s_obj[key_value]['narration'] = ''
 
 	    del_notes = {}
 	    del_notes['delivery_note_no'] = ''
 	    del_notes['delivery_note_Date'] = obj['creation_date'].strftime('%d/%m/%Y')
 
-            s_obj.setdefault('del_notes', [])
-            s_obj['del_notes'].append(del_notes)
-            invoices.append(s_obj)
-        return HttpResponse(json.dumps(invoices, cls=DjangoJSONEncoder))
+            s_obj[key_value].setdefault('del_notes', [])
+            s_obj[key_value]['del_notes'].append(del_notes)
+        #invoices.append(s_obj)
+        return HttpResponse(json.dumps(s_obj.values(), cls=DjangoJSONEncoder))
 
     def get_item_master(self, request):
         self.user_id = request.POST.get('user_id', 3)

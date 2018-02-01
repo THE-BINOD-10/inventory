@@ -28,7 +28,7 @@ input[type="date"]:valid::before {
     <div class="col-md-6 col-sm-6 col-xs-8">
       <div class="menu-left">
         <span ng-click="$state.go('user.App.Products'); showCase.get_category(false)"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
-        <span ng-click="$state.go('user.App.Products'); showCase.get_category(false)" title="Go to Brand Page">Back To Styles</span>
+        <span ng-click="$state.go('user.App.Products'); showCase.get_category(false)" title="Go to Brand Page">Continue Shopping</span>
       </div>
     </div>
     <div class="col-md-6 col-sm-6 col-xs-4">
@@ -38,7 +38,7 @@ input[type="date"]:valid::before {
         </a>
         <ul class="dropdown-menu">
           <li><a ng-click="$state.go('user.App.MyOrders')">Your Orders</a></li>
-          <li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>
+          <!--<li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>-->
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
       </div>
@@ -164,6 +164,9 @@ input[type="date"]:valid::before {
               <h5 align="left" style="margin-bottom:0px;font-size: 16px;"><b>Rs {{data.invoice_amount}}</b></h5>
               <p align="left" class="text-success" ng-if="data.quantity > 1" style="font-size: 12px;">{{data.quantity}} X Rs.{{data.price}}</p>
               <div><span ng-click="Cart.remove_item($index)" style="cursor: pointer;" title="Delete Order" class="btn-sm btn-danger "><i class="fa fa-trash-o" aria-hidden="true"></i> Remove</span></div>
+              <div class="alert alert-info" ng-if="data.freight_charges" style="margin-top: 11px;margin-bottom: 0px;">
+                <strong>Note:</strong> Freight Charges Included.
+              </div>
             </div>
             <div class="col-md-6 col-sm-6 col-xs-5">
               <div class="col-md-12 col-sm-12 col-xs-12">

@@ -87,6 +87,10 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         vm.charge_remarks = data.data.charge_remarks;
         vm.generic_wharehouse_level = data.data.gen_wh_level_status;
         
+        if (data.data.freight_charges) {
+          vm.freight_charges = data.data.freight_charges;
+        }
+        
         if (Object.keys(vm.style_details).length === 0) {
           vm.style_details = style_data[0];
         }
@@ -172,7 +176,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.service.apiCall('get_levels/', 'GET', {sku_class:vm.styleId, customer_id: Session.userId}).then(function(data){
     
       vm.levels = data.data;
-      vm.selLevel = Number(data.data[0]);
+      vm.selLevel = Number(data.data[0].warehouse_level);
       vm.open_style();
     });
   }
@@ -195,6 +199,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
   vm.sel_items_total_price = 0;
   vm.sel_items_tax = 0;
+  vm.wish_list_total_qty = 0;
   vm.update_levels = function(index){
 
     vm.sel_items_total_price = 0;
@@ -254,6 +259,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       vm.wish_data.total_amount += temp_amount;
       vm.wish_data.total_qty += Number(data.quantity);
     });
+    vm.wish_data.total_amount += vm.wish_data.total_tax;
   }
 
   vm.style_total_quantity = 0;

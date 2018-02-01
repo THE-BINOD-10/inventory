@@ -13,11 +13,14 @@
       <img src="data:image/jpg;base64, {{image}}" class="pull-left" style="width:100%;width: 70px;margin: 4px 2px;"/>
       {% endif %}
       <h4 style="margin-bottom:10px;color:white !important;line-height: 40px;" align="center"><b style="color:white !important;">{{ user }}</b></h4>
-      <span class="pull-right" style="position: absolute;top: 10px;right: 20px;font-size:12px;line-height: 40px;">{{date}}</span>
+      <span class="pull-right" style="position: absolute;bottom: 5px;right: 20px;font-size:12px">{{date}}</span>
     </div>
 <div class='row'>
 {% elif forloop.counter|get_page_break %}
-<div class='row' style="page-break-after: always;">
+<div class='row' style="page-break-after: always;position: relative; padding-bottom: 20px;"><br>
+  {% if not forloop.last %}
+  <span style="position: absolute; bottom: 0px; right: 20px;"><b>{{forloop.counter0|get_page_number:style_count}} of {{pages}}</b></span>
+  {% endif %}
 {% elif not forloop.counter|divisibleby:2 %}
 <div class='row'>
 {% endif %}
@@ -89,15 +92,30 @@
   </div>
 </div>
 {% if forloop.counter|divisibleby:2 %}
-</div>
+{% if forloop.last %}
+<div class="row col-md-12 co-xs-12"><p style="margin-top: 10px;width:100%;margin-left:20" class="pre-custom"><b>Note:</b>{{remarks}}</b></p></div>
+{% if not forloop.counter|get_page_break and not forloop.counter|get_header_status %}
+<span style="float: right;padding-right:20px;"><b>{{forloop.counter0|get_page_number:style_count}} of {{pages}}</b></span>
 {% endif %}
-{% if forloop.counter|get_header_status %}
+{% endif %}
+</div>
+{% else %}
+{% if forloop.last %}
+
+<div class="row col-md-12 col-xs-12"><p style="margin-top: 10px;width:100%;margin-left:20" class="pre-custom"><b>Note:</b>{{remarks}}</b></p></div>
+{% if not forloop.counter|get_page_break and not forloop.counter|get_header_status %}
+<span style="float: right; padding-right:20px;"><b>{{forloop.counter0|get_page_number:style_count}} of {{pages}}</b></span>
+{% endif %}
+{% endif %}
+{% endif %}
+
+{% if forloop.counter|get_header_status and not forloop.last %}
   <div class="row col-md-12 no-padding" style="background-color: #ed1c24 !important;color: white;">
       {% if image %}
       <img src="data:image/jpg;base64, {{image}}" class="pull-left" style="width:100%;width: 70px;margin: 4px 2px;"/>
       {% endif %}
       <h4 style="margin-bottom:10px;color:white !important;line-height: 40px;" align="center"><b style="color:white !important;">{{ user }}</b></h4>
-      <span class="pull-right" style="position: absolute;top: 10px;right: 20px;font-size:12px;line-height: 40px;">{{date}}</span>
+      <span class="pull-right" style="position: absolute;bottom: 5px;right: 20px;font-size:12px">{{date}}</span>
     </div>
 {% endif %}
 {% endfor %}
@@ -111,8 +129,5 @@
       {% endfor %}
     </ul>
   </div>
-{% endif %}
-{% if not endif %}
-<p style="margin-top: 20px;width:100%;margin-left:20" class="pre-custom"><b>Note:</b>{{remarks}}</b></p>
 {% endif %}
 </div>

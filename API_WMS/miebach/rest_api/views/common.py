@@ -3657,12 +3657,12 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     admin = get_priceband_admin_user(user)
     if admin:
         gen_whs = get_generic_warehouses_list(admin)
-    stock_objs = StockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0).values('sku__sku_class').distinct(). \
-        annotate(in_stock=Sum('quantity'))
+    stock_objs = StockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0).values('sku__sku_class').\
+        distinct().annotate(in_stock=Sum('quantity'))
     reserved_quantities = PicklistLocation.objects.filter(stock__sku__user__in=gen_whs, status=1).values(
         'stock__sku__sku_class').distinct().annotate(in_reserved=Sum('reserved'))
-    enquiry_res_quantities = EnquiredSku.objects.filter(sku__user__in=gen_whs). \
-        values('sku__sku_class').annotate(tot_qty=Sum('quantity'))
+    enquiry_res_quantities = EnquiredSku.objects.filter(sku__user__in=gen_whs).\
+        filter(~Q(enquiry__extend_status='rejected')).values('sku__sku_class').annotate(tot_qty=Sum('quantity'))
     stock_skus = map(lambda d: d['sku__sku_class'], stock_objs)
     stock_quans = map(lambda d: d['in_stock'], stock_objs)
     reserved_skus = map(lambda d: d['stock__sku__sku_class'], reserved_quantities)

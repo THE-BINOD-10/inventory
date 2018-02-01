@@ -2933,7 +2933,7 @@ def search_network_user(request, user=''):
 def get_terms_and_conditions(request, user=''):
     ''' Get Terms and conditions list'''
     tc_type = request.GET.get('tc_type', '')
-    tc_list = list(TANDCMaster.objects.filter(user=user.id, term_type=tc_type).values('id', 'terms'))
+    tc_list = list(TANDCMaster.objects.filter(user=user.id, term_type=tc_type).values('id', 'terms').order_by('id'))
     return HttpResponse(json.dumps({'tc_list': tc_list}))
 
 
@@ -2942,22 +2942,42 @@ def get_terms_and_conditions(request, user=''):
 @get_admin_user
 def insert_update_terms(request, user=''):
     ''' Create or Update Terms and conditions'''
-    terms_dict = request.GET.dict()
+    terms_dict = request.POST.dict()
     message = ''
     status = 0
     data = {}
     if not terms_dict.get('term_type', ''):
         return HttpResponse(json.dumps({'status': status, 'message': 'Term type missing'}))
     if terms_dict.get('id', ''):
-        TANDCMaster.objects.filter(term_id=terms_dict['id'], term_type=terms_dict['term_type']).\
+        TANDCMaster.objects.filter(id=terms_dict['id'], term_type=terms_dict['term_type']).\
                             update(terms=terms_dict['terms'])
         message = 'Updated Successfully'
         status = 1
     elif terms_dict.get('terms', ''):
         terms_dict['user'] = user.id
         tc_master = TANDCMaster.objects.create(**terms_dict)
-        message = 'Created Successfully'
+        message = 'Added Successfully'
         data = {'id': tc_master.id}
+        status = 1
+    else:
+        message = 'Mandatory fields missing'
+    return HttpResponse(json.dumps({'status': status, 'message': message, 'data': data}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_terms(request, user=''):
+    ''' Delete Terms and conditions'''
+    terms_dict = request.POST.dict()
+    message = ''
+    status = 0
+    data = {}
+    if not terms_dict.get('term_type', ''):
+        return HttpResponse(json.dumps({'status': status, 'message': 'Term type missing'}))
+    if terms_dict.get('id', ''):
+        TANDCMaster.objects.filter(id=terms_dict['id']).delete()
+        message = 'Deleted Successfully'
         status = 1
     else:
         message = 'Mandatory fields missing'

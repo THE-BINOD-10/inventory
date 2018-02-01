@@ -1164,4 +1164,21 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
   };
 })
 
+vm.terms = []
+
+  vm.get_terms = function(data) {
+    var data = {tc_type: 'sales'}
+    vm.service.apiCall("get_terms_and_conditions/", "GET",data).then(function(data){
+      debugger;
+      if(data.message) {
+        vm.all_cate = data.data.categories;
+        vm.categories_details = data.data.categories_details;
+        $state.go('user.App.Products');
+      }
+      vm.pdfDownloading = false;
+    });
+  }
+
+  vm.get_terms();
+
 })();

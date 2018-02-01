@@ -638,14 +638,14 @@
                     //save order in DB
                     var store_id=JSON.stringify(order_data.summary.order_id);
                     var store_order=JSON.stringify(order_data);
-                    
+                    console.log("save order in local db  order_id"+store_id+" order data "+store_order);
                     yield POS_TABLES.sync_orders.
                             put({"order_id":store_id,"order":store_order}).
                             then(function(data){
                                 console.log("data saved in local db "+data);    
                             }).catch(function(error){
-                                console.error("error "+error.message);  
-                                return reject(error.message);
+                                console.error("error "+error);  
+                                return reject(error);
                             });
 
                     // update the order id 
@@ -1182,7 +1182,7 @@
 
                     //get all orders where issuetype is "pre order".
                     POS_TABLES.sync_orders.filter(function(data){
-                        if(data!=undefined && data.order_data!=undefined){
+                        if(data!=undefined && data.order!=undefined){
                             data=JSON.parse(data.order);
                             if(data.summary.issue_type.toLowerCase()==="pre order" && data.status==="1"){
                                 return true;

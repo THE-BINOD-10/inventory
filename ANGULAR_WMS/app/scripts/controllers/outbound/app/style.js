@@ -87,6 +87,10 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         vm.charge_remarks = data.data.charge_remarks;
         vm.generic_wharehouse_level = data.data.gen_wh_level_status;
         
+        if (data.data.freight_charges) {
+          vm.freight_charges = data.data.freight_charges;
+        }
+        
         if (Object.keys(vm.style_details).length === 0) {
           vm.style_details = style_data[0];
         }

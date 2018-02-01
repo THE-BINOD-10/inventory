@@ -417,6 +417,13 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
       }
     }
   }
+
+  vm.upload_file_name = "";
+  $scope.$on("fileSelected", function (event, args) {
+    $scope.$apply(function () {
+      vm.upload_file_name = args.file.name;
+    });
+  });
 }
 
 angular

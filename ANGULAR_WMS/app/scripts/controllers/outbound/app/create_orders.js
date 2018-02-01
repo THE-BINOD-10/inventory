@@ -1031,6 +1031,29 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       return '/images/categories/default.png'
     }
   }
+
+  vm.changePWDData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0};
+  vm.changePWD = function() {
+ 
+    var mod_data = vm.changePWDData;
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/app/create_orders/change_pwd.html',
+      controller: 'changePWDCtrl',
+      controllerAs: '$ctrl',
+      size: 'md',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      vm.changedData = selectedItem;
+    })
+  }
 }
 
 angular
@@ -1194,6 +1217,46 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
   vm.cancel = function () {
     $modalInstance.dismiss('cancel');
   };
-})
+});
+
+angular.module('urbanApp').controller('changePWDCtrl', function ($modalInstance, $modal, items, Service, Session) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.model_data = items;
+  vm.service = Service;
+
+  vm.check_validation = function(){
+    if (vm.confirm_pwd) {
+      if (vm.new_pwd !== vm.confirm_pwd) {
+        vm.service.showNoty("New password does not match with confirm password plase check it once");
+      }
+    }
+  }
+
+  vm.ok = function (form) {
+
+    if(form.$invalid) {
+      return false;
+    }
+    if (vm.new_pwd !== vm.confirm_pwd) {
+      return false;
+    }
+
+    var data = {old_password: vm.exe_pwd,  new_password: vm.new_pwd,  retype_password: vm.confirm_pwd}
+    Service.apiCall("change_user_password/", "POST", data).then(function(response) {
+      if(response.data.msg) {
+        vm.service.showNoty("Password changed successfully");
+
+        $modalInstance.close(response.data.msg);
+      } else {
+        vm.service.showNoty(response.data.data);
+      }
+    });
+  };
+
+  vm.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
+});
 
 })();

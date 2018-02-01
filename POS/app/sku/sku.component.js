@@ -76,8 +76,25 @@
       }).success(function(data, status, headers, config) {
         self.tax_inclusive = data.tax_inclusive_switch;
         $(".preloader").removeClass("ng-show").addClass("ng-hide");
+        setCheckSum(setCheckSumFormate(JSON.stringify(data.tax_inclusive_switch),TAX_INCLUSIVE)).
+            then(function(data){
+              console.log("tax_inclusive_switch saved in local db "+data);
+            }).catch(function(error){
+              console.log("tax_inclusive_switch saving issue in local db "+error);
+            });
       }).error(function() {
-        $(".preloader").removeClass("ng-show").addClass("ng-hide");
+          getChecsumByName(TAX_INCLUSIVE).
+            then(function(result){
+              $scope.$apply(function(){
+                console.log("tax_inclusive_switch get data from  local db "+result);
+                self.tax_inclusive = JSON.parse(result.checksum);
+                $(".preloader").removeClass("ng-show").addClass("ng-hide");
+              });
+            }).catch(function(error){
+              console.log("tax_inclusive_switch issue getting data from local db "+error);
+              $(".preloader").removeClass("ng-show").addClass("ng-hide");
+            });  
+         
     });
 
 	  //check sku
@@ -342,7 +359,7 @@
                                     "sku_data" : [],
                                     "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
                                     "issue_type": self.issue_selected, "order_id": 0, "nw_status": "online", 'invoice_number': '',
-                                    "order_date":''},
+                                    "order_date":'', 'staff_member': urlService.default_staff_member},
                                     "money_data": {}};
         self.skus= urlService.current_order.sku_data;
         manageData.prepForBroadcast("clear");
@@ -473,19 +490,19 @@
       self.hold_data = hold_data;
       function hold_data() {
         if (urlService.current_order.sku_data.length > 0 && urlService.current_order.customer_data.FirstName.length > 0) {
-        console.log("data stored");
-        var state = 0
-        store_data(urlService.current_order, state);
-        urlService.current_order = {"customer_data" : {},
-                                    "sku_data" : [],
-                                    "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
-                                    "issue_type": self.issue_selected,"order_id":0, "nw_status":"online", 'invoice_number': '',
-                                    "order_date":''},
-                                    "money_data": {}};
-        console.log(urlService.hold_data);
-        self.skus = urlService.current_order.sku_data;
-      self.table_headers = false;
-        manageData.prepForBroadcast("clear");
+          console.log("data stored");
+          var state = 0
+          store_data(urlService.current_order, state);
+          urlService.current_order = {"customer_data" : {},
+                                      "sku_data" : [],
+                                      "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
+                                      "issue_type": self.issue_selected,"order_id":0, "nw_status":"online", 'invoice_number': '',
+                                      "order_date":'', 'staff_member': urlService.default_staff_member},
+                                      "money_data": {}};
+          console.log(urlService.hold_data);
+          self.skus = urlService.current_order.sku_data;
+          self.table_headers = false;
+          manageData.prepForBroadcast("clear");
         }
       }
   
@@ -559,28 +576,51 @@
                  } else {
                   console.log("online");
                   self.repos = data;
-                  return self.repos.map( function (repo) {
+                  self.repos.map( function (repo) {
                     repo.value = repo.search.toLowerCase();
                     return repo;
-                  })
-                 } 
+                    });
+                    
+                 if(data.length === 1)
+                    update_search_results(data, data[0].SKUCode);
+                  
+                 }
+                 deferred.resolve(querySearch (key));
+                 deferred.promise.then(function(data){
+                  angular.forEach(self.skus, function(value, index) {
+                    self.changeQuantity(value);
+                  });
+                 });
+                      
                 },function(error){
                   console.log("offline");
                    getData(key).then(function(data){
                       self.repos = data;
                       //deferred.resolve(data);
-                      return self.repos.map( function (repo) {
-                         repo.value = repo.search.toLowerCase();
-                       return repo;
-                      })
+                      self.repos.map( function (repo) {
+                        repo.value = repo.search.toLowerCase();
+                        return repo;
+                        });
+                      
+                      if(data.length === 1)
+                        update_search_results(data, data[0].SKUCode);
+
+                    }).then(function(){
+                      deferred.resolve(querySearch (key));
+                      deferred.promise.then(function(data){
+                        angular.forEach(self.skus, function(value, index) {
+                          self.changeQuantity(value);
+                        });
+                      });
                     });
+
                 }).then(function() {
-                  deferred.resolve(querySearch (key));
+                  /*deferred.resolve(querySearch (key));
                   deferred.promise.then(function(data){
                     angular.forEach(self.skus, function(value, index) {
                       self.changeQuantity(value);
                     });
-                  });
+                  });*/
                 });
              return deferred.promise;
         }

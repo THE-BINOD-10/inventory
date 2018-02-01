@@ -20,3 +20,5 @@ var NETWORK_ERROR="activated offline mode";
 var CONNECTED_NETWORK="online mode";
 var NOTIIFICATION_ERROR="applicaiton need an notfication permission.";
 var DELIVERY_CHALLAN="Delivery Challan";
+var STAFF_MEMBERS="staff_members";
+var TAX_INCLUSIVE="tax_inclusive";

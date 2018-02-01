@@ -123,7 +123,8 @@
                     $window.location.reload();
                 } else {
                     onLineUserData(data);
-                }  
+                } 
+                deferred.resolve(querySearch (key)); 
               },function(error){
                   console.log("activate offline");
                   getCustomerData(key).then(function(data){
@@ -132,7 +133,7 @@
                       deferred.resolve(querySearch (key));
                   });   
               }).then(function() {
-                  deferred.resolve(querySearch (key));
+                  /*deferred.resolve(querySearch (key));*/
               });
             return deferred.promise;
           }
@@ -302,6 +303,7 @@
         }
       }, 500);
     }
+
   }]
  });
 }(window.angular));

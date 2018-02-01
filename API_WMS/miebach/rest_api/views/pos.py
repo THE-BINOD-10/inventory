@@ -571,7 +571,7 @@ def pre_order_data(request):
 def update_order_status(request):
     full_data = eval(request.POST['data'])
     nw_status = "offline"
-    if isinstanc(full_data, dict):
+    if isinstance(full_data, dict):
         full_data = [full_data]
         nw_status = "online"
     for data in full_data:

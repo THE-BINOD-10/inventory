@@ -80,6 +80,7 @@ importScripts('/app/data/offlineData.js');
 		"app/data/dexie.js",
 		"app/views/home.html",
 		"app/views/print.html",
+		"app/views/pre_order_print.html",
 		"app/app.config.js",
 		"app/header/header.component.js",
 		"app/header/header.module.js",

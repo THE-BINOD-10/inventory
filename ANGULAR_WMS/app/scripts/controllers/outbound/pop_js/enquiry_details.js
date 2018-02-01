@@ -1,8 +1,9 @@
-angular.module('urbanApp', []).controller('EnquiryOrderDetails', ['$scope', 'Service', '$modalInstance', 'items',
-function($scope, Service, $modalInstance, items) {
+angular.module('urbanApp', []).controller('EnquiryOrderDetails', ['$scope', 'Service', '$modalInstance', 'items', 'Session',
+function($scope, Service, $modalInstance, items, Session) {
 
   var vm = this;
   vm.service = Service;
+  vm.permissions = Session.roles.permissions;
 
   vm.model_data = items;
   vm.order_details = {};

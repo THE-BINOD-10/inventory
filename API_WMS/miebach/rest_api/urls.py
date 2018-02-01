@@ -84,6 +84,9 @@ urlpatterns = [
     url(r'^get_zone_data/$', get_zone_data),
     url(r'^search_seller_data/$', search_seller_data),
     url(r'^search_network_user/$', search_network_user),
+    url(r'^get_terms_and_conditions/$', get_terms_and_conditions),
+    url(r'^insert_update_terms/$', insert_update_terms),
+    url(r'^delete_terms/$', delete_terms),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),

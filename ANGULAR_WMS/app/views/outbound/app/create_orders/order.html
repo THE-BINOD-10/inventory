@@ -68,8 +68,8 @@ input[type="date"]:valid::before {
         </div>
 
         <div class="col-md-2 col-sm-6 col-xs-6" ng-if="showCase.user_type=='reseller'">
-          <div class="btn btn-primary up-btn mt10" style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 100%;">Upload PO
-            <input class="btn btn-primary upload-button" value="Upload" type = "file" ng-model="Cart.model_data.uploaded_po" name="file" id="po-upload">&nbsp;
+          <div class="btn btn-primary up-btn mt10" style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 100%;text-overflow: ellipsis;">{{(Cart.upload_file_name)? Cart.upload_file_name: 'Upload PO';}}
+            <input class="btn btn-primary upload-button" value="Upload" type = "file" ng-model="Cart.model_data.uploaded_po" name="file" id="po-upload" file-uploadd>&nbsp;
             <i class="fa fa-cloud-upload fa-1g" aria-hidden="true"></i>
           </div>
         </div>
@@ -164,6 +164,9 @@ input[type="date"]:valid::before {
               <h5 align="left" style="margin-bottom:0px;font-size: 16px;"><b>Rs {{data.invoice_amount}}</b></h5>
               <p align="left" class="text-success" ng-if="data.quantity > 1" style="font-size: 12px;">{{data.quantity}} X Rs.{{data.price}}</p>
               <div><span ng-click="Cart.remove_item($index)" style="cursor: pointer;" title="Delete Order" class="btn-sm btn-danger "><i class="fa fa-trash-o" aria-hidden="true"></i> Remove</span></div>
+              <div class="alert alert-info" ng-if="data.freight_charges" style="margin-top: 11px;margin-bottom: 0px;">
+                <strong>Note:</strong> Freight Charges Included.
+              </div>
             </div>
             <div class="col-md-6 col-sm-6 col-xs-5">
               <div class="col-md-12 col-sm-12 col-xs-12">

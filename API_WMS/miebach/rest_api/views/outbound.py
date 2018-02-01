@@ -4279,8 +4279,8 @@ def get_stock_qty_leadtime(item, wh_code):
                                                           stock__sku__wms_code=wms_code,
                                                           status=1).values_list('stock__sku__wms_code'). \
         aggregate(Sum('reserved'))['reserved__sum']
-    enquiry_res_quantities = EnquiredSku.objects.filter(sku__user__in=wh_code, sku_code=wms_code). \
-        values_list('sku_code').aggregate(Sum('quantity'))['quantity__sum']
+    enquiry_res_quantities = EnquiredSku.objects.filter(sku__user__in=wh_code, sku_code=wms_code).\
+    filter(~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))['quantity__sum']
     if not reserved_quantities:
         reserved_quantities = 0
     if not enquiry_res_quantities:

@@ -49,8 +49,18 @@ input[type="date"]:valid::before {
                   <small class="order-label">Order Value</small>
                   <h2 class="no-margin order-bold">Rs. {{order.total_inv_amt}}</h2>
                 </div>
-                <button ng-if="(permissions.user_type == 'reseller' || permissions.user_type == 'distributor') && (orders.getStatus(order.total_quantity, order.picked_quantity) == 'Open') && user.user_profile['user_type'] != 'warehouse_user'" type="button" class="btn btn-warning mt20 pull-right ng-binding ng-click-active" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.order_cancel(order, $index, $event)">Cancel</button>
               </section>
+              <div class="row">
+                <div class="widget-details col-xs-8">
+                  <div class="alert alert-info" ng-if="order.freight_charges" style="margin-top: 7px; margin-bottom: 0px">
+                    <strong>Note:</strong> Freight Charges Included.
+                  </div>
+                </div>
+                <div class="widget-details col-xs-4 text-right">
+                  <button ng-if="(permissions.user_type == 'reseller' || permissions.user_type == 'distributor') && (orders.getStatus(order.total_quantity, order.picked_quantity) == 'Open') && user.user_profile['user_type'] != 'warehouse_user'" type="button" class="btn btn-warning mt20 pull-right ng-binding ng-click-active" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.order_cancel(order, $index, $event)">Cancel</button>
+                </div>
+                  
+              </div>
             </div>
             <div class="row" ng-if="!orders.your_orders">
               <section class="widget text-center no-margin">

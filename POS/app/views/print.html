@@ -99,7 +99,7 @@
           <td> {{item.name}} </td>
           <td> {{item.quantity}} </td>
           <td> {{item.unit_price + item.sgst + item.cgst | number:2}} </td>
-          <td> {{(item.unit_price + item.sgst + item.cgst) * item.quantity | number:2}}</td>
+          <td> {{((item.unit_price + item.sgst + item.cgst) * item.quantity) | number:2}}</td>
         </tr>
       </tbody>
     </table>

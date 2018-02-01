@@ -2816,12 +2816,12 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
 
 @csrf_exempt
 @login_required
-# @get_admin_user
+@get_admin_user
 def get_file_checksum(request, user=''):
     name = request.GET.get('name', '')
-    user = request.GET.get('user', '')
+    #user = request.GET.get('user', '')
     file_content = ''
-    file_data = list(FileDump.objects.filter(name=name, user=user).values('name', 'checksum', 'path'))
+    file_data = list(FileDump.objects.filter(name=name, user=user.id).values('name', 'checksum', 'path'))
     if file_data:
         file_data = file_data[0]
     return HttpResponse(json.dumps({'file_data': file_data}))
@@ -2829,12 +2829,12 @@ def get_file_checksum(request, user=''):
 
 @csrf_exempt
 @login_required
-# @get_admin_user
+@get_admin_user
 def get_file_content(request, user=''):
     name = request.GET.get('name', '')
-    user = request.GET.get('user', '')
+    #user = request.GET.get('user', '')
     file_content = ''
-    file_data = list(FileDump.objects.filter(name=name, user=user).values('name', 'checksum', 'path'))
+    file_data = list(FileDump.objects.filter(name=name, user=user.id).values('name', 'checksum', 'path'))
     if file_data:
         file_data = file_data[0]
         file_content = open(file_data['path'], 'r').read()

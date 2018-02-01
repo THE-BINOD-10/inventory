@@ -2933,7 +2933,8 @@ def search_network_user(request, user=''):
 def get_terms_and_conditions(request, user=''):
     ''' Get Terms and conditions list'''
     tc_type = request.GET.get('tc_type', '')
-    tc_list = list(TANDCMaster.objects.filter(user=user.id, term_type=tc_type).values('id', 'terms').order_by('id'))
+    admin_user = get_admin(user)
+    tc_list = list(TANDCMaster.objects.filter(user=admin_user.id, term_type=tc_type).values('id', 'terms').order_by('id'))
     return HttpResponse(json.dumps({'tc_list': tc_list}))
 
 

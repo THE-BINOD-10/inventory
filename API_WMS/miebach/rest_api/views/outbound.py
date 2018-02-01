@@ -4384,6 +4384,7 @@ def get_sku_catalogs(request, user=''):
             remarks = remarks[0].misc_value
         display_stock = request.POST.get('display_stock', '')
         user_type = request.POST.get('user_type', '')
+        terms_list = (request.POST.get('terms_list', '')).split('<>');
         admin = get_admin(user)
         image = get_company_logo(admin)
         date = get_local_date(user, datetime.datetime.now())
@@ -4393,7 +4394,8 @@ def get_sku_catalogs(request, user=''):
             t = loader.get_template('templates/customer_search.html')
         rendered = t.render({'data': data, 'user': request.user.first_name, 'date': date,
                              'remarks': remarks, 'display_stock': display_stock, 'image': image,
-                             'style_quantities': eval(request.POST.get('required_quantity', '{}'))})
+                             'style_quantities': eval(request.POST.get('required_quantity', '{}')),
+                             'terms_list': terms_list})
 
         if not os.path.exists('static/pdf_files/'):
             os.makedirs('static/pdf_files/')

@@ -102,6 +102,16 @@
 {% endif %}
 {% endfor %}
 </div>
+{% if terms_list %}
+  <div class="row" style="margin-top: 20px;width:100%;margin-left:20">
+    <span class="pre-custom"><b>Terms and Conditions</b></span>
+    <ul>
+      {% for term in terms_list %}
+        <li>{{ term }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
 {% if not endif %}
 <p style="margin-top: 20px;width:100%;margin-left:20" class="pre-custom"><b>Note:</b>{{remarks}}</b></p>
 {% endif %}

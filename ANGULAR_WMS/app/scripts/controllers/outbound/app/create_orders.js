@@ -1147,6 +1147,13 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
         delete data.required_quantity;
     }
     vm.pdfDownloading = true;
+    var terms_list = [];
+    angular.forEach(vm.terms, function(value, key) {
+      if(value.is_checked){
+        terms_list.push(value.terms);
+      }
+    });
+    data['terms_list'] = terms_list.join('<>');
     data['user_type'] = Session.roles.permissions.user_type;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
@@ -1162,23 +1169,23 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
   vm.cancel = function () {
     $modalInstance.dismiss('cancel');
   };
-})
 
-vm.terms = []
+  vm.terms = []
 
   vm.get_terms = function(data) {
     var data = {tc_type: 'sales'}
-    vm.service.apiCall("get_terms_and_conditions/", "GET",data).then(function(data){
-      debugger;
+    Service.apiCall("get_terms_and_conditions/", "GET",data).then(function(data){
       if(data.message) {
-        vm.all_cate = data.data.categories;
-        vm.categories_details = data.data.categories_details;
-        $state.go('user.App.Products');
+        vm.terms = data.data.tc_list;
       }
       vm.pdfDownloading = false;
     });
   }
 
   vm.get_terms();
+
+
+})
+
 
 })();

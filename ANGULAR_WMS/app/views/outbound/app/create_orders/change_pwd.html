@@ -1,0 +1,44 @@
+<form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+<div class="modal-header">
+  <h4 class="modal-title" id="modal-title">CHANGE PASSWORD</h4>
+</div>
+<div class="modal-body" id="modal-body">
+  <div class="row">
+    <div class="col-md-2 col-sm-12 col-xs-12"></div>
+    <div class="col-md-8 col-sm-12 col-xs-12">
+      
+      <div class="row">
+        <div class="col-md-12">
+          <div class="form-group">
+            <label class="control-label"> Exesting Password * </label>
+            <input type="password" class="form-control" ng-model="$ctrl.exe_pwd" name="exe_pwd" required>
+          </div>
+        </div>
+      </div>
+      
+      <div class="row">
+        <div class="col-md-12">
+          <div class="form-group">
+            <label class="control-label"> New Password * </label>
+            <input type="password" class="form-control" ng-model="$ctrl.new_pwd" ng-blur="$ctrl.check_validation()" name="new_pwd" ng-readonly="!$ctrl.exe_pwd" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="form-group">
+            <label class="control-label"> Confirm Password * </label>
+            <input type="password" class="form-control" ng-model="$ctrl.confirm_pwd" ng-blur="$ctrl.check_validation()" name="confirm_pwd" ng-readonly="!$ctrl.new_pwd" required>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2 col-sm-12 col-xs-12"></div>
+  </div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-warning" type="button" ng-click="$ctrl.cancel()">Close</button>
+  <button class="btn btn-primary" type="submit" ng-click="$ctrl.ok(form)">Change Password</button>
+</div>
+</form>

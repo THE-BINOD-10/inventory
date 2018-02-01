@@ -359,7 +359,7 @@
                                     "sku_data" : [],
                                     "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
                                     "issue_type": self.issue_selected, "order_id": 0, "nw_status": "online", 'invoice_number': '',
-                                    "order_date":''},
+                                    "order_date":'', 'staff_member': urlService.default_staff_member},
                                     "money_data": {}};
         self.skus= urlService.current_order.sku_data;
         manageData.prepForBroadcast("clear");
@@ -497,7 +497,7 @@
                                       "sku_data" : [],
                                       "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0,
                                       "issue_type": self.issue_selected,"order_id":0, "nw_status":"online", 'invoice_number': '',
-                                      "order_date":''},
+                                      "order_date":'', 'staff_member': urlService.default_staff_member},
                                       "money_data": {}};
           console.log(urlService.hold_data);
           self.skus = urlService.current_order.sku_data;

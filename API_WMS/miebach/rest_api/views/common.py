@@ -1166,6 +1166,10 @@ def auto_po_warehouses(sku, qty):
             create_generic_order(order_data, cm_id, sku.user, generic_order_id, [], True,
                                  order_summary_dict, '', '', '', admin_user,
                                  sku_total_qty_map, order_user_sku, order_user_objs)
+            #qssi order push
+            user = User.objects.get(id=usr)
+            resp = order_push(order_data['original_order_id'], user, "NEW")
+            log.info('New Order Push Status: %s' %(str(resp)))
         price = unit_price
     return supplier_id, price, taxes
 
@@ -2635,6 +2639,9 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     color = request_data.get('color', '')
     custom_margin = request_data.get('margin', 0)
     hot_release = request_data.get('hot_release', '')
+    quantity = request_data.get('quantity', 0)
+    if not quantity:
+        quantity = 0
     try:
         custom_margin = float(custom_margin)
     except:
@@ -2784,10 +2791,10 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if is_file:
         start, stop = 0, len(product_styles)
 
-    data = get_styles_data(user, product_styles, sku_master, start, stop, customer_id=customer_id,
+    data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id=customer_id,
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
-                           is_margin_percentage=is_margin_percentage)
+                           is_margin_percentage=is_margin_percentage, stock_quantity=quantity)
     return data, start, stop
 
 
@@ -2816,12 +2823,12 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
 
 @csrf_exempt
 @login_required
-# @get_admin_user
+@get_admin_user
 def get_file_checksum(request, user=''):
     name = request.GET.get('name', '')
-    user = request.GET.get('user', '')
+    #user = request.GET.get('user', '')
     file_content = ''
-    file_data = list(FileDump.objects.filter(name=name, user=user).values('name', 'checksum', 'path'))
+    file_data = list(FileDump.objects.filter(name=name, user=user.id).values('name', 'checksum', 'path'))
     if file_data:
         file_data = file_data[0]
     return HttpResponse(json.dumps({'file_data': file_data}))
@@ -2829,12 +2836,12 @@ def get_file_checksum(request, user=''):
 
 @csrf_exempt
 @login_required
-# @get_admin_user
+@get_admin_user
 def get_file_content(request, user=''):
     name = request.GET.get('name', '')
-    user = request.GET.get('user', '')
+    #user = request.GET.get('user', '')
     file_content = ''
-    file_data = list(FileDump.objects.filter(name=name, user=user).values('name', 'checksum', 'path'))
+    file_data = list(FileDump.objects.filter(name=name, user=user.id).values('name', 'checksum', 'path'))
     if file_data:
         file_data = file_data[0]
         file_content = open(file_data['path'], 'r').read()
@@ -3631,24 +3638,51 @@ def get_categories_list(request, user=""):
 def get_generic_warehouses_list(user):
    return UserGroups.objects.filter(admin_user=user).values_list('user', flat=True)
 
+def get_cal_style_data(style_data, quantity):
 
-def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='', customer_data_id='', is_file='',
-                    prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0):
+    quantity = int(quantity)
+    unit_price = style_data['variants'][0]['price']
+    if style_data['variants'][0].get('price_ranges', ''):
+        status = False
+        for price in style_data['variants'][0]['price_ranges']:
+            if quantity >= price['min_unit_range'] and quantity <= price['max_unit_range']:
+                unit_price = price['price']
+                status = True
+                break
+        if not status:
+            unit_price = style_data['variants'][0]['price_ranges'][0]['price']
+    amount = unit_price * quantity
+    tax_percentage = 0
+    tax_value = 0
+    if style_data['variants'][0]['taxes']:
+        tax = style_data['variants'][0]['taxes'][0]
+        tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
+        tax_value = (amount / 100) * tax_percentage
+    data = {'unit_price': int(unit_price), 'quantity': int(quantity), 'amount': int(amount),
+            'tax_percentage': '%.1f'%tax_percentage, 'tax_value': int(tax_value),
+            'total_amount': amount + tax_value}
+    return data
+
+
+def get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id='', customer_data_id='', is_file='',
+                    prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0,
+                    stock_quantity=0):
     data = []
+    style_quantities = eval(request.POST.get('required_quantity', '{}'))
     from rest_api.views.outbound import get_style_variants
     levels_config = get_misc_value('generic_wh_level', user.id)
-    get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand',
+    get_values = ['wms_code', 'sku_desc', 'hsn_code', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand',
                   'sku_size', 'style_name', 'sale_through', 'product_type']
     gen_whs = [user.id]
     admin = get_priceband_admin_user(user)
     if admin:
         gen_whs = get_generic_warehouses_list(admin)
-    stock_objs = StockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0).values('sku__sku_class').distinct(). \
-        annotate(in_stock=Sum('quantity'))
+    stock_objs = StockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0).values('sku__sku_class').\
+        distinct().annotate(in_stock=Sum('quantity'))
     reserved_quantities = PicklistLocation.objects.filter(stock__sku__user__in=gen_whs, status=1).values(
         'stock__sku__sku_class').distinct().annotate(in_reserved=Sum('reserved'))
-    enquiry_res_quantities = EnquiredSku.objects.filter(sku__user__in=gen_whs). \
-        values('sku__sku_class').annotate(tot_qty=Sum('quantity'))
+    enquiry_res_quantities = EnquiredSku.objects.filter(sku__user__in=gen_whs).\
+        filter(~Q(enquiry__extend_status='rejected')).values('sku__sku_class').annotate(tot_qty=Sum('quantity'))
     stock_skus = map(lambda d: d['sku__sku_class'], stock_objs)
     stock_quans = map(lambda d: d['in_stock'], stock_objs)
     reserved_skus = map(lambda d: d['stock__sku__sku_class'], reserved_quantities)
@@ -3668,6 +3702,8 @@ def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='
             total_quantity = total_quantity - float(enq_res_quans[enq_res_skus.index(product)])
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
+            for index, i in enumerate(sku_variants):
+                sku_variants[index]['hsn_code'] = int(i['hsn_code'])
             sku_variants = get_style_variants(sku_variants, user, customer_id, total_quantity=total_quantity,
                                               customer_data_id=customer_data_id, prices_dict=prices_dict,
                                               levels_config=levels_config, price_type=price_type,
@@ -3677,8 +3713,11 @@ def get_styles_data(user, product_styles, sku_master, start, stop, customer_id='
             sku_styles[0]['style_quantity'] = total_quantity
 
             sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'], user)
-
-            data.append(sku_styles[0])
+            if style_quantities.get(sku_styles[0]['sku_class'], ''):
+                sku_styles[0]['style_data'] = get_cal_style_data(sku_styles[0],\
+                                              style_quantities[sku_styles[0]['sku_class']])
+            if total_quantity >= int(stock_quantity):
+                data.append(sku_styles[0])
         if not is_file and len(data) >= 20:
             break
     return data
@@ -5782,7 +5821,7 @@ def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):
 
 def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_objs, is_distributor,
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
-                         order_user_sku, order_user_objs):
+                         order_user_sku, order_user_objs, address_selected=''):
     order_unit_price = order_data['unit_price']
     el_price = order_data.get('el_price', 0)
     del_date = order_data['del_date']
@@ -5815,7 +5854,8 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
             dist_order_copy['telephone'] = customer_user[0].customer.phone_number
             dist_order_copy['email_id'] = customer_user[0].customer.email_id
             dist_order_copy['address'] = customer_user[0].customer.address
-            ship_to = CustomerMaster.objects.get(id=cm_id).address
+            if address_selected == 'Your Address':  # If reseller selects his address while placing order.
+                ship_to = CustomerMaster.objects.get(id=cm_id).address
         order_obj = OrderDetail.objects.filter(order_id=dist_order_copy['order_id'],
                                                sku_id=dist_order_copy['sku_id'],
                                                order_code=dist_order_copy['order_code'],
@@ -5945,3 +5985,18 @@ def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code):
     invoice_amount = qty * unit_price
     invoice_amount = invoice_amount + ((invoice_amount / 100) * sum(taxes.values()))
     return invoice_amount
+
+
+def get_level_name_with_level(user, warehouse_level, users_list=[]):
+    ''' Getting Level name by using level'''
+    if warehouse_level == 0:
+        return 'Source Distributor'
+    if not users_list:
+        central_admin = get_admin(user)
+        users_list = UserGroups.objects.filter(admin_user=central_admin.id).values_list('user').distinct()
+    level_name = 'Level-%s' % (str(warehouse_level))
+    level_name_objs = UserProfile.objects.exclude(level_name='').filter(user_id__in=users_list,
+                                                                        warehouse_level=warehouse_level)
+    if level_name_objs:
+        level_name = level_name_objs[0].level_name
+    return level_name

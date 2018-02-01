@@ -99,11 +99,11 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                                                    'SKUView': 'batch_generate_picklist/',
                                                    'SellerOrderView': 'seller_generate_picklist/'
                                                  },
-                        tb_headers: { 'CustomerOrderView': ['Customer Name', 'Order ID', 'Market Place', 'Total Quantity', 'Shipment Date', 'Creation Date', 'Order Taken By', 'Status'],
-                                      'CustomerCategoryView': ['Customer Name', 'Order ID', 'Category', 'Total Quantity', 'Order Taken By', 'Status'],
-                                      'SKUView': ['SKU Code','Title', 'Total Quantity'],
-                                      'OrderView': ['Order ID', 'SKU Code', 'Title', 'Product Quantity', 'Shipment Date', 'Order Taken By', 'Status'],
-                                      'SellerOrderView': ['SOR ID', 'UOR ID', 'Seller Name', 'Customer Name', 'Market Place', 'Total Quantity', 'Creation Date', 'Order Taken By', 'Status']
+                        tb_headers: { 'CustomerOrderView': {'Customer Name': 'Customer Name', 'Order ID': 'Order ID', 'Market Place': 'Market Place', 'Total Quantity': 'Total Quantity', 'Shipment Date': 'Exp Delivery Date', 'Creation Date': 'Creation Date', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},
+                                      'CustomerCategoryView': {'Customer Name': 'Customer Name', 'Order ID': 'Order ID', 'Category': 'Category', 'Total Quantity': 'Total Quantity', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},
+                                      'SKUView': {'SKU Code': 'SKU Code', 'Title': 'Title', 'Total Quantity': 'Total Quantity'},
+                                      'OrderView': {'Order ID': 'Order ID', 'SKU Code': 'SKU Code', 'Title': 'Title', 'Product Quantity': 'Product Quantity', 'Shipment Date': 'Exp Delivery Date', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},
+                                      'SellerOrderView': {'SOR ID': 'SOR ID', 'UOR ID': 'UOR ID', 'Seller Name': 'Seller Name', 'Customer Name': 'Customer Name', 'Market Place': 'Market Place', 'Total Quantity': 'Total Quantity', 'Creation Date': 'Creation Date', 'Order Taken By': 'Order Taken By', 'Status': 'Status'}
                                     },
                         dt_data: {'OrderView': {}, 'OrderCategoryView': ''}
                       }
@@ -145,6 +145,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.marginSKUData = {data: []};
     self.enquiry_orders = [];
     self.my_orders = [];
+    self.styleId = '';
+    self.styles_data = {};
 
     /** login page maintainance **/
     self.login_data = {

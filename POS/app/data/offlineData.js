@@ -151,42 +151,42 @@
     //search customer
     function getCustomerData(find_key){
 
+         var customer_list=[];
         return new Promise(function(resolve,reject){
             openDB().then(function(){
             POS_TABLES.customer.where("Number").
             startsWithIgnoreCase(find_key).
             or("FirstName").startsWithIgnoreCase(find_key).
             limit(30).toArray().then(function(data){
+                customer_list=customer_list.concat(data);
+        
+                POS_TABLES.sync_customer.where("number").
+                startsWithIgnoreCase(find_key).
+                or("firstName").startsWithIgnoreCase(find_key).
+                limit(30).toArray().then(function(data){
 
-                if(data.length>0){
-                    return resolve(data);   
-                }else{
+                    var data_list=[],user={};
 
-                    POS_TABLES.sync_customer.where("number").
-                    startsWithIgnoreCase(find_key).
-                    or("firstName").startsWithIgnoreCase(find_key).
-                    limit(30).toArray().then(function(data){
-
-                        var data_list=[],user={};
-
-                        for(var user_list=0;user_list<data.length;user_list++){
-                            user=data[user_list];
-                            data_list.push({"FirstName":user.firstName,"Address":"","Email":user.mail,"ID":'',"LastName":user.secondName,"Number":""+user.number});
-                        }
-
-                        return resolve(data_list);
-                    }).catch(function(error){
-                        return reject(error);
-                    });
-                }
+                    for(var user_list=0;user_list<data.length;user_list++){
+                        user=data[user_list];
+                        data_list.push({"FirstName":user.firstName,"Address":"","Email":user.mail,"ID":'',"LastName":user.secondName,"Number":""+user.number});
+                    }
+                    customer_list=customer_list.concat(data_list);
+                    return resolve(customer_list);
+                }).catch(function(error){
+                    console.log(error);
+                    return resolve(customer_list);
+                });
+                
                 
             }).catch(function(error){
-                return reject(error);
+                console.log(error);
+                return resolve(customer_list);
             });
 
            }).catch(function(error){
                 console.log(error);
-                return reject(error);
+                return resolve(customer_list);
             });
         });
     }
@@ -636,14 +636,17 @@
                     });
 
                     //save order in DB
-                    var id=yield POS_TABLES.sync_orders.
-                    put({"order_id":JSON.stringify(order_data.summary.order_id),
-                        "order":JSON.stringify(order_data)}).then(function(data){
-                            console.log("data saved in local db "+data);    
-                        }).catch(function(error){
-                            console.error("error "+error.message);  
-                            return reject(error.message);
-                        });
+                    var store_id=JSON.stringify(order_data.summary.order_id);
+                    var store_order=JSON.stringify(order_data);
+                    console.log("save order in local db  order_id"+store_id+" order data "+store_order);
+                    yield POS_TABLES.sync_orders.
+                            put({"order_id":store_id,"order":store_order}).
+                            then(function(data){
+                                console.log("data saved in local db "+data);    
+                            }).catch(function(error){
+                                console.error("error "+error);  
+                                return reject(error);
+                            });
 
                     // update the order id 
                     yield POS_TABLES.checksum.
@@ -1166,19 +1169,26 @@
                 openDB().then(function(){
                 //get all peorders in preorder where status is 1.
                 POS_TABLES.pre_orders.filter(function(data){
-
-                    data=JSON.parse(data.order_data);
-                    if(data.status.toString()=="1")
-                        return true;    
+                    if(data!=undefined && data.order_data!=undefined){
+                        data=JSON.parse(data.order_data);
+                        if(data.status.toString()=="1")
+                            return true;    
+                    }else{
+                        return false;
+                    }
                 }).toArray().then(function(data){
 
                     pre_order_data=data;
 
                     //get all orders where issuetype is "pre order".
                     POS_TABLES.sync_orders.filter(function(data){
-                        data=JSON.parse(data.order);
-                        if(data.summary.issue_type.toLowerCase()==="pre order" && data.status==="1"){
-                            return true;
+                        if(data!=undefined && data.order!=undefined){
+                            data=JSON.parse(data.order);
+                            if(data.summary.issue_type.toLowerCase()==="pre order" && data.status==="1"){
+                                return true;
+                            }
+                        }else{
+                            return false;
                         }
                     }).toArray().then(function(preorders){
 

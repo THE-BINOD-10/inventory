@@ -8,7 +8,7 @@ app.service('urlService', function($rootScope){
     this.userData = {"VAT":0};
     this.VAT = 0;
     this.hold_data = [];
-    this.current_order = {"customer_data" : {},
+    this.current_order = {"customer_data" : {"customer_extra": {}},
                           "sku_data" : [],
                           "summary":{"total_quantity": 0 , "total_amount": 0, "total_discount": 0, "subtotal": 0, "VAT": 0},
                           "money_data": {},

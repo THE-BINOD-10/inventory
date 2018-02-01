@@ -124,6 +124,11 @@
             <span>Seller Margin Mapping</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_tandcmaster')">
+          <a ui-sref="app.masters.TandCMaster">
+            <span>T&C Master</span>
+          </a>
+        </li>
       </ul>
     </li>
     <!-- /Masters -->
@@ -283,9 +288,10 @@
             <span>Pull Confirmation</span>
           </a>
         </li>
-        <li ng-show="permissions.user_type == 'distributor'" ui-sref-active="active">
+        <!--<li ng-show="permissions.user_type == 'distributor'" ui-sref-active="active">-->
+        <li ng-show="show_tab('add_enquirymaster') && (permissions.user_type == 'distributor' || permissions.user_type == 'central_admin')" ui-sref-active="active">
           <a ui-sref="app.outbound.EnquiryOrders">
-            <span>Enquiry Orders</span>
+            <span>Marketing Enquiry Orders</span>
           </a>
         </li>
         <li ng-show="show_tab('add_shipmentinfo')" ui-sref-active="active">
@@ -298,7 +304,8 @@
             <span>Create Stock Transfer</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <!--<li ui-sref-active="active">-->
+        <li ng-show="show_tab('add_sellerordersummary')" ui-sref-active="active">
           <a ui-sref="app.outbound.CustomerInvoices">
             <span>Customer Invoices</span>
           </a>

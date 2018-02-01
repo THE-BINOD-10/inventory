@@ -10,7 +10,7 @@
               <span>Quantity</span>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6 detail-black">
-              <span>: {{order_details.sum_data.quantity}}</span>
+             <span>: {{order_details.sum_data.quantity}}</span>
             </div>
           </div>
           <div class="row border-grey no-margin">
@@ -46,7 +46,7 @@
             </div>
             <div class="widget-details col-md-4 col-sm-4 col-xs-4 text-left">
             <small class="order-label">SKU Description</small>
-            <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.sku__sku_desc}} (level-{{data.warehouse_level}})</p><br>
+            <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.sku__sku_desc}} ({{order_details.level_name}})</p><br>
             <small class="order-label" ng-if="data.schedule_date">Delivery Schedule Date</small>
             <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.schedule_date}}</p>
             <!--<span><b>Price:</b> <b style="color:#ed1c24">1234</b></span>-->

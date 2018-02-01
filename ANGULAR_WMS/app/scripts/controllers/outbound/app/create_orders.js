@@ -2,7 +2,7 @@
 
 'use strict';
 
-function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $modal, $rootScope, Data) {
+function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $modal, $rootScope, Data, $location) {
 
   $scope.msg = "start";
   var vm = this;
@@ -21,6 +21,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.company_name = Session.user_profile.company_name;
   vm.model_data = {};
   vm.required_quantity = {};
+  vm.margin_types = ['Margin Percentage', 'Margin Value'];
+  Data.styles_data = {};
+  vm.location = $location.$$path;
 
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
                             customer_id: "", payment_received: "", order_taken_by: "", other_charges: [], shipment_time_slot: "", remarks: ""};
@@ -35,6 +38,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.brand = "";
   vm.filterData = {};
   
+  vm.goBack = function(){
+
+    $state.go('user.App.Brands');
+  }
 
   function change_filter_data() {
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
@@ -78,6 +85,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         'FE500D':'FE500D.jpg',
         'FE550':'FE550.jpg',
         'FE600':'FE600.jpg',
+        'MARSH':'MARSH.jpg',
         }
 
         vm.brands_logos = {'6 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
@@ -95,9 +103,16 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         'FE500':'FE500.jpg',
         'FE500D':'FE500D.jpg',
         'FE550':'FE550.jpg',
-        'FE600':'FE600.jpg', 
+        'FE600':'FE600.jpg',
+        'MARSH':'MARSH.jpg',
         }
-        //vm.change_brand('');
+        if (vm.location == '/App/Products') {
+          // vm.change_brand('');
+          vm.change_category('');
+        } else if(vm.location == '/App/Categories'){
+          // vm.change_category('');
+          vm.change_brand('');
+        }
       }
     });
   }
@@ -147,9 +162,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
         angular.copy([], vm.catlog_data.data);
         vm.catlog_data.index = data.data.next_index;
-	    angular.forEach(data.data.data, function(item){
+	      angular.forEach(data.data.data, function(item){
           vm.catlog_data.data.push(item);
-        })
+        });
         vm.scroll_data = true;
   	//  }
 	  vm.loading = false;
@@ -180,6 +195,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.showFilter = false;
       }
     });
+
     vm.cancel = function() {
       console.log("cancel")
       canceller.resolve("cancelled");
@@ -198,8 +214,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.show_no_data = false;
     var size_stock = "";
     var cat_name = vm.category;
+    // vm.required_quantity = {};
 
     if(vm.category == "All") {
+      cat_name = "";
+    } else if(vm.category == "") {
+      vm.category = "All";
       cat_name = "";
     }
 
@@ -211,8 +231,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
-                to_price: vm.toPrice, is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
-                hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data)};
+                to_price: vm.toPrice, quantity: vm.quantity, is_margin_percentage: vm.marginData.is_margin_percentage,
+                margin: vm.marginData.margin, hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data)};
 
     if(status) {
       angular.copy([], vm.catlog_data.data);
@@ -230,9 +250,16 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
           angular.copy([], vm.catlog_data.data);
         }
         vm.catlog_data.index = data.data.next_index;
+        
         angular.forEach(data.data.data, function(item){
+          vm.required_quantity[item.variants[0].style_name] = vm.quantity;
           vm.catlog_data.data.push(item);
-        })
+        });
+
+        if(!Data.marginSKUData.category){
+          Data.marginSKUData['category'] = {};
+        }
+        // vm.margin_add_to_categoris(data.data.data, Data.marginSKUData.category[vm.category]);
       //}
       vm.scroll_data = true;
       vm.add_scroll();
@@ -245,7 +272,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.scroll_data = false;
       }
     }
-    })
+    });
   }
 
   vm.scroll_data = true;
@@ -290,6 +317,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     vm.brand = data;
     vm.catlog_data.index = "";
+    vm.required_quantity = {};
     angular.copy([], vm.catlog_data.data);
     vm.category = '';
     vm.style='';
@@ -312,9 +340,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.color = "";
     vm.filterData.fromPrice = "";
     vm.filterData.toPrice = "";
+    vm.filterData.quantity = "";
     vm.fromPrice = vm.filterData.fromPrice;
     vm.toPrice = vm.filterData.toPrice;
-    vm.size_filter_data = vm.filterData.size_filter
+    vm.quantity = vm.filterData.quantity;
+    vm.size_filter_data = vm.filterData.size_filter;
 
     vm.showFilter = false;
     //vm.get_category(true);
@@ -326,10 +356,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       if(data.message) {
         vm.all_cate = data.data.categories;
         vm.categories_details = data.data.categories_details;
-        $state.go('user.App.Products');
+        $state.go('user.App.Categories');
       }
       vm.pdfDownloading = false;
-    })
+    });
   }
 
   vm.change_category = function(category) {
@@ -341,9 +371,16 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.filterData.selectedCats = {};
       vm.filterData.selectedCats[category] = true;
     }
+
+    if(!vm.filterData.subCats[category]) {
+      vm.filterData.subCats[category] = {};
+    }
+    vm.filterData.subCats[category][category] = true;
     vm.showFilter = false;
     vm.from_cats = true;
+    vm.required_quantity = {};
     vm.get_category(true);
+    $state.go('user.App.Products');
   }
 
   vm.change_size_type = function(toggle) {
@@ -459,12 +496,15 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.logout = function(){
     var user_name = Session.parent.userName;
+    var sm_user_type = Session.roles.permissions.user_type;
     Data.my_orders = [];
     Data.enquiry_orders = [];
 
     Auth.logout().then(function(){
       if (user_name == 'sagar_fab') {
         $state.go("user.sagarfab");
+      } else if(sm_user_type == 'reseller'){
+        $state.go("user.smlogin");
       } else {
         $state.go("user.signin");
       }
@@ -494,7 +534,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       //var search = $(".search-box").height();
       //search = (search)? search+25 : 0;
       var cart = $(".cart_button:visible").outerHeight();
-      $(".app_body").css('height',height-header-menu-cart);
+      
+      // if(vm.location != '/App/Categories'){
+        $(".app_body").css('height',height-header-menu-cart);
+      // }
+      
       $(".app_body").css('overflow-y', 'auto');
     }
     }, 500)
@@ -632,11 +676,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     //vm.primary_data = JSON.stringify(temp_primary_data);
     vm.fromPrice = vm.filterData.fromPrice;
     vm.toPrice = vm.filterData.toPrice;
+    vm.quantity = vm.filterData.quantity;
     vm.showFilter = false;
     vm.from_cats = false;
     vm.hot_release = vm.filterData.hotRelease;
     vm.get_category(true);
-    if( $state.$current.name == "user.App.Brands") {
+    if( $state.$current.name == "user.App.Brands" || $state.$current.name == "user.App.Categories") {
       $state.go('user.App.Products');
     }
     $window.scrollTo(0, angular.element(".app_body").offsetTop);
@@ -686,10 +731,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.color = "";
       vm.filterData.fromPrice = "";
       vm.filterData.toPrice = "";
+      vm.filterData.quantity = "";
       vm.filterData.hotRelease = false;
       vm.hot_release = vm.filterData.hotRelease;
       vm.fromPrice = vm.filterData.fromPrice;
       vm.toPrice = vm.filterData.toPrice;
+      vm.quantity = vm.filterData.quantity;
 
     vm.catlog_data.index = "";
     vm.size_filter_data = vm.filterData.size_filter
@@ -698,6 +745,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.clearFilters = function(data) {
 
     vm.clearFilterData();
+    vm.required_quantity = {};
     if( $state.$current.name == "user.App.Brands") {
       return false;
     } else {
@@ -766,10 +814,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     });
   }*/
 
+  vm.cat_level_margin = {};
+
   //margin value
   vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, sale_through: vm.order_type_value};
   vm.addMargin = function() {
-
+ 
     var mod_data = vm.marginData;
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/app/create_orders/add_margin.html',
@@ -786,17 +836,58 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     });
 
     modalInstance.result.then(function (selectedItem) {
-       vm.marginData = selectedItem;
-       if (vm.marginData.margin_type == 'Margin Percentage') {
-         vm.marginData.is_margin_percentage = true;
-         vm.marginData.margin = vm.marginData.margin_percentage;
-       } else {
-         vm.marginData.is_margin_percentage = false;
-         vm.marginData.margin = vm.marginData.margin_value;
-       }
-       Data.marginSKUData.is_margin_percentage = vm.marginData.is_margin_percentage;
-       Data.marginSKUData.margin = vm.marginData.margin;
+      vm.marginData = selectedItem;
+      if (vm.marginData.margin_type == 'Margin Percentage') {
+        
+        vm.marginData.is_margin_percentage = true;
+        vm.marginData.margin = vm.marginData.margin_percentage;
+      } else {
+        
+        vm.marginData.is_margin_percentage = false;
+        vm.marginData.margin = vm.marginData.margin_value;
+      }
+
+      Data.marginSKUData.is_margin_percentage = vm.marginData.is_margin_percentage;
+      Data.marginSKUData.margin = vm.marginData.margin;
+      Data.marginSKUData.data = [];
+
+      vm.catlog_data.index = '';
+      vm.get_category(true, true);
+
     })
+  }
+
+  vm.margin_add_to_categoris = function(data, default_margin){
+    vm.checked_margin = default_margin;
+    if (data.length) {
+      angular.forEach(data, function(item){
+
+        if (Data.marginSKUData.category[vm.category] && vm.checked_margin) {
+
+          if (Data.marginSKUData.category[vm.category] != vm.checked_margin) {
+
+            item.variants[0].your_price = vm.changed_margin;
+            Data.marginSKUData.category[vm.category] = vm.checked_margin;
+          }
+          else {
+            item.variants[0].your_price = Data.marginSKUData.category[vm.category];
+          }
+        } else {
+          if (Data.marginSKUData.margin) {
+            item.variants[0].your_price = Data.marginSKUData.margin;
+          } else {
+            vm.catlog_data.data.push(item);
+          }
+        }
+      });
+
+      // angular.forEach(data, function(item){
+      //   vm.catlog_data.data.push(item);
+      // });
+    } else {
+      Data.marginSKUData.category = {};
+      default_margin = Data.marginSKUData.margin;
+    }
   }
 
   vm.addSKUinData = function(data_list) {
@@ -849,7 +940,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var size_stock = JSON.stringify(vm.size_filter_data);
     var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
                 sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true,
-                color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice,
+                color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice, quantity: vm.quantity,
                 is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
                 margin_data: JSON.stringify(Data.marginSKUData.data), required_quantity: JSON.stringify(vm.required_quantity)}
     var modalInstance = $modal.open({
@@ -905,7 +996,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'ACCESSORIES': 'ACCESSORIES.jpg',
                            'APPARELS': 'APPARELS.jpg',
                            'ELECTRONICS': 'ELECTRONICS.jpg',
-                           'GARMENTS': 'ELECTRONICS.jpg',
+                           'GARMENTS': 'GARMENTS.jpg',
                            'LEATHER ITEMS': 'LEATHER ITEMS.jpg',
                            'PENS': 'PENS.jpg',
                            'PU ITEMS': 'PU ITEMS.jpg',
@@ -921,7 +1012,15 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'TG-TOILETARY BAGS': 'TG-TOILETARY BAGS.jpg',
                            'TG-TRAVEL WALLETS': 'TG-TRAVEL WALLETS.jpg',
                            'TOYS': 'TOYS.jpg',
-                           'TRAVEL GEAR': 'TRAVEL GEAR.jpg'
+                           'TRAVEL GEAR': 'TRAVEL GEAR.jpg',
+
+                           //SAILESH
+                           'FULL SLEEVE SHIRT': 'FULL SLEEVE SHIRT.png',
+                           'HONEY COMBED DRY FIT': 'HONEY COMBED DRY FIT.png',
+                           'HOODIES WITHOUT ZIP': 'HOODIES WITHOUT ZIP.png',
+                           'HOODIES WITH ZIP': 'HOODIES WITH ZIP.png',
+                           'POLO': 'POLO.png',
+                           'ROUND NECK': 'ROUND NECK.png',
                            };
 
   vm.get_category_image = function(category) {
@@ -932,11 +1031,34 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       return '/images/categories/default.png'
     }
   }
+
+  vm.changePWDData = {};
+  vm.changePWD = function() {
+ 
+    var mod_data = vm.changePWDData;
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/app/create_orders/change_pwd.html',
+      controller: 'changePWDCtrl',
+      controllerAs: '$ctrl',
+      size: 'md',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      vm.changedData = selectedItem;
+    })
+  }
 }
 
 angular
   .module('urbanApp')
-  .controller('appCreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', '$modal', '$rootScope', 'Data', appCreateOrders]);
+  .controller('appCreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', '$modal', '$rootScope', 'Data', '$location', appCreateOrders]);
 
 angular.module('urbanApp').controller('addMarginCtrl', function ($modalInstance, $modal, items, Service, Data, Session) {
   var $ctrl = this;
@@ -1074,11 +1196,19 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
   vm.pdfDownloading = false;
   vm.downloadPDF = function(form) {
 
-    var data = vm.pdfData;
+    var data = {};
+    angular.copy(vm.pdfData, data);
     if (!vm.pdfData.display_total_amount) {
         delete data.required_quantity;
     }
     vm.pdfDownloading = true;
+    var terms_list = [];
+    angular.forEach(vm.terms, function(value, key) {
+      if(value.is_checked){
+        terms_list.push(value.terms);
+      }
+    });
+    data['terms_list'] = terms_list.join('<>');
     data['user_type'] = Session.roles.permissions.user_type;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
@@ -1089,11 +1219,77 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
 
     data = $("form").serialize();
     Service.apiCall("switches/?"+data);
+    Session.roles.permissions.customer_pdf_remarks = vm.pdfData.remarks;
   }
 
   vm.cancel = function () {
     $modalInstance.dismiss('cancel');
   };
-})
+
+  vm.terms = []
+
+  vm.get_terms = function(data) {
+    var data = {tc_type: 'sales'}
+    Service.apiCall("get_terms_and_conditions/", "GET",data).then(function(data){
+      if(data.message) {
+        vm.terms = data.data.tc_list;
+      }
+      vm.pdfDownloading = false;
+    });
+  }
+
+  vm.get_terms();
+
+
+});
+
+angular.module('urbanApp').controller('changePWDCtrl', function ($modalInstance, $modal, items, Service, Session) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.model_data = items;
+  vm.service = Service;
+
+  vm.check_validation = function(){
+    if (vm.confirm_pwd) {
+      if (vm.new_pwd !== vm.confirm_pwd) {
+        vm.service.showNoty("New password does not match with confirm password plase check it once");
+      }
+    }
+  }
+
+  vm.ok = function (form) {
+
+    if(form.$invalid) {
+      return false;
+    }
+    if (vm.new_pwd !== vm.confirm_pwd) {
+      return false;
+    }
+    if (vm.exe_pwd == vm.new_pwd && vm.new_pwd == vm.confirm_pwd) {
+      vm.service.showNoty('Sorry, Your old password and new password is same. Please try again.');
+      return false;
+    }
+
+    var data = {old_password: vm.exe_pwd,  new_password: vm.new_pwd,  retype_password: vm.confirm_pwd}
+    Service.apiCall("change_user_password/", "POST", data).then(function(response) {
+      if (response.message) {
+        if(response.data.msg) {
+          vm.service.showNoty(response.data.data);
+
+          $modalInstance.close(response.data.msg);
+        } else {
+          vm.service.showNoty(response.data.data);
+        }
+      } else {
+        vm.service.showNoty('Something went wrong');
+      }
+    });
+  };
+
+  vm.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
+});
+
 
 })();

@@ -39,9 +39,9 @@ def validate_sales_person(request):
 
 @login_required
 @csrf_exempt
-def get_pos_user_data(request):
-    user_id = request.GET.get('id')
-    user = User.objects.get(id=user_id)
+@get_admin_user
+def get_pos_user_data(request, user=''):
+    user_id = user.id
     status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], \
                                      stderr=subprocess.STDOUT, shell=True)
     if "python" not in status:
@@ -72,25 +72,22 @@ def get_pos_user_data(request):
 
 @login_required
 @csrf_exempt
-def get_current_order_id(request):
-    user = request.GET.get('user', '')
-    order_id = get_order_id(user)
+@get_admin_user
+def get_current_order_id(request, user=''):
+    order_id = get_order_id(user.id)
     return HttpResponse(json.dumps({'order_id': order_id}))
 
 
 @login_required
-def search_pos_customer_data(request):
+@get_admin_user
+def search_pos_customer_data(request, user=''):
     search_key = request.GET['key']
     total_data = []
-    user = request.user.id
-    user = request.GET.get('user')
-    if user:
-        user = user
     if len(search_key) < 3:
         return HttpResponse(json.dumps(total_data))
     lis = ['name', 'email_id', 'phone_number', 'address', 'status']
     master_data = CustomerMaster.objects.filter(Q(phone_number__icontains=search_key) | \
-                                                Q(name__icontains=search_key), user=user)
+                                                Q(name__icontains=search_key), user=user.id)
     for data in master_data[:30]:
         status = 'Inactive'
         if data.status:
@@ -104,19 +101,18 @@ def search_pos_customer_data(request):
 
 
 @login_required
-def search_product_data(request):
+@get_admin_user
+def search_product_data(request, user=''):
     search_key = request.GET['key']
-    user_id = request.GET['user']
-    user = User.objects.filter(id=user_id)[0]
     total_data = []
     try:
         master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
-                                                                      Q(sku_desc__icontains=search_key) | Q(
-            ean_number=int(search_key)),
-                                                                      user=user_id)
+                                                                      Q(sku_desc__icontains=search_key) |
+                                                                      Q(ean_number=int(search_key)),
+                                                                      user=user.id)
     except:
         master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
-                                                                      Q(sku_desc__icontains=search_key), user=user_id)
+                                                                      Q(sku_desc__icontains=search_key), user=user.id)
     for data in master_data[:30]:
         status = 'Inactive'
         if data.status:
@@ -139,7 +135,7 @@ def search_product_data(request):
         discount_price = price
         if not data.discount_percentage:
             category = CategoryDiscount.objects.filter(category=data.sku_category, \
-                                                       user_id=user_id)
+                                                       user_id=user.id)
             if category:
                 category = category[0]
                 if category.discount:
@@ -148,7 +144,7 @@ def search_product_data(request):
             discount_price = price - ((price * discount_percentage) / 100)
         stock_quantity = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE') \
             .filter(sku__wms_code=data.wms_code, \
-                    sku__user=user_id).aggregate(Sum('quantity'))
+                    sku__user=user.id).aggregate(Sum('quantity'))
         stock_quantity = stock_quantity['quantity__sum']
         if not stock_quantity:
             stock_quantity = 0
@@ -343,6 +339,7 @@ def customer_order(request):
                                                         issue_type=order_detail.order_code, \
                                                         cgst_tax=item['cgst_percent'], \
                                                         sgst_tax=item['sgst_percent'], \
+                                                        order_taken_by=order['summary']['staff_member'], \
                                                         creation_date=NOW)
                     order_created = True
                     if status == 0:
@@ -476,6 +473,7 @@ def prepare_delivery_challan_json(request, order_id, user_id):
                        'total_amount': total_amount,
                        'subtotal': total_amount,
                        'gst_based': gst_based,
+                       'staff_member': order_summary.order_taken_by,
                        'issue_type': order_summary.issue_type}
             json_data = {'data':{'customer_data': customer_data, 'summary': summary,
                                  'sku_data': sku_data, 'order_id': order_id,
@@ -488,8 +486,9 @@ def prepare_delivery_challan_json(request, order_id, user_id):
 
 @login_required
 @csrf_exempt
-def print_order_data(request):
-    user_id = request.GET['user']
+@get_admin_user
+def print_order_data(request, user=''):
+    user_id = user.id
     order_id = request.GET['order_id']
     json_data = prepare_delivery_challan_json(request, order_id, user_id)
     return HttpResponse(json.dumps(json_data))
@@ -636,8 +635,9 @@ def update_order_status(request):
 
 
 @login_required
-def get_extra_fields(request):
-    user_id = request.GET.get('user')
+@get_admin_user
+def get_extra_fields(request, user=''):
+    user_id = user.id
     extra_fields = {}
     extra_fields_obj = MiscDetail.objects.filter(user=user_id, misc_type__icontains="pos_extra_fields_")
     for item in extra_fields_obj:
@@ -648,10 +648,21 @@ def get_extra_fields(request):
 
 @login_required
 def get_staff_members_list(request):
+    user = request.user
     members = ['Staff-1', 'Staff-2', 'Staff-3']
+    if user.username == "bcbs_retail":
+        members = ['Staff-1', 'Staff-2', 'Staff-3']
+    elif user.username == "bcgs_retail":
+        members = ['Staff-4', 'Staff-5', 'Staff-6']
+    elif user.username == "ssrvm_retail":
+        members = ['Staff-7', 'Staff-8', 'Staff-9']
+    elif user.username == "stjohns_retail":
+        members = ['Staff-10', 'Staff-11', 'Staff-12']
+    elif user.username == "vps_retail":
+        members = ['Staff-13', 'Staff-14', 'Staff-15']
     return HttpResponse(json.dumps({'members': members}))
 
-#POS
+
 @csrf_exempt
 @login_required
 @get_admin_user

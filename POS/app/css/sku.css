@@ -1,6 +1,5 @@
-input#input-0,
-input#input-1 {
-  border: 1px solid grey;
+input[type="search"] {
+  border: 1px solid grey !important;
 }
 .sku-box {
   overflow: hidden;

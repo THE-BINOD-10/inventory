@@ -247,7 +247,7 @@ importScripts('/app/data/offlineData.js');
 				      			}));
 		    }
 		}else{
-			throw error;
+			throw "error";
 		}
     });
 

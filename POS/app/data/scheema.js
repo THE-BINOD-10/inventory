@@ -30,6 +30,17 @@ var POS_TABLES=DATABASE._allTables;
      customer:"ID,FirstName,LastName,Number,Address,Email"
     });
 
+    DATABASE.version(4).stores({
+      sync_customer:null,
+      pre_orders:null
+    });
+
+    DATABASE.version(5).stores({
+      sync_customer:"++,number,firstName,secondName,mail,user",
+      skumaster:"SKUCode,ean_number,ProductDescription,search,price,igst,discount,selling_price,url,sgst,data_id,utgst,stock_quantity,cgst",
+      pre_orders:"++id,order_id,order_data",
+    });
+
     openDB().then(function(){
       console.log("opened");
     }).catch(function(error){

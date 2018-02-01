@@ -68,7 +68,7 @@ input[type="date"]:valid::before {
         </div>
 
         <div class="col-md-2 col-sm-6 col-xs-6" ng-if="showCase.user_type=='reseller'">
-          <div class="btn btn-primary up-btn mt10" style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 100%;">{{(Cart.upload_file_name)? Cart.upload_file_name: 'Upload PO';}}
+          <div class="btn btn-primary up-btn mt10" style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 100%;text-overflow: ellipsis;">{{(Cart.upload_file_name)? Cart.upload_file_name: 'Upload PO';}}
             <input class="btn btn-primary upload-button" value="Upload" type = "file" ng-model="Cart.model_data.uploaded_po" name="file" id="po-upload" file-uploadd>&nbsp;
             <i class="fa fa-cloud-upload fa-1g" aria-hidden="true"></i>
           </div>

@@ -41,8 +41,7 @@ def validate_sales_person(request):
 @csrf_exempt
 @get_admin_user
 def get_pos_user_data(request, user=''):
-    user_id = user.id #request.GET.get('id')
-    #user = User.objects.get(id=user_id)
+    user_id = user.id
     status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], \
                                      stderr=subprocess.STDOUT, shell=True)
     if "python" not in status:
@@ -75,7 +74,6 @@ def get_pos_user_data(request, user=''):
 @csrf_exempt
 @get_admin_user
 def get_current_order_id(request, user=''):
-    #user = request.GET.get('user', '')
     order_id = get_order_id(user.id)
     return HttpResponse(json.dumps({'order_id': order_id}))
 
@@ -85,7 +83,6 @@ def get_current_order_id(request, user=''):
 def search_pos_customer_data(request, user=''):
     search_key = request.GET['key']
     total_data = []
-    #user = request.GET.get('user')
     if len(search_key) < 3:
         return HttpResponse(json.dumps(total_data))
     lis = ['name', 'email_id', 'phone_number', 'address', 'status']
@@ -107,8 +104,6 @@ def search_pos_customer_data(request, user=''):
 @get_admin_user
 def search_product_data(request, user=''):
     search_key = request.GET['key']
-    #user_id = request.GET['user']
-    #user = User.objects.filter(id=user_id)[0]
     total_data = []
     try:
         master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
@@ -493,7 +488,7 @@ def prepare_delivery_challan_json(request, order_id, user_id):
 @csrf_exempt
 @get_admin_user
 def print_order_data(request, user=''):
-    user_id = user.id #request.GET['user']
+    user_id = user.id
     order_id = request.GET['order_id']
     json_data = prepare_delivery_challan_json(request, order_id, user_id)
     return HttpResponse(json.dumps(json_data))
@@ -642,7 +637,7 @@ def update_order_status(request):
 @login_required
 @get_admin_user
 def get_extra_fields(request, user=''):
-    user_id = user.id #request.GET.get('user')
+    user_id = user.id
     extra_fields = {}
     extra_fields_obj = MiscDetail.objects.filter(user=user_id, misc_type__icontains="pos_extra_fields_")
     for item in extra_fields_obj:

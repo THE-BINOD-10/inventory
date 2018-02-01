@@ -1032,7 +1032,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
-  vm.changePWDData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0};
+  vm.changePWDData = {};
   vm.changePWD = function() {
  
     var mod_data = vm.changePWDData;
@@ -1241,15 +1241,23 @@ angular.module('urbanApp').controller('changePWDCtrl', function ($modalInstance,
     if (vm.new_pwd !== vm.confirm_pwd) {
       return false;
     }
+    if (vm.exe_pwd == vm.new_pwd && vm.new_pwd == vm.confirm_pwd) {
+      vm.service.showNoty('Sorry, Your old password and new password is same. Please try again.');
+      return false;
+    }
 
     var data = {old_password: vm.exe_pwd,  new_password: vm.new_pwd,  retype_password: vm.confirm_pwd}
     Service.apiCall("change_user_password/", "POST", data).then(function(response) {
-      if(response.data.msg) {
-        vm.service.showNoty("Password changed successfully");
+      if (response.message) {
+        if(response.data.msg) {
+          vm.service.showNoty(response.data.data);
 
-        $modalInstance.close(response.data.msg);
+          $modalInstance.close(response.data.msg);
+        } else {
+          vm.service.showNoty(response.data.data);
+        }
       } else {
-        vm.service.showNoty(response.data.data);
+        vm.service.showNoty('Something went wrong');
       }
     });
   };

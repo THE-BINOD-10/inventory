@@ -229,6 +229,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('state', data.state),
                                                 ('country', data.country), ('pincode', data.pincode),
                                                 ('status', status), ('supplier_type', data.supplier_type),
+                                                ('username', username), ('login_created', login_created),
                                                 ('DT_RowId', data.id), ('DT_RowClass', 'results'))))
 
 

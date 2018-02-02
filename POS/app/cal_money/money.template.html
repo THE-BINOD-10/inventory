@@ -1,0 +1,13 @@
+<div class="money" style="width: 100%; margin-left:0px">
+  <uib-tabset active="activeJustified" justified="true">
+    <uib-tab index="0" heading="cash">
+      <div class="cal" style="color: black;">
+        <label> Amount :
+          <input class="given" value="200" ng-model="$ctrl.given" ng-keyup ="$ctrl.cal_retun_money($ctrl.given)" place-holder="Taken Money">
+        </label>
+        <p><b>Change :</b> {{$ctrl.returnMoney}}</p>
+      </div>
+    </uib-tab>
+  </uib-tabset>
+</div>
+

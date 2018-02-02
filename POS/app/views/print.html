@@ -1,0 +1,156 @@
+<!-- <link rel="stylesheet" href="/app/css/receipt.css"/> -->
+<style>
+.receipt {
+  width: 300px;
+  font-size: 14px;
+}
+* {
+  padding: 0px;
+  margin: 0px;
+}
+.shop-name{
+  text-align: center;
+  display: block;
+}
+.shop-title {
+  text-align: center;
+  display: block;
+  font-size: 18px;
+}
+.products table,
+.table-pro table {
+  width: 100%;
+  font-size: 14px;
+}
+.products table thead th:nth-child(1),
+.table-pro table thead th:nth-child(1) {
+  text-align: left;
+}
+.products table thead th,
+.table-pro table thead th {
+  text-align: center;
+}
+.products table tbody tr > td:nth-child(1),
+.table-pro table tbody tr > td:nth-child(1) {
+  text-align: left;
+}
+.products table tbody tr > td,
+.table-pro table tbody tr > td {
+  text-align: center;
+}
+.product-total span {
+  width: 30%;
+  display: inline-block;
+}
+</style>
+
+<div class="receipt">
+  <span class="shop-title"><strong>{{user.company | uppercase}}</strong></span>
+  <span class="shop-name">{{user.address}}</span>
+  <span class="shop-name">Ph: {{user.phone}}</span>
+  <span class="shop-name">Tax Invoice</span>
+  <span class="shop-name">GSTIN: {{user.gstin}}</span>
+  <span class="shop-name">{{print_type}}</span>
+  <hr>
+  <div class="title">
+    <div>
+        <!--<span class="hide shop-title">Sales Person Name: {{urlService.userData.user_name}}</span>-->
+      <div>
+          <span class="pull-right">Bill Number: {{data.summary.invoice_number}}{{data.order_id}}</span>
+      </div>
+      <!--<div>
+          <span class="pull-right">Order Number: {{data.order_id}}</span>
+      </div>-->
+      <div>
+          <span class="pull-right">Order Type: {{data.summary.issue_type}}</span>
+      </div>
+
+      <div>
+          <span class="pull-right">Order Taken By: {{data.summary.staff_member}}</span>
+      </div>
+
+      <div>
+          <span class="pull-right">Order Date: {{date}}</span>
+      </div>
+    </div>
+  </div>
+  <hr>
+    <p align="center">Customer Details</p>
+  <hr>
+  <div class="customer">
+    <p>Name : {{data.customer_data.FirstName}}</p>
+    <p>Email : {{data.customer_data.Email}}</p>
+    <p>Cell Number: {{data.customer_data.Number}} </p>
+  </div>
+
+  <hr>
+  <div class="products table-pro">
+    <table>
+      <thead>
+        <tr>
+          <th>Item Name</th>
+          <th>Qty</th>
+          <th>Rate</th>
+          <th>Amt</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="item in data.sku_data">
+          <td> {{item.name}} </td>
+          <td> {{item.quantity}} </td>
+          <td> {{item.unit_price + item.sgst + item.cgst | number:2}} </td>
+          <td> {{((item.unit_price + item.sgst + item.cgst) * item.quantity) | number:2}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <hr>
+    <div class="product-total">
+       <span>Tot Items: {{data.sku_data.length}}</span>
+       <span>Tot Qty: {{data.summary.total_quantity}} </span>
+       <span>Tot Amt: {{data.summary.total_amount | number:2}}</span>
+       <!--<span>Amt: {{(data.summary.total_amount*100)/(100+user.VAT)}}</span>-->
+    </div>
+  <hr>
+    <p align="center">TAX Details</p>
+  <hr>
+  <div class="vat-cal table-pro">
+    <table>
+      <thead>
+        <tr>
+          <th>Taxable Amt</th>
+          <th>CGST %</th>
+          <th>CGST Amt</th>
+          <th>SGST %</th>
+          <th>SGST Amt</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="item in data.summary.gst_based">
+            <td>{{item.taxable_amt | number:2}}</td>
+            <td>{{item.cgst_percent | number:2}}</td>
+            <td>{{item.cgst | number:2}}</td>
+            <td>{{item.sgst_percent | number:2}}</td>
+            <td>{{item.cgst | number:2}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <hr>
+  <div class="total">
+    <div class="product-total">
+       <span>Total ...</span>
+       <span></span>
+       <span>Amt: {{data.summary.total_amount}}</span>
+    </div>
+  </div>
+  <hr>
+  <div ng-if="data.summary.issue_type == 'sample'">
+      <b>Note:Not for Sale</b>
+      <hr>
+  </div>
+  <p align="center">Goods Once Sold Cannot Be Taken Back or Exchange</p>
+  <p align="center">!!! THANK YOU VISIT AGAIN !!!</p>
+  <hr>
+</div>
+

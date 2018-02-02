@@ -1,0 +1,48 @@
+<form name="form" role="form">
+<div class="modal-header">
+  <h4 class="modal-title" id="modal-title">Download PDF</h4>
+</div>
+<div class="modal-body" id="modal-body">
+  <div class="row">
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-4 control-label">Display Stock</label>
+        <div class="col-sm-6">
+          <input type="checkbox" ng-model="$ctrl.pdfData.display_stock" style="height: 18px;width: 18px;margin-top: 8px;">
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal" ng-if="$ctrl.user_type!='customer'">
+      <div class="form-group">
+        <label class="col-sm-4 control-label">Display Total Amount</label>
+        <div class="col-sm-6">
+          <input type="checkbox" ng-model="$ctrl.pdfData.display_total_amount" style="height: 18px;width: 18px;margin-top: 8px;">
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-sm-4 control-label">Remarks</label>
+        <div class="col-sm-6">
+          <textarea rows="2" class="form-control" name="customer_pdf_remarks" ng-model="$ctrl.pdfData.remarks"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="form-horizontal mr20 ml20">
+      <div class="row">
+        <div class="col-sm-12">
+          <h5><b>Terms and Conditions :</b></h5>
+        </div>
+        <div class="form-group col-sm-12" ng-repeat="item in $ctrl.terms">
+          <input type="checkbox" ng-model="item.is_checked" ng-init="item.is_checked=true" style="height: 18px;width: 18px;margin-top: 8px;">
+          {{ item.terms }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-warning" type="button" ng-click="$ctrl.cancel()">Close</button>
+  <button class="btn btn-primary" type="submit" ng-click="$ctrl.downloadPDF(form)" ng-disabled="$ctrl.pdfDownloading">{{($ctrl.pdfDownloading)? 'Downloading': 'Download';}}</button>
+</div>
+</form>

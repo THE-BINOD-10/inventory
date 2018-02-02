@@ -1,0 +1,82 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate">
+  <div class="modal-dialog model-custom modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">{{showCase.title}}</h4>
+      </div>
+      <!-- body-->
+      <div class="modal-body">
+          <div class="clearfix">
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Destination Location Code * </label>
+                  <input type="text" ng-blur="showCase.getDestLocCode()" autocomplete="off" name="destination_location_code" class="form-control" typeahead="user.user_id+' : '+user.user_name for user in showCase.service.getSearchValues($viewValue, 'search_network_user?')" placeholder="Search Destination Location Code" typeahead-loading="loadingLocations" ng-model="showCase.model_data.data.dest_location_code" ng-readonly="showCase.update" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Source Location Code * </label>
+                  <input type="text" ng-blur="showCase.getSourceLocCode()" autocomplete="off" name="source_location_code" class="form-control" typeahead="user.user_id+' : '+user.user_name for user in showCase.service.getSearchValues($viewValue, 'search_network_user?')" placeholder="Search Destination Location Code" typeahead-loading="loadingLocations" ng-model="showCase.model_data.data.source_location_code" ng-readonly="showCase.update" id="source_location_code" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Lead Time * </label>
+                  <input type="text" name="lead_time" class="form-control" ng-model="showCase.model_data.data.lead_time" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Sku Stage * </label>
+                  <input type="text" name="sku_stage" class="form-control" ng-model="showCase.model_data.data.sku_stage" ng-readonly="showCase.update" required>
+                </div>
+              </div>
+              
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Priority * </label>
+                  <input type="text" name="priority" class="form-control" ng-model="showCase.model_data.data.priority" required>
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Price Type * </label>
+                  <input type="text" name="price_type" class="form-control" ng-model="showCase.model_data.data.price_type" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Remarks * </label>
+                  <select name="charge_remarks" class="form-control" ng-model="showCase.model_data.data.remarks">
+                    <option ng-repeat="value in showCase.remarks_drop" ng-selected="showCase.model_data.data.charge_remarks == value.name">{{value.name}}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div ng-include="'views/common/msg.html'"></div>
+        </div>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process" ng-if="!permissions.priceband_sync">
+          <span>Save</span>
+          <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process"></span>
+        </button>
+      </div>
+
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+  </form>
+</div>

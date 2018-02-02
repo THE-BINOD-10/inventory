@@ -104,19 +104,29 @@
             <span>Pricing Master</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_networkmaster')">
+          <a ui-sref="app.masters.NetworkMaster">
+            <span>Network Master</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="show_tab('add_taxmaster')">
           <a ui-sref="app.masters.TaxMaster">
             <span>Tax Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
           <a ui-sref="app.masters.SellerMaster">
             <span>Seller Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
           <a ui-sref="app.masters.SellerMarginMapping">
             <span>Seller Margin Mapping</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_tandcmaster')">
+          <a ui-sref="app.masters.TandCMaster">
+            <span>T&C Master</span>
           </a>
         </li>
       </ul>
@@ -155,9 +165,14 @@
             <span>Sales Returns</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
           <a ui-sref="app.inbound.SellerInvoice">
             <span>Seller Invoices</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'distributor'">
+          <a ui-sref="app.inbound.AutoBackOrders">
+            <span>Auto Back Orders</span>
           </a>
         </li>
       </ul>
@@ -212,7 +227,7 @@
             <span>Stock Detail</span>
           </a>
         </li>
-        <li ng-show="show_tab('vendorstock') && show_tab('production_switch')" ui-sref-active="active">
+        <li ng-show="show_tab('add_vendorstock') && show_tab('production_switch')" ui-sref-active="active">
           <a ui-sref="app.stockLocator.VendorStock">
             <span>Vendor Stock</span>
           </a>
@@ -237,12 +252,12 @@
             <span>Warehouse's Stock</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
           <a ui-sref="app.stockLocator.SellerStock">
             <span>Seller Stock</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="('add_poimeimapping')">
+        <li ui-sref-active="active" ng-show="show_tab('add_poimeimapping')">
           <a ui-sref="app.stockLocator.IMEITracker">
             <span>Serial Number Tracker</span>
           </a>
@@ -273,6 +288,12 @@
             <span>Pull Confirmation</span>
           </a>
         </li>
+        <!--<li ng-show="permissions.user_type == 'distributor'" ui-sref-active="active">-->
+        <li ng-show="show_tab('add_enquirymaster') && (permissions.user_type == 'distributor' || permissions.user_type == 'central_admin')" ui-sref-active="active">
+          <a ui-sref="app.outbound.EnquiryOrders">
+            <span>Marketing Enquiry Orders</span>
+          </a>
+        </li>
         <li ng-show="show_tab('add_shipmentinfo')" ui-sref-active="active">
           <a ui-sref="app.outbound.ShipmentInfo">
             <span>Shipment Info</span>
@@ -283,12 +304,13 @@
             <span>Create Stock Transfer</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <!--<li ui-sref-active="active">-->
+        <li ng-show="show_tab('add_sellerordersummary')" ui-sref-active="active">
           <a ui-sref="app.outbound.CustomerInvoices">
             <span>Customer Invoices</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="user.userName == 'sagar_fab'">
+        <li ui-sref-active="active" ng-show="user.userName == 'sagar_fab'">
           <a ui-sref="app.outbound.CreateCustomOrder">
             <span>Create Custom Order</span>
           </a>
@@ -319,6 +341,15 @@
       </a>
     </li>
     <!-- /ready pages -->
+
+    <!-- uploaded pages -->
+    <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+      <a ui-sref="app.uploadedPOs">
+      <i class="fa fa-book" aria-hidden="true"></i>
+        <span>Uploaded PO's</span>
+      </a>
+    </li>
+    <!-- /uploaded pages -->
 
     <!-- extras -->
     <li data-ng-class="{open: $state.includes('app.reports')}">
@@ -402,7 +433,7 @@
             <span>Open JO</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
           <a ui-sref="app.reports.SellerInvoiceDetails">
             <span>Seller Invoice Details</span>
           </a>
@@ -416,7 +447,7 @@
     </li>
     <!-- /extras -->
     <li ng-show="show_tab('pos_switch')" ui-sref-active="active">
-      <a href="http://pos.mieone.com/#/home?user_id={{user.userId}}&amp;user_name={{user.userName}}" target="_blank">
+      <a href="{{session.pos_host}}#/home?user_id={{user.userId}}&amp;user_name={{user.userName}}" target="_blank">
         <i class="fa fa-dashboard"></i>
         <span>POS</span>
       </a>
@@ -464,7 +495,7 @@
           </a>
         </li>
         <li ui-sref-active="active">
-          <a ui-sref="user.profile" style="padding: 0px">
+          <a ui-sref="app.Profile" style="padding: 0px">
             <i class="fa fa-user"></i>
             <span>Profile</span>
           </a>

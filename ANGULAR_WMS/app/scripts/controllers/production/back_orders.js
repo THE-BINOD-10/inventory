@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
     vm.service = Service;
     vm.units = vm.service.units;
     //vm.filters = {'datatable': 'ProductionBackOrders', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'special_key':'Self Produce'}
+    vm.disable_save = true;
     vm.selected = {};
     vm.selectAll = false;
     vm.toggleAll = toggleAll;
@@ -62,6 +63,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
 
     function reloadData () {
         vm.dtInstance.reloadData();
+        vm.bt_disable = false;
     };
 
     vm.excel = excel;
@@ -190,6 +192,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
           //data[temp['WMS Code']+":"+"Order_det"] = temp['order_id'];
         }
       });
+      vm.bt_disable = true;
       var send_data  = {data: data, filter: vm.filter}
       var modalInstance = $modal.open({
       templateUrl: 'views/outbound/toggle/common_backorder_po.html',
@@ -204,22 +207,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
           return send_data;
         }
       }
-    });
+      });
 
-    modalInstance.result.then(function (selectedItem) {
-      var data = selectedItem;
-      reloadData();
-    }, function () {
-       $log.info('Modal dismissed at: ' + new Date());
-    }); 
-      /*vm.bt_disable = true;
-      Service.apiCall("generate_rm_po_data/", "POST", data).then(function(data){
-        if(data.message) { 
-
-          angular.copy(data.data, vm.model_data)
-          $state.go("app.production.BackOrders.PO");
-        };
-      });*/
+      modalInstance.result.then(function (selectedItem) {
+        var data = selectedItem;
+        reloadData();
+      }, function () {
+        $log.info('Modal dismissed at: ' + new Date());
+      });
     }
 
 
@@ -336,28 +331,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $q, $compile, $timeout,
         vm.order_types = data.data.data;
       }
     });
-
-    vm.submit = function() {
-      var elem = angular.element($('form'));
-      elem = elem[0];
-      elem = $(elem).serializeArray();
-      vm.service.apiCall("save_rwo/", "POST", elem, true).then(function(data){
-      //elem = $.param(elem);
-      //$http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-      //$http({
-      //         method: 'POST',
-      //         url:Session.url+"save_rwo/",
-      //         withCredential: true,
-      //        data: elem}).success(function(data, status, headers, config) {
-      //  pop_msg(data);
-       if(data.message) {
-        if(data.data == "Added Successfully") {
-          vm.confirm_disable;
-          reloadData();
-        }
-       }
-      });
-    }
 
     vm.change_special_key = function(data) {
 

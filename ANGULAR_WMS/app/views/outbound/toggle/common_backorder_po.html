@@ -1,5 +1,5 @@
 <div id="page-pop">
-  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt">
+  <form name="form" role="form" ui-jq="validate">
     <div class="model-custom">
       <div class="mw60">
         <div ng-include="'views/common/loader.html'"></div>
@@ -28,7 +28,7 @@
             <table class="table">
               <thead>
                 <tr>
-                  <th> Supplier Name</th>
+                  <th> Supplier Name *</th>
                   <th> WMS Code </th>
                   <th> Title </th>
                   <th class="w10">Quantity </th>
@@ -46,8 +46,8 @@
                     <input type="hidden" name="wms_code" value="{{product.wms_code}}">
                     <input type="hidden" name="title" value="{{product.title}}">
                     <input type="hidden" ng-if="product.order_id" name="order_id" value="{{product.order_id}}">
-                    <select class="form-control" ng-init="supplier_list[0]" name="supplier_id">
-                      <option ng-repeat="supplier in pop.model_data.supplier_list" value="{{supplier.id}}">{{supplier.name}}</option>
+                    <select class="form-control" ng-model="product.selected_item.id" name="supplier_id" ng-required="true">
+                      <option ng-repeat="supplier in pop.model_data.supplier_list" ng-selected="product.selected_item.id == supplier.id" value="{{supplier.id}}">{{supplier.name}}</option>
                     </select>
                   </td>
                   <td>{{product.wms_code}}</td>

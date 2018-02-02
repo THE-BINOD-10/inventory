@@ -4,8 +4,8 @@ from email.mime.text import MIMEText
 from email.MIMEBase import MIMEBase
 from email import encoders
 
-def send_mail(send_to, subject, body):
 
+def send_mail(send_to, subject, body):
     if not send_to:
         return
 
@@ -34,7 +34,6 @@ def send_mail(send_to, subject, body):
 
 
 def send_mail_attachment(send_to, subject, text, files=[]):
-
     fromaddr = 'noreply@mieone.com'
 
     msg = MIMEMultipart()

@@ -6,6 +6,7 @@ angular.module('urbanApp', ['datatables'])
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $modal) {
     var vm = this;
 
+    vm.picklist_order = {};
     vm.permissions = Session.roles.permissions;
     vm.service = Service;
     vm.merge_invoice = false;
@@ -30,20 +31,38 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        .withOption('processing', true)
        .withOption('serverSide', true)
        .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback);
+       .withOption('rowCallback', rowCallback)
+       .withOption('createdRow', function(row, data, dataIndex) {
+            $compile(angular.element(row).contents())($scope);
+        });
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('picklist_id').withTitle('Picklist ID'),
         DTColumnBuilder.newColumn('customer').withTitle('Customer / Marketplace').notSortable(),
-         DTColumnBuilder.newColumn('picklist_note').withTitle('Picklist Note'),
+        DTColumnBuilder.newColumn('picklist_note').withTitle('Picklist Note'),
         DTColumnBuilder.newColumn('reserved_quantity').withTitle('Reserved Quantity').notSortable(),
-        DTColumnBuilder.newColumn('shipment_date').withTitle('Shipment Date'),
-        DTColumnBuilder.newColumn('date').withTitle('Date')
+        DTColumnBuilder.newColumn('shipment_date').withTitle('Exp Delivery Date'),
+        DTColumnBuilder.newColumn('date').withTitle('Date'),
+        DTColumnBuilder.newColumn('id').withTitle('').notSortable().withOption('width', '35px').renderWith(actionsHtml)
     ];
 
+    function actionsHtml(data, type, full, meta) {
+
+      if (full.picklist_note == 'Auto-generated Picklist') {
+
+        vm.picklist_order[full.id] = full;
+
+        return '<a href="" style="text-decoration: underline; color: #33cc66; " ng-click="showCase.show_order_details(showCase.picklist_order['+ full.id +'], showCase.size)">' +
+               '   Details' +
+               '</a>';
+      } else {
+        return '';
+      }
+    }
+
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
+        $('td:not(td:last)', nRow).unbind('click');
+        $('td:not(td:last)', nRow).bind('click', function() {
             $scope.$apply(function() {
 
   var data = {data_id: aData.DT_RowAttr["data-id"]};
@@ -123,6 +142,77 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         });
         return nRow;
     } 
+
+    vm.show_order_details = function(data){
+
+      if (data.picklist_note == 'Auto-generated Picklist') {
+
+        $state.go('app.outbound.PullConfirmation.OrderDetails');
+
+        var params = {id: data.od_id, order_id: data.od_order_id};
+
+        vm.service.apiCall('get_view_order_details/', "GET", params).then(function(data){
+
+          var all_order_details = data.data.data_dict[0].ord_data;
+          vm.ord_status = data.data.data_dict[0].status;
+
+          vm.model_data = {}
+          var empty_data = {data: []}
+          angular.copy(empty_data, vm.model_data);
+
+          vm.input_status = true;
+
+          vm.order_input_status = false;
+
+          vm.model_data["central_remarks"]= data.data.data_dict[0].central_remarks;
+          vm.model_data["all_status"] = data.data.data_dict[0].all_status;
+          vm.model_data["seller_data"] = data.data.data_dict[0].seller_details;
+          angular.forEach(all_order_details, function(value, key){
+
+          vm.customer_id = value.cust_id;
+          vm.customer_name = value.cust_name;
+          vm.phone = value.phone;
+          vm.email = value.email;
+          vm.address = value.address;
+          vm.city = value.city;
+          vm.state = value.state;
+          vm.order_id_code = value.order_id_code;
+          vm.pin = value.pin;
+          vm.product_title = value.product_title;
+          vm.quantity = value.quantity;
+          vm.invoice_amount = value.invoice_amount;
+          vm.shipment_date = value.shipment_date;
+          vm.remarks = value.remarks;
+          vm.cust_data = value.cus_data;
+          vm.item_code = value.item_code;
+          vm.order_id = value.order_id;
+          vm.market_place = value.market_place;
+
+          var image_url = value.image_url;
+          vm.img_url = vm.service.check_image_url(image_url);
+          /*var custom_data = value.customization_data;
+          vm.market_place = value.market_place;
+          if (custom_data.length === 0){
+
+            vm.customization_data = '';
+          }
+          else {
+
+            var img_url = custom_data[0][3];
+            vm.img_url = vm.service.check_image_url(img_url)
+          }*/
+            console.log(vm.model_data);
+            vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity, unit_price: value.unit_price,
+            invoice_amount: vm.invoice_amount, image_url: vm.img_url, remarks: vm.remarks, default_status: true, sku_status: true})
+          });
+        });
+      }
+    }
+
+    vm.back_button = function() {
+      vm.reloadData();
+      $state.go('app.outbound.PullConfirmation')
+    }
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;

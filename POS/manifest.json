@@ -1,0 +1,16 @@
+{
+  "name": "POS",
+  "short_name": "POS",
+  "icons": [
+		{
+			"src": "/app/images/pos_icon.png",
+			"sizes": "192x192",
+			"type": "image\/png"
+		}
+	],
+  "display": "standalone",
+  "background_color": "#cd554c",
+  "theme_color": "#cd554c",
+  "orientation":"potrait",
+  "gcm_sender_id": "895549824441"
+}

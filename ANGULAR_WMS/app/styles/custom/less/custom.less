@@ -11,6 +11,10 @@ body {
 
   background: #fff;
 }
+.swal2-container{
+ 
+  z-index:2021
+}
 
 .field {
 
@@ -36,6 +40,10 @@ body {
 
     padding: 0px 10px;
   }
+}
+
+select.error {
+  border-color: #D44950;
 }
 
 .image {
@@ -111,7 +119,7 @@ body {
     overflow: hidden;
     .panel-body {
       padding-left: 0px !important;
-      padding-right: 0px !important;  
+      padding-right: 0px !important;
     }
 
     .tab-content {
@@ -1242,4 +1250,44 @@ pre {
   &:hover {
     background:  #fff !important;
   }
+}
+
+.stockone-loader {
+
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  position: fixed;
+  display: block;
+  opacity: 0.8;
+  background-color: #fff;
+  z-index: 2000;
+  text-align: center;
+  background-image: url('/images/stockone_logo.png');
+  background-repeat: no-repeat;
+  background-size: 100px;
+  background-position: center;
+  cursor: progress;
+}
+
+.upload-button {
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 100%;
+  min-height: 100%;
+  font-size: 100px;
+  text-align: right;
+  opacity: 0;
+  outline: none;
+  background: white;
+  cursor: inherit;
+  display: block;
+}
+
+.z-2021 {
+
+  z-index: 2021 !important;
 }

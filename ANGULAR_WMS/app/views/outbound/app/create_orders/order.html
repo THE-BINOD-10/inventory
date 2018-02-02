@@ -187,18 +187,19 @@ input[type="date"]:valid::before {
             </div>
             <hr>
             <div class="row">
-              <div class="col-md-6 no-padding" ng-repeat="address in Cart.deliver_address">
-                <input type="radio" name="address_selected" ng-checked="(Cart.checked_address == address)?'checked': '';" ng-model="Cart.checked_address" value="{{address}}" />
-                <span style="font-size: 14px;">{{address}}</span><br>
+              <div class="col-md-6" ng-repeat="address in Cart.deliver_address">
+                <!-- <input type="radio" name="address_selected" ng-checked="(Cart.checked_address == address)?'checked': '';" ng-model="Cart.checked_address" value="{{address}}" /> -->
+                <input type="hidden" name="address_selected" class="form-control" value="{{address}}" readonly>
+                <span style="font-size: 14px;"><b>{{address}}</b></span><br>
               </div>
             </div><hr>
             <div class="row">
-              <div class="col-md-6">
+              <div class="col-md-12">
                 {{Cart.model_data.data[0].distributor_addr}}
               </div>
-              <div class="col-md-6">
+              <!-- <div class="col-md-6">
                 {{Cart.model_data.data[0].reseller_addr}}
-              </div>
+              </div> -->
             </div>
           </div>
 

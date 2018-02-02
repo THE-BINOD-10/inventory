@@ -473,4 +473,11 @@ urlpatterns += [
 
     # Barcodes
     url('^get_format_types/', get_format_types)
+    url('^GetItemMaster/', tally_api.get_item_master),
+    url('^GetSupplierMaster/', tally_api.get_supplier_master),
+    url('^GetCustomerMaster/', tally_api.get_customer_master),
+    url('^GetSalesInvoices/', tally_api.get_sales_invoices),
+    url('^GetSalesReturns/', tally_api.get_sales_returns),
+    url('^GetPurchaseInvoices/', tally_api.get_purchase_invoice),
+    url('^GetPurchaseReturns/', tally_api.get_purchase_returns)
 ]

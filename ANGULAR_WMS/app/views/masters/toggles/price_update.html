@@ -39,10 +39,10 @@
             <tbody>
               <tr ng-repeat="product in showCase.model_data.data">
                 <td>
-                   <input type="text" ng-model="product.min_unit_range" name="min_unit_range" class="form-control" decimal-number ng-blur="showCase.checkRange(product.min_amount, $index, showCase.model_data.data, 'min_amount')" required>
+                   <input type="text" ng-model="product.min_unit_range" name="min_unit_range" class="form-control" decimal-number ng-blur="showCase.checkRange(product.min_unit_range, $index, showCase.model_data.data, 'min_amount')" required>
                 </td>
                 <td>
-                   <input type="text" ng-model="product.max_unit_range" name="max_unit_range" class="form-control" decimal-number ng-blur="showCase.checkRange(product.max_amount, $index, showCase.model_data.data, 'max_amount')" required>
+                   <input type="text" ng-model="product.max_unit_range" name="max_unit_range" class="form-control" decimal-number ng-blur="showCase.checkRange(product.max_unit_range, $index, showCase.model_data.data, 'max_amount')" required>
                 </td>
                 <td>
                    <input type="text" ng-model="product.price" name="price" class="form-control" decimal-number>

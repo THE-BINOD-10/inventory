@@ -80,7 +80,7 @@
                 <div class="form-group">
                   <label class="control-label"> Status </label>
                   <select class="form-control supplier_status" ng-model="showCase.model_data.status" name="status">
-                    <option ng-repeat="status in showCase.status_data" value="{{status}}">{{status}}</option>
+                    <option ng-repeat="status in showCase.status_data" value="{{status}}" ng-selected="status=='Active'">{{status}}</option>
                   </select>
                 </div>
               </div>

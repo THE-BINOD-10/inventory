@@ -6432,6 +6432,7 @@ def get_customer_cart_data(request, user=""):
                 dist_reseller_leadtime = cm_obj.lead_time
             json_record = record.json()
             sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=json_record['sku_id'])
+            json_record['mrp'] = sku_obj[0].mrp
             product_type = sku_obj[0].product_type
             if not tax_type and product_type:
                 json_record['tax'] = 0

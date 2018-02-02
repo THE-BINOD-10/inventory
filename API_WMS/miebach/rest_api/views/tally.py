@@ -176,23 +176,25 @@ class TallyAPI:
         """
         self.user_id = request.POST.get('user_id', 0)
         self.updation_date = self.get_updation_date(request)
-	tally_config = self.tally_configuration()
+	    tally_config = self.tally_configuration()
         send_ids = []
         sku_masters = SKUMaster.objects.filter(user=self.user_id).order_by('updation_date')
         if self.updation_date:
-            sku_masters = sku_masters.filter(updation_date__gt = self.updation_date).order_by('updation_date')
-        #Stock / Sku Master newly added need to add script
+            sku_masters = sku_masters.filter(Q(updation_date__gt = self.updation_date) | Q(stockdetail__updation_date__gt = self.updation_date)).order_by('updation_date')
         sku_masters = sku_masters[:1000]
+        stock_present = StockDetail.objects.filter(sku__user=self.user_id, sku=sku_master).order_by('updation_date')
+        if stock_present:
+            sku_masters = stock_present.sku
         data_list = []
         for sku_master in sku_masters:
             data_dict = {}
             data_dict['tally_company_name'] = tally_config.get('company_name', '')
-	    data_dict['old_item_name'] = sku_master.sku_desc.strip()
+	        data_dict['old_item_name'] = sku_master.sku_desc.strip()
             data_dict['item_name'] = sku_master.sku_desc.strip()
             data_dict['stock_group_name'] = tally_config.get('stock_group', '')
             data_dict['stock_category_name'] = tally_config.get('stock_category', '')
             data_dict['is_vat_app'] = '' #if empty default True
-            opening_qty = StockDetail.objects.filter(sku__user=self.user_id, sku=sku_master).aggregate(Sum('quantity'))
+            opening_qty = StockDetail.objects.filter(sku__user=self.user_id, sku=sku_master).exclude(location__zone__zone='DAMAGED_ZONE').aggregate(Sum('quantity'))
             data_dict['opening_qty'] = 0
             if opening_qty['quantity__sum']:
                 data_dict['opening_qty'] = opening_qty['quantity__sum']

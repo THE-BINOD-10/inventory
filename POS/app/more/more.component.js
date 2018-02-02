@@ -6,8 +6,8 @@
 	.component("more", {
 
 		"templateUrl": "/app/more/more.template.html",
-    "controller"  : ["$http", "$scope", "urlService", "$rootScope", "$location", "$window",
-		function ($http, $scope, urlService, $rootScope, $location, $window) {
+    "controller"  : ["$http", "$scope", "urlService", "$rootScope", "$location", "$window", "printer",
+		function ($http, $scope, urlService, $rootScope, $location, $window, printer) {
 			var self = this;
 			self.isDisabled = false;
 
@@ -177,27 +177,27 @@
 								if(data.message === "invalid user") {
                     $window.location.href = urlService.stockoneUrl;
                 } else {
-								onLineOrderStatusData(order_id,data,del);
-								}
-							},function(error){
+                        onLineOrderStatusData(order_id,data,del);
+                       }
+                    },function(error){
 
-								console.log("offline");
-								$rootScope.sync_status = true;
-								$rootScope.$broadcast('change_sync_status');
-								setPreOrderStatus(""+order_id,"0",del).
-								then(function(data){
+                        console.log("offline");
+                        $rootScope.sync_status = true;
+                        $rootScope.$broadcast('change_sync_status');
+                        setPreOrderStatus(""+order_id,"0",del).
+                        then(function(data){
 
-									offLineOrderStatusData(order_id,data,del);
-								}).catch(function(error){
-									$scope.$apply(function() { 
-										$(".preloader").removeClass("ng-show").addClass("ng-hide");
-										alert(error);
-									});
+                            offLineOrderStatusData(order_id,data,del);
+                        }).catch(function(error){
+                            $scope.$apply(function() {
+                                $(".preloader").removeClass("ng-show").addClass("ng-hide");
+                                alert(error);
+                            });
 
-								});
+                        });
 
 
-							});
+                    });
 
 				}//if
 				else {
@@ -208,11 +208,18 @@
 				//onLine preorder status update
 				function onLineOrderStatusData(order_id,data,del){
 						$(".preloader").removeClass("ng-show").addClass("ng-hide");     
-						if(data==="Error"){
+						if(data.message==="Error"){
 							alert("Please update Stock Quantity and try again");
-						} else {
+						}
+						else {
+						  if(data.message === "Delivered Successfully !") {
+                            printer.print('/app/views/print.html', {'data': data.data.data,
+                                                                    'user':urlService.userData,
+                                                                    'print_type': '',
+                                                                    'date':data.data.data.order_date});
+                          }
 							self.isDisabled = true;
-							self.success_msg = data;
+							self.success_msg = data.message;
 							if(del==='true') $("."+order_id).parent('div').addClass("ng-hide");
 							$(".already_delivered").removeClass("ng-hide").addClass("ng-show");
 							self.selected_order.status = '0';

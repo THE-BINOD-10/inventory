@@ -12,8 +12,10 @@ def dump_user_images(source_user, dest_user, sku_codes=[]):
     folder = str(dest_user)
     source_skus = SKUMaster.objects.exclude(image_url='').filter(user=source_user)
     if sku_codes:
-        SKUMaster.objects.exclude(image_url='').filter(user=source_user, sku_code__in=sku_codes)
-    dest_skus = SKUMaster.objects.filter(user=dest_user)
+        source_skus = SKUMaster.objects.exclude(image_url='').filter(user=source_user, sku_code__in=sku_codes)
+    dest_skus = SKUMaster.objects.exclude(image_url='').filter(user=dest_user)
+    if sku_codes:
+        dest_skus = SKUMaster.objects.filter(user=dest_user, sku_code__in=sku_codes)
     if not os.path.exists(path + folder):
         os.makedirs(path + folder)
     if not os.path.exists(path + str(source_user)):
@@ -22,7 +24,8 @@ def dump_user_images(source_user, dest_user, sku_codes=[]):
     for file_name in src_files:
         full_file_name = os.path.join(path + str(source_user), file_name)
         if (os.path.isfile(full_file_name)):
-            shutil.copy(full_file_name, path + folder)
+            if not full_file_name == path + folder + '/' + file_name:
+                shutil.copy(full_file_name, path + folder)
     for source in source_skus:
         dump_sku = dest_skus.filter(sku_code=source.sku_code, user=dest_user)
         if dump_sku:

@@ -1,0 +1,36 @@
+<div id="page-pop">
+  <div class="model-custom">
+    <div ng-include="'views/common/loader.html'"></div>
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="order.ok()"><span aria-hidden="true">×</span>
+      </button>
+      <h4 class="modal-title" id="myLargeModalLabel">Marketing Enquiry Order Details</h4>
+    </div>
+    <div class="modal-body">
+      <div class="row no-margin" ng-if="!order.loading && order.order_details.extend_date" ng-show="order.permissions.user_type=='central_admin'">
+        <form name="form" role="form">
+          <div class="col-md-4 col-sm-4 col-xs-12">
+            <div class="form-group">
+              <select class="form-control" ng-model="order.order_details.extend_status" name="extend_type">
+                <option value="" ng-selected="order.order_details.extend_status == ''"> none </option>
+                <option ng-repeat="one in order.extend_statuses" value="{{one}}" ng-selected="one == order.order_details.extend_status">{{one}}</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-12">
+            <div class="form-group">
+              <input name="extended_date" ui-jq="datepicker" ng-model="order.order_details.extend_date" placeholder="Select Date" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{order.date}} readonly="true">
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-12">
+            <button type='button' class="btn btn-primary" ng-click="order.confirm_to_extend()">Save</button>
+          </div>
+        </form>
+      </div>
+      <div ng-include="'views/outbound/app/create_orders/enquiry_order_detail.html'"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12 pull-right" style="margin-left:0px;" ng-disabled="pop.process" ng-click="order.ok()">Close</button>
+    </div>
+  </div>
+</div>

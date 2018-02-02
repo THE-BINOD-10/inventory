@@ -163,7 +163,18 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "pricing_master_upload/",
                    dparam: "download-pricing-master",
                    value: "",
-                   show: "add_pricemaster"
+                   show: true,
+                   perm: "add_pricemaster"
+                 }, {
+                   title: "Network Master Download/ Upload",
+                   download: "Download Network Master Form",
+                   upload: "Upload Network Master Form",
+                   durl: "network_master_form/",
+                   uurl: "network_master_upload/",
+                   dparam: "download-network-master",
+                   value: "",
+                   show: true,
+                   perm: "add_networkmaster"
                  }, {
                    title: "Order Label Mapping Download/ Upload",
                    download: "Download Order Label Mapping Form",
@@ -181,7 +192,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "order_serial_mapping_upload/",
                    dparam: "order-serial-mapping-form",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "use_imei"
                  }, {
                    title: "PO Serial Mapping Download/ Upload",
                    download: "Download PO Serial Mapping Form",
@@ -190,7 +202,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "po_serial_mapping_upload/",
                    dparam: "po-serial-mapping-form",
                    value: "",
-                   show: Session.roles.permissions.use_imei
+                   perm: "use_imei"
                  }, {
                    title: "Job Order Download/ Upload",
                    download: "Download Job Order Form",
@@ -199,7 +211,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "job_order_upload/",
                    dparam: "job-order-file",
                    value: "",
-                   show: Session.roles.permissions.add_jomaterial
+                   show: Session.roles.permissions.add_jomaterial,
+                   perm: "add_jomaterial"
                  }, {
                    title: "Marketplace Order Serial Download/ Upload",
                    download: "Download Marketplace Serial Form",
@@ -208,7 +221,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "marketplace_serial_upload/",
                    dparam: "marketplace-serial-file",
                    value: "",
-                   show: Session.roles.permissions.use_imei
+                   perm: "use_imei"
+
                  }, {
                     title: "OrderId AWB Mapping Download/Upload",
                     download: "Download OrderId AWB Mapping Form",

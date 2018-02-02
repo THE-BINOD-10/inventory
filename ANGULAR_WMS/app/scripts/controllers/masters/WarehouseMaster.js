@@ -26,7 +26,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Username').withTitle('Username'),
         DTColumnBuilder.newColumn('Name').withTitle('Name'),
         DTColumnBuilder.newColumn('Email').withTitle('Email'),
-        DTColumnBuilder.newColumn('City').withTitle('City')
+        DTColumnBuilder.newColumn('City').withTitle('City'),
+        DTColumnBuilder.newColumn('Type').withTitle('Type'),
+        DTColumnBuilder.newColumn('Level').withTitle('Level'),
+        DTColumnBuilder.newColumn('Min Order Value').withTitle('Min Order Value'),
+        DTColumnBuilder.newColumn('Zone').withTitle('Zone')
     ];
 
     vm.dtInstance = {};
@@ -54,6 +58,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
+            vm.customer_name=false;
             $scope.$apply(function() {
                 console.log(aData);
                 vm.model_data = {};
@@ -65,6 +70,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                    console.log(data)
                    angular.extend(vm.model_data, data.data);
                    vm.model_data.phone_number = parseInt(vm.model_data.phone_number);
+                   vm.customer_name = (vm.model_data.customer_name)? true: false;
                    $state.go('app.masters.WarehouseMaster.Warehouse');
                 });
             });
@@ -82,6 +88,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function close() {
 
       vm.model_data = {};
+      vm.customer_name = false;
       angular.extend(vm.model_data, empty_data);
       $state.go('app.masters.WarehouseMaster');
     }
@@ -138,6 +145,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       } else {
         update_warehouse();
       }
+    }
+  }
+
+  vm.changed = function(evt){
+    if (vm.customer_name == true) {
+      vm.customer_name = false;
+    } else {
+      vm.customer_name = true;
     }
   }
 }

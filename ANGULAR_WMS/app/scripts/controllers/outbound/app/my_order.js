@@ -1,26 +1,46 @@
+;(function(){
+
 'use strict';
 
-function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth) {
+function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, Data, $modal) {
 
   var vm = this;
+  vm.page_url = $state.href($state.current.name, $state.params, {absolute: true})
+  vm.your_orders = ($state.params.state == "orders")? true: false;
+  vm.status = ($state.params.state == "orders")? "orders": "enquiry";
+
+  var url = "get_customer_orders/";
+  if (!vm.your_orders) {
+    url = "get_enquiry_data/";
+  }
 
   //you orders
   vm.you_orders = false;
-  vm.orders_loading = false
-  vm.order_data = {data: []}
-  vm.index = ''
-  vm.show_no_data = false
-  vm.get_orders = function(){
+  vm.orders_loading = false;
+  vm.order_data = {data: []};
+  vm.index = '';
+  vm.show_no_data = false;
+  vm.date = new Date();
+  vm.get_orders = function(key){
 
     vm.orders_loading = true;
-
     vm.index = vm.order_data.data.length  + ':' + (vm.order_data.data.length + 20)
-    var data = {index: vm.index}
-    Service.apiCall("get_customer_orders/", 'GET', data).then(function(data){
+    var data = {index: vm.index, autobackorder: false}
+    if(vm.page_url.indexOf('AutoBackOrders') > 0){
+      data['autobackorder'] = true;
+    }
+    Service.apiCall(url, 'GET', data).then(function(data){
       if(data.message) {
 
         console.log(data.data);
-        vm.order_data.data = vm.order_data.data.concat(data.data.data)
+        vm.order_data.data = vm.order_data.data.concat(data.data.data);
+        
+        angular.forEach(vm.order_data.data, function(item){
+          item['extended_date'] = '';
+        });
+        vm.show_extend_date = false;
+
+        Data[key] = vm.order_data.data;
         if(data.data.data.length == 0) {
           vm.show_no_data = true
         }
@@ -28,12 +48,25 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
       vm.orders_loading = false;
     })
   }
-  vm.get_orders();
+
+  if (vm.your_orders && Data.my_orders.length == 0) {
+
+    vm.get_orders('my_orders');
+  } else if (!vm.your_orders && Data.enquiry_orders.length == 0) {
+
+    vm.get_orders('enquiry_orders');
+  } else if (vm.your_orders) {
+
+    vm.order_data.data = Data.my_orders;
+  } else if (!vm.your_orders) {
+
+    vm.order_data.data = Data.enquiry_orders;
+  }
 
   // Scrolling Event Function
   vm.scroll = function(e) {
     console.log("scroll")
-    if($(".your_orders:visible").length && !vm.orders_loading && !vm.show_no_data) {
+    if(!vm.orders_loading && !vm.show_no_data) {
         vm.get_orders();
     }
   }
@@ -51,8 +84,110 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
       return "Partially Dispatched";
     }
   }
+
+  vm.extend_order_date = function(order){
+    order['show_extend_date'] = true;
+  }
+
+  vm.confirm_to_extend = function(order, form){
+    
+    if (form.$valid) {
+      var send = angular.element($('form'));
+          send = send[0];
+          send = $(send).serializeArray();
+
+      Service.apiCall('extend_enquiry_date/', 'GET', send).then(function(data) {
+        if (data.message) {
+          if (data.data == 'Success') {
+            order.extend_status = 'pending';
+            order.show_extend_date = false;
+            Service.showNoty('Your request sent, pleae wait warehouse conformation');
+          }
+        } else {
+          Service.showNoty('Something went wrong');
+        }
+      });
+    } else {
+      Service.showNoty('Please fill with extend date');
+    }
+  }
+
+  vm.moveToCart = function(order, index, event) {
+
+    event.stopPropagation();
+
+    Service.apiCall("move_enquiry_to_order/?enquiry_id="+order.order_id).then(function(data) {
+
+      if(data.message) {
+
+        console.log(data.data);
+        if(data.data == 'Success') {
+
+          vm.order_data.data.splice(index, 1);
+          Data.enquiry_orders.splice(index, 1);
+          Service.showNoty('Successfully Moved To Cart');
+          $state.go('user.App.Cart');
+        } else {
+
+          Service.showNoty(data.data, 'warning');
+        }
+      } else {
+
+        Service.showNoty('Something Went Wrong', 'warning');
+      }
+    });
+  }
+
+  vm.order_cancel = function(order, index, event) {
+    event.stopPropagation();
+    Service.apiCall("order_cancel/?order_id="+order.order_id).then(function(data) {
+      if(data.message) {
+        console.log(data.data);
+        if(data.data == 'Success') {
+          vm.order_data.data.splice(index, 1);
+          Service.showNoty('Successfully Cancelled the Order');
+        } else {
+          Service.showNoty(data.data, 'warning');
+        }
+      } else {
+        Service.showNoty('Something Went Wrong', 'warning');
+      }
+    });
+  }
+
+  vm.open_details = function(data) {
+
+    if (Session.user_profile.user_type == 'warehouse_user') {
+
+      var mod_data = {order_id: data['orderId'], url: 'get_customer_order_detail'};
+      var page_url = window.location.href
+      if(page_url.indexOf('AutoBackOrders') > 0){
+        mod_data['autobackorder'] = true;
+      }
+      var modalInstance = $modal.open({
+        templateUrl: 'views/inbound/toggle/order_details.html',
+        controller: 'EnquiryOrderDetails',
+        controllerAs: 'order',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+        resolve: {
+          items: function () {
+            return mod_data;
+          }
+        }
+      });
+      modalInstance.result.then(function (selectedItem) {
+        var data = selectedItem;
+      })
+    } else {
+      $state.go('user.App.OrderDetails', data);
+    }
+  }
 }
 
 angular
   .module('urbanApp')
-  .controller('AppMyOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', AppMyOrders]);
+  .controller('AppMyOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', 'Data', '$modal', AppMyOrders]);
+
+})();

@@ -1,6 +1,6 @@
 input {
-    &#input-0, &#input-1 {
-        border: 1px solid grey;
+    &[type="search"] {
+        border: 1px solid grey !important;
     }
 }
 .sku-box {
@@ -531,4 +531,11 @@ input {
         transform: rotate(359deg);
     }
 }
+//extra fields
+.extra_fields_row {
+    padding-left: 0px;
 
+    textarea {
+       margin-bottom: 5px;
+    }
+}

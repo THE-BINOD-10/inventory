@@ -90,9 +90,9 @@ WSGI_APPLICATION = 'miebach.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'WMS_DEV',
+        'NAME': 'STAGING',
         'USER': 'root',
-        'PASSWORD': '0510^2017',
+        'PASSWORD': 'krothapalli',
         'TEST_MIRROR': 'default',
     }
 }
@@ -152,6 +152,7 @@ GRAPPELLI_ADMIN_TITLE = 'MIEBACH Admin'
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
 STATIC_URL = '/static/'
+MEDIA_URL = ''
 
 LOGIN_URL = '/login/'
 

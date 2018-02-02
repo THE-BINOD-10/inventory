@@ -234,7 +234,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
     vm.loading = true;
     var canceller = $q.defer();
-    vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(response) {
+    vm.service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         vm.gotData = response.data;
         canceller.resolve("done");
@@ -488,10 +488,10 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
  vm.close = function() {
 
-    //angular.copy(empty_data, vm.model_data);
+    angular.copy(empty_data, vm.model_data);
     vm.attributes = [];
     vm.image = "";
-    angular.copy(empty_pop_data, vm.pop_data);
+    //angular.copy(empty_pop_data, vm.pop_data);
     vm.pop_btn = true;
     $state.go('app.outbound.CreateOrders');
   }
@@ -537,7 +537,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.open_style = function(data) {
 
     vm.stock_quantity = data.style_quantity;
-    vm.service.apiCall("get_sku_variants/", "GET", {sku_class: data.sku_class, is_catalog: true, customer_data_id: vm.model_data.customer_id}).then(function(data) {
+    vm.service.apiCall("get_sku_variants/", "POST", {sku_class: data.sku_class, is_catalog: true, customer_data_id: vm.model_data.customer_id}).then(function(data) {
 
       if(data.message) {
         vm.style_open = true;
@@ -597,7 +597,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
                 vm.model_data.data[0]['tax'] = vm.tax;
                 vm.model_data.data[0]['total_amount'] = ((vm.model_data.data[0].invoice_amount/100)*vm.tax)+vm.model_data.data[0].invoice_amount;
               } else {
-                var temp = {sku_id: data.wms_code, description: data.sku_desc, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax}
+                var temp = {sku_id: data.wms_code, description: data.sku_desc, quantity: Number(data.quantity), invoice_amount: data.price*Number(data.quantity), price: data.price, tax: vm.tax, discount: ""}
                 temp['total_amount'] = ((temp.invoice_amount/100)*vm.tax)+temp.invoice_amount;
                 vm.model_data.data.push(temp)
               }
@@ -640,7 +640,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
     var sku = item.wms_code;
     record.sku_id = sku;
     record["description"] = item.sku_desc;
-    vm.service.apiCall("get_sku_variants/", "GET", {sku_code: sku, customer_id: vm.model_data.customer_id, is_catalog: true}).then(function(data) {
+    vm.service.apiCall("get_sku_variants/", "POST", {sku_code: sku, customer_id: vm.model_data.customer_id, is_catalog: true}).then(function(data) {
 
       if(data.message) {
         if(data.data.data.length == 1) {
@@ -766,6 +766,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.customer_data = {};
   vm.open_customer_pop = function() {
 
+    angular.copy(empty_data, vm.model_data);
     vm.service.apiCall("get_customer_master_id/").then(function(data){
       if(data.message) {
 
@@ -780,9 +781,11 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         if(data.message) {
           if(data.data == 'New Customer Added') {
             vm.close();
-            angular.copy(vm.customer_data, vm.model_data)
+            //angular.copy(vm.customer_data, vm.model_data)
             vm.model_data["customer_name"] = vm.customer_data.name;
             vm.model_data["telephone"] = vm.customer_data.phone_number;
+            vm.model_data["customer_id"] = vm.customer_data.customer_id;
+            vm.model_data["email_id"] = vm.customer_data.email_id;
           } else {
             vm.service.pop_msg(data.data);
           }
@@ -959,7 +962,8 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
           }
         }
         record["taxes"] = data.taxes;
-        record.invoice_amount = Number(record.price)*Number(record.quantity)
+        record.invoice_amount = Number(record.price)*Number(record.quantity);
+        record["priceRanges"] = data.price_bands_map;
         vm.cal_percentage(record);
         vm.update_availabe_stock(record)
       }
@@ -1313,6 +1317,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
   vm.change_quantity = function(data) {
 
+    var flag = false;
     if(vm.model_data.blind_order) {
 
       if (! data.location) {
@@ -1325,6 +1330,24 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
         vm.service.showNoty("Location capacity "+data["capacity"]);
       }
     }
+
+    if(data.priceRanges && data.priceRanges.length > 0) {
+
+      for(var skuRec = 0; skuRec < data.priceRanges.length; skuRec++){
+    
+        if(data.quantity >= data.priceRanges[skuRec].min_unit_range && data.quantity <= data.priceRanges[skuRec].max_unit_range){
+    
+          data.price = data.priceRanges[skuRec].price;
+          flag = true;
+        }
+      }
+
+      if (!flag) {
+    
+        data.price = data.priceRanges[data.priceRanges.length-1].price;
+      }
+    }
+
     data.invoice_amount = vm.service.multi(data.quantity, data.price);
     vm.cal_percentage(data);
   }

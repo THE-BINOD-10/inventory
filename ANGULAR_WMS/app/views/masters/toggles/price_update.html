@@ -22,28 +22,54 @@
                   <input type="text" name="price_type" class="form-control" ng-model="showCase.model_data.selling_price_type" ng-readonly="showCase.update" required>
                 </div>
               </div>
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label class="control-label"> Price </label>
-                  <input type="text" class="form-control" name="price" ng-model="showCase.model_data.price" decimal-number>
-                </div>
               </div>
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label class="control-label"> Discount </label>
-                  <input type="text" name="discount" class="form-control" ng-model="showCase.model_data.discount" decimal-number>
-                </div>
-              </div> 
             </div>
+            <div class="row">
+        <div class="col-md-12">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Min Unit Range</th>
+                <th>Max Unit Range</th>
+                <th>Price</th>
+                <th>Discount</th>
+                <th ng-if="!permissions.priceband_sync" class="plus"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="product in showCase.model_data.data">
+                <td>
+                   <input type="text" ng-model="product.min_unit_range" name="min_unit_range" class="form-control" decimal-number ng-blur="showCase.checkRange(product.min_amount, $index, showCase.model_data.data, 'min_amount')" required>
+                </td>
+                <td>
+                   <input type="text" ng-model="product.max_unit_range" name="max_unit_range" class="form-control" decimal-number ng-blur="showCase.checkRange(product.max_amount, $index, showCase.model_data.data, 'max_amount')" required>
+                </td>
+                <td>
+                   <input type="text" ng-model="product.price" name="price" class="form-control" decimal-number>
+                </td>
+                <td>
+                   <input type="text" ng-model="product.discount" name="discount" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" percentage-min-value="0">
+                </td>
+                <td ng-if="!permissions.priceband_sync"><i ng-click="showCase.update_data($index)" class="fa fa-minus-square-o"></i></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="row">
+        <center>
+          <button type="button" class="btn mt10 mr10" ng-if="!permissions.priceband_sync" ng-click="showCase.add_data()">Add New</button>
+        </center>
+      </div>
+      </div>
             <div ng-include="'views/common/msg.html'"></div>
         </div>
       </div>
       <!-- body end-->
       <div class="modal-footer">
         <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
-        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process" ng-if="!permissions.priceband_sync">
           <span>Save</span>
-          <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+          <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process"></span>
         </button>
       </div>
     </div><!-- /.modal-content -->

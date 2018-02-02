@@ -19,7 +19,7 @@ var app = angular.module('urbanApp')
       FastClick.attach(document.body);
 
       var skipAsync = false;
-      var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create']
+      var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create', 'user.smlogin', 'user.marshlogin']
 
             $rootScope.$on("$stateChangeStart", function (event, next, toPrms, from, fromPrms) {
 
@@ -424,6 +424,23 @@ var app = angular.module('urbanApp')
              url: '/Price',
              templateUrl: 'views/masters/toggles/price_update.html'
            })
+        .state('app.masters.NetworkMaster', {
+          url: '/NetworkMaster',
+          permission: 'add_networkmaster',
+          templateUrl: 'views/masters/network_master.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/network_master.js');
+                    }]
+          },
+          data: {
+            title: 'Network Master',
+          }
+        })
+        .state('app.masters.NetworkMaster.Add', {
+             url: '/Network',
+             templateUrl: 'views/masters/toggles/network_update.html'
+           })
         .state('app.masters.SellerMaster', {
           url: '/SellerMaster',
           permission: 'add_sellermaster',
@@ -469,6 +486,19 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Tax Master',
+          }
+        })
+        .state('app.masters.TandCMaster', {
+          url: '/TandCMaster',
+          permission: 'add_tandcmaster',
+          templateUrl: 'views/masters/TandCMaster.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/TandCMaster.js');
+                    }]
+          },
+          data: {
+            title: 'T&C Master',
           }
         })
 
@@ -633,6 +663,27 @@ var app = angular.module('urbanApp')
             url: '/InvoiceE',
             templateUrl: 'views/outbound/print/empty_invoice.html'
           })
+        .state('app.inbound.AutoBackOrders', {
+          url: '/AutoBackOrders?state',
+          params: {
+            state: 'orders',
+          },
+          templateUrl: 'views/inbound/auto_back_orders.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/pop_js/enquiry_details.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/app/my_order.js'
+                  ])
+                });
+              }]
+          },
+          data: {
+            title: 'Auto Back Orders',
+          }
+        })
 
       // Production routes
       .state('app.production', {
@@ -1054,6 +1105,10 @@ var app = angular.module('urbanApp')
             title: 'Pull Confirmation',
           }
         })
+        .state('app.outbound.PullConfirmation.OrderDetails', {
+            url: '/OrderDetails',
+            templateUrl: 'views/outbound/toggle/view_order_details.html'
+          })
           .state('app.outbound.PullConfirmation.Open', {
             url: '/Open',
             templateUrl: 'views/outbound/toggle/open_tg.html'
@@ -1094,6 +1149,24 @@ var app = angular.module('urbanApp')
             url: '/DetailInvoice',
             templateUrl: 'views/outbound/print/d_generate_inv.html'
           })
+        .state('app.outbound.EnquiryOrders', {
+          url: '/EnquiryOrders',
+          templateUrl: 'views/outbound/enquiry_orders.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/pop_js/enquiry_details.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/enquiry_orders.js'
+                  ])
+                });
+              }]
+          },
+          data: {
+            title: 'Marketing Enquiry Orders',
+          }
+        })
         .state('app.outbound.ShipmentInfo', {
           url: '/ShipmentInfo',
           permission: 'add_shipmentinfo',
@@ -1196,7 +1269,24 @@ var app = angular.module('urbanApp')
             title: 'Uploads'
           }
         })
-      
+      // Uploaded Po's route
+      .state('app.uploadedPOs', {
+          url: '/uploadedPOs',
+          templateUrl: 'views/uploadedPos/uploadedPos.html',
+          authRequired: true,
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/uploadedPos/uploadedPos.js');
+              }]
+          },
+          data: {
+            title: 'Uploaded PO\'s'
+          }
+        })
+      .state('app.uploadedPOs.PO', {
+            url: '/PO',
+            templateUrl: 'views/uploadedPos/toggles/uploaded_po_update.html'
+         })
       // Track Orders
       .state('app.TrackOrders', {
           url: '/TrackOrders',
@@ -1708,6 +1798,32 @@ var app = angular.module('urbanApp')
             contentClasses: 'full-height'
           }
         })
+        .state('user.smlogin', {
+          url: '/sm_login',
+          templateUrl: 'own/views/sm_login.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/controllers/session.js');
+                    }]
+          },
+          data: {
+            appClasses: 'bg-white usersession',
+            contentClasses: 'full-height'
+          }
+        })
+        .state('user.marshlogin', {
+          url: '/marsh_login',
+          templateUrl: 'own/views/marsh_login.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/controllers/session.js');
+                    }]
+          },
+          data: {
+            appClasses: 'bg-white usersession',
+            contentClasses: 'full-height'
+          }
+        })
         .state('user.forgot', {
           url: '/forgot',
           templateUrl: 'views/extras-forgot.html',
@@ -1781,6 +1897,11 @@ var app = angular.module('urbanApp')
             url: '/Products',
             templateUrl: 'views/outbound/app/create_orders/catlog.html'
           })
+          .state('user.App.Categories', {
+            url: '/Categories',
+            templateUrl: 'views/outbound/app/create_orders/categories.html'
+            // templateUrl: 'views/outbound/app/create_orders/catlog.html'
+          })
           .state('user.App.Style', {
             url: '/Style?styleId',
             templateUrl: 'views/outbound/app/create_orders/style.html',
@@ -1799,8 +1920,20 @@ var app = angular.module('urbanApp')
               }]
             }
           })
+          .state('user.App.CorporateOrders', {
+            url: '/CorporateOrders',
+            templateUrl: 'views/outbound/app/create_orders/corporate_orders.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/corporate_orders.js');
+              }]
+            }
+          })
           .state('user.App.MyOrders', {
-            url: '/MyOrders',
+            url: '/MyOrders?state',
+            params: {
+              state: 'orders',
+            },
             templateUrl: 'views/outbound/app/create_orders/your_orders.html',
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -1809,7 +1942,10 @@ var app = angular.module('urbanApp')
             }
           })
           .state('user.App.OrderDetails', {
-            url: '/OrderDetails?orderId',
+            url: '/OrderDetails?orderId&state',
+            params: {
+              state: 'orders',
+            },
             templateUrl: 'views/outbound/app/create_orders/order_detail.html',
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {

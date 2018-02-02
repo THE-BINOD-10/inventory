@@ -35,7 +35,7 @@ def populate_api_customer_data(user_id):
     print(url)
     resp_data = requests.post(url=url, data={'user_id': user_id})
     print resp_data
-    for obj in resp_data.json()[:10]:
+    for obj in resp_data.json():
         try:
             data = {'client_name': str(user_id), 'customer_id': obj['ledger_name'],
                     'ip': '', 'port': '', 'data': json.dumps(obj), 'push_status': 0,
@@ -47,7 +47,6 @@ def populate_api_customer_data(user_id):
             #print traceback.format_exc()
             #return traceback.format_exc()
     return 0
-
 
 def populate_api_supplier_data():
     url = dns + 'GetSupplierMaster/'
@@ -65,7 +64,6 @@ def populate_api_supplier_data():
             print traceback.format_exc()
             return traceback.format_exc()
 
-
 def populate_api_sales_invoice_data(user_id):
     url = dns + 'GetSalesInvoices/'
     resp_data = requests.post(url=url, data={'user_id': user_id})
@@ -82,7 +80,6 @@ def populate_api_sales_invoice_data(user_id):
             #return traceback.format_exc()
     return 0
 
-
 def populate_api_sales_returns_data():
     url = dns + 'GetSalesReturns/'
     resp_data = requests.post(url=url, data={})
@@ -97,7 +94,6 @@ def populate_api_sales_returns_data():
             print traceback.format_exc()
             #return traceback.format_exc()
     return 0
-
 
 def populate_api_purchase_invoice_data():
     url = dns + 'GetPurchaseInvoices/'
@@ -128,7 +124,6 @@ def populate_api_purchase_returns_data():
             return traceback.format_exc()
     return status
 
-
 populate_api_item_data(3)
 
 populate_api_customer_data(3)
@@ -137,4 +132,4 @@ populate_api_sales_invoice_data(3)
 
 populate_api_sales_returns_data(3)
 
-populate_api_supplier_data()
+populate_api_supplier_data(3)

@@ -147,11 +147,9 @@ class TallyBridgeApp(object):
         invoice.buyerState = buyer_state
         # order details
         updated_orders = []
-        #import pdb;pdb.set_trace()
         for order in orders:
             v_order = Tally.Voucher.OrderDetails()
             v_order.orderNo = order['order_no']
-            #import pdb;pdb.set_trace()
             v_order.orderDate = System.DateTime.ParseExact(order['order_date'], 'dd/MM/yyyy', None)
             updated_orders.append(v_order)
         invoice.orderDetails = updated_orders

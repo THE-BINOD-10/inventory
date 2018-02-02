@@ -18,7 +18,7 @@ def push_to_tally(ip, port, data):
 
 def push_item_master():
     resp_data = ItemMaster.objects.filter(push_status__in=[0,9])
-    for obj in resp_data[:10]:
+    for obj in resp_data:
         try:
             d = json.loads(obj.data)
             status = bridge.item_master(d)
@@ -37,7 +37,7 @@ def push_item_master():
     return 0
 
 def push_customer_vendor_master():
-    resp_data = CustomerVendorMaster.objects.filter(push_status__in=[0,9], data__icontains="Subbu")
+    resp_data = CustomerVendorMaster.objects.filter(push_status__in=[0,9])
     for obj in resp_data:
         try:
             d = json.loads(obj.data)
@@ -54,7 +54,7 @@ def push_customer_vendor_master():
 
 def push_sales_invoice_data():
     resp_data = SalesInvoice.objects.filter(push_status=0)
-    for obj in resp_data[:1]:
+    for obj in resp_data:
         try:
             d = json.loads(obj.data)
             print(d)

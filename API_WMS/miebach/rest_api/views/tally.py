@@ -44,7 +44,7 @@ class TallyAPI:
                             'order__payment_received', 'order__unit_price', 'order__order_type',\
                             'order__shipment_date', 'order__sku__product_type', 'order__customer_id',\
                             'order__original_order_id', 'order__sku__sku_desc', 'order__sku__measurement_type',
-                            'creation_date')[:10]
+                            'creation_date')
         invoices = []
         from decimal import Decimal
         for obj in seller_summary:

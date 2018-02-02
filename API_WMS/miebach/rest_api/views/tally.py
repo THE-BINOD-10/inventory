@@ -29,17 +29,12 @@ class TallyAPI:
         other_reference
         terms_of_payment
         bill_of_lading_no
-        buyer_name
         narration
         carrier_name
         voucher_no
-        address_line1
-        buyer_tin_no
-        buyer_cst_no
         type_of_dealer
         terms_of_delivery_1
-        unit
-        rate_unit
+        type_of_voucher
         """
         self.user_id = request.POST.get('user_id', 0)
         self.updation_date = self.get_updation_date(request)
@@ -140,24 +135,32 @@ class TallyAPI:
 		party_ledger_tax_dict['name'] = vat_obj.ledger_name
                 party_ledger_tax_obj.append(party_ledger_tax_dict)
             s_obj[key_value]['party_ledger_tax'] = s_obj[key_value]['party_ledger_tax'] + party_ledger_tax_obj
-            s_obj[key_value]['voucher_no'] = '' if int(tally_config.get('automatic_voucher', 1)) else obj['order__order_id']
+            s_obj[key_value]['voucher_no'] = '' if int(tally_config.get('automatic_voucher', 0)) else obj['order__order_id']
             s_obj[key_value]['reference'] = obj['order__order_id']
             s_obj[key_value]['despatch_doc_no'] = obj['order__order_code']
             s_obj[key_value]['despatched_through'] = COD.get('dispatch_through', '')
-            s_obj[key_value]['destination'] =  customer_info.get('address', '')
+            s_obj[key_value]['destination'] = customer_info.get('address', '')
             s_obj[key_value]['bill_of_lading_no'] = ''
             s_obj[key_value]['bill_of_lading_dt'] = ''
             s_obj[key_value]['carrier_name'] = ''
             s_obj[key_value]['terms_of_payment'] =  COD.get('payment_terms', '')
             s_obj[key_value]['other_reference'] = ''
             s_obj[key_value]['terms_of_delivery_1'] = ''
-            s_obj[key_value]['buyer_name'] = customer_info.get('customer_name', '')
-            s_obj[key_value]['address_line1'] = ''
-            s_obj[key_value]['buyer_tin_no'] = customer_info.get('tin_num', '')
-            s_obj[key_value]['buyer_cst_no'] = customer_info.get('cst_num', '')
+            
+            #added
+            s_obj[key_value]['terms_of_delivery_2'] = ''
+            s_obj[key_value]['use_separate_buyer_cons_addr'] = ''
+            s_obj[key_value]['is_invoice'] = ''
+            s_obj[key_value]['is_optional'] = ''
+            s_obj[key_value]['type_of_voucher'] = ''
+
+            s_obj[key_value]['buyer_name'] = customer_info.get('name', '')
+            s_obj[key_value]['address_line1'] = customer_info.get('address', '')
+            s_obj[key_value]['buyer_tin_no'] = customer_info.get('tin_number', '')
+            s_obj[key_value]['buyer_cst_no'] = customer_info.get('cst_number', '')
             s_obj[key_value]['type_of_dealer'] = ''
             s_obj[key_value]['narration'] = ''
-
+            
 	    del_notes = {}
 	    del_notes['delivery_note_no'] = ''
 	    del_notes['delivery_note_Date'] = obj['creation_date'].strftime('%d/%m/%Y')
@@ -178,6 +181,7 @@ class TallyAPI:
         sku_masters = SKUMaster.objects.filter(user=self.user_id).order_by('updation_date')
         if self.updation_date:
             sku_masters = sku_masters.filter(updation_date__gt = self.updation_date).order_by('updation_date')
+        #Stock / Sku Master newly added need to add script
         sku_masters = sku_masters[:1000]
         data_list = []
         for sku_master in sku_masters:
@@ -187,7 +191,7 @@ class TallyAPI:
             data_dict['item_name'] = sku_master.sku_desc.strip()
             data_dict['stock_group_name'] = tally_config.get('stock_group', '')
             data_dict['stock_category_name'] = tally_config.get('stock_category', '')
-            data_dict['is_vat_app'] = ''
+            data_dict['is_vat_app'] = '' #if empty default True
             opening_qty = StockDetail.objects.filter(sku__user=self.user_id, sku=sku_master).aggregate(Sum('quantity'))
             data_dict['opening_qty'] = 0
             if opening_qty['quantity__sum']:
@@ -202,25 +206,22 @@ class TallyAPI:
         return HttpResponse(json.dumps(data_list, cls=DjangoJSONEncoder))
 
     def update_masters_data(self, masters, master_type, field_mapping, tally_config):
-
         """
         Customer Master
 
         "fax_no": "",
         "service_tax_no": "",
-        "old_ledger_name": "",
         "contact_person": "",
         "opening_balance": 0,
 
         """
-
         master_group = MasterGroupMapping.objects.filter(user_id=self.user_id, master_type=master_type)
         send_ids =[]
         data_list = []
         for master in masters:
             data_dict = {}
             data_dict['tally_company_name'] = tally_config.get('company_name', '')
-            data_dict['old_ledger_name'] = ''
+            data_dict['old_ledger_name'] = master.name
             data_dict['ledger_name'] = master.name
             data_dict['ledger_alias'] = getattr(master, field_mapping['id'])
             data_dict['update_opening_balance'] = getattr(master, field_mapping['id'])
@@ -234,7 +235,9 @@ class TallyAPI:
                 parent_group_name = group_obj[0].parent_group
             data_dict['ledger_mailing_name'] = master.name
             data_dict['parent_group_name'] = parent_group_name
-            data_dict['address'] = master.address
+            data_dict['address_1'] = master.address
+            data_dict['address_2'] = ''
+            data_dict['address_3'] = ''
             data_dict['state'] = master.state
             data_dict['pin_code'] = master.pincode
             data_dict['country'] = master.country
@@ -245,6 +248,7 @@ class TallyAPI:
             data_dict['tin_no'] = master.tin_number
             data_dict['cst_no'] = master.cst_number
             data_dict['pan_no'] = master.pan_number
+            data_dict['mobile_no'] = ''
             data_dict['service_tax_no'] = ''
             if master_type == 'customer':
                 credit_period = master.credit_period

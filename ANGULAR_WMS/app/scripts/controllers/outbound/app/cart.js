@@ -115,7 +115,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
         let temp = data[index].del_date.split("/");
         let date2 = new Date(temp[1]+"/"+temp[0]+"/"+temp[2]);
         if(date2 > date1) {
-          return "Products Will Deliver As Per Delivery Shedule";
+          return "Delivery is scheduled to be later than the expected date entered. Click on 'Cancel' to modify date or 'Confirm' to place order";
         }
       }
     }

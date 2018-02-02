@@ -133,19 +133,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       var temp = data[i];
       if(i != index) {
-
-        if (Number(temp.min_amount) <= Number(amt) && Number(amt)  <=Number(temp.max_amount)) {
+        // if (Number(temp.min_amount) <= Number(amt) && Number(amt)  <=Number(temp.max_amount)) {
+        if (Number(temp.min_unit_range) <= Number(amt) && Number(amt) <= Number(temp.max_unit_range)) {
+          data[index][name] = "";
+          Service.showNoty("Range Already Exist");
+          break;
+        // } else if (Number(temp.min_amount) < Number(amt) && Number(amt)  < Number(temp.max_amount)) {
+        } else if (Number(temp.min_unit_range) < Number(amt) && Number(amt) < Number(temp.max_unit_range)) {
 
           data[index][name] = "";
           Service.showNoty("Range Already Exist");
-        } else if (Number(temp.min_amount) < Number(amt) && Number(amt)  < Number(temp.max_amount)) {
-
-          data[index][name] = "";
-          Service.showNoty("Range Already Exist");
-        } else if(Number(data[index].min_amount) <= Number(temp.min_amount) && Number(data[index].max_amount) >= Number(temp.min_amount)) {
-
-          data[index][name] = "";
-          Service.showNoty("Range Already Exist");
+          break;
+        // } else if(Number(data[index].min_amount) <= Number(temp.min_amount) && Number(data[index].max_amount) >= Number(temp.min_amount)) {
+        } else if(Number(data[index].min_unit_range) <= Number(temp.min_unit_range) && Number(data[index].max_unit_range) >= Number(temp.min_amount)) {
+          if (Number(data[index].min_unit_range) > Number(temp.min_unit_range) && Number(data[index].max_unit_range) > Number(temp.min_unit_range)) {
+            data[index][name] = "";
+            Service.showNoty("Range Already Exist");
+            break;
+          }
         }
       }
     }

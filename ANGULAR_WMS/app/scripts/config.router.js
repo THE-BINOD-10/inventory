@@ -488,6 +488,19 @@ var app = angular.module('urbanApp')
             title: 'Tax Master',
           }
         })
+        .state('app.masters.TandCMaster', {
+          url: '/TandCMaster',
+          permission: 'add_tandcmaster',
+          templateUrl: 'views/masters/TandCMaster.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/TandCMaster.js');
+                    }]
+          },
+          data: {
+            title: 'T&C Master',
+          }
+        })
 
       // Inbound routes
       .state('app.inbound', {

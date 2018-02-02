@@ -4,7 +4,7 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES
+from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES
 
 
 # from longerusername import MAX_USERNAME_LENGTH
@@ -2302,3 +2302,15 @@ class EnquiredSku(models.Model):
     class Meta:
         db_table = 'EnquiredSKUS'
         # unique_together = ('sku', 'enquiry')
+
+
+class TANDCMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    term_type = models.CharField(max_length=32, default='')
+    terms = models.TextField(default='', max_length=256)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TANDC_MASTER'

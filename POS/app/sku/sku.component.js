@@ -101,7 +101,7 @@
 	  self.check_sku = check_sku;
 	  self.checked_sku = false;
 	  function check_sku(sku_code) {
-		var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
+		var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
 		if(check_box.prop("checked")) {
 			check_box.prop("checked", false);
             var indx = self.selected_skus.indexOf(sku_code);
@@ -182,7 +182,7 @@
 	  self.checkbox_click = checkbox_click;
 	 function checkbox_click($event, sku_code, index) {
 		//$event.stopPropagation();
-		var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
+		var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
 		if(check_box.prop("checked")) {
 			check_box.prop("checked", false);
 		} else {
@@ -537,7 +537,7 @@
              
                 if (!self.qty_switch && !self.return_switch && self.issue_selected === "Delivery Challan" && filter_data[i].stock_quantity == 0) {
                   alert("Given SKU stock is empty.");
-                  $("input[name='selected_sku'][value='"+filter_data[0]["SKUCode"]+"']").prop("checked", false);
+                  $('input[name="selected_sku"][value="'+filter_data[0]["SKUCode"]+'"]').prop("checked", false);
                   break;
                 } else {
   

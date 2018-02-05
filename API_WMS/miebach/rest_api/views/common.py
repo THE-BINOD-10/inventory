@@ -5899,7 +5899,10 @@ def create_ordersummary_data(order_summary_dict, order_detail, ship_to):
 
 
 def get_priceband_admin_user(user):
-    price_band_flag = get_misc_value('priceband_sync', user.id)
+    if isinstance(user, long):
+        price_band_flag = get_misc_value('priceband_sync', user)
+    else:
+        price_band_flag = get_misc_value('priceband_sync', user.id)
     if price_band_flag == 'true':
         admin_user = get_admin(user)
     else:
@@ -5946,16 +5949,21 @@ def order_status_update(order_ids, user):
     return response
 
 
-def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code):
+def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code, admin_user=''):
     usr_sku_master = SKUMaster.objects.get(user=usr, sku_code=sku_code)
     customer_master = CustomerMaster.objects.get(id=cm_id)
     taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
     if customer_master.tax_type:
         inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
         inter_state = inter_state_dict.get(customer_master.tax_type, 2)
-        tax_master = TaxMaster.objects.filter(user_id=usr, inter_state=inter_state,
-                                              product_type=usr_sku_master.product_type,
-                                              min_amt__lte=unit_price, max_amt__gte=unit_price)
+        if admin_user:
+            tax_master = TaxMaster.objects.filter(user_id=admin_user, inter_state=inter_state,
+                                                  product_type=usr_sku_master.product_type,
+                                                  min_amt__lte=unit_price, max_amt__gte=unit_price)
+        else:
+            tax_master = TaxMaster.objects.filter(user_id=usr, inter_state=inter_state,
+                                                  product_type=usr_sku_master.product_type,
+                                                  min_amt__lte=unit_price, max_amt__gte=unit_price)
         if tax_master:
             tax_master = tax_master[0]
             taxes['cgst_tax'] = float(tax_master.cgst_tax)
@@ -5970,7 +5978,7 @@ def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code):
 def get_level_name_with_level(user, warehouse_level, users_list=[]):
     ''' Getting Level name by using level'''
     if warehouse_level == 0:
-        return 'Source Distributor'
+        return 'L0-Source Distributor'
     if not users_list:
         central_admin = get_admin(user)
         users_list = UserGroups.objects.filter(admin_user=central_admin.id).values_list('user').distinct()

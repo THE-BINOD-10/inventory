@@ -4129,6 +4129,7 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
     price_band_flag = get_misc_value('priceband_sync', user.id)
     if price_band_flag == 'true':
         central_admin = get_admin(user)
+        tax_master = TaxMaster.objects.filter(user_id=central_admin.id)
     else:
         central_admin = user
 
@@ -6051,6 +6052,7 @@ def get_level_based_customer_orders(request, response_data, user):
         start_index = int(index.split(':')[0])
         stop_index = int(index.split(':')[1])
     user_profile = UserProfile.objects.get(user=user.id)
+    admin_user = get_priceband_admin_user(user)
     if is_autobackorder == 'true':
         filter_dict = {'cust_wh_id__in': [user.id]}
         customer = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
@@ -6111,7 +6113,8 @@ def get_level_based_customer_orders(request, response_data, user):
                 if el_price:
                     record['el_price'] = el_price
                 if res_unit_price:
-                    tax_inclusive_inv_amt = get_tax_inclusive_invoice_amt(cm_id, res_unit_price, qty, user, sku_code)
+                    tax_inclusive_inv_amt = get_tax_inclusive_invoice_amt(cm_id, res_unit_price, qty, user,
+                                                                          sku_code, admin_user)
                     if 'total_inv_amt' not in record:
                         record['total_inv_amt'] = round(tax_inclusive_inv_amt, 2)
                     else:
@@ -6176,6 +6179,7 @@ def construct_order_customer_order_detail(request, order, user):
                                   'sku__sku_code', 'sku__image_url', 'sku__sku_desc', 'sku__sku_brand',
                                   'sku__sku_category', 'sku__sku_class'))
     total_picked_quantity = 0
+    admin_user = get_priceband_admin_user(user)
     for record in data_list:
         tax_data = CustomerOrderSummary.objects.filter(order__id=record['id'], order__user=user)
         picked_quantity = Picklist.objects.filter(order_id=record['id']).values(
@@ -6199,7 +6203,8 @@ def construct_order_customer_order_detail(request, order, user):
                 record['el_price'] = el_price
             if res_unit_price:
                 tax_exclusive_inv_amt = float(res_unit_price) * int(record['quantity'])
-                tax_inclusive_inv_amt = get_tax_inclusive_invoice_amt(cm_id, res_unit_price, qty, user, sku_code)
+                tax_inclusive_inv_amt = get_tax_inclusive_invoice_amt(cm_id, res_unit_price, qty, user,
+                                                                      sku_code, admin_user)
                 record['invoice_amount'] = tax_inclusive_inv_amt
                 record['sku_tax_amt'] = round(tax_inclusive_inv_amt - tax_exclusive_inv_amt, 2)
             schedule_date = gen_ord_obj[0].schedule_date
@@ -6381,8 +6386,13 @@ def get_tax_value(user, record, product_type, tax_type):
     if tax_type == 'inter_state' or tax_type == 'Inter State':
         inter_state = True
     amt = record['price']
-    tax_data = TaxMaster.objects.filter(user_id=user.id, product_type=product_type, inter_state=inter_state,
-                                        min_amt__lte=amt, max_amt__gte=amt)
+    admin_user = get_priceband_admin_user(user)
+    if admin_user:
+        tax_data = TaxMaster.objects.filter(user_id=admin_user.id, product_type=product_type, inter_state=inter_state,
+                                            min_amt__lte=amt, max_amt__gte=amt)
+    else:
+        tax_data = TaxMaster.objects.filter(user_id=user.id, product_type=product_type, inter_state=inter_state,
+                                            min_amt__lte=amt, max_amt__gte=amt)
     if tax_data:
         tax_data = tax_data[0]
         if inter_state:
@@ -6432,6 +6442,7 @@ def get_customer_cart_data(request, user=""):
                 dist_reseller_leadtime = cm_obj.lead_time
             json_record = record.json()
             sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=json_record['sku_id'])
+            json_record['mrp'] = sku_obj[0].mrp
             product_type = sku_obj[0].product_type
             if not tax_type and product_type:
                 json_record['tax'] = 0
@@ -7518,6 +7529,7 @@ def insert_enquiry_data(request, user=''):
     message = 'Success'
     customer_id = request.user.id
     corporate_name = request.POST.get('name', '')
+    admin_user = get_priceband_admin_user(user)
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if not cum_obj:
         return "No Customer User Mapping Object"
@@ -7549,7 +7561,7 @@ def insert_enquiry_data(request, user=''):
                 enq_sku_obj.enquiry = enq_master_obj
                 enq_sku_obj.quantity = cart_item.quantity
                 tot_amt = get_tax_inclusive_invoice_amt(cm_id, cart_item.levelbase_price, cart_item.quantity,
-                                                        user.id, cart_item.sku.sku_code)
+                                                        user.id, cart_item.sku.sku_code, admin_user)
                 enq_sku_obj.invoice_amount = tot_amt
                 enq_sku_obj.status = 1
                 enq_sku_obj.sku_code = cart_item.sku.sku_code
@@ -7589,10 +7601,15 @@ def get_enquiry_data(request, user=''):
             days_left = days_left_obj.days
         else:
             days_left = 0
+        each_total_inv_amt = total_inv_amt[enq_id]
+        if each_total_inv_amt:
+            each_total_inv_amt = round(each_total_inv_amt, 2)
+        else:
+            each_total_inv_amt = 0
         res_map = {'order_id': enq_id, 'customer_id': cm_id,
                    'total_quantity': total_qty[enq_id],
                    'date': get_only_date(request, em_qs.filter(enquiry_id=enq_id)[0].creation_date),
-                   'total_inv_amt': round(total_inv_amt[enq_id], 2),
+                   'total_inv_amt': each_total_inv_amt,
                    'extend_status': ext_status, 'days_left': days_left, 'corporate_name': corp_name}
         response_data['data'].append(res_map)
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))

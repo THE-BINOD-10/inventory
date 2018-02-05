@@ -149,7 +149,7 @@
     }
 
     //search customer
-    function getCustomerData(find_key){
+    function getCustomerData(user_id,find_key){
         var customer_list=[];
         return new Promise(function(resolve,reject){
             openDB().then(function(){
@@ -159,10 +159,19 @@
             limit(30).toArray().then(function(data){
                 customer_list=customer_list.concat(data);
         
-                POS_TABLES.sync_customer.where("number").
-                startsWithIgnoreCase(find_key).
-                or("firstName").startsWithIgnoreCase(find_key).
-                limit(30).toArray().then(function(data){
+                POS_TABLES.sync_customer.where("user").equals(user_id.toString()).
+                and(function(data){
+                    if(data.number!=undefined && data.number!=null){
+                       if(data.number.toLocaleLowerCase().startsWith(find_key.toLocaleLowerCase())){
+                        return true;
+                       }
+                    } 
+                    if(data.firstName!=undefined && data.firstName!=null){
+                        if(data.firstName.toLocaleLowerCase().startsWith(find_key.toLocaleLowerCase())){
+                          return true;
+                        }
+                    }
+                }).limit(30).toArray().then(function(data){
 
                     var data_list=[],user={};
 

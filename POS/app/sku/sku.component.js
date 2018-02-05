@@ -29,24 +29,33 @@
       self.nw_status = "";
       self.sku_data_filtered = [];
 
+      var OFFLINE_SKU_CONTENT=false;
       $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
            .then( function(data) {
-				self.sku_data_filtered = data.data.file_content.slice(0,500);
-				self.sku_data = data.data.file_content;
-				self.slice_from = 0;
-				self.slice_to = 500;
-                self.selected_skus = [];
+            OFFLINE_SKU_CONTENT=false;
+    				self.sku_data_filtered = data.data.file_content.slice(0,500);
+    				self.sku_data = data.data.file_content;
+    				self.slice_from = 0;
+    				self.slice_to = 500;
+            self.selected_skus = [];
             },function(error){
-              getData("").then(function(data){
+              getOflfineSkuContent();
+              
+            });
+
+      //get offline sku conntent
+      function getOflfineSkuContent(){
+        getData("").then(function(data){
                 if(data.length==0){
                   urlService.show_toast("offline has no sku's");
                 }else{
+                  OFFLINE_SKU_CONTENT=true;
                   self.sku_data = data;
                   intialiseMultiSelectData(self.sku_data);
                   self.selected_skus = [];
                 }
               });
-            });
+      }     
 
     self.change_config = change_config;
     function change_config(switch_value, switch_name) {
@@ -167,6 +176,9 @@
           $('input[name="selected_sku"][value="'+self.sku_data[sk]["SKUCode"]+'"]').prop("checked", false);
        }
        self.selected_skus = [];
+       
+       if(OFFLINE_SKU_CONTENT===true)
+        getOflfineSkuContent();
     }
      //intialise first data
      function intialiseMultiSelectData(data){

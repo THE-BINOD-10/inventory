@@ -130,7 +130,7 @@
                                 then(function(skus){
                                     return resolve(skus);
                                 }).catch(function(error){
-                                    console.log('collection error ' +err);
+                                    console.log('collection error ' +error);
                                     return resolve([]);
                                 });
                         
@@ -141,7 +141,7 @@
                 }); 
              }).catch(function(error){
                 console.log(error);
-                return reject(error);
+                return resolve([]);
             }); 
 
             });
@@ -150,8 +150,7 @@
 
     //search customer
     function getCustomerData(find_key){
-
-         var customer_list=[];
+        var customer_list=[];
         return new Promise(function(resolve,reject){
             openDB().then(function(){
             POS_TABLES.customer.where("Number").

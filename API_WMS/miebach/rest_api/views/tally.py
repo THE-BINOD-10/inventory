@@ -20,7 +20,7 @@ class TallyAPI:
         self.headers = { 'ContentType' : self.content_type }
 
     def tally_configuration(self):
-	    tally_config = TallyConfiguration.objects.filter(user=self.user_id).values('company_name', 'stock_group', 'stock_category', 'maintain_bill', 'automatic_voucher', 'credit_period')
+	tally_config = TallyConfiguration.objects.filter(user=self.user_id).values('company_name', 'stock_group', 'stock_category', 'maintain_bill', 'automatic_voucher', 'credit_period')
         tally_config = tally_config[0] if tally_config else {}
     	return tally_config
 
@@ -174,25 +174,28 @@ class TallyAPI:
 
     def get_item_master(self, request):
         """
+        EMPTY FIELDS:
         opening_amt
         is_vat_app
+
+        FIELDS NOT USED IN TALLY:
+        opening_amt
+        part_no
+        stock_category_name
         """
         self.user_id = request.POST.get('user_id', 0)
         self.updation_date = self.get_updation_date(request)
-	    tally_config = self.tally_configuration()
+	tally_config = self.tally_configuration()
         send_ids = []
         sku_masters = SKUMaster.objects.filter(user=self.user_id).order_by('updation_date')
         if self.updation_date:
             sku_masters = sku_masters.filter(Q(updation_date__gt = self.updation_date) | Q(stockdetail__updation_date__gt = self.updation_date)).order_by('updation_date')
         sku_masters = sku_masters[:1000]
-        stock_present = StockDetail.objects.filter(sku__user=self.user_id, sku=sku_master).order_by('updation_date')
-        if stock_present:
-            sku_masters = stock_present.sku
         data_list = []
         for sku_master in sku_masters:
             data_dict = {}
             data_dict['tally_company_name'] = tally_config.get('company_name', '')
-	        data_dict['old_item_name'] = sku_master.sku_desc.strip()
+	    data_dict['old_item_name'] = sku_master.sku_desc.strip()
             data_dict['item_name'] = sku_master.sku_desc.strip()
             data_dict['stock_group_name'] = tally_config.get('stock_group', '')
             data_dict['stock_category_name'] = tally_config.get('stock_category', '')
@@ -219,6 +222,13 @@ class TallyAPI:
         "contact_person": "",
         "opening_balance": 0,
 
+        Customer Master Not Used
+        fax_no
+        mobile_no
+        cst_no
+        service_tax_no
+        contact_person
+
         """
         master_group = MasterGroupMapping.objects.filter(user_id=self.user_id, master_type=master_type)
         send_ids =[]
@@ -229,8 +239,8 @@ class TallyAPI:
             data_dict['old_ledger_name'] = master.name
             data_dict['ledger_name'] = master.name
             data_dict['ledger_alias'] = getattr(master, field_mapping['id'])
-            data_dict['update_opening_balance'] = getattr(master, field_mapping['id'])
-            data_dict['opening_balance'] = 0 #?int or Float
+            data_dict['update_opening_balance'] = True
+            data_dict['opening_balance'] = 0#?int or Float
             parent_group_name = ''
             master_type = getattr(master, field_mapping['type'])
             if not master_type:
@@ -243,8 +253,10 @@ class TallyAPI:
             data_dict['address_1'] = master.address
             data_dict['address_2'] = ''
             data_dict['address_3'] = ''
+	    #list of states available in Tally
             data_dict['state'] = master.state
             data_dict['pin_code'] = master.pincode
+	    #list of country available in Tally
             data_dict['country'] = master.country
             data_dict['contact_person'] = ''
             data_dict['telephone_no'] = master.phone_number
@@ -252,6 +264,7 @@ class TallyAPI:
             data_dict['email'] = master.email_id
             data_dict['tin_no'] = master.tin_number
             data_dict['cst_no'] = master.cst_number
+	    #5 Alpha with 4 Num with 1 Alpha
             data_dict['pan_no'] = master.pan_number
             data_dict['mobile_no'] = ''
             data_dict['service_tax_no'] = ''
@@ -261,7 +274,7 @@ class TallyAPI:
                     credit_period = tally_config.get('credit_perod')
                 data_dict['default_credit_period'] = credit_period
             data_dict['maintain_billWise_details'] = STATUS_DICT[tally_config.get('maintain_bill', 0)]
-            data_list.append(data_dict)
+	    data_list.append(data_dict)
         return data_list
 
     def get_updation_date(self, request):

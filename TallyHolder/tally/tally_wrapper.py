@@ -136,6 +136,7 @@ class TallyBridgeApp(object):
         # required
         invoice.tallyCompanyName = tally_company_name
         invoice.voucherForeignKey = voucher_foreign_key
+        #Date of Voucher to be hardcoded with some dates
         invoice.dtOfVoucher = System.DateTime.ParseExact(dt_of_voucher, 'dd/MM/yyyy', None)
         invoice.voucherTypeName = voucher_typeName
         invoice.voucherIdentifier = voucher_foreign_key
@@ -552,7 +553,8 @@ class TallyBridgeApp(object):
         stock_item.itemAlias = sku_code
         stock_item.primaryUnitName = unit_name or 'nos'
         stock_item.stockGroupName = stock_group_name
-        stock_item.stockCategoryName = stock_category_name
+        #stock_item.stockCategoryName = stock_category_name
+        stock_item.stockCategoryName = ''
         stock_item.openingQty = System.Decimal(opening_qty)
         stock_item.openingRate = System.Decimal(opening_rate)
         stock_item.openingAmt = System.Decimal(-1 * opening_amt)        # Opening stock amount should be negative

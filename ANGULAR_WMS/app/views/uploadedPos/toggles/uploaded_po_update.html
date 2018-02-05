@@ -69,22 +69,32 @@
             </div>
 
             <div class="row">
-              <div class="col-md-6 col-md-offset-3">
+              <div class="col-md-10 col-md-offset-1">
                 <table class="table table-bordered">
                   <thead>
                     <tr>
                       <th>SKU Code</th>
-                      <th>Quantity</th>
-                      <th>Unit Price</th>
+                      <th>SKU Description</th>
+                      <th>Qty</th>
+                      <th>Unit Rate</th>
+                      <th>Amount</th>
+                      <th>CGST</th>
+                      <th>SGST</th>
+                      <th>IGST</th>
                       <th>Total Amount</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr ng-repeat = "data in showCase.model_data.data.sku_quantity">
                       <td>{{data.sku_code}}</td>
+                      <td>{{data.sku_desc}}</td>
                       <td>{{data.quantity}}</td>
                       <td>{{data.unit_price}}</td>
                       <td>{{data.invoice_amt}}</td>
+                      <td>{{data.cgst}}</td>
+                      <td>{{data.cgst}}</td>
+                      <td>{{data.igst}}</td>
+                      <td>{{data.total_amt}}</td>
                     </tr>
                   </tbody>
                 </table>

@@ -1335,6 +1335,40 @@ def update_order_labels(picklist, val):
             log.info('Order Label ' + str(label) + ' is mapped to ' + str(picklist.order.order_id))
 
 
+def check_req_min_order_val(user, skus):
+    order_val_flag = False
+    users_min_order_val = user.userprofile.min_order_val
+    users_order_amt = 0
+    sku_qty_map = {}
+    sku_objs = SKUMaster.objects.filter(wms_code__in=skus, user=user.id, threshold_quantity__gt=0)
+    for sku in sku_objs:
+        qty = get_auto_po_quantity(sku)
+        supplier_id, price, taxes = auto_po_warehouses(sku, qty)
+        sku_qty_map[sku.sku_code] = (qty, price)
+        if price:
+            users_order_amt += price
+    if users_order_amt > users_min_order_val:
+        order_val_flag = True
+    return order_val_flag, sku_qty_map
+
+
+def create_intransit_order(auto_skus, user, sku_qty_map):
+    sku_objs = SKUMaster.objects.filter(wms_code__in=auto_skus, user=user.id, threshold_quantity__gt=0)
+    intr_data = {'user': user.id, 'customer_id': user.id, 'intr_order_id': get_intr_order_id(user.id), 'status': 1}
+    for sku in sku_objs:
+        intr_data['sku'] = sku
+        quantity, price = sku_qty_map.get(sku.sku_code, 0)
+        if quantity:
+            intr_data['quantity'] = quantity
+        else:
+            continue
+        intr_data['unit_price'] = price
+        intr_data['invoice_amount'] = round(quantity * price, 2)
+        intr_obj = IntransitOrders(**intr_data)
+        intr_obj.save()
+        log.info('Intransit Order Created Successfully')
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1552,7 +1586,12 @@ def picklist_confirmation(request, user=''):
                     auto_skus.append(val['wms_code'])
 
         if get_misc_value('auto_po_switch', user.id) == 'true' and auto_skus:
-            auto_po(list(set(auto_skus)), user.id)
+            auto_skus = list(set(auto_skus))
+            reaches_order_val, sku_qty_map = check_req_min_order_val(user, auto_skus)
+            if reaches_order_val:
+                auto_po(auto_skus, user.id)
+            else:
+                create_intransit_order(auto_skus, user, sku_qty_map)
 
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):

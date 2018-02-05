@@ -409,6 +409,7 @@ data_datatable = {  # masters
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
     'ReturnsPutaway': 'get_order_returns_data', 'SalesReturns': 'get_order_returns', \
     'RaiseST': 'get_raised_stock_transfer', 'SellerInvoice': 'get_seller_invoice_data', \
+    'RaiseIO': 'get_intransit_orders',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -1933,6 +1934,16 @@ def get_generic_order_id(customer_id):
         gen_ord_id = 10001
 
     return gen_ord_id
+
+
+def get_intr_order_id(user_id):
+    intr_ord_qs = IntransitOrders.objects.filter(user=user_id).order_by('-intr_order_id')
+    if intr_ord_qs:
+        intr_ord_id = int(intr_ord_qs[0].intr_order_id) + 1
+    else:
+        intr_ord_id = 10001
+
+    return intr_ord_id
 
 
 def get_enquiry_id(customer_id):

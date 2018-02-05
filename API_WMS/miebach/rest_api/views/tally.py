@@ -25,7 +25,6 @@ class TallyAPI:
     	return tally_config
 
     def get_sales_invoices(self, request):
-<<<<<<< HEAD
         """
         bill_of_lading_dt
         other_reference
@@ -46,11 +45,6 @@ class TallyAPI:
             seller_summary = seller_summary.filter(updation_date__gt = self.updation_date).order_by('updation_date')
         seller_summary = seller_summary[:1000]
         seller_summary = seller_summary.values('id',\
-=======
-        self.user_id = request.GET.get('user_id', 0)
-	    tally_config = self.tally_configuration()
-        seller_summary = SellerOrderSummary.objects.filter(order__user=self.user_id).values('id',\
->>>>>>> sub_tally_create_api
                             'pick_number', 'seller_order', 'order__order_id', 'picklist',\
                             'quantity', 'invoice_number', 'creation_date', 'order__sku__sku_code',\
                             'order__state', 'order__quantity', 'order__invoice_amount',\
@@ -58,11 +52,8 @@ class TallyAPI:
                             'order__payment_received', 'order__unit_price', 'order__order_type',\
                             'order__shipment_date', 'order__sku__product_type', 'order__customer_id',\
                             'order__original_order_id', 'order__sku__sku_desc', 'order__sku__measurement_type',
-<<<<<<< HEAD
                             'creation_date', 'order__customer_name', 'order_id')
-=======
-                            'creation_date')
->>>>>>> sub_tally_create_api
+
         invoices = []
         from decimal import Decimal
         s_obj = {}
@@ -122,7 +113,7 @@ class TallyAPI:
                 party_amount = int(item_obj['billed_qty']) * float(item_obj['rate'])
             total_amount = party_amount + ( (party_amount/100) * party_ledger_total_tax )
             party_ledger_obj['amount'] = total_amount
-<<<<<<< HEAD
+
 	    s_obj[key_value].setdefault('party_ledger', {})
             party_ledger_obj['amount'] += s_obj[key_value]['party_ledger'].get('amount', 0)
             s_obj[key_value]['party_ledger'].update(party_ledger_obj)
@@ -176,59 +167,12 @@ class TallyAPI:
 	    del_notes = {}
 	    del_notes['delivery_note_no'] = ''
 	    del_notes['delivery_note_Date'] = obj['creation_date'].strftime('%d/%m/%Y')
-=======
-	        s_obj.setdefault('party_ledger', {})
-            s_obj['party_ledger'].update(party_ledger_obj)
-
-            party_ledger_tax_obj = {}
-            party_ledger_tax_obj['is_deemeed_positive'] = True
-            party_ledger_tax_obj['entry_rate'] = party_ledger_total_tax
-            party_ledger_tax_obj['amount'] = total_amount
-            vat_ledger = VatLedgerMapping.objects.filter(tax_percentage = party_ledger_total_tax, tax_type = 'sales', user = self.user_id)
-            party_ledger_tax_obj['name'] = ''
-            if vat_ledger:
-                party_ledger_tax_obj['name'] = vat_ledger[0].ledger_name
-
-	        s_obj.setdefault('party_ledger_tax', {})
-            s_obj['party_ledger_tax'].update(party_ledger_tax_obj)
-
-            #s_obj['items'] = []
-	        #[obj['order__sku__sku_code']]
-            #s_obj['party_ledger'] = {'name': i.ledger_name for i in GroupLedgerMapping.objects.filter(user=user_id, product_group=obj['order__sku__product_type'], ledger_type='sales')}
-
-            #Optional things
-            #COD = CustomerOrderSummary.objects.filter(order=obj['order__order_id']).values('dispatch_through', 'payment_terms', 'tax_type')
-            #COD = COD[0] if COD else {}
-            #s_obj['party_ledger_tax'] = COD.get('tax_type', '')
-            s_obj['voucher_no'] = '' if int(tally_config.get('automatic_voucher', 0)) else obj['order__order_id']
-            s_obj['reference'] = obj['order__order_id']
-            s_obj['despatch_doc_no'] = obj['order__order_code']
-            s_obj['despatched_through'] = COD.get('dispatch_through', '')
-            s_obj['destination'] =  customer_info.get('address', '')
-            s_obj['bill_of_lading_no'] = ''
-            s_obj['bill_of_lading_dt'] = ''
-            s_obj['carrier_name'] = ''
-            s_obj['terms_of_payment'] =  COD.get('payment_terms', '')
-            s_obj['other_reference'] = ''
-            s_obj['terms_of_delivery_1'] = ''
-            s_obj['buyer_name'] = customer_info.get('customer_name', '')
-            s_obj['address_line1'] = ''
-            s_obj['buyer_tin_no'] = customer_info.get('tin_num', '')
-            s_obj['buyer_cst_no'] = customer_info.get('cst_num', '')
-            s_obj['type_of_dealer'] = ''
-            s_obj['narration'] = ''
-
-    	    del_notes = {}
-    	    del_notes['delivery_note_no'] = ''
-    	    del_notes['delivery_note_Date'] = obj['creation_date'].strftime('%d/%m/%Y')
->>>>>>> sub_tally_create_api
 
             s_obj[key_value].setdefault('del_notes', [])
             s_obj[key_value]['del_notes'].append(del_notes)
         return HttpResponse(json.dumps(s_obj.values(), cls=DjangoJSONEncoder))
 
     def get_item_master(self, request):
-<<<<<<< HEAD
         """
         opening_amt
         is_vat_app
@@ -250,21 +194,6 @@ class TallyAPI:
             data_dict['tally_company_name'] = tally_config.get('company_name', '')
 	        data_dict['old_item_name'] = sku_master.sku_desc.strip()
             data_dict['item_name'] = sku_master.sku_desc.strip()
-=======
-        self.user_id = request.GET.get('user_id', 0)
-	    tally_config = self.tally_configuration()
-        limit = 10
-        send_ids = []
-        exclude_ids = OrdersAPI.objects.filter(user=self.user_id, engine_type='Tally', order_type='sku',\
-                    status__in=[1,9]).values_list('order_id', flat=True)
-        sku_masters = SKUMaster.objects.exclude(id__in=exclude_ids).filter(user=self.user_id)[:limit]
-        tally_company_name = 'Mieone'
-        for sku_master in sku_masters:
-            data_dict = {}
-            data_dict['tally_company_name'] = tally_config.get('company_name', 'Mieone')
-	        data_dict['old_item_name'] = sku_master.sku_desc
-            data_dict['item_name'] = sku_master.sku_desc
->>>>>>> sub_tally_create_api
             data_dict['stock_group_name'] = tally_config.get('stock_group', '')
             data_dict['stock_category_name'] = tally_config.get('stock_category', '')
             data_dict['is_vat_app'] = '' #if empty default True

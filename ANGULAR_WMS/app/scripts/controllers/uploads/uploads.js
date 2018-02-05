@@ -183,7 +183,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "order_label_mapping_upload/",
                    dparam: "order-label-mapping-form",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_orderlabels"
                  }, {
                    title: "Order Serial Mapping Download/ Upload",
                    download: "Download Order Serial Mapping Form",
@@ -231,7 +232,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                     uurl: "orderid_awb_upload/",
                     dparam: "orderid-awb-map-file",
                     value: "",
-                    show: true
+                    show: true,
+                    perm: "create_shipment_type"
                   }
                 ]
 

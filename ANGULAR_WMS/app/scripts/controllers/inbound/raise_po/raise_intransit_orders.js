@@ -9,7 +9,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.apply_filters = colFilters;
     // vm.permissions = Session.roles.permissions;
 
-    vm.filters = {'datatable': 'RaiseST', 'search0':'', 'search1':''};
+    vm.filters = {'datatable': 'RaiseIO', 'search0':'', 'search1':''};
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',

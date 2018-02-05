@@ -64,7 +64,8 @@ def get_skucode_quantity(po_number, customer_name):
     gen_ord_map = []
     for order in gen_ord_qs:
         po = {'sku_code': order.orderdetail.sku.sku_code, 'quantity': order.orderdetail.quantity,
-              'unit_price': order.orderdetail.unit_price, 'invoice_amt': order.orderdetail.invoice_amount}
+              'unit_price': order.orderdetail.unit_price, 'invoice_amt': order.orderdetail.invoice_amount,
+              'sku_desc': order.orderdetail.sku.sku_desc}
         po['amount'] = po['quantity'] * po['unit_price']
         customer_summary = order.orderdetail.customerordersummary_set.values()
         if customer_summary:

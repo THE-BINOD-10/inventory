@@ -91,9 +91,9 @@
                       <td>{{data.quantity}}</td>
                       <td>{{data.unit_price}}</td>
                       <td>{{data.invoice_amt}}</td>
-                      <td>{{data.cgst}}</td>
-                      <td>{{data.cgst}}</td>
-                      <td>{{data.igst}}</td>
+                      <td>{{data.cgst}} <span ng-if="data.cgst_tax">(@{{data.cgst_tax}}%)</span></td>
+                      <td>{{data.sgst}} <span ng-if="data.sgst_tax">(@{{data.sgst_tax}}%)</span></td>
+                      <td>{{data.igst}} <span ng-if="data.igst_tax">(@{{data.igst_tax}}%)</span></td>
                       <td>{{data.total_amt}}</td>
                     </tr>
                   </tbody>

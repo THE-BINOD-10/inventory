@@ -520,6 +520,10 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/raise_po/raise_stock_transfer.js'
                   ])
+                }).then( function() { 
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/raise_po/raise_intransit_orders.js'
+                  ])
                 });
               }]
           },

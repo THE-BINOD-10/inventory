@@ -5970,7 +5970,7 @@ def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code):
 def get_level_name_with_level(user, warehouse_level, users_list=[]):
     ''' Getting Level name by using level'''
     if warehouse_level == 0:
-        return 'Source Distributor'
+        return 'L0-Source Distributor'
     if not users_list:
         central_admin = get_admin(user)
         users_list = UserGroups.objects.filter(admin_user=central_admin.id).values_list('user').distinct()

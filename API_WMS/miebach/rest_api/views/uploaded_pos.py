@@ -7,7 +7,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
 
-from miebach_utils import OrderUploads, GenericOrderDetailMapping
+from miebach_utils import OrderUploads, GenericOrderDetailMapping, CustomerOrderSummary
 from common import get_filtered_params
 from miebach_admin.custom_decorators import get_admin_user, login_required
 from miebach_admin.models import CustomerUserMapping
@@ -58,12 +58,22 @@ def get_updated_pos(request):
 
 
 def get_skucode_quantity(po_number, customer_name):
-    gen_ord_qs = GenericOrderDetailMapping.objects.filter(po_number=po_number, client_name=customer_name).values(
-        'orderdetail__sku__sku_code', 'orderdetail__quantity', 'orderdetail__unit_price', 'orderdetail__invoice_amount')
-    gen_ord_map = [{'sku_code': i['orderdetail__sku__sku_code'],
-                    'quantity': i['orderdetail__quantity'],
-                    'unit_price': i['orderdetail__unit_price'],
-                    'invoice_amt': i['orderdetail__invoice_amount']} for i in gen_ord_qs]
+
+    gen_ord_qs = GenericOrderDetailMapping.objects.filter(po_number=po_number, client_name=customer_name)
+
+    gen_ord_map = []
+    for order in gen_ord_qs:
+        po = {'sku_code': order.orderdetail.sku.sku_code, 'quantity': order.orderdetail.quantity,
+              'unit_price': order.orderdetail.unit_price, 'invoice_amt': order.orderdetail.invoice_amount}
+        po['amount'] = po['quantity'] * po['unit_price']
+        customer_summary = order.orderdetail.customerordersummary_set.values()
+        if customer_summary:
+            customer_summary = customer_summary[0]
+            for tax in ['sgst', 'cgst', 'igst']:
+                po[tax+'_tax'] = customer_summary[tax+'_tax']
+                po[tax] = (po['amount']/100)*po[tax+'_tax']
+        gen_ord_map.append(po)
+
     return gen_ord_map
 
 

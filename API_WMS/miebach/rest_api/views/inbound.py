@@ -872,6 +872,7 @@ def switches(request, user=''):
                        'auto_confirm_po': 'auto_confirm_po',
                        'customer_pdf_remarks': 'customer_pdf_remarks',
                        'tax_inclusive' : 'tax_inclusive',
+                       'shipment_sku_scan': 'shipment_sku_scan',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

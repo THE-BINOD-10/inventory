@@ -546,7 +546,13 @@ def get_sku_data(request, user=''):
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
-    product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
+    admin_user = get_priceband_admin_user(user)
+    if admin_user:
+        product_types = list(TaxMaster.objects.filter(user_id=admin_user.id).values_list('product_type',
+                                                                                         flat=True).distinct())
+    else:
+        product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type',
+                                                                                   flat=True).distinct())
     return HttpResponse(
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                     'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
@@ -2736,7 +2742,11 @@ def update_seller_margin(request, user=''):
 
 @csrf_exempt
 def get_tax_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}):
-    objs = TaxMaster.objects.filter(user=user.id)
+    admin_user = get_priceband_admin_user(user)
+    if admin_user:
+        objs = TaxMaster.objects.filter(user=admin_user.id)
+    else:
+        objs = TaxMaster.objects.filter(user=user.id)
     lis = ['product_type', 'creation_date']
     order_data = TAX_MASTER_HEADER.values()[col_num]
     search_params = get_filtered_params(filters, lis)

@@ -2803,7 +2803,7 @@ def get_rm_picklist_data(search_params, user, sub_user):
     status_filter = {}
     all_data = OrderedDict()
     lis = {}
-    rm_picklist = RMLocation.objects.filter(stock__sku__user=user.id)
+    rm_picklist = RMLocation.objects.filter(material_picklist__jo_material__material_code__user=user.id)
     if 'from_date' in search_params:
         status_filter['material_picklist__jo_material__job_order__creation_date__gte'] = datetime.datetime.combine(
             search_params['from_date'], datetime.time())
@@ -2818,7 +2818,10 @@ def get_rm_picklist_data(search_params, user, sub_user):
     if 'rm_sku_code' in search_params:
         status_filter['material_picklist__jo_material__material_code__sku_code__iexact'] = search_params['rm_sku_code']
     if 'location' in search_params:
-        status_filter['stock__location__location__iexact'] = search_params['location']
+        if search_params['location'] == 'NO STOCK':
+            status_filter['stock__isnull'] = True
+        else:
+            status_filter['stock__location__location__iexact'] = search_params['location']
     if 'pallet' in search_params:
         status_filter['stock__pallet_detail__pallet_code__iexact'] = search_params['pallet']
     lis = [
@@ -2846,17 +2849,19 @@ def get_rm_picklist_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     if stop_index:
-      rm_picklist = rm_picklist[start_index:stop_index]
+        rm_picklist = rm_picklist[start_index:stop_index]
     for obj in rm_picklist:
-      data.append(OrderedDict((('Jo Code', obj.material_picklist.jo_material.job_order.job_code),
+        location = 'NO STOCK'
+        pallet_code = ''
+        if obj.stock:
+            location = obj.stock.location.location
+            pallet_code = obj.stock.pallet_detail.pallet_code if obj.stock.pallet_detail else ''
+        data.append(OrderedDict((('Jo Code', obj.material_picklist.jo_material.job_order.job_code),
                                  ('Jo Creation Date',
                                   get_local_date(user, obj.material_picklist.jo_material.job_order.creation_date)),
                                  ('FG SKU Code', obj.material_picklist.jo_material.job_order.product_code.sku_code),
                                  ('RM SKU Code', obj.material_picklist.jo_material.material_code.sku_code),
-                                 ('Location', obj.stock.location.location),
-                                 (
-                                 'Pallet Code', obj.stock.pallet_detail.pallet_code if obj.stock.pallet_detail else ''),
-                                 ('Quantity', obj.mod_quantity),
+                                 ('Location', location), ('Pallet Code', pallet_code), ('Quantity', obj.mod_quantity),
                                  ('Processed Date', get_local_date(user, obj.updation_date)),)))
     temp_data['aaData'] = data
     return temp_data

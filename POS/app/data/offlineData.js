@@ -1548,6 +1548,30 @@
             }); 
 
         });     
-    } 
+    }
+
+
+    function clearUserofflineSyncData(){
+
+        return new Promise(function(resolve,reject){
+            openDB().then(function(){
+                SPWAN(function*(){
+                    console.log("clear user checksum offline DB");
+                    yield POS_TABLES.checksum.clear();
+                    console.log("clear all user sku data offline DB");
+                    yield POS_TABLES.skumaster.clear();
+                    console.log("clear all user customer data offline DB");
+                    yield POS_TABLES.customer.clear();
+                    console.log("clear all user preorder data offline DB");
+                    yield POS_TABLES.pre_orders.clear();
+                    return resolve();
+                });
+            }).catch(function(error){
+                return reject(error);
+            });               
+        });
+    }
+
+
 
 

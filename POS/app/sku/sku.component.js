@@ -29,15 +29,16 @@
       self.nw_status = "";
       self.sku_data_filtered = [];
 
-      var OFFLINE_SKU_CONTENT=false;
+      
       $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
            .then( function(data) {
-            OFFLINE_SKU_CONTENT=false;
+            
     				self.sku_data_filtered = data.data.file_content.slice(0,500);
     				self.sku_data = data.data.file_content;
     				self.slice_from = 0;
     				self.slice_to = 500;
             self.selected_skus = [];
+            
             },function(error){
               getOflfineSkuContent();
               
@@ -49,8 +50,7 @@
                 if(data.length==0){
                   urlService.show_toast("offline has no sku's");
                 }else{
-                  OFFLINE_SKU_CONTENT=true;
-                  self.sku_data = data;
+                  self.sku_data = data;  
                   intialiseMultiSelectData(self.sku_data);
                   self.selected_skus = [];
                 }
@@ -176,9 +176,7 @@
           $('input[name="selected_sku"][value="'+self.sku_data[sk]["SKUCode"]+'"]').prop("checked", false);
        }
        self.selected_skus = [];
-       
-       if(OFFLINE_SKU_CONTENT===true)
-        getOflfineSkuContent();
+       //getOflfineSkuContent();
     }
      //intialise first data
      function intialiseMultiSelectData(data){
@@ -426,7 +424,7 @@
         }
   
               data.summary.nw_status = ONLINE;
-              var order_data=data;
+              var order_data=Object.assign({},data);
             var data = $.param({
                     order : JSON.stringify(data)
                 });
@@ -449,23 +447,23 @@
 
               //update the current order id
               data=data.order_ids[0]+1;
+              reduceSKUQty(order_data);
               setCheckSum(setOrderID(data)).
                 then(function(data){
                   console.log("order id updated");
               }).catch(function(error){
                   console.log("order id updated error "+error);
               });
-
           }
             clear_fields();
           },function(error){
 
-                //change the network status
+            //change the network status
             order_data.summary.nw_status = OFFLINE;
             $rootScope.sync_status = true;
             $rootScope.$broadcast('change_sync_status');
 
-            setSynOrdersData(order_data,self.qty_switch).
+            setSynOrdersData(urlService.userData.parent_id,order_data,self.qty_switch).
                   then(function(data){
     
                       if(data.is_all_return==true){
@@ -493,12 +491,11 @@
   
                     }).catch(function(error){
                        console.log("order saving error "+error);
+                       urlService.show_toast("order creation error "+error);
                     });
 
           });
-
-          
-      }
+       }
   
       self.hold_data = hold_data;
       function hold_data() {

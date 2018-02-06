@@ -1295,7 +1295,8 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'fifo_switch': 'fifo_switch',
                         'internal_mails': 'Internal Emails', 'increment_invoice': 'increment_invoice',
                         'create_shipment_type': 'create_shipment_type',
-                        'auto_allocate_stock': 'auto_allocate_stock', 'priceband_sync': 'priceband_sync', 'auto_confirm_po': 'auto_confirm_po',
+                        'auto_allocate_stock': 'auto_allocate_stock', 'priceband_sync': 'priceband_sync',
+                        'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

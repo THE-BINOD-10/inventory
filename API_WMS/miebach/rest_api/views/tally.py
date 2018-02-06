@@ -116,10 +116,8 @@ class TallyAPI:
 
 	    s_obj[key_value].setdefault('party_ledger', {})
             party_ledger_obj['amount'] += s_obj[key_value]['party_ledger'].get('amount', 0)
-            s_obj[key_value]['party_ledger'].update(party_ledger_obj)
 
 	    s_obj[key_value].setdefault('party_ledger_tax', [])
-
             party_ledger_tax_obj = []
             vat_ledger = []
 	    if igst_tax:
@@ -137,6 +135,20 @@ class TallyAPI:
                 party_ledger_tax_dict['amount'] = (party_amount /100) * vat_obj.tax_percentage
 		party_ledger_tax_dict['name'] = vat_obj.ledger_name
                 party_ledger_tax_obj.append(party_ledger_tax_dict)
+
+
+	    order_charges_obj = OrderCharges.objects.filter(user = self.user_id, order_id = key_value)
+	    party_ledger_tax_dict = {}
+	    party_ledger_tax_dict['is_deemeed_positive'] = True
+	    party_ledger_tax_dict['entry_rate'] = 0
+	    party_ledger_tax_dict['amount'] = 0
+	    party_ledger_tax_dict['name'] = "Other Charges"
+            for amt in order_charges_obj:
+                party_ledger_obj['amount'] += amt.charge_amount
+		s_obj[key_value]['party_ledger'].update(party_ledger_obj)
+                party_ledger_tax_dict['amount'] += amt.charge_amount
+            party_ledger_tax_obj.append(party_ledger_tax_dict)
+
             s_obj[key_value]['party_ledger_tax'] = s_obj[key_value]['party_ledger_tax'] + party_ledger_tax_obj
             s_obj[key_value]['voucher_no'] = '' if int(tally_config.get('automatic_voucher', 0)) else obj['order__order_id']
             s_obj[key_value]['reference'] = obj['order__order_id']

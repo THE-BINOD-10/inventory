@@ -229,6 +229,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       size_stock = vm.size_filter_data;
     }
 
+    if (!status && !scroll) {
+      vm.catlog_data.index = '';
+    }
+
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
                 to_price: vm.toPrice, quantity: vm.quantity, is_margin_percentage: vm.marginData.is_margin_percentage,

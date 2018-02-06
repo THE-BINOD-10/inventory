@@ -203,6 +203,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     return canceller.promise;
   }
 
+  vm.redirect_from_orders = function(status, scroll){
+    if (!vm.catlog_data.data) {
+      vm.get_category(status, scroll);
+    }
+  }
+
   vm.get_category = function(status, scroll) {
 
     if(vm.showFilter) {
@@ -227,10 +233,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       size_stock = JSON.stringify(vm.size_filter_data);
     } else {
       size_stock = vm.size_filter_data;
-    }
-
-    if (!status && !scroll) {
-      vm.catlog_data.index = '';
     }
 
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,

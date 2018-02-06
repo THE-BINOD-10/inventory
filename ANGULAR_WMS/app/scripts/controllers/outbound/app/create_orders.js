@@ -1247,6 +1247,12 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
     vm.pdfData.required_quantity = {};
   }
 
+  vm.remove_item = function(item){
+
+    delete vm.pdfData.checked_item_value[item];
+    delete vm.pdfData.checked_items[item];
+  }
+
   vm.cancel = function () {
     $modalInstance.dismiss('cancel');
   };

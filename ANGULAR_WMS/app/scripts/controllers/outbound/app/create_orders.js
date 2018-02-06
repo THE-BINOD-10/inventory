@@ -953,7 +953,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var size_stock = JSON.stringify(vm.size_filter_data);
     var data = {data: {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
                 sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true,
-                color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice,
+                color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice, quantity: vm.quantity,
                 is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
                 margin_data: JSON.stringify(Data.marginSKUData.data)}, required_quantity: vm.required_quantity,
                 checked_items: vm.picked_items_data, checked_item_value: vm.picked_items_obj}

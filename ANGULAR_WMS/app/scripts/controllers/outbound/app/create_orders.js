@@ -1020,6 +1020,22 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'TOYS': 'TOYS.jpg',
                            'TRAVEL GEAR': 'TRAVEL GEAR.jpg',
 
+                           'ACCESSORIES': 'ACCESSORIES.jpg',
+                           'APPARELS': 'APPARELS.jpg',
+                           'ELECTRONICS-CHARGERS': 'ELECTRONICS-CHARGERS.jpg',
+                           'ELECTRONICS-MISC': 'ELECTRONICS-MISC.jpg',
+                           'ELECTRONICS-SPEAKERS': 'ELECTRONICS-SPEAKERS.jpg',
+                           'LEATHER-BELTS': 'LEATHER-BELTS.jpg',
+                           'LEATHER-WALLETS': 'LEATHER-WALLETS.jpg',
+                           'PENS-BALL PENS': 'PENS-BALL PENS.jpg',
+                           'PENS-FOUNTAIN PENS': 'PENS-FOUNTAIN PENS.jpg',
+                           'PENS-ROLLER BALL PENS': 'PENS-ROLLER BALL PENS.jpg',
+                           'PU-BELTS': 'PU-BELTS.jpg',
+                           'PU-WALLETS': 'PU-WALLETS.jpg',
+                           'SUNGLASS-AVIATOR': 'SUNGLASS-AVIATOR.jpg',
+                           'SUNGLASS-LADIES AVIATORS': 'SUNGLASS-LADIES AVIATORS.jpg',
+                           'SUNGLASS-LADIES WAYFARER': 'SUNGLASS-LADIES WAYFARER.jpg',
+
                            //SAILESH
                            'FULL SLEEVE SHIRT': 'FULL SLEEVE SHIRT.png',
                            'HONEY COMBED DRY FIT': 'HONEY COMBED DRY FIT.png',

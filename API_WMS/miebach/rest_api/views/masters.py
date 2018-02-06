@@ -2467,7 +2467,8 @@ def update_network(request):
 @csrf_exempt
 def get_network_master_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                                filters={}):
-    objs = NetworkMaster.objects.filter()
+    nw_users = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+    objs = NetworkMaster.objects.filter(Q(dest_location_code__in=nw_users) | Q(source_location_code__in=nw_users))
     lis = ['dest_location_code__username', 'source_location_code__username', 'lead_time',
            'sku_stage', 'priority', 'price_type', 'charge_remarks']
     order_data = NETWORK_MASTER_HEADER.values()[col_num]

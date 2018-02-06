@@ -203,6 +203,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     return canceller.promise;
   }
 
+  vm.redirect_from_orders = function(status, scroll){
+    if (!vm.catlog_data.data) {
+      vm.get_category(status, scroll);
+    }
+  }
+
   vm.get_category = function(status, scroll) {
 
     if(vm.showFilter) {

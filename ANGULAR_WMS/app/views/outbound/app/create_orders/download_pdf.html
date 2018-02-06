@@ -28,21 +28,31 @@
         </div>
       </div>
     </div>
-    <div class="form-horizontal mr20 ml20">
-      <div class="row">
-        <div class="col-sm-12">
-          <h5><b>Terms and Conditions :</b></h5>
-        </div>
-        <div class="form-group col-sm-12" ng-repeat="item in $ctrl.terms">
-          <input type="checkbox" ng-model="item.is_checked" ng-init="item.is_checked=true" style="height: 18px;width: 18px;margin-top: 8px;">
-          {{ item.terms }}
-        </div>
-      </div>
-    </div>
+    <table class="table mw40" ng-if="$ctrl.user_type!='customer'">
+      <thead>
+        <tr>
+          <th><b> Style Name </b></th>
+          <th><b> MSP </b></th>
+          <th><b> Stock </b></th>
+          <th><b> Quantity </b></th>
+          <th class="plus"></td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat= "item in $ctrl.pdfData.checked_items">
+          <td>{{item.sku_desc}}</td>
+          <td>{{item.sequence}}</td>
+          <td>{{item.style_quantity}}</td>
+          <td><input type="text" name="quantity" class="form-control" ng-model="$ctrl.pdfData.required_quantity[item.sku_desc]"></td>
+          <td class="plus"><i class="fa fa-minus-square minus" style="cursor: pointer;" ng-click="$ctrl.remove_item(item.sku_desc)"></i></td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </div>
 <div class="modal-footer">
-  <button class="btn btn-warning" type="button" ng-click="$ctrl.cancel()">Close</button>
+  <button ng-if="$ctrl.user_type!='customer'" class="btn btn-warning pull-left" type="button" ng-click="$ctrl.clear_quantities()">Clear Quantities</button>
+  <button class="btn btn-default" type="button" ng-click="$ctrl.cancel()">Close</button>
   <button class="btn btn-primary" type="submit" ng-click="$ctrl.downloadPDF(form)" ng-disabled="$ctrl.pdfDownloading">{{($ctrl.pdfDownloading)? 'Downloading': 'Download';}}</button>
 </div>
 </form>

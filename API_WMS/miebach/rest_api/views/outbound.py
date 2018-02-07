@@ -4291,7 +4291,8 @@ def get_levels(request, user=''):
         wh_levels = list(UserProfile.objects.exclude(warehouse_level=0).values_list('warehouse_level',
                                                                                     flat=True).distinct())
     else:
-        wh_levels = list(UserProfile.objects.values_list('warehouse_level', flat=True).distinct())
+        wh_levels = list(UserProfile.objects.values_list('warehouse_level', flat=True).
+                         distinct().order_by('warehouse_level'))
     levels = []
     central_admin = get_admin(user)
     users_list = UserGroups.objects.filter(admin_user=central_admin.id).values_list('user').distinct()

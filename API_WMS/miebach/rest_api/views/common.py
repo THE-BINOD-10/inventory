@@ -1807,9 +1807,7 @@ def load_demo_data(request, user=''):
     from rest_api.views import *
 
     user_profile = UserProfile.objects.get(user_id=user.id)
-
     delete_user_demo_data(user.id)
-
     upload_files_path = OrderedDict((('sku_upload', {'file_name': 'sku_form.xls', 'function_name': 'sku_excel_upload'}),
                                      ('location_upload',
                                       {'file_name': 'location_form.xls', 'function_name': 'process_location'}),

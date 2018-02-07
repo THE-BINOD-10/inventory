@@ -1131,6 +1131,26 @@ PRICE_DEF_EXCEL = OrderedDict((('sku_id', 0), ('price_type', 1),
                                ('min_unit_range', 2), ('max_unit_range', 3),
                                ('price', 4), ('discount', 5)))
 
+
+#BARCODE_FORMATS = {'adam_clothing': {'format1': ['sku_master'], 'format2': ['sku_master'], 'format3': ['sku_master']}}
+
+BARCODE_DICT = {'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Style': ''},
+                'format2': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '',
+                            'DesignNo': '', 'Qty': '1', 'Gender': '', 'MRP': '', 'Packed on': '', 'Manufactured By': '', 'Marketed By': ''},
+                'format3': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '','DesignNo': '',
+                            'Qty': '1', 'Gender': '', 'MRP': '', 'MFD': '', 'Manufactured By': '', 'Marketed By': ''},
+                'format4': {'SKUCode': '', 'color': '', 'Size': '', 'SKUPrintQty': '',
+                            'Qty': '1', 'MRP': '', 'Manufactured By': '', 'Marketed By': '', 'Phone': '',
+                            'Vendor SKU': '', 'PO No': '', 'Email': ''},
+                'Bulk Barcode': {'SKUCode': '', 'Color': '', 'SKUPrintQty': '1', 'Qty': '1', 
+                            'DesignNo': '', 'UOM': '', 'Product': '', 'Company': ''}
+               }
+
+BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'format4': 'Details', 'Bulk Barcode': 'Details'}
+
+BARCODE_ADDRESS_DICT = {'adam_clothing': 'Adam Exports 401, 4th Floor,\n Pratiek Plazza, S.V.Road,\n Goregaon West, Mumbai - 400062.\n MADE IN INDIA',
+                        'scholar_clothing': 'Scholar Clothing Co. <br/> Karnataka - India'}
+
 PRICE_MASTER_DATA = {'sku_id': '', 'price_type': '', 'price': 0, 'discount': 0}
 
 NETWORK_MASTER_HEADERS = ['Destination Location Code', 'Source Location Code', 'Lead Time',
@@ -1297,7 +1317,8 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'internal_mails': 'Internal Emails', 'increment_invoice': 'increment_invoice',
                         'create_shipment_type': 'create_shipment_type',
                         'auto_allocate_stock': 'auto_allocate_stock', 'priceband_sync': 'priceband_sync',
-                        'auto_confirm_po': 'auto_confirm_po', 'shipment_sku_scan': 'shipment_sku_scan'
+                        'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
+                        'shipment_sku_scan': 'shipment_sku_scan',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -2804,7 +2825,7 @@ def get_rm_picklist_data(search_params, user, sub_user):
     status_filter = {}
     all_data = OrderedDict()
     lis = {}
-    rm_picklist = RMLocation.objects.filter(stock__sku__user=user.id)
+    rm_picklist = RMLocation.objects.filter(material_picklist__jo_material__material_code__user=user.id)
     if 'from_date' in search_params:
         status_filter['material_picklist__jo_material__job_order__creation_date__gte'] = datetime.datetime.combine(
             search_params['from_date'], datetime.time())
@@ -2819,7 +2840,10 @@ def get_rm_picklist_data(search_params, user, sub_user):
     if 'rm_sku_code' in search_params:
         status_filter['material_picklist__jo_material__material_code__sku_code__iexact'] = search_params['rm_sku_code']
     if 'location' in search_params:
-        status_filter['stock__location__location__iexact'] = search_params['location']
+        if search_params['location'] == 'NO STOCK':
+            status_filter['stock__isnull'] = True
+        else:
+            status_filter['stock__location__location__iexact'] = search_params['location']
     if 'pallet' in search_params:
         status_filter['stock__pallet_detail__pallet_code__iexact'] = search_params['pallet']
     lis = [
@@ -2847,17 +2871,19 @@ def get_rm_picklist_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     if stop_index:
-      rm_picklist = rm_picklist[start_index:stop_index]
+        rm_picklist = rm_picklist[start_index:stop_index]
     for obj in rm_picklist:
-      data.append(OrderedDict((('Jo Code', obj.material_picklist.jo_material.job_order.job_code),
+        location = 'NO STOCK'
+        pallet_code = ''
+        if obj.stock:
+            location = obj.stock.location.location
+            pallet_code = obj.stock.pallet_detail.pallet_code if obj.stock.pallet_detail else ''
+        data.append(OrderedDict((('Jo Code', obj.material_picklist.jo_material.job_order.job_code),
                                  ('Jo Creation Date',
                                   get_local_date(user, obj.material_picklist.jo_material.job_order.creation_date)),
                                  ('FG SKU Code', obj.material_picklist.jo_material.job_order.product_code.sku_code),
                                  ('RM SKU Code', obj.material_picklist.jo_material.material_code.sku_code),
-                                 ('Location', obj.stock.location.location),
-                                 (
-                                 'Pallet Code', obj.stock.pallet_detail.pallet_code if obj.stock.pallet_detail else ''),
-                                 ('Quantity', obj.mod_quantity),
+                                 ('Location', location), ('Pallet Code', pallet_code), ('Quantity', obj.mod_quantity),
                                  ('Processed Date', get_local_date(user, obj.updation_date)),)))
     temp_data['aaData'] = data
     return temp_data

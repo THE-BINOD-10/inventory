@@ -203,6 +203,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     return canceller.promise;
   }
 
+  vm.redirect_from_orders = function(status, scroll){
+    if (!vm.catlog_data.data) {
+      vm.get_category(status, scroll);
+    }
+  }
+
   vm.get_category = function(status, scroll) {
 
     if(vm.showFilter) {
@@ -1013,6 +1019,22 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'TG-TRAVEL WALLETS': 'TG-TRAVEL WALLETS.jpg',
                            'TOYS': 'TOYS.jpg',
                            'TRAVEL GEAR': 'TRAVEL GEAR.jpg',
+
+                           'ACCESSORIES': 'ACCESSORIES.jpg',
+                           'APPARELS': 'APPARELS.jpg',
+                           'ELECTRONICS-CHARGERS': 'ELECTRONICS-CHARGERS.jpg',
+                           'ELECTRONICS-MISC': 'ELECTRONICS-MISC.jpg',
+                           'ELECTRONICS-SPEAKERS': 'ELECTRONICS-SPEAKERS.jpg',
+                           'LEATHER-BELTS': 'LEATHER-BELTS.jpg',
+                           'LEATHER-WALLETS': 'LEATHER-WALLETS.jpg',
+                           'PENS-BALL PENS': 'PENS-BALL PENS.jpg',
+                           'PENS-FOUNTAIN PENS': 'PENS-FOUNTAIN PENS.jpg',
+                           'PENS-ROLLER BALL PENS': 'PENS-ROLLER BALL PENS.jpg',
+                           'PU-BELTS': 'PU-BELTS.jpg',
+                           'PU-WALLETS': 'PU-WALLETS.jpg',
+                           'SUNGLASS-AVIATOR': 'SUNGLASS-AVIATOR.jpg',
+                           'SUNGLASS-LADIES AVIATORS': 'SUNGLASS-LADIES AVIATORS.jpg',
+                           'SUNGLASS-LADIES WAYFARER': 'SUNGLASS-LADIES WAYFARER.jpg',
 
                            //SAILESH
                            'FULL SLEEVE SHIRT': 'FULL SLEEVE SHIRT.png',

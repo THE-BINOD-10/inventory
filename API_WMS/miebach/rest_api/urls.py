@@ -5,7 +5,7 @@ from django.conf import settings
 from rest_api.views import *
 from rest_api.views.tally import *
 #urlpatterns = patterns('rest_api.views',
-#tally_api = TallyAPI()
+tally_api = TallyAPI()
 
 # urlpatterns = patterns('rest_api.views',
 urlpatterns = [
@@ -472,5 +472,12 @@ urlpatterns += [
     #url('^GetCustomerMaster/', tally_api.get_customer_master),
 
     # Barcodes
-    url('^get_format_types/', get_format_types)
+    url(r'^get_format_types/', get_format_types),
+    url(r'^GetItemMaster/', tally_api.get_item_master),
+    url(r'^GetSupplierMaster/', tally_api.get_supplier_master),
+    url(r'^GetCustomerMaster/', tally_api.get_customer_master),
+    url(r'^GetSalesInvoices/', tally_api.get_sales_invoices),
+    url(r'^GetSalesReturns/', tally_api.get_sales_returns),
+    url(r'^GetPurchaseInvoices/', tally_api.get_purchase_invoice),
+    url(r'^GetPurchaseReturns/', tally_api.get_purchase_returns)
 ]

@@ -2,14 +2,21 @@
 
 function uploadCtrl($scope, FileUploader, Session) {
 
+  $scope.categories = ['SKU', 'Category', 'Brand'];
+  $scope.category_type = $scope.categories[0];
+  var files_type = '';
+
   var uploader = $scope.uploader = new FileUploader({
     url: Session.url+"upload_images/",
+    // formData: [
+    //     { "files_type": $scope.category_type },
+    // ],
     withCredentials: 'true'
   });
 
-  uploader.categories = ['SKU', 'Category', 'Brand'];
-  uploader.category_type = uploader.categories[0];
-
+  files_type = [{'files_type': $scope.category_type}];
+  uploader.formData = files_type;
+  // uploader.formData = [{'files_type': $scope.category_type}];
 
   // FILTERS
 
@@ -42,4 +49,3 @@ function uploadCtrl($scope, FileUploader, Session) {
 angular
   .module('urbanApp')
   .controller('uploadCtrl', ['$scope', 'FileUploader', 'Session', uploadCtrl]);
-

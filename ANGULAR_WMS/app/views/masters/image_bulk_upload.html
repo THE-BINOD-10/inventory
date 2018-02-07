@@ -21,8 +21,8 @@
                 <div class="col-md-6">
                   <div class="form-group">
                     <label class="control-label"> Choose Images Type </label>
-                    <select name="category_type" class="form-control" ng-model="uploader.category_type" ng-required="true">
-                       <option ng-repeat="opt in uploader.categories" ng-selected="$index==0" value="{{opt}}">{{opt}}</option>
+                    <select name="category_type" class="form-control" ng-model="category_type" ng-required="true">
+                       <option ng-repeat="opt in categories" ng-selected="$index==0" value="{{opt}}">{{opt}}</option>
                      </select>
                   </div>
                 </div>

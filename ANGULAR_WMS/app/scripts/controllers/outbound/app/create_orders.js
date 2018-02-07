@@ -541,9 +541,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       //search = (search)? search+25 : 0;
       var cart = $(".cart_button:visible").outerHeight();
       
-      // if(vm.location != '/App/Categories'){
-        $(".app_body").css('height',height-header-menu-cart);
-      // }
+      // $(".app_body").css('height',height-header-menu-cart);
+      $(".app_body").css('height',height-menu-cart);
       
       $(".app_body").css('overflow-y', 'auto');
     }

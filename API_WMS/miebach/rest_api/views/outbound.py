@@ -4429,7 +4429,15 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
 @login_required
 @get_admin_user
 def get_sku_catalogs(request, user=''):
-    data, start, stop = get_sku_catalogs_data(request, user)
+    checked_items = eval(request.POST.get('checked_items', '{}'))
+    if not checked_items:
+        data, start, stop = get_sku_catalogs_data(request, user)
+    else:
+        data = checked_items.values()
+        style_quantities = eval(request.POST.get('required_quantity', '{}'))
+        for style_data in data:
+            if style_quantities.get(style_data['sku_class'], ''):
+                style_data['style_data'] = get_cal_style_data(style_data, style_quantities[style_data['sku_class']])
     download_pdf = request.POST.get('share', '')
     if download_pdf:
         remarks = ''

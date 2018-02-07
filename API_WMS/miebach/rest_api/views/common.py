@@ -5961,7 +5961,12 @@ def order_status_update(order_ids, user):
 
 
 def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code, admin_user=''):
-    usr_sku_master = SKUMaster.objects.get(user=usr, sku_code=sku_code)
+    usr_sku_master = SKUMaster.objects.filter(user=usr, sku_code=sku_code)
+    if usr_sku_master:
+        product_type = usr_sku_master[0].product_type
+    else:
+        log.info('No SKUMaster for user(%s) and sku_code(%s)' %(usr, sku_code))
+        product_type = ''
     customer_master = CustomerMaster.objects.get(id=cm_id)
     taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
     if customer_master.tax_type:
@@ -5969,11 +5974,11 @@ def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code, admin_u
         inter_state = inter_state_dict.get(customer_master.tax_type, 2)
         if admin_user:
             tax_master = TaxMaster.objects.filter(user_id=admin_user, inter_state=inter_state,
-                                                  product_type=usr_sku_master.product_type,
+                                                  product_type=product_type,
                                                   min_amt__lte=unit_price, max_amt__gte=unit_price)
         else:
             tax_master = TaxMaster.objects.filter(user_id=usr, inter_state=inter_state,
-                                                  product_type=usr_sku_master.product_type,
+                                                  product_type=product_type,
                                                   min_amt__lte=unit_price, max_amt__gte=unit_price)
         if tax_master:
             tax_master = tax_master[0]

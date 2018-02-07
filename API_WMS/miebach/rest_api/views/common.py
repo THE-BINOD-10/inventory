@@ -409,6 +409,7 @@ data_datatable = {  # masters
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
     'ReturnsPutaway': 'get_order_returns_data', 'SalesReturns': 'get_order_returns', \
     'RaiseST': 'get_raised_stock_transfer', 'SellerInvoice': 'get_seller_invoice_data', \
+    'RaiseIO': 'get_intransit_orders',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -1806,9 +1807,7 @@ def load_demo_data(request, user=''):
     from rest_api.views import *
 
     user_profile = UserProfile.objects.get(user_id=user.id)
-
     delete_user_demo_data(user.id)
-
     upload_files_path = OrderedDict((('sku_upload', {'file_name': 'sku_form.xls', 'function_name': 'sku_excel_upload'}),
                                      ('location_upload',
                                       {'file_name': 'location_form.xls', 'function_name': 'process_location'}),
@@ -1953,6 +1952,16 @@ def get_generic_order_id(customer_id):
         gen_ord_id = 10001
 
     return gen_ord_id
+
+
+def get_intr_order_id(user_id):
+    intr_ord_qs = IntransitOrders.objects.filter(user=user_id).order_by('-intr_order_id')
+    if intr_ord_qs:
+        intr_ord_id = int(intr_ord_qs[0].intr_order_id) + 1
+    else:
+        intr_ord_id = 10001
+
+    return intr_ord_id
 
 
 def get_enquiry_id(customer_id):
@@ -5919,7 +5928,10 @@ def create_ordersummary_data(order_summary_dict, order_detail, ship_to):
 
 
 def get_priceband_admin_user(user):
-    price_band_flag = get_misc_value('priceband_sync', user.id)
+    if isinstance(user, long):
+        price_band_flag = get_misc_value('priceband_sync', user)
+    else:
+        price_band_flag = get_misc_value('priceband_sync', user.id)
     if price_band_flag == 'true':
         admin_user = get_admin(user)
     else:
@@ -5966,16 +5978,26 @@ def order_status_update(order_ids, user):
     return response
 
 
-def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code):
-    usr_sku_master = SKUMaster.objects.get(user=usr, sku_code=sku_code)
+def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code, admin_user=''):
+    usr_sku_master = SKUMaster.objects.filter(user=usr, sku_code=sku_code)
+    if usr_sku_master:
+        product_type = usr_sku_master[0].product_type
+    else:
+        log.info('No SKUMaster for user(%s) and sku_code(%s)' %(usr, sku_code))
+        product_type = ''
     customer_master = CustomerMaster.objects.get(id=cm_id)
     taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
     if customer_master.tax_type:
         inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
         inter_state = inter_state_dict.get(customer_master.tax_type, 2)
-        tax_master = TaxMaster.objects.filter(user_id=usr, inter_state=inter_state,
-                                              product_type=usr_sku_master.product_type,
-                                              min_amt__lte=unit_price, max_amt__gte=unit_price)
+        if admin_user:
+            tax_master = TaxMaster.objects.filter(user_id=admin_user, inter_state=inter_state,
+                                                  product_type=product_type,
+                                                  min_amt__lte=unit_price, max_amt__gte=unit_price)
+        else:
+            tax_master = TaxMaster.objects.filter(user_id=usr, inter_state=inter_state,
+                                                  product_type=product_type,
+                                                  min_amt__lte=unit_price, max_amt__gte=unit_price)
         if tax_master:
             tax_master = tax_master[0]
             taxes['cgst_tax'] = float(tax_master.cgst_tax)
@@ -5990,7 +6012,7 @@ def get_tax_inclusive_invoice_amt(cm_id, unit_price, qty, usr, sku_code):
 def get_level_name_with_level(user, warehouse_level, users_list=[]):
     ''' Getting Level name by using level'''
     if warehouse_level == 0:
-        return 'Source Distributor'
+        return 'L0-Source Distributor'
     if not users_list:
         central_admin = get_admin(user)
         users_list = UserGroups.objects.filter(admin_user=central_admin.id).values_list('user').distinct()

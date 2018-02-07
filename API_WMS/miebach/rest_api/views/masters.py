@@ -546,7 +546,13 @@ def get_sku_data(request, user=''):
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
-    product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
+    admin_user = get_priceband_admin_user(user)
+    if admin_user:
+        product_types = list(TaxMaster.objects.filter(user_id=admin_user.id).values_list('product_type',
+                                                                                         flat=True).distinct())
+    else:
+        product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type',
+                                                                                   flat=True).distinct())
     return HttpResponse(
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                     'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
@@ -580,32 +586,41 @@ def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, 
         master_data1 = all_user_groups.filter(
             Q(user__first_name__icontains=search_term) | Q(user__email__icontains=search_term),
             **search_params1).exclude(user_id=user.id). \
-            order_by(order_data).values_list('user__username', 'user__first_name',
-                                             'user__email', 'user__warehouse_type', 'user__warehouse_level')
+            order_by(order_data).values_list('user__username', 'user__first_name', 'user__email',
+                                             'user__warehouse_type', 'user__warehouse_level', 'user__min_order_val',
+                                             'user__zone')
 
         master_data2 = all_user_groups.exclude(**exclude_admin).filter(
             Q(admin_user__first_name__icontains=search_term) |
             Q(admin_user__email__icontains=search_term), **search_params2). \
             order_by(order_data1).values_list('admin_user__username',
-                                              'admin_user__first_name', 'admin_user__email', 'admin_user__userprofile__warehouse_type', 'admin_user__userprofile__warehouse_level').distinct()
+                                              'admin_user__first_name', 'admin_user__email',
+                                              'admin_user__userprofile__warehouse_type',
+                                              'admin_user__userprofile__warehouse_level',
+                                              'admin_user__userprofile__min_order_val',
+                                              'admin_user__userprofile__zone').distinct()
         master_data = list(chain(master_data1, master_data2))
 
     elif order_term:
         master_data1 = all_user_groups.filter(**search_params1).exclude(user_id=user.id). \
-            order_by(order_data).values_list('user__username', 'user__first_name', 'user__email', 'user__userprofile__warehouse_type', 'user__userprofile__warehouse_level')
+            order_by(order_data).values_list('user__username', 'user__first_name', 'user__email',
+                                             'user__userprofile__warehouse_type', 'user__userprofile__warehouse_level',
+                                             'user__userprofile__min_order_val', 'user__userprofile__zone')
         master_data2 = all_user_groups.exclude(**exclude_admin).filter(**search_params2).order_by(order_data1). \
-            values_list('admin_user__username',
-                        'admin_user__first_name', 'admin_user__email', 'admin_user__userprofile__warehouse_type', 'admin_user__userprofile__warehouse_level').distinct()
+            values_list('admin_user__username', 'admin_user__first_name', 'admin_user__email',
+                        'admin_user__userprofile__warehouse_type', 'admin_user__userprofile__warehouse_level',
+                        'admin_user__userprofile__min_order_val', 'admin_user__userprofile__zone').distinct()
         master_data = list(chain(master_data1, master_data2))
 
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     for data in master_data[start_index:stop_index]:
-        username, name, email, wh_type, wh_level = data
+        username, name, email, wh_type, wh_level, min_order_val, zone = data
         user_profile = UserProfile.objects.get(user__username=username)
         temp_data['aaData'].append({'Username': username, 'DT_RowClass': 'results', 'Name': name,
                                     'Email': email, 'City': user_profile.city, 'DT_RowId': username,
-                                    'Type': wh_type, 'Level': wh_level})
+                                    'Type': wh_type, 'Level': wh_level, 'Min Order Value': min_order_val,
+                                    'Zone': zone})
 
 
 @csrf_exempt
@@ -1494,7 +1509,9 @@ def get_warehouse_user_data(request, user=''):
             'email': user_profile.user.email, 'country': user_profile.country, 'state': user_profile.state,
             'city': user_profile.city, 'address': user_profile.address, 'pin_code': user_profile.pin_code,
             'warehouse_type': user_profile.warehouse_type, 'warehouse_level': user_profile.warehouse_level,
-            'customer_name': customer_username, 'customer_fullname': customer_fullname}
+            'customer_name': customer_username, 'customer_fullname': customer_fullname,
+            'min_order_val': user_profile.min_order_val, 'level_name': user_profile.level_name,
+            'zone': user_profile.zone}
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -2450,7 +2467,8 @@ def update_network(request):
 @csrf_exempt
 def get_network_master_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                                filters={}):
-    objs = NetworkMaster.objects.filter()
+    nw_users = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+    objs = NetworkMaster.objects.filter(Q(dest_location_code__in=nw_users) | Q(source_location_code__in=nw_users))
     lis = ['dest_location_code__username', 'source_location_code__username', 'lead_time',
            'sku_stage', 'priority', 'price_type', 'charge_remarks']
     order_data = NETWORK_MASTER_HEADER.values()[col_num]
@@ -2725,7 +2743,11 @@ def update_seller_margin(request, user=''):
 
 @csrf_exempt
 def get_tax_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters={}):
-    objs = TaxMaster.objects.filter(user=user.id)
+    admin_user = get_priceband_admin_user(user)
+    if admin_user:
+        objs = TaxMaster.objects.filter(user=admin_user.id)
+    else:
+        objs = TaxMaster.objects.filter(user=user.id)
     lis = ['product_type', 'creation_date']
     order_data = TAX_MASTER_HEADER.values()[col_num]
     search_params = get_filtered_params(filters, lis)
@@ -2914,3 +2936,61 @@ def search_network_user(request, user=''):
         total_data.append({"user_id": str(user_data.user.id), "user_name": str(user_data.user.username)})
 
     return HttpResponse(json.dumps(total_data))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_terms_and_conditions(request, user=''):
+    ''' Get Terms and conditions list'''
+    tc_type = request.GET.get('tc_type', '')
+    admin_user = get_admin(user)
+    tc_list = list(TANDCMaster.objects.filter(user=admin_user.id, term_type=tc_type).values('id', 'terms').order_by('id'))
+    return HttpResponse(json.dumps({'tc_list': tc_list}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_update_terms(request, user=''):
+    ''' Create or Update Terms and conditions'''
+    terms_dict = request.POST.dict()
+    message = ''
+    status = 0
+    data = {}
+    if not terms_dict.get('term_type', ''):
+        return HttpResponse(json.dumps({'status': status, 'message': 'Term type missing'}))
+    if terms_dict.get('id', ''):
+        TANDCMaster.objects.filter(id=terms_dict['id'], term_type=terms_dict['term_type']).\
+                            update(terms=terms_dict['terms'])
+        message = 'Updated Successfully'
+        status = 1
+    elif terms_dict.get('terms', ''):
+        terms_dict['user'] = user.id
+        tc_master = TANDCMaster.objects.create(**terms_dict)
+        message = 'Added Successfully'
+        data = {'id': tc_master.id}
+        status = 1
+    else:
+        message = 'Mandatory fields missing'
+    return HttpResponse(json.dumps({'status': status, 'message': message, 'data': data}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_terms(request, user=''):
+    ''' Delete Terms and conditions'''
+    terms_dict = request.POST.dict()
+    message = ''
+    status = 0
+    data = {}
+    if not terms_dict.get('term_type', ''):
+        return HttpResponse(json.dumps({'status': status, 'message': 'Term type missing'}))
+    if terms_dict.get('id', ''):
+        TANDCMaster.objects.filter(id=terms_dict['id']).delete()
+        message = 'Deleted Successfully'
+        status = 1
+    else:
+        message = 'Mandatory fields missing'
+    return HttpResponse(json.dumps({'status': status, 'message': message, 'data': data}))

@@ -4,7 +4,7 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES
+from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES
 
 
 # from longerusername import MAX_USERNAME_LENGTH
@@ -764,6 +764,9 @@ class UserProfile(models.Model):
     user_type = models.CharField(max_length=60, default='warehouse_user')
     warehouse_type = models.CharField(max_length=60, default='')
     warehouse_level = models.IntegerField(default=0)
+    min_order_val = models.PositiveIntegerField(default=0)
+    level_name = models.CharField(max_length=64, default='')
+    zone = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -2284,6 +2287,9 @@ class EnquiryMaster(models.Model):
     state = models.CharField(max_length=60, default='')
     pin_code = models.PositiveIntegerField(default=0)
     remarks = models.CharField(max_length=128, default='')
+    extend_status = models.CharField(max_length=54, default='')
+    extend_date = models.DateField()
+    corporate_name = models.CharField(max_length=256, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2310,3 +2316,33 @@ class EnquiredSku(models.Model):
     class Meta:
         db_table = 'EnquiredSKUS'
         # unique_together = ('sku', 'enquiry')
+
+
+class TANDCMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    term_type = models.CharField(max_length=32, default='')
+    terms = models.TextField(default='', max_length=256)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TANDC_MASTER'
+        
+
+class IntransitOrders(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    customer_id = models.PositiveIntegerField()
+    intr_order_id = models.DecimalField(max_digits=50, decimal_places=0)
+    sku = models.ForeignKey(SKUMaster)
+    quantity = models.FloatField(default=0)
+    unit_price = models.FloatField(default=0)
+    invoice_amount = models.FloatField(default=0)
+    status = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)    
+    
+    class Meta:
+        db_table = 'INTRANSIT_ORDERS'
+        unique_together = ('user', 'customer_id', 'intr_order_id', 'sku')

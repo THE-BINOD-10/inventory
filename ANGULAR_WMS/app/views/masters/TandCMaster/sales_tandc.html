@@ -1,0 +1,40 @@
+<div class="panel" ng-controller="TandCMaster as showCase">
+  <div class="panel-header">
+    <button type="button" class="btn btn-success pull-right ml10" ng-click="showCase.new_tc_status = true">New Terms and Conditions</button>
+  </div>
+  <div class="panel-body mr20 ml20">
+    <div class="list-group">
+      <div class="list-group-item" ng-repeat="item in showCase.items">
+        <div class="row">
+          <div class="col-md-9 col-sm-8 col-xs-8">
+            <span ng-if="!item.edit_status">{{ item.terms }}</span>
+            <input type="text" class="form-control" ng-model="item.terms" ng-if="item.edit_status">
+          </div>
+          <div class="col-md-3 col-sm-4 col-xs-4">
+            <a href="" style="text-decoration: underline; color: red;float: right; margin-left:20px" ng-click="showCase.deleteTC(item, $index)">Delete</a>
+            <a href="" style="text-decoration: underline; color: #33cc66;float: right; margin-left:20px" ng-click="showCase.saveTC(item)" ng-if="item.edit_status == true">Save</a>
+            <a href="" style="text-decoration: underline; color: #4cc3d9;float: right; margin-left:20px" ng-click="item.edit_status = true" ng-if="item.edit_status != true">Edit</a>
+          </div>
+        </div>
+      </div>
+      <div class="list-group-item" ng-if="showCase.new_tc_status">
+        <div class="row">
+          <div class="col-md-9 col-sm-8 col-xs-8">
+            <input type="text" class="form-control" ng-model="showCase.new_terms">
+          </div>
+          <div class="col-md-3 col-sm-4 col-xs-4">
+            <a href="" style="text-decoration: underline; color: #33cc66;float: right; margin-left:20px" ng-click="showCase.saveTC({'terms': showCase.new_terms})">Save</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!--<div class="panel-footer">
+    <button type="button" class="pull-right btn btn-success" style="margin-left:10px;" ng-click="showCase.confirm_po1()" ng-disabled="showCase.bt_disable || process">
+      Confirm PO
+    </button>
+    <button type="button" class="pull-right btn btn-danger" ng-disabled="showCase.bt_disable || process" ng-click="showCase.delete_po_group();">
+      Delete PO
+    </button>
+  </div>-->
+</div>

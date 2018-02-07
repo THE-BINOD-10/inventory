@@ -1,0 +1,21 @@
+<div class="page-layout" ng-controller="TandCMaster as showCase">
+  <div class='layout-header'>
+    <div class="row">
+      <div class="col-md-6 col-sm-12 col-xs-12">
+        <div ng-include="'views/common/title.html'"></div>
+      </div>
+
+    </div>
+  </div>
+  <div class="layout-body">
+    <tabset class="box-tab">
+      <tab heading="Sales T&C">
+        <div ng-include="'views/masters/TandCMaster/sales_tandc.html'"></div>
+      </tab>
+      <tab heading="Purchase T&C" ng-hide="true">
+
+      </tab>
+    </tabset>
+</div>
+
+</div>

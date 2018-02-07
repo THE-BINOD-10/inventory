@@ -453,6 +453,8 @@ MARKET_USER_SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU G
                            'Sale Through',
                            'Color', 'EAN Number', 'HSN Code', 'Status']
 
+RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Unit Handling(Options: Enable, Disable)']
+
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity',
                          'Return Date(YYYY-MM-DD)', 'Reason']
 
@@ -655,7 +657,7 @@ ADD_USER_DICT = {'username': '', 'first_name': '', 'last_name': '', 'password': 
 
 ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', u'state': '', 'pin_code': '',
                       'address': '', 'phone_number': '', 'prefix': '', 'location': '', 'warehouse_type': '',
-                      'warehouse_level': 0}
+                      'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': ''}
 
 PICKLIST_EXCEL = OrderedDict((('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'), ('Zone', 'zone'),
                               ('Location', 'location'),
@@ -664,9 +666,9 @@ PICKLIST_EXCEL = OrderedDict((('WMS Code', 'wms_code'), ('Title', 'title'), ('Ca
                               ))
 
 # Campus Sutra
-SHOPCLUES_EXCEL = {'original_order_id': 0, 'order_id': 0, 'quantity': 14, 'title': 7, 'invoice_amount': 46,
+SHOPCLUES_EXCEL = {'original_order_id': 0, 'order_id': 0, 'quantity': 14, 'title': 7, 'invoice_amount': 44,
                    'address': 10,
-                   'customer_name': 9, 'marketplace': 'Shopclues', 'sku_code': 19}
+                   'customer_name': 9, 'marketplace': 'Shopclues', 'sku_code': 48}
 
 # SHOPCLUES_EXCEL1 = {'order_id': 0, 'quantity': 13, 'title': 6, 'invoice_amount': 45, 'address': 9, 'customer_name': 8,
 #                    'marketplace': 'Shopclues', 'sku_code': 48}
@@ -749,6 +751,9 @@ ITEM_MASTER_EXCEL = OrderedDict(
 
 SHOTANG_SKU_MASTER_EXCEL = OrderedDict(
     (('wms_code', 2), ('sku_desc', 3), ('color', 4), ('sku_brand', 7), ('sku_category', 8)))
+
+SM_WH_SKU_MASTER_EXCEL = OrderedDict((('wms_code', 0), ('zone_id', 1), ('threshold_quantity', 2),
+                                     ('load_unit_handle', 3)))
 
 # End of SKU Master U[pload templates
 
@@ -922,7 +927,8 @@ PERMISSION_DICT = OrderedDict((
 
     # Outbound
     ("OUTBOUND_LABEL", (("Create Orders", "add_orderdetail"), ("View Orders", "add_picklist"),
-                        ("Pull Confirmation", "add_picklistlocation"))),
+                        ("Pull Confirmation", "add_picklistlocation"), ("Enquiry Orders", "add_enquirymaster"),
+                        ("Customer Invoices", "add_sellerordersummary"))),
 
     # Shipment Info
     ("SHIPMENT_LABEL", (("Shipment Info", "add_shipmentinfo"))),
@@ -1125,6 +1131,26 @@ PRICE_DEF_EXCEL = OrderedDict((('sku_id', 0), ('price_type', 1),
                                ('min_unit_range', 2), ('max_unit_range', 3),
                                ('price', 4), ('discount', 5)))
 
+
+#BARCODE_FORMATS = {'adam_clothing': {'format1': ['sku_master'], 'format2': ['sku_master'], 'format3': ['sku_master']}}
+
+BARCODE_DICT = {'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Style': ''},
+                'format2': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '',
+                            'DesignNo': '', 'Qty': '1', 'Gender': '', 'MRP': '', 'Packed on': '', 'Manufactured By': '', 'Marketed By': ''},
+                'format3': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '','DesignNo': '',
+                            'Qty': '1', 'Gender': '', 'MRP': '', 'MFD': '', 'Manufactured By': '', 'Marketed By': ''},
+                'format4': {'SKUCode': '', 'color': '', 'Size': '', 'SKUPrintQty': '',
+                            'Qty': '1', 'MRP': '', 'Manufactured By': '', 'Marketed By': '', 'Phone': '',
+                            'Vendor SKU': '', 'PO No': '', 'Email': ''},
+                'Bulk Barcode': {'SKUCode': '', 'Color': '', 'SKUPrintQty': '1', 'Qty': '1', 
+                            'DesignNo': '', 'UOM': '', 'Product': '', 'Company': ''}
+               }
+
+BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'format4': 'Details', 'Bulk Barcode': 'Details'}
+
+BARCODE_ADDRESS_DICT = {'adam_clothing': 'Adam Exports 401, 4th Floor,\n Pratiek Plazza, S.V.Road,\n Goregaon West, Mumbai - 400062.\n MADE IN INDIA',
+                        'scholar_clothing': 'Scholar Clothing Co. <br/> Karnataka - India'}
+
 PRICE_MASTER_DATA = {'sku_id': '', 'price_type': '', 'price': 0, 'discount': 0}
 
 NETWORK_MASTER_HEADERS = ['Destination Location Code', 'Source Location Code', 'Lead Time',
@@ -1146,7 +1172,7 @@ SELLER_DATA = {'name': '', 'address': '', 'phone_number': '',
                'email_id': '', 'status': 1, 'price_type': '', 'margin': 0}
 
 USER_SKU_EXCEL = {'warehouse_user': SKU_HEADERS, 'marketplace_user': MARKET_USER_SKU_HEADERS,
-                  'customer': SKU_HEADERS}
+                  'customer': SKU_HEADERS, 'WH': RESTRICTED_SKU_HEADERS, 'DIST': RESTRICTED_SKU_HEADERS}
 
 USER_SKU_EXCEL_MAPPING = {'warehouse_user': SKU_DEF_EXCEL, 'marketplace_user': MARKETPLACE_SKU_DEF_EXCEL,
                           'customer': SKU_DEF_EXCEL}
@@ -1290,7 +1316,8 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'fifo_switch': 'fifo_switch',
                         'internal_mails': 'Internal Emails', 'increment_invoice': 'increment_invoice',
                         'create_shipment_type': 'create_shipment_type',
-                        'auto_allocate_stock': 'auto_allocate_stock', 'priceband_sync': 'priceband_sync', 'auto_confirm_po': 'auto_confirm_po',
+                        'auto_allocate_stock': 'auto_allocate_stock', 'priceband_sync': 'priceband_sync',
+                        'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -2797,7 +2824,7 @@ def get_rm_picklist_data(search_params, user, sub_user):
     status_filter = {}
     all_data = OrderedDict()
     lis = {}
-    rm_picklist = RMLocation.objects.filter(stock__sku__user=user.id)
+    rm_picklist = RMLocation.objects.filter(material_picklist__jo_material__material_code__user=user.id)
     if 'from_date' in search_params:
         status_filter['material_picklist__jo_material__job_order__creation_date__gte'] = datetime.datetime.combine(
             search_params['from_date'], datetime.time())
@@ -2812,7 +2839,10 @@ def get_rm_picklist_data(search_params, user, sub_user):
     if 'rm_sku_code' in search_params:
         status_filter['material_picklist__jo_material__material_code__sku_code__iexact'] = search_params['rm_sku_code']
     if 'location' in search_params:
-        status_filter['stock__location__location__iexact'] = search_params['location']
+        if search_params['location'] == 'NO STOCK':
+            status_filter['stock__isnull'] = True
+        else:
+            status_filter['stock__location__location__iexact'] = search_params['location']
     if 'pallet' in search_params:
         status_filter['stock__pallet_detail__pallet_code__iexact'] = search_params['pallet']
     lis = [
@@ -2840,17 +2870,19 @@ def get_rm_picklist_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     if stop_index:
-      rm_picklist = rm_picklist[start_index:stop_index]
+        rm_picklist = rm_picklist[start_index:stop_index]
     for obj in rm_picklist:
-      data.append(OrderedDict((('Jo Code', obj.material_picklist.jo_material.job_order.job_code),
+        location = 'NO STOCK'
+        pallet_code = ''
+        if obj.stock:
+            location = obj.stock.location.location
+            pallet_code = obj.stock.pallet_detail.pallet_code if obj.stock.pallet_detail else ''
+        data.append(OrderedDict((('Jo Code', obj.material_picklist.jo_material.job_order.job_code),
                                  ('Jo Creation Date',
                                   get_local_date(user, obj.material_picklist.jo_material.job_order.creation_date)),
                                  ('FG SKU Code', obj.material_picklist.jo_material.job_order.product_code.sku_code),
                                  ('RM SKU Code', obj.material_picklist.jo_material.material_code.sku_code),
-                                 ('Location', obj.stock.location.location),
-                                 (
-                                 'Pallet Code', obj.stock.pallet_detail.pallet_code if obj.stock.pallet_detail else ''),
-                                 ('Quantity', obj.mod_quantity),
+                                 ('Location', location), ('Pallet Code', pallet_code), ('Quantity', obj.mod_quantity),
                                  ('Processed Date', get_local_date(user, obj.updation_date)),)))
     temp_data['aaData'] = data
     return temp_data

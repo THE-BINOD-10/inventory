@@ -95,7 +95,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    vm.dtColumns = vm.service.build_colums(vm.g_data.tb_headers[vm.g_data.view]);
+    vm.dtColumns = vm.service.build_colums2(vm.g_data.tb_headers[vm.g_data.view]);
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
       .renderWith(function(data, type, full, meta) {
         if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {

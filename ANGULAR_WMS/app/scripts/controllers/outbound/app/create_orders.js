@@ -174,6 +174,19 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   }
 
+  vm.picked_items_obj = {};
+  vm.picked_items_data = {};
+  vm.picked_item_info = function(item){
+
+    if (vm.picked_items_obj[item.sku_desc]) {
+
+      vm.picked_items_data[item.sku_desc] = item;
+    } else {
+
+      delete vm.picked_items_data[item.sku_desc];
+    }
+  }
+
   vm.gotData = {};
   vm.data_loading = false;
   vm.getingData = function(data) {
@@ -944,11 +957,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.downloadPDF = function() {
 
     var size_stock = JSON.stringify(vm.size_filter_data);
-    var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
+    var data = {data: {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
                 sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true,
                 color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice, quantity: vm.quantity,
                 is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
-                margin_data: JSON.stringify(Data.marginSKUData.data), required_quantity: JSON.stringify(vm.required_quantity)}
+                margin_data: JSON.stringify(Data.marginSKUData.data)}, required_quantity: vm.required_quantity,
+                checked_items: vm.picked_items_data, checked_item_value: vm.picked_items_obj}
+
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/app/create_orders/download_pdf.html',
       controller: 'downloadPDFCtrl',
@@ -1220,7 +1235,8 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
   vm.downloadPDF = function(form) {
 
     var data = {};
-    angular.copy(vm.pdfData, data);
+    // var data = vm.pdfData.data;
+    angular.copy(vm.pdfData.data, data);
     if (!vm.pdfData.display_total_amount) {
         delete data.required_quantity;
     }
@@ -1231,6 +1247,10 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
         terms_list.push(value.terms);
       }
     });
+
+    data['checked_items'] = JSON.stringify(vm.pdfData.checked_items);
+    data['required_quantity'] = JSON.stringify(vm.pdfData.required_quantity);
+
     data['terms_list'] = terms_list.join('<>');
     data['user_type'] = Session.roles.permissions.user_type;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
@@ -1243,6 +1263,17 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
     data = $("form").serialize();
     Service.apiCall("switches/?"+data);
     Session.roles.permissions.customer_pdf_remarks = vm.pdfData.remarks;
+  }
+
+  vm.clear_quantities = function(){
+
+    vm.pdfData.required_quantity = {};
+  }
+
+  vm.remove_item = function(item){
+
+    delete vm.pdfData.checked_item_value[item];
+    delete vm.pdfData.checked_items[item];
   }
 
   vm.cancel = function () {

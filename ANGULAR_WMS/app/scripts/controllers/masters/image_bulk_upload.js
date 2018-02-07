@@ -1,10 +1,15 @@
 'use strict';
 
 function uploadCtrl($scope, FileUploader, Session) {
+
   var uploader = $scope.uploader = new FileUploader({
     url: Session.url+"upload_images/",
     withCredentials: 'true'
   });
+
+  uploader.categories = ['SKU', 'Category', 'Brand'];
+  uploader.category_type = uploader.categories[0];
+
 
   // FILTERS
 
@@ -31,6 +36,7 @@ function uploadCtrl($scope, FileUploader, Session) {
       dat.push(item.file.name);
     }
   }
+
 }
 
 angular

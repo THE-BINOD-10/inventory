@@ -5,12 +5,13 @@
       <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
     </div>
     <div class="layout-body">
+      <preloader class="preloader" ng-show="showCase.layout_loading"></preloader>
       <div class="panel">
 
         <div class="panel-header panel-heading border">
 
           <div class="row">
-            <div class="col-md-2" ng-repeat="(key, value) in showCase.tb_data['ware_list']">
+            <div class="col-md-2 col-sm-3 col-xs-4" ng-repeat="(key, value) in showCase.tb_data['ware_list']" ng-if="showCase.headers.indexOf(key) != -1">
               <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
                 <div class="overflow-hidden">
                   <span class="widget-subtitle">{{key}}</span>
@@ -35,21 +36,29 @@
 
         <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
           <div class="mr10">
-            <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right" style="height: 34px;padding-left: 0px;">
+            <div class="col-md-2 col-sm-3 col-xs-6 mb10 pull-right" style="height: 34px;padding-left: 0px;">
               <select class="form-control pull-right" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
                 <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == showCase.g_data.view"> {{view}}</option>
               </select>
             </div>
-            <div class="col-md-2 col-sm-4 col-xs-6 pull-right" style="line-height: 34px;">
+            <div class="col-md-2 col-sm-3 col-xs-6 pull-right" style="line-height: 34px;">
                 <span style="float:right">Select View: </span>
             </div>
+            <div class="col-md-2 col-sm-3 col-xs-6 mb10 pull-right" style="height: 34px;padding-left: 0px;" ng-if="permissions.add_networkmaster">
+              <select class="form-control pull-right" ng-model="showCase.g_data.level" ng-change="showCase.change_datatable()">
+                <option value="" ng-selected="''== showCase.g_data.level">None</option>
+                <option ng-repeat="view in showCase.g_data.levels" value="{{view}}" ng-selected="view == showCase.g_data.level"> Level-{{view}}</option>
+              </select>
+            </div>
+            <div class="col-md-2 col-sm-3 col-xs-6 pull-right" style="line-height: 34px;" ng-if="permissions.add_networkmaster">
+                <span style="float:right">Select Level: </span>
+            </div>
           </div>
-
           <table ng-if="showCase.data_display" datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" 
           dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>
           <div ui-view></div>
         </div>
-
+      </div>
     </div>
   </div>
 </div>

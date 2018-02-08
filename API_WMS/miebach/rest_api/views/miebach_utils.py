@@ -1219,7 +1219,8 @@ STATUS_DICT = {1: True, 0: False}
 
 PO_RECEIPT_TYPES = ['Purchase Order', 'Buy & Sell', 'Hosted Warehouse']
 
-PO_ORDER_TYPES = {'SR': 'Self Receipt', 'VR': 'Vendor Receipt', 'HW': 'Hosted Warehouse', 'BS': 'Buy & Sell'}
+PO_ORDER_TYPES = {'SR': 'Self Receipt', 'VR': 'Vendor Receipt', 'HW': 'Hosted Warehouse', 'BS': 'Buy & Sell',
+                  'SP': 'Sampling'}
 
 LOAD_UNIT_HANDLE_DICT = {'enable': 'pallet', 'disable': 'unit'}
 
@@ -1298,6 +1299,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'create_shipment_type': 'create_shipment_type',
                         'auto_allocate_stock': 'auto_allocate_stock', 'priceband_sync': 'priceband_sync',
                         'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
+                        'create_order_po': 'create_order_po',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

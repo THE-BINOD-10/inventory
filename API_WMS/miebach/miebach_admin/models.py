@@ -2346,3 +2346,17 @@ class IntransitOrders(models.Model):
     class Meta:
         db_table = 'INTRANSIT_ORDERS'
         unique_together = ('user', 'customer_id', 'intr_order_id', 'sku')
+
+
+class MastersMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    master_id = models.PositiveIntegerField()
+    mapping_id = models.PositiveIntegerField()
+    mapping_type = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MASTERS_MAPPING'
+        unique_together = ('user', 'master_id', 'mapping_id', 'mapping_type')

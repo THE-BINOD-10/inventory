@@ -3088,7 +3088,8 @@ def insert_order_data(request, user=''):
 
     # Initialize creation date
     creation_date = datetime.datetime.now()
-
+    #Collecting Created order objects
+    created_order_objs = []
     # Intialize to stored saved skus and dispatch data
     created_skus = []
     dispatch_orders = {}
@@ -3260,6 +3261,7 @@ def insert_order_data(request, user=''):
                         order_data.pop('del_date')
                     order_detail = OrderDetail(**order_data)
                     order_detail.save()
+                    created_order_objs.append(order_detail)
                     if seller_id:
                         seller_master_id = SellerMaster.objects.filter(seller_id=seller_id, user=user.id)
                         SellerOrder.objects.create(seller_id=seller_master_id[0].id, sor_id=sor_id,
@@ -3332,6 +3334,8 @@ def insert_order_data(request, user=''):
             message = direct_dispatch_orders(user, dispatch_orders)
         elif auto_picklist_signal == 'true':
             message = check_stocks(order_sku, user, request, order_objs)
+        if get_misc_value('create_order_po', user.id) == 'true' and created_order_objs:
+            create_order_pos(user, created_order_objs)
     else:
         for user_id, order_user_data in order_user_sku.iteritems():
             auto_picklist_signal = get_misc_value('auto_generate_picklist', user_id)

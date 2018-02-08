@@ -414,7 +414,7 @@
 
         //adding order date
         var date_order=new Date();
-        var temp_date=date_order.getDate() +"-"+date_order.getMonth()+"-"+date_order.getFullYear().toString();
+        var temp_date=date_order.getDate() +"-"+(date_order.getMonth()+1)+"-"+date_order.getFullYear().toString();
         urlService.current_order.summary.order_date=temp_date;
         //change the status for preorder0
         if(data.summary.issue_type=="Pre Order"){

@@ -178,12 +178,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.picked_items_data = {};
   vm.picked_item_info = function(item){
 
-    if (vm.picked_items_obj[item.sku_desc]) {
+    if (vm.picked_items_obj[item.sku_class]) {
 
-      vm.picked_items_data[item.sku_desc] = item;
+      vm.picked_items_data[item.sku_class] = item;
     } else {
 
-      delete vm.picked_items_data[item.sku_desc];
+      delete vm.picked_items_data[item.sku_class];
     }
   }
 

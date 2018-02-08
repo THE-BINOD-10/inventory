@@ -4222,10 +4222,18 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                 is_distributor = customer_data[0].is_distributor
                 pricemaster_obj = PriceMaster.objects.filter(sku__user=central_admin.id,
                                                              sku__sku_code=sku['wms_code'])
+                cm_id = customer_data[0].id
                 if is_distributor:
-                    price_data = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id).filter(
-                        source_location_code_id__userprofile__warehouse_level=level). \
-                        values_list('source_location_code_id', 'price_type')
+                    dist_mapping = WarehouseCustomerMapping.objects.filter(customer_id=cm_id, status=1)
+                    if dist_mapping:
+                        dist_wh_id = dist_mapping[0].warehouse_id
+                        if not level:
+                            price_data = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id).\
+                                values_list('source_location_code_id', 'price_type')
+                        else:
+                            price_data = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id).filter(
+                                source_location_code_id__userprofile__warehouse_level=level). \
+                                values_list('source_location_code_id', 'price_type')
                     sku_master[ind].setdefault('prices_map', {}).update(dict(price_data))
                     nw_pricetypes = [j for i, j in price_data]
                     pricemaster_obj = pricemaster_obj.filter(price_type__in=nw_pricetypes)
@@ -4283,7 +4291,8 @@ def get_levels(request, user=''):
         wh_levels = list(UserProfile.objects.exclude(warehouse_level=0).values_list('warehouse_level',
                                                                                     flat=True).distinct())
     else:
-        wh_levels = list(UserProfile.objects.values_list('warehouse_level', flat=True).distinct())
+        wh_levels = list(UserProfile.objects.values_list('warehouse_level', flat=True).
+                         distinct().order_by('warehouse_level'))
     levels = []
     central_admin = get_admin(user)
     users_list = UserGroups.objects.filter(admin_user=central_admin.id).values_list('user').distinct()
@@ -6113,6 +6122,7 @@ def get_level_based_customer_orders(request, response_data, user):
             customer = WarehouseCustomerMapping.objects.filter(customer_id=cus_mapping[0].customer_id, status=1)
             if customer:
                 filter_dict['cust_wh_id__in'].append(customer[0].warehouse_id)
+                filter_dict['customer_id'] = customer[0].customer_id
     else:
         cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         cm_ids = cum_obj.values_list('customer_id', flat=True)
@@ -6482,7 +6492,7 @@ def get_customer_cart_data(request, user=""):
                 dist_wh_id = dist_mapping.warehouse.id
                 price_type = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id,
                                                           source_location_code_id=user.id). \
-                    values_list('price_type')
+                    values_list('price_type', flat=True)
                 dist_reseller_leadtime = 0
             else:
                 price_type = cm_obj.price_type

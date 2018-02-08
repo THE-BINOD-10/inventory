@@ -2463,8 +2463,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'show_disc_invoice': show_disc_invoice,
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
-                    'order_reference_date': order_reference_date}
-
+                    'order_reference_date': order_reference_date,
+                    'order_charges' : order_charges}
     return invoice_data
 
 

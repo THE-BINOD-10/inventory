@@ -46,6 +46,44 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         DTColumnBuilder.newColumn('id').withTitle('').notSortable().withOption('width', '35px').renderWith(actionsHtml)
     ];
 
+    vm.order_charges = [];
+
+    vm.default_charge = function() {
+      if (vm.order_charges.length == 1) {
+        vm.flag = true;
+      }
+    }
+
+    vm.delete_charge = function(id) {
+      if (id) {
+        vm.service.apiCall("delete_order_charges?id="+id, "GET").then(function(data){
+          if(data.message){
+            Service.showNoty(data.data.message);
+          }
+        });
+      }
+    }
+
+    vm.save_order_charges = function(order_id, $event) {
+      var data_params = {};
+      data_params['order_id'] = order_id;
+      data_params['order_charges'] = JSON.stringify(vm.order_charges);
+      angular.forEach(vm.order_charges, function(obj) {
+        if($.isEmptyObject(obj['charge_name'])) {
+          colFilters.showNoty('Charge Name cannot be Empty');
+          $event.preventDefault();
+        }
+        if($.isEmptyObject(String(obj['charge_amount']))) {
+          colFilters.showNoty('Charge Amount cannot be Empty');
+          $event.preventDefault();
+        }
+      })
+      vm.service.apiCall('add_order_charges/', 'POST', data_params).then(function(data) {
+        vm.reloadData();
+        colFilters.showNoty('Saved sucessfully');
+      })
+    }
+
     function actionsHtml(data, type, full, meta) {
 
       if (full.picklist_note == 'Auto-generated Picklist') {
@@ -187,6 +225,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           vm.item_code = value.item_code;
           vm.order_id = value.order_id;
           vm.market_place = value.market_place;
+          vm.order_charges = value.order_charges;
 
           var image_url = value.image_url;
           vm.img_url = vm.service.check_image_url(image_url);

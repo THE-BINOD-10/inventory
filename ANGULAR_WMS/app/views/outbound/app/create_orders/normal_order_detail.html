@@ -93,12 +93,20 @@
               <div class="col-md-4 col-sm-4 col-xs-3">
               </div>
               <div class="col-md-8 col-sm-8 col-xs-9">
+                <div class="row" ng-if="order_details.other_charges">
+                  <div class="col-xs-8 no-padding">
+                    <span class="pull-right">Other Charges:</span>
+                  </div>
+                  <div class="col-xs-4 detail-black">
+                    <span>Rs. {{order_details.other_charges | number : 2}}</span>
+                  </div>
+                </div>
                 <div class="row">
                   <div class="col-xs-8 no-padding">
                     <span class="pull-right">Sub Total:</span>
                   </div>
                   <div class="col-xs-4 detail-black">
-                    <span>Rs. {{order_details.sum_data.amount-order_details.tax  | number : 2}}</span>
+                    <span>Rs. {{order_details.sum_data.amount-order_details.tax-order_details.other_charges  | number : 2}}</span>
                   </div>
                 </div>
                 <div class="row">

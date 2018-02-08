@@ -35,7 +35,7 @@
                   <span ng-if="order_details.status" class="label pull-right text-uppercase" ng-class="(order.getStatus(order_details.sum_data.quantity, order_details.sum_data.picked_quantity) == 'Open')? 'label-danger': 'label-success';" style="font-size: 12px;">{{order.getStatus(order_details.sum_data.quantity, order_details.sum_data.picked_quantity)}}</span>
                 </div>
                 <div class="row alert alert-info" ng-if="order_details.freight_charges" style="margin-top: 7px; margin-bottom: 0px">
-                  <strong>Note:</strong> Freight Charges Included.
+                  <strong>Note:</strong> Freight as applicable will be charged extra.
                 </div>
               </div>
 

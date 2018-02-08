@@ -30,9 +30,6 @@
       <img style="border:0px !important;width: 100%;padding: 0px 0px 2px 0px;" class="img-thumbnail" src="{{  obj.image_url| get_image_code }}">
     </div>
     <div class="col-md-8 col-sm-8 col-xs-8" style="padding:0px 0px;">
-      <div>
-        <img style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail hide" src="{{  obj.image_url| get_image_code }}">
-        <div>
           <span class="style_name" style="font-size: 12px"><b>Style : {{ obj.sku_class }}</b></span><br>
           <span class="style_name" style="font-size: 12px" ><b>Style Name : </b>{{ obj.variants.0.style_name }}</span><br>
           {% if obj.variants.0.hsn_code %}
@@ -51,7 +48,7 @@
           {% if not obj.style_data %}
           {% if obj.variants.0.price_ranges %}
           <div ng-if="item.variants[0].price_ranges.length > 0">
-            <table class="table table-bordered mb0 mt5" style="font-size:10px;">
+            <table class="table table-bordered mb0 mt5" style="font-size:10px;margin-bottom:0px;">
               <tbody>
                 <tr>
                   <td style="border-color: black !important"><b>Qty</b></td>
@@ -86,8 +83,6 @@
           <!--<span class="style_name" style="font-size: 12px" ><b>Quantity : </b>{{ obj.sku_class|get_style_quantity:style_quantities }}</span><br>
           <span class="style_name" style="font-size: 12px" ><b>Total Amount : </b>{{ obj|get_quantity_based_price:style_quantities }}</span>-->
           {% endif %}
-        </div>
-      </div>
     </div>
   </div>
 </div>
@@ -121,7 +116,7 @@
 {% endfor %}
 </div>
 {% if terms_list %}
-  <div class="row" style="margin-top: 20px;width:100%;margin-left:20">
+  <div class="row col-md-12 col-xs-12" style="margin-top: 20px;width:100%;margin-left:20">
     <span class="pre-custom"><b>Terms and Conditions</b></span>
     <ul>
       {% for term in terms_list %}

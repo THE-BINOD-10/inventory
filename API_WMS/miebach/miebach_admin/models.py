@@ -2340,3 +2340,21 @@ class TANDCMaster(models.Model):
 
     class Meta:
         db_table = 'TANDC_MASTER'
+        
+
+class IntransitOrders(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    customer_id = models.PositiveIntegerField()
+    intr_order_id = models.DecimalField(max_digits=50, decimal_places=0)
+    sku = models.ForeignKey(SKUMaster)
+    quantity = models.FloatField(default=0)
+    unit_price = models.FloatField(default=0)
+    invoice_amount = models.FloatField(default=0)
+    status = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)    
+    
+    class Meta:
+        db_table = 'INTRANSIT_ORDERS'
+        unique_together = ('user', 'customer_id', 'intr_order_id', 'sku')

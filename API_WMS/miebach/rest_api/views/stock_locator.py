@@ -1168,9 +1168,11 @@ def get_vendor_stock(start_index, stop_index, temp_data, search_term, order_term
 def warehouse_headers(request, user=''):
     admin_user_id = ''
     admin_user_name = ''
+    level = request.GET.get('level', '')
     warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+    if level:
+        warehouses = UserProfile.objects.filter(user__in=warehouses,warehouse_level=int(level)).values_list('user_id',flat=True)
     ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
-    ware_list.append(request.user.username)
     header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
     user_groups = UserGroups.objects.filter(Q(admin_user_id=user.id) | Q(user_id=user.id))
     if user_groups:
@@ -1179,8 +1181,10 @@ def warehouse_headers(request, user=''):
     else:
         admin_user_id = user.id
         admin_user_name = user.username
-    user_groups = list(UserGroups.objects.filter(admin_user_id=admin_user_id).values_list('user__username', flat=True))
-    headers = header + [admin_user_name] + user_groups
+    if level:
+        headers = header + ware_list  #user_groups
+    else:
+        headers = header + [admin_user_name] + ware_list
 
     return HttpResponse(json.dumps(headers))
 

@@ -40,11 +40,11 @@
       </thead>
       <tbody>
         <tr ng-repeat= "item in $ctrl.pdfData.checked_items">
-          <td>{{item.sku_desc}}</td>
-          <td>{{item.sequence}}</td>
+          <td>{{item.sku_class}}</td>
+          <td>{{item.variants[0].your_price}}</td>
           <td>{{item.style_quantity}}</td>
-          <td><input type="text" name="quantity" class="form-control" ng-model="$ctrl.pdfData.required_quantity[item.sku_desc]"></td>
-          <td class="plus"><i class="fa fa-minus-square minus" style="cursor: pointer;" ng-click="$ctrl.remove_item(item.sku_desc)"></i></td>
+          <td><input type="text" name="quantity" class="form-control" ng-model="$ctrl.pdfData.required_quantity[item.sku_class]"></td>
+          <td class="plus"><i class="fa fa-minus-square minus" style="cursor: pointer;" ng-click="$ctrl.remove_item(item.sku_class)"></i></td>
         </tr>
       </tbody>
     </table>

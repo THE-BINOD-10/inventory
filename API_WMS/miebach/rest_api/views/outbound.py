@@ -5112,6 +5112,10 @@ def get_view_order_details(request, user=''):
         for tax_master in tax_masters:
             taxes_data.append(tax_master.json())
 
+        if order_id:
+            order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
+            order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
+
         order_details_data.append(
             {'product_title': product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
              'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone, 'email': email, 'address': address,
@@ -5124,6 +5128,7 @@ def get_view_order_details(request, user=''):
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
              'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
+             'order_charges': order_charges,
              'sku_status': one_order.status})
 
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
@@ -6138,6 +6143,17 @@ def get_level_based_customer_orders(request, response_data, user):
         order_detail_ids = generic_orders.filter(generic_order_id=record['generic_order_id']).values_list(
             'orderdetail_id', flat=True)
         data = OrderDetail.objects.filter(id__in=order_detail_ids)
+
+        ord_det_qs = data.values_list('order_id', 'id', 'user', 'original_order_id', 'order_code')
+        ord_det_map = {}
+        if ord_det_qs:
+            order_detail_order_id = ord_det_qs[0][3]
+            if not order_detail_order_id:
+                order_detail_order_id = str(ord_det_qs[0][4]) + str(ord_det_qs[0][0])
+            other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
+            if not other_charges:
+                other_charges = 0
+
         data_status = data.filter(status=1)
         if data_status:
             status = 'open'
@@ -6176,6 +6192,17 @@ def get_level_based_customer_orders(request, response_data, user):
                         record['total_inv_amt'] = round(tax_inclusive_inv_amt, 2)
                     else:
                         record['total_inv_amt'] = record['total_inv_amt'] + round(tax_inclusive_inv_amt, 2)
+
+                    data = OrderDetail.objects.filter(id=ord_det_id)
+                    ord_det_qs = data.values_list('order_id', 'id', 'user', 'original_order_id', 'order_code')
+                    ord_det_map = {}
+                    if ord_det_qs:
+                        order_detail_order_id = ord_det_qs[0][3]
+                        if not order_detail_order_id:
+                            order_detail_order_id = str(ord_det_qs[0][4]) + str(ord_det_qs[0][0])
+                        other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
+                        if other_charges:
+                            record['total_inv_amt'] += other_charges
         record['picked_quantity'] = picked_quantity
     return response_data
 
@@ -6222,7 +6249,7 @@ def get_customer_orders(request, user=""):
                 picked_quantity = 0
             record['status'] = status
             record['date'] = get_only_date(request, data[0].creation_date)
-            record['total_inv_amt'] = round(record['total_inv_amt'], 2)
+            record['total_inv_amt'] = round(record['total_inv_amt'], 2) + other_charges
             record['picked_quantity'] = picked_quantity
             if record['original_order_id']:
                 record['order_id'] = record['original_order_id']
@@ -6272,6 +6299,7 @@ def construct_order_customer_order_detail(request, order, user):
 
 def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     response_data = {}
+    other_charges = 0
     tax = CustomerOrderSummary.objects.filter(order_id__in=det_ids,
                                               order__user=usr_id).aggregate(Sum('tax_value'))[
         'tax_value__sum']
@@ -6295,9 +6323,18 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     total_qty = map(sum, [[x['quantity'] for x in res]])
     total_tax = map(sum, [[x.get('sku_tax_amt', 0) for x in res]])
     response_data['tax'] = round(total_tax[0], 2)
-    sum_data = {'picked_quantity': total_picked_quantity, 'amount': total_inv_amt[0],
-                'quantity': total_qty[0]}
+    order_detail_order_id = order[0].original_order_id
+    if not order[0].original_order_id:
+        order_detail_order_id = str(order[0].order_code) + str(order[0].order_id)
+    other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
+    amount = float(total_inv_amt[0])
+    if other_charges:
+        amount = float(total_inv_amt[0]) + float(other_charges)
+    else:
+        other_charges = 0
+    sum_data = {'picked_quantity': total_picked_quantity, 'amount': amount, 'quantity': total_qty[0]}
     response_data['sum_data'] = sum_data
+    response_data['other_charges'] = other_charges
     response_data['data'].extend(res)
 
     return response_data, res
@@ -6307,6 +6344,7 @@ def get_level_based_customer_order_detail(request, user):
     whole_res_map = {}
     response_data_list = []
     sku_wise_details = {}
+    order_charge_dict = {}
     generic_order_id = request.GET['order_id']
     is_autobackorder = request.GET.get('autobackorder', 'false')
     user_profile = UserProfile.objects.get(user=request.user.id)
@@ -6342,9 +6380,17 @@ def get_level_based_customer_order_detail(request, user):
         # generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
         order_detail_ids = generic_orders.filter(generic_order_id=generic_order_id).values_list(
             'orderdetail_id', flat=True)
-        ord_det_qs = OrderDetail.objects.filter(id__in=order_detail_ids).values_list('order_id', 'id', 'user')
+
+        ord_det_qs = OrderDetail.objects.filter(id__in=order_detail_ids).values_list('order_id', 'id', 'user',
+                                                                                     'original_order_id', 'order_code')
         ord_det_map = {}
-        for ord_id, det_id, usr_id in ord_det_qs:
+        if ord_det_qs:
+            order_detail_order_id = ord_det_qs[0][3]
+            if not order_detail_order_id:
+                order_detail_order_id = str(ord_det_qs[0][4]) + str(ord_det_qs[0][0])
+            other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
+
+        for ord_id, det_id, usr_id, original_order_id, order_code in ord_det_qs:
             ord_det_map.setdefault(int(ord_id), {}).setdefault(usr_id, []).append(det_id)
         for ord_id, usr_det_ids in ord_det_map.items():
             for usr_id, det_ids in usr_det_ids.items():
@@ -6354,7 +6400,7 @@ def get_level_based_customer_order_detail(request, user):
                 response_data['warehouse_level'] = ord_usr_profile.warehouse_level
                 response_data['level_name'] = get_level_name_with_level(user, ord_usr_profile.warehouse_level,
                                                                         users_list=[usr_id])
-                response_data_list. append(response_data)
+                response_data_list.append(response_data)
                 for sku_rec in res:
                     sku_code = sku_rec['sku__sku_code']
                     sku_qty = sku_rec['quantity']
@@ -6375,14 +6421,34 @@ def get_level_based_customer_order_detail(request, user):
         tax_amt = sku_det['sku_tax_amt']
         total_amt = float(qty) * float(el_price)
         sku_map = {'sku_code': sku_code, 'quantity': qty, 'landing_price': el_price, 'total_amount': total_amt}
+        if other_charges:
+            sku_totals['other_charges'] = other_charges
+        else:
+            other_charges = 0
+            sku_totals['other_charges'] = 0
         sku_totals['sub_total'] = sku_totals['sub_total'] + total_amt
         sku_totals['tax'] = round(sku_totals['tax'] + tax_amt, 2)
-        sku_totals['total_amount'] = round(sku_totals['sub_total'] + sku_totals['tax'], 2)
+        sku_totals['total_amount'] = round(sku_totals['sub_total'] + sku_totals['tax'] + other_charges, 2)
         sku_whole_map['data'].append(sku_map)
         sku_whole_map['totals'] = sku_totals
     whole_res_map['data'] = response_data_list
     whole_res_map['sku_wise_details'] = sku_whole_map
     return whole_res_map
+
+
+def order_charges_obj_for_orderid(order_id, user_id):
+    total_charge_amount = 0
+    order_charge_obj = []
+    dist_id_obj = CustomerUserMapping.objects.filter(user=user_id).values_list('customer__id')
+    if dist_id_obj:
+        dist_id = dist_id_obj[0]
+        if dist_id:
+            cust_wh_ids = GenericOrderDetailMapping.objects.filter(customer_id__in=dist_id).values_list('cust_wh_id',
+                                                                                                        flat=True).distinct()
+            if cust_wh_ids:
+                order_charge_obj = OrderCharges.objects.filter(order_id=order_id, user__in=cust_wh_ids)
+                total_charge_amount = order_charge_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
+    return total_charge_amount
 
 
 @login_required
@@ -7924,3 +7990,30 @@ def order_cancel(request, user=''):
         log.debug(traceback.format_exc())
         message = 'Failed'
     return HttpResponse(message)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def add_order_charges(request, user=''):
+    order_id = request.POST.get('order_id', '')
+    order_charges = eval(request.POST.get('order_charges', ''))
+    order_charges_obj = OrderCharges.objects.filter(user=user.id, order_id=order_id)
+    data_dict = {}
+    data_response = {}
+    for obj in order_charges:
+        order_charges_obj_present = order_charges_obj.filter(charge_name=obj['charge_name'])
+        if order_charges_obj_present:
+            order_charges_obj_save = order_charges_obj_present[0]
+            order_charges_obj_save.charge_amount = obj['charge_amount']
+            order_charges_obj_save.save()
+        else:
+            data_dict['charge_name'] = obj['charge_name']
+            data_dict['charge_amount'] = obj['charge_amount']
+            data_dict['order_id'] = order_id
+            data_dict['user_id'] = user.id
+            OrderCharges.objects.create(**data_dict)
+    message = "Order Charges Saved Successfully"
+    data_response['data'] = order_charges
+    data_response['message'] = message
+    return HttpResponse(json.dumps(data_response))

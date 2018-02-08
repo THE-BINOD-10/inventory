@@ -171,7 +171,7 @@ input[type="date"]:valid::before {
               <p align="left" class="text-success" ng-if="data.quantity > 1" style="font-size: 12px;">{{data.quantity}} X Rs.{{data.price}}</p>
               <div><span ng-click="Cart.remove_item($index)" style="cursor: pointer;" title="Delete Order" class="btn-sm btn-danger "><i class="fa fa-trash-o" aria-hidden="true"></i> Remove</span></div>
               <div class="alert alert-info" ng-if="data.freight_charges" style="margin-top: 11px;margin-bottom: 0px;">
-                <strong>Note:</strong> Freight Charges Included.
+                <strong>Note:</strong> Freight as applicable will be charged extra.
               </div>
             </div>
             <div class="col-md-6 col-sm-6 col-xs-5">

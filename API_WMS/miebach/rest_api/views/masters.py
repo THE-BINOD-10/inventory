@@ -2777,7 +2777,11 @@ def get_tax_data(request, user=''):
         response['msg'] = 'fail'
         return HttpResponse(response)
 
-    taxes = TaxMaster.objects.filter(user=user.id, product_type__exact=product_type)
+    admin_user = get_priceband_admin_user(user)
+    if admin_user:
+        taxes = TaxMaster.objects.filter(user=admin_user.id, product_type__exact=product_type)
+    else:
+        taxes = TaxMaster.objects.filter(user=user.id, product_type__exact=product_type)
     if not taxes:
         response['msg'] = 'Product Type Not Found'
         return HttpResponse(response)

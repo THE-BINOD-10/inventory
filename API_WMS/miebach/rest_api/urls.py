@@ -5,7 +5,7 @@ from django.conf import settings
 from rest_api.views import *
 from rest_api.views.tally import *
 #urlpatterns = patterns('rest_api.views',
-#tally_api = TallyAPI()
+tally_api = TallyAPI()
 
 # urlpatterns = patterns('rest_api.views',
 urlpatterns = [
@@ -84,6 +84,9 @@ urlpatterns = [
     url(r'^get_zone_data/$', get_zone_data),
     url(r'^search_seller_data/$', search_seller_data),
     url(r'^search_network_user/$', search_network_user),
+    url(r'^get_terms_and_conditions/$', get_terms_and_conditions),
+    url(r'^insert_update_terms/$', insert_update_terms),
+    url(r'^delete_terms/$', delete_terms),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),
@@ -249,6 +252,7 @@ urlpatterns = [
     url(r'^get_enquiry_data/$', get_enquiry_data),
     url(r'^get_customer_enquiry_detail/$', get_customer_enquiry_detail),
     url(r'^move_enquiry_to_order/$', move_enquiry_to_order),
+    url(r'^extend_enquiry_date/$', extend_enquiry_date),
     url(r'^order_cancel/$', order_cancel),
 
     # Uploaded POs [SWISS MILITARY]
@@ -468,5 +472,12 @@ urlpatterns += [
     #url('^GetCustomerMaster/', tally_api.get_customer_master),
 
     # Barcodes
-    url('^get_format_types/', get_format_types)
+    url(r'^get_format_types/', get_format_types),
+    url(r'^GetItemMaster/', tally_api.get_item_master),
+    url(r'^GetSupplierMaster/', tally_api.get_supplier_master),
+    url(r'^GetCustomerMaster/', tally_api.get_customer_master),
+    url(r'^GetSalesInvoices/', tally_api.get_sales_invoices),
+    url(r'^GetSalesReturns/', tally_api.get_sales_returns),
+    url(r'^GetPurchaseInvoices/', tally_api.get_purchase_invoice),
+    url(r'^GetPurchaseReturns/', tally_api.get_purchase_returns)
 ]

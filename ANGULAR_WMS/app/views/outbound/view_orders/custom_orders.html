@@ -7,7 +7,7 @@
   </div>
   <div ng-include="'views/common/datatable.html'"></div>
   <div class="panel-footer">
-    <div class="row">
+    <div class="row" ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'">
       <div class="col-md-2 col-sm-4 col-xs-6 mb10">
         <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable">Raise PO</button>
       </div>

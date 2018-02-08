@@ -170,6 +170,13 @@ def get_page_break(count):
         return False
 
 @register.filter
+def get_header_status(count):
+    if (count)%10 == 0:
+        return True
+    else:
+        return False
+
+@register.filter
 def get_style_quantity(name, quantities):
     if quantities.get(name, ''):
         return str(quantities[name])
@@ -179,7 +186,15 @@ def get_style_quantity(name, quantities):
 @register.filter
 def get_quantity_based_price(obj, quantities):
     quantity = int(quantities[obj['sku_class']])
+    if not obj['variants'][0].get('price_ranges',''):
+        return obj['variants'][0]['price']*quantity
     for rg in obj['variants'][0]['price_ranges']:
         if rg['max_unit_range'] >= quantity and quantity >= rg['min_unit_range']:
             return rg['price']*quantity
 
+@register.filter
+def get_page_number(index, total):
+
+    for i in range(total):
+        if i*10 <= index and (i+1)*10 > index:
+            return i+1

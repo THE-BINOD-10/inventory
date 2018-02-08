@@ -170,6 +170,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                  if (data.message) {
                   data = data.data;
                   vm.update=true;
+                  vm.model_data.user_type = vm.permissions.user_type;
                   vm.model_data.sku_data = data.sku_data;
                   vm.model_data.market_data = data.market_data;
                   vm.model_data.zones = data.zones;
@@ -237,12 +238,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       //if(elem[i].name == "market_sku_type") {
       //  elem[i].value = vm.model_data.market_list[parseInt(elem[i].value)];
       //} else
-      if(elem[i].name == "status") {
-        elem[i].value = vm.status_data[parseInt(elem[i].value)];
-      } else if(elem[i].name == "qc_check") {
-        elem[i].value = (elem[i].value == "?") ? "": vm.qc_data[parseInt(elem[i].value)];
-      } else if(elem[i].name == "sku_type") {
-        elem[i].value = (elem[i].value == "?") ? "": vm.sku_types[parseInt(elem[i].value)];
+      if (vm.model_data.user_type != 'distributor' && vm.model_data.user_type != 'warehouse') {
+        if(elem[i].name == "status") {
+          elem[i].value = vm.status_data[parseInt(elem[i].value)];
+        } else if(elem[i].name == "qc_check") {
+          elem[i].value = (elem[i].value == "?") ? "": vm.qc_data[parseInt(elem[i].value)];
+        } else if(elem[i].name == "sku_type") {
+          elem[i].value = (elem[i].value == "?") ? "": vm.sku_types[parseInt(elem[i].value)];
+        }
       }
     }
 

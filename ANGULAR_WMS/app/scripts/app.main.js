@@ -165,13 +165,17 @@ angular
       };
       
       $scope.logout = function() {
-
+        var user_type = $scope.permissions.user_type;
+        var user_types = ['central_admin', 'distributor', 'warehouse'];
         Auth.logout().then(function () {
-
-                 $state.go("user.signin");
-                 localStorage.removeItem('order_management');
-                   //$rootScope.$broadcast(AUTH_EVENTS.logoutSuccess);
-                 });
+          if (user_types.indexOf(user_type) != -1) {
+            $state.go("user.smlogin");
+          } else {
+            $state.go("user.signin");
+          }
+          localStorage.removeItem('order_management');
+          //$rootScope.$broadcast(AUTH_EVENTS.logoutSuccess);
+        });
       }
 
       var special = ["add_shipmentinfo", "add_qualitycheck", "pos_switch", "production_switch", "setup_status", "order_manage", "add_productproperties", "add_pricemaster", "add_sizemaster", "add_paymentsummary", "add_issues", "show_pull_now", "tally_config", "change_inventoryadjustment"];

@@ -6144,12 +6144,11 @@ def get_level_based_customer_orders(request, response_data, user):
             'orderdetail_id', flat=True)
         data = OrderDetail.objects.filter(id__in=order_detail_ids)
 
-        ord_det_qs = data.values_list('order_id', 'id', 'user', 'original_order_id', 'order_code')
-        ord_det_map = {}
+        ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code')
         if ord_det_qs:
-            order_detail_order_id = ord_det_qs[0][3]
+            order_detail_order_id = ord_det_qs[0]['original_order_id']
             if not order_detail_order_id:
-                order_detail_order_id = str(ord_det_qs[0][4]) + str(ord_det_qs[0][0])
+                order_detail_order_id = str(ord_det_qs[0]['order_code']) + str(ord_det_qs[0]['order_id'])
             other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
             if not other_charges:
                 other_charges = 0
@@ -6167,6 +6166,7 @@ def get_level_based_customer_orders(request, response_data, user):
             Sum('picked_quantity'))['picked_quantity__sum']
         if not picked_quantity:
             picked_quantity = 0
+        record['picked_quantity'] = picked_quantity
         record['status'] = status
         if data:
             record['date'] = get_only_date(request, data[0].creation_date)
@@ -6194,16 +6194,14 @@ def get_level_based_customer_orders(request, response_data, user):
                         record['total_inv_amt'] = record['total_inv_amt'] + round(tax_inclusive_inv_amt, 2)
 
                     data = OrderDetail.objects.filter(id=ord_det_id)
-                    ord_det_qs = data.values_list('order_id', 'id', 'user', 'original_order_id', 'order_code')
-                    ord_det_map = {}
+                    ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code')
                     if ord_det_qs:
-                        order_detail_order_id = ord_det_qs[0][3]
+                        order_detail_order_id = ord_det_qs[0]['original_order_id']
                         if not order_detail_order_id:
-                            order_detail_order_id = str(ord_det_qs[0][4]) + str(ord_det_qs[0][0])
+                            order_detail_order_id = str(ord_det_qs[0]['order_code']) + str(ord_det_qs[0]['order_id'])
                         other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
                         if other_charges:
                             record['total_inv_amt'] += other_charges
-        record['picked_quantity'] = picked_quantity
     return response_data
 
 
@@ -6249,12 +6247,15 @@ def get_customer_orders(request, user=""):
                 picked_quantity = 0
             record['status'] = status
             record['date'] = get_only_date(request, data[0].creation_date)
-            record['total_inv_amt'] = round(record['total_inv_amt'], 2) + other_charges
-            record['picked_quantity'] = picked_quantity
             if record['original_order_id']:
                 record['order_id'] = record['original_order_id']
             else:
                 record['order_id'] = str(record['order_code']) + str(record['order_id'])
+            other_charges = order_charges_obj_for_orderid(record['order_id'], request.user.id)
+            if not other_charges:
+                other_charges = 0
+            record['total_inv_amt'] = round(record['total_inv_amt'] + other_charges, 2) 
+            record['picked_quantity'] = picked_quantity
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
 

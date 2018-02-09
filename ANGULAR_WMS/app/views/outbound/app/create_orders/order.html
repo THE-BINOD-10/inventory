@@ -273,15 +273,18 @@ input[type="date"]:valid::before {
     </div>
 
     <div class="row">
+      <div style="position: fixed; bottom: 0;z-index: 2000;width:100%;">
         <!--<div class="cart">-->
           <!--<div class="row" style="border-top:1px solid rgba(0,0,0,.1)">-->
-            <button type="button" class="btn btn-primary btn-lg col-xs-6 cart_button" ng-click="Cart.place_enquiry()" style="position: fixed; left: 0; bottom: 0; z-index: 2000" ng-show="permissions.user_type == 'reseller'">PLACE MARKETING ENQUIRY</button>
-            <button type="button" class="btn btn-white btn-lg col-xs-6 cart_button" ng-click="$state.go('user.App.Products')" style="position: fixed; left: 0; bottom: 0; background: #f0f0f0;z-index: 2000" ng-show="permissions.user_type != 'reseller'">CONTINUE</button>
-            <button type="button" id ="place_order" class="btn btn-warning btn-lg col-xs-6" ng-click="Cart.insert_order_data()" style="position: fixed; right: 0; bottom: 0;z-index: 2000">PLACE ORDER</button>
+        <button type="button" class="btn btn-primary btn-lg col-xs-{{ showCase.buttons_width}} cart_button" ng-click="Cart.place_enquiry()" ng-show="permissions.user_type == 'reseller'">PLACE MARKETING ENQUIRY</button>
+        <button type="button" class="btn btn-white btn-lg col-xs-{{ showCase.buttons_width}} cart_button" ng-click="$state.go('user.App.Products')" ng-show="permissions.user_type != 'reseller'">CONTINUE</button>
+        <button type="button" id ="place_sample" class="btn btn-warning btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data({'is_sample': true})" ng-show="permissions.create_order_po">PLACE SAMPLE</button>
+        <button type="button" id ="place_order" class="btn btn-success btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data()">PLACE ORDER</button>
             <!--<button type="button" class="btn btn-warning btn-lg col-xs-12 hide" ng-if="Cart.model_data.data.length == 0" ng-click="Cart.catlog=false;Cart.details=true;Cart.detailed_list=false;Cart.orderspage=false">SHOP NOW</button>-->
 <!--          </div>-->
         <!--</div>-->
       </div>
+    </div>
 
     <div class="col-md-12" style="padding-bottom:0px;">
       <button type="submit" class="btn btn-primary hide" style="margin: auto;display: block;" ng-disabled="Cart.bt_disable" ng-click="Cart.insert_order_data(form)">Create Order </button>

@@ -157,7 +157,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Samples Management",
+      name: "Display Place Sample option in Customer Portal",
       model_name: "create_order_po",
       param_no: 51,
       class_name: "fa fa-refresh",

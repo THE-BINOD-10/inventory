@@ -6099,8 +6099,8 @@ def create_order_pos(user, order_objs):
             order.save()
             OrderMapping.objects.create(mapping_id=order.id, mapping_type='PO', order_id=order_obj.id,
                                         creation_date=datetime.datetime.now())
-        log.info("Sampling PO Creation for the user %s is PO number %s\
-                    created for Order Id %s " % (user.username, str(po_id), str(order_objs[0].original_order_id)))
+        log.info("Sampling PO Creation for the user %s is PO number %s created for Order Id %s " % (user.username,
+                                                                str(po_id), str(order_objs[0].original_order_id)))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

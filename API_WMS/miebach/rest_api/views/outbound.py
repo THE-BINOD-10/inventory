@@ -2914,7 +2914,7 @@ def split_orders(**order_data):
 def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, custom_order):
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
-                     'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected']
+                     'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -3112,6 +3112,7 @@ def insert_order_data(request, user=''):
     client_name = request.POST.get('client_name', '')
     corporate_po_number = request.POST.get('corporate_po_number', '')
     address_selected = request.POST.get('address_selected', '')
+    is_sample = request.POST.get('is_sample', '')
 
     created_order_id = ''
     ex_image_url = {}
@@ -3334,7 +3335,7 @@ def insert_order_data(request, user=''):
             message = direct_dispatch_orders(user, dispatch_orders)
         elif auto_picklist_signal == 'true':
             message = check_stocks(order_sku, user, request, order_objs)
-        if get_misc_value('create_order_po', user.id) == 'true' and created_order_objs:
+        if is_sample == 'true' and created_order_objs:
             create_order_pos(user, created_order_objs)
     else:
         for user_id, order_user_data in order_user_sku.iteritems():

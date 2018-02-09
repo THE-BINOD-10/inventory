@@ -15,6 +15,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.size_toggle = true;
   vm.brand_size_collect = {};
   vm.user_type = Session.roles.permissions.user_type;
+  vm.buttons_width = (Session.roles.permissions.create_order_po)? 4: 6;
+  //vm.create_order_po = Session.roles.permissions.create_order_po;
 
   vm.order_type_value = "offline";
   vm.service = Service;

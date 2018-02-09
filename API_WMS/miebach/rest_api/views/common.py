@@ -6065,7 +6065,8 @@ def create_order_pos(user, order_objs):
                                                           cust_master.tin_number)
                         if supplier_id:
                             mapping_obj = MastersMapping.objects.create(master_id=cust_master.id, mapping_id=supplier_id,
-                                                          mapping_type='customer-supplier', user=user.id)
+                                                          mapping_type='customer-supplier', user=user.id,
+                                                          creation_date=datetime.datetime.now())
                             cust_supp_mapping[cust_master.customer_id] = supplier_id
                     else:
                         cust_supp_mapping[str(cust_master.customer_id)] = master_mapping[0].mapping_id
@@ -6096,6 +6097,8 @@ def create_order_pos(user, order_objs):
                 purchase_data['prefix'] = user_profile.prefix
             order = PurchaseOrder(**purchase_data)
             order.save()
+            OrderMapping.objects.create(mapping_id=order.id, mapping_type='PO', order_id=order_obj.id,
+                                        creation_date=datetime.datetime.now())
         log.info("Sampling PO Creation for the user %s is PO number %s\
                     created for Order Id %s " % (user.username, str(po_id), str(order_objs[0].original_order_id)))
     except Exception as e:

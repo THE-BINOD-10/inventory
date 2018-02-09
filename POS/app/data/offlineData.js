@@ -359,8 +359,8 @@
 
     //sync POS transacctions data
     function syncPOSTransactionData(){
-
         return new Promise(function(resolve,reject){
+             POS_ENABLE_SYNC=true;
             checkSyncData(SYNC_POS_DATA,new MessageChannel()).then(function(data){
                 console.log(" sync POS  data "+data);
                 

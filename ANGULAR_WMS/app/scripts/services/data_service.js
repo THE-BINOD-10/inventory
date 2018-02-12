@@ -38,8 +38,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
   self.stock_view = {
 
                       views: ['Available', 'Available+Intransit', 'Total'],
-                      view: 'Available'
-
+                      view: 'Available',
+                      levels: [1,2],
+                      level: 1
                     }
 
 

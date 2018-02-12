@@ -90,10 +90,9 @@ WSGI_APPLICATION = 'miebach.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'WMS_PROD1',
-        'USER': 'stockone',
-        'HOST': '94.130.36.188',
-        'PASSWORD': 'Stockone@2017',
+        'NAME': 'STAGING',
+        'USER': 'root',
+        'PASSWORD': '0510^2017',
         'TEST_MIRROR': 'default',
     }
 }
@@ -123,6 +122,7 @@ STATICFILES_DIRS = (
         os.path.join(BASE_DIR, 'static'),
 )
 
+FILE_UPLOAD_PERMISSIONS = 0644
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
 

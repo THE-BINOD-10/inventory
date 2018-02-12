@@ -115,7 +115,7 @@ def get_user_permissions(request, user):
     return {'permissions': roles, 'label_perms': label_perms}
 
 
-def get_label_permissions(request, user, role_perms):
+def get_label_permissions(request, user, role_perms, user_type):
     label_keys = copy.deepcopy(LABEL_KEYS)
     sub_label_keys = copy.deepcopy(PERMISSION_DICT)
     labels = {}
@@ -128,6 +128,9 @@ def get_label_permissions(request, user, role_perms):
         else:
             labels[label] = False
 
+    extra_labels = ['DASHBOARD', 'UPLOADS', 'REPORTS', 'CONFIGURATIONS']
+    for label in extra_labels:
+        labels[label] = True if user_type != 'supplier' else False
     return labels
 
 
@@ -160,7 +163,8 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['roles'] = get_user_permissions(request, user)
     response_data['data']['roles']['tax_type'] = tax_type
     response_data['data']['roles']['labels'] = get_label_permissions(request, user,
-                                                                     response_data['data']['roles']['label_perms'])
+                                                                     response_data['data']['roles']['label_perms'],
+                                                                     request_user_profile.user_type)
     response_data['data']['roles']['permissions']['is_superuser'] = status_dict[int(request.user.is_superuser)]
     response_data['data']['roles']['permissions']['is_staff'] = status_dict[int(request.user.is_staff)]
     response_data['data']['roles']['permissions']['multi_warehouse'] = multi_warehouse

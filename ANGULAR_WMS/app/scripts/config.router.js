@@ -98,6 +98,9 @@ var app = angular.module('urbanApp')
 
               if (Session.user_profile.user_type == "customer") {
                 $state.go(LOGIN_REDIRECT_STATE_CUSTOMER, {"location": "replace"});
+
+              } else if (Session.user_profile.user_type == "supplier"){
+                $state.go("app.PurchaseOrder", {"location": "replace"});
               } else {
                 $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});
               }
@@ -1729,6 +1732,20 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Profile'
+          }
+        })
+
+      //supplier purchase order
+      .state('app.PurchaseOrder', {
+          url: '/PurchaseOrder',
+          templateUrl: 'views/inbound/supplier_purchase_order.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/controllers/inbound/supplier_purchase_order.js');
+                    }]
+          },
+          data: {
+            title: 'Purchase Order'
           }
         })
 

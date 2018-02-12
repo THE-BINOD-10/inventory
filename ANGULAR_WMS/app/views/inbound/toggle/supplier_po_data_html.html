@@ -1,0 +1,37 @@
+<div class="table-responsive mt20 ml20 mr20 mb20">
+  <form role="form" name="form" data-attr="{{po}}">
+  <table class="table table-bordered mb20" ng-repeat="(size_type, size_data) in po_data">
+    <thead>
+      <tr>
+        <th ng-repeat="hd in ['Style Code', 'Style Name', 'Brand', 'Category']">{{hd}}</th>
+        <th style="width:70px;" ng-repeat="size in size_data.sizes_list">{{size}}</th>
+        <th ng-repeat="hd in ['Total Qty', 'Receivable Qty', 'Received Qty']">{{hd}}</th>
+        <th style="width: 100px;">Expected Date</th>
+        <th>Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="(name, style_data) in size_data.styles">
+        <td ng-repeat="record in ['style_code', 'style_name', 'brand', 'category']">{{style_data.style_data[record]}}</td>
+        <td ng-repeat="record in size_data.sizes_list">
+          <input type="number" value="{{style_data.sizes[record]}}" class="form-control" name="{{record}}">
+        </td>
+        <td ng-repeat="record in ['total_order_quantity', 'total_receivable_quantity', 'total_received_quantity']">
+          {{(style_data.po_data[record])? style_data.po_data[record]: 0;}}
+        </td>
+        <td>
+          <input name="expected_date" ui-jq="datepicker" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{date}}" readonly placeholder="Delivery Date">
+        </td>
+        <td>
+          <input type="text" class="form-control" name="remarks">
+          <input type="hidden" class="form-control" name="style_code" value="{{style_data.style_data.style_code}}">
+          <input type="hidden" class="form-control" name="style_name" value="{{style_data.style_data.style_name}}">
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <input type="hidden" value="{{po}}" name="po_number">
+  <button type="button" class="btn btn-primary pull-right ml20" align="center" ng-click="send_data(form, po);" ng-disabled="disable">Send</button>
+  <input name="central_delivery_date" ui-jq="datepicker" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{date}}" readonly placeholder="Delivery Date" style="width: 300px !important;float:right">
+  </form>
+</div>

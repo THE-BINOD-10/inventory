@@ -147,7 +147,6 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.my_orders = [];
     self.styleId = '';
     self.styles_data = {};
-    self.files_type = '';
 
     /** login page maintainance **/
     self.login_data = {

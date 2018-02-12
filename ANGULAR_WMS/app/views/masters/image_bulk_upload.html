@@ -15,19 +15,6 @@
               <h4 class="mt0">Upload queue</h4>
               <p>Queue length: {{ uploader.queue.length }}</p>
             </div>
-
-            <div class="col-md-6 col-xs-12">
-              <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
-                <div class="col-md-6">
-                  <div class="form-group">
-                    <label class="control-label"> Choose Images Type </label>
-                    <select name="category_type" class="form-control" ng-change="change_img_type(category_type)" ng-model="category_type" ng-required="true">
-                       <option ng-repeat="opt in categories" ng-selected="$index==0" value="{{opt}}">{{opt}}</option>
-                     </select>
-                  </div>
-                </div>
-            </form>
-            </div>
           </div>
           <div class="col-md-12">
             <table class="table table-bordered table-hover table-condensed align-middle bl br">

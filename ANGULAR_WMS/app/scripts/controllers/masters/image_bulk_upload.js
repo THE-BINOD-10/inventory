@@ -3,10 +3,6 @@
 
 function uploadCtrl($scope, FileUploader, Session, Data) {
 
-  $scope.categories = ['SKU', 'Category', 'Brand'];
-  $scope.category_type = $scope.categories[0];
-  Data.files_type = $scope.category_type;
-
   var uploader = $scope.uploader = new FileUploader({
     url: Session.url+"upload_images/",
     // formData: [
@@ -14,13 +10,6 @@ function uploadCtrl($scope, FileUploader, Session, Data) {
     // ],
     withCredentials: 'true'
   });
-
-  $scope.change_img_type = function(type){
-    Data.files_type = type;
-    uploader.formData = [{'files_type': Data.files_type}];
-  }
-
-  $scope.change_img_type('SKU');
 
   // FILTERS
 

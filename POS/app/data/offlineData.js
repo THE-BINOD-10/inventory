@@ -359,8 +359,8 @@
 
     //sync POS transacctions data
     function syncPOSTransactionData(){
-
         return new Promise(function(resolve,reject){
+             POS_ENABLE_SYNC=true;
             checkSyncData(SYNC_POS_DATA,new MessageChannel()).then(function(data){
                 console.log(" sync POS  data "+data);
                 
@@ -1388,6 +1388,9 @@
                                         var result_data={};
                                         result_data.data={};
                                         result_data.data.data=order_data;
+                                        result_data.data.data.order_id=order_data.summary.order_id;
+                                        result_data.data.data.order_date=order_data.summary.order_date;
+
                                         if(delete_order=="true"){
                                             result_data.message="Deleted Successfully !";
                                             return resolve(result_data);
@@ -1480,7 +1483,6 @@
                         result_data.data=JSON.parse(result[0].order_data);
                         return resolve(result_data);
                     }else{
-                        
                         return resolve(result_data);
                     }
                 }).catch(function(error){

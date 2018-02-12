@@ -90,22 +90,10 @@
         setCheckSum(setCheckSumFormate(JSON.stringify(user_data),USER_DATA)).
                           then(function(data){
                               console.log("user data saved on locally "+data); 
-                                      
-                              if(navigator.onLine){
-                                //sync pos data 
-                                navigator.serviceWorker.ready.then(function() {
-                                  
-                                  
-                                  syncPOSTransactionData().then(function(){
-                                    urlService.hide_loading();
-                                  }).catch(function(){
-                                    urlService.hide_loading();
-                                  });
-                                });
-                              }else{
-                                console.log( "offline");
-                                urlService.hide_loading();
-                              }               
+                                
+                               //calling pos sync 
+                               urlService.pos_sync();       
+                                         
                           }).catch(function(error){
                              urlService.hide_loading();
                              console.log("user data saved fail in locally "+error.message); 

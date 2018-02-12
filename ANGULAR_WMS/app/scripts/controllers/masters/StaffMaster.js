@@ -8,7 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
 
-    vm.filters = {'datatable': 'StaffMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
+    vm.filters = {'datatable': 'StaffMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -50,9 +50,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $scope.$apply(function() {
                 vm.model_data['create_login'] = false;
                 angular.copy(aData, vm.model_data);
-                //vm.all_taxes = ['', 'VAT', 'CST']
                 vm.update = true;
-                vm.title = "Update Customer";
+                vm.title = "Update Staff";
                 vm.message ="";
                 $state.go('app.masters.StaffMaster.Staff');
                 $timeout(function () {
@@ -63,8 +62,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
   vm.status_data = ["Inactive", "Active"];
-  var empty_data = {staff_id: "", name: "", email_id: "", phone_number: "", status: "", create_login: false,
-                    login_created: false, margin: 0};
+  var empty_data = {staff_id: "", name: "", email_id: "", phone_number: "", status: "", margin: 0};
   vm.model_data = {};
 
   vm.base = function() {
@@ -82,41 +80,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go('app.masters.StaffMaster');
   }
 
-  // vm.get_customer_id = function() {
-
-  //   vm.service.apiCall("get_customer_master_id/").then(function(data){
-  //     if(data.message) {
-
-  //       vm.model_data["customer_id"] = data.data.customer_id;
-  //       vm.all_taxes = data.data.tax_data;
-  //       vm.model_data["price_type_list"] = data.data.price_types;
-  //       vm.model_data["logged_in_user_type"] = data.data.logged_in_user_type;
-  //       vm.model_data["level_2_price_type"] = data.data.level_2_price_type;
-  //       vm.model_data["price_type"] = data.data.price_type;
-  //     }
-  //   });
-  // }
-  // vm.get_customer_id();
-
   vm.add = add;
   function add() {
 
     vm.base();
-    // vm.get_customer_id();
     $state.go('app.masters.StaffMaster.Staff');
   }
 
   vm.customer = function(url) {
+
     var send = {}
-    //angular.copy(vm.model_data, send)
-    //if(send.login_created) {
-    //    send.create_login = false;
-    //}
     var send = $("form").serializeArray()
-    var data = $.param(send);
     vm.service.apiCall(url, 'POST', send, true).then(function(data){
       if(data.message) {
-        if(data.data == 'New Customer Added' || data.data == 'Updated Successfully') {
+        if(data.data == 'New Staff Added' || data.data == 'Updated Successfully') {
           vm.service.refresh(vm.dtInstance);
           vm.close();
         } else {
@@ -128,12 +105,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.submit = submit;
   function submit(data) {
+
     if (data.$valid) {
-      if ("Add Customer" == vm.title) {
-        vm.customer('insert_customer/');
+      if ("Add Staff" == vm.title) {
+        vm.customer('insert_staff/');
       } else {
         vm.model_data['data-id'] = vm.model_data.DT_RowId;
-        vm.customer('update_customer_values/');
+        vm.customer('update_staff_values/');
       }
     } else if (!(data.phone_number.$valid)) {
       vm.service.pop_msg('Invalid phone number');

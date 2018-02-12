@@ -342,7 +342,7 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'},
                 {'label': 'SKU Size', 'name': 'sku_size', 'type': 'input'},
                 {'label': 'Status', 'name': 'order_report_status', 'type': 'select'},
-                {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},],
+                {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
     'dt_headers': ['Order Date', 'Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Size',
                    'SKU Description', 'SKU Code', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
                    'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks'],
@@ -2272,7 +2272,6 @@ def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_order_detail_objs, get_local_date
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    #Net, tax, taxable_amount
     lis = ['creation_date', 'order_id', 'customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
            'sku__sku_size', 'sku__sku_desc', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount', 'order_id'];

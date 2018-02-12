@@ -303,6 +303,13 @@ def customer_order(request):
         val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)"""
         if (customer_name and order['summary']['issue_type'] == "Pre Order") or \
                         order['summary']['issue_type'] == "Delivery Challan":
+            tot_sku_level_discount = 0
+            for item in order['sku_data']:
+                if item['return_status'] == "false":
+                    tot_sku_level_discount += ((int(item['selling_price']) - item['unit_price']) * item['quantity'])
+            tot_order_level_discount = order['summary']['total_discount'] - tot_sku_level_discount
+            order_level_disc_per_sku = tot_order_level_discount / len(order['sku_data'])
+
             for item in order['sku_data']:
 
                 sku = SKUMaster.objects.get(wms_code=item['sku_code'], \
@@ -334,8 +341,9 @@ def customer_order(request):
                                                               email_id=cust_dict.get('Email', ''), \
                                                               unit_price=item['unit_price'],
                                                               payment_received=payment_received)
+                    sku_disc = (int(item['selling_price']) - item['unit_price']) * item['quantity']
                     CustomerOrderSummary.objects.create(order_id=order_detail.id, \
-                                                        discount=item['discount'], \
+                                                        discount=sku_disc + order_level_disc_per_sku, \
                                                         issue_type=order_detail.order_code, \
                                                         cgst_tax=item['cgst_percent'], \
                                                         sgst_tax=item['sgst_percent'], \
@@ -410,7 +418,7 @@ def prepare_delivery_challan_json(request, order_id, user_id):
     json_data = {}
     customer_data, summary, gst_based = {}, {}, {}
     sku_data = []
-    total_quantity, total_amount, subtotal = [0] * 3
+    total_quantity, total_amount, subtotal, total_discount = [0] * 4
     status = 'fail'
     order_date = NOW
     user = User.objects.get(id=user_id)
@@ -419,10 +427,25 @@ def prepare_delivery_challan_json(request, order_id, user_id):
                                               user=user_id, quantity__gt=0)
 
     for order in order_detail:
+        discount = 0
+        sku = SKUMaster.objects.get(id=order.sku_id)
+        discount_percentage = sku.discount_percentage
+        if not sku.discount_percentage:
+            category = CategoryDiscount.objects.filter(category=sku.sku_category, \
+                                                       user_id=user.id)
+            if category:
+                category = category[0]
+                if category.discount:
+                    discount_percentage = category.discount
+        #original_selling_price = sku.price
+        original_selling_price = (order.unit_price * 100)/(100 - discount_percentage)
+        discount = original_selling_price - order.unit_price
         selling_price = order.unit_price if order.unit_price != 0 \
             else float(order.invoice_amount) / float(order.quantity)
         order_summary = CustomerOrderSummary.objects.filter(order_id=order.id)
         if order_summary:
+            #import pdb;pdb.set_trace()
+            total_discount  += (order_summary[0].discount * order.quantity)
             tax_master = order_summary.values('sgst_tax', 'cgst_tax', 'igst_tax', 'utgst_tax')[0]
         else:
             tax_master = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
@@ -439,11 +462,14 @@ def prepare_delivery_challan_json(request, order_id, user_id):
                          'sku_code': order.sku.sku_code,
                          'price': order.invoice_amount,
                          'unit_price': selling_price,
+                         'selling_price': original_selling_price,
+                         'discount': discount_percentage,
                          'sgst': selling_price * tax_master["sgst_tax"] / 100,
                          'cgst': selling_price * tax_master["cgst_tax"] / 100
                          })
         total_quantity += int(order.quantity)
-        total_amount += (float(order.invoice_amount) + float(order.invoice_amount) * tax_master["sgst_tax"] / 100 + \
+        total_amount += (float(order.invoice_amount) + discount + \
+                         float(order.invoice_amount) * tax_master["sgst_tax"] / 100 + \
                          float(order.invoice_amount) * tax_master["cgst_tax"] / 100);
     if order_detail:
         status = 'success'
@@ -470,7 +496,8 @@ def prepare_delivery_challan_json(request, order_id, user_id):
         if order_summary:
             order_summary = order_summary[0]
             summary = {'total_quantity': total_quantity,
-                       'total_amount': total_amount,
+                       'total_amount': total_amount - total_discount,
+                       'total_discount': total_discount,
                        'subtotal': total_amount,
                        'gst_based': gst_based,
                        'staff_member': order_summary.order_taken_by,
@@ -649,17 +676,11 @@ def get_extra_fields(request, user=''):
 @login_required
 def get_staff_members_list(request):
     user = request.user
-    members = ['Staff-1', 'Staff-2', 'Staff-3']
-    if user.username == "bcbs_retail":
-        members = ['Staff-1', 'Staff-2', 'Staff-3']
-    elif user.username == "bcgs_retail":
-        members = ['Staff-4', 'Staff-5', 'Staff-6']
-    elif user.username == "ssrvm_retail":
-        members = ['Staff-7', 'Staff-8', 'Staff-9']
-    elif user.username == "stjohns_retail":
-        members = ['Staff-10', 'Staff-11', 'Staff-12']
-    elif user.username == "vps_retail":
-        members = ['Staff-13', 'Staff-14', 'Staff-15']
+    members = []
+    staff_obj = StaffMaster.objects.filter(user=user)
+    if staff_obj:
+        for staff in staff_obj:
+            members.append(staff.staff_name)
     return HttpResponse(json.dumps({'members': members}))
 
 

@@ -98,8 +98,8 @@
         <tr ng-repeat="item in data.sku_data">
           <td> {{item.name}} </td>
           <td> {{item.quantity}} </td>
-          <td> {{item.unit_price + item.sgst + item.cgst | number:2}} </td>
-          <td> {{((item.unit_price + item.sgst + item.cgst) * item.quantity) | number:2}}</td>
+          <td> {{item.unit_price + item.sgst + item.cgst + (item.selling_price*item.discount/100)| number:2}} </td>
+          <td> {{((item.unit_price + item.sgst + item.cgst + (item.selling_price*item.discount/100)) * item.quantity) | number:2}}</td>
         </tr>
       </tbody>
     </table>
@@ -108,7 +108,10 @@
     <div class="product-total">
        <span>Tot Items: {{data.sku_data.length}}</span>
        <span>Tot Qty: {{data.summary.total_quantity}} </span>
-       <span>Tot Amt: {{data.summary.total_amount | number:2}}</span>
+       <span style="float: right">Amt: {{data.summary.total_amount + data.summary.total_discount | number:2}}</span>
+       <span style="width: 40%; float: right">Discount: {{data.summary.total_discount | number:2}}</span><br>
+       <span style="width: 100%;text-align:center;font-size: 20px;font-weight:bold">Total: {{data.summary.total_amount}}</span>
+
        <!--<span>Amt: {{(data.summary.total_amount*100)/(100+user.VAT)}}</span>-->
     </div>
   <hr>

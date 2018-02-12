@@ -2341,8 +2341,21 @@ class IntransitOrders(models.Model):
     invoice_amount = models.FloatField(default=0)
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)    
+    updation_date = models.DateTimeField(auto_now=True)
     
     class Meta:
         db_table = 'INTRANSIT_ORDERS'
         unique_together = ('user', 'customer_id', 'intr_order_id', 'sku')
+
+class StaffMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    staff_name = models.CharField(max_length=256, default='')
+    phone_number = models.CharField(max_length=32)
+    email_id = models.EmailField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'STAFF_MASTER'
+        unique_together = ('user', 'staff_name')
+        index_together = ('user', 'staff_name')

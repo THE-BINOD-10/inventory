@@ -1,7 +1,6 @@
 'use strict';
 
 function uploadCtrl($scope, FileUploader, Session) {
-
   var uploader = $scope.uploader = new FileUploader({
     url: Session.url+"upload_images/",
     withCredentials: 'true'
@@ -32,7 +31,6 @@ function uploadCtrl($scope, FileUploader, Session) {
       dat.push(item.file.name);
     }
   }
-
 }
 
 angular

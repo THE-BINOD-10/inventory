@@ -5350,18 +5350,32 @@ def save_supplier_po(request, user=''):
     user.id = supplier.user
     myDict = dict(request.POST.iterlists())
     po_data = {}
+    expected_date = request.POST.get('central_delivery_date', '')
     for i in range(0, len(myDict['style_code'])):
         style_code = myDict['style_code'][i]
         if not style_code:
             return HttpResponse("Style Code Not Found")
-        po_data[style_code] = {'sizes':{}}
+        temp_po_data = {'sizes':{}}
         sizes = SKUMaster.objects.filter(user=user.id, sku_class=myDict['style_code'][i]).values_list('sku_size', flat=True)
+        qty_status = False
+        dt_status = False
         for size in sizes:
             if myDict[size][i]:
-                po_data[style_code]['sizes'][size] = myDict[size][i]
-        if myDict['expected_date'][i]:
-            po_data[style_code]['expected_date'] = myDict['expected_date'][i]
+                temp_po_data['sizes'][size] = myDict[size][i]
+                qty_status = True
+        if qty_status and myDict['expected_date'][i]:
+            temp_po_data['expected_date'] = myDict['expected_date'][i]
+            dt_status = True
+        elif qty_status and expected_date:
+            temp_po_data['expected_date']  = expected_date
+            dt_status = True
         if myDict['remarks'][i]:
-            po_data[style_code]['remarks'] = myDict['remarks'][i]
+            temp_po_data['remarks'] = myDict['remarks'][i]
+        if qty_status and not dt_status:
+            return HttpResponse("Please Select Date")
+        elif qty_status:
+            po_data[style_code] = temp_po_data
+    if not po_data:
+        return HttpResponse("Please Enter Quantity")
     print po_data
     return HttpResponse("Success")

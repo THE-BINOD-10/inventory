@@ -1,13 +1,9 @@
-;(function() {
 'use strict';
 
-function uploadCtrl($scope, FileUploader, Session, Data) {
+function uploadCtrl($scope, FileUploader, Session) {
 
   var uploader = $scope.uploader = new FileUploader({
     url: Session.url+"upload_images/",
-    // formData: [
-    //     { "files_type": Data.files_type },
-    // ],
     withCredentials: 'true'
   });
 
@@ -41,5 +37,4 @@ function uploadCtrl($scope, FileUploader, Session, Data) {
 
 angular
   .module('urbanApp')
-  .controller('uploadCtrl', ['$scope', 'FileUploader', 'Session', 'Data', uploadCtrl]);
-})();
+  .controller('uploadCtrl', ['$scope', 'FileUploader', 'Session', uploadCtrl]);

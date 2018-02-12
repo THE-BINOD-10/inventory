@@ -1131,26 +1131,6 @@ PRICE_DEF_EXCEL = OrderedDict((('sku_id', 0), ('price_type', 1),
                                ('min_unit_range', 2), ('max_unit_range', 3),
                                ('price', 4), ('discount', 5)))
 
-
-#BARCODE_FORMATS = {'adam_clothing': {'format1': ['sku_master'], 'format2': ['sku_master'], 'format3': ['sku_master']}}
-
-BARCODE_DICT = {'format1': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Style': ''},
-                'format2': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '',
-                            'DesignNo': '', 'Qty': '1', 'Gender': '', 'MRP': '', 'Packed on': '', 'Manufactured By': '', 'Marketed By': ''},
-                'format3': {'SKUCode': '', 'SKUDes': '', 'Color': '', 'Size': '', 'SKUPrintQty': '', 'Brand': '', 'Product': '','DesignNo': '',
-                            'Qty': '1', 'Gender': '', 'MRP': '', 'MFD': '', 'Manufactured By': '', 'Marketed By': ''},
-                'format4': {'SKUCode': '', 'color': '', 'Size': '', 'SKUPrintQty': '',
-                            'Qty': '1', 'MRP': '', 'Manufactured By': '', 'Marketed By': '', 'Phone': '',
-                            'Vendor SKU': '', 'PO No': '', 'Email': ''},
-                'Bulk Barcode': {'SKUCode': '', 'Color': '', 'SKUPrintQty': '1', 'Qty': '1', 
-                            'DesignNo': '', 'UOM': '', 'Product': '', 'Company': ''}
-               }
-
-BARCODE_KEYS = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'format4': 'Details', 'Bulk Barcode': 'Details'}
-
-BARCODE_ADDRESS_DICT = {'adam_clothing': 'Adam Exports 401, 4th Floor,\n Pratiek Plazza, S.V.Road,\n Goregaon West, Mumbai - 400062.\n MADE IN INDIA',
-                        'scholar_clothing': 'Scholar Clothing Co. <br/> Karnataka - India'}
-
 PRICE_MASTER_DATA = {'sku_id': '', 'price_type': '', 'price': 0, 'discount': 0}
 
 NETWORK_MASTER_HEADERS = ['Destination Location Code', 'Source Location Code', 'Lead Time',

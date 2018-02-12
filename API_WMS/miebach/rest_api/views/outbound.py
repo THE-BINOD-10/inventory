@@ -4222,10 +4222,18 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                 is_distributor = customer_data[0].is_distributor
                 pricemaster_obj = PriceMaster.objects.filter(sku__user=central_admin.id,
                                                              sku__sku_code=sku['wms_code'])
+                cm_id = customer_data[0].id
                 if is_distributor:
-                    price_data = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id).filter(
-                        source_location_code_id__userprofile__warehouse_level=level). \
-                        values_list('source_location_code_id', 'price_type')
+                    dist_mapping = WarehouseCustomerMapping.objects.filter(customer_id=cm_id, status=1)
+                    if dist_mapping:
+                        dist_wh_id = dist_mapping[0].warehouse_id
+                        if not level:
+                            price_data = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id).\
+                                values_list('source_location_code_id', 'price_type')
+                        else:
+                            price_data = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id).filter(
+                                source_location_code_id__userprofile__warehouse_level=level). \
+                                values_list('source_location_code_id', 'price_type')
                     sku_master[ind].setdefault('prices_map', {}).update(dict(price_data))
                     nw_pricetypes = [j for i, j in price_data]
                     pricemaster_obj = pricemaster_obj.filter(price_type__in=nw_pricetypes)
@@ -4283,7 +4291,8 @@ def get_levels(request, user=''):
         wh_levels = list(UserProfile.objects.exclude(warehouse_level=0).values_list('warehouse_level',
                                                                                     flat=True).distinct())
     else:
-        wh_levels = list(UserProfile.objects.values_list('warehouse_level', flat=True).distinct())
+        wh_levels = list(UserProfile.objects.values_list('warehouse_level', flat=True).
+                         distinct().order_by('warehouse_level'))
     levels = []
     central_admin = get_admin(user)
     users_list = UserGroups.objects.filter(admin_user=central_admin.id).values_list('user').distinct()
@@ -4421,7 +4430,15 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
 @login_required
 @get_admin_user
 def get_sku_catalogs(request, user=''):
-    data, start, stop = get_sku_catalogs_data(request, user)
+    checked_items = eval(request.POST.get('checked_items', '{}'))
+    if not checked_items:
+        data, start, stop = get_sku_catalogs_data(request, user)
+    else:
+        data = checked_items.values()
+        style_quantities = eval(request.POST.get('required_quantity', '{}'))
+        for style_data in data:
+            if style_quantities.get(style_data['sku_class'], ''):
+                style_data['style_data'] = get_cal_style_data(style_data, style_quantities[style_data['sku_class']])
     download_pdf = request.POST.get('share', '')
     if download_pdf:
         remarks = ''
@@ -5095,6 +5112,10 @@ def get_view_order_details(request, user=''):
         for tax_master in tax_masters:
             taxes_data.append(tax_master.json())
 
+        if order_id:
+            order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
+            order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
+
         order_details_data.append(
             {'product_title': product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
              'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone, 'email': email, 'address': address,
@@ -5107,6 +5128,7 @@ def get_view_order_details(request, user=''):
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
              'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
+             'order_charges': order_charges,
              'sku_status': one_order.status})
 
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
@@ -6105,6 +6127,7 @@ def get_level_based_customer_orders(request, response_data, user):
             customer = WarehouseCustomerMapping.objects.filter(customer_id=cus_mapping[0].customer_id, status=1)
             if customer:
                 filter_dict['cust_wh_id__in'].append(customer[0].warehouse_id)
+                filter_dict['customer_id'] = customer[0].customer_id
     else:
         cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         cm_ids = cum_obj.values_list('customer_id', flat=True)
@@ -6120,6 +6143,16 @@ def get_level_based_customer_orders(request, response_data, user):
         order_detail_ids = generic_orders.filter(generic_order_id=record['generic_order_id']).values_list(
             'orderdetail_id', flat=True)
         data = OrderDetail.objects.filter(id__in=order_detail_ids)
+
+        ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code')
+        if ord_det_qs:
+            order_detail_order_id = ord_det_qs[0]['original_order_id']
+            if not order_detail_order_id:
+                order_detail_order_id = str(ord_det_qs[0]['order_code']) + str(ord_det_qs[0]['order_id'])
+            other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
+            if not other_charges:
+                other_charges = 0
+
         data_status = data.filter(status=1)
         if data_status:
             status = 'open'
@@ -6133,6 +6166,7 @@ def get_level_based_customer_orders(request, response_data, user):
             Sum('picked_quantity'))['picked_quantity__sum']
         if not picked_quantity:
             picked_quantity = 0
+        record['picked_quantity'] = picked_quantity
         record['status'] = status
         if data:
             record['date'] = get_only_date(request, data[0].creation_date)
@@ -6158,7 +6192,16 @@ def get_level_based_customer_orders(request, response_data, user):
                         record['total_inv_amt'] = round(tax_inclusive_inv_amt, 2)
                     else:
                         record['total_inv_amt'] = record['total_inv_amt'] + round(tax_inclusive_inv_amt, 2)
-        record['picked_quantity'] = picked_quantity
+
+                    data = OrderDetail.objects.filter(id=ord_det_id)
+                    ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code')
+                    if ord_det_qs:
+                        order_detail_order_id = ord_det_qs[0]['original_order_id']
+                        if not order_detail_order_id:
+                            order_detail_order_id = str(ord_det_qs[0]['order_code']) + str(ord_det_qs[0]['order_id'])
+                        other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
+                        if other_charges:
+                            record['total_inv_amt'] += other_charges
     return response_data
 
 
@@ -6204,12 +6247,15 @@ def get_customer_orders(request, user=""):
                 picked_quantity = 0
             record['status'] = status
             record['date'] = get_only_date(request, data[0].creation_date)
-            record['total_inv_amt'] = round(record['total_inv_amt'], 2)
-            record['picked_quantity'] = picked_quantity
             if record['original_order_id']:
                 record['order_id'] = record['original_order_id']
             else:
                 record['order_id'] = str(record['order_code']) + str(record['order_id'])
+            other_charges = order_charges_obj_for_orderid(record['order_id'], request.user.id)
+            if not other_charges:
+                other_charges = 0
+            record['total_inv_amt'] = round(record['total_inv_amt'] + other_charges, 2) 
+            record['picked_quantity'] = picked_quantity
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
 
@@ -6254,6 +6300,7 @@ def construct_order_customer_order_detail(request, order, user):
 
 def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     response_data = {}
+    other_charges = 0
     tax = CustomerOrderSummary.objects.filter(order_id__in=det_ids,
                                               order__user=usr_id).aggregate(Sum('tax_value'))[
         'tax_value__sum']
@@ -6277,9 +6324,18 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     total_qty = map(sum, [[x['quantity'] for x in res]])
     total_tax = map(sum, [[x.get('sku_tax_amt', 0) for x in res]])
     response_data['tax'] = round(total_tax[0], 2)
-    sum_data = {'picked_quantity': total_picked_quantity, 'amount': total_inv_amt[0],
-                'quantity': total_qty[0]}
+    order_detail_order_id = order[0].original_order_id
+    if not order[0].original_order_id:
+        order_detail_order_id = str(order[0].order_code) + str(order[0].order_id)
+    other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
+    amount = float(total_inv_amt[0])
+    if other_charges:
+        amount = float(total_inv_amt[0]) + float(other_charges)
+    else:
+        other_charges = 0
+    sum_data = {'picked_quantity': total_picked_quantity, 'amount': amount, 'quantity': total_qty[0]}
     response_data['sum_data'] = sum_data
+    response_data['other_charges'] = other_charges
     response_data['data'].extend(res)
 
     return response_data, res
@@ -6289,6 +6345,7 @@ def get_level_based_customer_order_detail(request, user):
     whole_res_map = {}
     response_data_list = []
     sku_wise_details = {}
+    order_charge_dict = {}
     generic_order_id = request.GET['order_id']
     is_autobackorder = request.GET.get('autobackorder', 'false')
     user_profile = UserProfile.objects.get(user=request.user.id)
@@ -6324,9 +6381,17 @@ def get_level_based_customer_order_detail(request, user):
         # generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
         order_detail_ids = generic_orders.filter(generic_order_id=generic_order_id).values_list(
             'orderdetail_id', flat=True)
-        ord_det_qs = OrderDetail.objects.filter(id__in=order_detail_ids).values_list('order_id', 'id', 'user')
+
+        ord_det_qs = OrderDetail.objects.filter(id__in=order_detail_ids).values_list('order_id', 'id', 'user',
+                                                                                     'original_order_id', 'order_code')
         ord_det_map = {}
-        for ord_id, det_id, usr_id in ord_det_qs:
+        if ord_det_qs:
+            order_detail_order_id = ord_det_qs[0][3]
+            if not order_detail_order_id:
+                order_detail_order_id = str(ord_det_qs[0][4]) + str(ord_det_qs[0][0])
+            other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
+
+        for ord_id, det_id, usr_id, original_order_id, order_code in ord_det_qs:
             ord_det_map.setdefault(int(ord_id), {}).setdefault(usr_id, []).append(det_id)
         for ord_id, usr_det_ids in ord_det_map.items():
             for usr_id, det_ids in usr_det_ids.items():
@@ -6336,7 +6401,7 @@ def get_level_based_customer_order_detail(request, user):
                 response_data['warehouse_level'] = ord_usr_profile.warehouse_level
                 response_data['level_name'] = get_level_name_with_level(user, ord_usr_profile.warehouse_level,
                                                                         users_list=[usr_id])
-                response_data_list. append(response_data)
+                response_data_list.append(response_data)
                 for sku_rec in res:
                     sku_code = sku_rec['sku__sku_code']
                     sku_qty = sku_rec['quantity']
@@ -6357,14 +6422,34 @@ def get_level_based_customer_order_detail(request, user):
         tax_amt = sku_det['sku_tax_amt']
         total_amt = float(qty) * float(el_price)
         sku_map = {'sku_code': sku_code, 'quantity': qty, 'landing_price': el_price, 'total_amount': total_amt}
+        if other_charges:
+            sku_totals['other_charges'] = other_charges
+        else:
+            other_charges = 0
+            sku_totals['other_charges'] = 0
         sku_totals['sub_total'] = sku_totals['sub_total'] + total_amt
         sku_totals['tax'] = round(sku_totals['tax'] + tax_amt, 2)
-        sku_totals['total_amount'] = round(sku_totals['sub_total'] + sku_totals['tax'], 2)
+        sku_totals['total_amount'] = round(sku_totals['sub_total'] + sku_totals['tax'] + other_charges, 2)
         sku_whole_map['data'].append(sku_map)
         sku_whole_map['totals'] = sku_totals
     whole_res_map['data'] = response_data_list
     whole_res_map['sku_wise_details'] = sku_whole_map
     return whole_res_map
+
+
+def order_charges_obj_for_orderid(order_id, user_id):
+    total_charge_amount = 0
+    order_charge_obj = []
+    dist_id_obj = CustomerUserMapping.objects.filter(user=user_id).values_list('customer__id')
+    if dist_id_obj:
+        dist_id = dist_id_obj[0]
+        if dist_id:
+            cust_wh_ids = GenericOrderDetailMapping.objects.filter(customer_id__in=dist_id).values_list('cust_wh_id',
+                                                                                                        flat=True).distinct()
+            if cust_wh_ids:
+                order_charge_obj = OrderCharges.objects.filter(order_id=order_id, user__in=cust_wh_ids)
+                total_charge_amount = order_charge_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
+    return total_charge_amount
 
 
 @login_required
@@ -6474,7 +6559,7 @@ def get_customer_cart_data(request, user=""):
                 dist_wh_id = dist_mapping.warehouse.id
                 price_type = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id,
                                                           source_location_code_id=user.id). \
-                    values_list('price_type')
+                    values_list('price_type', flat=True)
                 dist_reseller_leadtime = 0
             else:
                 price_type = cm_obj.price_type
@@ -7906,3 +7991,30 @@ def order_cancel(request, user=''):
         log.debug(traceback.format_exc())
         message = 'Failed'
     return HttpResponse(message)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def add_order_charges(request, user=''):
+    order_id = request.POST.get('order_id', '')
+    order_charges = eval(request.POST.get('order_charges', ''))
+    order_charges_obj = OrderCharges.objects.filter(user=user.id, order_id=order_id)
+    data_dict = {}
+    data_response = {}
+    for obj in order_charges:
+        order_charges_obj_present = order_charges_obj.filter(charge_name=obj['charge_name'])
+        if order_charges_obj_present:
+            order_charges_obj_save = order_charges_obj_present[0]
+            order_charges_obj_save.charge_amount = obj['charge_amount']
+            order_charges_obj_save.save()
+        else:
+            data_dict['charge_name'] = obj['charge_name']
+            data_dict['charge_amount'] = obj['charge_amount']
+            data_dict['order_id'] = order_id
+            data_dict['user_id'] = user.id
+            OrderCharges.objects.create(**data_dict)
+    message = "Order Charges Saved Successfully"
+    data_response['data'] = order_charges
+    data_response['message'] = message
+    return HttpResponse(json.dumps(data_response))

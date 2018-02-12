@@ -64,15 +64,18 @@ def get_skucode_quantity(po_number, customer_name):
     gen_ord_map = []
     for order in gen_ord_qs:
         po = {'sku_code': order.orderdetail.sku.sku_code, 'quantity': order.orderdetail.quantity,
-              'unit_price': order.orderdetail.unit_price, 'invoice_amt': order.orderdetail.invoice_amount,
-              'sku_desc': order.orderdetail.sku.sku_desc}
+              'unit_price': order.unit_price, 'sku_desc': order.orderdetail.sku.sku_desc}
         po['amount'] = po['quantity'] * po['unit_price']
         customer_summary = order.orderdetail.customerordersummary_set.values()
+        total_tax = 0
         if customer_summary:
             customer_summary = customer_summary[0]
             for tax in ['sgst', 'cgst', 'igst']:
                 po[tax+'_tax'] = customer_summary[tax+'_tax']
                 po[tax] = (po['amount']/100)*po[tax+'_tax']
+                total_tax += po[tax]
+        po['invoice_amt'] = po['amount'] + total_tax
+
         gen_ord_map.append(po)
 
     return gen_ord_map

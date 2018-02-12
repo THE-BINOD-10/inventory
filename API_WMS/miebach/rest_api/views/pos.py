@@ -677,7 +677,7 @@ def get_extra_fields(request, user=''):
 def get_staff_members_list(request):
     user = request.user
     members = []
-    staff_obj = StaffMaster.objects.filter(user=user)
+    staff_obj = StaffMaster.objects.filter(user=user.id)
     if staff_obj:
         for staff in staff_obj:
             members.append(staff.staff_name)

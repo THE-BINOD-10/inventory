@@ -557,6 +557,8 @@
                   //var quantity = (filter_data[i].stock_quantity > 0) ? 1: 0;
                   //Change the quantity to 1
                   var quantity = 1;
+                  self.selected_skus.push(filter_data[0]["SKUCode"]);
+                  $('input[name="selected_sku"][value="'+filter_data[0]["SKUCode"]+'"]').prop("checked", true);
 
                   var sgst = filter_data[i].price * filter_data[i].sgst / 100;
                           var cgst = filter_data[i].price * filter_data[i].cgst / 100;
@@ -709,6 +711,10 @@
   
               self.skus.splice(i, 1);
               cal_total();
+              var indx = self.selected_skus.indexOf(item.sku_code);
+              self.selected_skus.splice(indx, 1);
+              $('input[name="selected_sku"][value="'+item.sku_code+'"]').prop("checked", false);
+
             } else {
 
               self.skus[i].quantity = parseInt(item.quantity);

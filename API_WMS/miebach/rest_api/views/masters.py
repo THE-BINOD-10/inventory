@@ -2998,3 +2998,46 @@ def delete_terms(request, user=''):
     else:
         message = 'Mandatory fields missing'
     return HttpResponse(json.dumps({'status': status, 'message': message, 'data': data}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_staff(request, user=''):
+    """ Add New Staff"""
+    log.info('Add New Staff request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    staff_name = request.POST.get('name', '')
+    email = request.POST.get('email_id', '')
+    phone = request.POST.get('phone_number', '')
+    status = 1 if request.POST.get('status', '') == "Active" else 0
+    if not staff_name:
+        return HttpResponse('Missing Required Fields')
+    data = filter_or_none(StaffMaster, {'staff_name': staff_name, 'user': user.id})
+    status_msg = 'Staff Exists'
+
+    if not data:
+        StaffMaster.objects.create(user=user.id, staff_name=staff_name,\
+                            phone_number=phone, email_id=email, status=status)
+
+
+        status_msg = 'New Staff Added'
+    return HttpResponse(status_msg)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_staff_values(request, user=''):
+    """ Update Staff values"""
+    log.info('Update Staff values for ' + user.username + ' is ' + str(request.POST.dict()))
+    staff_name = request.POST.get('name', '')
+    email = request.POST.get('email_id', '')
+    phone = request.POST.get('phone_number', '')
+    status = 1 if request.POST.get('status', '') == "Active" else 0
+    data = get_or_none(StaffMaster, {'staff_name': staff_name, 'user': user.id})
+    data.email = email
+    data.phone_number = phone
+    data.status = status
+    data.save()
+    return HttpResponse("Updated Successfully")
+

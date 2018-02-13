@@ -2888,7 +2888,7 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
         return "Headers not Matching"
     number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code',
                      'phone': 'Phone Number',
-                     'margin': 'Margin'}
+                     'discount_percentage': 'Discount Percentage'}
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:
             break
@@ -2958,8 +2958,8 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
 
 def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
     mapping_dict = get_customer_master_mapping(reader, file_type)
-    number_fields = ['credit_period', 'phone_number', 'pincode', 'phone', 'margin']
-    float_fields = ['margin']
+    number_fields = ['credit_period', 'phone_number', 'pincode', 'phone', 'discount_percentage']
+    float_fields = ['discount_percentage']
     rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:

@@ -159,6 +159,12 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
+                <label class="control-label"> Cost Price </label>
+                <input type="text" name="cost_price" class="form-control" ng-model="showCase.model_data.sku_data.cost_price" decimal-number>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
                 <label class="control-label"> Price </label>
                 <input type="text" name="price" class="form-control" ng-model="showCase.model_data.sku_data.price" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>

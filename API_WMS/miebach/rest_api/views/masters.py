@@ -331,8 +331,8 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                          ('pincode', data.pincode), ('city', data.city), ('state', data.state),
                          ('country', data.country), ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
                          ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
-                         ('margin', data.margin), ('lead_time', data.lead_time),
-                         ('is_distributor', str(data.is_distributor)),
+                         ('discount_percentage', data.discount_percentage), ('lead_time', data.lead_time),
+                         ('is_distributor', str(data.is_distributor)), ('markup', data.markup),
                          )))
 
 
@@ -521,6 +521,7 @@ def get_sku_data(request, user=''):
     sku_data['image_url'] = data.image_url
     sku_data['qc_check'] = data.qc_check
     sku_data['status'] = data.status
+    sku_data['cost_price'] = data.cost_price
     sku_data['price'] = data.price
     sku_data['mrp'] = data.mrp
     sku_data['size_type'] = 'Default'
@@ -1025,7 +1026,7 @@ def update_customer_values(request, user=''):
                 if not value:
                     continue
                 setattr(data, key, value)
-            if key == 'margin':
+            if key in ['discount_percentage', 'markup']:
                 if not value:
                     value = 0
                 setattr(data, key, float(value))

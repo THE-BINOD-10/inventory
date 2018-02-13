@@ -897,6 +897,7 @@ def switches(request, user=''):
                        'customer_pdf_remarks': 'customer_pdf_remarks',
                        'tax_inclusive' : 'tax_inclusive',
                        'create_order_po': 'create_order_po',
+                       'calculate_customer_price': 'calculate_customer_price',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

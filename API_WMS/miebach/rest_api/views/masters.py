@@ -339,7 +339,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
 
 @csrf_exempt
 def get_staff_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    lis = ['id', 'name', 'email_id', 'phone_number', 'status']
+    lis = ['id', 'staff_name', 'email_id', 'phone_number', 'status']
 
     search_params = get_filtered_params(filters, lis)
     if 'status__icontains' in search_params.keys():

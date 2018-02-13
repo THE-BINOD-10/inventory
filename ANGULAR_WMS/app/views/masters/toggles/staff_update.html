@@ -12,16 +12,16 @@
               <div class="form-group">
                 <label class="control-label"> Staff Name * </label>
                 <input ng-if="showCase.update" type="hidden" name="staff_id" class="form-control namevalid" ng-model="showCase.model_data.staff_id">
-                <input type="text" name="name" class="form-control namevalid" ng-model="showCase.model_data.name" maxlength="256" required> </div>
+                <input type="text" name="name" class="form-control namevalid" ng-model="showCase.model_data.name" maxlength="256" ng-readonly="showCase.update" required> </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label"> Email * </label>
+                <label class="control-label"> Email </label>
                 <input type="email" name="email_id" class="form-control" ng-model="showCase.model_data.email_id" maxlength="64"> </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label"> Phone No. * </label>
+                <label class="control-label"> Phone No. </label>
                 <input name="phone_number" type="text" class="form-control numvalid" ng-model="showCase.model_data.phone_number" maxlength="10" ng-pattern="/^\+?\d{2}[- ]?\d{3}[- ]?\d{5}$/"> </div>
             </div>
             <div class="col-md-4">

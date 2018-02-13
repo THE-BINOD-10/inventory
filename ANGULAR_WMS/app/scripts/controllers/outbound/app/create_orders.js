@@ -375,6 +375,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       if(data.message) {
         vm.all_cate = data.data.categories;
         vm.categories_details = data.data.categories_details;
+        vm.old_path = vm.location;
+        vm.location = '/App/Categories';
         $state.go('user.App.Categories');
       }
       vm.pdfDownloading = false;
@@ -554,9 +556,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       //search = (search)? search+25 : 0;
       var cart = $(".cart_button:visible").outerHeight();
       
-      // if(vm.location != '/App/Categories'){
+      if(vm.location == '/App/Categories'){
+        $(".app_body").css('height',height-menu-cart);
+        vm.location = vm.old_path;
+      } else {
         $(".app_body").css('height',height-header-menu-cart);
-      // }
+      }
       
       $(".app_body").css('overflow-y', 'auto');
     }

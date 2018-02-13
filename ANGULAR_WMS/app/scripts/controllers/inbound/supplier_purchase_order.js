@@ -101,27 +101,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.refresh(vm.dtInstance);
     });
 
-  vm.send = function(form, po) {
-
-    var d = $q.defer();
-    var data = $("form[data-attr='"+po+"']").serializeArray();
-    Service.apiCall('save_supplier_po/', 'POST', data).then(function(resp) {
-
-      if(resp.message) {
-
-        console.log(resp.data);
-        Service.showNoty(resp.data);
-        if(resp.data == 'Success') {
-          Service.refresh(vm.dtInstance);
-        }
-        d.resolve('Update Successfully');
-      } else {
-        d.resolve('something went wrong');
-      }
-    });
-    console.log(form);
-    return d.promise;
-  }
 }
 
 stockone.directive('dtSupplierPoData', function() {
@@ -135,13 +114,6 @@ stockone.directive('dtSupplierPoData', function() {
     templateUrl: 'views/inbound/toggle/supplier_po_data_html.html',
     link: function(scope, element, attributes, $http){
       scope.date = new Date();
-      scope.send_data = function(form, po) {
-        scope.disable = true;
-        scope.send(form, po).then(function(data){
-          console.log(scope.model_data);
-          scope.disable = false;
-        });
-      }
     }
   };
 });
@@ -155,6 +127,7 @@ stockone.controller('SupplierPOData',['$scope', 'Session', 'Service', function($
 
     if(form.$valid) {
       var data = {data: JSON.stringify(vm.po_data), po_number: vm.po, expected_date: vm.central_expected_date};
+      vm.disable = true;
       Service.apiCall('save_supplier_po/', 'POST', data).then(function(resp) {
 
         if(resp.message) {
@@ -165,10 +138,10 @@ stockone.controller('SupplierPOData',['$scope', 'Session', 'Service', function($
             Service.refresh(vm.dt);
             console.log('success');
           }
-          d.resolve('Update Successfully');
         } else {
-          d.resolve('something went wrong');
+          Service.showNoty("Something went wrong");
         }
+        vm.disable = false;
       });
     }
   }

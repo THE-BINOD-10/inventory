@@ -29,6 +29,7 @@
       self.nw_status = "";
       self.sku_data_filtered = [];
 
+      
       $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
            .then( function(data) {
 				self.sku_data_filtered = data.data.file_content.slice(0,500);
@@ -37,7 +38,13 @@
 				self.slice_to = 500;
                 self.selected_skus = [];
             },function(error){
-              getData("").then(function(data){
+              getOflfineSkuContent();
+              
+            });
+
+      //get offline sku conntent
+      function getOflfineSkuContent(){
+        getData("").then(function(data){
                 if(data.length==0){
                   urlService.show_toast("offline has no sku's");
                 }else{
@@ -46,7 +53,7 @@
                   self.selected_skus = [];
                 }
               });
-            });
+      }     
 
     self.change_config = change_config;
     function change_config(switch_value, switch_name) {
@@ -160,13 +167,18 @@
 
     //uncheck all the select sku fields
     function uncheckMultiSelectSkus(){
-       for(var sk in self.sku_data_filtered) {
+       /*for(var sk in self.sku_data_filtered) {
           self.sku_data_filtered[sk]["checked"] = false;
        }
        for (var sk in self.sku_data) {
           $('input[name="selected_sku"][value="'+self.sku_data[sk]["SKUCode"]+'"]').prop("checked", false);
-       }
+       }*/
+       //clear the dialog filtered data
+       self.sku_data_filtered=[];
+       //clear the selected skus
        self.selected_skus = [];
+       //set the sku data from the offline
+       getOflfineSkuContent();
     }
      //intialise first data
      function intialiseMultiSelectData(data){
@@ -404,7 +416,7 @@
 
         //adding order date
         var date_order=new Date();
-        var temp_date=date_order.getDate() +"-"+date_order.getMonth()+"-"+date_order.getFullYear().toString();
+        var temp_date=date_order.getDate() +"-"+(date_order.getMonth()+1)+"-"+date_order.getFullYear().toString();
         urlService.current_order.summary.order_date=temp_date;
         //change the status for preorder0
         if(data.summary.issue_type=="Pre Order"){
@@ -414,7 +426,7 @@
         }
   
               data.summary.nw_status = ONLINE;
-              var order_data=data;
+              var order_data=Object.assign({},data);
             var data = $.param({
                     order : JSON.stringify(data)
                 });
@@ -437,23 +449,23 @@
 
               //update the current order id
               data=data.order_ids[0]+1;
+              reduceSKUQty(order_data);
               setCheckSum(setOrderID(data)).
                 then(function(data){
                   console.log("order id updated");
               }).catch(function(error){
                   console.log("order id updated error "+error);
               });
-
           }
             clear_fields();
           },function(error){
 
-                //change the network status
+            //change the network status
             order_data.summary.nw_status = OFFLINE;
             $rootScope.sync_status = true;
             $rootScope.$broadcast('change_sync_status');
 
-            setSynOrdersData(order_data,self.qty_switch).
+            setSynOrdersData(urlService.userData.parent_id,order_data,self.qty_switch).
                   then(function(data){
     
                       if(data.is_all_return==true){
@@ -481,12 +493,11 @@
   
                     }).catch(function(error){
                        console.log("order saving error "+error);
+                       urlService.show_toast("order creation error "+error);
                     });
 
           });
-
-          
-      }
+       }
   
       self.hold_data = hold_data;
       function hold_data() {
@@ -544,6 +555,8 @@
                   //var quantity = (filter_data[i].stock_quantity > 0) ? 1: 0;
                   //Change the quantity to 1
                   var quantity = 1;
+                  self.selected_skus.push(filter_data[0]["SKUCode"]);
+                  $('input[name="selected_sku"][value="'+filter_data[0]["SKUCode"]+'"]').prop("checked", true);
 
                   var sgst = filter_data[i].price * filter_data[i].sgst / 100;
                           var cgst = filter_data[i].price * filter_data[i].cgst / 100;
@@ -696,6 +709,10 @@
   
               self.skus.splice(i, 1);
               cal_total();
+              var indx = self.selected_skus.indexOf(item.sku_code);
+              self.selected_skus.splice(indx, 1);
+              $('input[name="selected_sku"][value="'+item.sku_code+'"]').prop("checked", false);
+
             } else {
 
               self.skus[i].quantity = parseInt(item.quantity);
@@ -746,7 +763,6 @@
             }
         }
       }
-
       
   
       // Internal methods

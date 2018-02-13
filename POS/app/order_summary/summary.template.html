@@ -122,11 +122,11 @@
 													readonly></p></div>
 					<div class="col-md-4"><p>Disc Amt </p></div>
 					<div class="col-md-6"><p><input type="text" ng-model="$ctrl.discount" ng-init="$ctrl.discount=0"
-													ng-blur="$ctrl.change_disc($ctrl.discount)"></p></div>
+													ng-change="$ctrl.change_disc($ctrl.discount)"></p></div>
 					<div class="col-md-4"><p>Disc % </p></div>
 					<div class="col-md-6"><p><input type="text" ng-model="$ctrl.disc_percent"
 											 		 ng-init="$ctrl.disc_percent=0"
-													 ng-blur="$ctrl.change_disc_perc($ctrl.disc_percent)"></p></div>
+													 ng-change="$ctrl.change_disc_perc($ctrl.disc_percent)"></p></div>
 				  	<div class="col-md-4"><p>Tot Cost </p></div>
 					<div class="col-md-6"><p><input type="text" ng-model="$ctrl.total_amount"
 													ng-init="$ctrl.total_amount=0" readonly></p></div>

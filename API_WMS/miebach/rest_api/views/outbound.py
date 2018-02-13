@@ -2990,7 +2990,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
             order_data[key] = value
         elif key == 'del_date':
             if value:
-                order_data[key] = datetime.datetime.strptime(myDict[key][i], '%m/%d/%Y')
+                order_data[key] = datetime.datetime.strptime(myDict[key][i], '%d/%m/%Y')
         else:
             order_data[key] = value
 

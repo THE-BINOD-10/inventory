@@ -125,6 +125,7 @@ def get_intransit_orders(start_index, stop_index, temp_data, search_term, order_
             annotate(total=Sum('invoice_amount')).order_by(order_data).distinct()
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
+    temp_data['min_order_val'] = user.userprofile.min_order_val
     for data in master_data[start_index:stop_index]:
         temp_data['aaData'].append(
             {'SKU': data['sku__sku_code'], 'Quantity': data['quantity'], 'Amount': data['invoice_amount'],

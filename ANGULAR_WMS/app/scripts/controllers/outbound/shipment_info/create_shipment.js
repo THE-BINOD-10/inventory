@@ -459,7 +459,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
               found_sku = true;
               var tot_ship = 0
               angular.forEach(vm.model_data.data[i].sub_data, function(sb_data){
-                tot_ship = Number(tot_ship) + Number(sb_data.shipping_quantity);
+                var sb_shipped = isNaN(sb_data.shipping_quantity)? 0: sb_data.shipping_quantity;
+                tot_ship = Number(tot_ship) + Number(sb_shipped);
               });
               if(vm.model_data.data[i].picked > tot_ship)
               {

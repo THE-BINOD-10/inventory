@@ -56,6 +56,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.dtInstance = {};
     vm.poDataNotFound = function() {
+
       $(elem).removeClass();
       $(elem).addClass('fa fa-plus-square');
       Service.showNoty('Something went wrong')
@@ -76,7 +77,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           if (resp.message){
 
             if(resp.data.status) {
-              var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='13'><dt-supplier-po-data data='"+JSON.stringify(resp.data.data_dict)+"' send='showCase.send' po='"+po_number+"'></dt-supplier-po-data></td></tr>")($scope);
+              var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='13'><dt-supplier-po-data data='"+JSON.stringify(resp.data.data_dict)+"' dt='showCase.dtInstance' po='"+po_number+"'></dt-supplier-po-data></td></tr>")($scope);
               data_tr.after(html)
               data_tr.next().toggle(1000);
               $(elem).removeClass();
@@ -128,8 +129,8 @@ stockone.directive('dtSupplierPoData', function() {
     restrict: 'E',
     scope: {
       po_data: '=data',
-      send: '=send',
-      po: '=po'
+      po: '=po',
+      dt: '=dt'
     },
     templateUrl: 'views/inbound/toggle/supplier_po_data_html.html',
     link: function(scope, element, attributes, $http){
@@ -137,12 +138,40 @@ stockone.directive('dtSupplierPoData', function() {
       scope.send_data = function(form, po) {
         scope.disable = true;
         scope.send(form, po).then(function(data){
-          console.log(data);
+          console.log(scope.model_data);
           scope.disable = false;
         });
       }
     }
   };
 });
+
+stockone.controller('SupplierPOData',['$scope', 'Session', 'Service', function($scope, Session, Service) {
+
+  var vm = this;
+  vm.central_expected_date = "";
+
+  vm.send_data = function(form, po) {
+
+    if(form.$valid) {
+      var data = {data: JSON.stringify(vm.po_data), po_number: vm.po, expected_date: vm.central_expected_date};
+      Service.apiCall('save_supplier_po/', 'POST', data).then(function(resp) {
+
+        if(resp.message) {
+
+          console.log(resp.data);
+          Service.showNoty(resp.data);
+          if(resp.data == 'Success') {
+            Service.refresh(vm.dt);
+            console.log('success');
+          }
+          d.resolve('Update Successfully');
+        } else {
+          d.resolve('something went wrong');
+        }
+      });
+    }
+  }
+}]);
 
 })();

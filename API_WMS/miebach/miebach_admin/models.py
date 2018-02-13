@@ -366,6 +366,7 @@ class PurchaseOrder(models.Model):
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
     received_quantity = models.FloatField(default=0)
     saved_quantity = models.FloatField(default=0)
+    intransit_quantity = models.FloatField(default=0)
     po_date = models.DateTimeField(auto_now_add=True)
     ship_to = models.CharField(max_length=64, default='')
     status = models.CharField(max_length=32, db_index=True)

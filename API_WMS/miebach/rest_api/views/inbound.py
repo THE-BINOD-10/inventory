@@ -1537,9 +1537,10 @@ def get_supplier_data(request, user=''):
         purchase_order = purchase_orders[0]
         supplier_name = order_data['supplier_name']
         order_date = get_local_date(user, purchase_order.creation_date)
-        if purchase_order.expected_date:
-            expected_date = datetime.datetime.strftime(purchase_order.expected_date, "%m/%d/%Y")
         remarks = purchase_order.remarks
+        if purchase_order.expected_date:
+            purchase_order = purchase_orders.latest('expected_date')
+            expected_date = datetime.datetime.strftime(purchase_order.expected_date, "%m/%d/%Y")
 
     return HttpResponse(json.dumps({'data': orders, 'po_id': order_id, 'options': REJECT_REASONS, \
                                     'supplier_id': order_data['supplier_id'], 'use_imei': use_imei, \
@@ -5331,8 +5332,13 @@ def get_receive_po_style_view(request, user=''):
                           'category': sku.sku_category}
             data_dict[size_type]['styles'].setdefault(sku_class, {'style_data': style_data, 'sizes': {},
                                                                   'po_data': copy.deepcopy(default_po_dict)})
-            data_dict[size_type]['styles'][sku_class]['sizes'][sku_size] = order_data['order_quantity']
-            data_dict[size_type]['styles'][sku_class]['po_data']['total_order_quantity'] += order_data['order_quantity']
+            order_quantity = order_data['order_quantity']
+            if supplier_status:
+                order_quantity = order_quantity - order_data['intransit_quantity']
+                if order_quantity < 0:
+                    order_quantity = 0
+            data_dict[size_type]['styles'][sku_class]['sizes'][sku_size] = order_quantity
+            data_dict[size_type]['styles'][sku_class]['po_data']['total_order_quantity'] += order_quantity
             data_dict[size_type]['styles'][sku_class]['po_data']['total_received_quantity'] += order.received_quantity
             data_dict[size_type]['styles'][sku_class]['po_data']['total_receivable_quantity'] += receivable_quantity
     except Exception as e:
@@ -5354,34 +5360,48 @@ def save_supplier_po(request, user=''):
         return HttpResponse("Fail")
     request.user.id = supplier.user
     user.id = supplier.user
-    myDict = dict(request.POST.iterlists())
+    myDict = json.loads(request.POST.get('data', '{}'))
     po_data = {}
-    expected_date = request.POST.get('central_delivery_date', '')
-    for i in range(0, len(myDict['style_code'])):
-        style_code = myDict['style_code'][i]
-        if not style_code:
-            return HttpResponse("Style Code Not Found")
-        temp_po_data = {'sizes':{}}
-        sizes = SKUMaster.objects.filter(user=user.id, sku_class=myDict['style_code'][i]).values_list('sku_size', flat=True)
-        qty_status = False
-        dt_status = False
-        for size in sizes:
-            if myDict[size][i]:
-                temp_po_data['sizes'][size] = myDict[size][i]
-                qty_status = True
-        if qty_status and myDict['expected_date'][i]:
-            temp_po_data['expected_date'] = myDict['expected_date'][i]
-            dt_status = True
-        elif qty_status and expected_date:
-            temp_po_data['expected_date']  = expected_date
-            dt_status = True
-        if myDict['remarks'][i]:
-            temp_po_data['remarks'] = myDict['remarks'][i]
-        if qty_status and not dt_status:
-            return HttpResponse("Please Select Date")
-        elif qty_status:
-            po_data[style_code] = temp_po_data
+    expected_date = request.POST.get('expected_date', '')
+    po_number = request.POST.get('po_number', '')
+    for size_type, styles in myDict.iteritems():
+        for style_name, style_data in styles["styles"].iteritems():
+            qty_status = False
+            dt_status = False
+            temp_po_data = {'sizes':{}, 'remarks': ''}
+            for size, quantity in style_data["sizes"].iteritems():
+                if quantity:
+                    temp_po_data['sizes'][size] = quantity
+                    qty_status = True
+            if qty_status and style_data.get('expected_date', ''):
+                temp_po_data['expected_date'] = style_data['expected_date']
+                dt_status = True
+            elif qty_status and expected_date:
+                temp_po_data['expected_date']  = expected_date
+                dt_status = True
+            if style_data.get('remarks', ''):
+                temp_po_data['remarks'] = style_data['remarks']
+            if qty_status and not dt_status:
+                return HttpResponse("Please Select Date")
+            elif qty_status:
+                po_data[style_name] = temp_po_data
+
+    print po_data
     if not po_data:
         return HttpResponse("Please Enter Quantity")
-    print po_data
+    pos =  PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_number)
+    for style, po in po_data.iteritems():
+        style_po = pos.filter(open_po__sku__sku_class=style)
+        for size, quantity in po['sizes'].iteritems():
+            size_po = style_po.filter(open_po__sku__sku_size=size)
+            if not size_po or not quantity:
+                continue
+            size_po = size_po[0]
+            size_po.intransit_quantity = size_po.intransit_quantity + float(quantity)
+            size_po.save()
+        if po['remarks']:
+            style_po.update(remarks=po['remarks'])
+        if po['expected_date']:
+            date = po['expected_date'].split('/')
+            style_po.update(expected_date=datetime.date(int(date[2]), int(date[0]), int(date[1])))
     return HttpResponse("Success")

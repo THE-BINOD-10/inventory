@@ -4145,12 +4145,14 @@ def get_purchase_order_data(order):
     temp_wms = ''
     unit = ""
     gstin_number = ''
+    intransit_quantity = 0
     if 'job_code' in dir(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group,
                       'sku': order.product_code,
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle,
                       'sku_desc': order.product_code.sku_desc,
-                      'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': ''}
+                      'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': '',
+                      'intransit_quantity': intransit_quantity}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]
@@ -4176,6 +4178,7 @@ def get_purchase_order_data(order):
         email_id = user_data.email_id
         username = user_data.name
         order_quantity = open_data.order_quantity
+        intransit_quantity = order.intransit_quantity
         sku = open_data.sku
         price = open_data.price
         unit = open_data.measurement_unit
@@ -4215,7 +4218,7 @@ def get_purchase_order_data(order):
                   'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms,
                   'order_type': order_type,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
-                  'utgst_tax': utgst_tax,
+                  'utgst_tax': utgst_tax, 'intransit_quantity': intransit_quantity,
                   'tin_number': tin_number}
 
     return order_data

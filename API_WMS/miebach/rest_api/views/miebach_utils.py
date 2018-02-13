@@ -907,7 +907,8 @@ PERMISSION_DICT = OrderedDict((
                        ("BOM Master", "add_bommaster"),
                        ("Vendor Master", "add_vendormaster"), ("Discount Master", "add_categorydiscount"),
                        ("Custom SKU Template", "add_productproperties"), ("Size Master", "add_sizemaster"),
-                       ('Pricing Master', 'add_pricemaster'), ('Network Master', 'add_networkmaster'))),
+                       ('Pricing Master', 'add_pricemaster'), ('Network Master', 'add_networkmaster'),
+                       ('Tax Master', 'add_taxmaster'), ('T&C Master', 'add_tandcmaster'))),
 
     # Inbound
     ("INBOUND_LABEL", (("Raise PO", "add_openpo"), ("Receive PO", "add_purchaseorder"),
@@ -1297,6 +1298,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'create_shipment_type': 'create_shipment_type',
                         'auto_allocate_stock': 'auto_allocate_stock', 'priceband_sync': 'priceband_sync',
                         'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
+                        'shipment_sku_scan': 'shipment_sku_scan',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

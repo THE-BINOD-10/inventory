@@ -1346,7 +1346,11 @@ def check_req_min_order_val(user, skus):
         supplier_id, price, taxes = auto_po_warehouses(sku, qty)
         sku_qty_map[sku.sku_code] = (qty, price)
         if price:
-            users_order_amt += price
+            users_order_amt += (qty * price)
+        intransit_tot_amt = IntransitOrders.objects.filter(sku=sku, user=sku.user, status=1). \
+            values('sku__sku_code').annotate(tot_inv_amt=Sum('invoice_amount'))
+        if intransit_tot_amt:
+            users_order_amt += intransit_tot_amt[0]['tot_inv_amt']
     if users_order_amt > users_min_order_val:
         order_val_flag = True
     return order_val_flag, sku_qty_map
@@ -1367,6 +1371,15 @@ def create_intransit_order(auto_skus, user, sku_qty_map):
         intr_obj = IntransitOrders(**intr_data)
         intr_obj.save()
         log.info('Intransit Order Created Successfully')
+
+
+def delete_intransit_orders(auto_skus, user):
+    sku_objs = SKUMaster.objects.filter(wms_code__in=auto_skus, user=user.id, threshold_quantity__gt=0)
+    intransit_orders = IntransitOrders.objects.filter(sku__in=sku_objs, user=user.id, status=1)
+    if intransit_orders:
+        for intr_order in intransit_orders:
+            intr_order.status = 0
+            intr_order.save()
 
 
 @csrf_exempt
@@ -1590,6 +1603,7 @@ def picklist_confirmation(request, user=''):
             reaches_order_val, sku_qty_map = check_req_min_order_val(user, auto_skus)
             if reaches_order_val:
                 auto_po(auto_skus, user.id)
+                delete_intransit_orders(auto_skus, user)  # deleting intransit order after creating actual order.
             else:
                 create_intransit_order(auto_skus, user, sku_qty_map)
 
@@ -2990,7 +3004,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
             order_data[key] = value
         elif key == 'del_date':
             if value:
-                order_data[key] = datetime.datetime.strptime(myDict[key][i], '%m/%d/%Y')
+                order_data[key] = datetime.datetime.strptime(myDict[key][i], '%d/%m/%Y')
         else:
             order_data[key] = value
 
@@ -6144,12 +6158,11 @@ def get_level_based_customer_orders(request, response_data, user):
             'orderdetail_id', flat=True)
         data = OrderDetail.objects.filter(id__in=order_detail_ids)
 
-        ord_det_qs = data.values_list('order_id', 'id', 'user', 'original_order_id', 'order_code')
-        ord_det_map = {}
+        ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code')
         if ord_det_qs:
-            order_detail_order_id = ord_det_qs[0][3]
+            order_detail_order_id = ord_det_qs[0]['original_order_id']
             if not order_detail_order_id:
-                order_detail_order_id = str(ord_det_qs[0][4]) + str(ord_det_qs[0][0])
+                order_detail_order_id = str(ord_det_qs[0]['order_code']) + str(ord_det_qs[0]['order_id'])
             other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
             if not other_charges:
                 other_charges = 0
@@ -6167,6 +6180,7 @@ def get_level_based_customer_orders(request, response_data, user):
             Sum('picked_quantity'))['picked_quantity__sum']
         if not picked_quantity:
             picked_quantity = 0
+        record['picked_quantity'] = picked_quantity
         record['status'] = status
         if data:
             record['date'] = get_only_date(request, data[0].creation_date)
@@ -6194,16 +6208,14 @@ def get_level_based_customer_orders(request, response_data, user):
                         record['total_inv_amt'] = record['total_inv_amt'] + round(tax_inclusive_inv_amt, 2)
 
                     data = OrderDetail.objects.filter(id=ord_det_id)
-                    ord_det_qs = data.values_list('order_id', 'id', 'user', 'original_order_id', 'order_code')
-                    ord_det_map = {}
+                    ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code')
                     if ord_det_qs:
-                        order_detail_order_id = ord_det_qs[0][3]
+                        order_detail_order_id = ord_det_qs[0]['original_order_id']
                         if not order_detail_order_id:
-                            order_detail_order_id = str(ord_det_qs[0][4]) + str(ord_det_qs[0][0])
+                            order_detail_order_id = str(ord_det_qs[0]['order_code']) + str(ord_det_qs[0]['order_id'])
                         other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
                         if other_charges:
                             record['total_inv_amt'] += other_charges
-        record['picked_quantity'] = picked_quantity
     return response_data
 
 
@@ -6249,12 +6261,15 @@ def get_customer_orders(request, user=""):
                 picked_quantity = 0
             record['status'] = status
             record['date'] = get_only_date(request, data[0].creation_date)
-            record['total_inv_amt'] = round(record['total_inv_amt'], 2) + other_charges
-            record['picked_quantity'] = picked_quantity
             if record['original_order_id']:
                 record['order_id'] = record['original_order_id']
             else:
                 record['order_id'] = str(record['order_code']) + str(record['order_id'])
+            other_charges = order_charges_obj_for_orderid(record['order_id'], request.user.id)
+            if not other_charges:
+                other_charges = 0
+            record['total_inv_amt'] = round(record['total_inv_amt'] + other_charges, 2) 
+            record['picked_quantity'] = picked_quantity
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
 

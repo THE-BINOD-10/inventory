@@ -145,6 +145,7 @@
           </div>
         </div>
       </div>
+
       <div class="row col-md-12" style="padding-bottom: 15px" ng-if="showCase.marketplace_add_show">
         <div class="col-md-5 col-sm-8 col-xs-12">
         </div>
@@ -160,6 +161,43 @@
         <button type="button" class="btn btn-success" ng-click="showCase.saveMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix)">Save</button>
         <button type="button" class="btn btn-danger" ng-click="showCase.updateMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix, 'delete')" ng-if="!showCase.model_data.marketplace_new">Delete</button>
       </div>
+
+      <div class="row col-md-12" ng-if="showCase.model_data['pos_switch']" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> POS Extra Fields </strong>
+        </div>
+        <div class="col-md-4">
+          <div class="row mb10" ng-repeat="field in showCase.pos_extra_fields">
+            <div class="col-md-5 col-sm-4 col-xs-4">
+              <select class="show-menu-arrow form-control pull-left" ng-model="field.input_type">
+                <option value="">Select</option>
+                <option ng-repeat="val in showCase.input_fields" value="{{val}}"> {{val}}</option>
+              </select>
+            </div>
+            <div class="col-md-5 col-sm-4 col-xs-4">
+              <input type="text" class="form-control" ng-model="field.field_name" placeholder="Field Name">
+            </div>
+            <div class="col-md-1 col-sm-1 col-xs-2" ng-if="!showCase.marketplace_add_show">
+              <div class="btn-group pull-left">
+                <button type="button" class="btn btn-danger" ng-click="showCase.remove_pos_fields($index);">
+                  <span class="icon-minus"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-1 col-sm-1 col-xs-2" style="position: relative">
+          <div class="btn-group pull-left">
+            <button type="button" class="btn btn-warning" ng-click="showCase.add_pos_fields();">
+              <span class="icon-plus"></span>
+            </button>
+            <button type="button" class="btn btn-success" ng-click="showCase.save_pos_extra_fields()" style="position: absolute; margin-left: 20px">Save</button>
+          </div>
+        </div>
+      </div>
+
       <div class="row col-md-12" style="padding-bottom: 15px" ng-repeat="config in showCase.check_box_data" ng-if="config.display">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa-15px pull-left" ng-class="config.class_name" style="line-height: 34px;"></i>
@@ -176,6 +214,7 @@
           </label>
         </div>
       </div>
+      
       <div class="row col-md-12" style="padding-bottom: 15px" ng-if="showCase.model_data.float_switch">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa fa-server fa-15px pull-left" style="line-height: 34px;"></i>

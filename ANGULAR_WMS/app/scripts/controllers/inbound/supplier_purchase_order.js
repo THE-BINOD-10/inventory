@@ -14,7 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
 
     vm.filters = {'datatable': 'ReceivePO', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'search5': '',
-                  'search6': '', 'search7': '', 'search8': '', 'style_view': true}
+                  'search6': '', 'search7': '', 'search8': '', 'search9': '', 'search10': '', 'style_view': true}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -42,8 +42,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['PO No', 'Customer Name', 'Order Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
-                   'Supplier ID/Name', 'Expected Date', 'Remarks', 'Order Type', 'Receive Status'];
+    var columns = ['PO No', 'Customer Name', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
+                   'Remarks', 'Supplier ID/Name', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
     var row_click_bind = 'td';

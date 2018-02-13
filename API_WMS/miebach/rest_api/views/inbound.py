@@ -182,9 +182,9 @@ def get_receive_po_datatable_filters(user, filters, request):
     if filters['search_1']:
         search_params['creation_date__regex'] = filters['search_1']
     if request.POST.get('style_view', '') == 'true':
-        supplier_search = 'search_7'
+        supplier_search = 'search_9'
     else:
-        supplier_search = 'search_6'
+        supplier_search = 'search_8'
     if filters[supplier_search]:
         search_params['open_po__supplier__id__icontains'] = filters[supplier_search]
         search_params1['open_st__warehouse__id__icontains'] = filters[supplier_search]
@@ -273,8 +273,8 @@ def get_supplier_info(request):
 @csrf_exempt
 def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     # sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['PO No', 'PO No', 'Customer Name', 'Order Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
-           'Supplier ID/Name', 'Expected Date', 'Remarks', 'Order Type', 'Receive Status']
+    lis = ['PO No', 'PO No', 'Customer Name', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
+           'Remarks', 'Supplier ID/Name', 'Order Type', 'Receive Status']
     data_list = []
     data = []
     supplier_data = {}
@@ -283,7 +283,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     if supplier_status:
         request.user.id = supplier.user
         user.id = supplier.user
-        filters['search_7'] = supplier.id
+        filters['search_9'] = supplier.id
     results, order_qtys_dict, receive_qtys_dict = get_filtered_purchase_order_ids(request, user, search_term, filters)
 
     for result in results:
@@ -5313,14 +5313,20 @@ def get_receive_po_style_view(request, user=''):
             sku_size = sku.sku_size
             size_type = ''
             size_type_obj = sku.skufields_set.filter(field_type='size_type')
+            all_sizes = []
             if size_type_obj:
                 size_type = size_type_obj[0].field_value
+                size_master = SizeMaster.objects.filter(size_name=size_type, user=user.id)
+                if size_master:
+                    all_sizes = size_master[0].size_value.split('<<>>')
             receivable_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
             if receivable_quantity < 0:
                 receivable_quantity = 0
-            data_dict.setdefault(size_type, {'sizes_list': [], 'styles': {}})
+            data_dict.setdefault(size_type, {'sizes_list': [], 'styles': {}, 'all_sizes': all_sizes})
             if sku_size not in data_dict[size_type]['sizes_list']:
                 data_dict[size_type]['sizes_list'].append(sku_size)
+	    if not data_dict[size_type]['all_sizes']:
+                data_dict[size_type]['all_sizes'] = data_dict[size_type]['sizes_list']
             style_data = {'style_code': sku_class, 'style_name': sku.style_name, 'brand': sku.sku_brand,
                           'category': sku.sku_category}
             data_dict[size_type]['styles'].setdefault(sku_class, {'style_data': style_data, 'sizes': {},

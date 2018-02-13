@@ -4,7 +4,7 @@
     <thead>
       <tr>
         <th ng-repeat="hd in ['Style Code', 'Style Name', 'Brand', 'Category']">{{hd}}</th>
-        <th style="width:70px;" ng-repeat="size in size_data.sizes_list">{{size}}</th>
+        <th style="width:70px;" ng-repeat="size in size_data.all_sizes">{{size}}</th>
         <th ng-repeat="hd in ['Total Qty', 'Receivable Qty', 'Received Qty']">{{hd}}</th>
         <th style="width: 100px;">Expected Date</th>
         <th>Remarks</th>
@@ -13,7 +13,7 @@
     <tbody>
       <tr ng-repeat="(name, style_data) in size_data.styles">
         <td ng-repeat="record in ['style_code', 'style_name', 'brand', 'category']">{{style_data.style_data[record]}}</td>
-        <td ng-repeat="record in size_data.sizes_list">
+        <td ng-repeat="record in size_data.all_sizes">
           <input type="number" value="{{style_data.sizes[record]}}" class="form-control" name="{{record}}">
         </td>
         <td ng-repeat="record in ['total_order_quantity', 'total_receivable_quantity', 'total_received_quantity']">

@@ -71,6 +71,7 @@
               <div class="form-group">
                 <label class="control-label"> Size Type </label>
                 <select class="form-control" name="size_type" ng-model="showCase.model_data.sku_data.size_type" ng-change="showCase.change_size_type(showCase.model_data.sku_data.size_type)" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                  <option value="" ng-selected="showCase.model_data.sku_data.size_type == ''">None</option>
                   <option ng-repeat = "type in showCase.model_data.sizes_list" value="{{type.size_name}}" ng-selected="type.size_name == showCase.model_data.sku_data.size_type">{{type.size_name}}</option>
                 </select>
 

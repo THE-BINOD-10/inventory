@@ -531,7 +531,7 @@ def get_sku_data(request, user=''):
     sku_data['status'] = data.status
     sku_data['price'] = data.price
     sku_data['mrp'] = data.mrp
-    sku_data['size_type'] = 'Default'
+    sku_data['size_type'] = ''
     sku_data['mix_sku'] = data.mix_sku
     sku_data['ean_number'] = data.ean_number
     sku_data['color'] = data.color
@@ -552,7 +552,7 @@ def get_sku_data(request, user=''):
     sizes_list = []
     for sizes in size_names:
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
-    sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
+    #sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
     admin_user = get_priceband_admin_user(user)
     if admin_user:
@@ -920,6 +920,10 @@ def insert_supplier(request, user=''):
         if rep_phone and request.POST['phone_number']:
             return HttpResponse('Phone Number already exists')
 
+	create_login = request.POST.get('create_login', '')
+        password = request.POST.get('password', '')
+        username = request.POST.get('username', '')
+        login_created = request.POST.get('login_created', '')
         if not data:
             data_dict = copy.deepcopy(SUPPLIER_DATA)
             for key, value in request.POST.iteritems():
@@ -930,12 +934,22 @@ def insert_supplier(request, user=''):
                         value = 0
                 if value == '':
                     continue
+                if key in ['login_created', 'create_login', 'password', 'username']:
+                    continue
                 data_dict[key] = value
 
             data_dict['user'] = user.id
             supplier_master = SupplierMaster(**data_dict)
             supplier_master.save()
             status_msg = 'New Supplier Added'
+	    if create_login == 'true':
+	        data = supplier_master
+                status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
+                                                         password, username, role_name='supplier')
+                if 'already' in status_msg:
+                    return HttpResponse(status_msg)
+                UserRoleMapping.objects.create(role_id=data.id, role_type='supplier', user_id=new_user_id,
+                                           creation_date=datetime.datetime.now())
 
     except Exception as e:
         import traceback

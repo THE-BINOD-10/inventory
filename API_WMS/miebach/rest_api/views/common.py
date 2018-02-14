@@ -2957,7 +2957,7 @@ def get_customer_sku_prices(request, user=""):
             price = data.cost_price
             if customer_price_name == 'price':
                 price = data.price
-                is_sellingprice = False
+                is_sellingprice = True
             discount = 0
 
             if customer_master:

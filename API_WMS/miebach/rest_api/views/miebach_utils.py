@@ -939,6 +939,9 @@ PERMISSION_DICT = OrderedDict((
     # Payment
     ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary"),)),
 
+    # Uploaded POs
+    ("UPLOADPO_LABEL", (("uploadedPOs", "add_orderuploads"),)),
+
 ))
 
 ORDERS_TRACK_STATUS = {0: 'Resolved', 1: "Conflict", 2: "Delete"}

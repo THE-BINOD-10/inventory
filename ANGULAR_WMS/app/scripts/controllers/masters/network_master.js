@@ -77,7 +77,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.update = false;
     vm.title = "ADD Network"
     vm.model_data = {};
-    vm.remarks_drop = [{name:'Freight Charges Included'},{name:'Freight Charges Not Included'}];
+    vm.remarks_drop = [{name:'Freight as applicable will be charged extra.'},{name:'Charges are Inclusive of Freight.'}];
     angular.copy(empty_data, vm.model_data);
 
   vm.getDestLocCode = function(){

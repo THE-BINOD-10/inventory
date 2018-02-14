@@ -36,3 +36,4 @@ function uploadCtrl($scope, FileUploader, Session) {
 angular
   .module('urbanApp')
   .controller('uploadCtrl', ['$scope', 'FileUploader', 'Session', uploadCtrl]);
+

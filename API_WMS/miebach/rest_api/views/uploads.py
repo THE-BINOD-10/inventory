@@ -1653,6 +1653,9 @@ def inventory_excel_upload(request, open_sheet, user):
                 inventory = StockDetail(**inventory_data)
                 inventory.save()
 
+                # SKU Stats
+                save_sku_stats(user, inventory.sku_id, inventory.id, 'inventory-upload', inventory.quantity)
+
                 # Collecting data for auto stock allocation
                 putaway_stock_data.setdefault(inventory.sku_id, [])
 
@@ -1663,7 +1666,9 @@ def inventory_excel_upload(request, open_sheet, user):
                 inventory_status.quantity = int(inventory_status.quantity) + int(inventory_data.get('quantity', 0))
                 inventory_status.receipt_date = receipt_date
                 inventory_status.save()
-
+                # SKU Stats
+                save_sku_stats(user, inventory_status.sku_id, inventory_status.id, 'inventory-upload',
+                               int(inventory_data.get('quantity', 0)))
                 # Collecting data for auto stock allocation
                 putaway_stock_data.setdefault(inventory_status.sku_id, [])
 
@@ -4028,6 +4033,8 @@ def create_po_serial_mapping(final_data_dict, user):
                                                 status=1, location_id=po_details['location_id'],
                                                 sku_id=po_details['sku_id'],
                                                 receipt_type='purchase order', creation_date=NOW)
+        # SKU Stats
+        save_sku_stats(user, stock_dict.sku_id, purchase_order.id, 'po', quantity)
         mod_locations.append(location_master.location)
 
     if mod_locations:

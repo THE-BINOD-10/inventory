@@ -204,6 +204,18 @@
 		}
 	 }
 
+    /*$rootScope.$on("CallParentMethod", function(){
+      $scope.parentmethod();
+    });
+
+    $scope.parentmethod = function() {
+      cal_total();
+    }*/
+
+    $scope.$on('empty', function() {
+      cal_total();
+    })
+
       //calculate total items
       self.cal_total = cal_total;
       function cal_total(){
@@ -238,50 +250,54 @@
           }
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
 
-          if(Object.keys(urlService.current_order.summary.gst_based).includes(self.skus[i].cgst_percent.toString())) {
-              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["taxable_amt"] += self.skus[i].price;
-              
-              if (self.tax_inclusive) {
-                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent *
-                                                 (self.skus[i].price)/100);
-                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] += (self.skus[i].sgst_percent *
-                                                 (self.skus[i].price)/100);
-              } else {
-                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] -= (self.skus[i].cgst_percent *
-                                                 (self.skus[i].price)/100);
-                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] -= (self.skus[i].sgst_percent *
-                                                 (self.skus[i].price)/100);
-              }
+          if (!self.tax_inclusive) {
+            urlService.current_order.summary.total_discount += (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100);
+          }
 
+          if(Object.keys(urlService.current_order.summary.gst_based).includes(self.skus[i].cgst_percent.toString())) {
+              if (self.tax_inclusive) {
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent * ((self.skus[i].price + (self.skus[i].quantity*self.skus[i].sgst) + (self.skus[i].quantity*self.skus[i].cgst) - (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100) )/100));
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] += (self.skus[i].sgst_percent * ((self.skus[i].price + (self.skus[i].quantity*self.skus[i].sgst) + (self.skus[i].quantity*self.skus[i].cgst) - (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100) )/100));
+              } else {
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] -= (self.skus[i].cgst_percent * ((self.skus[i].price + (self.skus[i].quantity*self.skus[i].sgst) + (self.skus[i].quantity*self.skus[i].cgst) - (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100) )/100));
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] -= (self.skus[i].sgst_percent * ((self.skus[i].price + (self.skus[i].quantity*self.skus[i].sgst) + (self.skus[i].quantity*self.skus[i].cgst) - (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100) )/100));
+              }
+              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["taxable_amt"] += (self.skus[i].price + (self.skus[i].quantity*self.skus[i].cgst) + (self.skus[i].quantity*self.skus[i].sgst) - (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100) ) - (self.skus[i].cgst_percent *((self.skus[i].price + (self.skus[i].quantity*self.skus[i].sgst) + (self.skus[i].quantity*self.skus[i].cgst) - (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100)))/100) - (self.skus[i].sgst_percent *((self.skus[i].price + (self.skus[i].quantity*self.skus[i].cgst) + (self.skus[i].quantity*self.skus[i].sgst) - (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100)))/100);
           } else {
+              var tax_amt =  (self.skus[i].price + (self.skus[i].cgst*self.skus[i].quantity) + (self.skus[i].sgst*self.skus[i].quantity) - (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100) ) - (self.skus[i].cgst_percent *((self.skus[i].price + (self.skus[i].sgst*self.skus[i].quantity) + (self.skus[i].cgst*self.skus[i].quantity) - (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100)))/100) - (self.skus[i].sgst_percent *((self.skus[i].price + (self.skus[i].cgst*self.skus[i].quantity) + (self.skus[i].sgst*self.skus[i].quantity) - (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100)))/100);
+              if ((((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100)) {
+                tax_amt = tax_amt - (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100);
+              }
               urlService.current_order.summary.gst_based[self.skus[i].cgst_percent] =
-                            {"taxable_amt": self.skus[i].price,
+                            {"taxable_amt": tax_amt,
                              "cgst_percent" : self.skus[i].cgst_percent,
                              "sgst_percent" : self.skus[i].sgst_percent,
-                             "cgst": (self.skus[i].cgst_percent * (self.skus[i].price)/100),
-                             "sgst": (self.skus[i].sgst_percent * (self.skus[i].price)/100)
+                             "cgst": (self.skus[i].cgst_percent *((self.skus[i].price + (self.skus[i].sgst*self.skus[i].quantity) + (self.skus[i].cgst*self.skus[i].quantity)))/100),
+                             "sgst": (self.skus[i].sgst_percent *((self.skus[i].price + (self.skus[i].sgst*self.skus[i].quantity) + (self.skus[i].cgst*self.skus[i].quantity)))/100)
                             }
           }
           urlService.current_order.summary.cgst = Math.abs(urlService.current_order.summary.cgst);
           urlService.current_order.summary.sgst = Math.abs(urlService.current_order.summary.sgst);
           if (self.tax_inclusive) {
             self.skus[i].price = self.skus[i].price + (self.skus[i].cgst * self.skus[i].quantity) + (self.skus[i].sgst * self.skus[i].quantity);
+            //self.skus[i].subtotal = self.skus[i].subtotal - (self.skus[i].cgst * self.skus[i].quantity) - (self.skus[i].sgst * self.skus[i].quantity);
           }
 		  if (self.skus[i].return_status === "true" ) {
 			    urlService.current_order.summary.total_discount += 0;
           urlService.current_order.summary.total_returned += -self.skus[i].price;
           }
 		  else
-            if (!self.tax_inclusive) {
-              urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
-            }
-
+          
           if ((self.skus.length-1) == i) {
             urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount;
 
             urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount + urlService.current_order.summary.sgst + urlService.current_order.summary.cgst + urlService.current_order.summary.igst + urlService.current_order.summary.utgst;
           }
         }
+
+        /*if (self.tax_inclusive) {
+          urlService.current_order.summary.subtotal -= urlService.current_order.summary.sgst + urlService.current_order.summary.igst + urlService.current_order.summary.cgst + urlService.current_order.summary.utgst
+        }*/
         urlService.current_order.summary.issue_type = self.issue_selected;
         var date=new Date();
         urlService.current_order.summary.invoice_number = "TI/"+(date.getMonth()+1)+date.getFullYear().toString().substr(2)+"/";
@@ -748,16 +764,18 @@
 				  item.cgst=item.sgst=item.utgst=item.igst=0;
                   cal_total();
                 } else {
-     
                   item.selling_price = item.price;
                   self.skus[i].quantity = parseInt(item.quantity);
                   self.skus[i].discount = (item.discount && self.skus[i].return_status==='false') ? parseInt(item.discount) : 0;
-				  self.skus[i].sgst = item.price * self.skus[i]['sgst_percent'] / 100;
-				  self.skus[i].cgst = item.price * self.skus[i]['cgst_percent'] / 100;
-				  self.skus[i].igst = item.price * self.skus[i]['igst_percent'] / 100;
-				  self.skus[i].utgst= item.price * self.skus[i]['utgst_percent'] / 100;
+                  self.skus[i].sgst = item.price * self.skus[i]['sgst_percent'] / 100;
+        				  self.skus[i].cgst = item.price * self.skus[i]['cgst_percent'] / 100;
+        				  self.skus[i].igst = item.price * self.skus[i]['igst_percent'] / 100;
+        				  self.skus[i].utgst= item.price * self.skus[i]['utgst_percent'] / 100;
                   urlService.current_order.sku_data = self.skus;
-  self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
+                  self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
+                  if(self.tax_inclusive) {
+                    self.skus[i].unit_price = self.skus[i].unit_price - self.skus[i].cgst - self.skus[i].sgst - self.skus[i].igst - self.skus[i].utgst;
+                  }
                   cal_total();
                 }
                 break;

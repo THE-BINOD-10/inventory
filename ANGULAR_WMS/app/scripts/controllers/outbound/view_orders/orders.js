@@ -41,6 +41,44 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
 
+    vm.order_charges = [];
+
+    vm.default_charge = function() {
+      if (vm.order_charges.length == 1) {
+        vm.flag = true;
+      }
+    }
+
+    vm.delete_charge = function(id) {
+      if (id) {
+        vm.service.apiCall("delete_order_charges?id="+id, "GET").then(function(data){
+          if(data.message){
+            Service.showNoty(data.data.message);
+          }
+        });
+      }
+    }
+
+    vm.save_order_charges = function(order_id, $event) {
+      var data_params = {};
+      data_params['order_id'] = order_id;
+      data_params['order_charges'] = JSON.stringify(vm.order_charges);
+      angular.forEach(vm.order_charges, function(obj) {
+        if($.isEmptyObject(obj['charge_name'])) {
+          colFilters.showNoty('Charge Name cannot be Empty');
+          $event.preventDefault();
+        }
+        if($.isEmptyObject(String(obj['charge_amount']))) {
+          colFilters.showNoty('Charge Amount cannot be Empty');
+          $event.preventDefault();
+        }
+      })
+      vm.service.apiCall('add_order_charges/', 'POST', data_params).then(function(data) {
+        vm.reloadData();
+        colFilters.showNoty('Saved sucessfully');
+      })
+    }
+
     vm.g_data = {};
     angular.copy(Data.other_view, vm.g_data);
 
@@ -293,6 +331,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.cgst = value.cgst_tax;
             vm.igst = value.igst_tax;
             vm.taxes = value.taxes;
+            vm.order_charges = value.order_charges;
 
             // if (value.discount_percentage <= 99.99) {
               vm.discount_per = value.discount_percentage;

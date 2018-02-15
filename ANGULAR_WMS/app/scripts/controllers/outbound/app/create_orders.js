@@ -16,7 +16,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.brand_size_collect = {};
   vm.user_type = Session.roles.permissions.user_type;
   vm.buttons_width = (Session.roles.permissions.create_order_po)? 4: 6;
-  //vm.create_order_po = Session.roles.permissions.create_order_po;
+  vm.priceband_sync = Session.roles.permissions.priceband_sync;
 
   vm.order_type_value = "offline";
   vm.service = Service;
@@ -180,12 +180,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.picked_items_data = {};
   vm.picked_item_info = function(item){
 
-    if (vm.picked_items_obj[item.sku_desc]) {
+    if (vm.picked_items_obj[item.sku_class]) {
 
-      vm.picked_items_data[item.sku_desc] = item;
+      vm.picked_items_data[item.sku_class] = item;
     } else {
 
-      delete vm.picked_items_data[item.sku_desc];
+      delete vm.picked_items_data[item.sku_class];
     }
   }
 
@@ -377,6 +377,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       if(data.message) {
         vm.all_cate = data.data.categories;
         vm.categories_details = data.data.categories_details;
+        vm.old_path = vm.location;
+        vm.location = '/App/Categories';
         $state.go('user.App.Categories');
       }
       vm.pdfDownloading = false;
@@ -556,9 +558,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       //search = (search)? search+25 : 0;
       var cart = $(".cart_button:visible").outerHeight();
       
-      // if(vm.location != '/App/Categories'){
+      if(vm.location == '/App/Categories'){
+        $(".app_body").css('height',height-menu-cart);
+        vm.location = vm.old_path;
+      } else {
         $(".app_body").css('height',height-header-menu-cart);
-      // }
+      }
       
       $(".app_body").css('overflow-y', 'auto');
     }

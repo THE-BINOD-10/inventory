@@ -254,6 +254,7 @@ urlpatterns = [
     url(r'^move_enquiry_to_order/$', move_enquiry_to_order),
     url(r'^extend_enquiry_date/$', extend_enquiry_date),
     url(r'^order_cancel/$', order_cancel),
+    url(r'^add_order_charges/$', add_order_charges),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -300,6 +301,8 @@ urlpatterns = [
     url(r'^get_rm_picklist_report/$', get_rm_picklist_report),
     url(r'^print_rm_picklist_report/$', print_rm_picklist_report),
     url(r'^excel_sales_return_report/$', excel_sales_return_report),
+    url(r'^get_stock_ledger_report/$', get_stock_ledger_report),
+    url(r'^print_stock_ledger_report/$', print_stock_ledger_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',

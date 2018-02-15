@@ -155,12 +155,13 @@ input[type="date"]:valid::before {
             <input type="hidden" name="del_date" class="form-control" value="{{data.del_date}}">
             <div class="col-md-6 col-sm-6 col-xs-7">
               <h4 align="left"><b>{{data.sku_id}} </b>
-                <span ng-if="permissions.user_type != 'customer'">
+                <span style="font-size: 15px" ng-if="permissions.user_type != 'customer'">
                   <span>({{data.level_name}})</span>
                   <span ng-if="data.del_date">(Sch.date: {{data.del_date}})</span>
                 </span>
               </h4>
               <p align="left">{{data.sku_desc}}</p>
+              <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Description: {{data.sku_desc}}</b></h4>
               <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>MRP: {{data.mrp}}</b></h4>
               <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>
                 <span class="mr20" ng-if="data.sgst_tax">SGST ({{data.sgst_tax}}%): {{(data.invoice_amount / 100 * data.sgst_tax) | number:2}}</span>
@@ -171,7 +172,7 @@ input[type="date"]:valid::before {
               <p align="left" class="text-success" ng-if="data.quantity > 1" style="font-size: 12px;">{{data.quantity}} X Rs.{{data.price}}</p>
               <div><span ng-click="Cart.remove_item($index)" style="cursor: pointer;" title="Delete Order" class="btn-sm btn-danger "><i class="fa fa-trash-o" aria-hidden="true"></i> Remove</span></div>
               <div class="alert alert-info" ng-if="data.freight_charges" style="margin-top: 11px;margin-bottom: 0px;">
-                <strong>Note:</strong> Freight Charges Included.
+                <strong>Note:</strong> Freight as applicable will be charged extra.
               </div>
             </div>
             <div class="col-md-6 col-sm-6 col-xs-5">

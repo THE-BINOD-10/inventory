@@ -415,10 +415,24 @@ RM_PICKLIST_REPORT_DICT = {
     'print_url': 'print_rm_picklist_report',
 }
 
+STOCK_LEDGER_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+    ],
+    'dt_headers': ['Date', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category',
+                   'Size', 'Opening Stock', 'Receipt Quantity', 'Produced Quantity', 'Dispatch Quantity',
+                   'Return Quantity', 'Adjustment Quantity', 'Consumed Quantity', 'Closing Stock'],
+    'dt_url': 'get_stock_ledger_report', 'excel_name': 'stock_ledger_report',
+    'print_url': 'print_stock_ledger_report',
+}
+
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'grn_report': GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
-                     'rm_picklist_report': RM_PICKLIST_REPORT_DICT}
+                     'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT
+                     }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
 ['SKU Code', 'WMS Code', 'Product Description', 'SKU Category', 'Total Quantity'], (
@@ -877,7 +891,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'grn_inventory_addition': 'get_grn_inventory_addition_data',
                         'sales_returns_addition': 'get_returns_addition_data',
                         'seller_stock_summary_replace': 'get_seller_stock_summary_replace',
-                        'rm_picklist_report': 'get_rm_picklist_data'
+                        'rm_picklist_report': 'get_rm_picklist_data',
+                        'stock_ledger_report': 'get_stock_ledger_data'
                         }
 # End of Download Excel Report Mapping
 
@@ -2869,5 +2884,58 @@ def get_rm_picklist_data(search_params, user, sub_user):
                                  ('RM SKU Code', obj.material_picklist.jo_material.material_code.sku_code),
                                  ('Location', location), ('Pallet Code', pallet_code), ('Quantity', obj.mod_quantity),
                                  ('Processed Date', get_local_date(user, obj.updation_date)),)))
+    temp_data['aaData'] = data
+    return temp_data
+
+
+def get_stock_ledger_data(search_params, user, sub_user):
+    from rest_api.views.common import get_local_date
+    from django.db.models import F
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    status_filter = {}
+    all_data = OrderedDict()
+    lis = {}
+    stock_stats = StockStats.objects.filter(sku__user=user.id)
+    if 'from_date' in search_params:
+        status_filter['creation_date__gte'] = datetime.datetime.combine(
+            search_params['from_date'], datetime.time())
+    if 'to_date' in search_params:
+        status_filter['creation_date__lte'] = datetime.datetime.combine(
+            search_params['to_date'] + datetime.timedelta(1), datetime.time())
+    if 'sku_code' in search_params:
+        status_filter['sku__sku_code__iexact'] = search_params['sku_code']
+    lis = [
+            'creation_date', 'sku__sku_code', 'sku__sku_desc', 'sku__style_name', 'sku__sku_brand', 'sku__sku_category',
+            'sku__sku_size', 'opening_stock', 'receipt_qty', 'produced_qty', 'dispatch_qty', 'return_qty',
+            'adjustment_qty', 'closing_stock'
+          ]
+    if len(status_filter):
+        stock_stats = stock_stats.filter(**status_filter)
+    if search_params.get('order_term'):
+        order_data = lis[search_params['order_index']]
+        if search_params['order_term'] == 'desc':
+            order_data = "-%s" % order_data
+        stock_stats = stock_stats.order_by(order_data)
+    temp_data['recordsTotal'] = stock_stats.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    data = []
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    if stop_index:
+        stock_stats = stock_stats[start_index:stop_index]
+    for obj in stock_stats:
+        date = get_local_date(user, obj.creation_date, send_date=True).strftime('%d %b %Y')
+        data.append(OrderedDict((('Date', date),
+                                 ('SKU Code', obj.sku.sku_code), ('SKU Description', obj.sku.sku_desc),
+                                 ('Style Name', obj.sku.style_name),
+                                 ('Brand', obj.sku.sku_brand), ('Category', obj.sku.sku_category),
+                                 ('Size', obj.sku.sku_size), ('Opening Stock', obj.opening_stock),
+                                 ('Receipt Quantity', obj.receipt_qty + obj.uploaded_qty),
+                                 ('Produced Quantity', obj.produced_qty),
+                                 ('Dispatch Quantity', obj.dispatch_qty), ('Return Quantity', obj.return_qty),
+                                 ('Consumed Quantity', obj.consumed_qty),
+                                 ('Adjustment Quantity', obj.adjustment_qty), ('Closing Stock', obj.closing_stock)
+                                 )))
     temp_data['aaData'] = data
     return temp_data

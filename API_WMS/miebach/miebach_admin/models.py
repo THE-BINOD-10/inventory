@@ -2328,7 +2328,39 @@ class TANDCMaster(models.Model):
 
     class Meta:
         db_table = 'TANDC_MASTER'
-        
+
+
+class SKUDetailStats(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    transact_id = models.IntegerField(default=0)
+    transact_type = models.CharField(max_length=36, default='')
+    quantity = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SKU_DETAIL_STATS'
+
+
+class StockStats(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    opening_stock = models.FloatField(default=0)
+    receipt_qty = models.FloatField(default=0)
+    uploaded_qty = models.FloatField(default=0)
+    produced_qty = models.FloatField(default=0)
+    dispatch_qty = models.FloatField(default=0)
+    return_qty = models.FloatField(default=0)
+    adjustment_qty = models.FloatField(default=0)
+    consumed_qty = models.FloatField(default=0)
+    closing_stock = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'STOCK_STATS'
+
 
 class IntransitOrders(models.Model):
     id = BigAutoField(primary_key=True)
@@ -2341,8 +2373,8 @@ class IntransitOrders(models.Model):
     invoice_amount = models.FloatField(default=0)
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)    
-    
+    updation_date = models.DateTimeField(auto_now=True)
+
     class Meta:
         db_table = 'INTRANSIT_ORDERS'
         unique_together = ('user', 'customer_id', 'intr_order_id', 'sku')

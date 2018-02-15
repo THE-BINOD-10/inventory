@@ -1567,9 +1567,15 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                     quantity=quantity, status=1, creation_date=now_date, updation_date=now_date,
                     location_id=location[0].id, sku_id=sku_id, pallet_detail_id=pallet_present.id)
                 dest_stocks.save()
+
+    adj_quantity = quantity - total_stock_quantity
     if quantity == 0:
-        StockDetail.objects.filter(sku_id=sku_id, location__location=location[0].location, sku__user=user.id).update(
-            quantity=0)
+        all_stocks = StockDetail.objects.filter(sku_id=sku_id, location__location=location[0].location,
+                                                sku__user=user.id)
+        adj_quantity = all_stocks.aggregate(Sum('quantity'))['quantity__sum']
+        if not adj_quantity:
+            adj_quantity = 0
+        all_stocks.update(quantity=0)
         location[0].filled_capacity = 0
         location[0].save()
 
@@ -1608,9 +1614,12 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         inv_obj = inv_obj[0]
         inv_obj.adjusted_quantity = quantity
         inv_obj.save()
+        dat = inv_obj
     else:
         dat = InventoryAdjustment(**data)
         dat.save()
+    # SKU Stats
+    save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', adj_quantity)
 
     return 'Added Successfully'
 
@@ -5422,13 +5431,14 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
 
             # Marketplace model suggestions based on Zone Marketplace mapping
             if is_marketplace_model:
-                zone_map_ids = all_zone_mappings.filter(marketplace=order.marketplace).values_list('zone_id', flat=True)
-                rem_zone_map_ids = all_zone_mappings.exclude(zone_id__in=zone_map_ids).values_list('zone_id', flat=True)
-                all_zone_map_ids = zone_map_ids | rem_zone_map_ids
-                stock_zones1 = stock_detail.filter(location__zone_id__in=zone_map_ids).order_by(order_by)
-                stock_zones2 = stock_detail.exclude(location__zone_id__in=all_zone_map_ids).order_by(order_by)
-                stock_zones3 = stock_detail.filter(location__zone_id__in=rem_zone_map_ids).order_by(order_by)
-                stock_detail = stock_zones1.union(stock_zones2, stock_zones3)
+                if 'st_po' not in dir(order):
+                    zone_map_ids = all_zone_mappings.filter(marketplace=order.marketplace).values_list('zone_id', flat=True)
+                    rem_zone_map_ids = all_zone_mappings.exclude(zone_id__in=zone_map_ids).values_list('zone_id', flat=True)
+                    all_zone_map_ids = zone_map_ids | rem_zone_map_ids
+                    stock_zones1 = stock_detail.filter(location__zone_id__in=zone_map_ids).order_by(order_by)
+                    stock_zones2 = stock_detail.exclude(location__zone_id__in=all_zone_map_ids).order_by(order_by)
+                    stock_zones3 = stock_detail.filter(location__zone_id__in=rem_zone_map_ids).order_by(order_by)
+                    stock_detail = stock_zones1.union(stock_zones2, stock_zones3)
 
             if seller_order and seller_order.order_status == 'DELIVERY_RESCHEDULED':
                 rto_stocks = stock_detail.filter(location__zone__zone='RTO_ZONE')
@@ -6037,3 +6047,15 @@ def get_level_name_with_level(user, warehouse_level, users_list=[]):
     if level_name_objs:
         level_name = level_name_objs[0].level_name
     return level_name
+
+
+def save_sku_stats(user, sku_id, transact_id, transact_type, quantity):
+    try:
+        SKUDetailStats.objects.create(sku_id=sku_id, transact_id=transact_id, transact_type=transact_type,
+                                  quantity=quantity, creation_date=datetime.datetime.now())
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('Save SKU Detail Stats failed for %s and sku id is %s and error statement is %s' % (
+            str(user.username), str(sku_id), str(e)))

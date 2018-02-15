@@ -3155,6 +3155,9 @@ def putaway_data(request, user=''):
                         pallet_detail = pallet_mapping[0].pallet_detail
                         setattr(stock_data, 'pallet_detail_id', pallet_detail.id)
                     stock_data.save()
+
+                    # SKU Stats
+                    save_sku_stats(user, stock_data.sku_id, data.id, 'po', float(value))
                     update_details = create_update_seller_stock(data, value, user, stock_data, old_loc, use_value=True)
                     if update_details:
                         marketplace_data += update_details
@@ -3177,6 +3180,8 @@ def putaway_data(request, user=''):
                     stock_detail = StockDetail(**record_data)
                     stock_detail.save()
 
+                    # SKU Stats
+                    save_sku_stats(user, stock_detail.sku_id, data.id, 'PO', float(value))
                     # Collecting data for auto stock allocation
                     putaway_stock_data.setdefault(stock_detail.sku_id, [])
                     putaway_stock_data[stock_detail.sku_id].append(data.purchase_order_id)
@@ -4409,6 +4414,9 @@ def returns_putaway_data(request, user=''):
                                              'seller_id': int(seller_stock.seller.seller_id),
                                              'quantity': int(quantity)})
             returns_data.quantity = float(returns_data.quantity) - float(quantity)
+
+            # Save SKU Level stats
+            save_sku_stats(user, returns_data.returns.sku_id, returns_data.returns.id, 'return', quantity)
             if returns_data.quantity <= 0:
                 returns_data.status = 0
             if not returns_data.location_id == location_id[0].id:

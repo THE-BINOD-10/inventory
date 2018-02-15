@@ -1527,6 +1527,8 @@ def picklist_confirmation(request, user=''):
                                     (float(stock.location.filled_capacity) - update_picked))
                             stock.location.save()
 
+                        # SKU Stats
+                        save_sku_stats(user, stock.sku_id, picklist.id, 'picklist', update_picked)
                         pick_loc = all_pick_locations.filter(picklist_id=picklist.id,
                                                              stock__location_id=stock.location_id, status=1)
                         # update_picked = picking_count1

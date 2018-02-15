@@ -2,7 +2,7 @@
 <style>
 .receipt {
   width: 350px;
-  font-size: 14px;
+  font-size: 14px; 
 }
 * {
   padding: 0px;
@@ -59,6 +59,9 @@ table, td, th {
 .capitalize2 {
   text-transform: capitalize;
 }
+.fixed_height{
+    min-height: 530px;
+  }
 </style>
 
 <div class="receipt">
@@ -88,7 +91,7 @@ table, td, th {
       </tr>
     </table>
     <br>
-    <table style="min-height: 480px !important;">
+    <table class="fixed_height">
       <thead>
         <tr>
           <th>No</th>
@@ -99,19 +102,19 @@ table, td, th {
         </tr>
       </thead>
       <tbody>
-        <tr style="height: 25px" ng-repeat="item in data.sku_data">
+        <tr ng-repeat="item in data.sku_data">
           <td>{{$index+1}}</td>
           <td>{{item.name}}</td>
           <td class="text_right">{{item.quantity}}</td>
           <td class="text_right">{{item.unit_price | number:2}}</td>
           <td class="text_right">{{item.quantity * item.unit_price | number:2}}</td>
         </tr>
-        <tr style="height: auto; vertical-align: top;">
+        <tr style="height: 100%; vertical-align: bottom;">
           <td></td>
           <td></td>
           <td></td>
-          <td><strong>Sub Total GST</strong></td>
-          <td class="text_right"><strong>{{data.summary.cgst + data.summary.sgst | number:2}}</strong></td>
+          <td style="padding-bottom: 30px"><strong>Sub Total GST</strong></td>
+          <td style="padding-bottom: 30px" class="text_right"><strong>{{data.summary.cgst + data.summary.sgst | number:2}}</strong></td>
         </tr>
         <tr>
           <td colspan="2"><!--<strong>Rupees In Words:</strong>--></n>

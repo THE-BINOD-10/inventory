@@ -219,10 +219,10 @@ def add_user_type_permissions(user_profile):
     update_perm = False
     if user_profile.user_type == 'warehouse_user':
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment',
-                     'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster']
+                     'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
-        exc_perms = ['productproperties', 'sizemaster', 'pricemaster']
+        exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST
@@ -2208,7 +2208,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             'customer__customer_id', 'customer_sku_code')
     if order_ids:
         sor_id = ''
-        order_ids = order_ids.split(',')
+        order_ids = list(set(order_ids.split(',')))
         price_band_flag = get_misc_value('priceband_sync', user.id)
         auto_ord_qty_map = {}
         if price_band_flag == 'true':
@@ -2315,7 +2315,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 el_price_qs = GenericOrderDetailMapping.objects.filter(orderdetail_id=dat.id).values_list('el_price',
                                                                                                           flat=True)
                 if el_price_qs:
-                    el_price = el_price_qs[0]
+                    el_price = round(el_price_qs[0], 2)
 
             if merge_data:
                 quantity_picked = merge_data.get(dat.sku.sku_code, "")

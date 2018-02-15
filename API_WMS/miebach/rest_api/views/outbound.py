@@ -2921,7 +2921,7 @@ def split_orders(**order_data):
         else:
             break
         req_stock = req_qty
-    log.info("Stock assigning Map for SKU Code (%s):: %s" % (sku_code, repr(stk_dtl_obj)))
+    log.info("Stock assigning Map for SKU Code (%s):: %s" % (sku_code, repr(stock_wh_map)))
     return stock_wh_map
 
 
@@ -7761,7 +7761,8 @@ def get_customer_enquiry_detail(request, user=''):
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     user_profile = UserProfile.objects.filter(user=request.user.id)
     filters = {'enquiry_id': float(enquiry_id)}
-    if user_profile and (user_profile[0].warehouse_type == 'DIST' or user_profile[0].warehouse_type == 'CENTRAL_ADMIN'):
+    if user_profile and (user_profile[0].warehouse_type == 'DIST' or user_profile[0].warehouse_type == 'CENTRAL_ADMIN'
+                         or user_profile[0].warehouse_type == ''):  # No warehouse user for sub distributor user.
         if not request.GET.get('customer_id', ''):
             return HttpResponse("Please Send Customer ID")
         filters['customer_id'] = request.GET.get('customer_id', '')

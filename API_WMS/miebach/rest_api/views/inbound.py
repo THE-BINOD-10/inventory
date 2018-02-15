@@ -897,6 +897,8 @@ def switches(request, user=''):
                        'auto_confirm_po': 'auto_confirm_po',
                        'customer_pdf_remarks': 'customer_pdf_remarks',
                        'tax_inclusive' : 'tax_inclusive',
+                       'create_order_po': 'create_order_po',
+                       'calculate_customer_price': 'calculate_customer_price',
                        'shipment_sku_scan': 'shipment_sku_scan',
                        }
         toggle_field, selection = "", ""
@@ -1226,24 +1228,11 @@ def check_and_create_supplier(seller_id, user):
     if seller_master.supplier_id:
         supplier_id = seller_master.supplier_id
     else:
-        max_sup_id = SupplierMaster.objects.count()
-        run_iterator = 1
-        while run_iterator:
-            supplier_obj = SupplierMaster.objects.filter(id=max_sup_id)
-            if not supplier_obj:
-                supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
-                                                                                name=seller_master.name,
-                                                                                email_id=seller_master.email_id,
-                                                                                phone_number=seller_master.phone_number,
-                                                                                address=seller_master.address,
-                                                                                tin_number=seller_master.tin_number,
-                                                                                status=1)
-                seller_master.supplier_id = supplier_master.id
-                seller_master.save()
-                run_iterator = 0
-                supplier_id = supplier_master.id
-            else:
-                max_sup_id += 1
+        supplier_id = create_new_supplier(user, seller_master.name, seller_master.email_id, seller_master.phone_number,
+                            seller_master.address, seller_master.tin_number)
+        if supplier_id:
+            seller_master.supplier_id = supplier_id
+            seller_master.save()
     return supplier_id
 
 

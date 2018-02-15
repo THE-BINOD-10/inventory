@@ -2930,7 +2930,7 @@ def split_orders(**order_data):
 def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, custom_order):
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
-                     'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected']
+                     'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -3104,7 +3104,8 @@ def insert_order_data(request, user=''):
 
     # Initialize creation date
     creation_date = datetime.datetime.now()
-
+    #Collecting Created order objects
+    created_order_objs = []
     # Intialize to stored saved skus and dispatch data
     created_skus = []
     dispatch_orders = {}
@@ -3127,6 +3128,7 @@ def insert_order_data(request, user=''):
     client_name = request.POST.get('client_name', '')
     corporate_po_number = request.POST.get('corporate_po_number', '')
     address_selected = request.POST.get('address_selected', '')
+    is_sample = request.POST.get('is_sample', '')
 
     created_order_id = ''
     ex_image_url = {}
@@ -3276,6 +3278,7 @@ def insert_order_data(request, user=''):
                         order_data.pop('del_date')
                     order_detail = OrderDetail(**order_data)
                     order_detail.save()
+                    created_order_objs.append(order_detail)
                     if seller_id:
                         seller_master_id = SellerMaster.objects.filter(seller_id=seller_id, user=user.id)
                         SellerOrder.objects.create(seller_id=seller_master_id[0].id, sor_id=sor_id,
@@ -3348,6 +3351,8 @@ def insert_order_data(request, user=''):
             message = direct_dispatch_orders(user, dispatch_orders)
         elif auto_picklist_signal == 'true':
             message = check_stocks(order_sku, user, request, order_objs)
+        if is_sample == 'true' and created_order_objs:
+            create_order_pos(user, created_order_objs)
     else:
         for user_id, order_user_data in order_user_sku.iteritems():
             auto_picklist_signal = get_misc_value('auto_generate_picklist', user_id)
@@ -4133,8 +4138,9 @@ def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):
     return price_ranges_map
 
 
-def apply_margin_price(sku, each_sku_map, specific_margins, is_margin_percentage, default_margin):
+def apply_margin_price(sku, each_sku_map, specific_margins, is_margin_percentage, default_margin, user):
     current_price = each_sku_map['price']
+    each_sku_map['price'] = current_price
     if specific_margins:
         specific_margins = json.loads(specific_margins)
     specific_margin_skus = [(i['wms_code'], i['margin']) for i in specific_margins]
@@ -4274,16 +4280,23 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                     sku_master[ind]['price'] = pricemaster_obj[0].price
                     sku_master[ind]['your_price'] = pricemaster_obj[0].price
                     apply_margin_price(sku['wms_code'], sku_master[ind], specific_margins, is_margin_percentage,
-                                       default_margin)
+                                       default_margin, user)
                     for pm_obj in pricemaster_obj:
                         pm_obj_map = {'min_unit_range': pm_obj.min_unit_range, 'max_unit_range': pm_obj.max_unit_range,
                                       'price': pm_obj.price}
                         apply_margin_price(pm_obj.sku.sku_code, pm_obj_map, specific_margins, is_margin_percentage,
-                                           default_margin)
+                                           default_margin, user)
                         sku_master[ind].setdefault('price_ranges', []).append(pm_obj_map)
                 else:
+                    price_field = get_price_field(user)
+                    is_sellingprice = False
+                    if price_field == 'price':
+                        is_sellingprice = True
+                    sku_master[ind]['price'] = get_customer_based_price(customer_data[0], sku_master[ind][price_field],
+                                                                        sku_master[ind]['mrp'],
+                                                                        is_sellingprice=is_sellingprice)
                     apply_margin_price(sku['wms_code'], sku_master[ind], specific_margins, is_margin_percentage,
-                                       default_margin)
+                                       default_margin, user)
                     # current_sku_price = sku_master[ind]['price']
                     # sku_master[ind]['price'] = current_sku_price + float(default_margin)
 
@@ -4497,8 +4510,8 @@ def get_sku_catalogs(request, user=''):
 @get_admin_user
 def get_sku_variants(request, user=''):
     filter_params = {'user': user.id}
-    get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand',
-                  'sku_size', 'style_name', 'product_type']
+    get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'cost_price', 'price', 'mrp', 'id', 'sku_category',
+                  'sku_brand', 'sku_size', 'style_name', 'product_type']
     reseller_leadtimes = {}
     lead_times = {}
     sku_class = request.POST.get('sku_class', '')
@@ -6586,7 +6599,14 @@ def get_customer_cart_data(request, user=""):
             json_record = record.json()
             sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=json_record['sku_id'])
             json_record['mrp'] = sku_obj[0].mrp
+            json_record['cost_price'] = sku_obj[0].cost_price
             product_type = sku_obj[0].product_type
+            price_field = get_price_field(user)
+            is_sellingprice = False
+            if price_field == 'price':
+                is_sellingprice = True
+            json_record['price'] = get_customer_based_price(cm_obj, json_record[price_field], json_record['mrp'],
+                                                            is_sellingprice)
             if not tax_type and product_type:
                 json_record['tax'] = 0
             else:
@@ -6641,8 +6661,8 @@ def get_customer_cart_data(request, user=""):
                 if price_master_obj:
                     price_master_obj = price_master_obj[0]
                     json_record['price'] = price_master_obj.price
-            if cm_obj.margin:
-                json_record['price'] = float(json_record['price']) * (1 + (float(cm_obj.margin) / 100))
+            #if cm_obj.margin:
+            #    json_record['price'] = float(json_record['price']) * (1 + (float(cm_obj.margin) / 100))
             json_record['invoice_amount'] = json_record['quantity'] * json_record['price']
             json_record['total_amount'] = ((json_record['invoice_amount'] * json_record['tax']) / 100) + \
                                           json_record['invoice_amount']

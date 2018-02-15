@@ -17,7 +17,7 @@ from django.contrib.auth.models import User, Permission
 from xlwt import Workbook, easyxf
 from xlrd import open_workbook, xldate_as_tuple
 import operator
-from django.db.models import Q, F, Value
+from django.db.models import Q, F, Value, FloatField
 from django.conf import settings
 from sync_sku import *
 import csv
@@ -2664,6 +2664,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     custom_margin = request_data.get('margin', 0)
     hot_release = request_data.get('hot_release', '')
     quantity = request_data.get('quantity', 0)
+    customer_master = None
     if not quantity:
         quantity = 0
     try:
@@ -2682,6 +2683,9 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     customer_data_id = request_data.get('customer_data_id', '')
     price_type = ''
     customer_id = ''
+
+    price_field = get_price_field(user)
+
     if not customer_data_id:
         request_user = ''
         if request:
@@ -2690,6 +2694,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             request_user = user.id
         user_type = CustomerUserMapping.objects.filter(user=request_user)
         if user_type:
+            customer_master = user_type[0].customer
             customer_data_id = user_type[0].customer.customer_id
             customer_id = user_type[0].customer_id
             is_distributor = user_type[0].customer.is_distributor
@@ -2772,8 +2777,15 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                 **filter_params1)
         non_filtered = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).exclude(
             id__in=pricemaster.values_list('sku_id', flat=True))
-        sku_master1 = SKUMaster.objects.exclude(sku_class='').annotate(
-            new_price=F('price') + (F('price') / Value(100)) * Value(custom_margin)). \
+        if price_field == 'price':
+            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
+                    annotate(n_price=F(price_field)*(1-(Value(customer_master.discount_percentage)/Value(100)))).annotate(
+                    new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)).\
+            filter(**filter_params).exclude(id__in=all_pricing_ids)
+        else:
+            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
+                annotate(n_price=F(price_field) * (1+(Value(customer_master.markup) / Value(100)))).\
+                annotate(new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)). \
             filter(**filter_params).exclude(id__in=all_pricing_ids)
         if filter_params.has_key('new_price__lte'):
             del filter_params['new_price__lte']
@@ -2794,8 +2806,17 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         else:
             pricemaster = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type). \
                 annotate(new_price=F('price') + Value(custom_margin)).filter(**filter_params1)
-        sku_master1 = SKUMaster.objects.exclude(sku_class='').annotate(new_price=F('price') + Value(custom_margin)). \
-            filter(**filter_params).exclude(id__in=all_pricing_ids)
+        if price_field == 'price':
+            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
+                            annotate(n_price=F(price_field)*(1-(Value(customer_master.discount_percentage)/Value(100)))).\
+                            annotate(new_price=F('n_price') + Value(custom_margin)).\
+                            filter(**filter_params).exclude(id__in=all_pricing_ids)
+        else:
+            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
+                            annotate(n_price=F(price_field)*(1+(Value(customer_master.markup)/Value(100)))).\
+                            annotate(new_price=F('n_price') + Value(custom_margin)).\
+                            filter(**filter_params).exclude(id__in=all_pricing_ids)
+
         if filter_params.has_key('new_price__lte'):
             del filter_params['new_price__lte']
         if filter_params.has_key('new_price__gte'):
@@ -2951,7 +2972,12 @@ def get_customer_sku_prices(request, user=""):
             for tax_master in tax_masters:
                 taxes_data.append(tax_master.json())
 
-            price = data.price
+            customer_price_name = get_misc_value('calculate_customer_price', user.id)
+            is_sellingprice = False
+            price = data.cost_price
+            if customer_price_name == 'price':
+                price = data.price
+                is_sellingprice = True
             discount = 0
 
             if customer_master:
@@ -2960,6 +2986,7 @@ def get_customer_sku_prices(request, user=""):
                 price_band_flag = get_misc_value('priceband_sync', user.id)
                 if price_band_flag == 'true':
                     user = get_admin(user)
+                price = get_customer_based_price(customer_obj, price, data.mrp, is_sellingprice)
                 price_master_objs = PriceMaster.objects.filter(price_type=price_type, sku__sku_code=sku_code,
                                                                sku__user=user.id)
                 if price_master_objs:
@@ -2970,8 +2997,6 @@ def get_customer_sku_prices(request, user=""):
                         price_bands_list.append(price_band_map)
                     price = price_master_objs[0].price
                     discount = price_master_objs[0].discount
-                if customer_obj.margin:
-                    price = price * float(1 - float(customer_obj.margin) / 100)
             result_data.append(
                 {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
                  'taxes': taxes_data, 'price_bands_map': price_bands_list})
@@ -3700,8 +3725,8 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     from rest_api.views.outbound import get_style_variants
     levels_config = get_misc_value('generic_wh_level', user.id)
-    get_values = ['wms_code', 'sku_desc', 'hsn_code', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand',
-                  'sku_size', 'style_name', 'sale_through', 'product_type']
+    get_values = ['wms_code', 'sku_desc', 'hsn_code', 'image_url', 'sku_class', 'cost_price', 'price', 'mrp', 'id',
+                  'sku_category', 'sku_brand', 'sku_size', 'style_name', 'sale_through', 'product_type']
     gen_whs = [user.id]
     admin = get_priceband_admin_user(user)
     if admin:
@@ -6047,6 +6072,113 @@ def get_level_name_with_level(user, warehouse_level, users_list=[]):
     if level_name_objs:
         level_name = level_name_objs[0].level_name
     return level_name
+
+
+def create_new_supplier(user, supp_name, supp_email, supp_phone, supp_address, supp_tin):
+    ''' Create New Supplier with dynamic supplier id'''
+    max_sup_id = SupplierMaster.objects.count()
+    run_iterator = 1
+    supplier_id = ''
+    while run_iterator:
+        supplier_obj = SupplierMaster.objects.filter(id=max_sup_id)
+        if not supplier_obj:
+            supplier_master, created = SupplierMaster.objects.get_or_create(id=max_sup_id, user=user.id,
+                                                                            name=supp_name,
+                                                                            email_id=supp_email,
+                                                                            phone_number=supp_phone,
+                                                                            address=supp_address,
+                                                                            tin_number=supp_tin,
+                                                                            status=1)
+            run_iterator = 0
+            supplier_id = supplier_master.id
+        else:
+            max_sup_id += 1
+    return supplier_id
+
+
+def create_order_pos(user, order_objs):
+    ''' Creating Sampling PO for orders'''
+    try:
+        cust_supp_mapping = {}
+        user_profile = UserProfile.objects.get(user_id=user.id)
+        po_id = get_purchase_order_id(user)
+        for order_obj in order_objs:
+            if order_obj.customer_id and str(order_obj.customer_id) not in cust_supp_mapping.keys():
+                cust_master = CustomerMaster.objects.filter(customer_id=order_obj.customer_id, user=user.id)
+                if cust_master:
+                    cust_master = cust_master[0]
+                    master_mapping = MastersMapping.objects.filter(master_id=cust_master.id,
+                                                                   mapping_type='customer-supplier', user=user.id)
+                    if not master_mapping:
+                        supplier_id = create_new_supplier(user, cust_master.name, cust_master.email_id,
+                                                          cust_master.phone_number, cust_master.address,
+                                                          cust_master.tin_number)
+                        if supplier_id:
+                            mapping_obj = MastersMapping.objects.create(master_id=cust_master.id, mapping_id=supplier_id,
+                                                          mapping_type='customer-supplier', user=user.id,
+                                                          creation_date=datetime.datetime.now())
+                            cust_supp_mapping[cust_master.customer_id] = supplier_id
+                    else:
+                        cust_supp_mapping[str(cust_master.customer_id)] = master_mapping[0].mapping_id
+            if not cust_supp_mapping.get(str(order_obj.customer_id), ''):
+                continue
+            taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
+            cust_order_summary = order_obj.customerordersummary_set.filter()
+            if cust_order_summary:
+                taxes = cust_order_summary.values('cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax')[0]
+            supplier_id = cust_supp_mapping[str(order_obj.customer_id)]
+            purchase_data = copy.deepcopy(PO_DATA)
+            po_sku_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
+            sku = order_obj.sku
+            po_sku_data['supplier_id'] = supplier_id
+            po_sku_data['wms_code'] = sku.sku_code
+            po_sku_data['sku_id'] = sku.id
+            po_sku_data['order_quantity'] = order_obj.quantity
+            po_sku_data['price'] = order_obj.unit_price
+            po_sku_data['measurement_unit'] = sku.measurement_type
+            po_sku_data['order_type'] = 'SP'
+            po_sku_data['status'] = 0
+            po_sku_data.update(taxes)
+            create_po = OpenPO(**po_sku_data)
+            create_po.save()
+            purchase_data['open_po_id'] = create_po.id
+            purchase_data['order_id'] = po_id
+            if user_profile:
+                purchase_data['prefix'] = user_profile.prefix
+            order = PurchaseOrder(**purchase_data)
+            order.save()
+            OrderMapping.objects.create(mapping_id=order.id, mapping_type='PO', order_id=order_obj.id,
+                                        creation_date=datetime.datetime.now())
+        log.info("Sampling PO Creation for the user %s is PO number %s created for Order Id %s " % (user.username,
+                                                                str(po_id), str(order_objs[0].original_order_id)))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Sampling PO Creation failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(order_objs), str(e)))
+
+
+def get_customer_based_price(customer_obj, price, mrp,is_sellingprice='', user_id=''):
+    if is_sellingprice == '':
+        customer_price = get_misc_value('calculate_customer_price', user_id)
+        is_sellingprice = False
+        if customer_price == 'price':
+            is_sellingprice = True
+    if is_sellingprice and customer_obj.discount_percentage:
+        price = price * float(1 - float(customer_obj.discount_percentage) / 100)
+    elif customer_obj.markup:
+        price = price * float(1 + float(customer_obj.markup) / 100)
+        if price > mrp:
+            price = mrp
+    return price
+
+
+def get_price_field(user):
+    calc_customer_price = get_misc_value('calculate_customer_price', user.id)
+    price_field = 'cost_price'
+    if calc_customer_price == 'price':
+        price_field = 'price'
+    return price_field
 
 
 def save_sku_stats(user, sku_id, transact_id, transact_type, quantity):

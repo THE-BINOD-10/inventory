@@ -6154,8 +6154,9 @@ def get_level_based_customer_orders(request, response_data, user):
                                  order_by('-generic_order_id'))
     response_data['data'] = response_data['data'][start_index:stop_index]
     for record in response_data['data']:
-        order_detail_ids = generic_orders.filter(generic_order_id=record['generic_order_id']).values_list(
-            'orderdetail_id', flat=True)
+
+        order_details = generic_orders.filter(generic_order_id=record['generic_order_id'])
+        order_detail_ids = order_details.values_list('orderdetail_id', flat=True)
         data = OrderDetail.objects.filter(id__in=order_detail_ids)
 
         ord_det_qs = data.values_list('order_id', 'id', 'user', 'original_order_id', 'order_code')
@@ -6188,6 +6189,8 @@ def get_level_based_customer_orders(request, response_data, user):
             record['date'] = ''
         if record['generic_order_id']:
             record['order_id'] = record['generic_order_id']
+        record['order_detail_ids'] = list(order_detail_ids)
+        record['reseller_name'] = CustomerMaster.objects.get(id=order_details[0].customer_id).name
         for ord_det_id in order_detail_ids:
             gen_ord_obj = generic_orders.filter(orderdetail_id=ord_det_id)
             if gen_ord_obj:
@@ -7864,8 +7867,9 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
             days_left = days_left_obj.days
         else:
             days_left = 0
-        temp_data['aaData'].append(OrderedDict((('Enquiry ID', enq_id), ('Customer Name', customer_name),
-                                                ('Zone', zone), ('Quantity', total_qty), ('Date', date),
+        temp_data['aaData'].append(OrderedDict((('Enquiry ID', enq_id), ('Sub Distributor', customer_name),
+                                                ('Customer Name', em_obj.corporate_name), ('Zone', zone),
+                                                ('Quantity', total_qty), ('Date', date),
                                                 ('Customer ID', em_obj.customer_id),
                                                 ('Extend Status', extend_status), ('Days Left', days_left))))
     temp_data['recordsTotal'] = len(temp_data['aaData'])

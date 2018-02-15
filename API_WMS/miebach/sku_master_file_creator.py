@@ -60,7 +60,7 @@ def get_user_sku_data(user):
       stock_quantity = stocks.get(data.wms_code, 0)
       total_data.append({'search': str(data.wms_code) + " " + data.sku_desc + " " + str(data.ean_number),
                          'SKUCode': data.wms_code,
-                         'ProductDescription': data.sku_desc,
+                         'ProductDescription': data.sku_desc + "(" + data.wms_code + ")",
                          'ean_number': str(data.ean_number),
                          'price': discount_price,
                          'url': data.image_url,

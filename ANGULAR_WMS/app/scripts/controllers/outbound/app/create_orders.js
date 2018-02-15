@@ -15,6 +15,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.size_toggle = true;
   vm.brand_size_collect = {};
   vm.user_type = Session.roles.permissions.user_type;
+  vm.priceband_sync = Session.roles.permissions.priceband_sync;
 
   vm.order_type_value = "offline";
   vm.service = Service;
@@ -174,6 +175,19 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   }
 
+  vm.picked_items_obj = {};
+  vm.picked_items_data = {};
+  vm.picked_item_info = function(item){
+
+    if (vm.picked_items_obj[item.sku_class]) {
+
+      vm.picked_items_data[item.sku_class] = item;
+    } else {
+
+      delete vm.picked_items_data[item.sku_class];
+    }
+  }
+
   vm.gotData = {};
   vm.data_loading = false;
   vm.getingData = function(data) {
@@ -201,6 +215,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       canceller.resolve("cancelled");
     };
     return canceller.promise;
+  }
+
+  vm.redirect_from_orders = function(status, scroll){
+    if (!vm.catlog_data.data) {
+      vm.get_category(status, scroll);
+    }
   }
 
   vm.get_category = function(status, scroll) {
@@ -356,6 +376,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       if(data.message) {
         vm.all_cate = data.data.categories;
         vm.categories_details = data.data.categories_details;
+        vm.old_path = vm.location;
+        vm.location = '/App/Categories';
         $state.go('user.App.Categories');
       }
       vm.pdfDownloading = false;
@@ -535,9 +557,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       //search = (search)? search+25 : 0;
       var cart = $(".cart_button:visible").outerHeight();
       
-      // if(vm.location != '/App/Categories'){
+      if(vm.location == '/App/Categories'){
+        $(".app_body").css('height',height-menu-cart);
+        vm.location = vm.old_path;
+      } else {
         $(".app_body").css('height',height-header-menu-cart);
-      // }
+      }
       
       $(".app_body").css('overflow-y', 'auto');
     }
@@ -938,11 +963,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.downloadPDF = function() {
 
     var size_stock = JSON.stringify(vm.size_filter_data);
-    var data = {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
+    var data = {data: {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
                 sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true,
                 color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice, quantity: vm.quantity,
                 is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
-                margin_data: JSON.stringify(Data.marginSKUData.data), required_quantity: JSON.stringify(vm.required_quantity)}
+                margin_data: JSON.stringify(Data.marginSKUData.data)}, required_quantity: vm.required_quantity,
+                checked_items: vm.picked_items_data, checked_item_value: vm.picked_items_obj}
+
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/app/create_orders/download_pdf.html',
       controller: 'downloadPDFCtrl',
@@ -1001,18 +1028,35 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'PENS': 'PENS.jpg',
                            'PU ITEMS': 'PU ITEMS.jpg',
                            'SUNGLASSES': 'SUNGLASSES.jpg',
-                           'TG-BACKPACKS': 'TG-BACKPACKS.jpg',
-                           'TG-CANVAS BAGS': 'TG-CANVAS BAGS.jpg',
-                           'TG-FOLDABLE BAGS': 'TG-FOLDABLE BAGS.jpg',
-                           'TG-GYM BAGS': 'TG-GYM BAGS.jpg',
-                           'TG-HARD LUGGAGE': 'TG-HARD LUGGAGE.jpg',
-                           'TG-LAPTOP STROLLYS': 'TG-LAPTOP STROLLYS.jpg',
-                           'TG-SLING BAGS': 'TG-SLING BAGS.jpg',
-                           'TG-SOFT LUGGAGE': 'TG-SOFT LUGGAGE.jpg',
-                           'TG-TOILETARY BAGS': 'TG-TOILETARY BAGS.jpg',
-                           'TG-TRAVEL WALLETS': 'TG-TRAVEL WALLETS.jpg',
+                           'TRAVEL GEAR-LAPTOP BACKPACKS': 'TG-BACKPACKS.jpg',
+                           'TRAVEL GEAR-CANVAS BAGS': 'TG-CANVAS BAGS.jpg',
+                           'TRAVEL GEAR-FOLDABLE BAGS': 'TG-FOLDABLE BAGS.jpg',
+                           'TRAVEL GEAR-GYM BAGS': 'TG-GYM BAGS.jpg',
+                           'TRAVEL GEAR-HARD LUGGAGE': 'TG-HARD LUGGAGE.jpg',
+                           'TRAVEL GEAR-LAPTOP TROLLEY BAGS': 'TG-LAPTOP STROLLYS.jpg',
+                           'TRAVEL GEAR-SLING BAGS': 'TG-SLING BAGS.jpg',
+                           'TRAVEL GEAR-SOFT LUGGAGE': 'TG-SOFT LUGGAGE.jpg',
+                           'TRAVEL GEAR-TOILETRY BAGS': 'TG-TOILETARY BAGS.jpg',
+                           'TRAVEL GEAR-TRAVEL WALLETS': 'TG-TRAVEL WALLETS.jpg',
                            'TOYS': 'TOYS.jpg',
                            'TRAVEL GEAR': 'TRAVEL GEAR.jpg',
+
+                           'ACCESSORIES': 'ACCESSORIES.jpg',
+                           'APPARELS': 'APPARELS.jpg',
+                           'ELECTRONICS-CHARGERS': 'ELECTRONICS-CHARGERS.jpg',
+                           'ELECTRONICS-MISC.': 'ELECTRONICS-MISC.jpg',
+                           'ELECTRONICS-SPEAKERS': 'ELECTRONICS-SPEAKERS.jpg',
+                           'LEATHER-BELTS': 'LEATHER-BELTS.jpg',
+                           'LEATHER-WALLETS': 'LEATHER-WALLETS.jpg',
+                           'PENS-BALL PENS': 'PENS-BALL PENS.jpg',
+                           'PENS-FOUNTAIN PENS': 'PENS-FOUNTAIN PENS.jpg',
+                           'PENS-ROLLER BALL PENS': 'PENS-ROLLER BALL PENS.jpg',
+                           'PU-BELTS': 'PU-BELTS.jpg',
+                           'PU-WALLETS': 'PU-WALLETS.jpg',
+                           'SUNGLASS-AVIATOR': 'SUNGLASS-AVIATOR.jpg',
+                           'SUNGLASS-LADIES AVIATORS': 'SUNGLASS-LADIES AVIATORS.jpg',
+                           'SUNGLASS-LADIES WAYFARER': 'SUNGLASS-LADIES WAYFARER.jpg',
+                           'SUNGLASS-WAYFARER': 'SUNGLASS-WAYFARER.jpg',
 
                            //SAILESH
                            'FULL SLEEVE SHIRT': 'FULL SLEEVE SHIRT.png',
@@ -1197,7 +1241,8 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
   vm.downloadPDF = function(form) {
 
     var data = {};
-    angular.copy(vm.pdfData, data);
+    // var data = vm.pdfData.data;
+    angular.copy(vm.pdfData.data, data);
     if (!vm.pdfData.display_total_amount) {
         delete data.required_quantity;
     }
@@ -1208,6 +1253,10 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
         terms_list.push(value.terms);
       }
     });
+
+    data['checked_items'] = JSON.stringify(vm.pdfData.checked_items);
+    data['required_quantity'] = JSON.stringify(vm.pdfData.required_quantity);
+
     data['terms_list'] = terms_list.join('<>');
     data['user_type'] = Session.roles.permissions.user_type;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
@@ -1220,6 +1269,17 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
     data = $("form").serialize();
     Service.apiCall("switches/?"+data);
     Session.roles.permissions.customer_pdf_remarks = vm.pdfData.remarks;
+  }
+
+  vm.clear_quantities = function(){
+
+    vm.pdfData.required_quantity = {};
+  }
+
+  vm.remove_item = function(item){
+
+    delete vm.pdfData.checked_item_value[item];
+    delete vm.pdfData.checked_items[item];
   }
 
   vm.cancel = function () {

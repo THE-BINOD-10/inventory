@@ -15,22 +15,23 @@ angular.module('urbanApp', ['datatables'])
 
     vm.g_data = Data.stock_view;
 
-    vm.service.apiCall('warehouse_headers/', 'GET').then(function(data){
-
-    vm.selected = {};
-    vm.selectAll = false;
-
-    vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
-
-    vm.excel = excel;
-    function excel() {
-      angular.copy(vm.dtColumns,colFilters.headers);
-      angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
-      colFilters.download_excel()
+    vm.layout_loading = true;
+    if(!Session.roles.permissions.add_networkmaster) {
+      vm.g_data.level = "";
     }
+    vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level, 'GET').then(function(data){
 
-    vm.dtOptions = DTOptionsBuilder.newOptions()
-       .withOption('ajax', {
+      vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+
+      vm.excel = excel;
+      function excel() {
+        angular.copy(vm.dtColumns,colFilters.headers);
+        angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
+        colFilters.download_excel()
+      }
+
+      vm.dtOptions = DTOptionsBuilder.newOptions()
+        .withOption('ajax', {
               url: Session.url+'results_data/',
               type: 'POST',
               data: vm.filters,
@@ -43,62 +44,45 @@ angular.module('urbanApp', ['datatables'])
                           })
                         }
            })
-       .withDataProp('data')
-       .withOption('drawCallback', function(settings) {
-         vm.service.make_selected(settings, vm.selected);
-       })
-       .withOption('processing', true)
-       .withOption('serverSide', true)
-       .withOption('createdRow', function(row, data, dataIndex) {
-            $compile(angular.element(row).contents())($scope);
-        })
+        .withDataProp('data')
+        .withOption('processing', true)
+        .withOption('serverSide', true)
+        .withOption('createdRow', function(row, data, dataIndex) {
+             $compile(angular.element(row).contents())($scope);
+         })
         .withOption('headerCallback', function(header) {
             if (!vm.headerCompiled) {
                 vm.headerCompiled = true;
                 $compile(angular.element(header).contents())($scope);
             }
         })
-       .withPaginationType('full_numbers')
-       .withOption('initComplete', function( settings ) {
-         vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
-       });
+        .withPaginationType('full_numbers')
+        .withOption('initComplete', function( settings ) {
+          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
+          vm.layout_loading = false;
+        });
 
-    var columns = data.data;
-    //var columns = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category", "Warehouse 1", "Warehouse 2"];
-    vm.dtColumns = vm.service.build_colums(columns);
+      var columns = data.data;
+      vm.dtColumns = vm.service.build_colums(columns);
 
-    vm.dtInstance = {};
+      vm.dtInstance = {};
+      vm.data_display = true;
 
-    function reloadData () {
+      function reloadData () {
         vm.bt_disable = true;
         vm.dtInstance.reloadData();
-    };
+      };
 
-  vm.change_datatable = function() {
-    Data.stock_view.view =  vm.g_data.view;
-    $state.go($state.current, {}, {reload: true});
-  }
-
-    $scope.$on('change_filters_data', function(){
-      vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
-      vm.service.refresh(vm.dtInstance);
-    });
-
-    vm.bt_disable = true;
-    vm.button_fun = function() {
-
-      var enable = true
-      for (var id in vm.selected) {
-        if(vm.selected[id]) {
-          vm.bt_disable = false
-          enable = false
-          break;
-        }
+      vm.change_datatable = function() {
+        Data.stock_view.view =  vm.g_data.view;
+        Data.stock_view.level = vm.g_data.level;
+        $state.go($state.current, {}, {reload: true});
       }
-      if (enable) {
-        vm.bt_disable = true;
-      }
-    }
-    vm.data_display = true;
+
+      $scope.$on('change_filters_data', function(){
+        vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
+        vm.service.refresh(vm.dtInstance);
+      });
+
     })
 }

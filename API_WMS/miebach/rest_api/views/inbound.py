@@ -108,6 +108,31 @@ def get_raised_stock_transfer(start_index, stop_index, temp_data, search_term, o
              'DT_RowAttr': {'id': data['warehouse__username']}})
 
 
+def get_intransit_orders(start_index, stop_index, temp_data, search_term, order_term, col_num,
+                             request, user, filters):
+    lis = ['sku__sku_code', 'quantity', 'invoice_amount']
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if order_term:
+        master_data = IntransitOrders.objects.filter(customer_id=user.id, status=1).\
+            values('id', 'sku__sku_code', 'quantity', 'invoice_amount').\
+            annotate(total=Sum('invoice_amount')).order_by(order_data).distinct()
+    if search_term:
+        master_data = IntransitOrders.objects.filter(
+            Q(sku__sku_code__icontains=search_term) | Q(quantity__icontains=search_term),
+            status=1).values('warehouse__username'). \
+            annotate(total=Sum('invoice_amount')).order_by(order_data).distinct()
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['min_order_val'] = user.userprofile.min_order_val
+    for data in master_data[start_index:stop_index]:
+        temp_data['aaData'].append(
+            {'SKU': data['sku__sku_code'], 'Quantity': data['quantity'], 'Amount': data['invoice_amount'],
+             'Total Quantity': data['total'], 'DT_RowClass': 'results',
+             'DT_RowAttr': {'id': data['id']}})
+
+
 def get_receive_po_datatable_filters(user, filters):
     search_params = {}
     search_params1 = {}
@@ -872,6 +897,7 @@ def switches(request, user=''):
                        'auto_confirm_po': 'auto_confirm_po',
                        'customer_pdf_remarks': 'customer_pdf_remarks',
                        'tax_inclusive' : 'tax_inclusive',
+                       'shipment_sku_scan': 'shipment_sku_scan',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

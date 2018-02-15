@@ -31,7 +31,8 @@ input[type="date"]:valid::before {
             <div class="row" ng-if="orders.your_orders">
               <section class="widget text-center no-margin">
                 <div class="widget-details col-xs-3 text-left">
-                  <small class="order-label">Order ID</small>
+                  <small class="order-label" ng-if="permissions.user_type == 'distributor'">Reseller Order ID</small>
+                  <small class="order-label" ng-if="permissions.user_type != 'distributor'">Order ID</small>
                   <h2 class="no-margin order-bold">{{order.order_id}}</h2></div>
                 <div class="widget-details col-xs-2 text-center">
                   <small class="order-label">Ordered Qty</small>
@@ -50,10 +51,14 @@ input[type="date"]:valid::before {
                   <h2 class="no-margin order-bold">Rs. {{order.total_inv_amt}}</h2>
                 </div>
               </section>
+              <div class="row no-margin" ng-if="permissions.user_type == 'distributor'">
+                <div class="col-xs-6">Order ID's: {{order.order_detail_ids.join(",")}}</div>
+                <div class="col-xs-6 text-right">Seller Name: {{order.reseller_name}}</div>
+              </div>
               <div class="row">
                 <div class="widget-details col-xs-8">
                   <div class="alert alert-info" ng-if="order.freight_charges" style="margin-top: 7px; margin-bottom: 0px">
-                    <strong>Note:</strong> Freight Charges Included.
+                    <strong>Note:</strong> Freight as applicable will be charged extra.
                   </div>
                 </div>
                 <div class="widget-details col-xs-4 text-right">

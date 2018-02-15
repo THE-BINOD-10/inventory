@@ -37,7 +37,6 @@ def upload_po(request):
 
 def get_updated_pos(request):
     upload_po_id = request.POST.get('id', '')
-
     if not upload_po_id:
         return HttpResponse('Uploaded PO id is not found')
     up_obj = OrderUploads.objects.filter(id=upload_po_id)
@@ -58,14 +57,12 @@ def get_updated_pos(request):
 
 
 def get_skucode_quantity(po_number, customer_name):
-
     gen_ord_qs = GenericOrderDetailMapping.objects.filter(po_number=po_number, client_name=customer_name)
-
     gen_ord_map = []
     for order in gen_ord_qs:
         po = {'sku_code': order.orderdetail.sku.sku_code, 'quantity': order.orderdetail.quantity,
               'unit_price': order.unit_price, 'sku_desc': order.orderdetail.sku.sku_desc}
-        po['amount'] = po['quantity'] * po['unit_price']
+        po['amount'] = round(po['quantity'] * po['unit_price'], 2)
         customer_summary = order.orderdetail.customerordersummary_set.values()
         total_tax = 0
         if customer_summary:
@@ -75,9 +72,7 @@ def get_skucode_quantity(po_number, customer_name):
                 po[tax] = round((po['amount']/100)*po[tax+'_tax'], 2)
                 total_tax += po[tax]
         po['invoice_amt'] = po['amount'] + total_tax
-
         gen_ord_map.append(po)
-
     return gen_ord_map
 
 

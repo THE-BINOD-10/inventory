@@ -6189,7 +6189,7 @@ def get_level_based_customer_orders(request, response_data, user):
             record['date'] = ''
         if record['generic_order_id']:
             record['order_id'] = record['generic_order_id']
-        record['order_detail_ids'] = list(order_detail_ids)
+        record['order_detail_ids'] = list(order_details.values_list('orderdetail__order_id', flat=True).distinct())
         record['reseller_name'] = CustomerMaster.objects.get(id=order_details[0].customer_id).name
         for ord_det_id in order_detail_ids:
             gen_ord_obj = generic_orders.filter(orderdetail_id=ord_det_id)

@@ -72,7 +72,7 @@ def get_skucode_quantity(po_number, customer_name):
             customer_summary = customer_summary[0]
             for tax in ['sgst', 'cgst', 'igst']:
                 po[tax+'_tax'] = customer_summary[tax+'_tax']
-                po[tax] = (po['amount']/100)*po[tax+'_tax']
+                po[tax] = round((po['amount']/100)*po[tax+'_tax'], 2)
                 total_tax += po[tax]
         po['invoice_amt'] = po['amount'] + total_tax
 

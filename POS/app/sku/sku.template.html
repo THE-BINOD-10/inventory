@@ -41,6 +41,15 @@
     </div>
   </p>
 
+  <span style="float: left;margin:5px 5px 5px 10px;">Style search: </span>
+  <md-switch class="switch"
+            ng-model="$ctrl.style_switch"
+            aria-label="Switch"
+            style="float: left;margin: 0;margin-right: 10px;"
+            ng-init="$ctrl.stype_switch=false"
+            ng-change="$ctrl.change_style_switch($ctrl.style_switch)">
+  </md-switch>
+
   </div>
   <div layout="column" style="display:block;" ng-cloak>
   <div class="row">
@@ -56,7 +65,7 @@
               md-search-text-change="$ctrl.searchTextChange($ctrl.searchText)"
               md-search-text="$ctrl.searchText"
               md-selected-item-change="$ctrl.selectedItemChange(item)"
-              md-items="item in $ctrl.get_product_data($ctrl.searchText)"
+              md-items="item in $ctrl.get_product_data($ctrl.searchText, $ctrl.style_switch)"
               md-item-text="item.SKUCode"
               md-min-length="0"
               placeholder="Enter SKUCode/ProductName"
@@ -115,7 +124,7 @@
    </div>
 </div>
 
-<!-- Modal -->
+<!-- Multi select Modal -->
 <div class="modal fade" id="skuModal" role="dialog">
     <div class="modal-dialog">
     <!-- Modal content-->
@@ -170,4 +179,53 @@
 		</div>
 	</div>
 </div><!--modal-->
+
+<!-- Style based Modal -->
+<div class="modal fade" id="styleModal" role="dialog">
+    <div class="" style="width: 75%; margin: 10% auto;">
+    <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">SKU LIST</h4>
+                <div class="row sku_filter">
+                </div>
+            </div>
+            <div class="modal-body" style="">
+                <div class="row">
+                    <h4 style="text-align:center" ng-hide="$ctrl.style_based_sku_data.length">No SKUs to show !!</h4>
+                    <table style="width: 95%; margin:auto" ng-show="$ctrl.style_based_sku_data.length">
+                        <thead>
+                            <tr>
+                                <!--<th style="padding-left: 10px;"></th>-->
+                                <th style="text-align: center">STYLE NO.</th>
+                                <th ng-repeat = "item in $ctrl.style_based_sku_data" style="text-align: center">
+                                    {{item.sku_size}}</th>
+                                <th style="text-align: center;padding: 0 10px;">QTY</th>
+                                <th style="text-align: center;padding: 0 10px;">AMT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="sku" ng-click="">
+                                <td style="padding: 0 10px;">{{$ctrl.style_based_sku_data[0].style_name}}</td>
+                                <td ng-repeat = "item in $ctrl.style_based_sku_data">
+                                    <input type="text" ng-init="$ctrl.style_qtys[item.sku_size]=0" style="width: 100%;"
+                                        ng-model="$ctrl.style_qtys[item.sku_size]"
+                                        ng-blur="$ctrl.change_style_qty(item.SKUCode, $ctrl.style_qtys[item.sku_size])">
+                                </td>
+                                <td>{{$ctrl.tot_style_qty}}</td>
+                                <td>{{$ctrl.tot_style_amount}}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <div type="button" class="btn btn-danger"
+                        ng-click=$ctrl.style_confirm()>Confirm</div>
+            </div>
+		</div>
+	</div>
+</div><!-- style sku modal-->
 

@@ -104,14 +104,24 @@ def search_pos_customer_data(request, user=''):
 @get_admin_user
 def search_product_data(request, user=''):
     search_key = request.GET['key']
+    style_switch = True if request.GET['style_search']=='true' else False
     total_data = []
-    try:
-        master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
-                                                                      Q(sku_desc__icontains=search_key) |
-                                                                      Q(ean_number=int(search_key)),
-                                                                      user=user.id)
-    except:
-        master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
+    if style_switch:
+        sku_obj = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
+                                                                  Q(sku_desc__icontains=search_key) |
+                                                                  Q(style_name__icontains=search_key),
+                                                                  user=user.id)
+        style = sku_obj[0].style_name if sku_obj else ''
+        master_data = SKUMaster.objects.exclude(sku_type='RM').filter(style_name=style, user=user.id)\
+                      if style else []
+    else:
+        try:
+            master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
+                                                                          Q(sku_desc__icontains=search_key) |
+                                                                          Q(ean_number=int(search_key)),
+                                                                          user=user.id)
+        except:
+            master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
                                                                       Q(sku_desc__icontains=search_key), user=user.id)
     for data in master_data[:30]:
         status = 'Inactive'
@@ -148,9 +158,12 @@ def search_product_data(request, user=''):
         stock_quantity = stock_quantity['quantity__sum']
         if not stock_quantity:
             stock_quantity = 0
-        total_data.append({'search': str(data.wms_code) + " " + data.sku_desc + " " + str(data.ean_number),
+        total_data.append({'search': str(data.wms_code) + " " + data.sku_desc + " " +\
+                                     str(data.ean_number) + " " + str(data.style_name),
                            'SKUCode': data.wms_code,
-                           'ProductDescription': data.sku_desc,
+                           'style_name': data.style_name,
+                           'sku_size' : data.sku_size,
+                           'ProductDescription': data.sku_desc + "(" + data.wms_code + ")" ,
                            'price': discount_price,
                            'url': data.image_url, 'data-id': data.id,
                            'discount': discount_percentage,

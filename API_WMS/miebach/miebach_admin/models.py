@@ -2353,6 +2353,7 @@ class StockStats(models.Model):
     dispatch_qty = models.FloatField(default=0)
     return_qty = models.FloatField(default=0)
     adjustment_qty = models.FloatField(default=0)
+    consumed_qty = models.FloatField(default=0)
     closing_stock = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

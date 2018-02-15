@@ -1572,6 +1572,18 @@ var app = angular.module('urbanApp')
             title: 'RM Picklist',
           }
         })
+        .state('app.reports.StockLedgerReport', {
+          url: '/StockLedgerReport',
+          templateUrl: 'views/reports/stock_ledger_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/stock_ledger_report.js');
+              }]
+          },
+          data: {
+            title: 'Stock Ledger',
+          }
+        })
 
       // configuration route
       .state('app.configurations', {

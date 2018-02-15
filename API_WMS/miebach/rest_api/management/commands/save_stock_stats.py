@@ -49,7 +49,7 @@ class Command(BaseCommand):
                                                 annotate(quantity=Sum('quantity')))
             stock_uploaded_objs = dict(all_sku_stats.filter(transact_type='inventory-upload').values_list('sku_id').\
                                        distinct().annotate(quantity=Sum('quantity')))
-            market_data = dict(all_sku_stats.filter(transact_type__in=['picklist', 'rm_picklist']).\
+            market_data = dict(all_sku_stats.filter(transact_type='picklist').\
                                             values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
             stock_objs = dict(StockDetail.objects.filter(sku__user=user.id, quantity__gt=0).values_list('sku_id').\
                               distinct().annotate(in_stock=Sum('quantity')))
@@ -59,6 +59,8 @@ class Command(BaseCommand):
                                                 values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
             jo_putaway_objs = dict(all_sku_stats.filter(transact_type='jo').\
                                                 values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
+            rm_picklist_objs = dict(all_sku_stats.filter(transact_type='rm_picklist').\
+                                                values_list('sku_id').distinct().annotate(quantity=Sum('quantity')))
             for sku in sku_codes:
                 putaway_quantity = putaway_objs.get(sku['sku_id'], 0)
                 uploaded_quantity = stock_uploaded_objs.get(sku['sku_id'], 0)
@@ -67,15 +69,16 @@ class Command(BaseCommand):
                 adjusted = adjust_objs.get(sku['sku_id'], 0)
                 dispatched = market_data.get(sku['sku_id'], 0)
                 produced_quantity = jo_putaway_objs.get(sku['sku_id'], 0)
+                consumed = rm_picklist_objs.get(sku['sku_id'], 0)
                 openinig_stock = (stock_quantity - putaway_quantity - uploaded_quantity - \
-                                    return_quantity - produced_quantity) + (dispatched - adjusted)
+                                    return_quantity - produced_quantity) + (dispatched + consumed - adjusted)
 
                 stock_stat = StockStats.objects.filter(sku_id=sku['sku_id'], creation_date__startswith=today)
                 data_dict = {'opening_stock': openinig_stock, 'receipt_qty': putaway_quantity,
                              'uploaded_qty': uploaded_quantity, 'produced_qty': produced_quantity,
                              'dispatch_qty': dispatched, 'return_qty': return_quantity,
                              'adjustment_qty': adjusted, 'closing_stock': stock_quantity,
-                              'uploaded_qty': uploaded_quantity,
+                              'uploaded_qty': uploaded_quantity, 'consumed_qty': consumed
                              }
                 if not stock_stat:
                     data_dict['sku_id'] = sku['sku_id']

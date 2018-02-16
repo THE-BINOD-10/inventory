@@ -17,7 +17,7 @@ angular
       var title = $(this).text();
       if (typeof title == "string" && title.length > 0) { 
         $(this).empty();
-        $(this).html("<span class='inpt-hd'>"+title+"</span><input class='inpt-vl hide' type='text' name='search"+count+"'>");
+        $(this).html("<span class='inpt-hd'>"+title+"</span><input style='width:100%;' class='inpt-vl hide' type='text' name='search"+count+"'>");
         count++;
       }
     })

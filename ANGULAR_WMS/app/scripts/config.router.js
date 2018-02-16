@@ -1073,6 +1073,10 @@ var app = angular.module('urbanApp')
             title: 'View Orders',
           }
         })
+          .state('app.outbound.ViewOrders.Picklist', {
+            url: '/Picklist',
+            templateUrl: 'views/outbound/toggle/batch_tg.html'
+          })
           .state('app.outbound.ViewOrders.Transfer', {
             url: '/Transfer',
             templateUrl: 'views/outbound/toggle/transfer_tg.html'

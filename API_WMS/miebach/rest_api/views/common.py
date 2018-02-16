@@ -6025,3 +6025,15 @@ def get_level_name_with_level(user, warehouse_level, users_list=[]):
     if level_name_objs:
         level_name = level_name_objs[0].level_name
     return level_name
+
+def get_supplier_info(request):
+    supplier_user = '' 
+    supplier = '' 
+    supplier_parent = '' 
+    profile = UserProfile.objects.get(user=request.user)
+    if profile.user_type == 'supplier':
+        supplier_data = UserRoleMapping.objects.get(user=request.user, role_type='supplier')
+        supplier = SupplierMaster.objects.get(id = supplier_data.role_id)
+        supplier_parent = User.objects.get(id = supplier.user)
+        return True, supplier_data, supplier, supplier_parent
+    return False, supplier_user, supplier, supplier_parent

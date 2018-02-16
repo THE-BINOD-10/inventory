@@ -258,18 +258,6 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters):
     results = list(set((chain(po_order_ids_list, rw_order_ids_list, st_order_ids_list))))
     return results, order_qtys_dict, receive_qtys_dict
 
-def get_supplier_info(request):
-    supplier_user = ''
-    supplier = ''
-    supplier_parent = ''
-    profile = UserProfile.objects.get(user=request.user)
-    if profile.user_type == 'supplier':
-        supplier_data = UserRoleMapping.objects.get(user=request.user, role_type='supplier')
-        supplier = SupplierMaster.objects.get(id = supplier_data.role_id)
-        supplier_parent = User.objects.get(id = supplier.user)
-        return True, supplier_data, supplier, supplier_parent
-    return False, supplier_user, supplier, supplier_parent
-
 @csrf_exempt
 def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     # sku_master, sku_master_ids = get_sku_master(user, request.user)
@@ -5341,13 +5329,18 @@ def get_receive_po_style_view(request, user=''):
             data_dict[size_type]['styles'][sku_class]['po_data']['total_order_quantity'] += order_quantity
             data_dict[size_type]['styles'][sku_class]['po_data']['total_received_quantity'] += order.received_quantity
             data_dict[size_type]['styles'][sku_class]['po_data']['total_receivable_quantity'] += receivable_quantity
+        order_detail_id = ''
+        if purchase_orders:
+            order_mapping = OrderMapping.objects.filter(mapping_type='PO',mapping_id=purchase_orders[0].id)
+            if order_mapping and order_mapping[0].order.order_code == 'CO':
+                order_detail_id = order_mapping[0].order.original_order_id
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info("Get Receive PO Style View failed for params %s on %s and error statement is %s" % (
             str(request.GET.dict()), str(get_local_date(user, datetime.datetime.now())), str(e)))
         return HttpResponse(json.dumps({'data_dict': {}, 'status': 0, 'message': 'Failed'}))
-    return HttpResponse(json.dumps({'data_dict': data_dict, 'status': 1}))
+    return HttpResponse(json.dumps({'data_dict': data_dict, 'order_detail_id': order_detail_id, 'status': 1}, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt

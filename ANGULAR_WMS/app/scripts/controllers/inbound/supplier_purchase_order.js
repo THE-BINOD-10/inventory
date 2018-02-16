@@ -77,7 +77,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           if (resp.message){
 
             if(resp.data.status) {
-              var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='13'><dt-supplier-po-data data='"+JSON.stringify(resp.data.data_dict)+"' dt='showCase.dtInstance' po='"+po_number+"'></dt-supplier-po-data></td></tr>")($scope);
+              var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='13'><dt-supplier-po-data data='"+JSON.stringify(resp.data)+"' dt='showCase.dtInstance' po='"+po_number+"'></dt-supplier-po-data></td></tr>")($scope);
               data_tr.after(html)
               data_tr.next().toggle(1000);
               $(elem).removeClass();
@@ -118,7 +118,7 @@ stockone.directive('dtSupplierPoData', function() {
   };
 });
 
-stockone.controller('SupplierPOData',['$scope', 'Session', 'Service', function($scope, Session, Service) {
+stockone.controller('SupplierPOData',['$scope', 'Session', 'Service', '$modal', function($scope, Session, Service, $modal) {
 
   var vm = this;
   vm.central_expected_date = "";
@@ -126,7 +126,7 @@ stockone.controller('SupplierPOData',['$scope', 'Session', 'Service', function($
   vm.send_data = function(form, po) {
 
     if(form.$valid) {
-      var data = {data: JSON.stringify(vm.po_data), po_number: vm.po, expected_date: vm.central_expected_date};
+      var data = {data: JSON.stringify(vm.po_data.data_dict), po_number: vm.po, expected_date: vm.central_expected_date};
       vm.disable = true;
       Service.apiCall('save_supplier_po/', 'POST', data).then(function(resp) {
 
@@ -144,6 +144,29 @@ stockone.controller('SupplierPOData',['$scope', 'Session', 'Service', function($
         vm.disable = false;
       });
     }
+  }
+
+  vm.preview = function(order_detail_id) {
+
+    var data = {order_id: order_detail_id};
+    Service.apiCall("get_view_order_details/", "GET", data).then(function(data){
+
+      var all_order_details = data.data.data_dict[0].ord_data;
+      vm.ord_status = data.data.data_dict[0].status;
+      var modalInstance = $modal.open({
+        templateUrl: 'views/outbound/toggle/customOrderDetailsTwo.html',
+        controller: 'customOrderDetails',
+        controllerAs: 'pop',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+        resolve: {
+          items: function () { 
+            return all_order_details;
+          }
+        }
+      });  
+    });  
   }
 }]);
 

@@ -1,5 +1,5 @@
 <div class="table-responsive mt20 ml20 mr20 mb20">
-  <table class="table table-bordered mb20" ng-repeat="(size_type, size_data) in po_data">
+  <table class="table table-bordered mb20" ng-repeat="(size_type, size_data) in po_data.data_dict">
     <thead>
       <tr>
         <th ng-repeat="hd in ['Style Code', 'Style Name', 'Brand', 'Category']">{{hd}}</th>
@@ -17,5 +17,5 @@
       </tr>
     </tbody>
   </table>
-</div>
+  <span style="cursor: pointer;color: #2ecc71; text-decoration: underline; font-size: 16px;" ng-if="po_data.order_detail_id" ng-click="preview(po_data.order_detail_id);">Custom Order Preview</span>
 </div>

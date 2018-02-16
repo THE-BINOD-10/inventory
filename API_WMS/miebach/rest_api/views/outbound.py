@@ -4994,6 +4994,12 @@ def get_view_order_details(request, user=''):
     main_id = request.GET.get('order_id', '')
     row_id = request.GET.get('id', '')
     sor_id = request.GET.get('sor_id', '')
+
+    supplier_status, supplier_user, supplier, supplier_parent = get_supplier_info(request)
+    if supplier_status:
+        request.user.id = supplier.user
+        user.id = supplier.user
+
     if sor_id:
         order_id = request.GET.get('uor_id', '')
         order_code = ''.join(re.findall('\D+', order_id))
@@ -7629,6 +7635,8 @@ def create_custom_skus(request, user=''):
                     data_dict['sku_code'] = "CS" + str(sku) + "-" + size
                     data_dict['wms_code'] = data_dict['sku_code']
                     data_dict['sku_class'] = str(sku) + "-" + size_name
+                    fabric = ' Single Fabric ' if data['fabric']['fabric'] else ' Multi Fabric '
+                    data_dict['style_name'] = data['style'] + fabric + size_name
                     data_dict['sku_size'] = size
                     data_dict['sku_type'] = "CS"
 

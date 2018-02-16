@@ -22,7 +22,7 @@
                               }
                               
                               //check if reg is installing null or not
-                              if(newWorker!=null)}{
+                              if(newWorker!=null){
                                 newWorker.addEventListener('statechange', function(e){
                                       console.log(" state changed "+e.target.state);
                                      // reg.showNotification("POS found update", {icon:"app/images/pos_icon.png"});

@@ -1,0 +1,107 @@
+<div class="order_details" ng-controller="AppManualEnquiry as Enquiry">
+  <div class="row style-menu" style="line-height: 40px;">
+    <div class="col-md-4 col-sm-4 col-xs-6">
+    </div>
+    <div class="col-md-4 col-sm-4 hidden-xs">
+      <h4 align="center">Manual Enquiry</h4>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-6">
+      <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>
+      <a href="" class="pull-right hide" ng-click="$state.go('user.App.Cart')">
+          <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" title="Go To Cart Page"></i>
+      </a>
+    </div>
+  </div>
+
+  <div class="clearfix app_body" style="padding-top: 20px; padding-bottom:20px;">
+    <div style="margin: 10px 30px;">
+      <form role="form" name="form">
+      <div class="row">
+        <div class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-5 col-xs-5 control-label">Customer Name *</label>
+            <div class="col-sm-3 col-xs-5">
+              <input type="text" name="customer_name" ng-model="Enquiry.model_data.customer_name" class="form-control" ng-required="true">
+            </div>
+            <i ng-if="$ctrl.categories_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-5 col-xs-5 control-label">Choose Categories *</label>
+            <div class="col-sm-3 col-xs-5">
+              <select class="form-control" ng-disabled="Enquiry.categories_loading" ng-model="Enquiry.category" ng-change="Enquiry.get_styles(Enquiry.category)" ng-required="true">
+                <option ng-selected="Enquiry.category == ''" value="">None</option>
+                <option ng-repeat="category in Enquiry.categories" ng-selected="Enquiry.category == category" value="{{category}}">{{category}}</option>
+              </select>
+            </div>
+            <i ng-if="Enquiry.categories_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-5 col-xs-5 control-label">Choose Style *</label>
+            <div class="col-sm-3 col-xs-5">
+              <select class="form-control" ng-disabled="Enquiry.styles_loading || Enquiry.styles.length == 0" ng-model="Enquiry.style" ng-change="Enquiry.select_style(Enquiry.style, Enquiry.styles)" ng-required="true">
+                <option ng-selected="Enquiry.style == ''" value="">None</option>
+                <option ng-repeat="style in Enquiry.styles" ng-selected="Enquiry.style == style.sku_class" value="{{style.sku_class}}">{{style.sku_class}}</option>
+              </select>
+            </div>
+            <i ng-if="Enquiry.styles_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
+          </div>
+          <div class="form-group" ng-if="Enquiry.style">
+            <div class="col-sm-5"></div>
+            <div class="col-sm-5 col-xs-12">
+              <div class="style col-md-12 col-sm-12 col-xs-12 cart-item">
+                <div class="col-md-4 col-sm-4 col-xs-5">
+                  <img style="width: 100%;" ng-src="{{showCase.service.check_image_url(Enquiry.selected_style.image_url)}}"/>
+                </div>
+                <div class="col-md-6 col-sm-6 col-xs-7" style="padding-left: 20px;">
+                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Style Name: {{Enquiry.selected_style.sku_class}}</b></h4>
+                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Description: {{Enquiry.selected_style.sku_desc}}</b></h4>
+                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>MRP: {{Enquiry.selected_style.mrp}}</b></h4>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-5 col-xs-5 control-label">Choose Customization Type *</label>
+            <div class="col-sm-3 col-xs-5" ng-init="Enquiry.model_data.cust_type = 'Price Customization'">
+              <select class="form-control" ng-model="Enquiry.model_data.cust_type" ng-required="true">
+                <option ng-repeat="style in ['Price Customization', 'Product Customization', 'Price & Product Customization']" ng-selected="Enquiry.model_data.cust_type == style" value="{{style}}">{{style}}</option>
+              </select>
+            </div>
+            <i ng-if="$ctrl.styles_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-5 col-xs-5 control-label">Ask Price *</label>
+            <div class="col-sm-3 col-xs-5">
+              <input type="text" name="customer_name" decimal-number ng-model="Enquiry.model_data.ask_price" class="form-control" ng-required="true">
+            </div>
+            <i ng-if="$ctrl.categories_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-5 col-xs-5 control-label">Expected Date *</label>
+            <div class="col-sm-3 col-xs-5">
+              <input type="date" name="customer_name" ng-model="Enquiry.model_data.expected_date" class="form-control" ng-required="true">
+            </div>
+            <i ng-if="$ctrl.categories_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-5 col-xs-5 control-label">Remarks *</label>
+            <div class="col-sm-3 col-xs-5">
+              <textarea type="text" name="customer_name" ng-model="Enquiry.model_data.remarks" class="form-control" ng-required="true"></textarea>
+            </div>
+            <i ng-if="$ctrl.categories_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-5 col-xs-5 control-label">Choose Images </label>
+            <div class="col-sm-3 col-xs-5">
+              <span class="btn btn-primary up-btn">Choose Files
+                  <input class="btn btn-primary upload-button" type = "file" name="files" id="image-upload" image-upload multiple/>
+              </span>
+            </div>
+          </div>
+          <button style="display:block;margin:auto;margin-top:40px;" type="submit" class="btn btn-warning btn-round" ng-click="Enquiry.place(form)">Place Enquiry</button>
+        </div>
+      </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -1969,6 +1969,15 @@ var app = angular.module('urbanApp')
               }]
             }
           })
+          .state('user.App.ManualEnquiry', {
+            url: '/ManualEnquiry',
+            templateUrl: 'views/outbound/app/create_orders/manual_enquiry.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/manual_enquiry.js');
+              }]
+            }
+          })
         .state('app.denied', {
           url: '/PermissionDenied',
           templateUrl: 'views/permission_denied.html',

@@ -1566,7 +1566,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                 dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(),
                     quantity=quantity, status=1, creation_date=now_date, updation_date=now_date,
                     location_id=location[0].id, sku_id=sku_id, pallet_detail_id=pallet_present.id)
-                dest_stocks.save()
+            dest_stocks.save()
 
     adj_quantity = quantity - total_stock_quantity
     if quantity == 0:

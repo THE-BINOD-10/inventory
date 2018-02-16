@@ -136,6 +136,7 @@ app.controller('TaxPOPCtrl', function ($scope, $http, $state, $timeout, Session,
 
   $scope.title = 'Some title';
   var vm = this;
+  vm.permissions = Session.roles.permissions;
   vm.model_data = items;
   console.log(vm.model_data);
 

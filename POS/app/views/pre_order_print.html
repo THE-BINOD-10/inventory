@@ -2,7 +2,7 @@
 <style>
 .receipt {
   width: 350px;
-  font-size: 14px;
+  font-size: 14px; 
 }
 * {
   padding: 0px;
@@ -59,6 +59,9 @@ table, td, th {
 .capitalize2 {
   text-transform: capitalize;
 }
+.fixed_height{
+    min-height: 530px;
+  }
 </style>
 
 <div class="receipt">
@@ -88,29 +91,28 @@ table, td, th {
       </tr>
     </table>
     <br>
-    <table>
+    <table class="fixed_height">
       <thead>
         <tr>
           <th>No</th>
           <th>Particulars</th>
-          <th>Qty</th>
+          <th>&nbsp;Qty&nbsp;</th>
           <th>Rate</th>
           <th>Amount</th>
         </tr>
       </thead>
       <tbody>
         <tr ng-repeat="item in data.sku_data">
-          <td>{{$index+1}}</td>
+          <td class="text_center">{{$index+1}}</td>
           <td>{{item.name}}</td>
-          <td class="text_right">{{item.quantity}}</td>
+          <td class="text_center">{{item.quantity}}</td>
           <td class="text_right">{{item.unit_price | number:2}}</td>
           <td class="text_right">{{item.quantity * item.unit_price | number:2}}</td>
         </tr>
-        <tr style="vertical-align: top;">
-          <td></td>
-          <td></td>
-          <td></td>
-          <td><strong>Sub Total GST</strong></td>
+        <tr style="height: 100%; vertical-align: bottom;"><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr>
+          <td colspan="2"></td>
+          <td colspan="2" valign="top"><strong>Sub Total GST</strong></td>
           <td class="text_right"><strong>{{data.summary.cgst + data.summary.sgst | number:2}}</strong></td>
         </tr>
         <tr style="vertical-align: top;">
@@ -121,8 +123,7 @@ table, td, th {
           <td class="text_right"><strong>{{data.summary.total_discount | number:2}}</strong></td>
         </tr>
         <tr>
-          <td colspan="2"><!--<strong>Rupees In Words:</strong>--></n>
-          </td>
+          <td colspan="2"></td>
           <td colspan="2" valign="top"><strong>Total</strong></td>
           <td valign="top" class="text_right"><strong>{{data.summary.total_amount | number:2}}</strong></td>
         </tr>

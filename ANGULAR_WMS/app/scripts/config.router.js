@@ -60,12 +60,21 @@ var app = angular.module('urbanApp')
                        return;
                     } else if (typeof(next.permission) == "string") {
 
-                      var perm_list = next.permission.split("&");
-                      var check_status = false;
+                      var split_variable = '|';
+                      var check_status = true;
+                      if(next.permission.indexOf("&")>0){
+                        split_variable = '&';
+                        check_status = false;
+                      }
+                      var perm_list = next.permission.split(split_variable);
                       for(var i=0; i < perm_list.length; i++) {
 
-                        if(!(Session.check_permission(perm_list[i]))) {
+                        if(!(Session.check_permission(perm_list[i])) && split_variable == '&') {
                           check_status = true;
+                          break;
+                        }
+                        else if((Session.check_permission(perm_list[i])) && split_variable == '|') {
+                          check_status = false;
                           break;
                         }
                       }
@@ -513,7 +522,7 @@ var app = angular.module('urbanApp')
         })
         .state('app.inbound.RaisePo', {
           url: '/scripts/controllers/outbound/pop_js/custom_order_details.jsRaisePO',
-          permission: 'add_openpo',
+          permission: 'add_openpo|change_openpo',
           templateUrl: 'views/inbound/raise_po.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {

@@ -84,6 +84,7 @@ class SKUMaster(models.Model):
     online_percentage = models.PositiveIntegerField(default=0)
     discount_percentage = models.PositiveIntegerField(default=0)
     price = models.FloatField(default=0)
+    cost_price = models.FloatField(default=0)
     mrp = models.FloatField(default=0)
     image_url = models.URLField(default='')
     qc_check = models.IntegerField(default=0)
@@ -712,7 +713,8 @@ class CustomerMaster(models.Model):
     credit_period = models.PositiveIntegerField(default=0)
     price_type = models.CharField(max_length=32, default='')
     tax_type = models.CharField(max_length=32, default='')
-    margin = models.FloatField(default=0)
+    discount_percentage = models.FloatField(default=0)
+    markup = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -2341,7 +2343,39 @@ class TANDCMaster(models.Model):
 
     class Meta:
         db_table = 'TANDC_MASTER'
-        
+
+
+class SKUDetailStats(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    transact_id = models.IntegerField(default=0)
+    transact_type = models.CharField(max_length=36, default='')
+    quantity = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SKU_DETAIL_STATS'
+
+
+class StockStats(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    opening_stock = models.FloatField(default=0)
+    receipt_qty = models.FloatField(default=0)
+    uploaded_qty = models.FloatField(default=0)
+    produced_qty = models.FloatField(default=0)
+    dispatch_qty = models.FloatField(default=0)
+    return_qty = models.FloatField(default=0)
+    adjustment_qty = models.FloatField(default=0)
+    consumed_qty = models.FloatField(default=0)
+    closing_stock = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'STOCK_STATS'
+
 
 class IntransitOrders(models.Model):
     id = BigAutoField(primary_key=True)
@@ -2354,8 +2388,22 @@ class IntransitOrders(models.Model):
     invoice_amount = models.FloatField(default=0)
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)    
-    
+    updation_date = models.DateTimeField(auto_now=True)
+
     class Meta:
         db_table = 'INTRANSIT_ORDERS'
         unique_together = ('user', 'customer_id', 'intr_order_id', 'sku')
+
+
+class MastersMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    master_id = models.PositiveIntegerField()
+    mapping_id = models.PositiveIntegerField()
+    mapping_type = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MASTERS_MAPPING'
+        unique_together = ('user', 'master_id', 'mapping_id', 'mapping_type')

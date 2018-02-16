@@ -186,12 +186,13 @@ CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Credit Period', 'CST Number
                     'Phone No.',
                     'City', 'State', 'Country', 'Pin Code', 'Address', 'Selling Price Type',
                     'Tax Type(Options: Inter State, Intra State)',
-                    'Margin Percentage']
+                    'Discount Percentage(%)', 'Markup(%)']
 
 CUSTOMER_EXCEL_MAPPING = OrderedDict(
     (('customer_id', 0), ('name', 1), ('credit_period', 2), ('cst_number', 3), ('tin_number', 4),
      ('pan_number', 5), ('email_id', 6), ('phone_number', 7), ('city', 8), ('state', 9), ('country', 10),
-     ('pincode', 11), ('address', 12), ('price_type', 13), ('tax_type', 14), ('margin', 15)
+     ('pincode', 11), ('address', 12), ('price_type', 13), ('tax_type', 14), ('discount_percentage', 15),
+     ('markup', 16)
      ))
 
 MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(
@@ -415,10 +416,24 @@ RM_PICKLIST_REPORT_DICT = {
     'print_url': 'print_rm_picklist_report',
 }
 
+STOCK_LEDGER_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+    ],
+    'dt_headers': ['Date', 'SKU Code', 'SKU Description', 'Style Name', 'Brand', 'Category',
+                   'Size', 'Opening Stock', 'Receipt Quantity', 'Produced Quantity', 'Dispatch Quantity',
+                   'Return Quantity', 'Adjustment Quantity', 'Consumed Quantity', 'Closing Stock'],
+    'dt_url': 'get_stock_ledger_report', 'excel_name': 'stock_ledger_report',
+    'print_url': 'print_stock_ledger_report',
+}
+
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'grn_report': GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
-                     'rm_picklist_report': RM_PICKLIST_REPORT_DICT}
+                     'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT
+                     }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
 ['SKU Code', 'WMS Code', 'Product Description', 'SKU Category', 'Total Quantity'], (
@@ -440,8 +455,8 @@ LOCATION_HEADERS = ['Zone', 'Location', 'Capacity', 'Put sequence', 'Get sequenc
 
 SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)', 'SKU Category',
                'Primary Category',
-               'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Price', 'MRP Price',
-               'Sequence', 'Image Url',
+               'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Cost Price', 'Selling Price',
+               'MRP Price', 'Sequence', 'Image Url',
                'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
                'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release', 'Status']
 
@@ -730,12 +745,12 @@ EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 9, 'invoice_amount': 3, 'chann
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
                              ('sku_category', 5), ('primary_category', 6), ('sku_class', 7), ('sku_brand', 8),
                              ('style_name', 9),
-                             ('sku_size', 10), ('size_type', 11), ('zone_id', 12), ('price', 13),
-                             ('mrp', 14), ('sequence', 15), ('image_url', 16), ('threshold_quantity', 17),
-                             ('measurement_type', 18),
-                             ('sale_through', 19), ('color', 20), ('ean_number', 21), ('load_unit_handle', 22),
-                             ('hsn_code', 23),
-                             ('sub_category', 24), ('hot_release', 25), ('status', 26)
+                             ('sku_size', 10), ('size_type', 11), ('zone_id', 12), ('cost_price', 13), ('price', 14),
+                             ('mrp', 15), ('sequence', 16), ('image_url', 17), ('threshold_quantity', 18),
+                             ('measurement_type', 19),
+                             ('sale_through', 20), ('color', 21), ('ean_number', 22), ('load_unit_handle', 23),
+                             ('hsn_code', 24),
+                             ('sub_category', 25), ('hot_release', 26), ('status', 27)
                              ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(
@@ -877,7 +892,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'grn_inventory_addition': 'get_grn_inventory_addition_data',
                         'sales_returns_addition': 'get_returns_addition_data',
                         'seller_stock_summary_replace': 'get_seller_stock_summary_replace',
-                        'rm_picklist_report': 'get_rm_picklist_data'
+                        'rm_picklist_report': 'get_rm_picklist_data',
+                        'stock_ledger_report': 'get_stock_ledger_data'
                         }
 # End of Download Excel Report Mapping
 
@@ -907,7 +923,8 @@ PERMISSION_DICT = OrderedDict((
                        ("BOM Master", "add_bommaster"),
                        ("Vendor Master", "add_vendormaster"), ("Discount Master", "add_categorydiscount"),
                        ("Custom SKU Template", "add_productproperties"), ("Size Master", "add_sizemaster"),
-                       ('Pricing Master', 'add_pricemaster'), ('Network Master', 'add_networkmaster'))),
+                       ('Pricing Master', 'add_pricemaster'), ('Network Master', 'add_networkmaster'),
+                       ('Tax Master', 'add_taxmaster'), ('T&C Master', 'add_tandcmaster'))),
 
     # Inbound
     ("INBOUND_LABEL", (("Raise PO", "add_openpo"), ("Receive PO", "add_purchaseorder"),
@@ -938,6 +955,9 @@ PERMISSION_DICT = OrderedDict((
 
     # Payment
     ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary"),)),
+
+    # Uploaded POs
+    ("UPLOADPO_LABEL", (("uploadedPOs", "add_orderuploads"),)),
 
 ))
 
@@ -1219,7 +1239,8 @@ STATUS_DICT = {1: True, 0: False}
 
 PO_RECEIPT_TYPES = ['Purchase Order', 'Buy & Sell', 'Hosted Warehouse']
 
-PO_ORDER_TYPES = {'SR': 'Self Receipt', 'VR': 'Vendor Receipt', 'HW': 'Hosted Warehouse', 'BS': 'Buy & Sell'}
+PO_ORDER_TYPES = {'SR': 'Self Receipt', 'VR': 'Vendor Receipt', 'HW': 'Hosted Warehouse', 'BS': 'Buy & Sell',
+                  'SP': 'Sampling'}
 
 LOAD_UNIT_HANDLE_DICT = {'enable': 'pallet', 'disable': 'unit'}
 
@@ -1298,6 +1319,8 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'create_shipment_type': 'create_shipment_type',
                         'auto_allocate_stock': 'auto_allocate_stock', 'priceband_sync': 'priceband_sync',
                         'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
+                        'create_order_po': 'create_order_po', 'calculate_customer_price': 'calculate_customer_price',
+                        'shipment_sku_scan': 'shipment_sku_scan',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -2864,5 +2887,58 @@ def get_rm_picklist_data(search_params, user, sub_user):
                                  ('RM SKU Code', obj.material_picklist.jo_material.material_code.sku_code),
                                  ('Location', location), ('Pallet Code', pallet_code), ('Quantity', obj.mod_quantity),
                                  ('Processed Date', get_local_date(user, obj.updation_date)),)))
+    temp_data['aaData'] = data
+    return temp_data
+
+
+def get_stock_ledger_data(search_params, user, sub_user):
+    from rest_api.views.common import get_local_date
+    from django.db.models import F
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    status_filter = {}
+    all_data = OrderedDict()
+    lis = {}
+    stock_stats = StockStats.objects.filter(sku__user=user.id)
+    if 'from_date' in search_params:
+        status_filter['creation_date__gte'] = datetime.datetime.combine(
+            search_params['from_date'], datetime.time())
+    if 'to_date' in search_params:
+        status_filter['creation_date__lte'] = datetime.datetime.combine(
+            search_params['to_date'] + datetime.timedelta(1), datetime.time())
+    if 'sku_code' in search_params:
+        status_filter['sku__sku_code__iexact'] = search_params['sku_code']
+    lis = [
+            'creation_date', 'sku__sku_code', 'sku__sku_desc', 'sku__style_name', 'sku__sku_brand', 'sku__sku_category',
+            'sku__sku_size', 'opening_stock', 'receipt_qty', 'produced_qty', 'dispatch_qty', 'return_qty',
+            'adjustment_qty', 'closing_stock'
+          ]
+    if len(status_filter):
+        stock_stats = stock_stats.filter(**status_filter)
+    if search_params.get('order_term'):
+        order_data = lis[search_params['order_index']]
+        if search_params['order_term'] == 'desc':
+            order_data = "-%s" % order_data
+        stock_stats = stock_stats.order_by(order_data)
+    temp_data['recordsTotal'] = stock_stats.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    data = []
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    if stop_index:
+        stock_stats = stock_stats[start_index:stop_index]
+    for obj in stock_stats:
+        date = get_local_date(user, obj.creation_date, send_date=True).strftime('%d %b %Y')
+        data.append(OrderedDict((('Date', date),
+                                 ('SKU Code', obj.sku.sku_code), ('SKU Description', obj.sku.sku_desc),
+                                 ('Style Name', obj.sku.style_name),
+                                 ('Brand', obj.sku.sku_brand), ('Category', obj.sku.sku_category),
+                                 ('Size', obj.sku.sku_size), ('Opening Stock', obj.opening_stock),
+                                 ('Receipt Quantity', obj.receipt_qty + obj.uploaded_qty),
+                                 ('Produced Quantity', obj.produced_qty),
+                                 ('Dispatch Quantity', obj.dispatch_qty), ('Return Quantity', obj.return_qty),
+                                 ('Consumed Quantity', obj.consumed_qty),
+                                 ('Adjustment Quantity', obj.adjustment_qty), ('Closing Stock', obj.closing_stock)
+                                 )))
     temp_data['aaData'] = data
     return temp_data

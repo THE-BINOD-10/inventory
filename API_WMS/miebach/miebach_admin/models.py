@@ -4,9 +4,7 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES
-
-
+from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, ROLE_TYPE_CHOICES
 # from longerusername import MAX_USERNAME_LENGTH
 # Create your models here.
 
@@ -369,6 +367,7 @@ class PurchaseOrder(models.Model):
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
     received_quantity = models.FloatField(default=0)
     saved_quantity = models.FloatField(default=0)
+    intransit_quantity = models.FloatField(default=0)
     po_date = models.DateTimeField(auto_now_add=True)
     ship_to = models.CharField(max_length=64, default='')
     status = models.CharField(max_length=32, db_index=True)
@@ -2181,6 +2180,20 @@ class OrderAwbMap(models.Model):
         db_table = 'ORDER_AWB_MAP'
         index_together = ('original_order_id', 'awb_no')
         unique_together = ('original_order_id', 'awb_no')
+
+
+class UserRoleMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    role_id = models.CharField(max_length=64, default='')
+    role_type = models.CharField(max_length=32, choices=ROLE_TYPE_CHOICES, default='supplier')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'USER_ROLE_MAPPING'
+        index_together = ('user', 'role_id', 'role_type')
+        unique_together = ('user', 'role_id', 'role_type')
 
 
 import django

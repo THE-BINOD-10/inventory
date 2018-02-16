@@ -98,6 +98,9 @@ var app = angular.module('urbanApp')
 
               if (Session.user_profile.user_type == "customer") {
                 $state.go(LOGIN_REDIRECT_STATE_CUSTOMER, {"location": "replace"});
+
+              } else if (Session.user_profile.user_type == "supplier"){
+                $state.go("app.PurchaseOrder", {"location": "replace"});
               } else {
                 $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});
               }
@@ -509,7 +512,7 @@ var app = angular.module('urbanApp')
           url: '/inbound',
         })
         .state('app.inbound.RaisePo', {
-          url: '/RaisePO',
+          url: '/scripts/controllers/outbound/pop_js/custom_order_details.jsRaisePO',
           permission: 'add_openpo',
           templateUrl: 'views/inbound/raise_po.html',
           resolve: {
@@ -555,7 +558,13 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/inbound/receive_po.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/inbound/receive_po.js');
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/pop_js/custom_order_details.js'
+                ]).then( function() { 
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/receive_po.js'
+                  ])
+                });
               }]
           },
           data: {
@@ -986,7 +995,8 @@ var app = angular.module('urbanApp')
                              'scripts/controllers/outbound/pop_js/common_backorder_po.js',
                              'scripts/controllers/outbound/pop_js/backorder_jo.js',
                              'scripts/controllers/outbound/pop_js/stock_transfer.js',
-                             'scripts/controllers/outbound/pop_js/picklist.js'
+                             'scripts/controllers/outbound/pop_js/picklist.js',
+                             'scripts/controllers/outbound/pop_js/custom_order_details.js'
                             ]
                         }]);
                     }]
@@ -1741,6 +1751,26 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Profile'
+          }
+        })
+
+      //supplier purchase order
+      .state('app.PurchaseOrder', {
+          url: '/PurchaseOrder',
+          templateUrl: 'views/inbound/supplier_purchase_order.html',
+		  resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/pop_js/custom_order_details.js'
+                ]).then( function() { 
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/supplier_purchase_order.js'
+                  ])
+                });
+              }]
+          },
+          data: {
+            title: 'Purchase Order'
           }
         })
 

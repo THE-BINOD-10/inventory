@@ -24,7 +24,7 @@
   <ul class="nav">
 
     <!-- dashboard -->
-    <li ui-sref-active="active">
+    <li ui-sref-active="active" ng-show="show_tab('DASHBOARD')">
       <a ui-sref="app.dashboard">
         <i class="fa fa-dashboard"></i>
         <span>Dashboard</span>
@@ -334,7 +334,7 @@
     </li>
 
     <!-- ready pages -->
-    <li ui-sref-active="active">
+    <li ui-sref-active="active" ng-show="show_tab('UPLOADS')">
       <a ui-sref="app.uploads">
         <i class="fa fa-cloud-upload"></i>
         <span>Uploads</span>
@@ -352,7 +352,7 @@
     <!-- /uploaded pages -->
 
     <!-- extras -->
-    <li data-ng-class="{open: $state.includes('app.reports')}">
+    <li data-ng-class="{open: $state.includes('app.reports')}" ng-show="show_tab('REPORTS')">
       <a href="javascript:;">
         <i class="fa fa-file-text"></i>
         <span>Reports</span>
@@ -474,11 +474,18 @@
         <i class="fa fa-tasks"></i>
         <span>Tally</span>
       </a>
-    </li>
+    </li> 
     <!-- Tally -->
 
+    <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'supplier'">
+      <a ui-sref="app.PurchaseOrder">
+        <i class="fa fa-tasks"></i>
+        <span>Purchase Order</span>
+      </a>
+    </li>
+
     <!-- ui kit -->
-    <li ui-sref-active="" class="settings" style="position: fixed;bottom: 50px;background: #2d3033;width: 210px !important;">
+    <li ui-sref-active="" class="settings" style="position: fixed;bottom: 50px;background: #2d3033;width: 210px !important;" ng-show="show_tab('CONFIGURATIONS')">
       <a ui-sref="app.configurations">
         <i class="fa fa-cogs"></i>
         <span>Configurations</span>

@@ -20,7 +20,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
                     'invoice_remarks': '', 'show_disc_invoice': false, 'serial_limit': '',
                     'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
-                    'generic_wh_level': false, 'auto_confirm_po': false, 'shipment_sku_scan': false,
+                    'generic_wh_level': false, 'auto_confirm_po': false, 'create_order_po': false, 'shipment_sku_scan': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -34,7 +34,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      36: 'barcode_generate_opt', 37: 'grn_scan_option', 38: 'invoice_titles', 39: 'show_imei_invoice',
                      40: 'display_remarks_mail', 41: 'create_seller_order', 42: 'invoice_remarks', 43: 'show_disc_invoice',
                      44: 'increment_invoice', 45: 'serial_limit', 46: 'create_shipment_type', 47: 'auto_allocate_stock',
-                     48: 'priceband_sync', 49: 'generic_wh_level', 50: 'auto_confirm_po', 51: 'shipment_sku_scan',}
+                     48: 'priceband_sync', 49: 'generic_wh_level', 50: 'auto_confirm_po', 51: 'create_order_po',
+                     52: 'calculate_customer_price', 53: 'shipment_sku_scan',}
 
   vm.check_box_data = [
     {
@@ -157,6 +158,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
+      name: "Display Place Sample option in Customer Portal",
+      model_name: "create_order_po",
+      param_no: 51,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
       name: "Generate Picklist for out of stock orders",
       model_name: "no_stock_switch",
       param_no: 11,
@@ -264,7 +272,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     {
       name: "SKU Scan in Shipment",
       model_name: "shipment_sku_scan",
-      param_no: 51,
+      param_no: 53,
       class_name: "fa fa-server",
       display: true
     },

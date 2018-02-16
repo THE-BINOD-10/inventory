@@ -2182,7 +2182,6 @@ def validate_purchase_order(open_sheet, user):
             elif col_idx == 1:
                 if cell_data:
                     try:
-
                         if isinstance(cell_data, float):
                             po_date = xldate_as_tuple(cell_data, 0)
                         elif '-' in cell_data:
@@ -2404,7 +2403,6 @@ def purchase_order_upload(request, user=''):
             open_sheet = open_book.sheet_by_index(0)
         except:
             return HttpResponse('Invalid File')
-
         status = validate_purchase_order(open_sheet, str(user.id))
         if status != 'Success':
             return HttpResponse(status)

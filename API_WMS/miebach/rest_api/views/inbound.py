@@ -133,7 +133,7 @@ def get_intransit_orders(start_index, stop_index, temp_data, search_term, order_
              'DT_RowAttr': {'id': data['id']}})
 
 
-def get_receive_po_datatable_filters(user, filters):
+def get_receive_po_datatable_filters(user, filters, request):
     search_params = {}
     search_params1 = {}
     search_params2 = {}
@@ -182,10 +182,14 @@ def get_receive_po_datatable_filters(user, filters):
             search_params1['po_id__in'] = search_params['id__in']
     if filters['search_1']:
         search_params['creation_date__regex'] = filters['search_1']
-    if filters['search_2']:
-        search_params['open_po__supplier__id__icontains'] = filters['search_2']
-        search_params1['open_st__warehouse__id__icontains'] = filters['search_2']
-        search_params2['rwo__vendor__id__icontains'] = filters['search_2']
+    if request.POST.get('style_view', '') == 'true':
+        supplier_search = 'search_9'
+    else:
+        supplier_search = 'search_8'
+    if filters[supplier_search]:
+        search_params['open_po__supplier__id__icontains'] = filters[supplier_search]
+        search_params1['open_st__warehouse__id__icontains'] = filters[supplier_search]
+        search_params2['rwo__vendor__id__icontains'] = filters[supplier_search]
     if filters['search_3']:
         search_params['open_po__supplier__name__icontains'] = filters['search_3']
         search_params1['open_st__warehouse__username__icontains'] = filters['search_3']
@@ -215,7 +219,7 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters):
     st_search_query = build_search_term_query(st_purchase_list, search_term)
     rw_purchase_query = build_search_term_query(rw_purchase_list, search_term)
 
-    search_params, search_params1, search_params2 = get_receive_po_datatable_filters(user, filters)
+    search_params, search_params1, search_params2 = get_receive_po_datatable_filters(user, filters, request)
 
     # Stock Transfer Purchase Records
     stock_results_objs = STPurchaseOrder.objects.exclude(po__status__in=['location-assigned', 'confirmed-putaway',
@@ -255,18 +259,20 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters):
     results = list(set((chain(po_order_ids_list, rw_order_ids_list, st_order_ids_list))))
     return results, order_qtys_dict, receive_qtys_dict
 
-
 @csrf_exempt
 def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     # sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['PO No', 'PO No', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty',
-           'Expected Date',
-           'Remarks', 'Order Type', 'Receive Status']
+    lis = ['PO No', 'PO No', 'Customer Name', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
+           'Remarks', 'Supplier ID/Name', 'Order Type', 'Receive Status']
     data_list = []
     data = []
     supplier_data = {}
     col_num1 = 0
-
+    supplier_status, supplier_user, supplier, supplier_parent = get_supplier_info(request)
+    if supplier_status:
+        request.user.id = supplier.user
+        user.id = supplier.user
+        filters['search_9'] = supplier.id
     results, order_qtys_dict, receive_qtys_dict = get_filtered_purchase_order_ids(request, user, search_term, filters)
 
     for result in results:
@@ -313,12 +319,20 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         expected_date = ''
         if supplier.expected_date:
             expected_date = supplier.expected_date.strftime("%d %b, %Y")
+        customer_data = OrderMapping.objects.filter(mapping_id=supplier.id, mapping_type='PO')
+        customer_name = ''
+        if customer_data:
+            customer_name = customer_data[0].order.customer_name
+        else:
+            if supplier_parent:
+                customer_name = supplier_parent.username
         data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference), ('Order Date', _date),
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
                                       ('Receivable Qty', total_receivable_qty),
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),
                                       ('Remarks', supplier.remarks), ('Order Type', order_type),
-                                      ('Receive Status', receive_status)
+                                      ('Receive Status', receive_status), ('Customer Name', customer_name),
+                                      ('Style Name', '')
                                       )))
     sort_col = lis[col_num]
 
@@ -1502,9 +1516,10 @@ def get_supplier_data(request, user=''):
         purchase_order = purchase_orders[0]
         supplier_name = order_data['supplier_name']
         order_date = get_local_date(user, purchase_order.creation_date)
-        if purchase_order.expected_date:
-            expected_date = datetime.datetime.strftime(purchase_order.expected_date, "%m/%d/%Y")
         remarks = purchase_order.remarks
+        if purchase_order.expected_date:
+            purchase_order = purchase_orders.latest('expected_date')
+            expected_date = datetime.datetime.strftime(purchase_order.expected_date, "%m/%d/%Y")
 
     return HttpResponse(json.dumps({'data': orders, 'po_id': order_id, 'options': REJECT_REASONS, \
                                     'supplier_id': order_data['supplier_id'], 'use_imei': use_imei, \
@@ -5259,6 +5274,10 @@ def get_receive_po_style_view(request, user=''):
         log.info("Request Params for Get Receive PO Style View for user %s is %s" % (
             user.username, str(request.GET.dict())))
         order_id = request.GET.get('order_id', '')
+        supplier_status, supplier_user, supplier, supplier_parent = get_supplier_info(request)
+        if supplier_status:
+            request.user.id = supplier.user
+            user.id = supplier.user
         sku_master, sku_master_ids = get_sku_master(user, request.user)
         stpurchase_filter = {'stpurchaseorder__open_st__sku_id__in': sku_master_ids,
                              'stpurchaseorder__po__open_po__isnull': True,
@@ -5282,26 +5301,99 @@ def get_receive_po_style_view(request, user=''):
             sku_size = sku.sku_size
             size_type = ''
             size_type_obj = sku.skufields_set.filter(field_type='size_type')
+            all_sizes = []
             if size_type_obj:
                 size_type = size_type_obj[0].field_value
+                size_master = SizeMaster.objects.filter(size_name=size_type, user=user.id)
+                if size_master:
+                    all_sizes = size_master[0].size_value.split('<<>>')
             receivable_quantity = float(order_data['order_quantity']) - float(order.received_quantity)
             if receivable_quantity < 0:
                 receivable_quantity = 0
-            data_dict.setdefault(size_type, {'sizes_list': [], 'styles': {}})
+            data_dict.setdefault(size_type, {'sizes_list': [], 'styles': {}, 'all_sizes': all_sizes})
             if sku_size not in data_dict[size_type]['sizes_list']:
                 data_dict[size_type]['sizes_list'].append(sku_size)
+	    if not data_dict[size_type]['all_sizes']:
+                data_dict[size_type]['all_sizes'] = data_dict[size_type]['sizes_list']
             style_data = {'style_code': sku_class, 'style_name': sku.style_name, 'brand': sku.sku_brand,
                           'category': sku.sku_category}
             data_dict[size_type]['styles'].setdefault(sku_class, {'style_data': style_data, 'sizes': {},
                                                                   'po_data': copy.deepcopy(default_po_dict)})
-            data_dict[size_type]['styles'][sku_class]['sizes'][sku_size] = order_data['order_quantity']
-            data_dict[size_type]['styles'][sku_class]['po_data']['total_order_quantity'] += order_data['order_quantity']
+            order_quantity = order_data['order_quantity']
+            if supplier_status:
+                order_quantity = order_quantity - order_data['intransit_quantity']
+                if order_quantity < 0:
+                    order_quantity = 0
+            data_dict[size_type]['styles'][sku_class]['sizes'][sku_size] = order_quantity
+            data_dict[size_type]['styles'][sku_class]['po_data']['total_order_quantity'] += order_quantity
             data_dict[size_type]['styles'][sku_class]['po_data']['total_received_quantity'] += order.received_quantity
             data_dict[size_type]['styles'][sku_class]['po_data']['total_receivable_quantity'] += receivable_quantity
+        order_detail_id = ''
+        if purchase_orders:
+            order_mapping = OrderMapping.objects.filter(mapping_type='PO',mapping_id=purchase_orders[0].id)
+            if order_mapping and order_mapping[0].order.order_code == 'CO':
+                order_detail_id = order_mapping[0].order.original_order_id
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info("Get Receive PO Style View failed for params %s on %s and error statement is %s" % (
             str(request.GET.dict()), str(get_local_date(user, datetime.datetime.now())), str(e)))
         return HttpResponse(json.dumps({'data_dict': {}, 'status': 0, 'message': 'Failed'}))
-    return HttpResponse(json.dumps({'data_dict': data_dict, 'status': 1}))
+    return HttpResponse(json.dumps({'data_dict': data_dict, 'order_detail_id': order_detail_id, 'status': 1}, cls=DjangoJSONEncoder))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_supplier_po(request, user=''):
+
+    supplier_status, supplier_user, supplier, supplier_parent = get_supplier_info(request)
+    if not supplier_status:
+        return HttpResponse("Fail")
+    request.user.id = supplier.user
+    user.id = supplier.user
+    myDict = json.loads(request.POST.get('data', '{}'))
+    po_data = {}
+    expected_date = request.POST.get('expected_date', '')
+    po_number = request.POST.get('po_number', '')
+    for size_type, styles in myDict.iteritems():
+        for style_name, style_data in styles["styles"].iteritems():
+            qty_status = False
+            dt_status = False
+            temp_po_data = {'sizes':{}, 'remarks': ''}
+            for size, quantity in style_data["sizes"].iteritems():
+                if quantity:
+                    temp_po_data['sizes'][size] = quantity
+                    qty_status = True
+            if qty_status and style_data.get('expected_date', ''):
+                temp_po_data['expected_date'] = style_data['expected_date']
+                dt_status = True
+            elif qty_status and expected_date:
+                temp_po_data['expected_date']  = expected_date
+                dt_status = True
+            if style_data.get('remarks', ''):
+                temp_po_data['remarks'] = style_data['remarks']
+            if qty_status and not dt_status:
+                return HttpResponse("Please Select Date")
+            elif qty_status:
+                po_data[style_name] = temp_po_data
+
+    print po_data
+    if not po_data:
+        return HttpResponse("Please Enter Quantity")
+    pos =  PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_number)
+    for style, po in po_data.iteritems():
+        style_po = pos.filter(open_po__sku__sku_class=style)
+        for size, quantity in po['sizes'].iteritems():
+            size_po = style_po.filter(open_po__sku__sku_size=size)
+            if not size_po or not quantity:
+                continue
+            size_po = size_po[0]
+            size_po.intransit_quantity = size_po.intransit_quantity + float(quantity)
+            size_po.save()
+        if po['remarks']:
+            style_po.update(remarks=po['remarks'])
+        if po['expected_date']:
+            date = po['expected_date'].split('/')
+            style_po.update(expected_date=datetime.date(int(date[2]), int(date[0]), int(date[1])))
+    return HttpResponse("Success")

@@ -115,7 +115,7 @@ def get_user_permissions(request, user):
     return {'permissions': roles, 'label_perms': label_perms}
 
 
-def get_label_permissions(request, user, role_perms):
+def get_label_permissions(request, user, role_perms, user_type):
     label_keys = copy.deepcopy(LABEL_KEYS)
     sub_label_keys = copy.deepcopy(PERMISSION_DICT)
     labels = {}
@@ -128,6 +128,9 @@ def get_label_permissions(request, user, role_perms):
         else:
             labels[label] = False
 
+    extra_labels = ['DASHBOARD', 'UPLOADS', 'REPORTS', 'CONFIGURATIONS']
+    for label in extra_labels:
+        labels[label] = True if user_type != 'supplier' else False
     return labels
 
 
@@ -160,7 +163,8 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['roles'] = get_user_permissions(request, user)
     response_data['data']['roles']['tax_type'] = tax_type
     response_data['data']['roles']['labels'] = get_label_permissions(request, user,
-                                                                     response_data['data']['roles']['label_perms'])
+                                                                     response_data['data']['roles']['label_perms'],
+                                                                     request_user_profile.user_type)
     response_data['data']['roles']['permissions']['is_superuser'] = status_dict[int(request.user.is_superuser)]
     response_data['data']['roles']['permissions']['is_staff'] = status_dict[int(request.user.is_staff)]
     response_data['data']['roles']['permissions']['multi_warehouse'] = multi_warehouse
@@ -3090,13 +3094,11 @@ def get_sku_master(user, sub_user):
     return sku_master, sku_master_ids
 
 
-def create_update_user(data, password, username):
+def create_update_user(full_name, email, phone_number, password, username, role_name='customer'):
     """
     Creating a new Customer User
     """
-    full_name = data.name
-    password = password
-    email = data.email_id
+    new_user_id = ''
     if username and password:
         user = User.objects.filter(username=username)
         if user:
@@ -3105,18 +3107,16 @@ def create_update_user(data, password, username):
             user = User.objects.create_user(username=username, email=email, password=password, first_name=full_name,
                                             last_login=datetime.datetime.now())
             user.save()
+            new_user_id = user.id
             hash_code = hashlib.md5(b'%s:%s' % (user.id, email)).hexdigest()
             if user:
                 prefix = re.sub('[^A-Za-z0-9]+', '', user.username)[:3].upper()
-                user_profile = UserProfile.objects.create(phone_number=data.phone_number, user_id=user.id,
-                                                          api_hash=hash_code,
-                                                          prefix=prefix, user_type='customer')
+                user_profile = UserProfile.objects.create(phone_number=phone_number, user_id=user.id,
+                                                          api_hash=hash_code, prefix=prefix, user_type=role_name)
                 user_profile.save()
-                CustomerUserMapping.objects.create(customer_id=data.id, user_id=user.id,
-                                                   creation_date=datetime.datetime.now())
             status = 'User Added Successfully'
 
-    return status
+    return status, new_user_id
 
 
 @csrf_exempt
@@ -3417,14 +3417,14 @@ def apply_search_sort(columns, data_dict, order_term, search_term, col_num, exac
     return data_dict
 
 
-def password_notification_message(username, password, name, to):
+def password_notification_message(username, password, name, to, role_name):
     """ Send SMS for password modification """
     arguments = "%s -- %s -- %s -- %s" % (username, password, name, to)
     log.info(arguments)
     try:
-        data = " Dear Customer, Your credentials for %s Customer Portal are as follows: \n Username: %s \n Password: %s" % (
-        name, username, password)
 
+        data = " Dear %s, Your credentials for %s %s Portal are as follows: \n Username: %s \n Password: %s" % (
+                        role_name, role_name, name, username, password)
         send_sms(to, data)
     except:
         log.info("message sending failed")
@@ -4194,12 +4194,14 @@ def get_purchase_order_data(order):
     temp_wms = ''
     unit = ""
     gstin_number = ''
+    intransit_quantity = 0
     if 'job_code' in dir(order):
         order_data = {'wms_code': order.product_code.wms_code, 'sku_group': order.product_code.sku_group,
                       'sku': order.product_code,
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle,
                       'sku_desc': order.product_code.sku_desc,
-                      'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': ''}
+                      'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': '',
+                      'intransit_quantity': intransit_quantity}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]
@@ -4225,6 +4227,7 @@ def get_purchase_order_data(order):
         email_id = user_data.email_id
         username = user_data.name
         order_quantity = open_data.order_quantity
+        intransit_quantity = order.intransit_quantity
         sku = open_data.sku
         price = open_data.price
         unit = open_data.measurement_unit
@@ -4264,7 +4267,7 @@ def get_purchase_order_data(order):
                   'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms,
                   'order_type': order_type,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
-                  'utgst_tax': utgst_tax,
+                  'utgst_tax': utgst_tax, 'intransit_quantity': intransit_quantity,
                   'tin_number': tin_number}
 
     return order_data
@@ -6073,6 +6076,17 @@ def get_level_name_with_level(user, warehouse_level, users_list=[]):
         level_name = level_name_objs[0].level_name
     return level_name
 
+def get_supplier_info(request):
+    supplier_user = '' 
+    supplier = '' 
+    supplier_parent = '' 
+    profile = UserProfile.objects.get(user=request.user)
+    if profile.user_type == 'supplier':
+        supplier_data = UserRoleMapping.objects.get(user=request.user, role_type='supplier')
+        supplier = SupplierMaster.objects.get(id = supplier_data.role_id)
+        supplier_parent = User.objects.get(id = supplier.user)
+        return True, supplier_data, supplier, supplier_parent
+    return False, supplier_user, supplier, supplier_parent
 
 def create_new_supplier(user, supp_name, supp_email, supp_phone, supp_address, supp_tin):
     ''' Create New Supplier with dynamic supplier id'''

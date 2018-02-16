@@ -47,6 +47,9 @@ importScripts('/app/data/offlineData.js');
         "app/cal_money/money.module.js",
         "app/cal_money/money.component.js",
         "app/cal_money/money.template.html",
+        "app/payment_type/paymenttype.module.js",
+        "app/payment_type/paymenttype.component.js",
+        "app/payment_type/paymenttype.template.html",
         "app/last/last.component.js",
         "app/last/last.module.js",
         "app/last/last.template.html",
@@ -77,6 +80,7 @@ importScripts('/app/data/offlineData.js');
 		"app/data/dexie.js",
 		"app/views/home.html",
 		"app/views/print.html",
+		"app/views/pre_order_print.html",
 		"app/app.config.js",
 		"app/header/header.component.js",
 		"app/header/header.module.js",
@@ -244,7 +248,7 @@ importScripts('/app/data/offlineData.js');
 				      			}));
 		    }
 		}else{
-			throw error;
+			throw "error";
 		}
     });
 

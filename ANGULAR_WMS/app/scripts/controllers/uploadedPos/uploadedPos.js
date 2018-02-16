@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.user_type = Session.roles.permissions.user_type;
     vm.filters = {'datatable': 'UploadedPos', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -25,6 +26,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.dtColumns = [
         DTColumnBuilder.newColumn('id').withTitle('S.No'),
         DTColumnBuilder.newColumn('uploaded_user').withTitle('Uploaded User'),
+        DTColumnBuilder.newColumn('order_id').withTitle('Order ID'),
         DTColumnBuilder.newColumn('po_number').withTitle('Po No'),
         DTColumnBuilder.newColumn('uploaded_date').withTitle('Date'),
         DTColumnBuilder.newColumn('customer_name').withTitle('Customer Name'),

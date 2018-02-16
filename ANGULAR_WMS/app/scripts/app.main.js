@@ -165,18 +165,22 @@ angular
       };
       
       $scope.logout = function() {
-
+        var user_type = $scope.permissions.user_type;
+        var user_types = ['central_admin', 'distributor', 'warehouse'];
         Auth.logout().then(function () {
-
-                 $state.go("user.signin");
-                 localStorage.removeItem('order_management');
-                   //$rootScope.$broadcast(AUTH_EVENTS.logoutSuccess);
-                 });
+          if (user_types.indexOf(user_type) != -1) {
+            $state.go("user.smlogin");
+          } else {
+            $state.go("user.signin");
+          }
+          localStorage.removeItem('order_management');
+          //$rootScope.$broadcast(AUTH_EVENTS.logoutSuccess);
+        });
       }
 
       var special = ["add_shipmentinfo", "add_qualitycheck", "pos_switch", "production_switch", "setup_status", "order_manage", "add_productproperties", "add_pricemaster", "add_sizemaster", "add_paymentsummary", "add_issues", "show_pull_now", "tally_config", "change_inventoryadjustment"];
       var labels_list = ["MASTERS_LABEL", "INBOUND_LABEL", "PRODUCTION_LABEL", "STOCK_LABEL", "OUTBOUND_LABEL", "SHIPMENT_LABEL",
-      "OTHERS_LABEL", "PAYMENT_LABEL"];
+      "OTHERS_LABEL", "PAYMENT_LABEL", "DASHBOARD", "UPLOADS", "REPORTS", "CONFIGURATIONS"];
       $scope.show_tab = function(data) {
         if (!(Session.userName)) {
           return false;
@@ -184,8 +188,8 @@ angular
           return Session.roles.labels[data];
         }else if(special.indexOf(data) > -1) {
           return Session.roles.permissions[data];
-        //} else if (Boolean(Session.roles.permissions["is_staff"]) || Boolean(Session.roles.permissions["is_superuser"])) {
-        //  return true;
+        } else if (!data) {
+          return true;
         } else if (!(Session.roles.permissions[data])) {
           return false;
         } else {

@@ -20,7 +20,7 @@ def get_user_sku_data(user):
    user = User.objects.get(id=user)
    total_data = []
    master_data = SKUMaster.objects.exclude(sku_type='RM').filter(user = user.id)\
-                                                         .only('id', 'zone_id', 'price', 'product_type',\
+                                                         .only('id', 'zone_id', 'price', 'product_type', 'ean_number',\
                                                          'discount_percentage', 'sku_category', 'wms_code', 'sku_desc', 'image_url')\
                                                          .prefetch_related('zone')
 
@@ -58,9 +58,10 @@ def get_user_sku_data(user):
       if discount_percentage:
          discount_price = price - ((price * discount_percentage) / 100)
       stock_quantity = stocks.get(data.wms_code, 0)
-      total_data.append({'search': str(data.wms_code) + " " + data.sku_desc,
+      total_data.append({'search': str(data.wms_code) + " " + data.sku_desc + " " + str(data.ean_number),
                          'SKUCode': data.wms_code,
                          'ProductDescription': data.sku_desc,
+                         'ean_number': str(data.ean_number),
                          'price': discount_price,
                          'url': data.image_url,
                          'data-id': data.id,

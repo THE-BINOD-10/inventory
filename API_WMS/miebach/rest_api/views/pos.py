@@ -39,9 +39,9 @@ def validate_sales_person(request):
 
 @login_required
 @csrf_exempt
-def get_pos_user_data(request):
-    user_id = request.GET.get('id')
-    user = User.objects.get(id=user_id)
+@get_admin_user
+def get_pos_user_data(request, user=''):
+    user_id = user.id
     status = subprocess.check_output(['pgrep -lf sku_master_file_creator'], \
                                      stderr=subprocess.STDOUT, shell=True)
     if "python" not in status:
@@ -64,31 +64,30 @@ def get_pos_user_data(request):
         response_data['parent_id'] = user.user.id
         response_data['company'] = user.company_name
         response_data['address'] = user.address
+        response_data['phone'] = user.phone_number
+        response_data['gstin'] = user.gst_number
         return HttpResponse(json.dumps(response_data))
     return HttpResponse("fail")
 
 
 @login_required
 @csrf_exempt
-def get_current_order_id(request):
-    user = request.GET.get('user', '')
-    order_id = get_order_id(user)
+@get_admin_user
+def get_current_order_id(request, user=''):
+    order_id = get_order_id(user.id)
     return HttpResponse(json.dumps({'order_id': order_id}))
 
 
 @login_required
-def search_pos_customer_data(request):
+@get_admin_user
+def search_pos_customer_data(request, user=''):
     search_key = request.GET['key']
     total_data = []
-    user = request.user.id
-    user = request.GET.get('user')
-    if user:
-        user = user
     if len(search_key) < 3:
         return HttpResponse(json.dumps(total_data))
     lis = ['name', 'email_id', 'phone_number', 'address', 'status']
     master_data = CustomerMaster.objects.filter(Q(phone_number__icontains=search_key) | \
-                                                Q(name__icontains=search_key), user=user)
+                                                Q(name__icontains=search_key), user=user.id)
     for data in master_data[:30]:
         status = 'Inactive'
         if data.status:
@@ -102,14 +101,18 @@ def search_pos_customer_data(request):
 
 
 @login_required
-def search_product_data(request):
+@get_admin_user
+def search_product_data(request, user=''):
     search_key = request.GET['key']
-    user_id = request.GET['user']
-    user = User.objects.filter(id=user_id)[0]
     total_data = []
-    master_data = SKUMaster.objects.exclude(sku_type='RM') \
-        .filter(Q(wms_code__icontains=search_key) | \
-                Q(sku_desc__icontains=search_key), user=user_id)
+    try:
+        master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
+                                                                      Q(sku_desc__icontains=search_key) |
+                                                                      Q(ean_number=int(search_key)),
+                                                                      user=user.id)
+    except:
+        master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
+                                                                      Q(sku_desc__icontains=search_key), user=user.id)
     for data in master_data[:30]:
         status = 'Inactive'
         if data.status:
@@ -131,7 +134,8 @@ def search_product_data(request):
         discount_percentage = data.discount_percentage
         discount_price = price
         if not data.discount_percentage:
-            category = CategoryDiscount.objects.filter(category=data.sku_category)
+            category = CategoryDiscount.objects.filter(category=data.sku_category, \
+                                                       user_id=user.id)
             if category:
                 category = category[0]
                 if category.discount:
@@ -140,11 +144,11 @@ def search_product_data(request):
             discount_price = price - ((price * discount_percentage) / 100)
         stock_quantity = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE') \
             .filter(sku__wms_code=data.wms_code, \
-                    sku__user=user_id).aggregate(Sum('quantity'))
+                    sku__user=user.id).aggregate(Sum('quantity'))
         stock_quantity = stock_quantity['quantity__sum']
         if not stock_quantity:
             stock_quantity = 0
-        total_data.append({'search': str(data.wms_code) + " " + data.sku_desc,
+        total_data.append({'search': str(data.wms_code) + " " + data.sku_desc + " " + str(data.ean_number),
                            'SKUCode': data.wms_code,
                            'ProductDescription': data.sku_desc,
                            'price': discount_price,
@@ -218,12 +222,14 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
                                            status='batch_picked', \
                                            order_id=order_detail.id, \
                                            stock_id='', creation_date=NOW)
-    CustomerOrderSummary.objects.create(order_id=order_detail.id, \
-                                        discount=item['discount'], \
-                                        issue_type=order_detail.order_code, \
-                                        cgst_tax=item['cgst_percent'], \
-                                        sgst_tax=item['sgst_percent'], \
-                                        creation_date=NOW)
+    obj, created = CustomerOrderSummary.objects.get_or_create(order_id=order_detail.id)
+    if created:
+        obj.discount = item['discount']
+        obj.issue_type = order_detail.order_code
+        obj.cgst_tax = item['cgst_percent']
+        obj.sgst_tax = item['sgst_percent']
+        obj.creation_date = NOW
+        obj.save()
     stock_diff = 0
     for stock in stock_detail:
         stock_count, stock_diff = get_stock_count(request, order_detail, stock, \
@@ -257,9 +263,11 @@ def customer_order(request):
     only_return = True
     if isinstance(orders, dict): orders = [orders]
     for order in orders:
+        order_created = False
+        total_payment_received = sum(order['summary'].get('payment', {}).values())
         user_id = order['user']['parent_id']
         user = User.objects.get(id=user_id)
-        if not order['customer_data']:
+        if not order['customer_data'] and order['summary']['issue_type'] == "Pre Order":
             return HttpResponse(json.dumps({'message': 'Missing Customer Data'}))
         cust_dict = order['customer_data']
         number = order['customer_data']['Number']
@@ -269,6 +277,7 @@ def customer_order(request):
             else order['summary']['order_id']
         status = 0 if order['summary']['issue_type'] == "Delivery Challan" \
             else 1
+        original_order_id = order['summary']['issue_type'] + str(order_id)
         order_ids.append(order_id)
         picklist_number = get_picklist_number(user) + 1
         if customer_data:
@@ -292,7 +301,8 @@ def customer_order(request):
         val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
         val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
         val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)"""
-        if customer_name:
+        if (customer_name and order['summary']['issue_type'] == "Pre Order") or \
+                        order['summary']['issue_type'] == "Delivery Challan":
             for item in order['sku_data']:
 
                 sku = SKUMaster.objects.get(wms_code=item['sku_code'], \
@@ -300,6 +310,12 @@ def customer_order(request):
                 # if not returning item
                 if item['return_status'] == "false":
                     only_return = False
+                    if item['price'] < total_payment_received :
+                        payment_received = item['price']
+                        total_payment_received -= item['price']
+                    else:
+                        payment_received = total_payment_received
+                        total_payment_received = 0
                     order_detail = OrderDetail.objects.create(user=user_id, \
                                                               marketplace="Offline", \
                                                               order_id=order_id, \
@@ -312,12 +328,20 @@ def customer_order(request):
                                                               invoice_amount=item['price'], \
                                                               order_code=order['summary']['issue_type'], \
                                                               shipment_date=NOW, \
-                                                              original_order_id=order['summary']['issue_type'] + str(
-                                                                  order_id), \
+                                                              original_order_id=original_order_id, \
                                                               nw_status=order['summary']['nw_status'], \
                                                               status=status, \
                                                               email_id=cust_dict.get('Email', ''), \
-                                                              unit_price=item['unit_price'])
+                                                              unit_price=item['unit_price'],
+                                                              payment_received=payment_received)
+                    CustomerOrderSummary.objects.create(order_id=order_detail.id, \
+                                                        discount=item['discount'], \
+                                                        issue_type=order_detail.order_code, \
+                                                        cgst_tax=item['cgst_percent'], \
+                                                        sgst_tax=item['sgst_percent'], \
+                                                        order_taken_by=order['summary']['staff_member'], \
+                                                        creation_date=NOW)
+                    order_created = True
                     if status == 0:
                         stock_diff, invoice_number = item['quantity'], order_id
                         stock_detail = StockDetail.objects.exclude( \
@@ -370,39 +394,66 @@ def customer_order(request):
                         status=0, \
                         location=sku_stocks_.location, \
                         returns=order_return)
+            if order_created:
+                # store extra details
+                for field, val in order["summary"].get("payment", {}).iteritems():
+                    OrderFields.objects.create(original_order_id=original_order_id, name="payment_" + field, value=val,
+                                               user=user.id)
+                for field, val in order["customer_data"].get("extra_fields", {}).iteritems():
+                    OrderFields.objects.create(original_order_id=order_detail.original_order_id, \
+                                               name=field, value=val, user=user.id)
     if only_return: order_ids = ['return']
     return HttpResponse(json.dumps({'order_ids': order_ids}))
 
 
-@login_required
-@csrf_exempt
-def print_order_data(request):
-    customer_data, summary = {}, {}
+def prepare_delivery_challan_json(request, order_id, user_id):
+    json_data = {}
+    customer_data, summary, gst_based = {}, {}, {}
     sku_data = []
     total_quantity, total_amount, subtotal = [0] * 3
     status = 'fail'
     order_date = NOW
-    user_id = request.GET['user']
     user = User.objects.get(id=user_id)
-    order_id = request.GET['order_id']
     order_date = get_local_date(user, NOW)
     order_detail = OrderDetail.objects.filter(order_id=order_id, \
                                               user=user_id, quantity__gt=0)
+
     for order in order_detail:
         selling_price = order.unit_price if order.unit_price != 0 \
             else float(order.invoice_amount) / float(order.quantity)
+        order_summary = CustomerOrderSummary.objects.filter(order_id=order.id)
+        if order_summary:
+            tax_master = order_summary.values('sgst_tax', 'cgst_tax', 'igst_tax', 'utgst_tax')[0]
+        else:
+            tax_master = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
+        gst_based.setdefault(tax_master['cgst_tax'], {'taxable_amt': 0,
+                                                      'cgst_percent': tax_master["cgst_tax"],
+                                                      'sgst_percent': tax_master["sgst_tax"],
+                                                      'sgst': 0,
+                                                      'cgst': 0})
+        gst_based[tax_master['cgst_tax']]['taxable_amt'] += order.invoice_amount
+        gst_based[tax_master['cgst_tax']]['sgst'] += order.invoice_amount * tax_master["sgst_tax"] / 100
+        gst_based[tax_master['cgst_tax']]['cgst'] += order.invoice_amount * tax_master["cgst_tax"] / 100
         sku_data.append({'name': order.title,
                          'quantity': order.quantity,
                          'sku_code': order.sku.sku_code,
                          'price': order.invoice_amount,
-                         'selling_price': selling_price})
+                         'unit_price': selling_price,
+                         'sgst': selling_price * tax_master["sgst_tax"] / 100,
+                         'cgst': selling_price * tax_master["cgst_tax"] / 100
+                         })
         total_quantity += int(order.quantity)
-        total_amount += int(order.invoice_amount)
+        total_amount += (float(order.invoice_amount) + float(order.invoice_amount) * tax_master["sgst_tax"] / 100 + \
+                         float(order.invoice_amount) * tax_master["cgst_tax"] / 100);
     if order_detail:
         status = 'success'
         order = order_detail[0]
         customer_id = ''
         order_date = get_local_date(user, order.creation_date)
+        extra_field_obj = list(OrderFields.objects.filter(original_order_id = order.original_order_id, user = user_id)\
+                                  .exclude(name__icontains = "payment_").values_list('name', 'value'))
+        extra_fields = {}
+        [extra_fields.update({a[0]:a[1]}) for a in extra_field_obj]
         if order.customer_id:
             customer_master = CustomerMaster.objects.filter(id=order.customer_id, \
                                                             name=order.customer_name, \
@@ -421,14 +472,26 @@ def print_order_data(request):
             summary = {'total_quantity': total_quantity,
                        'total_amount': total_amount,
                        'subtotal': total_amount,
+                       'gst_based': gst_based,
+                       'staff_member': order_summary.order_taken_by,
                        'issue_type': order_summary.issue_type}
-    return HttpResponse(json.dumps({'data':
-                                        {'customer_data': customer_data,
-                                         'summary': summary,
-                                         'sku_data': sku_data,
-                                         'order_id': order_id,
-                                         'order_date': order_date},
-                                    'status': status}))
+            json_data = {'data':{'customer_data': customer_data, 'summary': summary,
+                                 'sku_data': sku_data, 'order_id': order_id,
+                                 'order_date': order_date,
+                                 'customer_extra': extra_fields},
+                        'status': status
+                        }
+    return json_data
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def print_order_data(request, user=''):
+    user_id = user.id
+    order_id = request.GET['order_id']
+    json_data = prepare_delivery_challan_json(request, order_id, user_id)
+    return HttpResponse(json.dumps(json_data))
 
 
 def get_order_details(order_id, user_id, mobile, customer_name, request_from):
@@ -514,11 +577,12 @@ def update_order_status(request):
         if data['delete_order'] == "true":
             order_detail.delete()
             if nw_status == "online":
-                return HttpResponse("Deleted Successfully !")
+                return HttpResponse(json.dumps({"message": "Deleted Successfully !", "data": {}}))
             else:
                 continue
         for order in order_detail:
             order.status = 0
+            order.payment_received = order.invoice_amount
             sku = order.sku
             user_id = order.user
             user = User.objects.get(id=user_id)
@@ -527,7 +591,7 @@ def update_order_status(request):
             if stock_detail:
                 order.save()
             else:
-                if nw_status == "online": return HttpResponse("Error")
+                if nw_status == "online": return HttpResponse(json.dumps({"message": "Error", "data": {}}))
                 order.save()
                 continue
 
@@ -566,4 +630,44 @@ def update_order_status(request):
             stock_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
             picklist_creation(request, stock_detail, stock_quantity, order, \
                               picklist_number, stock_diff, item, user, invoice_number)
-    return HttpResponse("Delivered Successfully !")
+    json_data = prepare_delivery_challan_json(request, full_data[0]['order_id'], request.user.id)
+    return HttpResponse(json.dumps({"message": "Delivered Successfully !", "data": json_data}))
+
+
+@login_required
+@get_admin_user
+def get_extra_fields(request, user=''):
+    user_id = user.id
+    extra_fields = {}
+    extra_fields_obj = MiscDetail.objects.filter(user=user_id, misc_type__icontains="pos_extra_fields_")
+    for item in extra_fields_obj:
+        typ = item.misc_type.replace("pos_extra_fields_", "")
+        extra_fields[typ] = item.misc_value.split(",")
+    return HttpResponse(json.dumps(extra_fields))
+
+
+@login_required
+def get_staff_members_list(request):
+    user = request.user
+    members = ['Staff-1', 'Staff-2', 'Staff-3']
+    if user.username == "bcbs_retail":
+        members = ['Staff-1', 'Staff-2', 'Staff-3']
+    elif user.username == "bcgs_retail":
+        members = ['Staff-4', 'Staff-5', 'Staff-6']
+    elif user.username == "ssrvm_retail":
+        members = ['Staff-7', 'Staff-8', 'Staff-9']
+    elif user.username == "stjohns_retail":
+        members = ['Staff-10', 'Staff-11', 'Staff-12']
+    elif user.username == "vps_retail":
+        members = ['Staff-13', 'Staff-14', 'Staff-15']
+    return HttpResponse(json.dumps({'members': members}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def pos_tax_inclusive(request, user=''):
+    data = {}
+    tax_inclusive = get_misc_value('tax_inclusive', user.id)
+    data['tax_inclusive_switch'] = json.loads(tax_inclusive)
+    return HttpResponse(json.dumps(data), content_type='application/json')

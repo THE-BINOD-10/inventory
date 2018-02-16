@@ -1,6 +1,5 @@
-input#input-0,
-input#input-1 {
-  border: 1px solid grey;
+input[type="search"] {
+  border: 1px solid grey !important;
 }
 .sku-box {
   overflow: hidden;
@@ -382,4 +381,10 @@ input#input-1 {
     -webkit-transform: rotate(359deg);
     transform: rotate(359deg);
   }
+}
+.extra_fields_row {
+  padding-left: 0px;
+}
+.extra_fields_row textarea {
+  margin-bottom: 5px;
 }

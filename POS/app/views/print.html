@@ -12,9 +12,10 @@
   text-align: center;
   display: block;
 }
-.title .shop-title {
+.shop-title {
   text-align: center;
   display: block;
+  font-size: 18px;
 }
 .products table,
 .table-pro table {
@@ -44,21 +45,30 @@
 </style>
 
 <div class="receipt">
-  <span class="shop-name">{{user.company}}</span>
+  <span class="shop-title"><strong>{{user.company | uppercase}}</strong></span>
   <span class="shop-name">{{user.address}}</span>
+  <span class="shop-name">Ph: {{user.phone}}</span>
+  <span class="shop-name">Tax Invoice</span>
+  <span class="shop-name">GSTIN: {{user.gstin}}</span>
+  <span class="shop-name">{{print_type}}</span>
   <hr>
   <div class="title">
     <div>
         <!--<span class="hide shop-title">Sales Person Name: {{urlService.userData.user_name}}</span>-->
       <div>
-          <span class="pull-right">Invoice Number: {{data.summary.invoice_number}}{{data.order_id}}</span>
+          <span class="pull-right">Bill Number: {{data.summary.invoice_number}}{{data.order_id}}</span>
       </div>
-      <div>
+      <!--<div>
           <span class="pull-right">Order Number: {{data.order_id}}</span>
-      </div>
+      </div>-->
       <div>
           <span class="pull-right">Order Type: {{data.summary.issue_type}}</span>
       </div>
+
+      <div>
+          <span class="pull-right">Order Taken By: {{data.summary.staff_member}}</span>
+      </div>
+
       <div>
           <span class="pull-right">Order Date: {{date}}</span>
       </div>
@@ -78,27 +88,27 @@
     <table>
       <thead>
         <tr>
-          <th>Products</th>
+          <th>Item Name</th>
           <th>Qty</th>
           <th>Rate</th>
-          <th>Value</th>
+          <th>Amt</th>
         </tr>
       </thead>
       <tbody>
         <tr ng-repeat="item in data.sku_data">
           <td> {{item.name}} </td>
           <td> {{item.quantity}} </td>
-          <td> {{item.selling_price}} </td>
-          <td> {{item.price}}</td>
+          <td> {{item.unit_price + item.sgst + item.cgst | number:2}} </td>
+          <td> {{((item.unit_price + item.sgst + item.cgst) * item.quantity) | number:2}}</td>
         </tr>
       </tbody>
     </table>
   </div>
   <hr>
     <div class="product-total">
-       <span>Items: {{data.sku_data.length}}</span>
-       <span>Qty: {{data.summary.total_quantity}} </span>
-       <span>Amt: {{data.summary.subtotal}}</span>
+       <span>Tot Items: {{data.sku_data.length}}</span>
+       <span>Tot Qty: {{data.summary.total_quantity}} </span>
+       <span>Tot Amt: {{data.summary.total_amount | number:2}}</span>
        <!--<span>Amt: {{(data.summary.total_amount*100)/(100+user.VAT)}}</span>-->
     </div>
   <hr>
@@ -108,18 +118,20 @@
     <table>
       <thead>
         <tr>
-          <th>Description</th>
-          <th>Sales Value</th>
-          <th>Total Amount</th>
+          <th>Taxable Amt</th>
+          <th>CGST %</th>
+          <th>CGST Amt</th>
+          <th>SGST %</th>
+          <th>SGST Amt</th>
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td> GST: {{data.summary.sgst + data.summary.cgst}} </td>
-          <td> {{data.summary.subtotal}}</td>
-          <td> {{data.summary.total_amount}} </td>
-          <!--<td> {{(data.summary.total_amount*100)/(100+user.VAT)}} </td>
-          <td> {{(((data.summary.total_amount*100)/(100+user.VAT))/100)*user.VAT}} </td>-->
+        <tr ng-repeat="item in data.summary.gst_based">
+            <td>{{item.taxable_amt | number:2}}</td>
+            <td>{{item.cgst_percent | number:2}}</td>
+            <td>{{item.cgst | number:2}}</td>
+            <td>{{item.sgst_percent | number:2}}</td>
+            <td>{{item.cgst | number:2}}</td>
         </tr>
       </tbody>
     </table>
@@ -137,8 +149,8 @@
       <b>Note:Not for Sale</b>
       <hr>
   </div>
-  <p align="left">Computer Generated order, Hence Signature not required.</p>
+  <p align="center">Goods Once Sold Cannot Be Taken Back or Exchange</p>
+  <p align="center">!!! THANK YOU VISIT AGAIN !!!</p>
   <hr>
-  <p align="left">{{print}}</p>
 </div>
 

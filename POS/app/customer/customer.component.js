@@ -13,6 +13,8 @@
 
     self.simulateQuery = false;
     self.isDisabled    = false;
+    self.extra_fields_flag = false;
+    self.extra_fields = {};
 
     self.repos;
     self.querySearch   = querySearch;
@@ -21,10 +23,71 @@
 
     self.customer = {};
     self.searchText;
+    urlService.current_order.customer_extra = {};
+
+    //get extra fields
+    $http.get(urlService.mainUrl+'rest_api/get_extra_fields/?user='+urlService.userData.parent_id)
+    .then( function(data) {
+        extraFieldsresposne(data.data);
+        //save extra fields locally  
+        setCheckSum(setCheckSumFormate(JSON.stringify(data.data),EXTRA_FIELDS)).
+                          then(function(data){
+                              console.log("user data saved on locally "+data); 
+                            }).catch(function(error){
+
+                          });
+    },function(error){
+
+         getChecsumByName(EXTRA_FIELDS).
+                      then(function(result){
+                        if(Object.keys(result).indexOf("checksum")!=-1){
+                          extraFieldsresposne(JSON.parse(result.checksum));    
+                        }else{
+                          urlservice.show_toast("No extra fields");
+                          console.log("extra fields error " +error.message);
+                        }
+                      }).catch(function(error){
+                        urlservice.show_toast("No extra fields");
+                        console.log("extra fields error " +error.message);
+                      });
+
+    });
+
+    
+  //store extra data in urlservice on change modal
+  function extraFieldsresposne(data){
+        self.extra_fields = data;
+          self.customer.extra_fields = {};
+          for (var typ in self.extra_fields) {
+              for(var field in self.extra_fields[typ]) {
+                  //var temp = self.extra_fields[typ][field].toLowerCase().trim().replace(" ","_");
+                  self.customer.extra_fields[self.extra_fields[typ][field]] = "";
+              }
+          }
+      }
+    //on change issue type to 'Pre Order' display the extra fields
+    $scope.$on('change_issue_type', function(){
+        $scope.issue_type = $rootScope.issue_type;
+        if($scope.issue_type === "Pre Order") {
+            self.extra_fields_flag = true;
+        }
+        else {
+            self.extra_fields_flag = false;
+        }
+    });
+
+    //on change text in customer extra fields, save it in urlService
+    self.save_extra_fields = save_extra_fields;
+    function save_extra_fields() {
+        for(var  field in self.customer.extra_fields) {
+            urlService.current_order.customer_extra[field] = self.customer.extra_fields[field] || '';
+        }
+    }
+
 
     // Get data from backend to show below the search box
     self.get_user_data = get_user_data;
-   /* 
+   /*
    function get_user_data(key) {
 
         self.search_term = key;
@@ -60,16 +123,17 @@
                     $window.location.reload();
                 } else {
                     onLineUserData(data);
-                }  
+                } 
+                deferred.resolve(querySearch (key)); 
               },function(error){
                   console.log("activate offline");
-                  getCustomerData(key).then(function(data){
+                  getCustomerData(urlService.userData.parent_id,key).then(function(data){
                       offLineUserData(data);
                   }).then(function(){
                       deferred.resolve(querySearch (key));
                   });   
               }).then(function() {
-                  deferred.resolve(querySearch (key));
+                  /*deferred.resolve(querySearch (key));*/
               });
             return deferred.promise;
           }
@@ -162,6 +226,9 @@
                          "secondName": self.customer.LastName || '',
                          "mail": self.customer.Email || '',
                          "number": parseInt(self.searchText) || ''};
+      for(var  field in self.customer.extra_fields) {
+        user_details[field] = self.customer.extra_fields[field] || '';
+      }
 
       data = data.concat(user_details);
       data = $.param({
@@ -170,7 +237,7 @@
       $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
             $http.post(urlService.mainUrl+'rest_api/add_customer/', data)
               .then( function(data) {
-                 data=data.data; 
+                 data=data.data;
                  if(data.message === "invalid user") {
                         $window.location.reload();
                     } else {
@@ -178,7 +245,7 @@
                  self.customerButton = false;
                }
               },function(error){
-                console.log("offline");   
+                console.log("offline");
                 $rootScope.sync_status = true;
                 $rootScope.$broadcast('change_sync_status');
                 setSynCustomerData(user_details).
@@ -236,6 +303,7 @@
         }
       }, 500);
     }
+
   }]
  });
 }(window.angular));

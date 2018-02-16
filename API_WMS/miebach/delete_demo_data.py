@@ -6,7 +6,7 @@ django.setup()
 from miebach_admin.models import *
 import datetime
 
-#delete_user = 605
+delete_user = ''
 def delete_user_demo_data(delete_user):
     delete_models_list = [ZoneMaster, SKUMaster, SellerMaster, SupplierMaster, OrderDetail, PalletDetail, Issues,
                           OrderShipment, CustomerMaster, SizeMaster,
@@ -19,5 +19,6 @@ def delete_user_demo_data(delete_user):
 
     print 'success'
 
-delete_user_demo_data(delete_user)
+if delete_user:
+    delete_user_demo_data(delete_user)
 

@@ -7,7 +7,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
 
-from miebach_utils import OrderUploads, GenericOrderDetailMapping
+from miebach_utils import OrderUploads, GenericOrderDetailMapping, CustomerOrderSummary
 from common import get_filtered_params
 from miebach_admin.custom_decorators import get_admin_user, login_required
 from miebach_admin.models import CustomerUserMapping
@@ -37,7 +37,6 @@ def upload_po(request):
 
 def get_updated_pos(request):
     upload_po_id = request.POST.get('id', '')
-
     if not upload_po_id:
         return HttpResponse('Uploaded PO id is not found')
     up_obj = OrderUploads.objects.filter(id=upload_po_id)
@@ -58,12 +57,22 @@ def get_updated_pos(request):
 
 
 def get_skucode_quantity(po_number, customer_name):
-    gen_ord_qs = GenericOrderDetailMapping.objects.filter(po_number=po_number, client_name=customer_name).values(
-        'orderdetail__sku__sku_code', 'orderdetail__quantity', 'orderdetail__unit_price', 'orderdetail__invoice_amount')
-    gen_ord_map = [{'sku_code': i['orderdetail__sku__sku_code'],
-                    'quantity': i['orderdetail__quantity'],
-                    'unit_price': i['orderdetail__unit_price'],
-                    'invoice_amt': i['orderdetail__invoice_amount']} for i in gen_ord_qs]
+    gen_ord_qs = GenericOrderDetailMapping.objects.filter(po_number=po_number, client_name=customer_name)
+    gen_ord_map = []
+    for order in gen_ord_qs:
+        po = {'sku_code': order.orderdetail.sku.sku_code, 'quantity': order.orderdetail.quantity,
+              'unit_price': order.unit_price, 'sku_desc': order.orderdetail.sku.sku_desc}
+        po['amount'] = round(po['quantity'] * po['unit_price'], 2)
+        customer_summary = order.orderdetail.customerordersummary_set.values()
+        total_tax = 0
+        if customer_summary:
+            customer_summary = customer_summary[0]
+            for tax in ['sgst', 'cgst', 'igst']:
+                po[tax+'_tax'] = customer_summary[tax+'_tax']
+                po[tax] = round((po['amount']/100)*po[tax+'_tax'], 2)
+                total_tax += po[tax]
+        po['invoice_amt'] = po['amount'] + total_tax
+        gen_ord_map.append(po)
     return gen_ord_map
 
 
@@ -85,18 +94,28 @@ def get_uploaded_pos_by_customers(start_index, stop_index, temp_data, search_ter
     else:
         results = OrderUploads.objects.filter(**filter_params)
     for result in results:
+        generic_id = ''
+        customer_user = CustomerUserMapping.objects.filter(user=result.uploaded_user.id)
+        if customer_user:
+            customer_user = customer_user[0]
+            order_data = GenericOrderDetailMapping.objects.filter(customer_id=customer_user.customer.id,\
+                         po_number=result.po_number, client_name=result.customer_name)
+            if order_data:
+                generic_id = order_data[0].generic_order_id
         cond = (result.id, result.uploaded_user, result.po_number, result.uploaded_date,
-                result.customer_name, result.uploaded_file, result.verification_flag, result.remarks)
+                result.customer_name, result.uploaded_file, result.verification_flag, result.remarks,
+                generic_id, result.uploaded_user.userprofile.zone)
         all_data.setdefault(cond, 0)
     temp_data['recordsTotal'] = len(all_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for key, value in all_data.iteritems():
-        _id, uploaded_user, po_number, uploaded_date, customer_name, uploaded_file, verification_flag, remarks = key
+        _id, uploaded_user, po_number, uploaded_date, customer_name, uploaded_file, \
+        verification_flag, remarks, generic_id, zone = key
         temp_data['aaData'].append(
             {'id': _id, 'uploaded_user': uploaded_user.first_name, 'po_number': po_number,
              'uploaded_date': uploaded_date.strftime('%Y-%m-%d'),
              'customer_name': customer_name, 'uploaded_file': str(uploaded_file),
-             'verification_flag': verification_flag})
+             'verification_flag': verification_flag, 'zone': zone, 'order_id': generic_id})
     sort_col = lis[col_num]
 
     if order_term == 'asc':

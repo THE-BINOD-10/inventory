@@ -20,7 +20,7 @@
             <p class="no-margin order-bold detail-black">{{sku_data.quantity}}</p>
           </div>
           <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-center">
-            <small class="order-label">Landing Price</small>
+            <small class="order-label">Avg Landing Price</small>
             <p class="no-margin order-bold detail-black">{{sku_data.landing_price}}</p>
           </div>
           <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-right">
@@ -36,6 +36,14 @@
         <div class="col-md-4 col-sm-4 col-xs-3">
         </div>
         <div class="col-md-8 col-sm-8 col-xs-9">
+          <div class="row no-margin" ng-if="order.order_details.sku_wise_details.totals.other_charges">
+            <div class="col-xs-8 no-padding">
+              <span class="pull-right">Other Charges:</span>
+            </div>
+            <div class="col-xs-4 detail-black">
+              <span>Rs. {{order.order_details.sku_wise_details.totals.other_charges | number : 2}}</span>
+            </div>
+          </div>
           <div class="row no-margin">
             <div class="col-xs-8 no-padding">
               <span class="pull-right">Sub Total:</span>

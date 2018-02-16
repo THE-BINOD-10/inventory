@@ -69,13 +69,24 @@
 
       <div class="filter-box">
         <div class="box-header">
-          <span><b>Price Ranges: </b></span>
+          <span ng-if="showCase.priceband_sync"><b>MSP Ranges: </b></span>
+          <span ng-if="!showCase.priceband_sync"><b>Price Ranges: </b></span>
           <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.price_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.price_open = (showCase.price_open)? false: true;"></i>
         </div>
         <div class="box-body mt10" style="overflow: auto;" ng-if="showCase.price_open">
           <input type="number" class="form-control pull-left" style="width:70px" ng-model="showCase.filterData.fromPrice">
           <span class="pull-left mt5 ml5 mr5"> To </span>
           <input type="number" class="form-control pull-left" style="width:70px" ng-model="showCase.filterData.toPrice">
+        </div>
+      </div>
+
+      <div class="filter-box">
+        <div class="box-header">
+          <span><b>Quantity: </b></span>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.quantity_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.quantity_open = (showCase.quantity_open)? false: true;"></i>
+        </div>
+        <div class="box-body mt10" style="overflow: auto;" ng-if="showCase.quantity_open">
+          <input type="number" class="form-control pull-left" style="width:70px" ng-model="showCase.filterData.quantity">
         </div>
       </div>
 

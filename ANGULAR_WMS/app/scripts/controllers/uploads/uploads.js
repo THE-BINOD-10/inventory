@@ -183,7 +183,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "order_label_mapping_upload/",
                    dparam: "order-label-mapping-form",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "add_orderlabels"
                  }, {
                    title: "Order Serial Mapping Download/ Upload",
                    download: "Download Order Serial Mapping Form",
@@ -192,7 +193,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "order_serial_mapping_upload/",
                    dparam: "order-serial-mapping-form",
                    value: "",
-                   show: true
+                   show: true,
+                   perm: "use_imei"
                  }, {
                    title: "PO Serial Mapping Download/ Upload",
                    download: "Download PO Serial Mapping Form",
@@ -201,7 +203,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "po_serial_mapping_upload/",
                    dparam: "po-serial-mapping-form",
                    value: "",
-                   show: Session.roles.permissions.use_imei
+                   perm: "use_imei"
                  }, {
                    title: "Job Order Download/ Upload",
                    download: "Download Job Order Form",
@@ -220,7 +222,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "marketplace_serial_upload/",
                    dparam: "marketplace-serial-file",
                    value: "",
-                   show: Session.roles.permissions.use_imei
+                   perm: "use_imei"
+
                  }, {
                     title: "OrderId AWB Mapping Download/Upload",
                     download: "Download OrderId AWB Mapping Form",
@@ -229,7 +232,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                     uurl: "orderid_awb_upload/",
                     dparam: "orderid-awb-map-file",
                     value: "",
-                    show: true
+                    show: true,
+                    perm: "create_shipment_type"
                   }
                 ]
 

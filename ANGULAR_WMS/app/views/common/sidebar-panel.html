@@ -24,7 +24,7 @@
   <ul class="nav">
 
     <!-- dashboard -->
-    <li ui-sref-active="active">
+    <li ui-sref-active="active" ng-show="show_tab('DASHBOARD')">
       <a ui-sref="app.dashboard">
         <i class="fa fa-dashboard"></i>
         <span>Dashboard</span>
@@ -124,6 +124,11 @@
             <span>Seller Margin Mapping</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="show_tab('add_tandcmaster')">
+          <a ui-sref="app.masters.TandCMaster">
+            <span>T&C Master</span>
+          </a>
+        </li>
       </ul>
     </li>
     <!-- /Masters -->
@@ -135,7 +140,7 @@
         <span>Inbound</span>
       </a>
       <ul class="sub-menu">
-        <li ng-show="show_tab('add_openpo')" ui-sref-active="active">
+        <li ng-show="show_tab('add_openpo') || show_tab('change_openpo')" ui-sref-active="active">
           <a ui-sref="app.inbound.RaisePo">
             <span>Raise PO</span>
           </a>
@@ -165,7 +170,7 @@
             <span>Seller Invoices</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="permissions.user_type == 'distributor'">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'distributor' || (permissions.user_type == 'default' && permissions.priceband_sync)">
           <a ui-sref="app.inbound.AutoBackOrders">
             <span>Auto Back Orders</span>
           </a>
@@ -283,9 +288,10 @@
             <span>Pull Confirmation</span>
           </a>
         </li>
-        <li ng-show="permissions.user_type == 'distributor'" ui-sref-active="active">
+        <!--<li ng-show="permissions.user_type == 'distributor'" ui-sref-active="active">-->
+        <li ng-show="show_tab('add_enquirymaster') && (permissions.user_type == 'distributor' || permissions.user_type == 'central_admin' || permissions.user_type == 'default')" ui-sref-active="active">
           <a ui-sref="app.outbound.EnquiryOrders">
-            <span>Enquiry Orders</span>
+            <span>Marketing Enquiry Orders</span>
           </a>
         </li>
         <li ng-show="show_tab('add_shipmentinfo')" ui-sref-active="active">
@@ -298,7 +304,8 @@
             <span>Create Stock Transfer</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <!--<li ui-sref-active="active">-->
+        <li ng-show="show_tab('add_sellerordersummary')" ui-sref-active="active">
           <a ui-sref="app.outbound.CustomerInvoices">
             <span>Customer Invoices</span>
           </a>
@@ -327,7 +334,7 @@
     </li>
 
     <!-- ready pages -->
-    <li ui-sref-active="active">
+    <li ui-sref-active="active" ng-show="show_tab('UPLOADS')">
       <a ui-sref="app.uploads">
         <i class="fa fa-cloud-upload"></i>
         <span>Uploads</span>
@@ -336,7 +343,7 @@
     <!-- /ready pages -->
 
     <!-- uploaded pages -->
-    <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+    <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || (show_tab('add_orderuploads') && (permissions.user_type == 'distributor' || permissions.user_type == 'default'))">
       <a ui-sref="app.uploadedPOs">
       <i class="fa fa-book" aria-hidden="true"></i>
         <span>Uploaded PO's</span>
@@ -345,7 +352,7 @@
     <!-- /uploaded pages -->
 
     <!-- extras -->
-    <li data-ng-class="{open: $state.includes('app.reports')}">
+    <li data-ng-class="{open: $state.includes('app.reports')}" ng-show="show_tab('REPORTS')">
       <a href="javascript:;">
         <i class="fa fa-file-text"></i>
         <span>Reports</span>
@@ -436,6 +443,11 @@
             <span>RM Picklist</span>
           </a>
         </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.StockLedgerReport">
+            <span>Stock Ledger</span>
+          </a>
+        </li>
       </ul>
     </li>
     <!-- /extras -->
@@ -462,11 +474,18 @@
         <i class="fa fa-tasks"></i>
         <span>Tally</span>
       </a>
-    </li>
+    </li> 
     <!-- Tally -->
 
+    <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'supplier'">
+      <a ui-sref="app.PurchaseOrder">
+        <i class="fa fa-tasks"></i>
+        <span>Purchase Order</span>
+      </a>
+    </li>
+
     <!-- ui kit -->
-    <li ui-sref-active="" class="settings" style="position: fixed;bottom: 50px;background: #2d3033;width: 210px !important;">
+    <li ui-sref-active="" class="settings" style="position: fixed;bottom: 50px;background: #2d3033;width: 210px !important;" ng-show="show_tab('CONFIGURATIONS')">
       <a ui-sref="app.configurations">
         <i class="fa fa-cogs"></i>
         <span>Configurations</span>

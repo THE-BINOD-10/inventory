@@ -760,8 +760,10 @@ def sku_form(request, user=''):
     if sku_file:
         return error_file_download(sku_file)
     user_profile = UserProfile.objects.get(user_id=user.id)
-
-    wb, ws = get_work_sheet('skus', USER_SKU_EXCEL[user_profile.user_type])
+    if user_profile.warehouse_type in ('WH', 'DIST'):
+        wb, ws = get_work_sheet('skus', USER_SKU_EXCEL[user_profile.warehouse_type])
+    else:
+        wb, ws = get_work_sheet('skus', USER_SKU_EXCEL[user_profile.user_type])
 
     return xls_to_response(wb, '%s.sku_form.xls' % str(user.id))
 
@@ -1298,6 +1300,8 @@ def get_sku_file_mapping(reader, file_type, user=''):
     elif get_cell_data(0, 0, reader, file_type) == 'product_id' and get_cell_data(0, 1, reader,
                                                                                   file_type) == 'product_variant_id':
         sku_file_mapping = copy.deepcopy(SHOTANG_SKU_MASTER_EXCEL)
+    elif get_cell_data(0, 0, reader, file_type) == 'WMS Code' and get_cell_data(0, 1, reader, file_type) == 'Put Zone':
+        sku_file_mapping = copy.deepcopy(SM_WH_SKU_MASTER_EXCEL)
 
     return sku_file_mapping
 
@@ -1425,6 +1429,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
                 data_dict[key] = cell_data
         if sku_data:
             sku_data.save()
+            all_sku_masters.append(sku_data)
 
         if not sku_data:
             data_dict['sku_code'] = data_dict['wms_code']
@@ -1648,6 +1653,9 @@ def inventory_excel_upload(request, open_sheet, user):
                 inventory = StockDetail(**inventory_data)
                 inventory.save()
 
+                # SKU Stats
+                save_sku_stats(user, inventory.sku_id, inventory.id, 'inventory-upload', inventory.quantity)
+
                 # Collecting data for auto stock allocation
                 putaway_stock_data.setdefault(inventory.sku_id, [])
 
@@ -1658,7 +1666,9 @@ def inventory_excel_upload(request, open_sheet, user):
                 inventory_status.quantity = int(inventory_status.quantity) + int(inventory_data.get('quantity', 0))
                 inventory_status.receipt_date = receipt_date
                 inventory_status.save()
-
+                # SKU Stats
+                save_sku_stats(user, inventory_status.sku_id, inventory_status.id, 'inventory-upload',
+                               int(inventory_data.get('quantity', 0)))
                 # Collecting data for auto stock allocation
                 putaway_stock_data.setdefault(inventory_status.sku_id, [])
 
@@ -2172,7 +2182,6 @@ def validate_purchase_order(open_sheet, user):
             elif col_idx == 1:
                 if cell_data:
                     try:
-
                         if isinstance(cell_data, float):
                             po_date = xldate_as_tuple(cell_data, 0)
                         elif '-' in cell_data:
@@ -2394,7 +2403,6 @@ def purchase_order_upload(request, user=''):
             open_sheet = open_book.sheet_by_index(0)
         except:
             return HttpResponse('Invalid File')
-
         status = validate_purchase_order(open_sheet, str(user.id))
         if status != 'Success':
             return HttpResponse(status)
@@ -2883,7 +2891,7 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
         return "Headers not Matching"
     number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code',
                      'phone': 'Phone Number',
-                     'margin': 'Margin'}
+                     'discount_percentage': 'Discount Percentage'}
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:
             break
@@ -2953,8 +2961,8 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
 
 def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
     mapping_dict = get_customer_master_mapping(reader, file_type)
-    number_fields = ['credit_period', 'phone_number', 'pincode', 'phone', 'margin']
-    float_fields = ['margin']
+    number_fields = ['credit_period', 'phone_number', 'pincode', 'phone', 'discount_percentage']
+    float_fields = ['discount_percentage']
     rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:
@@ -4023,6 +4031,8 @@ def create_po_serial_mapping(final_data_dict, user):
                                                 status=1, location_id=po_details['location_id'],
                                                 sku_id=po_details['sku_id'],
                                                 receipt_type='purchase order', creation_date=NOW)
+        # SKU Stats
+        save_sku_stats(user, stock_dict.sku_id, purchase_order.id, 'po', quantity)
         mod_locations.append(location_master.location)
 
     if mod_locations:

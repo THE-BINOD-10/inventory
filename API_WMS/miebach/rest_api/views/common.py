@@ -196,6 +196,8 @@ def add_user_permissions(request, response_data, user=''):
     if get_priceband_admin_user(user):
         if request_user_profile.warehouse_type == 'DIST':
             warehouse_data = WarehouseCustomerMapping.objects.filter(warehouse=request.user.id, status=1)
+            if not warehouse_data:  # For Distributor Sub User
+                warehouse_data = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
             if warehouse_data and warehouse_data[0].customer.is_distributor:
                 user_type = 'distributor'  # distributor warehouse login
         elif request_user_profile.warehouse_type == 'WH':

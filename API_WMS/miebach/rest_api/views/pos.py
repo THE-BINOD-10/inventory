@@ -342,6 +342,7 @@ def customer_order(request):
                                                               unit_price=item['unit_price'],
                                                               payment_received=payment_received)
                     sku_disc = (int(item['selling_price']) - item['unit_price']) * item['quantity']
+                    #import pdb;pdb.set_trace()
                     CustomerOrderSummary.objects.create(order_id=order_detail.id, \
                                                         discount=sku_disc + order_level_disc_per_sku, \
                                                         issue_type=order_detail.order_code, \
@@ -425,7 +426,7 @@ def prepare_delivery_challan_json(request, order_id, user_id):
     order_date = get_local_date(user, NOW)
     order_detail = OrderDetail.objects.filter(order_id=order_id, \
                                               user=user_id, quantity__gt=0)
-
+    
     for order in order_detail:
         discount = 0
         sku = SKUMaster.objects.get(id=order.sku_id)
@@ -444,7 +445,6 @@ def prepare_delivery_challan_json(request, order_id, user_id):
             else float(order.invoice_amount) / float(order.quantity)
         order_summary = CustomerOrderSummary.objects.filter(order_id=order.id)
         if order_summary:
-            #import pdb;pdb.set_trace()
             total_discount  += (order_summary[0].discount * order.quantity)
             tax_master = order_summary.values('sgst_tax', 'cgst_tax', 'igst_tax', 'utgst_tax')[0]
         else:
@@ -454,9 +454,12 @@ def prepare_delivery_challan_json(request, order_id, user_id):
                                                       'sgst_percent': tax_master["sgst_tax"],
                                                       'sgst': 0,
                                                       'cgst': 0})
-        gst_based[tax_master['cgst_tax']]['taxable_amt'] += order.invoice_amount
+        gst_based[tax_master['cgst_tax']]['taxable_amt'] += order.invoice_amount - \
+                                  (float(order.invoice_amount) * tax_master["sgst_tax"] / 100) - \
+                                  (float(order.invoice_amount) * tax_master["cgst_tax"] / 100) 
         gst_based[tax_master['cgst_tax']]['sgst'] += order.invoice_amount * tax_master["sgst_tax"] / 100
         gst_based[tax_master['cgst_tax']]['cgst'] += order.invoice_amount * tax_master["cgst_tax"] / 100
+        
         sku_data.append({'name': order.title,
                          'quantity': order.quantity,
                          'sku_code': order.sku.sku_code,
@@ -468,9 +471,10 @@ def prepare_delivery_challan_json(request, order_id, user_id):
                          'cgst': selling_price * tax_master["cgst_tax"] / 100
                          })
         total_quantity += int(order.quantity)
-        total_amount += (float(order.invoice_amount) + discount + \
-                         float(order.invoice_amount) * tax_master["sgst_tax"] / 100 + \
-                         float(order.invoice_amount) * tax_master["cgst_tax"] / 100);
+        #total_amount += (float(order.invoice_amount) + discount + \
+        #                 (float(order.invoice_amount) * tax_master["sgst_tax"] / 100) + \
+        #                 (float(order.invoice_amount) * tax_master["cgst_tax"] / 100) );
+        total_amount += (float(order.invoice_amount))
     if order_detail:
         status = 'success'
         order = order_detail[0]
@@ -517,6 +521,7 @@ def prepare_delivery_challan_json(request, order_id, user_id):
 def print_order_data(request, user=''):
     user_id = user.id
     order_id = request.GET['order_id']
+    #import pdb;pdb.set_trace()
     json_data = prepare_delivery_challan_json(request, order_id, user_id)
     return HttpResponse(json.dumps(json_data))
 

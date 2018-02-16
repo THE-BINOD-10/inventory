@@ -5,8 +5,8 @@
          .component("summary", {
 
            "templateUrl": "/app/order_summary/summary.template.html",
-           "controller"  : ["$http", "$scope", "urlService", "manageData", "$state", "$location", "$window",
-    function ($http, $scope, urlService, manageData, $state, $location, $window) {
+           "controller"  : ["$http", "$scope", "$rootScope", "urlService", "manageData", "$state", "$location", "$window",
+    function ($http, $scope, $rootScope, urlService, manageData, $state, $location, $window) {
 
       var self = this;
       self.VAT = urlService.VAT;
@@ -216,14 +216,24 @@
         self.total_amount = parseFloat((self.order.total_amount + self.order.total_discount - amnt).toFixed(2));
         self.discount = amnt;
       }
-
+    
       //discount confirm
       self.discount_confirm = discount_confirm;
-      function discount_confirm(){
+      function discount_confirm() {
         self.order.total_discount = parseFloat(self.discount);
         self.order.total_amount = parseFloat(self.total_amount);
+        //urlService.current_order.summary.total_discount += parseFloat(self.discount);
+        /*angular.forEach(self.order.gst_based, function(key, value) {
+          value['taxable_amt'] = 
+        })*/
+        angular.forEach(self.order.gst_based, function(key, value) {
+          key['cgst'] = key['cgst_percent'] * (self.order.total_amount/100);
+          key['sgst'] = key['sgst_percent'] * (self.order.total_amount/100);
+          key['taxable_amt'] = self.order.total_amount - key['sgst'] - key['cgst'];
+        })
         urlService.current_order.summary = self.order;
-        $("#discountModal").modal("hide")
+        //$rootScope.$broadcast('empty');
+        $("#discountModal").modal("hide");
       }
 
     }]

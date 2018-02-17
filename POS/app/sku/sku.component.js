@@ -256,26 +256,24 @@
           }*/
           discount = (urlService.current_order.summary.total_discount/self.skus.length);
 
+          var agg = (self.skus[i].price + (self.skus[i].cgst*self.skus[i].quantity) + (self.skus[i].sgst*self.skus[i].quantity));
+          var tax_amt = agg - (self.skus[i].cgst_percent *(agg/100)) - (self.skus[i].sgst_percent *(agg/100)) - discount;
           if(Object.keys(urlService.current_order.summary.gst_based).includes(self.skus[i].cgst_percent.toString())) {
               if (self.tax_inclusive) {
-                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent * ((self.skus[i].price + (self.skus[i].quantity*self.skus[i].sgst) + (self.skus[i].quantity*self.skus[i].cgst) - discount )/100));
-                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] += (self.skus[i].sgst_percent * ((self.skus[i].price + (self.skus[i].quantity*self.skus[i].sgst) + (self.skus[i].quantity*self.skus[i].cgst) - discount )/100));
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent * (agg/100));
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] += (self.skus[i].sgst_percent * (agg/100));
               } else {
-                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] -= (self.skus[i].cgst_percent * ((self.skus[i].price + (self.skus[i].quantity*self.skus[i].sgst) + (self.skus[i].quantity*self.skus[i].cgst) - discount )/100));
-                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] -= (self.skus[i].sgst_percent * ((self.skus[i].price + (self.skus[i].quantity*self.skus[i].sgst) + (self.skus[i].quantity*self.skus[i].cgst) - discount )/100));
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] -= (self.skus[i].cgst_percent * (agg/100));
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] -= (self.skus[i].sgst_percent * (agg/100));
               }
-              var agg = (self.skus[i].price + (self.skus[i].cgst*self.skus[i].quantity) + (self.skus[i].sgst*self.skus[i].quantity));
-              var tax_amt = agg - (self.skus[i].cgst_percent *(agg/100)) - (self.skus[i].sgst_percent *(agg/100)) - discount;
               urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["taxable_amt"] += tax_amt;
           } else {
-              var agg = (self.skus[i].price + (self.skus[i].cgst*self.skus[i].quantity) + (self.skus[i].sgst*self.skus[i].quantity));
-              var tax_amt = agg - (self.skus[i].cgst_percent *(agg/100)) - (self.skus[i].sgst_percent *(agg/100)) - discount;
               urlService.current_order.summary.gst_based[self.skus[i].cgst_percent] =
                             {"taxable_amt": tax_amt,
                              "cgst_percent" : self.skus[i].cgst_percent,
                              "sgst_percent" : self.skus[i].sgst_percent,
-                             "cgst": (self.skus[i].cgst_percent *((self.skus[i].price + (self.skus[i].sgst*self.skus[i].quantity) + (self.skus[i].cgst*self.skus[i].quantity)))/100),
-                             "sgst": (self.skus[i].sgst_percent *((self.skus[i].price + (self.skus[i].sgst*self.skus[i].quantity) + (self.skus[i].cgst*self.skus[i].quantity)))/100)
+                             "cgst": (self.skus[i].cgst_percent *(agg/100)),
+                             "sgst": (self.skus[i].sgst_percent *(agg/100))
                             }
           }
           urlService.current_order.summary.cgst = Math.abs(urlService.current_order.summary.cgst);

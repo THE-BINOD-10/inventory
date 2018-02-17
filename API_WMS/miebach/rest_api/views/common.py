@@ -371,7 +371,8 @@ def get_search_params(request):
                     'imei_number': 'imei_number',
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
                     'fg_sku_code': 'fg_sku_code',
-                    'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet'}
+                    'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
+                    'staff_id': 'id'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -409,7 +410,8 @@ data_datatable = {  # masters
     'DiscountMaster': 'get_discount_results', 'CustomSKUMaster': 'get_custom_sku_properties', \
     'SizeMaster': 'get_size_master_data', 'PricingMaster': 'get_price_master_results', \
     'SellerMaster': 'get_seller_master', 'SellerMarginMapping': 'get_seller_margin_mapping', \
-    'TaxMaster': 'get_tax_master', 'NetworkMaster': 'get_network_master_results',
+    'TaxMaster': 'get_tax_master', 'NetworkMaster': 'get_network_master_results',\
+    'StaffMaster': 'get_staff_master',
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \

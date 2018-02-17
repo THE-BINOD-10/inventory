@@ -55,14 +55,14 @@
       <b>{{$ctrl.order.utgst}}</b>
     </div>
   </div>
-  <div class="summary-row">
+  <!--<div class="summary-row">
     <div class="pull-left">
       <p>Total Discount</p>
     </div>
     <div class="pull-right">
       <b ng-if="$ctrl.order.total_discount > 0">{{$ctrl.order.total_discount | number:2}}</b>
     </div>
-  </div>
+  </div>-->
   <div class="summary-row">
     <div class="pull-left">
       <p>Total Returned</p>
@@ -74,11 +74,70 @@
 
   <div class="summary-row total-cost">
     <div class="pull-left">
+      <p><b>AMOUNT</b></p>
+    </div>
+    <div class="pull-right">
+      <b>{{ $ctrl.order.subtotal + $ctrl.order.sgst + $ctrl.order.igst + $ctrl.order.utgst + $ctrl.order.cgst | number:2}}/-</b>
+    </div>
+  </div>
+  <div class="summary-row total-cost">
+    <div class="pull-left">
+      <p><b>DISCOUNT</b></p>
+    </div>
+    <div class="pull-right">
+      <b>{{$ctrl.order.total_discount | number:2}}/-</b>
+    </div>
+  </div>
+  <div class="summary-row total-cost">
+    <div class="pull-left">
       <p><b>TOTAL COST</b></p>
     </div>
     <div class="pull-right">
-      <b>{{$ctrl.order.total_amount | number:2}}/-</b>
+      <b>{{ $ctrl.order.subtotal + $ctrl.order.sgst + $ctrl.order.igst + $ctrl.order.utgst + $ctrl.order.cgst - $ctrl.order.total_discount | number:2 }}/-</b>
     </div>
   </div>
+
+  <div class="summary-row discount">
+    <div class="btn btn-default" ng-click="$ctrl.discount_modal()">Discount</div>
+  </div>
+
 </div>
+
+
+<!-- Discount Modal -->
+<div class="modal fade" id="discountModal" role="dialog">
+    <div class="" style="width: 30%; margin: 10% auto;">
+    <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">DISCOUNT</h4>
+                <div class="row">
+                </div>
+            </div>
+            <div class="modal-body" style="">
+                <div class="row">
+				  	<div class="col-md-4"><p>On </p></div>
+					<div class="col-md-6"><p><input type="text" value="{{$ctrl.order.total_amount+$ctrl.order.total_discount}}"
+													readonly></p></div>
+					<div class="col-md-4"><p>Disc Amt </p></div>
+					<div class="col-md-6"><p><input type="text" ng-model="$ctrl.discount" ng-init="$ctrl.discount=0"
+													ng-change="$ctrl.change_disc($ctrl.discount)"></p></div>
+					<div class="col-md-4"><p>Disc % </p></div>
+					<div class="col-md-6"><p><input type="text" ng-model="$ctrl.disc_percent"
+											 		 ng-init="$ctrl.disc_percent=0"
+													 ng-change="$ctrl.change_disc_perc($ctrl.disc_percent)"></p></div>
+				  	<div class="col-md-4"><p>Tot Cost </p></div>
+					<div class="col-md-6"><p><input type="text" ng-model="$ctrl.total_amount"
+													ng-init="$ctrl.total_amount=0" readonly></p></div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <div type="button" class="btn btn-danger"
+                        ng-click=$ctrl.discount_confirm()>Confirm</div>
+            </div>
+        </div>
+    </div>
+</div><!-- style sku modal-->
 

@@ -87,6 +87,8 @@ urlpatterns = [
     url(r'^get_terms_and_conditions/$', get_terms_and_conditions),
     url(r'^insert_update_terms/$', insert_update_terms),
     url(r'^delete_terms/$', delete_terms),
+    url(r'^insert_staff/$', insert_staff),
+    url(r'^update_staff_values/$', update_staff_values),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),

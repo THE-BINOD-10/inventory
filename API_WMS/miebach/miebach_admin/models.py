@@ -2395,6 +2395,20 @@ class IntransitOrders(models.Model):
         unique_together = ('user', 'customer_id', 'intr_order_id', 'sku')
 
 
+class StaffMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    staff_name = models.CharField(max_length=256, default='')
+    phone_number = models.CharField(max_length=32)
+    email_id = models.EmailField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'STAFF_MASTER'
+        unique_together = ('user', 'staff_name')
+        index_together = ('user', 'staff_name')
+
+
 class MastersMapping(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()

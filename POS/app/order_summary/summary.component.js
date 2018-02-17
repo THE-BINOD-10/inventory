@@ -222,18 +222,10 @@
       function discount_confirm() {
         self.order.total_discount = parseFloat(self.discount);
         self.order.total_amount = parseFloat(self.total_amount);
-        //urlService.current_order.summary.total_discount += parseFloat(self.discount);
-        /*angular.forEach(self.order.gst_based, function(key, value) {
-          value['taxable_amt'] = 
-        })*/
-        angular.forEach(self.order.gst_based, function(key, value) {
-          key['cgst'] = key['cgst_percent'] * (self.order.total_amount/100);
-          key['sgst'] = key['sgst_percent'] * (self.order.total_amount/100);
-          key['taxable_amt'] = self.order.total_amount - key['sgst'] - key['cgst'];
-        })
-        urlService.current_order.summary = self.order;
-        //$rootScope.$broadcast('empty');
+        urlService.current_order.summary.total_discount = self.order.total_discount;
+        urlService.current_order.summary.total_amount = self.order.total_amount;
         $("#discountModal").modal("hide");
+        $rootScope.$broadcast('empty');
       }
 
     }]

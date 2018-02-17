@@ -7,28 +7,29 @@
                		then(function(reg){
                      	console.log("service worker registered"+reg);
 
+                        localStorage.setItem('reload_flag','0');
                       reg.addEventListener('updatefound',function(){
                               console.log("service worker update founded");
                               const newWorker = reg.installing;
-                              const sw_activated=reg.activated;
+                              var flag = localStorage.getItem('reload_flag') || '0';
+                              if(flag === '0') {
+                                  localStorage.setItem('reload_flag','1');
+                                  location.reload(true);
+                                  POS_UPDATE_FOUND=true;
+                                  reloadPOSPage();
+                              }else {
+                                  localStorage.setItem('reload_flag','0');
+                              }
                               
-                              
-                              /*var flag = localStorage.getItem('reload_flag') || '0';
-                                  if(flag === '0') {
-                                      localStorage.setItem('reload_flag','1');
-                                      location.reload(true);
-                                  }  
-                                  else {
-                                      localStorage.setItem('reload_flag','0');
-                                  } */ 
-                              newWorker.addEventListener('statechange', function(e){
-                                    console.log(" state changed "+e.target.state);
-                                   // reg.showNotification("POS found update", {icon:"app/images/pos_icon.png"});
-                                    POS_UPDATE_FOUND=true;
-                                    reloadPOSPage();
-                                                            
-                                // newWorker.state has changed
-                              });
+                              //check if reg is installing null or not
+                              if(newWorker!=null){
+                                newWorker.addEventListener('statechange', function(e){
+                                      console.log(" state changed "+e.target.state);
+                                     // reg.showNotification("POS found update", {icon:"app/images/pos_icon.png"});
+                                      POS_UPDATE_FOUND=true;
+                                      reloadPOSPage();
+                                });
+                              }
                       });
                   }).catch(function (err) {
 	                   	console.log("Service worker failed with error " + err);

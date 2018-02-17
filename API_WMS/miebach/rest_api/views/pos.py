@@ -131,7 +131,7 @@ def search_product_data(request, user=''):
             igst = tax_master[0].igst_tax
             utgst = tax_master[0].utgst_tax
 
-        discount_percentage = data.discount_percentage
+        discount_percentage = 0#data.discount_percentage
         discount_price = price
         if not data.discount_percentage:
             category = CategoryDiscount.objects.filter(category=data.sku_category, \
@@ -343,7 +343,7 @@ def customer_order(request):
                                                               payment_received=payment_received)
                     sku_disc = (int(item['selling_price']) - item['unit_price']) * item['quantity']
                     CustomerOrderSummary.objects.create(order_id=order_detail.id, \
-                                                        discount=sku_disc + order_level_disc_per_sku, \
+                                                        discount=order_level_disc_per_sku, \
                                                         issue_type=order_detail.order_code, \
                                                         cgst_tax=item['cgst_percent'], \
                                                         sgst_tax=item['sgst_percent'], \
@@ -430,14 +430,14 @@ def prepare_delivery_challan_json(request, order_id, user_id):
     for order in order_detail:
         discount = 0
         sku = SKUMaster.objects.get(id=order.sku_id)
-        discount_percentage = sku.discount_percentage
+        discount_percentage = 0#sku.discount_percentage
         if not sku.discount_percentage:
             category = CategoryDiscount.objects.filter(category=sku.sku_category, \
                                                        user_id=user.id)
             if category:
                 category = category[0]
                 if category.discount:
-                    discount_percentage = category.discount
+                    discount_percentage = 0#category.discount
         #original_selling_price = sku.price
         original_selling_price = (order.unit_price * 100)/(100 - discount_percentage)
         #discount = original_selling_price - order.unit_price

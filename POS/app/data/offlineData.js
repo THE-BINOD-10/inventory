@@ -182,10 +182,10 @@
             limit(30).toArray().then(function(data){
                 customer_list=customer_list.concat(data);
         
-                POS_TABLES.sync_customer.where("user").equals(user_id.toString()).
+                POS_TABLES.sync_customer.where("user").equals(user_id)
                 and(function(data){
                     if(data.number!=undefined && data.number!=null){
-                       if(data.number.toLocaleLowerCase().startsWith(find_key.toLocaleLowerCase())){
+                       if(data.number.toString().toLocaleLowerCase().startsWith(find_key.toLocaleLowerCase())){
                         return true;
                        }
                     } 

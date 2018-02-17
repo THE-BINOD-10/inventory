@@ -2172,6 +2172,10 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if data.id not in order_quantity_dict:
             order_quantity_dict[data.id] = float(purchase_data['order_quantity']) - temp_quantity
         data.received_quantity = float(data.received_quantity) + float(value)
+        if  data.intransit_quantity >= float(value):
+            data.intransit_quantity = float(data.intransit_quantity) - float(value)
+        else:
+            data.intransit_quantity = 0
         data.saved_quantity = 0
 
         seller_received_list = []
@@ -5321,7 +5325,7 @@ def get_receive_po_style_view(request, user=''):
                                                                   'po_data': copy.deepcopy(default_po_dict)})
             order_quantity = order_data['order_quantity']
             if supplier_status:
-                order_quantity = order_quantity - order_data['intransit_quantity']
+                order_quantity = order_quantity - order_data['intransit_quantity'] - order.received_quantity
                 if order_quantity < 0:
                     order_quantity = 0
             data_dict[size_type]['styles'][sku_class]['sizes'][sku_size] = order_quantity

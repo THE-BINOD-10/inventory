@@ -125,7 +125,7 @@ table, td, th {
         <tr>
           <td colspan="2"></td>
           <td colspan="2" valign="top"><strong>Total</strong></td>
-          <td valign="top" class="text_right"><strong>{{data.summary.total_amount | number:2}}</strong></td>
+          <td valign="top" class="text_right"><strong>{{data.summary.total_amount - data.summary.total_discount | number:2}}</strong></td>
         </tr>
         <tr>
           <td style="text-align: right;" colspan="5">For {{user.company | uppercase}}.<br><br>

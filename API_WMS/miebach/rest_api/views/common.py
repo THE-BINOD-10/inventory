@@ -2782,13 +2782,19 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         non_filtered = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).exclude(
             id__in=pricemaster.values_list('sku_id', flat=True))
         if price_field == 'price':
+            dis_percent = 0
+            if customer_master:
+                dis_percent = customer_master.discount_percentage
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                    annotate(n_price=F(price_field)*(1-(Value(customer_master.discount_percentage)/Value(100)))).annotate(
+                    annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).annotate(
                     new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)).\
             filter(**filter_params).exclude(id__in=all_pricing_ids)
         else:
+            markup = 0
+            if customer_master:
+                markup = customer_master.markup
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                annotate(n_price=F(price_field) * (1+(Value(customer_master.markup) / Value(100)))).\
+                annotate(n_price=F(price_field) * (1+(Value(markup) / Value(100)))).\
                 annotate(new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)). \
             filter(**filter_params).exclude(id__in=all_pricing_ids)
         if filter_params.has_key('new_price__lte'):
@@ -2811,13 +2817,19 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             pricemaster = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type). \
                 annotate(new_price=F('price') + Value(custom_margin)).filter(**filter_params1)
         if price_field == 'price':
+            dis_percent = 0
+            if customer_master:
+                dis_percent = customer_master.discount_percentage
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                            annotate(n_price=F(price_field)*(1-(Value(customer_master.discount_percentage)/Value(100)))).\
+                            annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).\
                             annotate(new_price=F('n_price') + Value(custom_margin)).\
                             filter(**filter_params).exclude(id__in=all_pricing_ids)
         else:
+            markup = 0
+            if customer_master:
+                markup = customer_master.markup
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                            annotate(n_price=F(price_field)*(1+(Value(customer_master.markup)/Value(100)))).\
+                            annotate(n_price=F(price_field)*(1+(Value(markup)/Value(100)))).\
                             annotate(new_price=F('n_price') + Value(custom_margin)).\
                             filter(**filter_params).exclude(id__in=all_pricing_ids)
 

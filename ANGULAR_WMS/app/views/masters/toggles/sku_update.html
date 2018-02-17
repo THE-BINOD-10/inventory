@@ -32,7 +32,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Put Zone * </label>
-                <select name="zone_id" class="form-control" ng-model="showCase.model_data.sku_data.zone" ng-required="true">
+                <select name="zone_id" class="form-control" ng-model="showCase.model_data.sku_data.zone">
                   <option value="" ng-selected="showCase.model_data.sku_data.zone == ''">None</option>
                   <option ng-repeat="zone in showCase.model_data.zones" value="{{zone}}" ng-selected="showCase.model_data.sku_data.zone == zone">{{zone}}</option>
                 </select>
@@ -71,6 +71,7 @@
               <div class="form-group">
                 <label class="control-label"> Size Type </label>
                 <select class="form-control" name="size_type" ng-model="showCase.model_data.sku_data.size_type" ng-change="showCase.change_size_type(showCase.model_data.sku_data.size_type)" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
+                  <option value="" ng-selected="showCase.model_data.sku_data.size_type == ''">None</option>
                   <option ng-repeat = "type in showCase.model_data.sizes_list" value="{{type.size_name}}" ng-selected="type.size_name == showCase.model_data.sku_data.size_type">{{type.size_name}}</option>
                 </select>
 
@@ -155,6 +156,12 @@
               <div class="form-group">
                 <label class="control-label"> Threshold Quantity * </label>
                 <input type="text" name="threshold_quantity" class="form-control" ng-model="showCase.model_data.sku_data.threshold_quantity" ng-class="service.get_decimal_perm()" required>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Cost Price </label>
+                <input type="text" name="cost_price" class="form-control" ng-model="showCase.model_data.sku_data.cost_price" decimal-number>
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">

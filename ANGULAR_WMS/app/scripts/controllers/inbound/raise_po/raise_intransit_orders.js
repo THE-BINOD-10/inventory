@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     var vm = this;
     vm.service = Service;
     vm.apply_filters = colFilters;
+    vm.tb_data = {};
 
     vm.filters = {'datatable': 'RaiseIO', 'search0':'', 'search1':''};
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -16,7 +17,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               data: vm.filters,
               xhrFields: {
                 withCredentials: true
-              }
+              },
+              complete: function(jqXHR, textStatus) {
+                          $scope.$apply(function(){
+                            angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
+                          })
+                        }
            })
        .withDataProp('data')
        .withOption('processing', true)
@@ -32,7 +38,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.reloadData = reloadData;
 
     function reloadData () {
-        vm.dtInstance.reloadData();
+      vm.dtInstance.reloadData();
     };
 
     vm.excel = excel;

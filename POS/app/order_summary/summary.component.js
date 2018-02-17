@@ -94,8 +94,6 @@
                               if(navigator.onLine){
                                 //sync pos data 
                                 navigator.serviceWorker.ready.then(function() {
-                                  
-                                  
                                   syncPOSTransactionData().then(function(){
                                     urlService.hide_loading();
                                   }).catch(function(){
@@ -106,6 +104,7 @@
                                 console.log( "offline");
                                 urlService.hide_loading();
                               }               
+                                         
                           }).catch(function(error){
                              urlService.hide_loading();
                              console.log("user data saved fail in locally "+error.message); 

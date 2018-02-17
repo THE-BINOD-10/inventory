@@ -213,6 +213,13 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
         if data.status:
             status = 'Active'
 
+        login_created = False
+        user_role_mapping = UserRoleMapping.objects.filter(role_id=data.id, role_type='supplier')
+        username = ""
+        if user_role_mapping:
+            login_created = True
+            username = user_role_mapping[0].user.username
+
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
         temp_data['aaData'].append(OrderedDict((('id', data.id), ('name', data.name), ('address', data.address),
@@ -222,6 +229,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('state', data.state),
                                                 ('country', data.country), ('pincode', data.pincode),
                                                 ('status', status), ('supplier_type', data.supplier_type),
+                                                ('username', username), ('login_created', login_created),
                                                 ('DT_RowId', data.id), ('DT_RowClass', 'results'))))
 
 
@@ -331,8 +339,8 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                          ('pincode', data.pincode), ('city', data.city), ('state', data.state),
                          ('country', data.country), ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
                          ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
-                         ('margin', data.margin), ('lead_time', data.lead_time),
-                         ('is_distributor', str(data.is_distributor)),
+                         ('discount_percentage', data.discount_percentage), ('lead_time', data.lead_time),
+                         ('is_distributor', str(data.is_distributor)), ('markup', data.markup),
                          )))
 
 
@@ -575,9 +583,10 @@ def get_sku_data(request, user=''):
     sku_data['image_url'] = data.image_url
     sku_data['qc_check'] = data.qc_check
     sku_data['status'] = data.status
+    sku_data['cost_price'] = data.cost_price
     sku_data['price'] = data.price
     sku_data['mrp'] = data.mrp
-    sku_data['size_type'] = 'Default'
+    sku_data['size_type'] = ''
     sku_data['mix_sku'] = data.mix_sku
     sku_data['ean_number'] = data.ean_number
     sku_data['color'] = data.color
@@ -598,7 +607,7 @@ def get_sku_data(request, user=''):
     sizes_list = []
     for sizes in size_names:
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
-    sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
+    #sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
     admin_user = get_priceband_admin_user(user)
     if admin_user:
@@ -901,6 +910,13 @@ def update_supplier_values(request, user=''):
     try:
         data_id = request.POST['id']
         data = get_or_none(SupplierMaster, {'id': data_id, 'user': user.id})
+        old_name = data.name
+
+        create_login = request.POST.get('create_login', '')
+        password = request.POST.get('password', '')
+        username = request.POST.get('username', '')
+        login_created = request.POST.get('login_created', '')
+
         for key, value in request.POST.iteritems():
             if key not in data.__dict__.keys():
                 continue
@@ -912,6 +928,23 @@ def update_supplier_values(request, user=''):
             setattr(data, key, value)
 
         data.save()
+        if create_login == 'true':
+            status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
+                                                         password, username, role_name='supplier')
+            if 'already' in status_msg:
+                return HttpResponse(status_msg)
+            UserRoleMapping.objects.create(role_id=data.id, role_type='supplier', user_id=new_user_id,
+                                           creation_date=datetime.datetime.now())
+        name_ch = False
+        if old_name != data.name:
+            name_ch = True
+        if login_created == 'true':
+            if password or name_ch:
+                user_role_mapping = UserRoleMapping.objects.filter(role_id=data.id, role_type='supplier')
+                if user_role_mapping:
+                    update_user_password(data.name, data.email_id, data.phone_number, password,
+                                         user_role_mapping[0].user_id, user, 'Supplier')
+                #update_customer_password(data, password, user)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -942,6 +975,10 @@ def insert_supplier(request, user=''):
         if rep_phone and request.POST['phone_number']:
             return HttpResponse('Phone Number already exists')
 
+	create_login = request.POST.get('create_login', '')
+        password = request.POST.get('password', '')
+        username = request.POST.get('username', '')
+        login_created = request.POST.get('login_created', '')
         if not data:
             data_dict = copy.deepcopy(SUPPLIER_DATA)
             for key, value in request.POST.iteritems():
@@ -952,12 +989,22 @@ def insert_supplier(request, user=''):
                         value = 0
                 if value == '':
                     continue
+                if key in ['login_created', 'create_login', 'password', 'username']:
+                    continue
                 data_dict[key] = value
 
             data_dict['user'] = user.id
             supplier_master = SupplierMaster(**data_dict)
             supplier_master.save()
             status_msg = 'New Supplier Added'
+	    if create_login == 'true':
+	        data = supplier_master
+                status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
+                                                         password, username, role_name='supplier')
+                if 'already' in status_msg:
+                    return HttpResponse(status_msg)
+                UserRoleMapping.objects.create(role_id=data.id, role_type='supplier', user_id=new_user_id,
+                                           creation_date=datetime.datetime.now())
 
     except Exception as e:
         import traceback
@@ -1035,6 +1082,21 @@ def insert_mapping(request, user=''):
     return HttpResponse('Added Successfully')
 
 
+def update_user_password(data_name, data_email, phone_number, password, cur_user_id, user, role_name):
+    cur_user = User.objects.get(id=cur_user_id)
+    if password:
+        cur_user.set_password(password)
+    cur_user.email = data_email
+    cur_user.first_name  = data_name
+    cur_user.save()
+    if user.first_name:
+        name = user.first_name
+    else:
+        name = user.username
+    if password:
+        password_notification_message(cur_user.username, password, name, phone_number, role_name)
+
+
 def update_customer_password(data, password, user):
     customer_user_map = CustomerUserMapping.objects.filter(customer_id=data.id, customer__user=data.user)
     if customer_user_map:
@@ -1050,6 +1112,7 @@ def update_customer_password(data, password, user):
             name = user.username
         if password:
             password_notification_message(customer_user.username, password, name, data.phone_number)
+
 
 
 @csrf_exempt
@@ -1079,7 +1142,7 @@ def update_customer_values(request, user=''):
                 if not value:
                     continue
                 setattr(data, key, value)
-            if key == 'margin':
+            if key in ['discount_percentage', 'markup']:
                 if not value:
                     value = 0
                 setattr(data, key, float(value))
@@ -1088,14 +1151,24 @@ def update_customer_values(request, user=''):
 
         data.save()
         if create_login == 'true':
-            status_msg = create_update_user(data, password, username)
+            status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
+                                                         password, username, role_name='customer')
+            #status_msg = create_update_user(data, password, username)
             if 'already' in status_msg:
                 return HttpResponse(status_msg)
+            else:
+                CustomerUserMapping.objects.create(customer_id=data.id, user_id=new_user_id,
+                                                   creation_date=datetime.datetime.now())
         name_ch = False
         if _name != data.name:
             name_ch = True
         if login_created == 'true':
             if password or name_ch:
+                customer_user_map = CustomerUserMapping.objects.filter(customer_id=data.id, customer__user=data.user)
+                if customer_user_map:
+                    cur_user_id = customer_user_map[0].user.id
+                    update_user_password(data.name, data.email_id, data.phone_number, password, cur_user_id, user,
+                                         role_name='Customer')
                 update_customer_password(data, password, user)
 
         # Level 2 price type creation
@@ -1150,6 +1223,12 @@ def insert_customer(request, user=''):
         # if rep_phone:
         #    return HttpResponse('Phone Number already exists')
 
+        if create_login == 'true':
+            if not username:
+                return HttpResponse('Username is Mandatory')
+            rep_username = filter_or_none(User, {'username': username})
+            if rep_username:
+                return HttpResponse('Username already exists')
         if not data:
             data_dict = copy.deepcopy(CUSTOMER_DATA)
             for key, value in request.POST.iteritems():
@@ -1172,12 +1251,11 @@ def insert_customer(request, user=''):
             create_level_wise_price_type(2, level_2_price_type, customer_master, user)
             status_msg = 'New Customer Added'
             if create_login == 'true':
-                if not username:
-                    return HttpResponse('Username is Mandatory')
-                rep_username = filter_or_none(User, {'username': username})
-                if rep_username:
-                    return HttpResponse('Username already exists')
-                status_msg = create_update_user(customer_master, password, username)
+                status_msg, new_user_id = create_update_user(customer_master.name, customer_master.email_id,
+                                                             customer_master.phone_number, password, username,
+                                                             role_name='customer')
+                CustomerUserMapping.objects.create(customer_id=customer_master.id, user_id=new_user_id,
+                                                   creation_date=datetime.datetime.now())
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -3094,4 +3172,3 @@ def update_staff_values(request, user=''):
     data.status = status
     data.save()
     return HttpResponse("Updated Successfully")
-

@@ -55,7 +55,9 @@
     if(POS_ENABLE_SYNC===false && POS_UPDATE_FOUND){
       
       navigator.serviceWorker.ready.then(function(reg){
-          reg.showNotification("POS found update,reloading the page", {icon:"app/images/pos_icon.png"});
+          reg.showNotification("POS update", {
+            body:"POS find an new update please wait for reloading",
+            icon:"app/images/pos_icon.png"});
       });
       
       POS_UPDATE_FOUND=false;

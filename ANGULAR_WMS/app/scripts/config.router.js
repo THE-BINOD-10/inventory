@@ -1155,7 +1155,7 @@ var app = angular.module('urbanApp')
           })
         .state('app.outbound.EnquiryOrders', {
           url: '/EnquiryOrders',
-          templateUrl: 'views/outbound/enquiry_orders.html',
+          templateUrl: 'views/outbound/enquiry_details.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
@@ -1163,6 +1163,10 @@ var app = angular.module('urbanApp')
                 ]).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/outbound/enquiry_orders.js'
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/manual_enquiry.js'
                   ])
                 });
               }]

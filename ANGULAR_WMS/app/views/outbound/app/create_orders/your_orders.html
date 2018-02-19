@@ -22,8 +22,9 @@
       <div class="col-md-3 col-sm-2 col-xs-hidden"></div>
       <div class="col-md-6 col-sm-8 col-xs-12">
         <div class="st-c-toggle pull-right">
-          <div class="bt-left bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'orders'})" ng-class="(orders.your_orders)?'bt-red':'';">Orders</div>
-          <div class="bt-right bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'enquiry'})" ng-class="(orders.your_orders)?'':'bt-red';">Marketing Enquiry</div>
+          <div class="bt-left bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'orders'})" ng-class="(orders.your_orders=='orders')?'bt-red':'bt-common';">Orders</div>
+          <div class="bt-right bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'enquiry'})" ng-class="(orders.your_orders=='enquiry')?'bt-red':'bt-common';">Marketing Enquiry</div>
+          <div class="bt-right bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'manual_enquiry'})" ng-class="(orders.your_orders=='manual_enquiry')?'bt-red':'bt-common';">Manual Enquiry</div>
         </div>
       </div>
     </div>

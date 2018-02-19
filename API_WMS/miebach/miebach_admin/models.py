@@ -4,7 +4,7 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES
+from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES
 
 
 # from longerusername import MAX_USERNAME_LENGTH
@@ -2394,3 +2394,43 @@ class MastersMapping(models.Model):
     class Meta:
         db_table = 'MASTERS_MAPPING'
         unique_together = ('user', 'master_id', 'mapping_id', 'mapping_type')
+
+class ManualEnquiry(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    enquiry_id = models.DecimalField(max_digits=50, decimal_places=0)
+    customer_name = models.CharField(max_length=256, default='')
+    sku = models.ForeignKey(SKUMaster)
+    customization_type =  models.CharField(max_length=64, default='',  choices=CUSTOMIZATION_TYPES)
+    status = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MANUAL_ENQUIRY'
+        unique_together = ('enquiry_id', 'customer_name', 'user')
+
+
+class ManualEnquiryDetails(models.Model):
+    id = BigAutoField(primary_key=True)
+    user_id = models.PositiveIntegerField()
+    enquiry = models.ForeignKey(ManualEnquiry)
+    ask_price = models.FloatField(default=0)
+    expected_date = models.DateField(blank=True, null=True)
+    remarks = models.TextField(default='')
+    status = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MANUAL_ENQUIRY_DETAILS'
+
+
+class ManualEnquiryImages(models.Model):
+    id = BigAutoField(primary_key=True)
+    enquiry = models.ForeignKey(ManualEnquiry)
+    image =  models.ImageField(upload_to='static/images/manual_enquiry/')
+    status = models.CharField(max_length=32)
+
+    class Meta:
+        db_table = 'MANUAL_ENQUIRY_IMAGES'

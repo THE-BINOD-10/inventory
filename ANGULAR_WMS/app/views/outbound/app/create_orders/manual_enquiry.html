@@ -38,14 +38,14 @@
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Style *</label>
             <div class="col-sm-3 col-xs-5">
-              <select class="form-control" ng-disabled="Enquiry.styles_loading || Enquiry.styles.length == 0" ng-model="Enquiry.style" ng-change="Enquiry.select_style(Enquiry.style, Enquiry.styles)" ng-required="true">
+              <select class="form-control" ng-disabled="Enquiry.styles_loading || Enquiry.styles.length == 0" ng-model="Enquiry.model_data.sku_id" ng-change="Enquiry.select_style(Enquiry.style, Enquiry.model_data.sku_id)" ng-required="true">
                 <option ng-selected="Enquiry.style == ''" value="">None</option>
-                <option ng-repeat="style in Enquiry.styles" ng-selected="Enquiry.style == style.sku_class" value="{{style.sku_class}}">{{style.sku_class}}</option>
+                <option ng-repeat="style in Enquiry.styles" ng-selected="Enquiry.model_data.sku_id == style.sku_class" value="{{style.sku_class}}">{{style.sku_class}}</option>
               </select>
             </div>
             <i ng-if="Enquiry.styles_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
           </div>
-          <div class="form-group" ng-if="Enquiry.style">
+          <div class="form-group" ng-if="Enquiry.model_data.sku_id">
             <div class="col-sm-5"></div>
             <div class="col-sm-5 col-xs-12">
               <div class="style col-md-12 col-sm-12 col-xs-12 cart-item">
@@ -62,9 +62,9 @@
           </div>
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Customization Type *</label>
-            <div class="col-sm-3 col-xs-5" ng-init="Enquiry.model_data.cust_type = 'Price Customization'">
-              <select class="form-control" ng-model="Enquiry.model_data.cust_type" ng-required="true">
-                <option ng-repeat="style in ['Price Customization', 'Product Customization', 'Price & Product Customization']" ng-selected="Enquiry.model_data.cust_type == style" value="{{style}}">{{style}}</option>
+            <div class="col-sm-3 col-xs-5" ng-init="Enquiry.model_data.customization_type = 'price_custom'">
+              <select class="form-control" ng-model="Enquiry.model_data.customization_type" ng-required="true">
+                <option ng-repeat="(key, value) in Enquiry.customization_types" ng-selected="Enquiry.model_data.customization_type == key" value="{{key}}">{{value}}</option>
               </select>
             </div>
             <i ng-if="$ctrl.styles_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
@@ -93,9 +93,22 @@
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Images </label>
             <div class="col-sm-3 col-xs-5">
-              <span class="btn btn-primary up-btn">Choose Files
-                  <input class="btn btn-primary upload-button" type = "file" name="files" id="image-upload" image-upload multiple/>
-              </span>
+              <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
+                <input style="position: absolute;
+                                top: 0;
+                                right: 0;
+                                min-width: 100%;
+                                min-height: 100%;
+                                font-size: 100px;
+                                text-align: right;
+                                filter: alpha(opacity=0);
+                                opacity: 0;
+                                outline: none;
+                                background: white;
+                                cursor: inherit;
+                                display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload" multi-image-upload multiple/>
+              </span><br>
+               <span ng-if="Enquiry.upload_name.length > 0"><b>FILES :</b> {{Enquiry.upload_name.join(", ")}}. </span>
             </div>
           </div>
           <button style="display:block;margin:auto;margin-top:40px;" type="submit" class="btn btn-warning btn-round" ng-click="Enquiry.place(form)">Place Enquiry</button>

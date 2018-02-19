@@ -4114,7 +4114,7 @@ def get_sku_categories(request, user=''):
                                                                                                       flat=True).distinct())
     return HttpResponse(
         json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,
-                    'sub_categories': sub_categories, 'colors': colors, \
+                    'sub_categories': sub_categories, 'colors': colors, 'customization_types': dict(CUSTOMIZATION_TYPES),\
                     'primary_details': categories_details['primary_details']}))
 
 
@@ -8059,3 +8059,78 @@ def add_order_charges(request, user=''):
     data_response['data'] = order_charges
     data_response['message'] = message
     return HttpResponse(json.dumps(data_response))
+
+def get_manual_enquiry_id(request):
+    enq_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by('-enquiry_id')
+    if enq_qs:
+        enq_id = int(enq_qs[0].enquiry_id) + 1
+    else:
+        enq_id = 10001
+    return enq_id
+
+def save_manual_enquiry_images(request, enq_data):
+
+    for file_data in  request.FILES.getlist('po_file'):
+        image_data = {'enquiry_id': enq_data.id, 'image': file_data}
+        save_img = ManualEnquiryImages(**image_data)
+        save_img.save()
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def place_manual_order(request, user=''):
+    MANUAL_ENQUIRY_DICT = {'customer_name': '', 'sku_id': '', 'customization_type': ''}
+    MANUAL_ENQUIRY_DETAILS_DICT = {'ask_price': '', 'expected_date': '', 'remarks': ''}
+    manual_enquiry = copy.deepcopy(MANUAL_ENQUIRY_DICT)
+    manual_enquiry_details = copy.deepcopy(MANUAL_ENQUIRY_DETAILS_DICT)
+    for key, value in MANUAL_ENQUIRY_DICT.iteritems():
+        value = request.POST.get(key, '')
+        if not value:
+            return HttpResponse("Please Fill "+ key)
+        if key == 'sku_id':
+            sku_data = SKUMaster.objects.filter(user=user.id, sku_class=value)
+            if not sku_data:
+                return HttpResponse("Style Not Found")
+            value = sku_data[0].id
+        manual_enquiry[key] = value
+    for key, value in MANUAL_ENQUIRY_DETAILS_DICT.iteritems():
+        value = request.POST.get(key, '')
+        if not value:
+            return HttpResponse("Please Fill "+ key)
+        if key == 'ask_price':
+            value = float(value)
+        elif key == 'expected_date':
+            expected_date = value.split('-')
+            value = datetime.date(int(expected_date[0]), int(expected_date[1]), int(expected_date[2]))
+        manual_enquiry_details[key] = value
+    check_enquiry = ManualEnquiry.objects.filter(user=request.user.id,sku=manual_enquiry['sku_id'])
+    if check_enquiry:
+        return HttpResponse("Manual Enquiry Already Exists")
+    manual_enquiry['user'] = request.user.id
+    manual_enquiry['enquiry_id'] = get_manual_enquiry_id(request)
+    enq_data = ManualEnquiry(**manual_enquiry)
+    enq_data.save()
+    manual_enquiry_details['enquiry_id'] = enq_data.id
+    manual_enquiry_details['user_id'] = request.user.id
+    manual_enq_data = ManualEnquiryDetails(**manual_enquiry_details)
+    manual_enq_data.save()
+    if request.FILES.get('po_file', ''):
+        save_manual_enquiry_images(request, enq_data)
+    return HttpResponse("Success")
+
+@csrf_exempt
+def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                       filters={}, user_dict={}):
+    if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+        em_qs = ManualEnquiry.objects.all()
+    else:
+        em_qs = ManualEnquiry.objects.filter(user=user.id)
+    for em_obj in em_qs:
+        date = em_obj.creation_date.strftime('%Y-%m-%d')
+        temp_data['aaData'].append(OrderedDict((('Enquiry ID', em_obj.enquiry_id), ('Sub Distributor', em_obj.user.name),
+                                                ('Customer Name', em_obj.customer_name), ('Style Name', em_obj.sku.sku_class),
+                                                ('Date', date)
+                                               )))
+    temp_data['recordsTotal'] = len(temp_data['aaData'])
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]

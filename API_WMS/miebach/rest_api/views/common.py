@@ -443,6 +443,7 @@ data_datatable = {  # masters
     # Uploaded POs (Display only to Central Admin)
     'UploadedPos': 'get_uploaded_pos_by_customers',
     'EnquiryOrders': 'get_enquiry_orders',
+    'ManualEnquiryOrders': 'get_manual_enquiry_orders'
 }
 
 

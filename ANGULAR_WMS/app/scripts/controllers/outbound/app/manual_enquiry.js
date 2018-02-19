@@ -9,9 +9,12 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
 
   $ctrl.loading = true;
 
+  var empty_data = {customer_name: '', sku_id: '', category: '', customization_type: 'custom_price', ask_price: '', expected_date: '', remarks: ''};
+
   $ctrl.category = '';
   $ctrl.categories = [];
   $ctrl.categories_loading = true;
+  $ctrl.customization_types = {};
   $ctrl.get_categories = function() {
 
     var data = {brand: ''};
@@ -19,7 +22,8 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
       if(data.message) {
         $ctrl.categories = data.data.categories;
         $ctrl.category = "";
-      }    
+        $ctrl.customization_types= data.data.customization_types;
+      }
       $ctrl.categories_loading = false;
     });  
   }
@@ -81,7 +85,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
         formData.append(key, value);
       });
       $ctrl.uploading = true;
-      $.ajax({url: Session.url+'upload_po/',
+      $.ajax({url: Session.url+'place_manual_order/',
             data: formData,
             method: 'POST',
             processData : false,
@@ -90,9 +94,12 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
                 withCredentials: true
             },
             'success': function(response) {
-              if(response == 'Uploaded Successfully') {
+              if(response == 'Success') {
 
                 Service.showNoty(response);
+                angular.copy(empty_data, $ctrl.model_data);
+                $("input[type='file']").val('');
+                $ctrl.upload_name = [];
               } else {
                 Service.showNoty(response, 'warning');
               }
@@ -106,6 +113,18 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
       });
     }
   }
+
+  $ctrl.upload_name = [];
+  $scope.$on("fileSelected", function (event, args) {
+    $scope.$apply(function () {
+      $ctrl.upload_name = [];
+      if (args.msg == 'success') {
+        angular.forEach(args.file, function(data){$ctrl.upload_name.push(data.name)})
+      } else {
+        Service.showNoty(args.msg, 'warning');
+      }
+    });
+  });
 }
 
 angular

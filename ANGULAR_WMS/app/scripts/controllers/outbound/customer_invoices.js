@@ -61,7 +61,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                  return "<i style='cursor: pointer' ng-click='showCase.addRowData($event, "+JSON.stringify(full)+")' class='fa fa-plus-square'></i>";
                }))
         row_click_bind = 'td:not(td:first)';
-        //vm.dtColumns.unshift(toggle);
         vm.dtInstance = {};
 
         $scope.$on('change_filters_data', function(){
@@ -73,6 +72,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.display = true;
       }
     });
+
+    vm.generateInvoice = function(data,index){
+
+      vm.service.apiCall("generate_customer_invoice/", "GET", data).then(function(data){
+
+        if (data.message) {
+          console.log(data);
+        }
+      });
+    }
 
     vm.addRowData = function(event, data) {
       console.log(data);
@@ -410,7 +419,7 @@ stockone.directive('genericCustomerInvoiceData', function() {
       invoice_data: '=data'
     },
     templateUrl: 'views/outbound/toggle/invoice_data_html.html',
-    link: function(scope, element, attributes, $http){
+    link: function(scope, element, attributes, $http, Service){
       console.log(scope);
     }
   };

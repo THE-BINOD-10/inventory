@@ -51,15 +51,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         var columns = data.data.headers;
         var not_sort = ['Order Quantity', 'Picked Quantity']
         vm.dtColumns = vm.service.build_colums(columns, not_sort);
+        var row_click_bind = 'td';
         vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle('').notSortable().withOption('width', '20px')
                .renderWith(function(data, type, full, meta) {
-                 if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                   vm.selected = {};
-                 }
-                 vm.selected[meta.row] = vm.selectAll;
-                 return vm.service.frontHtml + meta.row + vm.service.endHtml;
+                 // if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+                 //   vm.selected = {};
+                 // }
+                 // vm.selected[meta.row] = vm.selectAll;
+                 return "<i style='cursor: pointer' ng-click='showCase.addRowData($event, "+JSON.stringify(full)+")' class='fa fa-plus-square'></i>";
                }))
-
+        row_click_bind = 'td:not(td:first)';
+        //vm.dtColumns.unshift(toggle);
         vm.dtInstance = {};
 
         $scope.$on('change_filters_data', function(){
@@ -71,6 +73,42 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.display = true;
       }
     });
+
+    vm.addRowData = function(event, data) {
+      console.log(data);
+      var elem = event.target;
+      if (!$(elem).hasClass('fa')) {
+        return false;
+      }
+      var data_tr = angular.element(elem).parent().parent();
+      if ($(elem).hasClass('fa-plus-square')) {
+        $(elem).removeClass('fa-plus-square');
+        $(elem).removeClass();
+        $(elem).addClass('glyphicon glyphicon-refresh glyphicon-refresh-animate');
+        Service.apiCall('generate_customer_invoice/?seller_summary_id='+data['Order ID']).then(function(resp){
+          if (resp.message){
+
+            if(resp.data.message) {
+              // var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='11'><dt-po-data data='"+JSON.stringify(resp.data.data_dict)+"'></dt-po-data></td></tr>")($scope);
+              var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='11'><dt-po-data data='"+JSON.stringify(resp.data.data_dict)+"'></dt-po-data></td></tr>")($scope);
+              data_tr.after(html)
+              data_tr.next().toggle(1000);
+              $(elem).removeClass();
+              $(elem).addClass('fa fa-minus-square');
+            } else {
+              vm.poDataNotFound();
+            }
+          } else {
+            vm.poDataNotFound();
+          }
+        })
+      } else {
+        $(elem).removeClass('fa-minus-square');
+        $(elem).addClass('fa-plus-square');
+        data_tr.next().remove();
+      }
+    }
+
     vm.close = function() {
 
       $state.go("app.outbound.CustomerInvoices")
@@ -364,3 +402,16 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
 angular
   .module('urbanApp')
   .controller('EditInvoice', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', EditInvoice]);
+
+stockone.directive('dtPoData', function() {
+  return {
+    restrict: 'E',
+    scope: {
+      po_data: '=data'
+    },
+    templateUrl: 'views/inbound/toggle/invoice_data_html.html',
+    link: function(scope, element, attributes, $http){
+      console.log(scope);
+    }
+  };
+});

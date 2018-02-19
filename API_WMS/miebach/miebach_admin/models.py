@@ -2397,7 +2397,7 @@ class MastersMapping(models.Model):
 
 class ManualEnquiry(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.PositiveIntegerField()
+    user = models.ForeignKey(User)
     enquiry_id = models.DecimalField(max_digits=50, decimal_places=0)
     customer_name = models.CharField(max_length=256, default='')
     sku = models.ForeignKey(SKUMaster)

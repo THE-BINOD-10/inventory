@@ -8127,7 +8127,7 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
         em_qs = ManualEnquiry.objects.filter(user=user.id)
     for em_obj in em_qs:
         date = em_obj.creation_date.strftime('%Y-%m-%d')
-        temp_data['aaData'].append(OrderedDict((('Enquiry ID', em_obj.enquiry_id), ('Sub Distributor', em_obj.user.name),
+        temp_data['aaData'].append(OrderedDict((('Enquiry ID', int(em_obj.enquiry_id)), ('Sub Distributor', em_obj.user.username),
                                                 ('Customer Name', em_obj.customer_name), ('Style Name', em_obj.sku.sku_class),
                                                 ('Date', date)
                                                )))

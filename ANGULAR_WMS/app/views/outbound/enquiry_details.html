@@ -1,0 +1,15 @@
+<div class="page-layout">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body"> 
+    <tabset class="box-tab">
+      <tab heading="Block Stock Enquiry">
+        <div ng-include="'views/outbound/enquiry_orders.html'"></div>
+      </tab>
+      <tab heading="Manual Enquiry" ng-if="show_tab('multi_warehouse') || show_tab('add_openst')">
+        <div ng-include="'views/outbound/manual_enquiry.html'"></div>
+      </tab>
+    </tabset>
+  </div>
+</div>

@@ -255,6 +255,7 @@ urlpatterns = [
     url(r'^extend_enquiry_date/$', extend_enquiry_date),
     url(r'^order_cancel/$', order_cancel),
     url(r'^add_order_charges/$', add_order_charges),
+    url(r'^place_manual_order/$', place_manual_order),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

@@ -6,12 +6,16 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
   var vm = this;
   vm.page_url = $state.href($state.current.name, $state.params, {absolute: true})
-  vm.your_orders = ($state.params.state == "orders")? true: false;
-  vm.status = ($state.params.state == "orders")? "orders": "enquiry";
+  vm.your_orders = $state.params.state;
+  vm.status = $state.params.state;
 
-  var url = "get_customer_orders/";
-  if (!vm.your_orders) {
+  var url = "";
+  if (vm.your_orders == 'enquiry') {
     url = "get_enquiry_data/";
+  } else if (vm.your_orders == 'manual_enquiry') {
+    url = "get_manual_enquiry_data/";
+  } else {
+    url = "get_customer_orders/";
   }
 
   //you orders
@@ -49,18 +53,24 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
     })
   }
 
-  if (vm.your_orders && Data.my_orders.length == 0) {
+  if (vm.your_orders == 'orders' && Data.my_orders.length == 0) {
 
     vm.get_orders('my_orders');
-  } else if (!vm.your_orders && Data.enquiry_orders.length == 0) {
+  } else if (vm.your_orders == 'enquiry' && Data.enquiry_orders.length == 0) {
 
     vm.get_orders('enquiry_orders');
-  } else if (vm.your_orders) {
+  } else if (vm.your_orders == 'manual_enquiry' && Data.enquiry_orders.length == 0) {
+
+    vm.get_orders('manual_orders');
+  } else if (vm.your_orders == 'orders') {
 
     vm.order_data.data = Data.my_orders;
-  } else if (!vm.your_orders) {
+  } else if (vm.your_orders == 'enquiry') {
 
     vm.order_data.data = Data.enquiry_orders;
+  } else if (vm.your_orders == 'manual_enquiry') {
+
+    vm.order_data.data = Data.manual_orders;
   }
 
   // Scrolling Event Function

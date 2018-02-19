@@ -85,12 +85,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         $(elem).removeClass('fa-plus-square');
         $(elem).removeClass();
         $(elem).addClass('glyphicon glyphicon-refresh glyphicon-refresh-animate');
-        Service.apiCall('generate_customer_invoice/?seller_summary_id='+data['Order ID']).then(function(resp){
+        Service.apiCall('get_invoice_details/?gen_id='+data['Gen Order Id']+'&customer_id='+data['Customer Name']).then(function(resp){
           if (resp.message){
 
-            if(resp.data.message) {
+            if(resp.data.status) {
               // var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='11'><dt-po-data data='"+JSON.stringify(resp.data.data_dict)+"'></dt-po-data></td></tr>")($scope);
-              var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='11'><dt-po-data data='"+JSON.stringify(resp.data.data_dict)+"'></dt-po-data></td></tr>")($scope);
+              var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='11'><generic-customer-invoice-data data='"+JSON.stringify(resp.data.data_dict)+"'></generic-customer-invoice-data></td></tr>")($scope);
               data_tr.after(html)
               data_tr.next().toggle(1000);
               $(elem).removeClass();
@@ -399,17 +399,17 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
     data.invoice_amount = (data.amt + data.total_tax_amount);
   }
 }
-angular
-  .module('urbanApp')
-  .controller('EditInvoice', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', EditInvoice]);
+stockone = angular.module('urbanApp');
 
-stockone.directive('dtPoData', function() {
+stockone.controller('EditInvoice', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', EditInvoice]);
+
+stockone.directive('genericCustomerInvoiceData', function() {
   return {
     restrict: 'E',
     scope: {
-      po_data: '=data'
+      invoice_data: '=data'
     },
-    templateUrl: 'views/inbound/toggle/invoice_data_html.html',
+    templateUrl: 'views/outbound/toggle/invoice_data_html.html',
     link: function(scope, element, attributes, $http){
       console.log(scope);
     }

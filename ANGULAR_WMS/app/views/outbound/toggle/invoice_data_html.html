@@ -7,9 +7,11 @@
       </tr>
     </thead>
     <tbody>
-      <!-- <tr ng-repeat="(name, style_data) in size_data.styles"> -->
-      <tr ng-repeat="(name, style_data) in size_data.styles">
-        <td ng-repeat="record in ['1', '100', '10', '8']">{{record}}</td>
+      <tr ng-repeat="data in invoice_data">
+        <td>{{data['Level ID']}}</td>
+        <td>{{data['Order ID']}}</td>
+        <td>{{data['Order Quantity']}}</td>
+        <td>{{data['Picked Quantity']}}</td>
         </td>
       </tr>
     </tbody>

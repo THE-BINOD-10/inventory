@@ -131,7 +131,9 @@
 				if(self.sku_data_filtered[sk]["SKUCode"] === sku_code) {
                     self.sku_data_filtered[sk]["checked"] = true;
 					update_search_results([self.sku_data_filtered[sk]], sku_code);
-                    cal_total();
+          angular.forEach(self.skus, function(value, index) {
+            self.changeQuantity(value);
+          });
 				}
 			}
 		}
@@ -235,7 +237,6 @@
       			self.skus[i].sgst = self.skus[i].cgst = self.skus[i].igst = self.skus[i].utgst = 0;
   		    }
           self.skus[i].price = self.skus[i].quantity * self.skus[i].unit_price;
-          
           urlService.current_order.summary.total_amount += self.skus[i].price;
           urlService.current_order.summary.subtotal += self.skus[i].price;
           urlService.current_order.summary.sgst += (self.skus[i].sgst * self.skus[i].quantity);

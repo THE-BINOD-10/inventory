@@ -344,6 +344,60 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                          )))
 
 
+
+@csrf_exempt
+def get_staff_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['id', 'staff_name', 'email_id', 'phone_number', 'status']
+
+    search_params = get_filtered_params(filters, lis)
+    if 'status__icontains' in search_params.keys():
+        if (str(search_params['status__icontains']).lower() in "active"):
+            search_params["status__icontains"] = 1
+        elif (str(search_params['status__icontains']).lower() in "inactive"):
+            search_params["status__icontains"] = 0
+        else:
+            search_params["status__icontains"] = "none"
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        search_dict = {'active': 1, 'inactive': 0}
+        if search_term.lower() in search_dict:
+            search_terms = search_dict[search_term.lower()]
+            master_data = StaffMaster.objects.filter(status=search_terms, user=user.id, **search_params).order_by(
+                order_data)
+
+        else:
+            master_data = StaffMaster.objects.filter(
+                Q(staff_name__icontains=search_term) | Q(phone_number__icontains=search_term) |
+                Q(email_id__icontains=search_term),
+                user=user.id, **search_params).order_by(order_data)
+
+    else:
+        master_data = StaffMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
+
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data in master_data[start_index: stop_index]:
+        status = 'Inactive'
+        if data.status:
+            status = 'Active'
+
+        if data.phone_number:
+            try:
+                data.phone_number = int(float(data.phone_number))
+            except:
+                data.phone_number = ''
+        phone_number = ''
+        if data.phone_number and data.phone_number != '0':
+            phone_number = data.phone_number
+        temp_data['aaData'].append(
+            OrderedDict((('staff_id', data.id), ('name', data.staff_name), ('phone_number', phone_number),
+                         ('email_id', data.email_id), ('status', status),
+                         ('DT_RowId', data.id), ('DT_RowClass', 'results'),
+                         )))
+
+
 @csrf_exempt
 def get_bom_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
@@ -3076,3 +3130,45 @@ def delete_terms(request, user=''):
     else:
         message = 'Mandatory fields missing'
     return HttpResponse(json.dumps({'status': status, 'message': message, 'data': data}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_staff(request, user=''):
+    """ Add New Staff"""
+    log.info('Add New Staff request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    staff_name = request.POST.get('name', '')
+    email = request.POST.get('email_id', '')
+    phone = request.POST.get('phone_number', '')
+    status = 1 if request.POST.get('status', '') == "Active" else 0
+    if not staff_name:
+        return HttpResponse('Missing Required Fields')
+    data = filter_or_none(StaffMaster, {'staff_name': staff_name, 'user': user.id})
+    status_msg = 'Staff Exists'
+
+    if not data:
+        StaffMaster.objects.create(user=user.id, staff_name=staff_name,\
+                            phone_number=phone, email_id=email, status=status)
+
+
+        status_msg = 'New Staff Added'
+    return HttpResponse(status_msg)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_staff_values(request, user=''):
+    """ Update Staff values"""
+    log.info('Update Staff values for ' + user.username + ' is ' + str(request.POST.dict()))
+    staff_name = request.POST.get('name', '')
+    email = request.POST.get('email_id', '')
+    phone = request.POST.get('phone_number', '')
+    status = 1 if request.POST.get('status', '') == "Active" else 0
+    data = get_or_none(StaffMaster, {'staff_name': staff_name, 'user': user.id})
+    data.email_id = email
+    data.phone_number = phone
+    data.status = status
+    data.save()
+    return HttpResponse("Updated Successfully")

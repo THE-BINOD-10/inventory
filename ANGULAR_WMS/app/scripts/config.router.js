@@ -513,6 +513,23 @@ var app = angular.module('urbanApp')
             title: 'T&C Master',
           }
         })
+        .state('app.masters.StaffMaster', {
+          url: '/SatffMaster',
+          // permission: 'add_staffmaster',
+          templateUrl: 'views/masters/SatffMaster.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/StaffMaster.js');
+                    }]
+          },
+          data: {
+            title: 'Staff Master',
+          }
+        })
+        .state('app.masters.StaffMaster.Staff', {
+             url: '/Staff',
+             templateUrl: 'views/masters/toggles/staff_update.html'
+           })
 
       // Inbound routes
       .state('app.inbound', {
@@ -1073,6 +1090,10 @@ var app = angular.module('urbanApp')
             title: 'View Orders',
           }
         })
+          .state('app.outbound.ViewOrders.Picklist', {
+            url: '/Picklist',
+            templateUrl: 'views/outbound/toggle/batch_tg.html'
+          })
           .state('app.outbound.ViewOrders.Transfer', {
             url: '/Transfer',
             templateUrl: 'views/outbound/toggle/transfer_tg.html'

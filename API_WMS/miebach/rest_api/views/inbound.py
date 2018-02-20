@@ -5325,7 +5325,7 @@ def get_receive_po_style_view(request, user=''):
                                                                   'po_data': copy.deepcopy(default_po_dict)})
             order_quantity = order_data['order_quantity']
             if supplier_status:
-                order_quantity = order_quantity - order_data['intransit_quantity']
+                order_quantity = order_quantity - order_data['intransit_quantity'] - order.received_quantity
                 if order_quantity < 0:
                     order_quantity = 0
             data_dict[size_type]['styles'][sku_class]['sizes'][sku_size] = order_quantity

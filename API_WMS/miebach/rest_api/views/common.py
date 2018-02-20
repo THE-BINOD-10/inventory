@@ -200,6 +200,8 @@ def add_user_permissions(request, response_data, user=''):
     if get_priceband_admin_user(user):
         if request_user_profile.warehouse_type == 'DIST':
             warehouse_data = WarehouseCustomerMapping.objects.filter(warehouse=request.user.id, status=1)
+            if not warehouse_data:  # For Distributor Sub User
+                warehouse_data = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
             if warehouse_data and warehouse_data[0].customer.is_distributor:
                 user_type = 'distributor'  # distributor warehouse login
         elif request_user_profile.warehouse_type == 'WH':
@@ -369,7 +371,8 @@ def get_search_params(request):
                     'imei_number': 'imei_number',
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
                     'fg_sku_code': 'fg_sku_code',
-                    'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet'}
+                    'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
+                    'staff_id': 'id'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -407,7 +410,8 @@ data_datatable = {  # masters
     'DiscountMaster': 'get_discount_results', 'CustomSKUMaster': 'get_custom_sku_properties', \
     'SizeMaster': 'get_size_master_data', 'PricingMaster': 'get_price_master_results', \
     'SellerMaster': 'get_seller_master', 'SellerMarginMapping': 'get_seller_margin_mapping', \
-    'TaxMaster': 'get_tax_master', 'NetworkMaster': 'get_network_master_results',
+    'TaxMaster': 'get_tax_master', 'NetworkMaster': 'get_network_master_results',\
+    'StaffMaster': 'get_staff_master',
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
@@ -2782,13 +2786,19 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         non_filtered = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).exclude(
             id__in=pricemaster.values_list('sku_id', flat=True))
         if price_field == 'price':
+            dis_percent = 0
+            if customer_master:
+                dis_percent = customer_master.discount_percentage
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                    annotate(n_price=F(price_field)*(1-(Value(customer_master.discount_percentage)/Value(100)))).annotate(
+                    annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).annotate(
                     new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)).\
             filter(**filter_params).exclude(id__in=all_pricing_ids)
         else:
+            markup = 0
+            if customer_master:
+                markup = customer_master.markup
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                annotate(n_price=F(price_field) * (1+(Value(customer_master.markup) / Value(100)))).\
+                annotate(n_price=F(price_field) * (1+(Value(markup) / Value(100)))).\
                 annotate(new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)). \
             filter(**filter_params).exclude(id__in=all_pricing_ids)
         if filter_params.has_key('new_price__lte'):
@@ -2811,13 +2821,19 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             pricemaster = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type). \
                 annotate(new_price=F('price') + Value(custom_margin)).filter(**filter_params1)
         if price_field == 'price':
+            dis_percent = 0
+            if customer_master:
+                dis_percent = customer_master.discount_percentage
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                            annotate(n_price=F(price_field)*(1-(Value(customer_master.discount_percentage)/Value(100)))).\
+                            annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).\
                             annotate(new_price=F('n_price') + Value(custom_margin)).\
                             filter(**filter_params).exclude(id__in=all_pricing_ids)
         else:
+            markup = 0
+            if customer_master:
+                markup = customer_master.markup
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                            annotate(n_price=F(price_field)*(1+(Value(customer_master.markup)/Value(100)))).\
+                            annotate(n_price=F(price_field)*(1+(Value(markup)/Value(100)))).\
                             annotate(new_price=F('n_price') + Value(custom_margin)).\
                             filter(**filter_params).exclude(id__in=all_pricing_ids)
 

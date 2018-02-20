@@ -433,6 +433,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     });
   }
 
+  vm.update_extra_order_status = function() {
+    var data = $("#order_statuses").val();
+    vm.service.apiCall("switches?extra_view_order_status="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
   vm.update_stages = function() {
     var data = $(".stages").val();
     vm.service.apiCall("save_stages/?stage_names="+data).then(function(data){

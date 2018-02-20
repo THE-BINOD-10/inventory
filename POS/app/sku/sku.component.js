@@ -466,14 +466,16 @@
               self.submit_enable = false;
 
               //update the current order id
-              data=data.order_ids[0]+1;
-              reduceSKUQty(order_data);
-              setCheckSum(setOrderID(data)).
-                then(function(data){
-                  console.log("order id updated");
-              }).catch(function(error){
-                  console.log("order id updated error "+error);
-              });
+              if(data.order_ids[0]!="return"){
+                data=data.order_ids[0]+1;
+                setCheckSum(setOrderID(data)).
+                  then(function(data){
+                    console.log("order id updated");
+                }).catch(function(error){
+                    console.log("order id updated error "+error);
+                });
+                reduceSKUQty(order_data);
+              }
           }
             clear_fields();
           },function(error){

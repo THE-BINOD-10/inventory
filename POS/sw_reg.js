@@ -56,7 +56,8 @@
       
       navigator.serviceWorker.ready.then(function(reg){
           reg.showNotification("POS update", {
-            body:"POS find an new update please wait for reloading",
+            body:"POS find a new update please wait for reloading",
+            tag:"pos_alert",
             icon:"app/images/pos_icon.png"});
       });
       
@@ -84,6 +85,7 @@
       });
     });
   }
+  
   //check if the storage is persisted or not
   async function isStoragePersisted() {
     return await navigator.storage && navigator.storage.persisted &&

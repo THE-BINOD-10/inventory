@@ -3051,7 +3051,7 @@ def create_update_user(data, password, username):
                 user_profile.save()
                 CustomerUserMapping.objects.create(customer_id=data.id, user_id=user.id,
                                                    creation_date=datetime.datetime.now())
-            status = 'User Added Successfully'
+            status = 'New Customer Added'
 
     return status
 

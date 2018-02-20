@@ -6147,7 +6147,7 @@ def create_order_pos(user, order_objs):
                             mapping_obj = MastersMapping.objects.create(master_id=cust_master.id, mapping_id=supplier_id,
                                                           mapping_type='customer-supplier', user=user.id,
                                                           creation_date=datetime.datetime.now())
-                            cust_supp_mapping[cust_master.customer_id] = supplier_id
+                            cust_supp_mapping[str(cust_master.customer_id)] = supplier_id
                     else:
                         cust_supp_mapping[str(cust_master.customer_id)] = master_mapping[0].mapping_id
             if not cust_supp_mapping.get(str(order_obj.customer_id), ''):

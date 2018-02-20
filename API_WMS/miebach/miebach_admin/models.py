@@ -1297,16 +1297,6 @@ class SizeMaster(models.Model):
         unique_together = ('user', 'size_name')
 
 
-class ProductGroups(models.Model):
-    group_type = models.CharField(max_length=64)
-    group_value = models.CharField(max_length=64)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'PRODUCT_GROUPS'
-
-
 class ProductAttributes(models.Model):
     user = models.ForeignKey(User, default=None)
     attribute_name = models.CharField(max_length=64, default='')
@@ -1367,16 +1357,6 @@ class ProductImages(models.Model):
 
     class Meta:
         db_table = 'PRODUCT_IMAGES'
-
-
-class ProductGroupsMapping(models.Model):
-    group_id = models.PositiveIntegerField()
-    product_groups = models.ForeignKey(ProductGroups)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'PRODUCT_GROUPS_MAPPING'
 
 
 class customerGroupsMapping(models.Model):
@@ -2421,3 +2401,17 @@ class MastersMapping(models.Model):
     class Meta:
         db_table = 'MASTERS_MAPPING'
         unique_together = ('user', 'master_id', 'mapping_id', 'mapping_type')
+
+
+class GroupPermMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    group = models.ForeignKey(Group)
+    perm_type = models.CharField(max_length=32)
+    perm_value = models.CharField(max_length=64, default='')
+    sequence = models.IntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'GROUP_PERM_MAPPING'
+        unique_together = ('group', 'perm_type', 'perm_value')

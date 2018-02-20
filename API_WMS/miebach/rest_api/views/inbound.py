@@ -914,6 +914,7 @@ def switches(request, user=''):
                        'create_order_po': 'create_order_po',
                        'calculate_customer_price': 'calculate_customer_price',
                        'shipment_sku_scan': 'shipment_sku_scan',
+                       'extra_view_order_status':'extra_view_order_status',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

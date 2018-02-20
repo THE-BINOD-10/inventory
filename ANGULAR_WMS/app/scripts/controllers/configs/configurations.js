@@ -434,7 +434,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   }
 
   vm.update_extra_order_status = function() {
-    var data = $("#order_statuses").val();
+    var data = $(".extra_view_order_status").val();
     vm.service.apiCall("switches?extra_view_order_status="+data).then(function(data){
       if(data.message) {
         msg = data.data;

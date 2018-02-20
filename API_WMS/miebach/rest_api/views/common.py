@@ -6260,6 +6260,25 @@ def get_view_order_statuses(request, user):
         return view_order_status, False
     view_order_status = view_order_status.split(',')
     if not request.user.is_staff:
-        view_order_status = list(GroupPermMapping.objects.filter(group__user__id=request.user.id).\
-                                        values_list('perm_value', flat=True).order_by('sequence'))
+        view_order_status = list(GroupPermMapping.objects.filter(group__user__id=request.user.id, status=1).\
+                                        values_list('perm_value', flat=True).distinct().order_by('sequence'))
     return view_order_status, True
+
+
+def update_created_extra_status(user, selection):
+    sub_users = get_related_users(user.id)
+    status_selected = selection.split(',')
+    for sub_user in sub_users:
+        grp_perm_map = GroupPermMapping.objects.filter(group__user__id=sub_user)
+        exist_grp_sequence = list(grp_perm_map.filter(status=1).\
+            values_list('perm_value', flat=True).distinct().order_by('sequence'))
+        if exist_grp_sequence != status_selected:
+            for sequence, grp_perm in enumerate(grp_perm_map):
+                if grp_perm.perm_value not in status_selected:
+                    grp_perm.status = 0
+                    grp_perm.sequence = 0
+                    grp_perm.save()
+                else:
+                    grp_perm.sequence = status_selected.index(grp_perm.perm_value)
+                    grp_perm.status = 1
+                    grp_perm.save()

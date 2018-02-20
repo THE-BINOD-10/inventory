@@ -1,0 +1,20 @@
+<div class="table-responsive mt20 ml20 mr20 mb20">
+  <!-- <table class="table table-bordered mb20" ng-repeat="(size_type, size_data) in po_data"> -->
+  <table class="table table-bordered mb20">
+    <thead>
+      <tr>
+        <th ng-repeat="hd in ['Level ID', 'Order ID', 'Order Quantity', 'Picked Quantity']">{{hd}}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="data in invoice_data">
+        <td>{{data['Level ID']}}</td>
+        <td>{{data['Order ID']}}</td>
+        <td>{{data['Order Quantity']}}</td>
+        <td>{{data['Picked Quantity']}}</td>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+</div>

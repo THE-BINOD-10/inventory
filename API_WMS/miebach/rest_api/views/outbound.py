@@ -1346,7 +1346,11 @@ def check_req_min_order_val(user, skus):
         supplier_id, price, taxes = auto_po_warehouses(sku, qty)
         sku_qty_map[sku.sku_code] = (qty, price)
         if price:
-            users_order_amt += price
+            users_order_amt += (qty * price)
+        intransit_tot_amt = IntransitOrders.objects.filter(sku=sku, user=sku.user, status=1). \
+            values('sku__sku_code').annotate(tot_inv_amt=Sum('invoice_amount'))
+        if intransit_tot_amt:
+            users_order_amt += intransit_tot_amt[0]['tot_inv_amt']
     if users_order_amt > users_min_order_val:
         order_val_flag = True
     return order_val_flag, sku_qty_map
@@ -1367,6 +1371,15 @@ def create_intransit_order(auto_skus, user, sku_qty_map):
         intr_obj = IntransitOrders(**intr_data)
         intr_obj.save()
         log.info('Intransit Order Created Successfully')
+
+
+def delete_intransit_orders(auto_skus, user):
+    sku_objs = SKUMaster.objects.filter(wms_code__in=auto_skus, user=user.id, threshold_quantity__gt=0)
+    intransit_orders = IntransitOrders.objects.filter(sku__in=sku_objs, user=user.id, status=1)
+    if intransit_orders:
+        for intr_order in intransit_orders:
+            intr_order.status = 0
+            intr_order.save()
 
 
 @csrf_exempt
@@ -1590,6 +1603,7 @@ def picklist_confirmation(request, user=''):
             reaches_order_val, sku_qty_map = check_req_min_order_val(user, auto_skus)
             if reaches_order_val:
                 auto_po(auto_skus, user.id)
+                delete_intransit_orders(auto_skus, user)  # deleting intransit order after creating actual order.
             else:
                 create_intransit_order(auto_skus, user, sku_qty_map)
 
@@ -2907,7 +2921,7 @@ def split_orders(**order_data):
         else:
             break
         req_stock = req_qty
-    log.info("Stock assigning Map for SKU Code (%s):: %s" % (sku_code, repr(stk_dtl_obj)))
+    log.info("Stock assigning Map for SKU Code (%s):: %s" % (sku_code, repr(stock_wh_map)))
     return stock_wh_map
 
 
@@ -2990,7 +3004,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
             order_data[key] = value
         elif key == 'del_date':
             if value:
-                order_data[key] = datetime.datetime.strptime(myDict[key][i], '%m/%d/%Y')
+                order_data[key] = datetime.datetime.strptime(myDict[key][i], '%d/%m/%Y')
         else:
             order_data[key] = value
 
@@ -5112,6 +5126,10 @@ def get_view_order_details(request, user=''):
         for tax_master in tax_masters:
             taxes_data.append(tax_master.json())
 
+        if order_id:
+            order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
+            order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
+
         order_details_data.append(
             {'product_title': product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
              'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone, 'email': email, 'address': address,
@@ -5124,6 +5142,7 @@ def get_view_order_details(request, user=''):
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
              'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
+             'order_charges': order_charges,
              'sku_status': one_order.status})
 
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
@@ -6135,9 +6154,21 @@ def get_level_based_customer_orders(request, response_data, user):
                                  order_by('-generic_order_id'))
     response_data['data'] = response_data['data'][start_index:stop_index]
     for record in response_data['data']:
-        order_detail_ids = generic_orders.filter(generic_order_id=record['generic_order_id']).values_list(
-            'orderdetail_id', flat=True)
+
+        order_details = generic_orders.filter(generic_order_id=record['generic_order_id'])
+        order_detail_ids = order_details.values_list('orderdetail_id', flat=True)
         data = OrderDetail.objects.filter(id__in=order_detail_ids)
+
+        ord_det_qs = data.values_list('order_id', 'id', 'user', 'original_order_id', 'order_code')
+        ord_det_map = {}
+        if ord_det_qs:
+            order_detail_order_id = ord_det_qs[0][3]
+            if not order_detail_order_id:
+                order_detail_order_id = str(ord_det_qs[0][4]) + str(ord_det_qs[0][0])
+            other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
+            if not other_charges:
+                other_charges = 0
+
         data_status = data.filter(status=1)
         if data_status:
             status = 'open'
@@ -6158,6 +6189,8 @@ def get_level_based_customer_orders(request, response_data, user):
             record['date'] = ''
         if record['generic_order_id']:
             record['order_id'] = record['generic_order_id']
+        record['order_detail_ids'] = list(order_details.values_list('orderdetail__order_id', flat=True).distinct())
+        record['reseller_name'] = CustomerMaster.objects.get(id=order_details[0].customer_id).name
         for ord_det_id in order_detail_ids:
             gen_ord_obj = generic_orders.filter(orderdetail_id=ord_det_id)
             if gen_ord_obj:
@@ -6176,6 +6209,17 @@ def get_level_based_customer_orders(request, response_data, user):
                         record['total_inv_amt'] = round(tax_inclusive_inv_amt, 2)
                     else:
                         record['total_inv_amt'] = record['total_inv_amt'] + round(tax_inclusive_inv_amt, 2)
+
+                    data = OrderDetail.objects.filter(id=ord_det_id)
+                    ord_det_qs = data.values_list('order_id', 'id', 'user', 'original_order_id', 'order_code')
+                    ord_det_map = {}
+                    if ord_det_qs:
+                        order_detail_order_id = ord_det_qs[0][3]
+                        if not order_detail_order_id:
+                            order_detail_order_id = str(ord_det_qs[0][4]) + str(ord_det_qs[0][0])
+                        other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
+                        if other_charges:
+                            record['total_inv_amt'] += other_charges
         record['picked_quantity'] = picked_quantity
     return response_data
 
@@ -6222,7 +6266,7 @@ def get_customer_orders(request, user=""):
                 picked_quantity = 0
             record['status'] = status
             record['date'] = get_only_date(request, data[0].creation_date)
-            record['total_inv_amt'] = round(record['total_inv_amt'], 2)
+            record['total_inv_amt'] = round(record['total_inv_amt'], 2) + other_charges
             record['picked_quantity'] = picked_quantity
             if record['original_order_id']:
                 record['order_id'] = record['original_order_id']
@@ -6272,6 +6316,7 @@ def construct_order_customer_order_detail(request, order, user):
 
 def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     response_data = {}
+    other_charges = 0
     tax = CustomerOrderSummary.objects.filter(order_id__in=det_ids,
                                               order__user=usr_id).aggregate(Sum('tax_value'))[
         'tax_value__sum']
@@ -6295,9 +6340,18 @@ def prepare_your_orders_data(request, ord_id, usr_id, det_ids, order):
     total_qty = map(sum, [[x['quantity'] for x in res]])
     total_tax = map(sum, [[x.get('sku_tax_amt', 0) for x in res]])
     response_data['tax'] = round(total_tax[0], 2)
-    sum_data = {'picked_quantity': total_picked_quantity, 'amount': total_inv_amt[0],
-                'quantity': total_qty[0]}
+    order_detail_order_id = order[0].original_order_id
+    if not order[0].original_order_id:
+        order_detail_order_id = str(order[0].order_code) + str(order[0].order_id)
+    other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
+    amount = float(total_inv_amt[0])
+    if other_charges:
+        amount = float(total_inv_amt[0]) + float(other_charges)
+    else:
+        other_charges = 0
+    sum_data = {'picked_quantity': total_picked_quantity, 'amount': amount, 'quantity': total_qty[0]}
     response_data['sum_data'] = sum_data
+    response_data['other_charges'] = other_charges
     response_data['data'].extend(res)
 
     return response_data, res
@@ -6307,6 +6361,7 @@ def get_level_based_customer_order_detail(request, user):
     whole_res_map = {}
     response_data_list = []
     sku_wise_details = {}
+    order_charge_dict = {}
     generic_order_id = request.GET['order_id']
     is_autobackorder = request.GET.get('autobackorder', 'false')
     user_profile = UserProfile.objects.get(user=request.user.id)
@@ -6342,9 +6397,17 @@ def get_level_based_customer_order_detail(request, user):
         # generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
         order_detail_ids = generic_orders.filter(generic_order_id=generic_order_id).values_list(
             'orderdetail_id', flat=True)
-        ord_det_qs = OrderDetail.objects.filter(id__in=order_detail_ids).values_list('order_id', 'id', 'user')
+
+        ord_det_qs = OrderDetail.objects.filter(id__in=order_detail_ids).values_list('order_id', 'id', 'user',
+                                                                                     'original_order_id', 'order_code')
         ord_det_map = {}
-        for ord_id, det_id, usr_id in ord_det_qs:
+        if ord_det_qs:
+            order_detail_order_id = ord_det_qs[0][3]
+            if not order_detail_order_id:
+                order_detail_order_id = str(ord_det_qs[0][4]) + str(ord_det_qs[0][0])
+            other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
+
+        for ord_id, det_id, usr_id, original_order_id, order_code in ord_det_qs:
             ord_det_map.setdefault(int(ord_id), {}).setdefault(usr_id, []).append(det_id)
         for ord_id, usr_det_ids in ord_det_map.items():
             for usr_id, det_ids in usr_det_ids.items():
@@ -6354,7 +6417,7 @@ def get_level_based_customer_order_detail(request, user):
                 response_data['warehouse_level'] = ord_usr_profile.warehouse_level
                 response_data['level_name'] = get_level_name_with_level(user, ord_usr_profile.warehouse_level,
                                                                         users_list=[usr_id])
-                response_data_list. append(response_data)
+                response_data_list.append(response_data)
                 for sku_rec in res:
                     sku_code = sku_rec['sku__sku_code']
                     sku_qty = sku_rec['quantity']
@@ -6375,14 +6438,34 @@ def get_level_based_customer_order_detail(request, user):
         tax_amt = sku_det['sku_tax_amt']
         total_amt = float(qty) * float(el_price)
         sku_map = {'sku_code': sku_code, 'quantity': qty, 'landing_price': el_price, 'total_amount': total_amt}
+        if other_charges:
+            sku_totals['other_charges'] = other_charges
+        else:
+            other_charges = 0
+            sku_totals['other_charges'] = 0
         sku_totals['sub_total'] = sku_totals['sub_total'] + total_amt
         sku_totals['tax'] = round(sku_totals['tax'] + tax_amt, 2)
-        sku_totals['total_amount'] = round(sku_totals['sub_total'] + sku_totals['tax'], 2)
+        sku_totals['total_amount'] = round(sku_totals['sub_total'] + sku_totals['tax'] + other_charges, 2)
         sku_whole_map['data'].append(sku_map)
         sku_whole_map['totals'] = sku_totals
     whole_res_map['data'] = response_data_list
     whole_res_map['sku_wise_details'] = sku_whole_map
     return whole_res_map
+
+
+def order_charges_obj_for_orderid(order_id, user_id):
+    total_charge_amount = 0
+    order_charge_obj = []
+    dist_id_obj = CustomerUserMapping.objects.filter(user=user_id).values_list('customer__id')
+    if dist_id_obj:
+        dist_id = dist_id_obj[0]
+        if dist_id:
+            cust_wh_ids = GenericOrderDetailMapping.objects.filter(customer_id__in=dist_id).values_list('cust_wh_id',
+                                                                                                        flat=True).distinct()
+            if cust_wh_ids:
+                order_charge_obj = OrderCharges.objects.filter(order_id=order_id, user__in=cust_wh_ids)
+                total_charge_amount = order_charge_obj.aggregate(Sum('charge_amount'))['charge_amount__sum']
+    return total_charge_amount
 
 
 @login_required
@@ -6805,116 +6888,199 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
     log.info('Shipment info alternative view filtered ' + str(temp_data['recordsTotal']))
 
 
+def fetch_relevant_orders_by_reseller(user_id, gen_ords):
+    relevant_orders = {}
+    for gen_ord in gen_ords:
+        gen_id, cw_id, cid, ord_det_id = gen_ord[0]
+        rem_ord_ids = GenericOrderDetailMapping.objects.filter(generic_order_id=gen_id, customer_id=cid).\
+            exclude(orderdetail_id=ord_det_id).values_list('orderdetail_id', flat=True)
+        if rem_ord_ids:
+            relevant_orders.setdefault(ord_det_id, []).extend(list(rem_ord_ids))
+    return relevant_orders
+
+
+@get_admin_user
+def get_invoice_details(request, user=''):
+    gen_id = request.GET.get('gen_id', '')
+    customer_id = request.GET.get('customer_id', '')
+    if not (gen_id and customer_id):
+        return HttpResponse('Generic Id or Customer Id is missing')
+    gen_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=customer_id, generic_order_id=gen_id)
+    customer_name = CustomerMaster.objects.get(id=customer_id).name
+    gen_data_list = []
+    for gen_ord_obj in gen_ord_objs:
+        ord_id = OrderDetail.objects.get(id=gen_ord_obj.orderdetail_id)
+        if not ord_id:
+            continue
+        order_id = ord_id.order_id
+        qty = ord_id.quantity
+        # order_date = get_local_date(user, ord_id.creation_date)
+        level_id = UserProfile.objects.get(user=gen_ord_obj.cust_wh_id).warehouse_level
+        data_dict = OrderedDict((('Level ID', level_id),
+                                 ('Order ID', order_id),))
+                                 # ('id', str(order.order_id) + ":" + str(0)),
+                                 # ('check_field', 'Order ID'),
+                                 # ('Generic Order ID', gen_id),))
+        data_dict.update(OrderedDict((('Order Quantity', qty),
+                                      ('Picked Quantity', 0),
+                                      )))
+        # data_tuple = (level_id, order_id, qty, 0)
+        gen_data_list.append(data_dict)
+    return HttpResponse(json.dumps({'data_dict': gen_data_list, 'status': 1}, cls=DjangoJSONEncoder))
+
+
+def get_levelbased_invoice_data(temp_data, user):
+    reseller_objs = CustomerMaster.objects.filter(user=user.id)
+    reseller_ids = reseller_objs.values_list('id', flat=True)
+    reseller_ords_map = {}
+    total_ords = []
+    for reseller in reseller_ids:
+        gen_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=reseller)
+        gen_ord_vals = gen_ord_objs.values_list('generic_order_id', 'orderdetail')
+        for gen_id, ord_det_id in gen_ord_vals:
+            total_ords.append(ord_det_id)
+            reseller_ords_map.setdefault(reseller, {}).setdefault(gen_id, []).append(ord_det_id)
+    temp_data['recordsTotal'] = len(total_ords)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for reseller, res_gen_ords in reseller_ords_map.items():
+        for gen_id, res_ords in res_gen_ords.items():
+            try:
+                orders = GenericOrderDetailMapping.objects.filter(orderdetail_id__in=res_ords)
+                total_qty = orders.values('generic_order_id').annotate(total_qty=Sum('quantity'))[0]['total_qty']
+                order_date = get_local_date(user, orders[0].creation_date)
+                ordered_quantity = total_qty
+                data_dict = OrderedDict((('Gen Order Id', gen_id),
+                                         ('Order Ids', res_ords),
+                                         # ('id', str(order.order_id) + ":" + str(0)),
+                                         ('check_field', 'Order ID'),
+                                         ('Generic Order ID', gen_id),))
+                data_dict.update(OrderedDict((('Customer Name', orders[0].customer_id),
+                                              ('Order Quantity', ordered_quantity),
+                                              ('Picked Quantity', 0),
+                                              ('Order Date&Time', order_date), ('Invoice Number', '')
+                                              )))
+                temp_data['aaData'].append(data_dict)
+            except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info('Order Not found for user %s, order_det_id %s and error statement is %s'
+                         % (str(user.username), str(res_ords), str(e)))
+    return temp_data
+
+
 @csrf_exempt
 def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                               filters):
     ''' Customer Invoice datatable code '''
 
     user_profile = UserProfile.objects.get(user_id=user.id)
-    if user_profile.user_type == 'marketplace_user':
-        lis = ['seller_order__order__order_id', 'seller_order__order__order_id', 'seller_order__sor_id',
-               'seller_order__seller__seller_id',
-               'seller_order__order__customer_name', 'quantity', 'quantity', 'date_only', 'id']
-        user_filter = {'seller_order__seller__user': user.id}
-        result_values = ['seller_order__order__order_id', 'seller_order__seller__name', 'pick_number',
-                         'seller_order__sor_id']
-        field_mapping = {'order_quantity_field': 'seller_order__quantity', 'date_only': 'seller_order__creation_date'}
-        is_marketplace = True
+    admin_user = get_priceband_admin_user(user)
+    if admin_user and user_profile.warehouse_type == 'DIST':
+        temp_data = get_levelbased_invoice_data(temp_data, user)
     else:
-        lis = ['order__order_id', 'order__order_id', 'order__customer_name', 'quantity', 'quantity', 'date_only']
-        user_filter = {'order__user': user.id}
-        result_values = ['order__order_id', 'pick_number']
-        field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
-        is_marketplace = False
-
-    if search_term:
-        if 'date_only' in lis:
-            lis1 = copy.deepcopy(lis)
-            lis1 = map(lambda x: x if x not in ['date_only', 'seller_order__order__order_id', 'order__order_id'] else
-            field_mapping['date_only'], lis1)
-        search_term = search_term.replace('(', '\(').replace(')', '\)')
-        search_query = build_search_term_query(lis1, search_term)
-        order_id_search = ''.join(re.findall('\d+', search_term))
-        order_code_search = ''.join(re.findall('\D+', search_term))
-        if not is_marketplace:
-            master_data = SellerOrderSummary.objects.filter(Q(order__order_id__icontains=order_id_search,
-                                                              order__order_code__icontains=order_code_search) |
-                                                            Q(
-                                                                order__original_order_id__icontains=search_term) | search_query,
-                                                            **user_filter). \
-                values(*result_values).distinct(). \
-                annotate(total_quantity=Sum('quantity'),
-                         total_order=Sum(field_mapping['order_quantity_field']))
+        if user_profile.user_type == 'marketplace_user':
+            lis = ['seller_order__order__order_id', 'seller_order__order__order_id', 'seller_order__sor_id',
+                   'seller_order__seller__seller_id',
+                   'seller_order__order__customer_name', 'quantity', 'quantity', 'date_only', 'id']
+            user_filter = {'seller_order__seller__user': user.id}
+            result_values = ['seller_order__order__order_id', 'seller_order__seller__name', 'pick_number',
+                             'seller_order__sor_id']
+            field_mapping = {'order_quantity_field': 'seller_order__quantity', 'date_only': 'seller_order__creation_date'}
+            is_marketplace = True
         else:
-            master_data = SellerOrderSummary.objects.filter(Q(seller_order__order__order_id__icontains=order_id_search,
-                                                              seller_order__order__order_code__icontains=order_code_search) |
-                                                            Q(
-                                                                seller_order__order__original_order_id__icontains=search_term) |
-                                                            search_query, **user_filter).values(
+            lis = ['order__order_id', 'order__order_id', 'order__customer_name', 'quantity', 'quantity', 'date_only']
+            user_filter = {'order__user': user.id}
+            result_values = ['order__order_id', 'pick_number']
+            field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
+            is_marketplace = False
+
+        if search_term:
+            if 'date_only' in lis:
+                lis1 = copy.deepcopy(lis)
+                lis1 = map(lambda x: x if x not in ['date_only', 'seller_order__order__order_id', 'order__order_id'] else
+                field_mapping['date_only'], lis1)
+            search_term = search_term.replace('(', '\(').replace(')', '\)')
+            search_query = build_search_term_query(lis1, search_term)
+            order_id_search = ''.join(re.findall('\d+', search_term))
+            order_code_search = ''.join(re.findall('\D+', search_term))
+            if not is_marketplace:
+                master_data = SellerOrderSummary.objects.filter(Q(order__order_id__icontains=order_id_search,
+                                                                  order__order_code__icontains=order_code_search) |
+                                                                Q(
+                                                                    order__original_order_id__icontains=search_term) | search_query,
+                                                                **user_filter). \
+                    values(*result_values).distinct(). \
+                    annotate(total_quantity=Sum('quantity'),
+                             total_order=Sum(field_mapping['order_quantity_field']))
+            else:
+                master_data = SellerOrderSummary.objects.filter(Q(seller_order__order__order_id__icontains=order_id_search,
+                                                                  seller_order__order__order_code__icontains=order_code_search) |
+                                                                Q(
+                                                                    seller_order__order__original_order_id__icontains=search_term) |
+                                                                search_query, **user_filter).values(
+                    *result_values).distinct(). \
+                    annotate(total_quantity=Sum('quantity'),
+                             total_order=Sum(field_mapping['order_quantity_field']))
+
+        elif order_term:
+            if order_term == 'asc' and (col_num or col_num == 0):
+                master_data = SellerOrderSummary.objects.filter(**user_filter).values(*result_values).distinct(). \
+                    annotate(total_quantity=Sum('quantity'), total_order=Sum(field_mapping['order_quantity_field']),
+                             date_only=Cast(field_mapping['date_only'], DateField())).order_by(lis[col_num])
+            else:
+                master_data = SellerOrderSummary.objects.filter(**user_filter).values(*result_values).distinct(). \
+                    annotate(total_quantity=Sum('quantity'), total_order=Sum(field_mapping['order_quantity_field']),
+                             date_only=Cast(field_mapping['date_only'], DateField())).order_by('-%s' % lis[col_num])
+        else:
+            master_data = SellerOrderSummary.objects.filter(**user_filter).order_by('-%s' % lis[col_num]).values(
                 *result_values).distinct(). \
-                annotate(total_quantity=Sum('quantity'),
-                         total_order=Sum(field_mapping['order_quantity_field']))
+                annotate(total_quantity=Sum('quantity'), total_order=Sum(field_mapping['order_quantity_field']))
 
-    elif order_term:
-        if order_term == 'asc' and (col_num or col_num == 0):
-            master_data = SellerOrderSummary.objects.filter(**user_filter).values(*result_values).distinct(). \
-                annotate(total_quantity=Sum('quantity'), total_order=Sum(field_mapping['order_quantity_field']),
-                         date_only=Cast(field_mapping['date_only'], DateField())).order_by(lis[col_num])
-        else:
-            master_data = SellerOrderSummary.objects.filter(**user_filter).values(*result_values).distinct(). \
-                annotate(total_quantity=Sum('quantity'), total_order=Sum(field_mapping['order_quantity_field']),
-                         date_only=Cast(field_mapping['date_only'], DateField())).order_by('-%s' % lis[col_num])
-    else:
-        master_data = SellerOrderSummary.objects.filter(**user_filter).order_by('-%s' % lis[col_num]).values(
-            *result_values).distinct(). \
-            annotate(total_quantity=Sum('quantity'), total_order=Sum(field_mapping['order_quantity_field']))
+        temp_data['recordsTotal'] = master_data.count()
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
-    temp_data['recordsTotal'] = master_data.count()
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+        order_summaries = SellerOrderSummary.objects.filter(seller_order__seller__user=user.id)
+        seller_orders = SellerOrder.objects.filter(seller__user=user.id)
+        orders = OrderDetail.objects.filter(user=user.id)
+        for data in master_data[start_index:stop_index]:
+            if is_marketplace:
+                summary = order_summaries.filter(seller_order__order__order_id=data['seller_order__order__order_id'],
+                                                 seller_order__seller__name=data['seller_order__seller__name'])[0]
+                order = summary.seller_order.order
+                ordered_quantity = seller_orders.filter(order__order_id=data['seller_order__order__order_id'],
+                                                        sor_id=data['seller_order__sor_id']).aggregate(Sum('quantity'))[
+                    'quantity__sum']
+                total_quantity = data['total_quantity']
+            else:
+                order = orders.filter(order_id=data['order__order_id'])[0]
+                ordered_quantity = orders.filter(order_id=data['order__order_id']).aggregate(Sum('quantity'))[
+                    'quantity__sum']
+            order_id = order.order_code + str(order.order_id)
+            if order.original_order_id:
+                order_id = order.original_order_id
 
-    order_summaries = SellerOrderSummary.objects.filter(seller_order__seller__user=user.id)
-    seller_orders = SellerOrder.objects.filter(seller__user=user.id)
-    orders = OrderDetail.objects.filter(user=user.id)
+            if not ordered_quantity:
+                ordered_quantity = 0
 
-    for data in master_data[start_index:stop_index]:
-        if is_marketplace:
-            summary = order_summaries.filter(seller_order__order__order_id=data['seller_order__order__order_id'],
-                                             seller_order__seller__name=data['seller_order__seller__name'])[0]
-            order = summary.seller_order.order
-            ordered_quantity = seller_orders.filter(order__order_id=data['seller_order__order__order_id'],
-                                                    sor_id=data['seller_order__sor_id']).aggregate(Sum('quantity'))[
-                'quantity__sum']
-            total_quantity = data['total_quantity']
-        else:
-            order = orders.filter(order_id=data['order__order_id'])[0]
-            ordered_quantity = orders.filter(order_id=data['order__order_id']).aggregate(Sum('quantity'))[
-                'quantity__sum']
-        order_id = order.order_code + str(order.order_id)
-        if order.original_order_id:
-            order_id = order.original_order_id
+            order_date = get_local_date(user, order.creation_date)
 
-        if not ordered_quantity:
-            ordered_quantity = 0
-
-        order_date = get_local_date(user, order.creation_date)
-
-        if is_marketplace:
-            data_dict = OrderedDict((('UOR ID', order_id), ('SOR ID', summary.seller_order.sor_id),
-                                     ('Seller ID', summary.seller_order.seller.seller_id),
-                                     ('id', str(data['seller_order__order__order_id']) + \
-                                      ":" + str(data['pick_number']) + ":" + data['seller_order__seller__name']),
-                                     ('check_field', 'SOR ID')
-                                     ))
-        else:
-            data_dict = OrderedDict((('Order ID', order_id), ('id', str(data['order__order_id']) + ":" + \
-                                                              str(data['pick_number'])), ('check_field', 'Order ID')))
-        data_dict.update(OrderedDict((('Customer Name', order.customer_name), ('Customer Name', order.customer_name),
-                                      ('Order Quantity', ordered_quantity), ('Picked Quantity', data['total_quantity']),
-                                      ('Order Date&Time', order_date),
-                                      ('Invoice Number', '')
-                                      )))
-        temp_data['aaData'].append(data_dict)
-    log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
+            if is_marketplace:
+                data_dict = OrderedDict((('UOR ID', order_id), ('SOR ID', summary.seller_order.sor_id),
+                                         ('Seller ID', summary.seller_order.seller.seller_id),
+                                         ('id', str(data['seller_order__order__order_id']) + \
+                                          ":" + str(data['pick_number']) + ":" + data['seller_order__seller__name']),
+                                         ('check_field', 'SOR ID')
+                                         ))
+            else:
+                data_dict = OrderedDict((('Order ID', order_id),
+                                         ('id', str(data['order__order_id']) + ":" + str(data['pick_number'])),
+                                         ('check_field', 'Order ID')))
+            data_dict.update(OrderedDict((('Customer Name', order.customer_name),
+                                          ('Order Quantity', ordered_quantity), ('Picked Quantity', data['total_quantity']),
+                                          ('Order Date&Time', order_date), ('Invoice Number', '')
+                                          )))
+            temp_data['aaData'].append(data_dict)
+        log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
 
 
 @csrf_exempt
@@ -7332,6 +7498,8 @@ def customer_invoice_data(request, user=''):
     user_profile = UserProfile.objects.get(user_id=user.id)
     if user_profile.user_type == 'marketplace_user':
         headers = MP_CUSTOMER_INVOICE_HEADERS
+    elif user_profile.warehouse_type == 'DIST':
+        headers = DIST_CUSTOMER_INVOICE_HEADERS
     else:
         headers = WH_CUSTOMER_INVOICE_HEADERS
     return HttpResponse(json.dumps({'headers': headers}))
@@ -7681,7 +7849,8 @@ def get_customer_enquiry_detail(request, user=''):
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     user_profile = UserProfile.objects.filter(user=request.user.id)
     filters = {'enquiry_id': float(enquiry_id)}
-    if user_profile and (user_profile[0].warehouse_type == 'DIST' or user_profile[0].warehouse_type == 'CENTRAL_ADMIN'):
+    if user_profile and (user_profile[0].warehouse_type == 'DIST' or user_profile[0].warehouse_type == 'CENTRAL_ADMIN'
+                         or user_profile[0].warehouse_type == ''):  # No warehouse user for sub distributor user.
         if not request.GET.get('customer_id', ''):
             return HttpResponse("Please Send Customer ID")
         filters['customer_id'] = request.GET.get('customer_id', '')
@@ -7784,8 +7953,9 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
             days_left = days_left_obj.days
         else:
             days_left = 0
-        temp_data['aaData'].append(OrderedDict((('Enquiry ID', enq_id), ('Customer Name', customer_name),
-                                                ('Zone', zone), ('Quantity', total_qty), ('Date', date),
+        temp_data['aaData'].append(OrderedDict((('Enquiry ID', enq_id), ('Sub Distributor', customer_name),
+                                                ('Customer Name', em_obj.corporate_name), ('Zone', zone),
+                                                ('Quantity', total_qty), ('Date', date),
                                                 ('Customer ID', em_obj.customer_id),
                                                 ('Extend Status', extend_status), ('Days Left', days_left))))
     temp_data['recordsTotal'] = len(temp_data['aaData'])
@@ -7924,3 +8094,30 @@ def order_cancel(request, user=''):
         log.debug(traceback.format_exc())
         message = 'Failed'
     return HttpResponse(message)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def add_order_charges(request, user=''):
+    order_id = request.POST.get('order_id', '')
+    order_charges = eval(request.POST.get('order_charges', ''))
+    order_charges_obj = OrderCharges.objects.filter(user=user.id, order_id=order_id)
+    data_dict = {}
+    data_response = {}
+    for obj in order_charges:
+        order_charges_obj_present = order_charges_obj.filter(charge_name=obj['charge_name'])
+        if order_charges_obj_present:
+            order_charges_obj_save = order_charges_obj_present[0]
+            order_charges_obj_save.charge_amount = obj['charge_amount']
+            order_charges_obj_save.save()
+        else:
+            data_dict['charge_name'] = obj['charge_name']
+            data_dict['charge_amount'] = obj['charge_amount']
+            data_dict['order_id'] = order_id
+            data_dict['user_id'] = user.id
+            OrderCharges.objects.create(**data_dict)
+    message = "Order Charges Saved Successfully"
+    data_response['data'] = order_charges
+    data_response['message'] = message
+    return HttpResponse(json.dumps(data_response))

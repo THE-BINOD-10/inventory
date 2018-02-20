@@ -906,7 +906,8 @@ PERMISSION_DICT = OrderedDict((
                        ("BOM Master", "add_bommaster"),
                        ("Vendor Master", "add_vendormaster"), ("Discount Master", "add_categorydiscount"),
                        ("Custom SKU Template", "add_productproperties"), ("Size Master", "add_sizemaster"),
-                       ('Pricing Master', 'add_pricemaster'), ('Network Master', 'add_networkmaster'))),
+                       ('Pricing Master', 'add_pricemaster'), ('Network Master', 'add_networkmaster'),
+                       ('Tax Master', 'add_taxmaster'), ('T&C Master', 'add_tandcmaster'))),
 
     # Inbound
     ("INBOUND_LABEL", (("Raise PO", "add_openpo"), ("Receive PO", "add_purchaseorder"),
@@ -937,6 +938,9 @@ PERMISSION_DICT = OrderedDict((
 
     # Payment
     ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary"),)),
+
+    # Uploaded POs
+    ("UPLOADPO_LABEL", (("uploadedPOs", "add_orderuploads"),)),
 
 ))
 
@@ -1207,6 +1211,9 @@ MP_CUSTOMER_INVOICE_HEADERS = ['UOR ID', 'SOR ID', 'Seller ID', 'Customer Name',
                                'Invoice Number']
 
 WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time']
+
+DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', 'Order Quantity', 'Picked Quantity',
+                                 'Order Date&Time']
 
 # End of Customer Invoices page headers based on user type
 

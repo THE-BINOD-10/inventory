@@ -196,6 +196,8 @@ def add_user_permissions(request, response_data, user=''):
     if get_priceband_admin_user(user):
         if request_user_profile.warehouse_type == 'DIST':
             warehouse_data = WarehouseCustomerMapping.objects.filter(warehouse=request.user.id, status=1)
+            if not warehouse_data:  # For Distributor Sub User
+                warehouse_data = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
             if warehouse_data and warehouse_data[0].customer.is_distributor:
                 user_type = 'distributor'  # distributor warehouse login
         elif request_user_profile.warehouse_type == 'WH':
@@ -219,10 +221,10 @@ def add_user_type_permissions(user_profile):
     update_perm = False
     if user_profile.user_type == 'warehouse_user':
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment',
-                     'shipmentinfo', 'shipmenttracking', 'networkmaster']
+                     'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
-        exc_perms = ['productproperties', 'sizemaster', 'pricemaster']
+        exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST
@@ -1088,6 +1090,12 @@ def get_auto_po_quantity(sku, stock_quantity=''):
         if diff_quantity > 0:
             production_quantity = diff_quantity
 
+    intransit_orders = IntransitOrders.objects.filter(sku=sku, user=sku.user, status=1).\
+        values('sku__sku_code').annotate(tot_qty=Sum('quantity'), tot_inv_amt=Sum('invoice_amount'))
+    intr_qty = 0
+    if intransit_orders:
+        intr_order = intransit_orders[0]
+        intr_qty = intr_order['tot_qty']
     transit_quantity = 0
     if purchase_order:
         purchase_order = purchase_order[0]
@@ -1095,7 +1103,7 @@ def get_auto_po_quantity(sku, stock_quantity=''):
         if diff_quantity > 0:
             transit_quantity = diff_quantity
 
-    raise_quantity = int(sku.threshold_quantity) - (stock_quantity + transit_quantity + production_quantity)
+    raise_quantity = int(sku.threshold_quantity) - (stock_quantity + transit_quantity + production_quantity + intr_qty)
     if raise_quantity < 0:
         raise_quantity = 0
 
@@ -2202,7 +2210,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             'customer__customer_id', 'customer_sku_code')
     if order_ids:
         sor_id = ''
-        order_ids = order_ids.split(',')
+        order_ids = list(set(order_ids.split(',')))
         price_band_flag = get_misc_value('priceband_sync', user.id)
         auto_ord_qty_map = {}
         if price_band_flag == 'true':
@@ -2309,7 +2317,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 el_price_qs = GenericOrderDetailMapping.objects.filter(orderdetail_id=dat.id).values_list('el_price',
                                                                                                           flat=True)
                 if el_price_qs:
-                    el_price = el_price_qs[0]
+                    el_price = round(el_price_qs[0], 2)
 
             if merge_data:
                 quantity_picked = merge_data.get(dat.sku.sku_code, "")
@@ -2463,8 +2471,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'show_disc_invoice': show_disc_invoice,
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
-                    'order_reference_date': order_reference_date}
-
+                    'order_reference_date': order_reference_date,
+                    'order_charges' : order_charges}
     return invoice_data
 
 
@@ -2639,6 +2647,11 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         custom_margin = 0
 
     admin_user = get_priceband_admin_user(user)
+    msp_min_price = msp_max_price = 0
+    if admin_user and from_price and to_price:
+        msp_min_price = from_price
+        msp_max_price = to_price
+        from_price = to_price = ''
     is_margin_percentage = request_data.get('is_margin_percentage', 'false')
     specific_margins = request_data.get('margin_data', [])
     customer_data_id = request_data.get('customer_data_id', '')
@@ -2781,11 +2794,11 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     product_styles = list(OrderedDict.fromkeys(product_styles))
     if is_file:
         start, stop = 0, len(product_styles)
-
     data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id=customer_id,
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
-                           is_margin_percentage=is_margin_percentage, stock_quantity=quantity)
+                           is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
+                           msp_min_price=msp_min_price, msp_max_price=msp_max_price)
     return data, start, stop
 
 
@@ -3657,7 +3670,7 @@ def get_cal_style_data(style_data, quantity):
 
 def get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id='', customer_data_id='', is_file='',
                     prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0,
-                    stock_quantity=0):
+                    stock_quantity=0, msp_min_price=0, msp_max_price=0):
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     from rest_api.views.outbound import get_style_variants
@@ -3708,7 +3721,11 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                 sku_styles[0]['style_data'] = get_cal_style_data(sku_styles[0],\
                                               style_quantities[sku_styles[0]['sku_class']])
             if total_quantity >= int(stock_quantity):
-                data.append(sku_styles[0])
+                if msp_min_price and msp_max_price:
+                    if float(msp_min_price) <= sku_variants[0]['your_price'] <= float(msp_max_price):
+                        data.append(sku_styles[0])
+                else:
+                    data.append(sku_styles[0])
         if not is_file and len(data) >= 20:
             break
     return data

@@ -60,7 +60,7 @@
       <div>
         <div class="checkbox pick_item" ng-if="permissions.user_type != 'customer'">
           <label>
-            <input type="checkbox" name="pick_item_{{$index}}" ng-model="showCase.picked_items_obj[item.sku_desc]" ng-change="showCase.picked_item_info(item)" ng-click="$event.stopPropagation()">
+            <input type="checkbox" name="pick_item_{{$index}}" ng-model="showCase.picked_items_obj[item.sku_class]" ng-change="showCase.picked_item_info(item)" ng-click="$event.stopPropagation()">
           </label>
         </div>
         <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">

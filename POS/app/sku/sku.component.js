@@ -48,7 +48,22 @@
       function getOflfineSkuContent(){
         getData("").then(function(data){
                 if(data.length==0){
-                  urlService.show_toast("offline has no sku's");
+                  if(self.sku_data.length<0)
+                    urlService.show_toast("offline has no sku's");
+                  
+                  //uncheck selected sku's
+                  for(var sk in self.sku_data_filtered) {
+                    self.sku_data_filtered[sk]["checked"] = false;
+                  }
+
+                  for (var sk in self.sku_data) {
+                    $('input[name="selected_sku"][value="'+self.sku_data[sk]["SKUCode"]+'"]').prop("checked", false);
+                  }
+                  //clear the dialog filtered data
+                  self.sku_data_filtered=[];
+                  //clear the selected skus
+                  self.selected_skus = [];
+                  intialiseMultiSelectData(self.sku_data);
                 }else{
                   self.sku_data = data;  
                   intialiseMultiSelectData(self.sku_data);
@@ -171,19 +186,8 @@
 
     //uncheck all the select sku fields
     function uncheckMultiSelectSkus(){
-       /*for(var sk in self.sku_data_filtered) {
-          self.sku_data_filtered[sk]["checked"] = false;
-       }
-       for (var sk in self.sku_data) {
-          $('input[name="selected_sku"][value="'+self.sku_data[sk]["SKUCode"]+'"]').prop("checked", false);
-       }*/
-       //clear the dialog filtered data
-       self.sku_data_filtered=[];
-       //clear the selected skus
-       self.selected_skus = [];
-       //set the sku data from the offline
-       getOflfineSkuContent();
-    }
+        getOflfineSkuContent();
+      }
      //intialise first data
      function intialiseMultiSelectData(data){
       self.slice_from = 0;

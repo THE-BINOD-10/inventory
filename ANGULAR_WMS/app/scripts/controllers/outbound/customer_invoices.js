@@ -149,11 +149,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.generateInvoice = function(){
       console.log("Checked Items::", vm.checked_items);
-      var ids = [];
+      var data = [];
       angular.forEach(vm.checked_items, function(row){
-        ids.push(row['Order ID']);
+        data.push(row['id']);
       });
-      
+      var ids = data.join(",");
       var send = {seller_summary_id: ids};
       vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 
@@ -191,7 +191,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         $(elem).removeClass('fa-plus-square');
         $(elem).removeClass();
         $(elem).addClass('glyphicon glyphicon-refresh glyphicon-refresh-animate');
-        Service.apiCall('get_invoice_details/?gen_id='+data['Gen Order Id']+'&customer_id='+data['Customer Name']).then(function(resp){
+        Service.apiCall('get_invoice_details/?gen_id='+data['Gen Order Id']+'&customer_id='+data['Customer ID']).then(function(resp){
           if (resp.message){
 
             if(resp.data.status) {

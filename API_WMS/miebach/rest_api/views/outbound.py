@@ -6912,9 +6912,13 @@ def get_invoice_details(request, user=''):
         ord_id = OrderDetail.objects.get(id=gen_ord_obj.orderdetail_id)
         summary_ord_obj = ord_id.sellerordersummary_set
         summary_id_pick_num = ''
+        picked_qty = 0
         if summary_ord_obj:
             sum_ord_vals = summary_ord_obj.values('order__order_id', 'pick_number')
             print "Summary Ord Values::", sum_ord_vals
+            picked_qty_obj = sum_ord_vals.values('order__order_id', 'pick_number').annotate(picked_qty=Sum('quantity'))
+            if picked_qty_obj:
+                picked_qty = picked_qty_obj[0]['picked_qty']
             if sum_ord_vals:
                 order_id = sum_ord_vals[0]['order__order_id']
                 pick_num = sum_ord_vals[0]['pick_number']
@@ -6933,7 +6937,7 @@ def get_invoice_details(request, user=''):
                                  ('Order ID', order_id),
                                  ('id', str(summary_id_pick_num)),))
         data_dict.update(OrderedDict((('Order Quantity', qty),
-                                      ('Picked Quantity', 0),
+                                      ('Picked Quantity', picked_qty),
                                       )))
         gen_data_list.append(data_dict)
     return HttpResponse(json.dumps({'data_dict': gen_data_list, 'status': 1}, cls=DjangoJSONEncoder))
@@ -6944,30 +6948,59 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user):
     reseller_ids = reseller_objs.values_list('id', flat=True)
     reseller_ords_map = {}
     total_ords = []
+    ord_picked_qty_map = {}
+    org_order_map = {}
     for reseller in reseller_ids:
         gen_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=reseller)
         gen_ord_vals = gen_ord_objs.values_list('generic_order_id', 'orderdetail')
         for gen_id, ord_det_id in gen_ord_vals:
+            ord_det_obj = OrderDetail.objects.get(id=ord_det_id)
+            org_order_id = ord_det_obj.order_id
+            summary_ord_obj = ord_det_obj.sellerordersummary_set
+            picked_qty = 0
+            if summary_ord_obj:
+                sum_ord_vals = summary_ord_obj.values('order__order_id', 'pick_number')
+                picked_qty_obj = sum_ord_vals.values('order__order_id', 'pick_number').annotate(
+                    picked_qty=Sum('quantity'))
+                if picked_qty_obj:
+                    picked_qty = picked_qty_obj[0]['picked_qty']
+                    # org_order_id = picked_qty_obj[0]['order__order_id']
+            else:
+                continue
             total_ords.append(ord_det_id)
             reseller_ords_map.setdefault(reseller, {}).setdefault(gen_id, []).append(ord_det_id)
+            ord_picked_qty_map[ord_det_id] = picked_qty
+            org_order_map[ord_det_id] = org_order_id
     temp_data['recordsTotal'] = len(total_ords)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for reseller, res_gen_ords in reseller_ords_map.items():
         for gen_id, res_ords in res_gen_ords.items():
             try:
+                tot_picked_qty = 0
+                original_order = ''
+                for ord in res_ords:
+                    tot_picked_qty += ord_picked_qty_map[ord]
+                    if original_order:
+                        original_order = original_order + ", " + str(org_order_map[ord])
+                    else:
+                        original_order = str(org_order_map[ord])
                 orders = GenericOrderDetailMapping.objects.filter(orderdetail_id__in=res_ords)
                 total_qty = orders.values('generic_order_id').annotate(total_qty=Sum('quantity'))[0]['total_qty']
                 order_date = get_local_date(user, orders[0].creation_date)
                 ordered_quantity = total_qty
+                cust_name = CustomerMaster.objects.get(id=orders[0].customer_id).name
                 data_dict = OrderedDict((('Gen Order Id', gen_id),
-                                         ('Order Ids', res_ords),
+                                         ('Order Ids', original_order),
                                          ('check_field', 'Order ID'),
                                          ('Generic Order ID', gen_id),))
-                data_dict.update(OrderedDict((('Customer Name', orders[0].customer_id),
+                data_dict.update(OrderedDict((('Customer Name', cust_name),
+                                              ('Customer ID', orders[0].customer_id),
                                               ('Order Quantity', ordered_quantity),
-                                              ('Picked Quantity', 0),
+                                              ('Picked Quantity', tot_picked_qty),
                                               ('Order Date&Time', order_date), ('Invoice Number', '')
                                               )))
+                if not tot_picked_qty:
+                    continue
                 temp_data['aaData'].append(data_dict)
             except Exception as e:
                 import traceback

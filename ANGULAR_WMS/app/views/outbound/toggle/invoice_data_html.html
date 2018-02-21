@@ -8,15 +8,12 @@
       </thead>
       <tbody>
         <tr ng-repeat="data in invoice_data">
-          <!-- <form name="{{data['Order ID']}}" role="form" ui-jq="validate" ui-options="pop.validationOpt"> -->
             <td><input class="data-select" name="data['Order ID']" ng-click="showCase.checkedItem(data, $index)" type="checkbox"></td>
             <td>{{data['Level ID']}}</td>
             <td>{{data['Order ID']}}</td>
             <td>{{data['Order Quantity']}}</td>
             <td>{{data['Picked Quantity']}}</td>
             </td>
-            <!-- <button type="submit" class="btn pop pop-green" ng-click="showCase.generateInvoice(data['Order ID'])">Generate Invoice</button> -->
-            <!-- </form> -->
           </tr>
       </tbody>
     </table>

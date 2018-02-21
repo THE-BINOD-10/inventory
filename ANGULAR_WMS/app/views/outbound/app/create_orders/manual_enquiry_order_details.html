@@ -1,0 +1,94 @@
+<style type="text/css">
+  .panel-group {
+    margin-bottom: 0px;
+  }
+</style>
+<div>
+
+<!-- <div ng-repeat="order_details in order.order_details.data" class="mb10"> -->
+<div class="mb10">
+  <div class="detail-list">
+    <div class="detail-item border-grey detail-bg-grey mb15">
+      <div class="row no-margin">
+        <div class="col-md-4 col-sm-4 col-xs-4">
+          <h4><b>Customer Name</b></h4>
+          <h5><b>Vinay</b></h5>
+        </div>
+      </div>
+      <hr>
+      <div class="row no-margin">
+        <div class="col-md-3 col-sm-3 col-xs-3">
+          <h5><b>SKU</b></h5><p>BLT1</p>
+        </div>
+        <div class="col-md-3 col-sm-3 col-xs-3">
+          <h5><b>Details</b></h5><p>Sample text</p>
+        </div>
+        <div class="col-md-3 col-sm-3 col-xs-3">
+          <h5><b>Column-1</b></h5>
+          <p>Sample text</p>
+        </div>
+        <div class="col-md-3 col-sm-3 col-xs-3">
+          <h5><b>Column-2</b></h5>
+          <p>Sample text</p>
+        </div>
+      </div>
+    </div>
+    <div class="row no-margin">
+      <div class="col-md-4 col-sm-4 col-xs-4">
+        <h5><b>Images</b></h5>
+      </div>
+    </div>
+    <div class="row no-margin">
+      <div class="col-md-2 mb10"><img  style="width: 100%;" ng-src="{{order.service.check_image_url(data.sku__image_url)}}"></div>
+    </div>
+    <accordion close-others="oneAtATime">
+    <accordion-group>
+      <accordion-heading>
+        <b>Check Order Details</b>
+        <i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': status.open, 'glyphicon-chevron-right': !status.open}"></i>
+      </accordion-heading>
+      <div class="over-x">
+        <table class="table mb0 mw40">
+          <thead>
+            <tr>
+              <th class="col-md-4">Price</th>
+              <th class="col-md-4">Date</th>
+              <th class="col-md-4">Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- <tr ng-repeat="location in zone.data" style="cursor:pointer" ng-click="showCase.open_location(location, zone.zone)">
+              <td>{{location.location}}</td>
+              <td>{{location.max_capacity}}</td>
+              <td>{{location.fill_sequence}}</td>
+            </tr> -->
+          </tbody>
+        </table>
+      </div>
+    </accordion-group>
+  </accordion>
+  </div>
+</div>
+
+<div class="row no-margin">
+  <form name="form" role="form">
+    <div class="col-md-4 col-sm-4 col-xs-12">
+      <div class="form-group">
+        <input type="text" name="new_price" ng-model="order.new_price" class="form-control ng-pristine" placeholder="Price" decimal-number required>
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-12">
+      <div class="form-group">
+        <input name="extended_date" ui-jq="datepicker" ng-model="order.order_details.extend_date" placeholder="Select Date" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{order.date}}" readonly="true">
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-12">
+      <div class="form-group">
+        <textarea rows="4" class="form-control ng-pristine" cols="27" name="remarks" placeholder="Remarks" ng-model="order.remarks"></textarea>
+      </div>
+    </div>
+    <div class="col-md-4 col-md-offset-4 text-center mb10">
+      <button type='button' class="btn btn-primary" ng-click="order.confirm_to_extend()">Save</button>
+    </div>
+  </form>
+</div>

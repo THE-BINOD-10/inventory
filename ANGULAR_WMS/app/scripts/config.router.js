@@ -1957,7 +1957,13 @@ var app = angular.module('urbanApp')
             templateUrl: 'views/outbound/app/create_orders/your_orders.html',
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/outbound/app/my_order.js');
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/app/my_order.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/manual_enquiry.js'
+                  ])
+                });
               }]
             }
           })

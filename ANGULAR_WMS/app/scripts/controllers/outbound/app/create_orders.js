@@ -88,6 +88,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         'FE550':'FE550.jpg',
         'FE600':'FE600.jpg',
         'MARSH':'MARSH.jpg',
+        'CORP ATTIRE': 'CORP ATTIRE.jpg',
         }
 
         vm.brands_logos = {'6 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
@@ -107,6 +108,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         'FE550':'FE550.jpg',
         'FE600':'FE600.jpg',
         'MARSH':'MARSH.jpg',
+        'CORP ATTIRE': 'CORP ATTIRE.jpg',
         }
         if (vm.location == '/App/Products') {
           // vm.change_brand('');
@@ -1068,7 +1070,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'ROUND NECK': 'ROUND NECK.png',
 
                            //corp attire
-                           'BACKPACK':'corp_attire_catg_img/BACKPACK.svg',
+                           'BACKPACK ':'corp_attire_catg_img/BACKPACK.svg',
                            'ADAPTER':'corp_attire_catg_img/ADAPTER.svg',
                            'BADGE ':'corp_attire_catg_img/BADGE .svg',
                            'BAND':'corp_attire_catg_img/BAND.svg',
@@ -1094,7 +1096,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'GIFT SET':'corp_attire_catg_img/GIFT SET.svg',
                            'HARD LUGGAGE':'corp_attire_catg_img/HARD LUGGAGE.svg',
                            'HEADPHONE':'corp_attire_catg_img/HEADPHONE.svg',
-                           'JACKET':'corp_attire_catg_img/JACKET.svg',
+                           'JACKET ':'corp_attire_catg_img/JACKET.svg',
                            'JUTE FOLDER':'corp_attire_catg_img/JUTE FOLDER.svg',
                            'KEYBOARD':'corp_attire_catg_img/KEYBOARD.svg',
                            'KEYCHAIN':'corp_attire_catg_img/KEYCHAIN.svg',

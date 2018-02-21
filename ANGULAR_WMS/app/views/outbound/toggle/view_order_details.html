@@ -167,7 +167,7 @@
           <b>STATUS:</b>
           <select ng-if="!showCase.input_status" class="form-control pull-right" name="status_type"
                   ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
-            <option  ng-selected="showCase.ord_status == ''">None</option>
+            <option ng-selected="showCase.ord_status == ''" ng-if="showCase.display_status_none">None </option>
             <option ng-repeat="type in showCase.model_data.all_status" ng-selected="showCase.ord_status == type">{{type}}</option>
           </select>
           <input ng-if="showCase.input_status" type="text" class="form-control" name="remarks" ng-model="showCase.ord_status" ng-readonly="showCase.input_status">

@@ -318,6 +318,15 @@ input[type="search"] {
   border-top: 1px solid #E2DEDE;
   padding-top: 5px;
 }
+.summary .discount {
+  text-align: center;
+  margin-top: 7px;
+}
+.summary .discount > .btn {
+  width: 70%;
+  margin: 0 auto;
+  background: #e1dede;
+}
 .pending {
   clear: both;
 }
@@ -387,4 +396,10 @@ input[type="search"] {
 }
 .extra_fields_row textarea {
   margin-bottom: 5px;
+}
+#discountModal .modal-content .modal-body .row {
+  text-align: center;
+}
+#discountModal .modal-content .modal-body .row > .col-md-4 p {
+  text-align: right;
 }

@@ -1297,16 +1297,6 @@ class SizeMaster(models.Model):
         unique_together = ('user', 'size_name')
 
 
-class ProductGroups(models.Model):
-    group_type = models.CharField(max_length=64)
-    group_value = models.CharField(max_length=64)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'PRODUCT_GROUPS'
-
-
 class ProductAttributes(models.Model):
     user = models.ForeignKey(User, default=None)
     attribute_name = models.CharField(max_length=64, default='')
@@ -1367,16 +1357,6 @@ class ProductImages(models.Model):
 
     class Meta:
         db_table = 'PRODUCT_IMAGES'
-
-
-class ProductGroupsMapping(models.Model):
-    group_id = models.PositiveIntegerField()
-    product_groups = models.ForeignKey(ProductGroups)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'PRODUCT_GROUPS_MAPPING'
 
 
 class customerGroupsMapping(models.Model):
@@ -2395,6 +2375,20 @@ class IntransitOrders(models.Model):
         unique_together = ('user', 'customer_id', 'intr_order_id', 'sku')
 
 
+class StaffMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    staff_name = models.CharField(max_length=256, default='')
+    phone_number = models.CharField(max_length=32)
+    email_id = models.EmailField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'STAFF_MASTER'
+        unique_together = ('user', 'staff_name')
+        index_together = ('user', 'staff_name')
+
+
 class MastersMapping(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
@@ -2407,3 +2401,18 @@ class MastersMapping(models.Model):
     class Meta:
         db_table = 'MASTERS_MAPPING'
         unique_together = ('user', 'master_id', 'mapping_id', 'mapping_type')
+
+
+class GroupPermMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    group = models.ForeignKey(Group)
+    perm_type = models.CharField(max_length=32)
+    perm_value = models.CharField(max_length=64, default='')
+    sequence = models.IntegerField(default=0)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'GROUP_PERM_MAPPING'
+        unique_together = ('group', 'perm_type', 'perm_value')

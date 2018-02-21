@@ -1,0 +1,38 @@
+<div class="center-wrapper" data-ng-controller="sessionCtrl" >
+  <div class="center-content" style="background: url('images/companies/Corp attire.jpg') no-repeat center center fixed;background-repeat: no-repeat;background-size: cover;">
+    <div class="row no-margin">
+      <div class="col-xs-10 col-xs-offset-1 col-sm-6 col-sm-offset-3 col-md-4 col-md-offset-4">
+        <form role="form" class="form-layout">
+          <div class="text-center mb15">
+            <!--<h1 align="center">Stockone</h1>-->
+            <!--<img ng-src="images/companies/Corp attire logo.jpg" style="width: 100%;">-->
+          </div>
+
+          <p class="text-center mb30" style="color:black">Welcome to Corp Attire. Please sign in to your account</p>
+
+          <div class="alert alert-warning" ng-show="invalid">
+            <span class="close" ng-click="invalid = false">&times;</span>
+            <strong>Warning!</strong> Invalid Email/Password.
+          </div>
+
+          <div class="form-inputs">
+            <input type="text" class="form-control input-lg" ng-model="username" placeholder="Username" required>
+            <input type="password" class="form-control input-lg" ng-model="password" placeholder="Password" required>
+          </div>
+
+          <button class="btn btn-success btn-block btn-lg mb15" type="submit" data-ng-click="submit(username,password)" ng-disabled="process">
+            <span>Sign in</span><span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right" ng-if="process">
+          </button>
+
+          <p class="hide">
+
+            <a ui-sref="user.signup">Create an account</a> ·
+            <a ui-sref="user.forgot">Forgot your password?</a>
+
+          </p>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>

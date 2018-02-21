@@ -149,7 +149,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.generateInvoice = function(){
       console.log("Checked Items::", vm.checked_items);
-      var ids = vm.checked_items[0]['id'];
+      var ids = [];
+      angular.forEach(vm.checked_items, function(row){
+        ids.push(row['Order ID']);
+      });
+      
       var send = {seller_summary_id: ids};
       vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 

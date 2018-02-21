@@ -2191,6 +2191,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     hsn_summary = {}
     is_gst_invoice = False
     invoice_date = datetime.datetime.now()
+    order_reference_date_field = ''
+    order_charges = ''
 
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -5796,8 +5798,9 @@ def create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, wh,
                         'po_number': corporate_po_number,
                         'client_name': client_name,
                         'el_price': el_price,
-                        'schedule_date': del_date
                         }
+    if del_date:
+        order_detail_map['schedule_date'] = del_date
     gen_ord_dt_map_obj = GenericOrderDetailMapping.objects.filter(**order_detail_map)
     order_detail_map['quantity'] = stock_cnt
     order_detail_map['unit_price'] = order_unit_price
@@ -5830,9 +5833,10 @@ def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):
 def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_objs, is_distributor,
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs, address_selected=''):
+    order_data_excluding_keys = ['warehouse_level', 'margin_data', 'el_price', 'del_date']
     order_unit_price = order_data['unit_price']
     el_price = order_data.get('el_price', 0)
-    del_date = order_data['del_date']
+    del_date = order_data.get('del_date', '')
     if not is_distributor:
 
         sku_code = order_data['sku_code']
@@ -5869,14 +5873,9 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                                                order_code=dist_order_copy['order_code'],
                                                user=dist_order_copy['user'])
         if not order_obj:
-            if 'warehouse_level' in dist_order_copy:
-                dist_order_copy.pop('warehouse_level')
-            if 'margin_data' in dist_order_copy:
-                dist_order_copy.pop('margin_data')
-            if 'el_price' in order_data:
-                dist_order_copy.pop('el_price')
-            if 'del_date' in order_data:
-                dist_order_copy.pop('del_date')
+            for exc_key in order_data_excluding_keys:
+                if exc_key in dist_order_copy:
+                    dist_order_copy.pop(exc_key)
             order_detail = OrderDetail(**dist_order_copy)
             order_detail.save()
         else:
@@ -5886,18 +5885,14 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
         order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'],
                                                sku_id=order_data['sku_id'],
                                                order_code=order_data['order_code'])
+        dist_order_copy = copy.copy(order_data)
         # Distributor can place order directly to any wh/distributor
-        if 'warehouse_level' in order_data:
-            order_data.pop('warehouse_level')
-        if 'margin_data' in order_data:
-            order_data.pop('margin_data')
-        if 'el_price' in order_data:
-            order_data.pop('el_price')
-        if 'del_date' in order_data:
-            order_data.pop('del_date')
+        for exc_key in order_data_excluding_keys:
+            if exc_key in dist_order_copy:
+                dist_order_copy.pop(exc_key)
             
         if not order_obj:
-            order_detail = OrderDetail(**order_data)
+            order_detail = OrderDetail(**dist_order_copy)
             order_detail.save()
         else:
             order_detail = order_obj[0]

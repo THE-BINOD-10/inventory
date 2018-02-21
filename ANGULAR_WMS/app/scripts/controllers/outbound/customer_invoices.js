@@ -148,12 +148,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.generateInvoice = function(){
-
-      // var data = vm.checked_items;
-      vm.service.apiCall("generate_customer_invoice/", "GET", vm.checked_items).then(function(data){
+      console.log("Checked Items::", vm.checked_items);
+      var ids = vm.checked_items[0]['id'];
+      var send = {seller_summary_id: ids};
+      vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 
         if (data.message) {
           console.log(data);
+          if(data.message) {
+          vm.pdf_data = data.data;
+          if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
+            $state.go("app.outbound.CustomerInvoices.InvoiceE");
+            $timeout(function () {
+              $(".modal-body:visible").html(vm.pdf_data)
+            }, 3000);
+          } else if(Session.user_profile.user_type == "marketplace_user") {
+            $state.go("app.outbound.CustomerInvoices.InvoiceM");
+          } else if(vm.permissions.detailed_invoice) {
+            $state.go("app.outbound.CustomerInvoices.InvoiceD");
+          } else {
+            $state.go("app.outbound.CustomerInvoices.InvoiceN");
+          }
+          }
           vm.service.showNoty("Invoice generated");
         }
       });

@@ -3101,7 +3101,7 @@ def insert_order_data(request, user=''):
     order_objs = []
 
     # Initialize creation date
-    creation_date = datetime.datetime.now()
+    # creation_date = datetime.datetime.now()
 
     # Intialize to stored saved skus and dispatch data
     created_skus = []
@@ -3222,6 +3222,7 @@ def insert_order_data(request, user=''):
                     if not qty:
                         continue
                     order_data['quantity'] = qty
+                    creation_date = datetime.datetime.now()
                     order_data['creation_date'] = creation_date
                     mapped_sku_id = get_syncedusers_mapped_sku(usr, order_data['sku_id'])
                     if not order_data.get('original_order_id', ''):
@@ -3260,7 +3261,7 @@ def insert_order_data(request, user=''):
                             payment_received = float(payment_received)
                             order_payment = float(payment_received)
                         order_data['payment_received'] = order_payment
-
+                    creation_date = datetime.datetime.now()
                     order_data['creation_date'] = creation_date
                     if not order_data.get('original_order_id', ''):
                         order_data['original_order_id'] = str(order_data['order_code']) + str(order_data['order_id'])
@@ -3319,7 +3320,7 @@ def insert_order_data(request, user=''):
                                                   purchase_order_id=po_number.split('_')[-1], status=1,
                                                   creation_date=datetime.datetime.now())
                 other_charge_amounts = construct_other_charge_amounts_map(created_order_id, myDict,
-                                                                          creation_date, other_charge_amounts,
+                                                                          datetime.datetime.now(), other_charge_amounts,
                                                                           user)
         if generic_order_id:
             check_and_raise_po(generic_order_id, cm_id)
@@ -3363,7 +3364,7 @@ def insert_order_data(request, user=''):
             order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
             resp = order_push(original_order_id, order_detail_user, "NEW")
             log.info('New Order Push Status: %s' %(str(resp)))
-        if user_type == 'customer':
+        if user_type == 'customer' and not is_distributor:
             # Creating Uploading POs object with file upload pending.
             # upload_po Api is called in front-end if file is present
             upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': corporate_po_number,
@@ -6906,30 +6907,39 @@ def get_invoice_details(request, user=''):
     if not (gen_id and customer_id):
         return HttpResponse('Generic Id or Customer Id is missing')
     gen_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=customer_id, generic_order_id=gen_id)
-    customer_name = CustomerMaster.objects.get(id=customer_id).name
     gen_data_list = []
     for gen_ord_obj in gen_ord_objs:
         ord_id = OrderDetail.objects.get(id=gen_ord_obj.orderdetail_id)
+        summary_ord_obj = ord_id.sellerordersummary_set
+        summary_id_pick_num = ''
+        if summary_ord_obj:
+            sum_ord_vals = summary_ord_obj.values('order__order_id', 'pick_number')
+            print "Summary Ord Values::", sum_ord_vals
+            if sum_ord_vals:
+                order_id = sum_ord_vals[0]['order__order_id']
+                pick_num = sum_ord_vals[0]['pick_number']
+                summary_id_pick_num = str(order_id) + ":" + str(pick_num)
+        else:
+            continue
+
         if not ord_id:
             continue
         order_id = ord_id.order_id
         qty = ord_id.quantity
-        # order_date = get_local_date(user, ord_id.creation_date)
         level_id = UserProfile.objects.get(user=gen_ord_obj.cust_wh_id).warehouse_level
+        if user.id == gen_ord_obj.cust_wh_id:
+            level_id = 0
         data_dict = OrderedDict((('Level ID', level_id),
-                                 ('Order ID', order_id),))
-                                 # ('id', str(order.order_id) + ":" + str(0)),
-                                 # ('check_field', 'Order ID'),
-                                 # ('Generic Order ID', gen_id),))
+                                 ('Order ID', order_id),
+                                 ('id', str(summary_id_pick_num)),))
         data_dict.update(OrderedDict((('Order Quantity', qty),
                                       ('Picked Quantity', 0),
                                       )))
-        # data_tuple = (level_id, order_id, qty, 0)
         gen_data_list.append(data_dict)
     return HttpResponse(json.dumps({'data_dict': gen_data_list, 'status': 1}, cls=DjangoJSONEncoder))
 
 
-def get_levelbased_invoice_data(temp_data, user):
+def get_levelbased_invoice_data(start_index, stop_index, temp_data, user):
     reseller_objs = CustomerMaster.objects.filter(user=user.id)
     reseller_ids = reseller_objs.values_list('id', flat=True)
     reseller_ords_map = {}
@@ -6951,7 +6961,6 @@ def get_levelbased_invoice_data(temp_data, user):
                 ordered_quantity = total_qty
                 data_dict = OrderedDict((('Gen Order Id', gen_id),
                                          ('Order Ids', res_ords),
-                                         # ('id', str(order.order_id) + ":" + str(0)),
                                          ('check_field', 'Order ID'),
                                          ('Generic Order ID', gen_id),))
                 data_dict.update(OrderedDict((('Customer Name', orders[0].customer_id),
@@ -6976,7 +6985,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
     if admin_user and user_profile.warehouse_type == 'DIST':
-        temp_data = get_levelbased_invoice_data(temp_data, user)
+        temp_data = get_levelbased_invoice_data(start_index, stop_index, temp_data, user)
     else:
         if user_profile.user_type == 'marketplace_user':
             lis = ['seller_order__order__order_id', 'seller_order__order__order_id', 'seller_order__sor_id',

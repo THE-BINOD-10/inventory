@@ -59,7 +59,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   } else if (vm.your_orders == 'enquiry' && Data.enquiry_orders.length == 0) {
 
     vm.get_orders('enquiry_orders');
-  } else if (vm.your_orders == 'manual_enquiry' && Data.enquiry_orders.length == 0) {
+  } else if (vm.your_orders == 'manual_enquiry' && Data.manual_orders.length == 0) {
 
     vm.get_orders('manual_orders');
   } else if (vm.your_orders == 'orders') {

@@ -7777,6 +7777,21 @@ def get_enquiry_data(request, user=''):
         response_data['data'].append(res_map)
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
+@get_admin_user
+def get_manual_enquiry_data(request, user=''):
+    index = request.GET.get('index', '')
+    start_index, stop_index = 0, 20
+    if index:
+        start_index = int(index.split(':')[0])
+        stop_index = int(index.split(':')[1])
+    response_data = {'data': []}
+    em_qs = ManualEnquiry.objects.filter(user=request.user.id)
+    for enquiry in em_qs[start_index:stop_index]:
+        res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
+                   'date': get_only_date(request, enquiry.creation_date),
+                   'sku_code': enquiry.sku.sku_code, 'style_name': enquiry.sku.sku_class}
+        response_data['data'].append(res_map)
+    return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
 @get_admin_user
 def get_customer_enquiry_detail(request, user=''):

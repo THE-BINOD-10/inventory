@@ -45,6 +45,10 @@ def get_batch_data(start_index, stop_index, temp_data, search_term, order_term, 
         order_data = '-%s' % order_data
     search_params = get_filtered_params(filters, ['sku__sku_code', 'title', 'total'])
     search_params['sku_id__in'] = sku_master_ids
+    if not request.user.is_staff:
+        perm_status_list, check_ord_status = get_view_order_statuses(request, user)
+        if check_ord_status:
+            search_params['customerordersummary__status__in'] = perm_status_list
 
     if search_term:
         mapping_results = OrderDetail.objects.filter(**data_dict).values('sku__sku_code', 'title',
@@ -119,6 +123,11 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
                                                                    order__user=user.id, **stat_search)
         search_params['id__in'] = order_taken_val_user.values_list('order_id', flat=True)
         del (search_params['status__icontains'])
+
+    if not request.user.is_staff:
+        perm_status_list, check_ord_status = get_view_order_statuses(request, user)
+        if check_ord_status:
+            search_params['customerordersummary__status__in'] = perm_status_list
 
     if search_term:
         master_data = OrderDetail.objects.filter(
@@ -579,6 +588,10 @@ def batch_generate_picklist(request, user=''):
         if filters.get('customer_id', ''):
             customer_id = ''.join(re.findall('\d+', filters['customer_id']))
             order_filter['customer_id'] = customer_id
+        if not request.user.is_staff:
+            perm_status_list, check_ord_status = get_view_order_statuses(request, user)
+            if check_ord_status:
+                order_filter['customerordersummary__status__in'] = perm_status_list
 
     data = []
     order_data = []
@@ -5014,11 +5027,7 @@ def get_seller_order_details(request, user=''):
 @csrf_exempt
 @get_admin_user
 def get_view_order_details(request, user=''):
-    view_order_status = get_misc_value('view_order_status', user.id)
-
-    view_order_status = view_order_status.split(',')
-
-    all_status = [key for key, value in CUSTOM_ORDER_STATUS.iteritems() if value in view_order_status]
+    view_order_status, check_ord_status = get_view_order_statuses(request, user)
 
     data_dict = []
     main_id = request.GET.get('order_id', '')
@@ -5167,8 +5176,10 @@ def get_view_order_details(request, user=''):
              'order_charges': order_charges,
              'sku_status': one_order.status})
 
+    if status_obj in view_order_status:
+        view_order_status = view_order_status[view_order_status.index(status_obj):]
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
-                      'central_remarks': central_remarks, 'all_status': all_status, 'tax_type': tax_type})
+                      'central_remarks': central_remarks, 'all_status': view_order_status, 'tax_type': tax_type})
 
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 
@@ -5436,6 +5447,10 @@ def get_order_category_view_data(start_index, stop_index, temp_data, search_term
         order_taken_val_user = CustomerOrderSummary.objects.filter(
             Q(order_taken_by__icontains=search_params['city__icontains']))
         del (search_params['city__icontains'])
+    if not request.user.is_staff:
+        perm_status_list, check_ord_status = get_view_order_statuses(request, user)
+        if check_ord_status:
+            search_params['customerordersummary__status__in'] = perm_status_list
 
     if search_term:
         mapping_results = OrderDetail.objects.filter(**data_dict).values('customer_name', 'order_id',
@@ -5542,6 +5557,10 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
     if col_num in unsorted_dict.keys():
         custom_search = True
 
+    if not request.user.is_staff:
+        perm_status_list, check_ord_status = get_view_order_statuses(request, user)
+        if check_ord_status:
+            search_params['customerordersummary__status__in'] = perm_status_list
     all_orders = OrderDetail.objects.filter(**data_dict).exclude(order_code="CO")
     if search_term:
         mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id',

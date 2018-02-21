@@ -4480,12 +4480,13 @@ def get_sku_catalogs(request, user=''):
         admin = get_admin(user)
         image = get_company_logo(admin)
         date = get_local_date(user, datetime.datetime.now())
+        import math
         if user_type in ['reseller', 'distributor']:
             t = loader.get_template('templates/reseller_search.html')
+            pages = math.ceil(float(len(data))/8)
         else:
             t = loader.get_template('templates/customer_search.html')
-        import math
-        pages = math.ceil(float(len(data))/10)
+            pages = math.ceil(float(len(data))/10)
         rendered = t.render({'data': data, 'user': request.user.first_name, 'date': date,
                              'remarks': remarks, 'display_stock': display_stock, 'image': image,
                              'style_quantities': eval(request.POST.get('required_quantity', '{}')),

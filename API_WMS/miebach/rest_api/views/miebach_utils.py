@@ -159,10 +159,6 @@ SKU_SUPPLIER_FIELDS = ((('Supplier ID *', 'supplier_id', 60), ('WMS Code *', 'wm
 RAISE_PO_FIELDS = ((('Supplier ID', 'supplier_id', 11), ('PO Name', 'po_name', 30)),
                    (('Ship To', 'ship_to', ''),))
 
-CUSTOM_ORDER_STATUS = {'Cleared': 'clear', 'Blocked': 'block', 'PO Raised - Yet to Recieve': 'po_rais',
-                       'In Production Stage': 'prdctn', 'In Printing Stage': 'prnt', 'In Embroidery Stage': 'embrdry',
-                       'Completed': 'cmpltd', 'Approved': 'approved', 'Disapproved': 'disapproved'}
-
 RAISE_PO_FIELDS1 = OrderedDict(
     [('WMS Code *', 'wms_code'), ('Supplier Code', 'supplier_code'), ('Quantity *', 'order_quantity'),
      ('Price', 'price')])
@@ -1327,10 +1323,11 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'scan_picklist_option': 'scan_picklist_option',
                      'data_range': 'report_data_range', 'imei_limit': 'imei_limit',
                      'invoice_remarks': 'invoice_remarks',
-                     'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit'
+                     'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit',
+                     'extra_view_order_status': 'extra_view_order_status'
                      }
 
-CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS), 'all_view_order_status': CUSTOM_ORDER_STATUS,
+CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),
                    'mail_options': MAIL_REPORTS_DATA,
                    'mail_reports': MAIL_REPORTS, 'style_detail_headers': STYLE_DETAIL_HEADERS,
                    'picklist_options': PICKLIST_OPTIONS,

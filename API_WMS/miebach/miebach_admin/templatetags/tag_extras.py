@@ -170,8 +170,22 @@ def get_page_break(count):
         return False
 
 @register.filter
+def get_page_break_8(count):
+    if (count+1)%8 == 0:
+        return True
+    else:
+        return False
+
+@register.filter
 def get_header_status(count):
     if (count)%10 == 0:
+        return True
+    else:
+        return False
+
+@register.filter
+def get_header_status_8(count):
+    if (count)%8 == 0:
         return True
     else:
         return False
@@ -197,4 +211,11 @@ def get_page_number(index, total):
 
     for i in range(total):
         if i*10 <= index and (i+1)*10 > index:
+            return i+1
+
+@register.filter
+def get_page_number_8(index, total):
+
+    for i in range(total):
+        if i*8 <= index and (i+1)*8 > index:
             return i+1

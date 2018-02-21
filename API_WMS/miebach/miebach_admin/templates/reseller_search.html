@@ -16,10 +16,10 @@
       <span class="pull-right" style="position: absolute;bottom: 5px;right: 20px;font-size:12px">{{date}}</span>
     </div>
 <div class='row'>
-{% elif forloop.counter|get_page_break %}
+{% elif forloop.counter|get_page_break_8 %}
 <div class='row' style="page-break-after: always;position: relative; padding-bottom: 20px;"><br>
   {% if not forloop.last %}
-  <span style="position: absolute; bottom: 0px; right: 20px;"><b>{{forloop.counter0|get_page_number:style_count}} of {{pages}}</b></span>
+  <span style="position: absolute; bottom: 0px; right: 20px;"><b>{{forloop.counter0|get_page_number_8:style_count}} of {{pages}}</b></span>
   {% endif %}
 {% elif not forloop.counter|divisibleby:2 %}
 <div class='row'>
@@ -89,8 +89,8 @@
 {% if forloop.counter|divisibleby:2 %}
 {% if forloop.last %}
 <div class="row col-md-12 co-xs-12"><p style="margin-top: 10px;width:100%;margin-left:20" class="pre-custom"><b>Note:</b>{{remarks}}</b></p></div>
-{% if not forloop.counter|get_page_break and not forloop.counter|get_header_status %}
-<span style="float: right;padding-right:20px;"><b>{{forloop.counter0|get_page_number:style_count}} of {{pages}}</b></span>
+{% if not forloop.counter|get_page_break_8 and not forloop.counter|get_header_status_8 %}
+<span style="float: right;padding-right:20px;"><b>{{forloop.counter0|get_page_number_8:style_count}} of {{pages}}</b></span>
 {% endif %}
 {% endif %}
 </div>
@@ -98,13 +98,13 @@
 {% if forloop.last %}
 
 <div class="row col-md-12 col-xs-12"><p style="margin-top: 10px;width:100%;margin-left:20" class="pre-custom"><b>Note:</b>{{remarks}}</b></p></div>
-{% if not forloop.counter|get_page_break and not forloop.counter|get_header_status %}
+{% if not forloop.counter|get_page_break_8 and not forloop.counter|get_header_status_8 %}
 <span style="float: right; padding-right:20px;"><b>{{forloop.counter0|get_page_number:style_count}} of {{pages}}</b></span>
 {% endif %}
 {% endif %}
 {% endif %}
 
-{% if forloop.counter|get_header_status and not forloop.last %}
+{% if forloop.counter|get_header_status_8 and not forloop.last %}
   <div class="row col-md-12 no-padding" style="background-color: #ed1c24 !important;color: white;">
       {% if image %}
       <img src="data:image/jpg;base64, {{image}}" class="pull-left" style="width:100%;width: 70px;margin: 4px 2px;"/>

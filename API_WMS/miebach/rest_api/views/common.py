@@ -1658,6 +1658,8 @@ def add_group_data(request, user=''):
     permissions = Permission.objects.all()
     prod_stages = ProductionStages.objects.filter(user=user.id).values_list('stage_name', flat=True)
     brands = Brands.objects.filter(user=user.id).values_list('brand_name', flat=True)
+    order_statuses = get_misc_value('extra_view_order_status', user.id)
+    order_statuses = order_statuses.split(',')
     perms_list = []
     ignore_list = ['session', 'webhookdata', 'swxmapping', 'userprofile', 'useraccesstokens', 'contenttype', 'user',
                    'permission', 'group', 'logentry']
@@ -1677,7 +1679,8 @@ def add_group_data(request, user=''):
             if temp in reversed_perms.keys() and reversed_perms[temp] not in perms_list:
                 perms_list.append(reversed_perms[temp])
     return HttpResponse(
-        json.dumps({'perms_list': perms_list, 'prod_stages': list(prod_stages), 'brands': list(brands)}))
+        json.dumps({'perms_list': perms_list, 'prod_stages': list(prod_stages), 'brands': list(brands),
+                    'order_statuses': order_statuses}))
 
 
 @csrf_exempt
@@ -1688,6 +1691,7 @@ def add_group(request, user=''):
     stages_list = ''
     selected_list = ''
     brands_list = ''
+    status_list = ''
     group = ''
     permission_dict = copy.deepcopy(PERMISSION_DICT)
     reversed_perms = {}
@@ -1699,12 +1703,15 @@ def add_group(request, user=''):
     selected = request.POST.get('perm_selected')
     stages = request.POST.get('stage_selected')
     brands = request.POST.get('brand_selected')
+    statuses = request.POST.get('status_selected')
     if selected:
         selected_list = selected.split(',')
     if stages:
         stages_list = stages.split(',')
     if brands:
         brands_list = brands.split(',')
+    if statuses:
+        status_list = statuses.split(',')
 
     name = request.POST.get('name')
     if name:
@@ -1712,7 +1719,7 @@ def add_group(request, user=''):
     group_exists = Group.objects.filter(name=name)
     if group_exists:
         return HttpResponse('Group Name already exists')
-    if not group_exists and (selected_list or stages_list or brands_list):
+    if not group_exists and (selected_list or stages_list or brands_list or status_list):
         group, created = Group.objects.get_or_create(name=name)
         if stages_list:
             stage_group = GroupStages.objects.create(group=group)
@@ -1732,6 +1739,25 @@ def add_group(request, user=''):
             if brand_obj:
                 brand_group.brand_list.add(brand_obj[0])
                 brand_group.save()
+        for stage in stages_list:
+            if not stage:
+                continue
+            stage_obj = ProductionStages.objects.filter(stage_name=stage, user=user.id)
+            if stage_obj:
+                stage_group.stages_list.add(stage_obj[0])
+                stage_group.save()
+        for sequence, ord_status in enumerate(status_list):
+            if not ord_status:
+                continue
+            group_perm_obj = GroupPermMapping.objects.filter(group_id=group.id, perm_type='extra_order_status',
+                                                             perm_value=ord_status)
+            if group_perm_obj:
+                group_perm = group_perm_obj[0]
+                group_perm.perm_value = ord_status
+                group_perm.save()
+            else:
+                GroupPermMapping.objects.create(group_id=group.id, perm_type='extra_order_status',
+                                                perm_value=ord_status, sequence=sequence)
         for perm in selected_list:
             if not perm:
                 continue
@@ -3086,13 +3112,16 @@ def get_group_data(request, user=''):
     brands = list(GroupBrand.objects.filter(group_id=group.id).values_list('brand_list__brand_name', flat=True))
     stages = list(GroupStages.objects.filter(group_id=group.id).values_list('stages_list__stage_name', flat=True))
     permissions = group.permissions.values_list('codename', flat=True)
+    statuses = list(GroupPermMapping.objects.filter(group_id=group.id, perm_type='extra_order_status').\
+                                    values_list('perm_value', flat=True).order_by('sequence'))
     perms = []
     for perm in permissions:
         temp = perm
         if temp in reversed_perms.keys() and (reversed_perms[temp] not in perms):
             perms.append(reversed_perms[temp])
     return HttpResponse(
-        json.dumps({'group_name': group_name, 'data': {'brands': brands, 'stages': stages, 'permissions': perms}}))
+        json.dumps({'group_name': group_name, 'data': {'brands': brands, 'stages': stages, 'permissions': perms,
+                                                       'View Order Statuses': statuses}}))
 
 
 def get_sku_master(user, sub_user):
@@ -6147,7 +6176,7 @@ def create_order_pos(user, order_objs):
                             mapping_obj = MastersMapping.objects.create(master_id=cust_master.id, mapping_id=supplier_id,
                                                           mapping_type='customer-supplier', user=user.id,
                                                           creation_date=datetime.datetime.now())
-                            cust_supp_mapping[cust_master.customer_id] = supplier_id
+                            cust_supp_mapping[str(cust_master.customer_id)] = supplier_id
                     else:
                         cust_supp_mapping[str(cust_master.customer_id)] = master_mapping[0].mapping_id
             if not cust_supp_mapping.get(str(order_obj.customer_id), ''):
@@ -6221,3 +6250,35 @@ def save_sku_stats(user, sku_id, transact_id, transact_type, quantity):
         result_data = []
         log.info('Save SKU Detail Stats failed for %s and sku id is %s and error statement is %s' % (
             str(user.username), str(sku_id), str(e)))
+
+
+def get_view_order_statuses(request, user):
+    view_order_status = get_misc_value('extra_view_order_status', user.id)
+    if view_order_status == 'false':
+        view_order_status = ''
+    if not view_order_status:
+        return view_order_status, False
+    view_order_status = view_order_status.split(',')
+    if not request.user.is_staff:
+        view_order_status = list(GroupPermMapping.objects.filter(group__user__id=request.user.id, status=1).\
+                                        values_list('perm_value', flat=True).distinct().order_by('sequence'))
+    return view_order_status, True
+
+
+def update_created_extra_status(user, selection):
+    sub_users = get_related_users(user.id)
+    status_selected = selection.split(',')
+    for sub_user in sub_users:
+        grp_perm_map = GroupPermMapping.objects.filter(group__user__id=sub_user)
+        exist_grp_sequence = list(grp_perm_map.filter(status=1).\
+            values_list('perm_value', flat=True).distinct().order_by('sequence'))
+        if exist_grp_sequence != status_selected:
+            for sequence, grp_perm in enumerate(grp_perm_map):
+                if grp_perm.perm_value not in status_selected:
+                    grp_perm.status = 0
+                    grp_perm.sequence = 0
+                    grp_perm.save()
+                else:
+                    grp_perm.sequence = status_selected.index(grp_perm.perm_value)
+                    grp_perm.status = 1
+                    grp_perm.save()

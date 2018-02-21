@@ -495,7 +495,7 @@ stockone.directive('genericCustomerInvoiceData', function() {
     scope: {
       invoice_data: '=data',
     },
-    templateUrl: 'views/outbound/toggle/invoice_data_html.html'
+    templateUrl: 'views/outbound/toggle/invoice_data_html.html',
     link: function(scope, element, attributes, $http, Service){
       console.log(scope);
     }

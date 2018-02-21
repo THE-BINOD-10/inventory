@@ -3462,7 +3462,7 @@ def apply_search_sort(columns, data_dict, order_term, search_term, col_num, exac
     return data_dict
 
 
-def password_notification_message(username, password, name, to, role_name):
+def password_notification_message(username, password, name, to, role_name='Customer'):
     """ Send SMS for password modification """
     arguments = "%s -- %s -- %s -- %s" % (username, password, name, to)
     log.info(arguments)

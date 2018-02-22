@@ -8110,6 +8110,9 @@ def place_manual_order(request, user=''):
         manual_enquiry[key] = value
     for key, value in MANUAL_ENQUIRY_DETAILS_DICT.iteritems():
         value = request.POST.get(key, '')
+        if key == 'ask_price' and manual_enquiry['customization_type'] == 'product_custom':
+            manual_enquiry_details[key] = 0
+            continue
         if not value:
             return HttpResponse("Please Fill "+ key)
         if key == 'ask_price':
@@ -8121,7 +8124,7 @@ def place_manual_order(request, user=''):
     check_enquiry = ManualEnquiry.objects.filter(user=request.user.id,sku=manual_enquiry['sku_id'])
     if check_enquiry:
         return HttpResponse("Manual Enquiry Already Exists")
-    manual_enquiry['user'] = request.user.id
+    manual_enquiry['user_id'] = request.user.id
     manual_enquiry['enquiry_id'] = get_manual_enquiry_id(request)
     enq_data = ManualEnquiry(**manual_enquiry)
     enq_data.save()
@@ -8134,6 +8137,42 @@ def place_manual_order(request, user=''):
     return HttpResponse("Success")
 
 @csrf_exempt
+@login_required
+@get_admin_user
+def save_manual_enquiry_data(request, user=''):
+
+    enquiry_id = request.POST.get('enquiry_id', '')
+    user_id = request.POST.get('user_id', '')
+    if not enquiry_id or not user_id:
+        return HttpResponse("Give information insufficient")
+    filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
+    manual_enq = ManualEnquiry.objects.filter(**filters)
+    if not manual_enq:
+        return HttpResponse("No Enquiry Data for Id")
+    MANUAL_ENQUIRY_DETAILS_DICT = {'ask_price': 0, 'expected_date': '', 'remarks': ''}
+    manual_enq = manual_enq[0]
+    ask_price = request.POST.get('ask_price', 0)
+    expected_date = request.POST.get('expected_date', '')
+    remarks = request.POST.get('remarks', '')
+    if not expected_date:
+        return HttpResponse("Please Fill Expected Date")
+    if not remarks:
+        return HttpResponse("Please Fill Remarks")
+    if manual_enq.customization_type != 'product_custom' and not ask_price:
+        return HttpResponse("Please Fill Price")
+    else:
+        ask_price = float(ask_price)
+    enquiry_data = {'enquiry_id': manual_enq.id, 'user_id': request.user.id}
+    enquiry_data['ask_price'] = float(ask_price)
+    enquiry_data['remarks'] = remarks
+    expected_date = expected_date.split('/')
+    expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
+    enquiry_data['expected_date'] = expected_date
+    manual_enq_data = ManualEnquiryDetails(**enquiry_data)
+    manual_enq_data.save()
+    return HttpResponse("Success")
+
+@csrf_exempt
 def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                        filters={}, user_dict={}):
     if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
@@ -8142,10 +8181,40 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
         em_qs = ManualEnquiry.objects.filter(user=user.id)
     for em_obj in em_qs:
         date = em_obj.creation_date.strftime('%Y-%m-%d')
+        customization_types = dict(CUSTOMIZATION_TYPES)
+        customization_type = customization_types[em_obj.customization_type]
         temp_data['aaData'].append(OrderedDict((('Enquiry ID', int(em_obj.enquiry_id)), ('Sub Distributor', em_obj.user.username),
                                                 ('Customer Name', em_obj.customer_name), ('Style Name', em_obj.sku.sku_class),
-                                                ('Date', date)
+                                                ('Date', date), ('User ID', em_obj.user.id), ('Customization Type', customization_type)
                                                )))
     temp_data['recordsTotal'] = len(temp_data['aaData'])
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+
+@get_admin_user
+def get_manual_enquiry_detail(request, user=''):
+    enquiry_id = request.GET.get('enquiry_id', '')
+    user_id = request.GET.get('user_id', '')
+    if not enquiry_id or not user_id:
+        return HttpResponse("Give information insufficient")
+    filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
+    manual_enq = ManualEnquiry.objects.filter(**filters)
+    if not manual_enq:
+        return HttpResponse("No Enquiry Data for Id")
+    customization_types = dict(CUSTOMIZATION_TYPES)
+    customization_type = customization_types[manual_enq[0].customization_type]
+    manual_eq_dict = {'enquiry_id': int(manual_enq[0].enquiry_id), 'customer_name': manual_enq[0].customer_name,
+                      'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type}
+    enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id).values_list('image', flat=True))
+    style_dict = {'sku_code': manual_enq[0].sku.sku_code, 'style_name':  manual_enq[0].sku.sku_class,
+                  'description': manual_enq[0].sku.sku_desc, 'images': enquiry_images,
+                  'category': manual_enq[0].sku.sku_category}
+    enquiry_data =  ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id)
+    enquiry_dict = []
+    for enquiry in enquiry_data:
+        date = enquiry.creation_date.strftime('%Y-%m-%d')
+        expected_date = enquiry.expected_date.strftime('%Y-%m-%d')
+        user = User.objects.get(id=enquiry.user_id)
+        enquiry_dict.append({'ask_price': enquiry.ask_price, 'remarks': enquiry.remarks, 'date': date,\
+                             'expected_date': expected_date, 'username': user.username})
+    return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict}))

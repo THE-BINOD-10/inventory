@@ -256,6 +256,9 @@ urlpatterns = [
     url(r'^order_cancel/$', order_cancel),
     url(r'^add_order_charges/$', add_order_charges),
     url(r'^place_manual_order/$', place_manual_order),
+    url(r'^get_manual_enquiry_data/$', get_manual_enquiry_data),
+    url(r'^get_manual_enquiry_detail/$', get_manual_enquiry_detail),
+    url(r'^save_manual_enquiry_data/$', save_manual_enquiry_data),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

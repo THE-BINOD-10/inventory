@@ -32,7 +32,7 @@ function ManualEnquiryCtrl($scope, $http, $state, $compile, Session, DTOptionsBu
       //vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
     });
     
-  vm.dtColumns = vm.service.build_colums(['Enquiry ID', 'Customer Name', 'Sub Distributor', 'Style Name', 'Date']);
+  vm.dtColumns = vm.service.build_colums(['Enquiry ID', 'Customer Name', 'Sub Distributor', 'Style Name', 'Customization Type', 'Date']);
   vm.dtInstance = {};
 
   $scope.$on('change_filters_data', function(){
@@ -53,10 +53,11 @@ function ManualEnquiryCtrl($scope, $http, $state, $compile, Session, DTOptionsBu
 
   vm.enquiryDetails = function(data) {
 
-    var mod_data = {enquiry_id: data['Enquiry ID'], customer_id: data['Customer ID']};
+    var mod_data = {enquiry_id: data['Enquiry ID'], user_id: data['User ID'],
+                    customization_type: data['Customization Type']};
     var modalInstance = $modal.open({
-      templateUrl: 'views/outbound/toggle/enquiry_order_details.html',
-      controller: 'EnquiryOrderDetails',
+      templateUrl: 'views/outbound/toggle/manual_enquiry_order_details.html',
+      controller: 'ManualOrderDetails',
       controllerAs: 'order',
       size: 'lg',
       backdrop: 'static',
@@ -69,7 +70,6 @@ function ManualEnquiryCtrl($scope, $http, $state, $compile, Session, DTOptionsBu
     });
     modalInstance.result.then(function (selectedItem) {
       var data = selectedItem;
-      $state.reload();
     })
   }
 }

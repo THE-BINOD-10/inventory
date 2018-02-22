@@ -25,6 +25,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   vm.index = '';
   vm.show_no_data = false;
   vm.date = new Date();
+
   vm.get_orders = function(key){
 
     vm.orders_loading = true;
@@ -38,7 +39,6 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
         console.log(data.data);
         vm.order_data.data = vm.order_data.data.concat(data.data.data);
-        
         angular.forEach(vm.order_data.data, function(item){
           item['extended_date'] = '';
         });
@@ -49,6 +49,8 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
           vm.show_no_data = true
         }
       }
+      // For testing static data
+      // vm.order_data.data = [{corporate_name:"",customer_id:16498,date:"23/01/2018",days_left:-16,extend_status:"pending",order_id:10002,total_inv_amt:0,total_quantity:1}];
       vm.orders_loading = false;
     })
   }
@@ -194,6 +196,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
       $state.go('user.App.OrderDetails', data);
     }
   }
+  
 }
 
 angular

@@ -7,7 +7,7 @@
       <tab heading="Block Stock Enquiry">
         <div ng-include="'views/outbound/enquiry_orders.html'"></div>
       </tab>
-      <tab heading="Manual Enquiry" ng-if="show_tab('multi_warehouse') || show_tab('add_openst')">
+      <tab heading="Custom Orders" ng-if="show_tab('multi_warehouse') || show_tab('add_openst')">
         <div ng-include="'views/outbound/manual_enquiry.html'"></div>
       </tab>
     </tabset>

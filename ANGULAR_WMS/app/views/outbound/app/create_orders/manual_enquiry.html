@@ -3,7 +3,7 @@
     <div class="col-md-4 col-sm-4 col-xs-6">
     </div>
     <div class="col-md-4 col-sm-4 hidden-xs">
-      <h4 align="center">Manual Enquiry</h4>
+      <h4 align="center">Custom Order</h4>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-6">
       <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>
@@ -38,7 +38,7 @@
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Style *</label>
             <div class="col-sm-3 col-xs-5">
-              <select class="form-control" ng-disabled="Enquiry.styles_loading || Enquiry.styles.length == 0" ng-model="Enquiry.model_data.sku_id" ng-change="Enquiry.select_style(Enquiry.style, Enquiry.model_data.sku_id)" ng-required="true">
+              <select class="form-control" ng-disabled="Enquiry.styles_loading || Enquiry.styles.length == 0" ng-model="Enquiry.model_data.sku_id" ng-change="Enquiry.select_style(Enquiry.model_data.sku_id, Enquiry.styles)" ng-required="true">
                 <option ng-selected="Enquiry.style == ''" value="">None</option>
                 <option ng-repeat="style in Enquiry.styles" ng-selected="Enquiry.model_data.sku_id == style.sku_class" value="{{style.sku_class}}">{{style.sku_class}}</option>
               </select>
@@ -55,7 +55,6 @@
                 <div class="col-md-6 col-sm-6 col-xs-7" style="padding-left: 20px;">
                   <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Style Name: {{Enquiry.selected_style.sku_class}}</b></h4>
                   <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Description: {{Enquiry.selected_style.sku_desc}}</b></h4>
-                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>MRP: {{Enquiry.selected_style.mrp}}</b></h4>
                 </div>
               </div>
             </div>
@@ -69,7 +68,7 @@
             </div>
             <i ng-if="$ctrl.styles_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
           </div>
-          <div class="form-group">
+          <div class="form-group" ng-if="Enquiry.model_data.customization_type != 'product_custom'">
             <label class="col-sm-5 col-xs-5 control-label">Ask Price *</label>
             <div class="col-sm-3 col-xs-5">
               <input type="text" name="customer_name" decimal-number ng-model="Enquiry.model_data.ask_price" class="form-control" ng-required="true">

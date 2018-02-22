@@ -97,13 +97,18 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
               if(response == 'Success') {
 
                 Service.showNoty(response);
-                angular.copy(empty_data, $ctrl.model_data);
+                $scope.$apply(function() {
+                  angular.copy(empty_data, $ctrl.model_data);
+                  $ctrl.upload_name = [];
+                  $ctrl.uploading = false;
+                });
                 $("input[type='file']").val('');
-                $ctrl.upload_name = [];
               } else {
                 Service.showNoty(response, 'warning');
+                $scope.$apply(function() {
+                  $ctrl.uploading = false;
+                })
               }
-              $ctrl.uploading = false;
             },
             'error': function(response) {
               console.log('fail');

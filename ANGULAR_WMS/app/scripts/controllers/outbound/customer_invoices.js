@@ -187,6 +187,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         return false;
       }
       var data_tr = angular.element(elem).parent().parent();
+      var all_tr = angular.element(elem).parent().parent().siblings();
+      
+      for (var i = 0; i < all_tr.length; i++) {
+
+        if (all_tr[i].cells[0].children[0].className == 'fa fa-minus-square') {
+        
+          all_tr[i].cells[0].children[0].className = 'fa fa-plus-square'
+          all_tr[i].nextSibling.remove();
+        }
+      }
+
       if ($(elem).hasClass('fa-plus-square')) {
         $(elem).removeClass('fa-plus-square');
         $(elem).removeClass();

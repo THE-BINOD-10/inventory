@@ -105,7 +105,7 @@ def create_update_sku(all_skus, all_users):
             if sku.sku_code not in dump_sku_codes and created:
                 dump_sku_codes.append(sku.sku_code)
             price_band_flag = get_misc_value('priceband_sync', sku.user)
-            if (price_band_flag == 'true' or wh_type == 'CENTRAL_ADMIN')and not created:
+            if (price_band_flag == 'true' or wh_type == 'CENTRAL_ADMIN') and not created:
                 sku_obj.__dict__.update(**update_sku_dict)
                 print sku_obj.sku_desc, sku_obj.id
                 sku_obj.save()

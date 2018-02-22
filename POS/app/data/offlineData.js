@@ -48,6 +48,29 @@
         });     
     }
 
+
+    function clearSkuItems(){
+
+        return new Promise(function(resolve,reject){
+            openDB().then(function(){
+                SPWAN(function*(){
+                    var clear_status=true;
+                    for(var i=1; clear_status===true ;i++){
+                        yield POS_TABLES.skumaster.limit(1000).delete();
+                        console.log("cleared sku items " + i + "th of 1000 items");
+                        yield POS_TABLES.skumaster.toArray().then(function(data){
+                            if(data.length==0){
+                                clear_status=false;
+                            }
+                        });
+
+                    }
+                    return resolve();
+                });
+            });            
+        });
+    }
+
     //add bulk cutomers
     function addCustomerBulkItem(customer_list){
 
@@ -130,7 +153,7 @@
                                 then(function(skus){
                                     return resolve(skus);
                                 }).catch(function(error){
-                                    console.log('collection error ' +err);
+                                    console.log('collection error ' +error);
                                     return resolve([]);
                                 });
                         
@@ -141,7 +164,7 @@
                 }); 
              }).catch(function(error){
                 console.log(error);
-                return reject(error);
+                return resolve([]);
             }); 
 
             });
@@ -149,44 +172,52 @@
     }
 
     //search customer
-    function getCustomerData(find_key){
-
+    function getCustomerData(user_id,find_key){
+        var customer_list=[];
         return new Promise(function(resolve,reject){
             openDB().then(function(){
             POS_TABLES.customer.where("Number").
             startsWithIgnoreCase(find_key).
             or("FirstName").startsWithIgnoreCase(find_key).
             limit(30).toArray().then(function(data){
-
-                if(data.length>0){
-                    return resolve(data);   
-                }else{
-
-                    POS_TABLES.sync_customer.where("number").
-                    startsWithIgnoreCase(find_key).
-                    or("firstName").startsWithIgnoreCase(find_key).
-                    limit(30).toArray().then(function(data){
-
-                        var data_list=[],user={};
-
-                        for(var user_list=0;user_list<data.length;user_list++){
-                            user=data[user_list];
-                            data_list.push({"FirstName":user.firstName,"Address":"","Email":user.mail,"ID":'',"LastName":user.secondName,"Number":""+user.number});
+                customer_list=customer_list.concat(data);
+        
+                POS_TABLES.sync_customer.where("user").equals(user_id)
+                and(function(data){
+                    if(data.number!=undefined && data.number!=null){
+                       if(data.number.toString().toLocaleLowerCase().startsWith(find_key.toLocaleLowerCase())){
+                        return true;
+                       }
+                    } 
+                    if(data.firstName!=undefined && data.firstName!=null){
+                        if(data.firstName.toLocaleLowerCase().startsWith(find_key.toLocaleLowerCase())){
+                          return true;
                         }
+                    }
+                }).limit(30).toArray().then(function(data){
 
-                        return resolve(data_list);
-                    }).catch(function(error){
-                        return reject(error);
-                    });
-                }
+                    var data_list=[],user={};
+
+                    for(var user_list=0;user_list<data.length;user_list++){
+                        user=data[user_list];
+                        data_list.push({"FirstName":user.firstName,"Address":"","Email":user.mail,"ID":'',"LastName":user.secondName,"Number":""+user.number});
+                    }
+                    customer_list=customer_list.concat(data_list);
+                    return resolve(customer_list);
+                }).catch(function(error){
+                    console.log(error);
+                    return resolve(customer_list);
+                });
+                
                 
             }).catch(function(error){
-                return reject(error);
+                console.log(error);
+                return resolve(customer_list);
             });
 
            }).catch(function(error){
                 console.log(error);
-                return reject(error);
+                return resolve(customer_list);
             });
         });
     }
@@ -328,8 +359,8 @@
 
     //sync POS transacctions data
     function syncPOSTransactionData(){
-
         return new Promise(function(resolve,reject){
+             POS_ENABLE_SYNC=true;
             checkSyncData(SYNC_POS_DATA,new MessageChannel()).then(function(data){
                 console.log(" sync POS  data "+data);
                 
@@ -588,7 +619,7 @@
     }
 
     //save offline order in DB
-    function setSynOrdersData(order_data,qty_reduce_status){
+    function setSynOrdersData(user_id,order_data,qty_reduce_status){
 
         return new Promise(function (resolve, reject){
             openDB().then(function(){
@@ -636,14 +667,18 @@
                     });
 
                     //save order in DB
-                    var id=yield POS_TABLES.sync_orders.
-                    put({"order_id":JSON.stringify(order_data.summary.order_id),
-                        "order":JSON.stringify(order_data)}).then(function(data){
-                            console.log("data saved in local db "+data);    
-                        }).catch(function(error){
-                            console.error("error "+error.message);  
-                            return reject(error.message);
-                        });
+                    var store_id=JSON.stringify(order_data.summary.order_id);
+                    var store_order=JSON.stringify(order_data);
+                    console.log("save order in local db  order_id"+store_id+" order data "+store_order +" user "+user_id.toString);
+                    
+                    yield POS_TABLES.sync_orders.
+                            put({"order_id":store_id,"order":store_order,"user":user_id.toString()}).
+                            then(function(data){
+                                console.log("data saved in local db "+data);    
+                            }).catch(function(error){
+                                console.error("error "+error);  
+                                return reject(error);
+                            });
 
                     // update the order id 
                     yield POS_TABLES.checksum.
@@ -695,7 +730,7 @@
     function get_transaction_POS_PreOrders(){
 
         return new Promise(function(resolve,reject){
-            getOrderDeliveredItems("").then(function(data){
+            getOrderDeliveredItems("","").then(function(data){
 
                 if(data.length>0){
                     return resolve(data);
@@ -788,19 +823,24 @@
     }
 
     //get POS sync orders
-    function get_POS_Sync_OrdersByID(pos_sync_orer_id){
+    function get_POS_Sync_OrdersByID(user_id,pos_sync_orer_id){
         return new Promise(function(resolve,reject){
             openDB().then(function(){
-            POS_TABLES.sync_orders.where("order_id").equals(pos_sync_orer_id).
-            toArray().
-            then(function(data){
-                console.log("get sync pos orders "+data.length);
-                if(data.length>0){
-                    return resolve(data);
-                }else{
-                    return resolve([]);
-                }
-            }); 
+                POS_TABLES.sync_orders.where("user").equals(user_id.toString()).
+                and(function(data){
+                    if(data!=undefined){
+                        if(data.order_id === pos_sync_orer_id){
+                            return true;
+                        }
+                    }
+                }).toArray().then(function(data){
+                    console.log("get sync pos orders "+data.length);
+                    if(data.length>0){
+                        return resolve(data);
+                    }else{
+                        return resolve([]);
+                    }
+                }); 
             }).catch(function(error){
                 console.log(error);
                 return reject(error);
@@ -1018,9 +1058,10 @@
     }
 
     //Bulk add pre-orders data
-    function addPreOrdersBulkItems(preoder_list){
+    function addPreOrdersBulkItems(data_preoder_list){
 
-        console.log("get the bulk preorders "+preoder_data.length);
+        console.log("get the bulk preorders "+Object.keys(data_preoder_list).length);
+        var preoder_list=Object.keys(data_preoder_list);
         return new Promise(function(resolve,reject){
 
             openDB().then(function(){
@@ -1033,18 +1074,24 @@
 
                     for(var preorder_item=1;preorder_item<=preoder_list.length;preorder_item++){
 
-                        var preorderData=preoder_list.splice(0,1000);
+                        var preorderData=preoder_list.slice(0,1000);
 
                         var data=[];
-                        Object.keys(preorderData).forEach(function(key){
+                           for(var key=1;key<=preorderData.length;key++){
+                            var preoder_key=preorderData[key];
+                            data.push({order_id:preoder_key,
+                                order_data:JSON.stringify(data_preoder_list[preoder_key])});
+                           }                                             
+                        /*Object.keys(preorderData).forEach(function(key){
                             data.push({"order_id":key,"order_data":JSON.stringify(preoder_list[key])});
-                        });
+                        });*/
 
-                        POS_TABLES.pre_orders.bulkPut(data).then(function(res){
+                        yield POS_TABLES.pre_orders.bulkPut(data).then(function(res){
                             console.log("add bulk predorders data is "+res);
                             console.log("sku successfully insert the list "+preorder_item +" of 1000 items");
                              preoder_list.splice(0,1000);
                              console.log("sku remove the list "+preorder_item +" of 1000 items");
+                            
                             
                         }).catch(function(error){
                             console.log("get an error adding bulk preorders "+error.stack);
@@ -1054,11 +1101,14 @@
                                 console.log("some preorders saving failed "+error.failures.length);
                                 return reject("some preorder saving failed "+error.failures.length);
                             }
+                            preoder_list.splice(0,1000);
+
                         });
 
                         if(preoder_list==0){
-                            return resolve(true);
-                        }
+                                return resolve(true);
+                            }
+                        
                     }
                 });
             }).catch(function(error){
@@ -1092,7 +1142,7 @@
     }
 
     //get the preorder data check with offline preorder delivered 
-    function getPreOrderDetails_Check_Off_Delivered(order_id){
+    function getPreOrderDetails_Check_Off_Delivered(user_id,order_id){
 
         return new Promise(function(resolve,reject){
             var order_data="",order_find=false;
@@ -1104,7 +1154,7 @@
                     if(result.length>0){
                         order_data=JSON.parse(result[0].order_data);
                         
-                        getOrderDeliveredItems(order_id).then(function(data){
+                        getOrderDeliveredItems(user_id,order_id).then(function(data){
 
                             if(data.length>0){
                                 order_data.status=0;
@@ -1115,7 +1165,7 @@
                         });
 
                     }else{
-                        get_POS_Sync_OrdersByID(order_id).then(function(data){
+                        get_POS_Sync_OrdersByID(user_id,order_id).then(function(data){
                             if(data.length>0){
                                 order_data=JSON.parse(data[0].order);
                                 order_data.customer_data.Name=order_data.customer_data.FirstName;
@@ -1125,7 +1175,7 @@
                                 "order_date":order_data.summary.order_date,
                                 "status":order_data.status};
 
-                                getOrderDeliveredItems(order_id).then(function(data){
+                                getOrderDeliveredItems(user_id,order_id).then(function(data){
 
                                     if(data.length>0){
                                         order_data.status=0;
@@ -1156,26 +1206,33 @@
                 openDB().then(function(){
                 //get all peorders in preorder where status is 1.
                 POS_TABLES.pre_orders.filter(function(data){
-
-                    data=JSON.parse(data.order_data);
-                    if(data.status.toString()=="1")
-                        return true;    
+                    if(data!=undefined && data.order_data!=undefined){
+                        data=JSON.parse(data.order_data);
+                        if(data.status.toString()=="1")
+                            return true;    
+                    }else{
+                        return false;
+                    }
                 }).toArray().then(function(data){
 
                     pre_order_data=data;
 
                     //get all orders where issuetype is "pre order".
-                    POS_TABLES.sync_orders.filter(function(data){
-                        data=JSON.parse(data.order);
-                        if(data.summary.issue_type.toLowerCase()==="pre order" && data.status==="1"){
-                            return true;
+                    POS_TABLES.sync_orders.where("user").equals(user_id.toString()).and(function(data){
+                        if(data!=undefined && data.order!=undefined){
+                            data=JSON.parse(data.order);
+                            if(data.summary.issue_type.toLowerCase()==="pre order" && data.status==="1"){
+                                return true;
+                            }
+                        }else{
+                            return false;
                         }
                     }).toArray().then(function(preorders){
 
                         sync_pre_orders=preorders;              
                         
                         //get the offline preorder delivered order id's
-                        getOrderDeliveredItems("").then(function(order_data){
+                        getOrderDeliveredItems("","").then(function(order_data){
 
                             var data=[];
                             for(var orders=0;orders<order_data.length;orders++){
@@ -1269,10 +1326,18 @@
 
                     setOrderDeliveredItems(user_id,order_id,delete_order).
                     then(function(data){
-                        if(delete_order=="true")
-                            return resolve("Deleted sucessfully");
-                        else
-                            return resolve("Delivered sucessfully");
+                        var result_data={};
+                         result_data.data=data;
+                        if(delete_order=="true"){
+                            result_data.message="Deleted Successfully !";
+                            return resolve(result_data);
+                        } else{
+                           if(result_data.data.status){
+                                result_data.data.status="sucess";
+                            }
+                            result_data.message="Delivered Successfully !";
+                            return resolve(result_data);
+                        }
                     }).catch(function(error){
                         return reject(error.message);
                     });
@@ -1282,54 +1347,72 @@
                 }
             }else{
 
+                    var sync_order_data=[];
                     //check order in syn_orders
-                    get_POS_Sync_OrdersByID(order_id).
+                    yield get_POS_Sync_OrdersByID(user_id,order_id).
                     then(function(data){
-                        if(data.length>0){
+                        sync_order_data=data;
+                            
+                    }).catch(function(error){
+                        return reject(error.message);
+                    });
 
-                            var order_data=JSON.parse(data[0].order);
-                            if(Object.keys(order_data).indexOf("status")>0){
-                                order_data.status=status;
+                    if(sync_order_data.length>0){
+                        var order_data=JSON.parse(sync_order_data[0].order);
+                        if(Object.keys(order_data).indexOf("status")>0){
+                            order_data.status=status;
+                             //reduce sku qty
+                            reduceSKUQty(order_data).then(function(){
+                                console.log("sucess to reduce sku qty ");
+                            }).catch(function(error){
+                                console.log("error at reduce sku qty "+error.message);
+                            }); 
+                                        
+                           yield POS_TABLES.sync_orders.where("user").equals(user_id.toString()).
+                                    and(function(data){
+                                        if(data!=undefined){
+                                            if(data.order_id === order_id){
+                                                return true;
+                                            }
+                                        }
+                                    }).modify(function(data){
+                                        data.order=JSON.stringify(order_data);
+                                    }).then(function(data){
+                                        console.log("changed the status of preorder "+JSON.stringify(data));
+                                    }).catch(function(error){
+                                        return reject(error.message);
+                                    }); 
 
-                                //reduce sku qty
-                                
-                                reduceSKUQty(order_data).then(function(){
-                                    console.log("sucess to reduce sku qty ");
-                                }).catch(function(error){
-                                    console.log("error at reduce sku qty "+error.message);
-                                }); 
-                                
-                                POS_TABLES.sync_orders.
-                                where("order_id").equals(order_id).
-                                modify(function(data){
-                                    data.order=JSON.stringify(order_data);
-                                }).then(function(data){
-                                    console.log("changed the status of preorder "+JSON.stringify(data));
-                                }).catch(function(error){
-                                    return reject(error.message);
-                                }); 
+                            yield setOrderDeliveredItems(user_id,order_id,delete_order).
+                                    then(function(data){
+                                        var result_data={};
+                                        result_data.data={};
+                                        result_data.data.data=order_data;
+                                        result_data.data.data.order_id=order_data.summary.order_id;
+                                        result_data.data.data.order_date=order_data.summary.order_date;
 
-                                setOrderDeliveredItems(user_id,order_id,delete_order).
-                                then(function(data){
-                                    if(delete_order=="true")
-                                        return resolve("Deleted sucessfully");
-                                    else
-                                        return resolve("Delivered sucessfully");
-                                }).catch(function(error){
-                                    return reject(error.message);
-                                });
-                                                  
+                                        if(delete_order=="true"){
+                                            result_data.message="Deleted Successfully !";
+                                            return resolve(result_data);
+                                        } else{
+                                            if(result_data.data.status){
+                                                result_data.data.status="sucess";
+                                            }
+                                            result_data.message="Delivered Successfully !";
+                                            return resolve(result_data);
+                                        }
+                                    }).catch(function(error){
+                                        return reject(error.message);
+                                    });
+
                         }else{
                             return reject("order has not a status");
                         }
-
                     }else{
                         return reject("unable to get the order information in offline");
-                    }       
-                }).catch(function(error){
-                    return reject(error.message);
-                });
-                
+                    }          
+
+               
             }
             
         }).catch(function(error){
@@ -1366,7 +1449,7 @@
                         if(data.length>0){
                             return resolve(true);
                         }else{
-                            getOrderDeliveredItems("").then(function(data){
+                            getOrderDeliveredItems("","").then(function(data){
                                 if(data.length>0){
                                     return resolve(true);
                                 }else{
@@ -1389,13 +1472,26 @@
 
         return new Promise(function(resolve,reject){
             openDB().then(function(){
-
+            var result_data={};
+            result_data.data={};
             POS_TABLES.order_delivered.put({"user":user_id,
                 "order_id":order_id,
                 "delete_order":delete_order}).
-            then(function(data){
-                return resolve();
+            then(function(){
+                getPreOrderData(order_id).then(function(result){
+                    if(result.length>0){
+                        result_data.data=JSON.parse(result[0].order_data);
+                        return resolve(result_data);
+                    }else{
+                        return resolve(result_data);
+                    }
+                }).catch(function(error){
+                       result_data.data={};
+                       return resolve(result_data);
+                });
+                                
             }).catch(function(error){
+                console.log(error);
                 return reject(error);
             });
             }).catch(function(error){
@@ -1406,30 +1502,37 @@
     }
 
     //get the order delivered items
-    function getOrderDeliveredItems(order_id){
+    function getOrderDeliveredItems(user_id,order_id){
 
         return new Promise(function(resolve,reject){
             openDB().then(function(){
-            if(order_id.length==0){
+                if(user_id.toString().length==0 && order_id.length==0){
 
-                POS_TABLES.order_delivered.toArray().then(function(data){
-                    return resolve(data);
-                }).catch(function(error){
-                    return resolve([]);
-                });
-                
-            }else{
-
-                POS_TABLES.order_delivered.where("order_id").equals(order_id).toArray().then(function(data){
-                    if(data.length>0)   
+                    POS_TABLES.order_delivered.toArray().then(function(data){
                         return resolve(data);
-                    else
+                    }).catch(function(error){
                         return resolve([]);
-                }).catch(function(error){
-                    return resolve([]);
-                });
-                
-            }
+                    });
+                    
+                }else{
+
+                    POS_TABLES.order_delivered.where("user").equals(user_id.toString()).
+                        and(function(data){
+                            if(data!=undefined){
+                               if(data.order_id === order_id){
+                                return true;
+                               } 
+                            }
+                        }).toArray().then(function(data){
+                            if(data.length>0)   
+                                return resolve(data);
+                            else
+                                return resolve([]);
+                    }).catch(function(error){
+                        return resolve([]);
+                    });
+                    
+                }
             }).catch(function(error){
                 console.log(error);
                 return reject(error);
@@ -1496,6 +1599,30 @@
             }); 
 
         });     
-    } 
+    }
+
+
+    function clearUserofflineSyncData(){
+
+        return new Promise(function(resolve,reject){
+            openDB().then(function(){
+                SPWAN(function*(){
+                    console.log("clear user checksum offline DB");
+                    yield POS_TABLES.checksum.clear();
+                    console.log("clear all user sku data offline DB");
+                    yield POS_TABLES.skumaster.clear();
+                    console.log("clear all user customer data offline DB");
+                    yield POS_TABLES.customer.clear();
+                    console.log("clear all user preorder data offline DB");
+                    yield POS_TABLES.pre_orders.clear();
+                    return resolve();
+                });
+            }).catch(function(error){
+                return reject(error);
+            });               
+        });
+    }
+
+
 
 

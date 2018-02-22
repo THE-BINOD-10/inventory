@@ -20,7 +20,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
                     'invoice_remarks': '', 'show_disc_invoice': false, 'serial_limit': '',
                     'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
-                    'generic_wh_level': false, 'auto_confirm_po': false
+                    'generic_wh_level': false, 'auto_confirm_po': false, 'create_order_po': false, 'shipment_sku_scan': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -28,13 +28,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      10: 'auto_po_switch', 11: 'no_stock_switch', 12:'online_percentage', 13: 'mail_alerts',
                      14: 'invoice_prefix', 15: 'float_switch', 16: 'automate_invoice', 17: 'show_mrp', 18: 'decimal_limit',
                      19: 'picklist_sort_by', 20: 'stock_sync', 21: 'sku_sync', 22: 'auto_generate_picklist',
-                     23: 'detailed_invoice', 24: 'scan_picklist_option', 25: 'stock_display_warehouse', 26: 'view_order_status',
+                     23: 'detailed_invoice', 24: 'scan_picklist_option', 25: 'stock_display_warehouse',
                      27: 'seller_margin', 28: 'style_headers', 29: 'receive_process', 30: 'tally_config', 31: 'tax_details',
                      32: 'hsn_summary', 33: 'display_customer_sku', 34: 'marketplace_model', 35: 'label_generation',
                      36: 'barcode_generate_opt', 37: 'grn_scan_option', 38: 'invoice_titles', 39: 'show_imei_invoice',
                      40: 'display_remarks_mail', 41: 'create_seller_order', 42: 'invoice_remarks', 43: 'show_disc_invoice',
                      44: 'increment_invoice', 45: 'serial_limit', 46: 'create_shipment_type', 47: 'auto_allocate_stock',
-                     48: 'priceband_sync', 49: 'generic_wh_level', 50: 'auto_confirm_po'}
+                     48: 'priceband_sync', 49: 'generic_wh_level', 50: 'auto_confirm_po', 51: 'create_order_po',
+                     52: 'calculate_customer_price', 53: 'shipment_sku_scan',}
 
   vm.check_box_data = [
     {
@@ -157,6 +158,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
+      name: "Display Place Sample option in Customer Portal",
+      model_name: "create_order_po",
+      param_no: 51,
+      class_name: "fa fa-refresh",
+      display: true
+    },
+    {
       name: "Generate Picklist for out of stock orders",
       model_name: "no_stock_switch",
       param_no: 11,
@@ -262,6 +270,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
+      name: "SKU Scan in Shipment",
+      model_name: "shipment_sku_scan",
+      param_no: 53,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
       name: "Auto allocate stock",
       model_name: "auto_allocate_stock",
       param_no: 47,
@@ -364,6 +379,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }, 500);
       $(".sku_groups").importTags(vm.model_data.all_groups);
       $(".stages").importTags(vm.model_data.all_stages);
+      $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
       if (vm.model_data.invoice_titles) {
         $(".titles").importTags(vm.model_data.invoice_titles);
       }
@@ -409,6 +425,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.update_sku_groups = function() {
     var data = $("#tags").val();
     vm.service.apiCall("save_groups?sku_groups="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
+  vm.update_extra_order_status = function() {
+    var data = $(".extra_view_order_status").val();
+    vm.service.apiCall("switches?extra_view_order_status="+data).then(function(data){
       if(data.message) {
         msg = data.data;
         $scope.showNoty();

@@ -19,7 +19,7 @@ var app = angular.module('urbanApp')
       FastClick.attach(document.body);
 
       var skipAsync = false;
-      var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create', 'user.smlogin', 'user.marshlogin']
+      var states = ['user.signin', 'user.signup', 'user.sagarfab', 'user.create', 'user.smlogin', 'user.marshlogin', 'user.Corp Attire']
 
             $rootScope.$on("$stateChangeStart", function (event, next, toPrms, from, fromPrms) {
 
@@ -60,12 +60,21 @@ var app = angular.module('urbanApp')
                        return;
                     } else if (typeof(next.permission) == "string") {
 
-                      var perm_list = next.permission.split("&");
-                      var check_status = false;
+                      var split_variable = '|';
+                      var check_status = true;
+                      if(next.permission.indexOf("&")>0){
+                        split_variable = '&';
+                        check_status = false;
+                      }
+                      var perm_list = next.permission.split(split_variable);
                       for(var i=0; i < perm_list.length; i++) {
 
-                        if(!(Session.check_permission(perm_list[i]))) {
+                        if(!(Session.check_permission(perm_list[i])) && split_variable == '&') {
                           check_status = true;
+                          break;
+                        }
+                        else if((Session.check_permission(perm_list[i])) && split_variable == '|') {
+                          check_status = false;
                           break;
                         }
                       }
@@ -98,6 +107,9 @@ var app = angular.module('urbanApp')
 
               if (Session.user_profile.user_type == "customer") {
                 $state.go(LOGIN_REDIRECT_STATE_CUSTOMER, {"location": "replace"});
+
+              } else if (Session.user_profile.user_type == "supplier"){
+                $state.go("app.PurchaseOrder", {"location": "replace"});
               } else {
                 $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});
               }
@@ -501,6 +513,23 @@ var app = angular.module('urbanApp')
             title: 'T&C Master',
           }
         })
+        .state('app.masters.StaffMaster', {
+          url: '/SatffMaster',
+          // permission: 'add_staffmaster',
+          templateUrl: 'views/masters/SatffMaster.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/StaffMaster.js');
+                    }]
+          },
+          data: {
+            title: 'Staff Master',
+          }
+        })
+        .state('app.masters.StaffMaster.Staff', {
+             url: '/Staff',
+             templateUrl: 'views/masters/toggles/staff_update.html'
+           })
 
       // Inbound routes
       .state('app.inbound', {
@@ -509,8 +538,8 @@ var app = angular.module('urbanApp')
           url: '/inbound',
         })
         .state('app.inbound.RaisePo', {
-          url: '/RaisePO',
-          permission: 'add_openpo',
+          url: '/scripts/controllers/outbound/pop_js/custom_order_details.jsRaisePO',
+          permission: 'add_openpo|change_openpo',
           templateUrl: 'views/inbound/raise_po.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -555,7 +584,13 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/inbound/receive_po.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/inbound/receive_po.js');
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/pop_js/custom_order_details.js'
+                ]).then( function() { 
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/receive_po.js'
+                  ])
+                });
               }]
           },
           data: {
@@ -986,7 +1021,8 @@ var app = angular.module('urbanApp')
                              'scripts/controllers/outbound/pop_js/common_backorder_po.js',
                              'scripts/controllers/outbound/pop_js/backorder_jo.js',
                              'scripts/controllers/outbound/pop_js/stock_transfer.js',
-                             'scripts/controllers/outbound/pop_js/picklist.js'
+                             'scripts/controllers/outbound/pop_js/picklist.js',
+                             'scripts/controllers/outbound/pop_js/custom_order_details.js'
                             ]
                         }]);
                     }]
@@ -1054,6 +1090,10 @@ var app = angular.module('urbanApp')
             title: 'View Orders',
           }
         })
+          .state('app.outbound.ViewOrders.Picklist', {
+            url: '/Picklist',
+            templateUrl: 'views/outbound/toggle/batch_tg.html'
+          })
           .state('app.outbound.ViewOrders.Transfer', {
             url: '/Transfer',
             templateUrl: 'views/outbound/toggle/transfer_tg.html'
@@ -1576,6 +1616,18 @@ var app = angular.module('urbanApp')
             title: 'RM Picklist',
           }
         })
+        .state('app.reports.StockLedgerReport', {
+          url: '/StockLedgerReport',
+          templateUrl: 'views/reports/stock_ledger_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/stock_ledger_report.js');
+              }]
+          },
+          data: {
+            title: 'Stock Ledger',
+          }
+        })
 
       // configuration route
       .state('app.configurations', {
@@ -1732,6 +1784,26 @@ var app = angular.module('urbanApp')
           }
         })
 
+      //supplier purchase order
+      .state('app.PurchaseOrder', {
+          url: '/PurchaseOrder',
+          templateUrl: 'views/inbound/supplier_purchase_order.html',
+		  resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/pop_js/custom_order_details.js'
+                ]).then( function() { 
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/supplier_purchase_order.js'
+                  ])
+                });
+              }]
+          },
+          data: {
+            title: 'Purchase Order'
+          }
+        })
+
       //register
       .state('app.Register', {
           url: '/Register',
@@ -1880,6 +1952,20 @@ var app = angular.module('urbanApp')
             contentClasses: 'full-height'
           }
         })
+        .state('user.Corp Attire', {
+          url: '/corp_attire_login',
+          templateUrl: 'views/customers/corp_attire_login.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/controllers/session.js');
+                    }]
+          },
+          data: {
+            appClasses: 'bg-white usersession',
+            contentClasses: 'full-height'
+          }
+        })
+
         .state('user.App', {
           url: '/App',
           templateUrl: 'views/outbound/app/create_orders.html',

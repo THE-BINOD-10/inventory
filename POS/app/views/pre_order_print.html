@@ -1,0 +1,140 @@
+<!-- <link rel="stylesheet" href="/app/css/receipt.css"/> -->
+<style>
+.receipt {
+  width: 350px;
+  font-size: 14px; 
+}
+* {
+  padding: 0px;
+  margin: 0px;
+}
+.shop-name{
+  /*text-align: center;*/
+  display: block;
+}
+.shop-title {
+  /*text-align: center;*/
+  display: block;
+  font-size: 18px;
+}
+.products table,
+.table-pro table {
+  width: 100%;
+  font-size: 14px;
+}
+.products table thead th:nth-child(1),
+.table-pro table thead th:nth-child(1) {
+  text-align: left;
+}
+.products table thead th,
+.table-pro table thead th {
+  text-align: center;
+}
+.products table tbody tr > td:nth-child(1),
+.table-pro table tbody tr > td:nth-child(1) {
+  text-align: left;
+}
+.products table tbody tr > td,
+.table-pro table tbody tr > td {
+  /*text-align: center;*/
+}
+.product-total span {
+  width: 30%;
+  display: inline-block;
+}
+table {
+  border-collapse: collapse;
+}
+table, td, th {
+  border: 1px solid black;
+  text-align: left;
+  padding: 5px 2px;
+}
+.text_center {
+  text-align: center;
+}
+.text_right {
+  text-align: right;
+}
+.capitalize2 {
+  text-transform: capitalize;
+}
+.fixed_height{
+    min-height: 530px;
+  }
+</style>
+
+<div class="receipt">
+  <div class="products table-pro">
+    <table>
+      <tr>
+        <td colspan="2"><span class="shop-title text_center"><strong>RECEIPT</strong></span></td>
+      </tr>
+      <tr valign="top">
+        <td width="60%">
+          <span class="shop-name"><strong>{{user.company | uppercase}},</strong></span></n>
+          <span class="shop-name">{{user.address}}.</span></n>
+          <span class="shop-name">Ph : {{user.phone}}</span><br>
+          <span class="shop-name">GSTIN : {{user.gstin}}</span>
+        </td>
+        <td width="40%">
+          <strong>Student Info</strong></n>
+          <div ng-repeat="(key, value) in data.customer_extra">
+            <span class="shop-name capitalize2">{{key}} : {{value}}.</span></n>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Receipt No. : {{data.summary.invoice_number}}{{data.order_id}}</strong>
+        <br>Order Taken By : {{data.summary.staff_member}}</td>
+        <td><strong>Date : {{date}}</strong></td>
+      </tr>
+    </table>
+    <br>
+    <table class="fixed_height">
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Particulars</th>
+          <th>&nbsp;Qty&nbsp;</th>
+          <th>Rate</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="item in data.sku_data">
+          <td class="text_center">{{$index+1}}</td>
+          <td>{{item.name}}</td>
+          <td class="text_center">{{item.quantity}}</td>
+          <td class="text_right">{{item.unit_price | number:2}}</td>
+          <td class="text_right">{{item.quantity * item.unit_price | number:2}}</td>
+        </tr>
+        <tr style="height: 100%; vertical-align: bottom;"><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr>
+          <td colspan="2"></td>
+          <td colspan="2" valign="top"><strong>Sub Total GST</strong></td>
+          <td class="text_right"><strong>{{data.summary.cgst + data.summary.sgst | number:2}}</strong></td>
+        </tr>
+        <tr style="vertical-align: top;">
+          <td></td>
+          <td></td>
+          <td></td>
+          <td><strong>Discount</strong></td>
+          <td class="text_right"><strong>{{data.summary.total_discount | number:2}}</strong></td>
+        </tr>
+        <tr>
+          <td colspan="2"></td>
+          <td colspan="2" valign="top"><strong>Total</strong></td>
+          <td valign="top" class="text_right"><strong>{{data.summary.total_amount - data.summary.total_discount | number:2}}</strong></td>
+        </tr>
+        <tr>
+          <td style="text-align: right;" colspan="5">For {{user.company | uppercase}}.<br><br>
+          Authorised Signatory</td>
+        </tr>
+        <tr>
+          <td style="text-align: center;" colspan="5"><strong>Produce this Receipt at the time of Collection of Uniform</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

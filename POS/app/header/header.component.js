@@ -18,6 +18,7 @@
       $scope.$on('change_sync_status', function(){
         $scope.sync_status = $rootScope.sync_status;
       })
+      
 
       // Fullscreen
       $scope.goFullscreen = function () {
@@ -41,14 +42,22 @@
 		if(navigator.onLine){
             //sync pos data 
             navigator.serviceWorker.ready.then(function() {
-                urlService.show_loading();
-                syncPOSTransactionData().then(function(){
-                    $rootScope.sync_status = false;
-                    $rootScope.$broadcast('change_sync_status');
-                    urlService.hide_loading();
-                }).catch(function(){
-                    urlService.hide_loading();
-                });
+            	if(POS_ENABLE_SYNC===false){
+	                urlService.show_loading();
+	                syncPOSTransactionData().then(function(){
+	                    $rootScope.sync_status = false;
+	                    $rootScope.$broadcast('change_sync_status');
+	                    urlService.hide_loading();
+	                    POS_ENABLE_SYNC=false;
+	                    //check update for update
+	                    reloadPOSPage();
+	                }).catch(function(){
+	                    urlService.hide_loading();
+	                    POS_ENABLE_SYNC=false;
+	                    //check update for update
+	                    reloadPOSPage();
+	                });
+                }
             });
         }else{
             console.log( "offline");
@@ -57,6 +66,9 @@
         }
 
       };
+
+      //sync assign to url service
+      urlService.pos_sync=$scope.sync;
 
 	urlService.show_loading=function showRefresh(){
 	  $(".glyphicon-refresh").addClass("refresh-spinner");
@@ -81,45 +93,6 @@
 
 	//trigger event for getting data at intiallly.
     //$scope.sync();
-
-     navigator.serviceWorker.ready.then(function(reg){
-
-
-	  		reg.addEventListener('updatefound',function(){
-                console.log("service worker update founded");
-                const newWorker = reg.installing;
-                
-                var flag = localStorage.getItem('reload_flag') || '0';
-                    if(flag === '0') {
-                        localStorage.setItem('reload_flag','1');
-                        $window.location.reload();
-                    }  
-                    else {
-                        localStorage.setItem('reload_flag','0');
-                    }  
-                
-                /*newWorker.addEventListener('statechange', function() {
-                  console.log("changed teh status "+newWorker.state);
-                  if(newWorker.state==="activated"){
-                    var flag = localStorage.getItem('reload_flag') || '0';
-                    if(flag === '0') {
-                        localStorage.setItem('reload_flag','1');
-                        $window.location.reload();
-                    }  
-                    else {
-                        localStorage.setItem('reload_flag','0');
-                    }  
-                  }  
-                });*/
-	  			
-	  		reg.addEventListener('controllerchange',function(){
-
-	  			console.log("updated the service worker");
-
-	  		});
-
-	  });
-	 }); 		
 
 	window.addEventListener('load', function(e) {
 	  if (navigator.onLine) {

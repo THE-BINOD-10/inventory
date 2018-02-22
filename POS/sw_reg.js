@@ -7,33 +7,61 @@
                		then(function(reg){
                      	console.log("service worker registered"+reg);
 
+                        localStorage.setItem('reload_flag','0');
                       reg.addEventListener('updatefound',function(){
                               console.log("service worker update founded");
                               const newWorker = reg.installing;
-                              
                               var flag = localStorage.getItem('reload_flag') || '0';
-                                  if(flag === '0') {
-                                      localStorage.setItem('reload_flag','1');
-                                      location.reload(true);
-                                  }  
-                                  else {
-                                      localStorage.setItem('reload_flag','0');
-                                  }  
+                              if(flag === '0') {
+                                  localStorage.setItem('reload_flag','1');
+                                  location.reload(true);
+                                  POS_UPDATE_FOUND=true;
+                                  reloadPOSPage();
+                              }else {
+                                  localStorage.setItem('reload_flag','0');
+                              }
                               
-                              
-                      });
-                      
-                      reg.addEventListener('controllerchange',function(){
-
-                        console.log("updated the service worker");
-
+                              //check if reg is installing null or not
+                              if(newWorker!=null){
+                                newWorker.addEventListener('statechange', function(e){
+                                      console.log(" state changed "+e.target.state);
+                                     // reg.showNotification("POS found update", {icon:"app/images/pos_icon.png"});
+                                      POS_UPDATE_FOUND=true;
+                                      reloadPOSPage();
+                                });
+                              }
                       });
                   }).catch(function (err) {
 	                   	console.log("Service worker failed with error " + err);
                   });
+  
+
+         navigator.serviceWorker.addEventListener('controllerchange',function(){
+
+                        console.log("controllerchange the service worker");
+                        // POS_UPDATE_FOUND=true;
+                         //reloadPOSPage();
+                        
+
+                      });          
+
   }
 
 }());
+
+  //reload the pos page
+  function reloadPOSPage(){
+    
+    if(POS_ENABLE_SYNC===false && POS_UPDATE_FOUND){
+      
+      navigator.serviceWorker.ready.then(function(reg){
+          reg.showNotification("POS found update,reloading the page", {icon:"app/images/pos_icon.png"});
+      });
+      
+      POS_UPDATE_FOUND=false;
+      location.reload(true);
+    }
+  }
 
   //enable the notificaiton
   function enableNotificaiton(){

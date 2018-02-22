@@ -19,7 +19,7 @@ var POS_TABLES=DATABASE._allTables;
        pre_orders:"order_id,order_data",
        order_delivered:"order_id,delete_order,user"
     });
-    
+
      //delete the the table for for change the primery key
     DATABASE.version(2).stores({
     customer:null
@@ -29,7 +29,29 @@ var POS_TABLES=DATABASE._allTables;
     DATABASE.version(3).stores({
      customer:"ID,FirstName,LastName,Number,Address,Email"
     });
-    
+
+    DATABASE.version(4).stores({
+      sync_customer:null,
+      pre_orders:null
+    });
+
+    DATABASE.version(5).stores({
+      sync_customer:"++,number,firstName,secondName,mail,user",
+      skumaster:"SKUCode,ean_number,ProductDescription,search,price,igst,discount,selling_price,url,sgst,data_id,utgst,stock_quantity,cgst",
+      pre_orders:"++id,order_id,order_data",
+    });
+
+     DATABASE.version(6).stores({
+      sync_orders:null,
+      order_delivered:null
+    });
+
+    DATABASE.version(7).stores({
+      sync_orders:"++id,order_id,order,user",
+      order_delivered:"++id,order_id,delete_order,user"
+    });
+
+   
     openDB().then(function(){
       console.log("opened");
     }).catch(function(error){
@@ -103,7 +125,7 @@ function enableHook(){
 function getAllWords(text) {
     
     if (text) {
-        var allWordsIncludingDups = text.toLowerCase().split(/[!@#$%^&*-_.,=?+]+/);
+        var allWordsIncludingDups = text.toLowerCase().split(/[\b\s!@#$%^&*-.,=?+]+/);
         allWordsIncludingDups.push(text);
         allWordsIncludingDups.filter(Boolean);
         var remove_duplicates=new Set(allWordsIncludingDups);

@@ -30,7 +30,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.g_data = Data.receive_po;
 
     var sort_no = (vm.g_data.style_view)? 1: 0;
-    vm.filters = {'datatable': 'ReceivePO', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'search5': ''}
+    vm.filters = {'datatable': 'ReceivePO', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'search5': '',
+                  'search6': '', 'search7': '', 'search8': '', 'search9': '', 'search10': '', 'style_view': vm.g_data.style_view};
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -59,8 +60,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['PO No', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty',
-                   'Expected Date', 'Remarks', 'Order Type', 'Receive Status'];
+    var columns = ['PO No', 'Customer Name', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
+                   'Remarks', 'Supplier ID/Name', 'Order Type', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
     var row_click_bind = 'td';
@@ -96,7 +97,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           if (resp.message){
 
             if(resp.data.status) {
-              var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='11'><dt-po-data data='"+JSON.stringify(resp.data.data_dict)+"'></dt-po-data></td></tr>")($scope);
+              var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='13'><dt-po-data data='"+JSON.stringify(resp.data)+"' preview='showCase.preview'></dt-po-data></td></tr>")($scope);
               data_tr.after(html)
               data_tr.next().toggle(1000);
               $(elem).removeClass();
@@ -1506,13 +1507,37 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       Data.receive_po.style_view = vm.g_data.style_view;
       $state.go($state.current, {}, {reload: true});
   }
+
+  vm.preview = function(order_detail_id) {
+
+    var data = {order_id: order_detail_id};
+    vm.service.apiCall("get_view_order_details/", "GET", data).then(function(data){
+
+      var all_order_details = data.data.data_dict[0].ord_data;
+      vm.ord_status = data.data.data_dict[0].status;
+      var modalInstance = $modal.open({
+        templateUrl: 'views/outbound/toggle/customOrderDetailsTwo.html',
+        controller: 'customOrderDetails',
+        controllerAs: 'pop',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+        resolve: {
+          items: function () {
+            return all_order_details;
+          }
+        }
+      });
+    });
+  }
 }
 
 stockone.directive('dtPoData', function() {
   return {
     restrict: 'E',
     scope: {
-      po_data: '=data'
+      po_data: '=data',
+      preview: '=preview'
     },
     templateUrl: 'views/inbound/toggle/po_data_html.html',
     link: function(scope, element, attributes, $http){

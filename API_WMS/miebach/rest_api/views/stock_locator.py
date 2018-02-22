@@ -800,7 +800,6 @@ def get_move_inventory(start_index, stop_index, temp_data, search_term, order_te
             if positive_difference == 0:
                 positive_items.remove(positive)
                 break
-
     all_data = []
     data_id = 1
     if status == 'adj':

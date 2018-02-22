@@ -2130,6 +2130,8 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile):
         invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
     elif user.username == 'campus_sutra':
         invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
+    elif user_profile.warehouse_type == 'DIST':
+        invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
     else:
         invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
 
@@ -2213,10 +2215,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     if order_ids:
         sor_id = ''
         order_ids = list(set(order_ids.split(',')))
-        price_band_flag = get_misc_value('priceband_sync', user.id)
-        auto_ord_qty_map = {}
-        if price_band_flag == 'true':
-            auto_ord_qty_map = get_dist_auto_ord_det_ids(order_ids)
         order_data = OrderDetail.objects.filter(id__in=order_ids)
         seller_summary = SellerOrderSummary.objects.filter(
             Q(seller_order__order_id__in=order_ids) | Q(order_id__in=order_ids))
@@ -2261,7 +2259,11 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
         for dat in order_data:
             order_id = dat.original_order_id
-            order_no = str(dat.order_id)
+            gen_ord_num = GenericOrderDetailMapping.objects.filter(orderdetail_id=order_data[0].id)
+            if gen_ord_num and user.userprofile.warehouse_type == 'DIST':
+                order_no = str(gen_ord_num[0].generic_order_id)
+            else:
+                order_no = str(dat.order_id)
             order_reference = dat.order_reference
             order_reference_date = ''
             order_reference_date_field = ''
@@ -2314,19 +2316,15 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             picklist = Picklist.objects.exclude(order_type='combo').filter(order_id=dat.id). \
                 aggregate(Sum('picked_quantity'))['picked_quantity__sum']
             quantity = picklist
-            if str(dat.id) in auto_ord_qty_map:
-                quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
-                el_price_qs = GenericOrderDetailMapping.objects.filter(orderdetail_id=dat.id).values_list('el_price',
-                                                                                                          flat=True)
-                if el_price_qs:
-                    el_price = round(el_price_qs[0], 2)
+            el_price_qs = GenericOrderDetailMapping.objects.filter(orderdetail_id=dat.id).values_list('el_price',
+                                                                                                      flat=True)
+            if el_price_qs:
+                el_price = round(el_price_qs[0], 2)
 
-            if merge_data:
+            if merge_data and user.userprofile.warehouse_type != 'DIST':
                 quantity_picked = merge_data.get(dat.sku.sku_code, "")
                 if quantity_picked:
                     quantity = float(quantity_picked)
-                    if str(dat.id) in auto_ord_qty_map:
-                        quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
                 else:
                     continue
 
@@ -2335,9 +2333,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     annotate(total=Sum('picked_quantity'))
                 if picklist:
                     quantity = picklist[0].total
-                    if str(dat.id) in auto_ord_qty_map:
-                        quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
-
             if dat.unit_price > 0:
                 unit_price = dat.unit_price
             else:
@@ -2474,7 +2469,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date,
-                    'order_charges' : order_charges}
+                    }
     return invoice_data
 
 

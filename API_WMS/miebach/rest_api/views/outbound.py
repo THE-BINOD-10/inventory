@@ -6914,13 +6914,12 @@ def get_invoice_details(request, user=''):
         summary_id_pick_num = ''
         picked_qty = 0
         if summary_ord_obj:
-            sum_ord_vals = summary_ord_obj.values('order__order_id', 'pick_number')
-            print "Summary Ord Values::", sum_ord_vals
-            picked_qty_obj = sum_ord_vals.values('order__order_id', 'pick_number').annotate(picked_qty=Sum('quantity'))
+            sum_ord_vals = summary_ord_obj.values('order_id', 'pick_number')
+            picked_qty_obj = sum_ord_vals.values('order_id', 'pick_number').annotate(picked_qty=Sum('quantity'))
             if picked_qty_obj:
                 picked_qty = picked_qty_obj[0]['picked_qty']
             if sum_ord_vals:
-                order_id = sum_ord_vals[0]['order__order_id']
+                order_id = sum_ord_vals[0]['order_id']
                 pick_num = sum_ord_vals[0]['pick_number']
                 summary_id_pick_num = str(order_id) + ":" + str(pick_num)
         else:
@@ -6935,7 +6934,8 @@ def get_invoice_details(request, user=''):
             level_id = 0
         data_dict = OrderedDict((('Level ID', level_id),
                                  ('Order ID', order_id),
-                                 ('id', str(summary_id_pick_num)),))
+                                 ('id', str(summary_id_pick_num)),
+                                 ('ord_det_id', ord_id.id),))
         data_dict.update(OrderedDict((('Order Quantity', qty),
                                       ('Picked Quantity', picked_qty),
                                       )))
@@ -6964,7 +6964,6 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user):
                     picked_qty=Sum('quantity'))
                 if picked_qty_obj:
                     picked_qty = picked_qty_obj[0]['picked_qty']
-                    # org_order_id = picked_qty_obj[0]['order__order_id']
             else:
                 continue
             total_ords.append(ord_det_id)
@@ -6992,7 +6991,7 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user):
                 data_dict = OrderedDict((('Gen Order Id', gen_id),
                                          ('Order Ids', original_order),
                                          ('check_field', 'Order ID'),
-                                         ('Generic Order ID', gen_id),))
+                                         ))
                 data_dict.update(OrderedDict((('Customer Name', cust_name),
                                               ('Customer ID', orders[0].customer_id),
                                               ('Order Quantity', ordered_quantity),
@@ -7141,6 +7140,7 @@ def generate_customer_invoice(request, user=''):
     merge_data = {}
     data_dict = dict(request.GET.iterlists())
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
+    admin_user = get_priceband_admin_user(user)
     try:
         seller_summary_dat = data_dict.get('seller_summary_id', '')
         seller_summary_dat = seller_summary_dat[0]
@@ -7157,8 +7157,11 @@ def generate_customer_invoice(request, user=''):
             sell_ids['seller_order__seller__user'] = user.id
         else:
             is_marketplace = False
-            sell_ids['order__user'] = user.id
-            field_mapping['order_id_in'] = 'order__order_id__in'
+            if admin_user and user.userprofile.warehouse_type == 'DIST':
+                field_mapping['order_id_in'] = 'order__id__in'
+            else:
+                sell_ids['order__user'] = user.id
+                field_mapping['order_id_in'] = 'order__order_id__in'
             field_mapping['sku_code'] = 'order__sku__sku_code'
             field_mapping['order_id'] = 'order_id'
         seller_summary_dat = seller_summary_dat.split(',')

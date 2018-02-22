@@ -2189,6 +2189,8 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile):
         invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
     elif user.username == 'campus_sutra':
         invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
+    elif user_profile.warehouse_type == 'DIST':
+        invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
     else:
         invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
 
@@ -2250,6 +2252,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     hsn_summary = {}
     is_gst_invoice = False
     invoice_date = datetime.datetime.now()
+    order_reference_date_field = ''
+    order_charges = ''
 
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -2270,10 +2274,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     if order_ids:
         sor_id = ''
         order_ids = list(set(order_ids.split(',')))
-        price_band_flag = get_misc_value('priceband_sync', user.id)
-        auto_ord_qty_map = {}
-        if price_band_flag == 'true':
-            auto_ord_qty_map = get_dist_auto_ord_det_ids(order_ids)
         order_data = OrderDetail.objects.filter(id__in=order_ids)
         seller_summary = SellerOrderSummary.objects.filter(
             Q(seller_order__order_id__in=order_ids) | Q(order_id__in=order_ids))
@@ -2318,7 +2318,11 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
         for dat in order_data:
             order_id = dat.original_order_id
-            order_no = str(dat.order_id)
+            gen_ord_num = GenericOrderDetailMapping.objects.filter(orderdetail_id=order_data[0].id)
+            if gen_ord_num and user.userprofile.warehouse_type == 'DIST':
+                order_no = str(gen_ord_num[0].generic_order_id)
+            else:
+                order_no = str(dat.order_id)
             order_reference = dat.order_reference
             order_reference_date = ''
             order_reference_date_field = ''
@@ -2371,19 +2375,15 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             picklist = Picklist.objects.exclude(order_type='combo').filter(order_id=dat.id). \
                 aggregate(Sum('picked_quantity'))['picked_quantity__sum']
             quantity = picklist
-            if str(dat.id) in auto_ord_qty_map:
-                quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
-                el_price_qs = GenericOrderDetailMapping.objects.filter(orderdetail_id=dat.id).values_list('el_price',
-                                                                                                          flat=True)
-                if el_price_qs:
-                    el_price = round(el_price_qs[0], 2)
+            el_price_qs = GenericOrderDetailMapping.objects.filter(orderdetail_id=dat.id).values_list('el_price',
+                                                                                                      flat=True)
+            if el_price_qs:
+                el_price = round(el_price_qs[0], 2)
 
-            if merge_data:
+            if merge_data and user.userprofile.warehouse_type != 'DIST':
                 quantity_picked = merge_data.get(dat.sku.sku_code, "")
                 if quantity_picked:
                     quantity = float(quantity_picked)
-                    if str(dat.id) in auto_ord_qty_map:
-                        quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
                 else:
                     continue
 
@@ -2392,9 +2392,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     annotate(total=Sum('picked_quantity'))
                 if picklist:
                     quantity = picklist[0].total
-                    if str(dat.id) in auto_ord_qty_map:
-                        quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
-
             if dat.unit_price > 0:
                 unit_price = dat.unit_price
             else:
@@ -2531,7 +2528,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date,
-                    'order_charges' : order_charges}
+                    }
     return invoice_data
 
 
@@ -3159,7 +3156,9 @@ def create_update_user(full_name, email, phone_number, password, username, role_
                 user_profile = UserProfile.objects.create(phone_number=phone_number, user_id=user.id,
                                                           api_hash=hash_code, prefix=prefix, user_type=role_name)
                 user_profile.save()
-            status = 'User Added Successfully'
+                CustomerUserMapping.objects.create(customer_id=data.id, user_id=user.id,
+                                                   creation_date=datetime.datetime.now())
+            status = 'New Customer Added'
 
     return status, new_user_id
 
@@ -5895,8 +5894,9 @@ def create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, wh,
                         'po_number': corporate_po_number,
                         'client_name': client_name,
                         'el_price': el_price,
-                        'schedule_date': del_date
                         }
+    if del_date:
+        order_detail_map['schedule_date'] = del_date
     gen_ord_dt_map_obj = GenericOrderDetailMapping.objects.filter(**order_detail_map)
     order_detail_map['quantity'] = stock_cnt
     order_detail_map['unit_price'] = order_unit_price
@@ -5929,9 +5929,10 @@ def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):
 def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_objs, is_distributor,
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs, address_selected=''):
+    order_data_excluding_keys = ['warehouse_level', 'margin_data', 'el_price', 'del_date']
     order_unit_price = order_data['unit_price']
     el_price = order_data.get('el_price', 0)
-    del_date = order_data['del_date']
+    del_date = order_data.get('del_date', '')
     if not is_distributor:
 
         sku_code = order_data['sku_code']
@@ -5968,14 +5969,9 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                                                order_code=dist_order_copy['order_code'],
                                                user=dist_order_copy['user'])
         if not order_obj:
-            if 'warehouse_level' in dist_order_copy:
-                dist_order_copy.pop('warehouse_level')
-            if 'margin_data' in dist_order_copy:
-                dist_order_copy.pop('margin_data')
-            if 'el_price' in order_data:
-                dist_order_copy.pop('el_price')
-            if 'del_date' in order_data:
-                dist_order_copy.pop('del_date')
+            for exc_key in order_data_excluding_keys:
+                if exc_key in dist_order_copy:
+                    dist_order_copy.pop(exc_key)
             order_detail = OrderDetail(**dist_order_copy)
             order_detail.save()
         else:
@@ -5985,18 +5981,14 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
         order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'],
                                                sku_id=order_data['sku_id'],
                                                order_code=order_data['order_code'])
+        dist_order_copy = copy.copy(order_data)
         # Distributor can place order directly to any wh/distributor
-        if 'warehouse_level' in order_data:
-            order_data.pop('warehouse_level')
-        if 'margin_data' in order_data:
-            order_data.pop('margin_data')
-        if 'el_price' in order_data:
-            order_data.pop('el_price')
-        if 'del_date' in order_data:
-            order_data.pop('del_date')
+        for exc_key in order_data_excluding_keys:
+            if exc_key in dist_order_copy:
+                dist_order_copy.pop(exc_key)
             
         if not order_obj:
-            order_detail = OrderDetail(**order_data)
+            order_detail = OrderDetail(**dist_order_copy)
             order_detail.save()
         else:
             order_detail = order_obj[0]

@@ -110,7 +110,7 @@
                <span ng-if="Enquiry.upload_name.length > 0"><b>FILES :</b> {{Enquiry.upload_name.join(", ")}}. </span>
             </div>
           </div>
-          <button style="display:block;margin:auto;margin-top:40px;" type="submit" class="btn btn-warning btn-round" ng-diable="Enquiry.uploading" ng-click="Enquiry.place(form)">{{(Enquiry.uploading)?'Placing Enquiry':'Place Enquiry';}}</button>
+          <button style="display:block;margin:auto;margin-top:40px;" type="submit" class="btn btn-warning btn-round" ng-disabled="Enquiry.uploading" ng-click="Enquiry.place(form)">{{(Enquiry.uploading)?'Placing Enquiry':'Place Enquiry';}}</button>
         </div>
       </div>
       </form>

@@ -6963,7 +6963,7 @@ def get_invoice_details(request, user=''):
         summary_ord_obj = ord_id.sellerordersummary_set
         summary_id_pick_num = ''
         picked_qty = 0
-        if summary_ord_obj:
+        if summary_ord_obj.values():
             sum_ord_vals = summary_ord_obj.values('order_id', 'pick_number')
             picked_qty_obj = sum_ord_vals.values('order_id', 'pick_number').annotate(picked_qty=Sum('quantity'))
             if picked_qty_obj:
@@ -7002,7 +7002,7 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user):
     org_order_map = {}
     for reseller in reseller_ids:
         gen_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=reseller)
-        gen_ord_vals = gen_ord_objs.values_list('generic_order_id', 'orderdetail')
+        gen_ord_vals = gen_ord_objs.values_list('generic_order_id', 'orderdetail').order_by('-generic_order_id')
         for gen_id, ord_det_id in gen_ord_vals:
             ord_det_obj = OrderDetail.objects.get(id=ord_det_id)
             org_order_id = ord_det_obj.order_id

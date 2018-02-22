@@ -78,11 +78,14 @@ class Command(BaseCommand):
                              'uploaded_qty': uploaded_quantity, 'produced_qty': produced_quantity,
                              'dispatch_qty': dispatched, 'return_qty': return_quantity,
                              'adjustment_qty': adjusted, 'closing_stock': stock_quantity,
-                              'uploaded_qty': uploaded_quantity, 'consumed_qty': consumed
+                              'uploaded_qty': uploaded_quantity, 'consumed_qty': consumed,
+                              'creation_date': today
                              }
                 if not stock_stat:
                     data_dict['sku_id'] = sku['sku_id']
-                    StockStats.objects.create(**data_dict)
+                    stock_stat = StockStats.objects.create(**data_dict)
+                    stock_stat.creation_date = today
+                    stock_stat.save()
                 else:
                     stock_stat.update(**data_dict)
             log.info("Updated the Stock Stats for the following users %s" % user.username)

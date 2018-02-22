@@ -65,7 +65,7 @@ def inform_mail(subject, body):
     """sending mail to concerned Miebach team"""
     recipient = ['sreekanth@mieone.com', 'vimal.nair@miebach.com', 'karthik@headrun.com', 'roopal@mieone.com',
                  'alkesh.karamkar@miebach.com',
-                 'malini@mieone.com', 'sameena@mieone.com']
+                 'srinivas@mieone.com', 'sameena@mieone.com']
     try:
         send_mail(recipient, subject, body)
     except:

@@ -62,6 +62,7 @@ def get_pos_user_data(request, user=''):
         response_data['status'] = 'Success'
         response_data['VAT'] = vat
         response_data['parent_id'] = user.user.id
+        response_data['user_id'] = request.user.id
         response_data['company'] = user.company_name
         response_data['address'] = user.address
         response_data['phone'] = user.phone_number
@@ -261,6 +262,8 @@ def customer_order(request):
     orders = eval(orders)
     order_ids = []
     only_return = True
+    order_codes = {"Delivery Challan": "DC",
+                   "Pre Order": "PRE"}
     if isinstance(orders, dict): orders = [orders]
     for order in orders:
         order_created = False
@@ -272,12 +275,13 @@ def customer_order(request):
         cust_dict = order['customer_data']
         number = order['customer_data']['Number']
         customer_data = CustomerMaster.objects.filter(phone_number=number, \
-                                                      user=user_id)
+                                                      user=user_id) if number else []
         order_id = get_order_id(user_id) if order['summary']['nw_status'] == 'online' \
             else order['summary']['order_id']
         status = 0 if order['summary']['issue_type'] == "Delivery Challan" \
             else 1
-        original_order_id = order['summary']['issue_type'] + str(order_id)
+        order_code = order_codes[order['summary']['issue_type']] + str(request.user.id)
+        original_order_id = order_code + str(order_id)
         order_ids.append(order_id)
         picklist_number = get_picklist_number(user) + 1
         if customer_data:
@@ -333,7 +337,7 @@ def customer_order(request):
                                                               title=sku.sku_desc, \
                                                               quantity=item['quantity'], \
                                                               invoice_amount=item['price'], \
-                                                              order_code=order['summary']['issue_type'], \
+                                                              order_code=order_code, \
                                                               shipment_date=NOW, \
                                                               original_order_id=original_order_id, \
                                                               nw_status=order['summary']['nw_status'], \
@@ -344,7 +348,7 @@ def customer_order(request):
                     sku_disc = (int(item['selling_price']) - item['unit_price']) * item['quantity']
                     CustomerOrderSummary.objects.create(order_id=order_detail.id, \
                                                         discount=order_level_disc_per_sku, \
-                                                        issue_type=order_detail.order_code, \
+                                                        issue_type=order['summary']['issue_type'], \
                                                         cgst_tax=item['cgst_percent'], \
                                                         sgst_tax=item['sgst_percent'], \
                                                         order_taken_by=order['summary']['staff_member'], \
@@ -424,7 +428,7 @@ def prepare_delivery_challan_json(request, order_id, user_id):
     user = User.objects.get(id=user_id)
     order_date = get_local_date(user, NOW)
     #check where discount is saved
-    order_detail = OrderDetail.objects.filter(order_id=order_id, \
+    order_detail = OrderDetail.objects.filter(original_order_id__icontains=order_id, \
                                               user=user_id, quantity__gt=0)
     
     for order in order_detail:
@@ -509,6 +513,7 @@ def prepare_delivery_challan_json(request, order_id, user_id):
                        'gst_based': gst_based,
                        'staff_member': order_summary.order_taken_by,
                        'issue_type': order_summary.issue_type}
+            import pdb;pdb.set_trace()
             json_data = {'data':{'customer_data': customer_data, 'summary': summary,
                                  'sku_data': sku_data, 'order_id': order_id,
                                  'order_date': order_date,
@@ -681,8 +686,8 @@ def get_extra_fields(request, user=''):
 
 
 @login_required
-def get_staff_members_list(request):
-    user = request.user
+@get_admin_user
+def get_staff_members_list(request, user=''):
     members = []
     staff_obj = StaffMaster.objects.filter(user=user.id)
     if staff_obj:

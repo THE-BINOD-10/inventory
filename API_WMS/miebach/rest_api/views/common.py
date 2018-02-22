@@ -1952,9 +1952,11 @@ def search_wms_codes(request, user=''):
 
 
 def get_order_id(user_id):
-    order_detail_id = OrderDetail.objects.filter(user=user_id,
-                                                 order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO',
-                                                                 'Pre Order']).order_by('-creation_date')
+    order_detail_id = OrderDetail.objects.filter(Q(order_code__in=\
+                                          ['MN', 'Delivery Challan', 'sample', 'R&D', 'CO','Pre Order']) |
+                                          reduce(operator.or_, (Q(order_code__icontains=x)\
+                                          for x in ['DC', 'PRE'])), user=user_id)\
+                                          .order_by('-creation_date')
     if order_detail_id:
         order_id = int(order_detail_id[0].order_id) + 1
     else:

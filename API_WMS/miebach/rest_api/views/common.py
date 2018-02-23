@@ -2288,9 +2288,15 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
         if order_data and order_data[0].customer_id:
             dat = order_data[0]
-            customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id). \
-                                    values('customer_id', 'name', 'email_id', 'tin_number', 'address',
-                                           'credit_period', 'phone_number'))
+            gen_ord_customer_id = order_data[0].genericorderdetailmapping_set.values_list('customer_id', flat=True)
+            if gen_ord_customer_id and user.userprofile.warehouse_type == 'DIST':
+                customer_details = list(CustomerMaster.objects.filter(id=gen_ord_customer_id[0]).
+                                        values('customer_id', 'name', 'email_id', 'tin_number', 'address',
+                                               'credit_period', 'phone_number'))
+            else:
+                customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id).
+                                        values('customer_id', 'name', 'email_id', 'tin_number', 'address',
+                                               'credit_period', 'phone_number'))
             if customer_details:
                 customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address']
                 if customer_details[0]['phone_number']:
@@ -2321,6 +2327,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             gen_ord_num = GenericOrderDetailMapping.objects.filter(orderdetail_id=order_data[0].id)
             if gen_ord_num and user.userprofile.warehouse_type == 'DIST':
                 order_no = str(gen_ord_num[0].generic_order_id)
+                order_id = dat.order_code + order_no
             else:
                 order_no = str(dat.order_id)
             order_reference = dat.order_reference
@@ -2355,7 +2362,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             cgst_tax, sgst_tax, igst_tax, utgst_tax = 0, 0, 0, 0
             mrp_price = dat.sku.mrp
             taxes_dict = {}
-            order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=dat.id)
+            order_summary = CustomerOrderSummary.objects.filter(order_id=dat.id)
             tax_type = ''
             if order_summary:
                 tax = order_summary[0].tax_value
@@ -3156,8 +3163,6 @@ def create_update_user(full_name, email, phone_number, password, username, role_
                 user_profile = UserProfile.objects.create(phone_number=phone_number, user_id=user.id,
                                                           api_hash=hash_code, prefix=prefix, user_type=role_name)
                 user_profile.save()
-                CustomerUserMapping.objects.create(customer_id=data.id, user_id=user.id,
-                                                   creation_date=datetime.datetime.now())
             status = 'New Customer Added'
 
     return status, new_user_id

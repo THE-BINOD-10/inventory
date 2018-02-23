@@ -1225,6 +1225,9 @@ MP_CUSTOMER_INVOICE_HEADERS = ['UOR ID', 'SOR ID', 'Seller ID', 'Customer Name',
 
 WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time']
 
+DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', 'Order Quantity', 'Picked Quantity',
+                                 'Order Date&Time']
+
 # End of Customer Invoices page headers based on user type
 
 SUPPLIER_EXCEL_FIELDS = OrderedDict((('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),

@@ -771,6 +771,8 @@ def update_sku(request, user=''):
     log.info('Update SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     try:
+        number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'ean_number',
+                         'hsn_code']
         wms = request.POST['wms_code']
         description = request.POST['sku_desc']
         zone = request.POST['zone_id']
@@ -816,6 +818,8 @@ def update_sku(request, user=''):
                 value = 1 if (value.lower() == 'enable') else 0;
                 check_update_hot_release(data, value)
                 continue
+            if key in number_fields and not value:
+                value = 0
             setattr(data, key, value)
 
         data.save()

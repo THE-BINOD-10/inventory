@@ -513,7 +513,6 @@ def prepare_delivery_challan_json(request, order_id, user_id):
                        'gst_based': gst_based,
                        'staff_member': order_summary.order_taken_by,
                        'issue_type': order_summary.issue_type}
-            import pdb;pdb.set_trace()
             json_data = {'data':{'customer_data': customer_data, 'summary': summary,
                                  'sku_data': sku_data, 'order_id': order_id,
                                  'order_date': order_date,
@@ -533,7 +532,7 @@ def print_order_data(request, user=''):
     return HttpResponse(json.dumps(json_data))
 
 
-def get_order_details(order_id, user_id, mobile, customer_name, request_from):
+def get_order_details(order_id, user_id, mobile, customer_name, request_from, sub_user=''):
     customer_data, order_data = {}, {}
     summary, sku_data = [], []
     total_quantity, total_amount, subtotal = [0] * 3
@@ -546,7 +545,7 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
                                                   quantity__gt=0, status=status, \
                                                   creation_date__gte=min_order_date)
         if status == 1:
-            order_detail = order_detail.filter(order_code='Pre Order')
+            order_detail = order_detail.filter(order_code='PRE' + str(sub_user.id))
         if order_id:
             order_detail = order_detail.filter(order_id=order_id)
         else:
@@ -556,10 +555,10 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
                 order_detail = order_detail.filter(customer_name__icontains=customer_name)
     elif request_from == "preorder":
         order_detail = OrderDetail.objects.filter(user=user_id, quantity__gt=0, \
-                                                  order_code='Pre Order')
+                                                  order_code='PRE' + str(sub_user.id))
     else:
         order_detail = OrderDetail.objects.filter(user=user_id, \
-                                                  status=1, order_code='Pre Order')
+                                                  status=1, order_code='PRE' + str(sub_user.id))
     if order_id: order_detail = order_detail.filter(order_id=order_id)
     for order in order_detail:
         selling_price = order.unit_price if order.unit_price != 0 \
@@ -567,6 +566,7 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
         order_id = str(order.order_id)
         order_data.setdefault(order_id, {})
         order_data[order_id]['order_id'] = order_id
+        order_data[order_id]['original_order_id'] = order.original_order_id
         order_data[order_id]['order_date'] = order.creation_date \
             .astimezone(to_zone) \
             .strftime("%d %b %Y %I:%M %p")
@@ -589,15 +589,16 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
     return json.dumps({'data': order_data})
 
 
+@get_admin_user
 @login_required
-def pre_order_data(request):
+def pre_order_data(request, user=''):
     data = eval(request.POST['data'])
     order_id = data.get('order_id', '')
     mobile = data.get('mobile', '')
     customer_name = data.get('customer_name', '')
     request_from = data.get('request_from', '')
-    order_details = get_order_details(order_id, data['user'], mobile, \
-                                      customer_name, request_from)
+    order_details = get_order_details(order_id, user.id, mobile, \
+                                      customer_name, request_from, request.user)
     return HttpResponse(order_details)
 
 
@@ -612,7 +613,7 @@ def update_order_status(request):
         order_detail = OrderDetail.objects.filter(order_id=data['order_id'], \
                                                   user=data['user'], \
                                                   quantity__gt=0, \
-                                                  order_code='Pre Order')
+                                                  order_code='PRE' + str(request.user.id))
         if data['delete_order'] == "true":
             order_detail.delete()
             if nw_status == "online":

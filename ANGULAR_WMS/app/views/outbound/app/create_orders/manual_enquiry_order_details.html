@@ -31,7 +31,7 @@
       <div class="col-md-12 col-sm-12 col-xs-12">
         <h5 class="pull-left"><b>Uploaded mages</b></h5>
 
-        <span class="btn btn-primary up-btn pull-right" style="position: relative;overflow: hidden;width: 150px;">{{(order.uploading)?'Uploading Images':'Choose File';}}
+        <span ng-hide="order.save" class="btn btn-primary up-btn pull-right" style="position: relative;overflow: hidden;width: 150px;">{{(order.uploading)?'Uploading Images':'Choose File';}}
           <input style="position: absolute;top: 0;right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0;
                         outline: none; background: white; cursor: inherit; display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload" multi-image-upload multiple/>
         </span>
@@ -40,7 +40,7 @@
     <div class="row no-margin" ng-init="order.show_remove={};">
       <div class="col-md-2 no-padding" ng-repeat="image in order.order_details.style.images" ng-mouseover="order.show_remove[$index]=true" ng-mouseleave="order.show_remove[$index]=false">
         <img ng-if="order.image_loding[$index]" style="z-index: 12;position:absolute;left: 0px;right: 0px;height:100%;opacity:0.6;" class="img-thumbnail" src="https://m.popkey.co/fe4ba7/DYALX.gif" ng-click="$event.stopPropagation();">
-        <button class="btn btn-danger" ng-if="order.show_remove[$index]" style="position:absolute;top:0px;right:0px;" ng-click="order.remove_image($index)">X</button>
+        <button class="btn btn-danger" ng-hide="order.save"  ng-if="order.show_remove[$index]" style="position:absolute;top:0px;right:0px;" ng-click="order.remove_image($index)">X</button>
         <img  style="width: 100%;" ng-src="{{order.service.check_image_url('/'+image)}}">
       </div>
     </div>

@@ -42,6 +42,9 @@ class Command(BaseCommand):
                                                 values_list('sku__user', flat=True)
         users = User.objects.filter(id__in=updated_users)
         for user in users:
+            print str(datetime.datetime.now())
+            print get_local_date(user, datetime.datetime.now())
+            log.info(get_local_date(user, datetime.datetime.now()))
             all_sku_stats = SKUDetailStats.objects.filter(sku__user=user.id, creation_date__startswith = today)
             sku_codes = all_sku_stats.order_by('sku__sku_code').\
                                             values('sku_id', 'sku__sku_code', 'sku__sku_desc').distinct()

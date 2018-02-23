@@ -259,6 +259,8 @@ urlpatterns = [
     url(r'^get_manual_enquiry_data/$', get_manual_enquiry_data),
     url(r'^get_manual_enquiry_detail/$', get_manual_enquiry_detail),
     url(r'^save_manual_enquiry_data/$', save_manual_enquiry_data),
+    url(r'^remove_manual_enquiry_image/$', remove_manual_enquiry_image),
+    url(r'^save_manual_enquiry_image/$', save_manual_enquiry_image),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

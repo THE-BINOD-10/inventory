@@ -8085,10 +8085,13 @@ def get_manual_enquiry_id(request):
 
 def save_manual_enquiry_images(request, enq_data):
 
+    image_urls = []
     for file_data in  request.FILES.getlist('po_file'):
         image_data = {'enquiry_id': enq_data.id, 'image': file_data}
         save_img = ManualEnquiryImages(**image_data)
         save_img.save()
+        image_urls.append(str(save_img.image))
+    return image_urls
 
 @csrf_exempt
 @login_required
@@ -8218,3 +8221,43 @@ def get_manual_enquiry_detail(request, user=''):
         enquiry_dict.append({'ask_price': enquiry.ask_price, 'remarks': enquiry.remarks, 'date': date,\
                              'expected_date': expected_date, 'username': user.username})
     return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def remove_manual_enquiry_image(request, user=''):
+    enquiry_id = request.POST.get('enquiry_id', '')
+    user_id = request.POST.get('user_id', '')
+    image = request.POST.get('image', '')
+    if not enquiry_id or not user_id or not image:
+        return HttpResponse("Give information insufficient")
+    filters = {'enquiry__enquiry_id': float(enquiry_id), 'enquiry__user': user_id, 'image': image}
+    image_data = ManualEnquiryImages.objects.filter(**filters)
+    if not image_data:
+        return HttpResponse("Image Not Found")
+    image_data[0].delete()
+    return HttpResponse("Success")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_manual_enquiry_image(request, user=''):
+    enquiry_id = request.POST.get('enquiry_id', '')
+    user_id = request.POST.get('user_id', '')
+    resp = {'msg': 'Success', 'data': []}
+    if not enquiry_id or not user_id:
+        resp['msg'] = "Give information insufficient"
+        return HttpResponse(json.dumps(resp))
+    filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
+    enq_data = ManualEnquiry.objects.filter(**filters)
+    if not enq_data:
+        resp['msg'] = "No Enquiry Data for Id"
+        return HttpResponse(json.dumps(resp))
+    images = []
+    enq_data = enq_data[0]
+    if request.FILES.get('po_file', ''):
+        resp['data'] = save_manual_enquiry_images(request, enq_data)
+    else:
+        resp['msg'] = "Please Select Image"
+    return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))

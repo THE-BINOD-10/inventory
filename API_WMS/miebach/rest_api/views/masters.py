@@ -3176,3 +3176,32 @@ def update_staff_values(request, user=''):
     data.status = status
     data.save()
     return HttpResponse("Updated Successfully")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_update_attribute(request, user=''):
+    print request.POST
+    attr_model = request.POST.get('attr_model', '')
+    if not attr_model:
+        return HttpResponse('Attribute model is mandatory')
+    data_dict = dict(request.POST.lists())
+    for ind in range(0, len(data_dict['id'])):
+        if(data_dict['id'][ind]):
+            user_attr = UserAttributes.objects.filter(id=data_dict['id'][ind])
+            if user_attr:
+                user_attr.update(attribute_type=data_dict['attribute_type'][ind], status=1)
+        else:
+            user_attr = UserAttributes.objects.filter(attribute_model=attr_model,
+                                          attribute_name=data_dict['attribute_name'][ind],
+                                                      user_id=user.id)
+            if user_attr:
+                user_attr.update(attribute_type=data_dict['attribute_type'][ind], status=1)
+            else:
+                UserAttributes.objects.create(attribute_model=attr_model,
+                                              attribute_name=data_dict['attribute_name'][ind],
+                                              attribute_type=data_dict['attribute_type'][ind], status=1,
+                                              creation_date=datetime.datetime.now(),
+                                              user_id=user.id)
+    return HttpResponse(json.dumps({'message': 'Updated Successfully', 'status': 1}))

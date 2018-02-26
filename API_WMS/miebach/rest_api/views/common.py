@@ -6263,6 +6263,7 @@ def get_view_order_statuses(request, user):
 
 
 def update_created_extra_status(user, selection):
+    """ If the sequence changed or updated for view order status"""
     sub_users = get_related_users(user.id)
     status_selected = selection.split(',')
     for sub_user in sub_users:
@@ -6279,3 +6280,15 @@ def update_created_extra_status(user, selection):
                     grp_perm.sequence = status_selected.index(grp_perm.perm_value)
                     grp_perm.status = 1
                     grp_perm.save()
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_user_attributes_list(request, user=''):
+    attr_model = request.GET.get('attr_model')
+    attributes = []
+    if attr_model:
+        attributes = list(UserAttributes.objects.filter(user_id=user.id, status=1).values('id', 'attribute_model',
+                                                                        'attribute_name', 'attribute_type'))
+    return HttpResponse(json.dumps({'data': attributes, 'status': 1}))

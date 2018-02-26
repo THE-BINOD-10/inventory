@@ -1,9 +1,9 @@
 'use strict';
 
 var app = angular.module('urbanApp', ['datatables'])
-app.controller('SKUMasterTable',['$scope', '$http', '$state', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', '$log', 'colFilters' , 'Service', '$rootScope', ServerSideProcessingCtrl]);
+app.controller('SKUMasterTable',['$scope', '$http', '$state', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', '$log', 'colFilters' , 'Service', '$rootScope', '$modal',ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, $log, colFilters, Service, $rootScope) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, $log, colFilters, Service, $rootScope, $modal) {
 
     var vm = this;
     vm.apply_filters = colFilters;
@@ -445,7 +445,72 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
       }
   }
-}
+
+  vm.addAttributes = function() {
+    var send_data = {}
+    angular.copy(vm.attr_model_data, send_data);
+    var modalInstance = $modal.open({
+      templateUrl: 'views/masters/toggles/attributes.html',
+      controller: 'AttributesPOP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      //windowClass: 'full-modal',
+      resolve: {
+        items: function () {
+          return send_data;
+        }
+      }
+    });
+  }
+
+
+
+
+  /*var send_data  = {data: {}}
+    var modalInstance = $modal.open({
+      templateUrl: 'views/masters/toggles/attributes.html',
+      controller: 'AttributesPOP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      windowClass: 'full-modal',
+      resolve: {
+        items: function () {
+          return send_data;
+        }
+      }
+    });*/
+  }
+
+/*  vm.attr_model_data = {'data': []};
+  var empty_attr_data = [{'attribute_id': '', 'attribute_name': '', 'attribute_type': ''}]
+
+  vm.addAttributes = function() {
+
+    vm.title = "Add SKU Attributes";
+    vm.update = false;
+    vm.combo = false;
+    vm.attr_model_data.data = []
+    vm.service.apiCall('get_user_attributes_list/', "GET", {attr_model: 'sku'}).then(function(data){
+      data = data.data;
+      if(data.status && data.data) {
+        //angular.copy(data.data, vm.attr_model_data['data']);
+        vm.attr_model_data.data.push(data.data);
+      }
+      else {
+        vm.attr_model_data.data.push(data.data);
+        angular.copy(empty_attr_data, vm.attr_model_data['data']);
+      }
+    });
+    console.log(vm.attr_model_data);
+    debugger;
+    $state.go('app.masters.SKUMaster.update');
+  }
+
+}*/
 
 app.directive('fileUpload', function () {
     return {

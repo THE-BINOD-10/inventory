@@ -295,7 +295,6 @@ class OrderFields(models.Model):
     original_order_id = models.CharField(max_length=128, default='')
     name = models.CharField(max_length=256, default='')
     value = models.CharField(max_length=256, default='')
-    user = models.PositiveIntegerField()
 
     class Meta:
         db_table = 'ORDER_FIELDS'
@@ -2416,3 +2415,18 @@ class GroupPermMapping(models.Model):
     class Meta:
         db_table = 'GROUP_PERM_MAPPING'
         unique_together = ('group', 'perm_type', 'perm_value')
+
+
+class UserAttributes(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    attribute_model = models.CharField(max_length=32, default='')
+    attribute_name = models.CharField(max_length=64, default='')
+    attribute_type = models.CharField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'USER_ATTRIBUTES'
+        unique_together = ('user', 'attribute_model', 'attribute_name')

@@ -89,6 +89,8 @@ urlpatterns = [
     url(r'^delete_terms/$', delete_terms),
     url(r'^insert_staff/$', insert_staff),
     url(r'^update_staff_values/$', update_staff_values),
+    url(r'^get_user_attributes_list/$', get_user_attributes_list),
+    url(r'^save_update_attribute/$', save_update_attribute),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),

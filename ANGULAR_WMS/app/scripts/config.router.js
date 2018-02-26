@@ -200,8 +200,13 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/masters/sku_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/masters/skutable.js');
-                    }]
+                return $ocLazyLoad.load(['scripts/controllers/masters/skutable.js'
+                ]).then(function(){
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/toggle/attributes.js'
+                  ])
+                })
+             }]
           },
           data: {
             title: 'SKU Master',

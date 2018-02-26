@@ -76,7 +76,7 @@ function PendingManualEnquiryCtrl($scope, $http, $state, $compile, Session, DTOp
     });
     modalInstance.result.then(function (selectedItem) {
       var data = selectedItem;
-      vm.service.refresh(vm.dtInstance);
+      $('.custom-table').DataTable().ajax.reload();
     })
   }
 }

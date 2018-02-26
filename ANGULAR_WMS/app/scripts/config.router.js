@@ -987,6 +987,7 @@ var app = angular.module('urbanApp')
                              'scripts/controllers/outbound/pop_js/backorder_jo.js',
                              'scripts/controllers/outbound/pop_js/stock_transfer.js',
                              'scripts/controllers/outbound/pop_js/picklist.js',
+                             'scripts/controllers/outbound/pop_js/enquiry_details.js',
                              'scripts/controllers/outbound/pop_js/manual_details.js'
                             ]
                         }]);
@@ -1160,7 +1161,7 @@ var app = angular.module('urbanApp')
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
-                  'scripts/controllers/outbound/pop_js/enquiry_details.js'
+                  'scripts/controllers/outbound/pending_manual_enquiry.js'
                 ]).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/outbound/enquiry_orders.js'

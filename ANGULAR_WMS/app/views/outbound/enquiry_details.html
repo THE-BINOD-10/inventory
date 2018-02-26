@@ -7,8 +7,14 @@
       <tab heading="Block Stock Enquiry">
         <div ng-include="'views/outbound/enquiry_orders.html'"></div>
       </tab>
-      <tab heading="Custom Orders" ng-if="show_tab('multi_warehouse') || show_tab('add_openst')">
+      <tab heading="Custom Orders">
         <div ng-include="'views/outbound/manual_enquiry.html'"></div>
+      </tab>
+      <tab ng-if="permissions.user_type=='central_admin'" ng-controller="PendingManualEnquiryCtrl as showCase">
+        <tab-heading>
+          <span>Pending For Approval<span> <span class='label label-info ml10'>{{showCase.tb_data.recordsTotal}}</span>
+        </tab-heading>
+        <div ng-include="'views/outbound/pending_manual_enquiry.html'"></div>
       </tab>
     </tabset>
   </div>

@@ -208,6 +208,8 @@ def add_user_permissions(request, response_data, user=''):
                 user_type = 'dist_customer'  # distributor customer login
     elif request_user_profile.warehouse_type == 'CENTRAL_ADMIN':
         user_type = 'central_admin'
+    elif user_profile.warehouse_type == 'CENTRAL_ADMIN':
+        user_type = 'default'
     else:
         user_type = request_user_profile.user_type
     response_data['data']['roles']['permissions']['user_type'] = user_type

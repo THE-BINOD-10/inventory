@@ -4,15 +4,16 @@
 
 var stockone = angular.module('urbanApp', ['datatables']);
 
-stockone.controller('ManualEnquiryCtrl',['$scope', '$http', '$state', '$compile', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', '$modal', ManualEnquiryCtrl]);
+stockone.controller('PendingManualEnquiryCtrl',['$scope', '$http', '$state', '$compile', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', '$modal', PendingManualEnquiryCtrl]);
 
-function ManualEnquiryCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, $modal) {
+function PendingManualEnquiryCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, $modal) {
 
   var vm = this;
   vm.apply_filters = colFilters;
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
-  vm.filters = {'datatable': 'ManualEnquiryOrders', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+  vm.tb_data = {};
+  vm.filters = {'datatable': 'ManualEnquiryOrders', 'special_key': 'pending_approval', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
   vm.dtOptions = DTOptionsBuilder.newOptions()
     .withOption('ajax', {
         url: Session.url+'results_data/',
@@ -20,6 +21,11 @@ function ManualEnquiryCtrl($scope, $http, $state, $compile, Session, DTOptionsBu
         data: vm.filters,
         xhrFields: {
           withCredentials: true
+        },
+        complete: function(jqXHR, textStatus) {
+          $scope.$apply(function(){
+            angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
+          })
         }
     })
     .withDataProp('data')
@@ -32,7 +38,7 @@ function ManualEnquiryCtrl($scope, $http, $state, $compile, Session, DTOptionsBu
       //vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
     });
     
-  vm.dtColumns = vm.service.build_colums(['Enquiry ID', 'Customer Name', 'Sub Distributor', 'Style Name', 'Customization Type', 'status', 'Date']);
+  vm.dtColumns = vm.service.build_colums(['Enquiry ID', 'Customer Name', 'Sub Distributor', 'Style Name', 'Customization Type', 'Date']);
   vm.dtInstance = {};
 
   $scope.$on('change_filters_data', function(){
@@ -56,7 +62,7 @@ function ManualEnquiryCtrl($scope, $http, $state, $compile, Session, DTOptionsBu
     var mod_data = {enquiry_id: data['Enquiry ID'], user_id: data['User ID'],
                     customization_type: data['Customization Type']};
     var modalInstance = $modal.open({
-      templateUrl: 'views/outbound/toggle/manual_enquiry_order_details.html',
+      templateUrl: 'views/outbound/toggle/approve_manual_order.html',
       controller: 'ManualOrderDetails',
       controllerAs: 'order',
       size: 'lg',

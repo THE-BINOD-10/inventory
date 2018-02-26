@@ -28,7 +28,7 @@
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Categories *</label>
             <div class="col-sm-3 col-xs-5">
-              <select class="form-control" ng-disabled="Enquiry.categories_loading" ng-model="Enquiry.category" ng-change="Enquiry.get_styles(Enquiry.category)" ng-required="true">
+              <select class="form-control" name="choose_category" ng-disabled="Enquiry.categories_loading" ng-model="Enquiry.category" ng-change="Enquiry.get_styles(Enquiry.category)" ng-required="true">
                 <option ng-selected="Enquiry.category == ''" value="">None</option>
                 <option ng-repeat="category in Enquiry.categories" ng-selected="Enquiry.category == category" value="{{category}}">{{category}}</option>
               </select>
@@ -38,7 +38,7 @@
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Style *</label>
             <div class="col-sm-3 col-xs-5">
-              <select class="form-control" ng-disabled="Enquiry.styles_loading || Enquiry.styles.length == 0" ng-model="Enquiry.model_data.sku_id" ng-change="Enquiry.select_style(Enquiry.model_data.sku_id, Enquiry.styles)" ng-required="true">
+              <select class="form-control" name="choose_stype" ng-disabled="Enquiry.styles_loading || Enquiry.styles.length == 0" ng-model="Enquiry.model_data.sku_id" ng-change="Enquiry.select_style(Enquiry.model_data.sku_id, Enquiry.styles)" ng-required="true">
                 <option ng-selected="Enquiry.style == ''" value="">None</option>
                 <option ng-repeat="style in Enquiry.styles" ng-selected="Enquiry.model_data.sku_id == style.sku_class" value="{{style.sku_class}}">{{style.sku_class}}</option>
               </select>
@@ -52,9 +52,29 @@
                 <div class="col-md-4 col-sm-4 col-xs-5">
                   <img style="width: 100%;" ng-src="{{showCase.service.check_image_url(Enquiry.selected_style.image_url)}}"/>
                 </div>
-                <div class="col-md-6 col-sm-6 col-xs-7" style="padding-left: 20px;">
+                <div class="col-md-8 col-sm-8 col-xs-7" style="padding-left: 20px;">
                   <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Style Name: {{Enquiry.selected_style.sku_class}}</b></h4>
                   <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Description: {{Enquiry.selected_style.sku_desc}}</b></h4>
+                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>MSP: {{Enquiry.selected_style.variants[0].your_price}}</b></h4>
+                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>MRP: {{Enquiry.selected_style.variants[0].mrp}}</b></h4>
+                  <div ng-if="Enquiry.selected_style.variants[0].price_ranges.length > 0">
+                    <table class="table table-bordered mb0 mt5" style="font-size:10px;">
+                      <tbody>
+                        <tr>
+                          <td><b>Qty</b></td>
+                          <td style="padding:2px;" ng-repeat="td in Enquiry.selected_style.variants[0].price_ranges"><center>
+                            <span>{{Enquiry.selected_style.variants[0].price_ranges[$index]['min_unit_range']}}</span><br>
+                            <div style="height: 1px;width: 5px;background: black;margin-bottom: 2px;"></div>
+                            {{Enquiry.selected_style.variants[0].price_ranges[$index]['max_unit_range']}}
+                            </center></td>
+                        </tr>
+                        <tr>
+                          <td style="padding:2px;width: 46px;" ><center><b>Price</b></center></td>
+                          <td style="padding:2px;" ng-repeat="td in Enquiry.selected_style.variants[0].price_ranges"><center><b style="color: #ed1c24">{{Enquiry.selected_style.variants[0].price_ranges[$index]['price']}}</b></center></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>
@@ -66,28 +86,30 @@
                 <option ng-repeat="(key, value) in Enquiry.customization_types" ng-selected="Enquiry.model_data.customization_type == key" value="{{key}}">{{value}}</option>
               </select>
             </div>
-            <i ng-if="$ctrl.styles_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
           </div>
           <div class="form-group" ng-if="Enquiry.model_data.customization_type != 'product_custom'">
             <label class="col-sm-5 col-xs-5 control-label">Ask Price *</label>
             <div class="col-sm-3 col-xs-5">
-              <input type="text" name="customer_name" decimal-number ng-model="Enquiry.model_data.ask_price" class="form-control" ng-required="true">
+              <input type="text" name="ask_price" decimal-number ng-model="Enquiry.model_data.ask_price" class="form-control" ng-required="true">
             </div>
-            <i ng-if="$ctrl.categories_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
+          </div>
+          <div class="form-group" ng-if="Enquiry.model_data.customization_type != 'product_custom'">
+            <label class="col-sm-5 col-xs-5 control-label">Quantity *</label>
+            <div class="col-sm-3 col-xs-5">
+              <input type="text" name="quantity" positive-number ng-model="Enquiry.model_data.quantity" class="form-control" ng-required="true">
+            </div>
           </div>
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Expected Date *</label>
             <div class="col-sm-3 col-xs-5">
-              <input type="date" name="customer_name" ng-model="Enquiry.model_data.expected_date" class="form-control" ng-required="true">
+              <input type="date" name="expected_date" ng-model="Enquiry.model_data.expected_date" class="form-control" ng-required="true">
             </div>
-            <i ng-if="$ctrl.categories_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
           </div>
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Remarks *</label>
             <div class="col-sm-3 col-xs-5">
-              <textarea type="text" name="customer_name" ng-model="Enquiry.model_data.remarks" class="form-control" ng-required="true"></textarea>
+              <textarea type="text" name="remarks" ng-model="Enquiry.model_data.remarks" class="form-control" ng-required="true"></textarea>
             </div>
-            <i ng-if="$ctrl.categories_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
           </div>
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Images </label>

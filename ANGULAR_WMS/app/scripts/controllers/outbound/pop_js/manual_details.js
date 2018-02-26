@@ -10,6 +10,7 @@ function($scope, Service, $modalInstance, items, Session) {
   vm.status = 'enquiry';
   vm.save = true;
   vm.date = new Date();
+  vm.edit_enable = true;
 
   vm.extend_statuses = ['pending', 'approval', 'rejected'];
 
@@ -21,7 +22,7 @@ function($scope, Service, $modalInstance, items, Session) {
   }
 
   vm.disable_btn = false;
-  vm.send_for_approval = function(form){
+  vm.notify_to_sub_dist = function(form){
     if(form.$invalid) {
       Service.showNoty('Please fill required fields');
       return false;
@@ -29,10 +30,48 @@ function($scope, Service, $modalInstance, items, Session) {
     vm.disable_btn = true;
     Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {
       if (data.message) {
-        if (data.data == 'Success') {
+        if (data.data.msg == 'Success') {
           $modalInstance.close();
         }
         Service.showNoty(data.data);
+      } else {
+        Service.showNoty('Something went wrong');
+      }
+      vm.disable_btn = false;
+    });
+  }
+
+  vm.send_for_approval = function(form) {
+
+    vm.disable_btn = true;
+    var data = {};
+    angular.copy(vm.model_data, data);
+    data['status'] = "pending_approval";
+    Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
+      if (data.message) {
+        if (data.data.msg == 'Success') {
+          $modalInstance.close();
+        }
+        Service.showNoty(data.data.msg);
+      } else {
+        Service.showNoty('Something went wrong');
+      }
+      vm.disable_btn = false;
+    });
+  }
+
+  vm.approved = function(form) {
+
+    vm.disable_btn = true;
+    var data = {};
+    angular.copy(vm.model_data, data);
+    data['status'] = "approved";
+    Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
+      if (data.message) {
+        if (data.data.msg == 'Success') {
+          $modalInstance.close();
+        }
+        Service.showNoty(data.data.msg);
       } else {
         Service.showNoty('Something went wrong');
       }

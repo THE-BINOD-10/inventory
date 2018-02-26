@@ -56,6 +56,8 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   // custom orders
+  //
+  vm.moment = moment();
   vm.date = new Date()
   vm.disable_btn = false;
   vm.edit = function(form){
@@ -72,7 +74,7 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
           var temp = {};
           angular.copy(vm.model_data, temp);
           temp['username'] = Session.userName;
-          temp['date'] = vm.date.getFullYear()+'-'+vm.date.getMonth()+'-'+vm.date.getDate();
+          temp['date'] =  vm.moment.format("YYYY-MM-DD");
           vm.order_details.data.push(temp)
           vm.model_data.ask_price = '';
           vm.model_data.extended_date = '';

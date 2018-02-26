@@ -8097,7 +8097,7 @@ def save_manual_enquiry_images(request, enq_data):
 @login_required
 @get_admin_user
 def place_manual_order(request, user=''):
-    MANUAL_ENQUIRY_DICT = {'customer_name': '', 'sku_id': '', 'customization_type': ''}
+    MANUAL_ENQUIRY_DICT = {'customer_name': '', 'sku_id': '', 'customization_type': '', 'quantity': ''}
     MANUAL_ENQUIRY_DETAILS_DICT = {'ask_price': '', 'expected_date': '', 'remarks': ''}
     manual_enquiry = copy.deepcopy(MANUAL_ENQUIRY_DICT)
     manual_enquiry_details = copy.deepcopy(MANUAL_ENQUIRY_DETAILS_DICT)
@@ -8110,6 +8110,8 @@ def place_manual_order(request, user=''):
             if not sku_data:
                 return HttpResponse("Style Not Found")
             value = sku_data[0].id
+        elif key == 'quantity':
+            value = int(value)
         manual_enquiry[key] = value
     for key, value in MANUAL_ENQUIRY_DETAILS_DICT.iteritems():
         value = request.POST.get(key, '')
@@ -8178,17 +8180,26 @@ def save_manual_enquiry_data(request, user=''):
 @csrf_exempt
 def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                        filters={}, user_dict={}):
-    if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
-        em_qs = ManualEnquiry.objects.all()
-    else:
-        em_qs = ManualEnquiry.objects.filter(user=user.id)
+    data_filters = {}
+    lis = ['enquiry_id', 'customer_name', 'user__username', 'sku__sku_class', 'customization_type', 'status', 'creation_date']
+    special_key = request.POST.get('special_key', '')
+    if special_key:
+        data_filters['status'] = special_key
+        lis = ['enquiry_id', 'customer_name', 'user__username', 'sku__sku_class', 'customization_type', 'creation_date']
+    if user.userprofile.warehouse_type != 'CENTRAL_ADMIN':
+        data_filters['user'] = user.id
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    em_qs = ManualEnquiry.objects.filter(**data_filters).order_by(order_data)
     for em_obj in em_qs:
         date = em_obj.creation_date.strftime('%Y-%m-%d')
         customization_types = dict(CUSTOMIZATION_TYPES)
         customization_type = customization_types[em_obj.customization_type]
         temp_data['aaData'].append(OrderedDict((('Enquiry ID', int(em_obj.enquiry_id)), ('Sub Distributor', em_obj.user.username),
                                                 ('Customer Name', em_obj.customer_name), ('Style Name', em_obj.sku.sku_class),
-                                                ('Date', date), ('User ID', em_obj.user.id), ('Customization Type', customization_type)
+                                                ('Date', date), ('User ID', em_obj.user.id), ('Customization Type', customization_type),
+                                                ('status', MANUAL_ENQUIRY_STATUS.get(em_obj.status, ''))
                                                )))
     temp_data['recordsTotal'] = len(temp_data['aaData'])
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -8207,7 +8218,8 @@ def get_manual_enquiry_detail(request, user=''):
     customization_types = dict(CUSTOMIZATION_TYPES)
     customization_type = customization_types[manual_enq[0].customization_type]
     manual_eq_dict = {'enquiry_id': int(manual_enq[0].enquiry_id), 'customer_name': manual_enq[0].customer_name,
-                      'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type}
+                      'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
+                      'quantity': manual_enq[0].quantity}
     enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id).values_list('image', flat=True))
     style_dict = {'sku_code': manual_enq[0].sku.sku_code, 'style_name':  manual_enq[0].sku.sku_class,
                   'description': manual_enq[0].sku.sku_desc, 'images': enquiry_images,
@@ -8260,4 +8272,26 @@ def save_manual_enquiry_image(request, user=''):
         resp['data'] = save_manual_enquiry_images(request, enq_data)
     else:
         resp['msg'] = "Please Select Image"
+    return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def request_manual_enquiry_approval(request, user=''):
+    enquiry_id = request.POST.get('enquiry_id', '')
+    user_id = request.POST.get('user_id', '')
+    status = request.POST.get('status', '')
+    resp = {'msg': 'Success', 'data': []}
+    if not enquiry_id or not user_id or not status:
+        resp['msg'] = "Give information insufficient"
+        return HttpResponse(json.dumps(resp))
+    if not MANUAL_ENQUIRY_STATUS.get(status, ''):
+        resp['msg'] = "status incorrect"
+    filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
+    enq_data = ManualEnquiry.objects.filter(**filters)
+    if not enq_data:
+        resp['msg'] = "No Enquiry Data for Id"
+        return HttpResponse(json.dumps(resp))
+    enq_data[0].status = status
+    enq_data[0].save()
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))

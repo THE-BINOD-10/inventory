@@ -2401,6 +2401,7 @@ class ManualEnquiry(models.Model):
     enquiry_id = models.DecimalField(max_digits=50, decimal_places=0)
     customer_name = models.CharField(max_length=256, default='')
     sku = models.ForeignKey(SKUMaster)
+    quantity = models.PositiveIntegerField()
     customization_type =  models.CharField(max_length=64, default='',  choices=CUSTOMIZATION_TYPES)
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)

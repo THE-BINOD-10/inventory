@@ -469,8 +469,10 @@ RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Un
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity',
                          'Return Date(YYYY-MM-DD)', 'Reason']
 
-EXCEL_HEADERS = ['Receipt Number', 'Receipt Date(YYYY-MM-DD)', 'WMS SKU', 'Location', 'Quantity', 'Receipt Type']
-EXCEL_RECORDS = ('receipt_number', 'receipt_date', 'wms_code', 'location', 'wms_quantity', 'receipt_type')
+INVENTORY_EXCEL_MAPPING = OrderedDict(( ('Seller ID', 'seller_id'), ('Receipt Date(YYYY-MM-DD)', 'receipt_date'), ('WMS SKU', 'wms_code'),
+                              ('Location', 'location'), ('Quantity', 'quantity'),
+                              ('Receipt Type', 'receipt_type'), ('Pallet Number', 'pallet_number'),
+                            ))
 
 SKU_EXCEL = (
 'wms_code', 'sku_desc', 'sku_group', 'sku_type', 'sku_category', 'sku_class', 'sku_brand', 'style_name', 'sku_size',

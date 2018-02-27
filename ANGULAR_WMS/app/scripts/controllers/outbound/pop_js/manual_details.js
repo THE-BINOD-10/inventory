@@ -7,12 +7,9 @@ function($scope, Service, $modalInstance, items, Session) {
 
   vm.model_data = items;
   vm.order_details = {};
-  vm.status = 'enquiry';
   vm.save = true;
   vm.date = new Date();
   vm.edit_enable = true;
-
-  vm.extend_statuses = ['pending', 'approval', 'rejected'];
 
   vm.loading = false;
   var url = "get_manual_enquiry_detail/";
@@ -43,6 +40,20 @@ function($scope, Service, $modalInstance, items, Session) {
 
   vm.send_for_approval = function(form) {
 
+    if(vm.model_data.ask_price || vm.model_data.expected_date || vm.model_data.remarks) {
+
+      if(!vm.model_data.ask_price && vm.order_details.order.customization_type != 'Product Customization') {
+        Service.showNoty('Please Fill Ask Price', 'warning');
+        return false;
+      } else if (!vm.model_data.expected_date) {
+        Service.showNoty('Please Fill Expected Date', 'warning');
+        return false;
+      } else if (!vm.model_data.remarks) {
+        Service.showNoty('Please Fill Remarks', 'warning');
+        return false;
+      }
+    }
+
     vm.disable_btn = true;
     var data = {};
     angular.copy(vm.model_data, data);
@@ -62,10 +73,23 @@ function($scope, Service, $modalInstance, items, Session) {
 
   vm.approved = function(form) {
 
-    vm.disable_btn = true;
     var data = {};
+    if(vm.model_data.ask_price || vm.model_data.expected_date || vm.model_data.remarks) {
+
+      if(!vm.model_data.ask_price && vm.order_details.order.customization_type != 'Product Customization') {
+        Service.showNoty('Please Fill Ask Price', 'warning');
+        return false;
+      } else if (!vm.model_data.expected_date) {
+        Service.showNoty('Please Fill Expected Date', 'warning');
+        return false;
+      } else if (!vm.model_data.remarks) {
+        Service.showNoty('Please Fill Remarks', 'warning');
+        return false;
+      }
+    }
     angular.copy(vm.model_data, data);
     data['status'] = "approved";
+    vm.disable_btn = true;
     Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
       if (data.message) {
         if (data.data.msg == 'Success') {
@@ -88,6 +112,12 @@ function($scope, Service, $modalInstance, items, Session) {
 
         console.log(data.data);
         vm.order_details = data.data;
+        if(vm.order_details.enq_details.expected_date && vm.model_data.from == 'pending_approval') {
+
+          vm.model_data.expected_date = vm.order_details.enq_details.expected_date;
+          vm.model_data.ask_price = vm.order_details.enq_details.ask_price;
+          vm.model_data.remarks = vm.order_details.enq_details.remarks;
+        }
       }
       vm.loading = false;
     })

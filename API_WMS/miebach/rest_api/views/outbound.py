@@ -8159,6 +8159,7 @@ def save_manual_enquiry_data(request, user=''):
     ask_price = request.POST.get('ask_price', 0)
     expected_date = request.POST.get('expected_date', '')
     remarks = request.POST.get('remarks', '')
+    status = request.POST.get('status', '')
     if not expected_date:
         return HttpResponse("Please Fill Expected Date")
     if not remarks:
@@ -8170,6 +8171,7 @@ def save_manual_enquiry_data(request, user=''):
     enquiry_data = {'enquiry_id': manual_enq.id, 'user_id': request.user.id}
     enquiry_data['ask_price'] = float(ask_price)
     enquiry_data['remarks'] = remarks
+    enquiry_data['status'] = status
     expected_date = expected_date.split('/')
     expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
     enquiry_data['expected_date'] = expected_date
@@ -8224,15 +8226,27 @@ def get_manual_enquiry_detail(request, user=''):
     style_dict = {'sku_code': manual_enq[0].sku.sku_code, 'style_name':  manual_enq[0].sku.sku_class,
                   'description': manual_enq[0].sku.sku_desc, 'images': enquiry_images,
                   'category': manual_enq[0].sku.sku_category}
-    enquiry_data =  ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id)
+    if request.user.id == long(user_id):
+        enquiry_data =  ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id, status="")
+    else:
+        enquiry_data =  ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id)
     enquiry_dict = []
+    enq_details = {}
     for enquiry in enquiry_data:
         date = enquiry.creation_date.strftime('%Y-%m-%d')
         expected_date = enquiry.expected_date.strftime('%Y-%m-%d')
-        user = User.objects.get(id=enquiry.user_id)
+        user = UserProfile.objects.get(user=enquiry.user_id)
+        if user.user_type != 'customer' and enquiry.status != 'approved':
+            enq_details = enquiry
         enquiry_dict.append({'ask_price': enquiry.ask_price, 'remarks': enquiry.remarks, 'date': date,\
-                             'expected_date': expected_date, 'username': user.username})
-    return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict}))
+                             'expected_date': expected_date, 'username': user.user.username,
+                             'status': enquiry.status})
+    if enq_details:
+        expected_date = enq_details.expected_date.strftime('%m/%d/%Y')
+        enq_details = {'ask_price': enq_details.ask_price, 'remarks': enq_details.remarks,\
+                       'expected_date': expected_date}
+    return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict,\
+                                    'enq_details': enq_details}))
 
 @csrf_exempt
 @login_required
@@ -8292,6 +8306,9 @@ def request_manual_enquiry_approval(request, user=''):
     if not enq_data:
         resp['msg'] = "No Enquiry Data for Id"
         return HttpResponse(json.dumps(resp))
+    expected_date = request.POST.get('expected_date', '')
+    if expected_date:
+        save_manual_enquiry_data(request)
     enq_data[0].status = status
     enq_data[0].save()
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))

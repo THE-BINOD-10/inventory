@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 
+from mail_server import send_mail, send_mail_attachment
 import json
 from dateutil import tz
 from dateutil.relativedelta import relativedelta
@@ -15,6 +16,8 @@ from django.views.decorators.csrf import csrf_exempt
 from miebach_admin.custom_decorators import login_required, get_admin_user
 from common import *
 from miebach_utils import *
+from outbound import send_mail_ordered_report, check_and_send_mail
+from send_message import send_sms
 
 # Create your views here.
 log = init_logger('logs/pos.log')
@@ -207,7 +210,8 @@ def get_stock_count(request, order, stock, stock_diff, user, order_quantity):
 
 
 def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
-                      picklist_number, stock_diff, item, user, invoice_number):
+                      picklist_number, stock_diff, item, user, invoice_number,\
+                      picks_all=[], picklists_send_mail={}):
     # seller_order_summary object creation
     seller_order_summary = SellerOrderSummary.objects.create(pick_number=1, \
                                                              seller_order=None, \
@@ -223,6 +227,20 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
                                            status='batch_picked', \
                                            order_id=order_detail.id, \
                                            stock_id='', creation_date=NOW)
+        picks_all.append(picklist.id)
+        quantity = picklist.picked_quantity
+        if picklist.order.order_id in picklists_send_mail.keys():
+            if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
+                qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code])
+                picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] = qty +\
+                      float(quantity)
+            else:
+                picklists_send_mail[picklist.order.order_id].update(
+                    {picklist.order.sku.sku_code: float(quantity)})
+        else:
+            picklists_send_mail.update(
+                {picklist.order.order_id: {picklist.order.sku.sku_code: float(quantity)}})
+
     obj, created = CustomerOrderSummary.objects.get_or_create(order_id=order_detail.id)
     if created:
         obj.discount = item['discount']
@@ -250,8 +268,24 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
                                         picklist_id=picklist.id, reserved=0, \
                                         stock_id=stock.id, \
                                         creation_date=NOW)
+        picks_all.append(picklist.id)
+        quantity = picklist.picked_quantity
+        if picklist.order.order_id in picklists_send_mail.keys():
+            if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
+                qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code])
+                picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] = qty +\
+                      float(quantity)
+            else:
+                picklists_send_mail[picklist.order.order_id].update(
+                    {picklist.order.sku.sku_code: float(quantity)})
+        else:
+            picklists_send_mail.update(
+                {picklist.order.order_id: {picklist.order.sku.sku_code: float(quantity)}})
+
         if not stock_diff:
             break
+    if order_detail.order_code == "PRE%s" %(request.user.id):
+        return picks_all, picklists_send_mail
     return "Success"
 
 
@@ -267,6 +301,7 @@ def customer_order(request):
     if isinstance(orders, dict): orders = [orders]
     for order in orders:
         order_created = False
+        items_to_mail = []
         total_payment_received = sum(order['summary'].get('payment', {}).values())
         user_id = order['user']['parent_id']
         user = User.objects.get(id=user_id)
@@ -354,6 +389,7 @@ def customer_order(request):
                                                         order_taken_by=order['summary']['staff_member'], \
                                                         creation_date=NOW)
                     order_created = True
+                    items_to_mail.append([sku.sku_desc, item['quantity'], item['price']])
                     if status == 0:
                         stock_diff, invoice_number = item['quantity'], order_id
                         stock_detail = StockDetail.objects.exclude( \
@@ -407,6 +443,20 @@ def customer_order(request):
                         location=sku_stocks_.location, \
                         returns=order_return)
             if order_created:
+                #send mail and sms for pre order
+                if order["summary"]["issue_type"] == "Pre Order" and customer_data:
+                    email_id, phone_number = customer_data[0].email_id, customer_data[0].phone_number
+                    if email_id:
+                        other_charge_amounts = 0
+                        order_detail.order_id = order_detail.original_order_id
+                        order_data = {
+                                      "customer_name": customer_data[0].name,
+                                      "address": customer_data[0].address,
+                                      "telephone": phone_number,
+                                      "email_id": email_id
+                                     }
+                        send_mail_ordered_report(order_detail, phone_number, items_to_mail,\
+                                                 other_charge_amounts, order_data, user)
                 # store extra details
                 for field, val in order["summary"].get("payment", {}).iteritems():
                     OrderFields.objects.create(original_order_id=original_order_id, name="payment_" + field, value=val,
@@ -620,6 +670,8 @@ def update_order_status(request):
                 return HttpResponse(json.dumps({"message": "Deleted Successfully !", "data": {}}))
             else:
                 continue
+        picks_all = []
+        picklists_send_mail = {}
         for order in order_detail:
             order.status = 0
             order.payment_received = order.invoice_amount
@@ -634,7 +686,6 @@ def update_order_status(request):
                 if nw_status == "online": return HttpResponse(json.dumps({"message": "Error", "data": {}}))
                 order.save()
                 continue
-
             stock_diff = StockDetail.objects.filter(sku=sku) \
                 .exclude(location__zone__zone='DAMAGED_ZONE') \
                 .values_list('sku__wms_code').distinct() \
@@ -668,8 +719,12 @@ def update_order_status(request):
             stock_detail = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE') \
                 .filter(sku__wms_code=order.sku.wms_code, sku__user=user_id)
             stock_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
-            picklist_creation(request, stock_detail, stock_quantity, order, \
-                              picklist_number, stock_diff, item, user, invoice_number)
+            picks_all, picklists_send_mail = picklist_creation(request, stock_detail,\
+                              stock_quantity, order, picklist_number, stock_diff,\
+                              item, user, invoice_number, picks_all, picklists_send_mail)
+            from_pos = True
+    all_picks = Picklist.objects.filter(id__in=picks_all)
+    check_and_send_mail(request, user, all_picks[0], all_picks, picklists_send_mail, from_pos)
     json_data = prepare_delivery_challan_json(request, full_data[0]['order_id'], request.user.id)
     return HttpResponse(json.dumps({"message": "Delivered Successfully !", "data": json_data}))
 

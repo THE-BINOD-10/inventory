@@ -21,10 +21,18 @@ class OrderDetailAdmin(admin.ModelAdmin):
     list_display = ('id', 'original_order_id', 'order_id', 'order_code', 'sku', 'title', 'user')
 
 
+#@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    search_fields = ['user__username']
+    list_display = ('get_user_profile_user',)
+
+    def get_user_profile_user(self, obj):
+        return obj.user.username
+
 admin.site.register(UserBrand)
 admin.site.register(Brands)
 admin.site.register(UserStages)
-admin.site.register(UserProfile)
+admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(ProductionStages)
 admin.site.register(AdminGroups)
 admin.site.register(GroupBrand)

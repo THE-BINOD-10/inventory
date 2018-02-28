@@ -918,6 +918,7 @@ def switches(request, user=''):
                        'shipment_sku_scan': 'shipment_sku_scan',
                        'extra_view_order_status':'extra_view_order_status',
                        'disable_brands_view':'disable_brands_view',
+                       'invoice_challan_header': 'invoice_challan_header',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

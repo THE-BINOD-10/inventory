@@ -352,7 +352,7 @@ def get_trial_user_data(request):
     return HttpResponse(json.dumps(response), content_type='application/json')
 
 
-def get_search_params(request):
+def get_search_params(request, user=''):
     search_params = {}
     filter_params = {}
     headers = []
@@ -398,6 +398,14 @@ def get_search_params(request):
             filter_params[filter_mapping[key]] = value
         elif key == 'special_key':
             search_params[data_mapping[key]] = value
+    #pos extra headers
+    if user:
+        headers.append("Order Taken By")
+        extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
+        for field in extra_fields_obj:
+            tmp = field.misc_value.split(',')
+            for i in tmp:
+                headers.append(str(i))
 
     return headers, search_params, filter_params
 

@@ -1608,8 +1608,9 @@ def inventory_excel_upload(request, user, data_list):
         receipt_date = inventory_data['receipt_date']
         if inventory_data.get('sku_id', '') and inventory_data.get('location_id', ''):
             pallet_number = inventory_data.get('pallet_number', '')
-            if pallet_number:
+            if 'pallet_number' in inventory_data.keys():
                 del inventory_data['pallet_number']
+            if pallet_number:
                 pallet_data = {'pallet_code': pallet_number, 'quantity': int(inventory_data['quantity']),
                                'user': user.id,
                                'status': 1, 'creation_date': str(datetime.datetime.now()),

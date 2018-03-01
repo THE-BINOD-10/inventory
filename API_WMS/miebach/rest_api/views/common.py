@@ -1876,7 +1876,16 @@ def load_demo_data(request, user=''):
         open_book = open_workbook(os.path.join(settings.BASE_DIR + "/rest_api/demo_data/", value['file_name']))
         open_sheet = open_book.sheet_by_index(0)
         func_params = [request, open_sheet, user]
-        if key in ['order_upload', 'sku_upload']:
+        if key == 'inventory_upload':
+            reader = open_sheet
+            no_of_rows = reader.nrows
+            file_type = 'xls'
+            no_of_cols = open_sheet.ncols
+            in_status, data_list = validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, open_sheet.name,
+                                                           file_type)
+            inventory_excel_upload(request, user, data_list)
+            continue
+        elif key in ['order_upload', 'sku_upload']:
             func_params.append(open_sheet.nrows)
             func_params.append(value['file_name'])
         elif key in ['supplier_upload', 'purchase_order_upload']:

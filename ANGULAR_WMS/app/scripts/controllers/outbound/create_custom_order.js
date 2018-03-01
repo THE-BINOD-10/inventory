@@ -6,17 +6,121 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
   vm.customData = {};
   vm.service = Service;
 
+  vm.product_types = {
+    't shirts': {
+      'categories': ['ROUND NECK', 'V NECK', 'CHINESE COLLAR', 'POLO', 'HENLEY'],
+      'fabrics': ["SCOTT SAPPHIRE", "CRACKLE", "SULPHUR DRYFIT", "SULPHUR COTTON", "GREEN POLO", "LACOSTE", "BIOWASH", "HONEY COMB", "BUTTER HK", "SUPREME", "SPARK", "6 DEGREE", "SPRINT", "SCOTT YOUNG", "AWG DRYFIT", "SUPER POLY", "GRINDLE", "SLUB", "INNER COTTON"],
+      'colors': ["RED", "BLACK", "GREY", "NAVY BLUE", "YELLOW", "ROYAL BLUE", "TURQUOISE GREEN", "TURQUOISE BLUE", "ELECTRIC GREEN", "ELECTRIC BLUE", "APPLE GREEN", "WHITE MELANGE", "WHITE", "BOTTLE GREEN", "PURPLE", "MILITARY GREEN", "ICE BLUE", "COFFEE BROWN", "MAROON", "BEIGE", "CRÈME", "CHARCOAL GREY", "INDIAN BLUE", "GOLDEN YELLOW", "LEMON YELLOW", "SKY BLUE", "PINK", "ORANGE", "MAGENTA", "PISTA GREEN", "DARK GREY", "ASH GREY", "MUSTARD", "HP BLUE", "DENIM BLUE", "GREY MELANGE", "CHARCOAL MELANGE", "GREEN MELANGE", "BLUE MELANGE", "PINK MELANGE"],
+      'ROUND NECK': {
+        'fabric': true,
+        'body_color': true,
+        'design': true,
+        'piping': true,
+        'sleeve': true,
+        'pocket': true,
+        'placket': false,
+        'print_embroidery': true,
+        'collar_tape': false,
+        'neck_tape': true,
+        'bottom': true,
+        'slit_type': true,
+        'label': true,
+      },
+
+      'V NECK': {
+        'fabric': true,
+        'body_color': true,
+        'design': true,
+        'piping': true,
+        'sleeve': true,
+        'pocket': true,
+        'placket': false,
+        'print_embroidery': true,
+        'collar_tape': true,
+        'neck_tape': true,
+        'bottom': true,
+        'slit_type': true,
+        'label': true,
+      },
+
+      'CHINESE COLLAR': {
+        'fabric': true,
+        'body_color': true,
+        'design': true,
+        'piping': true,
+        'sleeve': true,
+        'pocket': true,
+        'placket': true,
+        'print_embroidery': true,
+        'collar_tape': false,
+        'neck_tape': true,
+        'bottom': true,
+        'slit_type': true,
+        'label': true,
+      },
+
+      'POLO': {
+        'fabric': true,
+        'body_color': true,
+        'design': true,
+        'piping': true,
+        'sleeve': true,
+        'pocket': true,
+        'placket': true,
+        'print_embroidery': true,
+        'collar_tape': true,
+        'neck_tape': true,
+        'bottom': true,
+        'slit_type': true,
+        'label': true,
+      },
+
+      'HENLEY': {
+        'fabric': true,
+        'body_color': true,
+        'design': true,
+        'piping': true,
+        'sleeve': true,
+        'pocket': true,
+        'placket': false,
+        'print_embroidery': true,
+        'collar_tape': true,
+        'neck_tape': true,
+        'bottom': true,
+        'slit_type': true,
+        'label': true,
+      },
+
+      'DEFAULT': {
+        'fabric': true,
+        'body_color': true,
+        'design': true,
+        'piping': true,
+        'sleeve': true,
+        'pocket': true,
+        'placket': false,
+        'print_embroidery': true,
+        'collar_tape': true,
+        'neck_tape': true,
+        'bottom': true,
+        'slit_type': true,
+        'label': true,
+      },
+    }
+  }
+
   vm.emptyData = {
 
     alteration: false,
     styles: [],
     style: "",
     fabric : {
-      fabrics: {fabric1: "100% Cotton", fabric2: "none", fabric3: "none", fabric4: "none"},
+      fabrics: {fabric1: "", fabric2: "", fabric3: "", fabric4: ""},
       fabricOptions: ["100% Cotton", "none"],
       fabric: true,
     },
     styleData: [],
+    colorData: ["red", "green", "yellow"],
     bodyStyle: {},
     colors: ["red", "green", "yellow"],
     design: {
@@ -124,7 +228,8 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
 
           vm.customData.styles = data.data.sub_categories;
           vm.customData.style = vm.customData.styles[0];
-          vm.getCustomStyles(vm.customData.style);
+          //vm.getCustomStyles(vm.customData.style);
+          vm.styleChange(vm.customData.style);
         } else {
 
           console.log("Categories empty");
@@ -138,7 +243,15 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
   vm.styleChange = function(style) {
 
     vm.customData.style = style;
-    vm.getCustomStyles(vm.customData.style);
+    if (vm.product_types['t shirts'][vm.customData.style]) {
+      vm.style_pro = vm.product_types['t shirts'][vm.customData.style];
+    }  else {
+      vm.style_pro = vm.product_types['t shirts']['DEFAULT'];
+    }
+    vm.customData.fabric.fabricOptions = vm.product_types['t shirts'].fabrics;
+    vm.customData.fabric.fabrics.fabric1 = vm.customData.fabric.fabricOptions[0];
+    vm.customData.colorData = vm.product_types['t shirts'].colors;
+    //vm.getCustomStyles(vm.customData.style);
   }
 
   vm.changed = function(data) {
@@ -210,6 +323,7 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
   vm.showPreview = function() {
     var mod_data = {};
     angular.copy(vm.customData, mod_data);
+    mod_data['style_pro'] = vm.style_pro;
     var modalInstance = $modal.open({
             templateUrl: 'views/outbound/toggle/customOrderDetails.html',
             controller: 'customOrderDetailsPreview',
@@ -239,15 +353,21 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
   vm.confirming = false;
   vm.confirmData = function() {
 
+    if(vm.confirming) {
+      return false;
+    }
+    vm.confirming = true;
     var data = {};
     if (!vm.customData.style) {
       Service.showNoty("Please Select Style First");
+      vm.confirming = false;
       return false;
     }
 
     if (Object.values(vm.customData.sizeEnable).indexOf(true) == -1) {
 
       Service.showNoty("Please check the Size");
+      vm.confirming = false;
       return false;
     } else {
 
@@ -260,6 +380,7 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
       if(count == 0) {
 
         Service.showNoty("Please Enter Size Quantity");
+        vm.confirming = false;
         return false;
       }
     }
@@ -286,8 +407,8 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
     })
     vm.customData.print.placeImgs = {}
     vm.customData.embroidery.placeImgs = {}
+    vm.customData.style_pro = vm.style_pro;
     console.log(files)
-    vm.confirming = true;
     $http({
             method: 'POST',
             url: Session.url + "create_custom_skus/",

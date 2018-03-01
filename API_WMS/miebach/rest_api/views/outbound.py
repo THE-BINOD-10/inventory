@@ -7826,6 +7826,8 @@ def create_custom_skus(request, user=''):
                     data_dict['sku_class'] = str(sku) + "-" + size_name
                     fabric = ' Single Fabric ' if data['fabric']['fabric'] else ' Multi Fabric '
                     data_dict['style_name'] = data['style'] + fabric + size_name
+                    if data.get('bodyColor', ''):
+                        data['bodyColor'] = data_dict['style_name'] + ' ' + data['bodyColor']
                     data_dict['sku_size'] = size
                     data_dict['sku_type'] = "CS"
 

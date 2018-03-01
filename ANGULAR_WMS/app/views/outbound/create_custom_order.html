@@ -48,6 +48,7 @@
         </div>
       </div>
 
+    <div ng-if="showCase.style_pro.fabric">
       <div class="row shaded-title mb10 mt10">
         <div class="col-md-4 col-sm-4"></div>
         <div class="col-md-4 col-sm-4 col-xs-8">
@@ -60,12 +61,15 @@
       <div class="row mb10">
         <div class="col-md-3 col-sm-3 col-xs-6" ng-repeat="(key, value) in showCase.customData.fabric.fabrics">
           <select name="material" class="form-control" ng-model="showCase.customData.fabric.fabrics[key]" ng-disabled="!$first && showCase.customData.fabric.fabric">
+            <option ng-selected="value == ''" value="">None</option>
             <option ng-selected="value == option" ng-repeat="option in showCase.customData.fabric.fabricOptions">{{option}}</option>
           </select>
         </div>
       </div>
+    </div>
 
-      <!-- Body Colour -->
+    <!-- Body Colour -->
+    <div ng-if="showCase.style_pro.body_color">
       <div class="row mb10 mt20">
         <div class="col-md-12">
           <div class="shaded-title">
@@ -73,29 +77,34 @@
           </div>
         </div>
       </div>
-      <div class="row mb10" style="padding: 0px 30px;border: 1px solid #ccc;margin-right:0px;margin-left:0px;">
-        <div ng-if="showCase.customData.styleData.length > 0">
-          <slick lazy-load='ondemand' slides-to-show=5 slides-to-scroll=4 class="slider lazy" infinite="false">
+      <div class="row mb10 custom-colors">
+        <div class="col-md-1 col-sm-2 col-xs-3 mb10" ng-repeat="color in showCase.customData.colorData">
+          <div style="height: 50px;background: red;cursor: pointer;" ng-class="(showCase.customData.bodyColor==color)? 'color-selected': '';" ng-click="showCase.customData.bodyColor=color" title="{{color}}">
+          </div>
+        </div>
+          <!--<slick lazy-load='ondemand' slides-to-show=5 slides-to-scroll=4 class="slider lazy" infinite="false">
             <div ng-repeat="item in showCase.customData.styleData" style="padding:5px;position:relative" ng-click="showCase.selectBodyStyle(item)">
               <i class="item-check fa fa-check-circle-o" ng-show="showCase.customData.bodyStyle.sku_class == item.sku_class"></i>
               <div class="image" style="width:100%;margin-right:0px;cursor: pointer">
                 <img data-lazy="{{service.check_image_url(item.image_url)}}" style="width:100%"/>
-                <!--<div style="text-align: center;">
+                --><!--<div style="text-align: center;">
                   <span class="style_name" title="jean101">{{item.sku_class}}</span><br>
                   <span class="style_name" style="font-size: 14px">{{ showCase.service.price_format(item.variants[0].price)}}</span>
                   <p class="style_name" style="font-size: 12px;" title="jean101">{{ item.variants[0].style_name }}</p>
                   <span style="font-size: 14px; padding:2px 15px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</span><br>
                   <span style="font-size: 20px;">&#8377; {{ item.variants[0].mrp }}</span><br>
-                </div>-->
+                </div>--><!--
               </div>
             </div>
-          </slick>
+          </slick>-->
         </div>
         <div ng-if="showCase.styles_loading">
           <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
         </div>
       </div>
+    </div>
 
+    <div ng-if="showCase.style_pro.design">
       <div class="row shaded-title mb10 mt20">
         <div class="col-md-4 col-sm-4"></div>
         <div class="col-md-4 col-sm-4 col-xs-8">
@@ -147,6 +156,9 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div ng-if="showCase.style_pro.piping">
       <div class="row shaded-title mb10 mt20">
         <div class="col-md-4 col-sm-4 col-xs-12"></div>
         <div class="col-md-4 col-sm-4 col-xs-8">
@@ -197,6 +209,9 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div ng-if="showCase.style_pro.sleeve">
       <div class="row mt20 mb10">
         <div class="col-md-12">
           <div class="shaded-title">
@@ -238,7 +253,9 @@
           <span class="pull-right">Body Colour</span>
         </div>
       </div>-->
+    </div>
 
+    <div ng-if="showCase.style_pro.pocket">
       <div class="row mb10 mt20 shaded-title">
         <div class="col-md-4 col-sm-4 col-xs-4"></div>
         <div class="col-md-4 col-sm-4 col-xs-4">
@@ -256,7 +273,9 @@
           </label>
         </div>
       </div>
+    </div>
 
+    <div ng-if="showCase.style_pro.placket">
       <div class="row mb10 mt20">
         <div class="col-md-12">
           <div class="shaded-title">
@@ -282,7 +301,9 @@
           </label>
         </div>
       </div>
+    </div>
 
+    <div ng-if="showCase.style_pro.print_embroidery">
       <div class="row shaded-title mb10 mt20">
         <div class="col-md-4 col-sm-4"></div>
         <div class="col-md-4 col-sm-4 col-xs-8">
@@ -292,69 +313,71 @@
           <toggle ng-model="showCase.customData.printEmbroidery" ng-change="changed()" on="Yes" off="No" onstyle="btn-success" offstyle="btn-success" class="toggle"></toggle>
         </div>
       </div>
-    <div ng-if="showCase.customData.printEmbroidery">
-      <div class="row mb10" ui-jq="checkBo">
-        <div class="col-md-4 col-sm-3"></div>
-        <div class="col-md-2 col-sm-3 col-xs-6">
-          <input type="checkbox" name="print" value="print" ng-model="showCase.customData.print.print" style="width: 20px;height: 20px;margin-right: 5px;" ng-change="showCase.checkData('print', showCase.customData.print.print)"/> Print
-        </div>
-        <div class="col-md-2 col-sm-3 col-xs-6">
-          <input type="checkbox" name="print" value="embroidery" ng-model="showCase.customData.embroidery.embroidery" style="width: 20px;height: 20px;margin-right: 5px;" ng-change="showCase.checkData('embroidery', showCase.customData.embroidery.embroidery)"/> Embroidary
-        </div>
-      </div>
-      <div class="row mb10" ng-if="showCase.customData.print.print">
-        <div class="col-md-6 col-sm-6 col-xs-6">
-          <span class="pull-right" style="line-height: 32px;">Print Type :</span>
-        </div>
-        <div class="col-md-3 col-sm-4 col-xs-5">
-          <select name="print_type" class="form-control" ng-model="showCase.customData.print.printOption">
-            <option value="{{opt}}" ng-selected="opt == showCase.customData.print.printOption" ng-repeat="opt in showCase.customData.print.printOptions">{{opt}}</option>
-            <option>
-          </select>
-        </div>
-      </div>
-      <div class="row mt10 mb10" ng-if="showCase.customData.print.print">
-        <div class="col-md-12">
-          <toggle ng-model="showCase.customData.print.singlePrint" on="Single Print" off="Multi Print" onstyle="btn-success" offstyle="btn-success" style="toggle-center" ng-click="showCase.checkData('print', true)"></toggle>
-        </div>
-      </div>
-      <div class="row" ui-jq="checkBo" ng-if="showCase.customData.print.print">
-        <div class="col-md-6 col-sm-12 col-xs-12" ng-repeat="place in showCase.customData.embroidery.attachments">
-          <div class="col-md-4 col-sm-4 col-xs-4">
-            <span>{{place}}</span>
+      <div ng-if="showCase.customData.printEmbroidery">
+        <div class="row mb10" ui-jq="checkBo">
+          <div class="col-md-4 col-sm-3"></div>
+          <div class="col-md-2 col-sm-3 col-xs-6">
+            <input type="checkbox" name="print" value="print" ng-model="showCase.customData.print.print" style="width: 20px;height: 20px;margin-right: 5px;" ng-change="showCase.checkData('print', showCase.customData.print.print)"/> Print
           </div>
-          <div class="col-md-4 col-sm-4 col-xs-4">
-            <span class="btn btn-default" style="position: relative;overflow: hidden;width: 100%;padding:2px">Choose File
-              <input class="c-file" name="{{'print_'+place}}" value="" type="file" multiple="" data="{{place+':print'}}" image-upload ng-disabled="!showCase.customData.print.places[place]">
-            </span>
-          </div>
-          <div class="col-md-2 col-sm-4 col-xs-4">
-            <input type="checkbox" name="{{place}}" value="{{place}}" ng-model="showCase.customData.print.places[place]" style="width: 20px;height: 20px;" ng-change="showCase.removeImage(showCase.customData.print, 'print', place)"/>
+          <div class="col-md-2 col-sm-3 col-xs-6">
+            <input type="checkbox" name="print" value="embroidery" ng-model="showCase.customData.embroidery.embroidery" style="width: 20px;height: 20px;margin-right: 5px;" ng-change="showCase.checkData('embroidery', showCase.customData.embroidery.embroidery)"/> Embroidary
           </div>
         </div>
-      </div>
-      <div class="row mt20 mb10" ng-if="showCase.customData.embroidery.embroidery">
-        <div class="col-md-12">
-          <toggle ng-model="showCase.customData.embroidery.singleEmbroidery" on="Single Embroidary" off="Multi Embroidary" onstyle="btn-success" offstyle="btn-success" style="toggle-center toggle-160" ng-change="showCase.checkData('embroidery', true)"></toggle>
+        <div class="row mb10" ng-if="showCase.customData.print.print">
+          <div class="col-md-6 col-sm-6 col-xs-6">
+            <span class="pull-right" style="line-height: 32px;">Print Type :</span>
+          </div>
+          <div class="col-md-3 col-sm-4 col-xs-5">
+            <select name="print_type" class="form-control" ng-model="showCase.customData.print.printOption">
+              <option value="{{opt}}" ng-selected="opt == showCase.customData.print.printOption" ng-repeat="opt in showCase.customData.print.printOptions">{{opt}}</option>
+              <option>
+            </select>
+          </div>
         </div>
-      </div>
-      <div class="row mb10" ui-jq="checkBo" ng-if="showCase.customData.embroidery.embroidery">
-        <div class="col-md-6 col-sm-12 col-xs-12" ng-repeat="place in showCase.customData.embroidery.attachments">
-          <div class="col-md-4 col-sm-4 col-xs-4">
-            <span>{{place}}</span>
+        <div class="row mt10 mb10" ng-if="showCase.customData.print.print">
+          <div class="col-md-12">
+            <toggle ng-model="showCase.customData.print.singlePrint" on="Single Print" off="Multi Print" onstyle="btn-success" offstyle="btn-success" style="toggle-center" ng-click="showCase.checkData('print', true)"></toggle>
           </div>
-          <div class="col-md-4 col-sm-4 col-xs-4">
-            <span class="btn btn-default" style="position: relative;overflow: hidden;width: 100%;padding:2px">Choose File
-              <input class="c-file" name="{{'embroidery_'+place}}" data="{{place+':embroidery'}}" value="" type="file" multiple="" image-upload ng-disabled="!showCase.customData.embroidery.places[place]">
-            </span>
+        </div>
+        <div class="row" ui-jq="checkBo" ng-if="showCase.customData.print.print">
+          <div class="col-md-6 col-sm-12 col-xs-12" ng-repeat="place in showCase.customData.embroidery.attachments">
+            <div class="col-md-4 col-sm-4 col-xs-4">
+              <span>{{place}}</span>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-4">
+              <span class="btn btn-default" style="position: relative;overflow: hidden;width: 100%;padding:2px">Choose File
+                <input class="c-file" name="{{'print_'+place}}" value="" type="file" multiple="" data="{{place+':print'}}" image-upload ng-disabled="!showCase.customData.print.places[place]">
+              </span>
+            </div>
+            <div class="col-md-2 col-sm-4 col-xs-4">
+              <input type="checkbox" name="{{place}}" value="{{place}}" ng-model="showCase.customData.print.places[place]" style="width: 20px;height: 20px;" ng-change="showCase.removeImage(showCase.customData.print, 'print', place)"/>
+            </div>
           </div>
-          <div class="col-md-2 col-sm-4 col-xs-4">
-            <input type="checkbox" name="{{place}}" value="{{place}}" ng-model="showCase.customData.embroidery.places[place]" style="width: 20px;height: 20px;"/>
+        </div>
+        <div class="row mt20 mb10" ng-if="showCase.customData.embroidery.embroidery">
+          <div class="col-md-12">
+            <toggle ng-model="showCase.customData.embroidery.singleEmbroidery" on="Single Embroidary" off="Multi Embroidary" onstyle="btn-success" offstyle="btn-success" style="toggle-center toggle-160" ng-change="showCase.checkData('embroidery', true)"></toggle>
+          </div>
+        </div>
+        <div class="row mb10" ui-jq="checkBo" ng-if="showCase.customData.embroidery.embroidery">
+          <div class="col-md-6 col-sm-12 col-xs-12" ng-repeat="place in showCase.customData.embroidery.attachments">
+            <div class="col-md-4 col-sm-4 col-xs-4">
+              <span>{{place}}</span>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-4">
+              <span class="btn btn-default" style="position: relative;overflow: hidden;width: 100%;padding:2px">Choose File
+                <input class="c-file" name="{{'embroidery_'+place}}" data="{{place+':embroidery'}}" value="" type="file" multiple="" image-upload ng-disabled="!showCase.customData.embroidery.places[place]">
+              </span>
+            </div>
+            <div class="col-md-2 col-sm-4 col-xs-4">
+              <input type="checkbox" name="{{place}}" value="{{place}}" ng-model="showCase.customData.embroidery.places[place]" style="width: 20px;height: 20px;"/>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
+    <div ng-if="showCase.style_pro.collar_tape">
       <!-- Collar Tip -->
       <div class="row shaded-title mb10 mt20">
         <div class="col-md-4 col-sm-4"></div>
@@ -381,7 +404,9 @@
           </div>
         </div>
       </div>
+    </div>
 
+    <div ng-if="showCase.style_pro.neck_tape">
       <div class="row shaded-title mb10 mt20">
         <div class="col-md-4"></div>
         <div class="col-md-4">
@@ -398,7 +423,9 @@
           </select>
         </div>
       </div>
+    </div>
 
+    <div ng-if="showCase.style_pro.bottom">
       <div class="row shaded-title mb10 mt20">
         <div class="col-md-4"></div>
         <div class="col-md-4">
@@ -415,7 +442,9 @@
           </select>
         </div>
       </div>
+    </div>
 
+    <div ng-if="showCase.style_pro.slit_type">
       <div class="row shaded-title mb10 mt20">
         <div class="col-md-4"></div>
         <div class="col-md-4">
@@ -445,7 +474,9 @@
           </div>
         </div>
       </div>
+    </div>
 
+    <div ng-if="showCase.style_pro.label">
       <div class="row shaded-title mb10 mt20">
         <div class="col-md-4"></div>
         <div class="col-md-4">
@@ -459,6 +490,7 @@
           </select>
         </div>
       </div>
+    </div>
 
       <div class="row shaded-title mb10 mt20">
         <div class="col-md-4"></div>

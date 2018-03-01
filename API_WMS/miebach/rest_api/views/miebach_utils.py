@@ -1344,6 +1344,11 @@ MARKETPLACE_SERIAL_EXCEL_HEADERS = ['Order Reference', 'Marketplace', 'Serial Nu
 
 MARKETPLACE_SERIAL_EXCEL_MAPPING = OrderedDict((('order_reference', 0), ('marketplace', 1), ('serial_number', 2)))
 
+SELLER_TRANSFER_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('Source Seller ID', 'source_seller'),
+                                       ('Source Location', 'source_location'),
+                                       ('Destination Seller ID', 'dest_seller'),
+                                       ('Destination Location', 'dest_location'), ('Quantity', 'quantity'),
+                                    ))
 
 def fn_timer(function):
     @wraps(function)

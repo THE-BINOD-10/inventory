@@ -1086,7 +1086,7 @@ def validate_upload_orderid_awb(request, reader, user, no_of_rows, fname, file_t
                     orderid_awb_dict['marketplace'] = value.upper()
                 else:
                     orderid_awb_dict['marketplace'] = ''
-            
+
                 order_id = ''.join(re.findall('\d+', orderid_awb_dict['original_order_id'] ))
                 order_code = ''.join(re.findall('\D+', orderid_awb_dict['original_order_id'] ))
                 marketplace_valid = list(OrderDetail.objects.filter(Q(original_order_id= orderid_awb_dict['original_order_id']) |
@@ -1488,7 +1488,7 @@ def sku_upload(request, user=''):
     return HttpResponse('Success')
 
 
-def get_inventory_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type, inv_mapping):
+def get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type, inv_mapping):
     file_mapping = OrderedDict()
     for ind in range(0, no_of_cols):
         cell_data = get_cell_data(0, ind, reader, file_type)
@@ -1503,7 +1503,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
     location = {}
     inv_mapping = get_inventory_excel_upload_headers(user)
     inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
-    excel_mapping = get_inventory_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
     if not set(['receipt_date', 'quantity', 'wms_code', 'location']).issubset(excel_mapping.keys()):
         return 'Invalid File'
@@ -4261,3 +4261,132 @@ def marketplace_serial_upload(request, user=''):
         str(user.username),
         str(request.POST.dict()), str(e)))
         return HttpResponse("Marketplace Serial Upload Failed")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def seller_transfer_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_headers = SELLER_TRANSFER_MAPPING
+    wb, ws = get_work_sheet('Inventory', excel_headers.keys())
+    return xls_to_response(wb, '%s.seller_transfer_form.xls' % str(user.id))
+
+
+def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls'):
+    log.info("Validate Seller Transfer upload started")
+    st_time = datetime.datetime.now()
+    index_status = {}
+
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                             SELLER_TRANSFER_MAPPING)
+    if not set(SELLER_TRANSFER_MAPPING.values()).issubset(excel_mapping.keys()):
+        return 'Invalid File'
+
+    log.info("Validation Started %s" % datetime.datetime.now())
+    all_data_list = []
+    exc_reverse = dict(zip(SELLER_TRANSFER_MAPPING.values(), SELLER_TRANSFER_MAPPING.keys()))
+    all_skus = SKUMaster.objects.filter(user=user.id)
+    all_sellers = SellerMaster.objects.filter(user=user.id)
+    all_locations = LocationMaster.objects.filter(zone__user=user.id)
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, val in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, excel_mapping[key], reader, file_type)
+            if not cell_data:
+                index_status.setdefault(row_idx, set()).add('%s is Mandatory' % (exc_reverse[key]))
+            elif key == 'wms_code':
+                if isinstance(cell_data, (int, float)):
+                    cell_data = str(int(cell_data))
+                sku_obj = all_skus.filter(sku_code=cell_data)
+                if not sku_obj:
+                    index_status.setdefault(row_idx, set()).add('Invalid SKU Code')
+                else:
+                    data_dict['sku_id'] = sku_obj[0].id
+            elif key in ['source_seller', 'dest_seller']:
+                if isinstance(cell_data, (int, float)):
+                    cell_data = str(int(cell_data))
+                try:
+                    seller_obj = all_sellers.filter(seller_id=cell_data)
+                    if not seller_obj:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % exc_reverse[key])
+                    else:
+                        data_dict[key] = seller_obj[0].id
+                except:
+                    index_status.setdefault(row_idx, set()).add('%s should be Number' % exc_reverse[key])
+            elif key in ['source_location', 'dest_location']:
+                location_obj = all_locations.filter(location=cell_data)
+                if not location_obj:
+                    index_status.setdefault(row_idx, set()).add('Invalid %s' % exc_reverse[key])
+                else:
+                    data_dict[key] = location_obj[0].id
+            elif key == 'quantity':
+                try:
+                    data_dict[key] = float(cell_data)
+                except:
+                    index_status.setdefault(row_idx, set()).add('%s should be number' % exc_reverse[key])
+        stocks = StockDetail.objects.filter(sku_id=data_dict['sku_id'],
+                                            sellerstock__seller_id=data_dict['source_seller'],
+                                            location_id=data_dict['source_location'], quantity__gt=0,
+                                            sellerstock__quantity__gt=0)
+        data_dict['src_stocks'] = stocks
+        data_dict['dest_stocks'] = StockDetail.objects.filter(sku_id=data_dict['sku_id'],
+                                            sellerstock__seller_id=data_dict['dest_seller'],
+                                            location_id=data_dict['dest_location'])
+        avail_qty = check_auto_stock_availability(stocks, user)
+        if data_dict['quantity'] > avail_qty:
+            index_status.setdefault(row_idx, set()).add('Available quantity is %s' % str(avail_qty))
+        all_data_list.append(data_dict)
+
+    if index_status:
+        f_name = generate_error_excel(index_status, fname, reader, file_type)
+        return f_name, all_data_list
+
+    return 'Success', all_data_list
+
+
+def update_seller_transer_upload(user, data_list):
+    trans_mapping = {}
+    stock_transfer_objs = []
+    for data_dict in data_list:
+        update_stocks_data(data_dict['src_stocks'], data_dict['quantity'], data_dict.get('dest_stocks', ''),
+                           data_dict['quantity'], user, data_dict['dest_location'], data_dict['sku_id'],
+                           src_seller_id=data_dict['source_seller'], dest_seller_id=data_dict['dest_seller'])
+        group_key = '%s:%s' % (str(data_dict['source_seller']), str(data_dict['dest_seller']))
+        if group_key not in trans_mapping.keys():
+            trans_id = get_max_seller_transfer_id(user)
+            seller_transfer = SellerTransfer.objects.create(source_seller_id=data_dict['source_seller'],
+                                          dest_seller_id=data_dict['dest_seller'],transact_id=trans_id,
+                                          transact_type='stock_transfer', creation_date=datetime.datetime.now())
+            trans_mapping[group_key] = seller_transfer.id
+        seller_st_dict = {'seller_transfer_id': trans_mapping[group_key], 'sku_id': data_dict['sku_id'],
+                          'source_location_id': data_dict['source_location'],
+                          'dest_location_id': data_dict['dest_location'], 'quantity': data_dict['quantity'],
+                          'creation_date': datetime.datetime.now()}
+        seller_st_obj = SellerStockTransfer(**seller_st_dict)
+        stock_transfer_objs.append(seller_st_obj)
+    SellerStockTransfer.objects.bulk_create(stock_transfer_objs)
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def seller_transfer_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        status, data_list = validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,fname,
+                                               file_type=file_type)
+        if status != 'Success':
+            return HttpResponse(status)
+        update_seller_transer_upload(user, data_list)
+        return HttpResponse('Success')
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Seller-Seller Transfer Upload failed for %s and params are %s and error statement is %s' % (
+                    str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Seller-Seller Transfer Upload Failed")

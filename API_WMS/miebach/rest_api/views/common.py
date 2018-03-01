@@ -1394,11 +1394,12 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
             SellerStock.objects.create(seller_id=seller_id, stock_id=stock.id, quantity=quantity)
 
 
-def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, seller_id=''):
+def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id='',
+                       dest_seller_id=''):
     for stock in stocks:
         if stock.quantity > move_quantity:
             stock.quantity -= move_quantity
-            change_seller_stock(seller_id, stock, user, move_quantity, 'dec')
+            change_seller_stock(src_seller_id, stock, user, move_quantity, 'dec')
             move_quantity = 0
             if stock.quantity < 0:
                 stock.quantity = 0
@@ -1406,7 +1407,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
         elif stock.quantity <= move_quantity:
 
             move_quantity -= stock.quantity
-            change_seller_stock(seller_id, stock, user, stock.quantity, 'dec')
+            change_seller_stock(src_seller_id, stock, user, stock.quantity, 'dec')
             stock.quantity = 0
             stock.save()
         if move_quantity == 0:
@@ -1417,12 +1418,12 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                                   status=1, creation_date=datetime.datetime.now(),
                                   updation_date=datetime.datetime.now(), location_id=dest[0].id, sku_id=sku_id)
         dest_stocks.save()
-        change_seller_stock(seller_id, dest_stocks, user, float(quantity), 'create')
+        change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
     else:
         dest_stocks = dest_stocks[0]
         dest_stocks.quantity += float(quantity)
         dest_stocks.save()
-        change_seller_stock(seller_id, dest_stocks, user, quantity, 'inc')
+        change_seller_stock(dest_seller_id, dest_stocks, user, quantity, 'inc')
 
 
 def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id=''):
@@ -1465,8 +1466,8 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
             return 'Seller Stock Not Found'
 
     dest_stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=dest[0].id, sku__user=user.id)
-    update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, seller_id)
-
+    update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
+                       dest_seller_id=seller_id)
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
     data_dict['cycle'] = cycle_id
     data_dict['sku_id'] = sku_id
@@ -6279,3 +6280,14 @@ def update_created_extra_status(user, selection):
                     grp_perm.sequence = status_selected.index(grp_perm.perm_value)
                     grp_perm.status = 1
                     grp_perm.save()
+
+
+def get_max_seller_transfer_id(user):
+    trans_id = ''
+    seller_obj = SellerTransfer.objects.filter(source_seller__user=user.id).\
+                                        aggregate(Max('transact_id'))['transact_id__max']
+    if seller_obj:
+        trans_id = seller_obj + 1
+    else:
+        trans_id = 1
+    return trans_id

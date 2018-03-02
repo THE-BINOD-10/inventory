@@ -202,7 +202,7 @@
       self.change_disc = change_disc;
       function change_disc(disc) {
         disc = parseFloat(disc);
-        var perc = parseFloat((disc * 100)/(self.order.total_amount + self.order.total_discount).toFixed(2));
+        var perc = parseFloat(((disc * 100)/(self.order.total_amount + self.order.total_discount)).toFixed(2));
         self.total_amount = parseFloat((self.order.total_amount + self.order.total_discount - disc).toFixed(2));
         self.disc_percent = perc;
       }

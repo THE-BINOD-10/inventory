@@ -182,7 +182,7 @@
             limit(30).toArray().then(function(data){
                 customer_list=customer_list.concat(data);
         
-                POS_TABLES.sync_customer.where("user").equals(user_id)
+                POS_TABLES.sync_customer.where("user").equals(user_id).
                 and(function(data){
                     if(data.number!=undefined && data.number!=null){
                        if(data.number.toString().toLocaleLowerCase().startsWith(find_key.toLocaleLowerCase())){
@@ -627,11 +627,14 @@
             SPWAN(function*(){
 
                 //get the order id  
-                var order_number= yield POS_TABLES.checksum.where("name").
-                equals(ORDER_ID).toArray();
+                var order_number;
+                yield getCurrentOrderID().then(function(data){
+                            order_number=data;
+                        }).catch(function(error){
+                            return reject(error);
+                        });
                 
-                if(order_number.length>0){
-
+                if(order_number!=undefined){
 
                     var updated_order_id;
                     
@@ -651,11 +654,11 @@
 
                     //add "order id" to order
                     if(is_all_return==false){
-                        order_data.summary.order_id=order_number[0].checksum;
-                        updated_order_id=++order_number[0].checksum;
+                        order_data.summary.order_id=order_number;
+                        updated_order_id=++order_number;
                     }else{
-                        updated_order_id=order_number[0].checksum;
-                        order_data.summary.order_id=--order_number[0].checksum;
+                        updated_order_id=order_number;
+                        order_data.summary.order_id=--order_number;
                         //order_data.summary.status="0";
                     }
 
@@ -1623,6 +1626,63 @@
         });
     }
 
+    //check user basic info
+    function checkUserInfo(){
+        var user_info,fetched=true;
+        return new Promise(function(resolve,reject){
+            openDB().then(function(){
+               SPWAN(function*(){
+                    //check user info           
+                    yield getUserID().
+                            then(function(data){
+                                if(data==undefined){
+                                    user_info="POS not get the user info";
+                                    fetched=false;
+                                }
+                            }).catch(function(error){
+                                user_info="POS not get the user info";
+                                fetched=false;
+                            });
 
+                    //get order_id info        
+                    yield getCurrentOrderID().then(function(data){
+                            console.log("order id is" +data)
+                        }).catch(function(error){
+                            user_info="POS not get the latest order id";
+                            fetched=false;
+                        });
 
+                    if(fetched){
+                        return resolve(true);
+                    }else{
+                        return reject(user_info);
+                    }
 
+               });
+            });    
+        });
+    }
+
+    //get order id
+    function getCurrentOrderID(){
+        return new Promise(function(resolve,reject){
+            openDB().then(function(){
+                POS_TABLES.checksum.where("name").
+                            equals(ORDER_ID).toArray().
+                            then(function(order_info){
+                                if(order_info.length>0 &&
+                                    order_info[0].checksum!=undefined &&
+                                    order_info[0].checksum.toString().trim().length!=0 &&
+                                    order_info[0].checksum!=0){
+                                       return resolve(order_info[0].checksum); 
+                                    
+                                }else{
+                                    return reject("pos order id not getting");
+                                }
+                            }).catch(function(error){
+                                return reject(error.message);
+                            });
+               
+            });
+        });                
+    }

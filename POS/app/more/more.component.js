@@ -220,7 +220,8 @@
                           }
 							self.isDisabled = true;
 							self.success_msg = data.message;
-							if(del==='true') $("."+order_id).parent('div').addClass("ng-hide");
+							//if(del==='true') $("."+order_id).parent('div').addClass("ng-hide");
+                            $("."+order_id).parent('div').addClass("ng-hide");
 							$(".already_delivered").removeClass("ng-hide").addClass("ng-show");
 							self.selected_order.status = '0';
 						}

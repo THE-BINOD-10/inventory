@@ -2491,11 +2491,11 @@ def get_order_summary_data(search_params, user, sub_user):
                                                 ('SKU Class', data.sku.sku_class),
                                                 ('SKU Size', data.sku.sku_size), ('SKU Description', data.sku.sku_desc),
                                                 ('SKU Code', data.sku.sku_code), ('Order Qty', int(data.quantity)),
-                                                ('MRP', int(data.sku.mrp)), ('Unit Price', unit_price),
+                                                ('MRP', int(data.sku.mrp)), ('Unit Price', float(unit_price)),
                                                 ('Discount', discount),
-                                                ('Taxable Amount', taxable_amount), ('Tax', tax),
+                                                ('Taxable Amount', float(taxable_amount)), ('Tax', tax),
                                                 ('City', data.city), ('State', data.state), ('Marketplace', data.marketplace),
-                                                ('Invoice Amount', invoice_amount), ('Price', data.sku.price),
+                                                ('Invoice Amount', float(invoice_amount)), ('Price', data.sku.price),
                                                 ('Status', status), ('Order Status', order_status),
                                                 ('Remarks', remarks), ('Order Taken By', order_taken_by)))
         aaData.update(OrderedDict(pos_extra))

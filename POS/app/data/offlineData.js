@@ -14,6 +14,9 @@
                         yield POS_TABLES.skumaster.clear();
                         console.log("clear all the local sku master"); 
 
+                        if(skulist.length==0)
+                            return resolve(true);
+
                         for(var skudata=1;skudata<=skulist.length;skudata++){
 
                             yield POS_TABLES.skumaster.bulkPut(skulist.slice(0,1000)).then(function(res){
@@ -79,6 +82,10 @@
 
             SPWAN(function*(){
                 yield POS_TABLES.customer.clear();
+
+                if(customer_list.length==0){
+                    return resolve(true);
+                }
 
                 for(var customer_data=1;customer_data<=customer_list.length;customer_data++){
                     yield POS_TABLES.customer.bulkPut(customer_list.splice(0,1000)).then(function(res){
@@ -182,7 +189,7 @@
             limit(30).toArray().then(function(data){
                 customer_list=customer_list.concat(data);
         
-                POS_TABLES.sync_customer.where("user").equals(user_id)
+                POS_TABLES.sync_customer.where("user").equals(user_id).
                 and(function(data){
                     if(data.number!=undefined && data.number!=null){
                        if(data.number.toString().toLocaleLowerCase().startsWith(find_key.toLocaleLowerCase())){
@@ -781,6 +788,9 @@
 
                 var preorder_delivered_details=[];
                 
+                if(delivered_ids.length==0)
+                    return resolve(preorder_delivered_details);
+
                 for(var delivered_id=0;delivered_id<delivered_ids.length;delivered_id++){
 
                     yield getPreOrderData(delivered_ids[delivered_id]).then(function(data){
@@ -1072,6 +1082,10 @@
                     yield POS_TABLES.pre_orders.clear();
                     console.log("clear all the local preorders");
 
+                    if(preoder_list==0){
+                            return resolve(true);
+                    }
+
                     for(var preorder_item=1;preorder_item<=preoder_list.length;preorder_item++){
 
                         var preorderData=preoder_list.slice(0,1000);
@@ -1106,8 +1120,8 @@
                         });
 
                         if(preoder_list==0){
-                                return resolve(true);
-                            }
+                            return resolve(true);
+                        }
                         
                     }
                 });

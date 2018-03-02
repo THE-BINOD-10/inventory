@@ -384,13 +384,9 @@ def get_corporate_master(start_index, stop_index, temp_data, search_term, order_
 
         if data.phone_number:
             try:
-                data.phone_number = int(float(data.phone_number))
+                data.phone_number = int(data.phone_number)
             except:
                 data.phone_number = ''
-
-        # price_band_flag = get_misc_value('priceband_sync', user.id)
-        # if price_band_flag == 'true':
-        #     user = get_admin(data.user)
 
         phone_number = ''
         if data.phone_number and data.phone_number != '0':
@@ -1246,7 +1242,7 @@ def update_customer_values(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-def update_Corporate_values(request, user=''):
+def update_corporate_values(request, user=''):
     """ Update Corporate Data"""
     log.info('Update Corporate Values request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
@@ -1310,8 +1306,6 @@ def insert_corporate(request, user=''):
         if not data:
             data_dict = copy.deepcopy(CORPORATE_DATA)
             for key, value in request.POST.iteritems():
-                # if key in loop_exclude_list:
-                #     continue
                 if key == 'status':
                     if value == 'Active':
                         value = 1

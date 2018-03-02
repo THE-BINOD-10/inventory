@@ -120,7 +120,6 @@ def get_user_permissions(request, user):
 @get_admin_user
 def get_corporate_master_id(request, user=''):
     corporate_id = 1
-    reseller_price_type = ''
     corporate_master = CorporateMaster.objects.filter(user=user.id).values_list('corporate_id', flat=True).order_by(
         '-corporate_id')
     if corporate_master:
@@ -239,10 +238,11 @@ def add_user_type_permissions(user_profile):
     update_perm = False
     if user_profile.user_type == 'warehouse_user':
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment',
-                     'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster']
+                     'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster', 'corporatemaster']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
-        exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster']
+        exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster', 
+                    'corporatemaster']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST

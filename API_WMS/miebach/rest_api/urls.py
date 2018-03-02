@@ -36,7 +36,7 @@ urlpatterns = [
     url(r'^insert_mapping/$', insert_mapping),
     url(r'^update_customer_values/$', update_customer_values),
     url(r'^insert_customer/$', insert_customer),
-    url(r'^update_Corporate_values/$', update_Corporate_values),
+    url(r'^update_corporate_values/$', update_corporate_values),
     url(r'^insert_corporate/$', insert_corporate),
     url(r'^insert_customer_sku/$', insert_customer_sku),
     url(r'^update_customer_sku_mapping/$', update_customer_sku_mapping),

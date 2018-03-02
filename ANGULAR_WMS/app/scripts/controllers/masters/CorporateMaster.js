@@ -129,7 +129,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.corporate('insert_corporate/');
       } else {
         vm.model_data['data-id'] = vm.model_data.DT_RowId;
-        vm.corporate('update_Corporate_values/');
+        vm.corporate('update_corporate_values/');
       }
     } else if (!(data.phone_number.$valid)) {
       vm.service.pop_msg('Invalid phone number');

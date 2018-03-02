@@ -85,7 +85,6 @@
                 <select class="form-control corporate_status" ng-model="showCase.model_data.status" name="status">
                   <option ng-repeat="status in showCase.status_data" ng-selected="status=='Active'" value="{{status}}">{{status}}</option>
                 </select>
-                {{showCase.model_data.status}}
               </div>
             </div>
             <div class="col-md-8">
@@ -96,16 +95,6 @@
                     <textarea rows="5" class="form-control" cols="27" ng-model="showCase.model_data.address" name="address"></textarea>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-          <div class="row" ng-if="permissions.user_type == 'warehouse'">
-            <div class="col-md-4">
-              <div class="form-group">
-                <label class="control-label"> Distributor Flag </label>
-                <select class="form-control is_distributor" ng-model="showCase.model_data.is_distributor" name="is_distributor">
-                  <option ng-repeat="is_distributor in ['True', 'False']" ng-selected="showCase.model_data.is_distributor==is_distributor" value="{{is_distributor}}">{{is_distributor}}</option>
-                </select>
               </div>
             </div>
           </div>

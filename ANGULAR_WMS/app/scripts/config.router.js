@@ -284,7 +284,7 @@ var app = angular.module('urbanApp')
           })
         .state('app.masters.CorporateMaster', {
           url: '/CorporateMaster',
-          // permission: 'add_customermaster',
+          permission: 'add_corporatemaster',
           templateUrl: 'views/masters/corporate_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {

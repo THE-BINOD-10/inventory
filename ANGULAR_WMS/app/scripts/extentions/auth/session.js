@@ -4,12 +4,10 @@
   angular.module("auth").service("Session", function ($rootScope, $q) {
 
     var that = this;
-    //that.host = 'https://api.stockone.in/';
-    that.host = 'http://dev.stockone.in/';
-    //that.host = 'http://localhost:7654/';
+    that.host = 'http://localhost:7654/';
     that.url = that.host+'rest_api/';
 
-    that.pos_host = 'https://wms.mieone.com/';
+    that.pos_host = 'http://pos.mieone.com/';
 
     function resetSession () {
 

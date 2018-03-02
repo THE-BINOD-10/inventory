@@ -1666,6 +1666,8 @@ def add_group_data(request, user=''):
     permissions = Permission.objects.all()
     prod_stages = ProductionStages.objects.filter(user=user.id).values_list('stage_name', flat=True)
     brands = Brands.objects.filter(user=user.id).values_list('brand_name', flat=True)
+    order_statuses = get_misc_value('extra_view_order_status', user.id)
+    order_statuses = order_statuses.split(',')
     perms_list = []
     ignore_list = ['session', 'webhookdata', 'swxmapping', 'userprofile', 'useraccesstokens', 'contenttype', 'user',
                    'permission', 'group', 'logentry']
@@ -1685,7 +1687,8 @@ def add_group_data(request, user=''):
             if temp in reversed_perms.keys() and reversed_perms[temp] not in perms_list:
                 perms_list.append(reversed_perms[temp])
     return HttpResponse(
-        json.dumps({'perms_list': perms_list, 'prod_stages': list(prod_stages), 'brands': list(brands)}))
+        json.dumps({'perms_list': perms_list, 'prod_stages': list(prod_stages), 'brands': list(brands),
+                    'order_statuses': order_statuses}))
 
 
 @csrf_exempt
@@ -1696,6 +1699,7 @@ def add_group(request, user=''):
     stages_list = ''
     selected_list = ''
     brands_list = ''
+    status_list = ''
     group = ''
     permission_dict = copy.deepcopy(PERMISSION_DICT)
     reversed_perms = {}
@@ -1707,12 +1711,15 @@ def add_group(request, user=''):
     selected = request.POST.get('perm_selected')
     stages = request.POST.get('stage_selected')
     brands = request.POST.get('brand_selected')
+    statuses = request.POST.get('status_selected')
     if selected:
         selected_list = selected.split(',')
     if stages:
         stages_list = stages.split(',')
     if brands:
         brands_list = brands.split(',')
+    if statuses:
+        status_list = statuses.split(',')
 
     name = request.POST.get('name')
     if name:
@@ -1720,7 +1727,7 @@ def add_group(request, user=''):
     group_exists = Group.objects.filter(name=name)
     if group_exists:
         return HttpResponse('Group Name already exists')
-    if not group_exists and (selected_list or stages_list or brands_list):
+    if not group_exists and (selected_list or stages_list or brands_list or status_list):
         group, created = Group.objects.get_or_create(name=name)
         if stages_list:
             stage_group = GroupStages.objects.create(group=group)
@@ -1740,6 +1747,25 @@ def add_group(request, user=''):
             if brand_obj:
                 brand_group.brand_list.add(brand_obj[0])
                 brand_group.save()
+        for stage in stages_list:
+            if not stage:
+                continue
+            stage_obj = ProductionStages.objects.filter(stage_name=stage, user=user.id)
+            if stage_obj:
+                stage_group.stages_list.add(stage_obj[0])
+                stage_group.save()
+        for sequence, ord_status in enumerate(status_list):
+            if not ord_status:
+                continue
+            group_perm_obj = GroupPermMapping.objects.filter(group_id=group.id, perm_type='extra_order_status',
+                                                             perm_value=ord_status)
+            if group_perm_obj:
+                group_perm = group_perm_obj[0]
+                group_perm.perm_value = ord_status
+                group_perm.save()
+            else:
+                GroupPermMapping.objects.create(group_id=group.id, perm_type='extra_order_status',
+                                                perm_value=ord_status, sequence=sequence)
         for perm in selected_list:
             if not perm:
                 continue
@@ -2173,6 +2199,8 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
         invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
     elif user.username == 'campus_sutra':
         invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
+    elif user_profile.warehouse_type == 'DIST':
+        invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
     else:
         if from_pos:
             sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))
@@ -2238,6 +2266,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     hsn_summary = {}
     is_gst_invoice = False
     invoice_date = datetime.datetime.now()
+    order_reference_date_field = ''
+    order_charges = ''
 
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -2258,10 +2288,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     if order_ids:
         sor_id = ''
         order_ids = list(set(order_ids.split(',')))
-        price_band_flag = get_misc_value('priceband_sync', user.id)
-        auto_ord_qty_map = {}
-        if price_band_flag == 'true':
-            auto_ord_qty_map = get_dist_auto_ord_det_ids(order_ids)
         order_data = OrderDetail.objects.filter(id__in=order_ids)
         seller_summary = SellerOrderSummary.objects.filter(
             Q(seller_order__order_id__in=order_ids) | Q(order_id__in=order_ids))
@@ -2276,9 +2302,15 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
         if order_data and order_data[0].customer_id:
             dat = order_data[0]
-            customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id). \
-                                    values('customer_id', 'name', 'email_id', 'tin_number', 'address',
-                                           'credit_period', 'phone_number'))
+            gen_ord_customer_id = order_data[0].genericorderdetailmapping_set.values_list('customer_id', flat=True)
+            if gen_ord_customer_id and user.userprofile.warehouse_type == 'DIST':
+                customer_details = list(CustomerMaster.objects.filter(id=gen_ord_customer_id[0]).
+                                        values('customer_id', 'name', 'email_id', 'tin_number', 'address',
+                                               'credit_period', 'phone_number'))
+            else:
+                customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id).
+                                        values('customer_id', 'name', 'email_id', 'tin_number', 'address',
+                                               'credit_period', 'phone_number'))
             if customer_details:
                 customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address']
                 if customer_details[0]['phone_number']:
@@ -2306,7 +2338,12 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
         for dat in order_data:
             order_id = dat.original_order_id
-            order_no = str(dat.order_id)
+            gen_ord_num = GenericOrderDetailMapping.objects.filter(orderdetail_id=order_data[0].id)
+            if gen_ord_num and user.userprofile.warehouse_type == 'DIST':
+                order_no = str(gen_ord_num[0].generic_order_id)
+                order_id = dat.order_code + order_no
+            else:
+                order_no = str(dat.order_id)
             order_reference = dat.order_reference
             order_reference_date = ''
             order_reference_date_field = ''
@@ -2339,7 +2376,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             cgst_tax, sgst_tax, igst_tax, utgst_tax = 0, 0, 0, 0
             mrp_price = dat.sku.mrp
             taxes_dict = {}
-            order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=dat.id)
+            order_summary = CustomerOrderSummary.objects.filter(order_id=dat.id)
             tax_type = ''
             if order_summary:
                 tax = order_summary[0].tax_value
@@ -2359,19 +2396,15 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             picklist = Picklist.objects.exclude(order_type='combo').filter(order_id=dat.id). \
                 aggregate(Sum('picked_quantity'))['picked_quantity__sum']
             quantity = picklist
-            if str(dat.id) in auto_ord_qty_map:
-                quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
-                el_price_qs = GenericOrderDetailMapping.objects.filter(orderdetail_id=dat.id).values_list('el_price',
-                                                                                                          flat=True)
-                if el_price_qs:
-                    el_price = round(el_price_qs[0], 2)
+            el_price_qs = GenericOrderDetailMapping.objects.filter(orderdetail_id=dat.id).values_list('el_price',
+                                                                                                      flat=True)
+            if el_price_qs:
+                el_price = round(el_price_qs[0], 2)
 
-            if merge_data:
+            if merge_data and user.userprofile.warehouse_type != 'DIST':
                 quantity_picked = merge_data.get(dat.sku.sku_code, "")
                 if quantity_picked:
                     quantity = float(quantity_picked)
-                    if str(dat.id) in auto_ord_qty_map:
-                        quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
                 else:
                     continue
 
@@ -2380,9 +2413,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     annotate(total=Sum('picked_quantity'))
                 if picklist:
                     quantity = picklist[0].total
-                    if str(dat.id) in auto_ord_qty_map:
-                        quantity = quantity + int(auto_ord_qty_map[str(dat.id)])
-
             if dat.unit_price > 0:
                 unit_price = dat.unit_price
             else:
@@ -2518,7 +2548,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date,
-                    'order_charges' : order_charges}
+                    }
     return invoice_data
 
 
@@ -3099,13 +3129,16 @@ def get_group_data(request, user=''):
     brands = list(GroupBrand.objects.filter(group_id=group.id).values_list('brand_list__brand_name', flat=True))
     stages = list(GroupStages.objects.filter(group_id=group.id).values_list('stages_list__stage_name', flat=True))
     permissions = group.permissions.values_list('codename', flat=True)
+    statuses = list(GroupPermMapping.objects.filter(group_id=group.id, perm_type='extra_order_status').\
+                                    values_list('perm_value', flat=True).order_by('sequence'))
     perms = []
     for perm in permissions:
         temp = perm
         if temp in reversed_perms.keys() and (reversed_perms[temp] not in perms):
             perms.append(reversed_perms[temp])
     return HttpResponse(
-        json.dumps({'group_name': group_name, 'data': {'brands': brands, 'stages': stages, 'permissions': perms}}))
+        json.dumps({'group_name': group_name, 'data': {'brands': brands, 'stages': stages, 'permissions': perms,
+                                                       'View Order Statuses': statuses}}))
 
 
 def get_sku_master(user, sub_user):
@@ -3143,7 +3176,7 @@ def create_update_user(full_name, email, phone_number, password, username, role_
                 user_profile = UserProfile.objects.create(phone_number=phone_number, user_id=user.id,
                                                           api_hash=hash_code, prefix=prefix, user_type=role_name)
                 user_profile.save()
-            status = 'User Added Successfully'
+            status = 'New Customer Added'
 
     return status, new_user_id
 
@@ -3446,7 +3479,7 @@ def apply_search_sort(columns, data_dict, order_term, search_term, col_num, exac
     return data_dict
 
 
-def password_notification_message(username, password, name, to, role_name):
+def password_notification_message(username, password, name, to, role_name='Customer'):
     """ Send SMS for password modification """
     arguments = "%s -- %s -- %s -- %s" % (username, password, name, to)
     log.info(arguments)
@@ -5879,8 +5912,9 @@ def create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, wh,
                         'po_number': corporate_po_number,
                         'client_name': client_name,
                         'el_price': el_price,
-                        'schedule_date': del_date
                         }
+    if del_date:
+        order_detail_map['schedule_date'] = del_date
     gen_ord_dt_map_obj = GenericOrderDetailMapping.objects.filter(**order_detail_map)
     order_detail_map['quantity'] = stock_cnt
     order_detail_map['unit_price'] = order_unit_price
@@ -5913,9 +5947,10 @@ def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):
 def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_objs, is_distributor,
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs, address_selected=''):
+    order_data_excluding_keys = ['warehouse_level', 'margin_data', 'el_price', 'del_date']
     order_unit_price = order_data['unit_price']
     el_price = order_data.get('el_price', 0)
-    del_date = order_data['del_date']
+    del_date = order_data.get('del_date', '')
     if not is_distributor:
 
         sku_code = order_data['sku_code']
@@ -5952,14 +5987,9 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                                                order_code=dist_order_copy['order_code'],
                                                user=dist_order_copy['user'])
         if not order_obj:
-            if 'warehouse_level' in dist_order_copy:
-                dist_order_copy.pop('warehouse_level')
-            if 'margin_data' in dist_order_copy:
-                dist_order_copy.pop('margin_data')
-            if 'el_price' in order_data:
-                dist_order_copy.pop('el_price')
-            if 'del_date' in order_data:
-                dist_order_copy.pop('del_date')
+            for exc_key in order_data_excluding_keys:
+                if exc_key in dist_order_copy:
+                    dist_order_copy.pop(exc_key)
             order_detail = OrderDetail(**dist_order_copy)
             order_detail.save()
         else:
@@ -5969,18 +5999,14 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
         order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'],
                                                sku_id=order_data['sku_id'],
                                                order_code=order_data['order_code'])
+        dist_order_copy = copy.copy(order_data)
         # Distributor can place order directly to any wh/distributor
-        if 'warehouse_level' in order_data:
-            order_data.pop('warehouse_level')
-        if 'margin_data' in order_data:
-            order_data.pop('margin_data')
-        if 'el_price' in order_data:
-            order_data.pop('el_price')
-        if 'del_date' in order_data:
-            order_data.pop('del_date')
+        for exc_key in order_data_excluding_keys:
+            if exc_key in dist_order_copy:
+                dist_order_copy.pop(exc_key)
             
         if not order_obj:
-            order_detail = OrderDetail(**order_data)
+            order_detail = OrderDetail(**dist_order_copy)
             order_detail.save()
         else:
             order_detail = order_obj[0]
@@ -6160,7 +6186,7 @@ def create_order_pos(user, order_objs):
                             mapping_obj = MastersMapping.objects.create(master_id=cust_master.id, mapping_id=supplier_id,
                                                           mapping_type='customer-supplier', user=user.id,
                                                           creation_date=datetime.datetime.now())
-                            cust_supp_mapping[cust_master.customer_id] = supplier_id
+                            cust_supp_mapping[str(cust_master.customer_id)] = supplier_id
                     else:
                         cust_supp_mapping[str(cust_master.customer_id)] = master_mapping[0].mapping_id
             if not cust_supp_mapping.get(str(order_obj.customer_id), ''):
@@ -6211,7 +6237,7 @@ def get_customer_based_price(customer_obj, price, mrp,is_sellingprice='', user_i
         price = price * float(1 - float(customer_obj.discount_percentage) / 100)
     elif customer_obj.markup:
         price = price * float(1 + float(customer_obj.markup) / 100)
-        if price > mrp:
+        if mrp and price > mrp:
             price = mrp
     return price
 
@@ -6234,3 +6260,35 @@ def save_sku_stats(user, sku_id, transact_id, transact_type, quantity):
         result_data = []
         log.info('Save SKU Detail Stats failed for %s and sku id is %s and error statement is %s' % (
             str(user.username), str(sku_id), str(e)))
+
+
+def get_view_order_statuses(request, user):
+    view_order_status = get_misc_value('extra_view_order_status', user.id)
+    if view_order_status == 'false':
+        view_order_status = ''
+    if not view_order_status:
+        return view_order_status, False
+    view_order_status = view_order_status.split(',')
+    if not request.user.is_staff:
+        view_order_status = list(GroupPermMapping.objects.filter(group__user__id=request.user.id, status=1).\
+                                        values_list('perm_value', flat=True).distinct().order_by('sequence'))
+    return view_order_status, True
+
+
+def update_created_extra_status(user, selection):
+    sub_users = get_related_users(user.id)
+    status_selected = selection.split(',')
+    for sub_user in sub_users:
+        grp_perm_map = GroupPermMapping.objects.filter(group__user__id=sub_user)
+        exist_grp_sequence = list(grp_perm_map.filter(status=1).\
+            values_list('perm_value', flat=True).distinct().order_by('sequence'))
+        if exist_grp_sequence != status_selected:
+            for sequence, grp_perm in enumerate(grp_perm_map):
+                if grp_perm.perm_value not in status_selected:
+                    grp_perm.status = 0
+                    grp_perm.sequence = 0
+                    grp_perm.save()
+                else:
+                    grp_perm.sequence = status_selected.index(grp_perm.perm_value)
+                    grp_perm.status = 1
+                    grp_perm.save()

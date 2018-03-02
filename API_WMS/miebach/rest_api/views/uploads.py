@@ -337,7 +337,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
             cell_data = str(int(cell_data))
         order_data['sku_id'] = sku_masters_dict[cell_data]
         if not order_data.get('title', ''):
-            order_data['title'] = all_sku_decs.get(cell_data, '')
+            order_data['title'] = all_sku_decs.get(order_data['sku_id'], '')
 
         order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'],
                                                order_code=order_data.get('order_code', ''),
@@ -484,7 +484,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     log.info("Validation Ended %s" % (datetime.datetime.now()))
-    all_sku_decs = dict(SKUMaster.objects.filter(user=user.id).values_list('sku_code', 'sku_desc'))
+    all_sku_decs = dict(SKUMaster.objects.filter(user=user.id).values_list('id', 'sku_desc'))
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
@@ -1188,6 +1188,8 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
 
             elif key == 'zone_id':
                 if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = str(int(cell_data))
                     data = ZoneMaster.objects.filter(zone=cell_data.upper(), user=user.id)
                     if not data:
                         index_status.setdefault(row_idx, set()).add('Invalid Zone')
@@ -1253,7 +1255,7 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
                 if cell_data and cell_data.lower() not in MIX_SKU_MAPPING.keys():
                     index_status.setdefault(row_idx, set()).add('Invalid option for Mix SKU')
             elif key == 'load_unit_handle':
-                if cell_data and cell_data.lower() not in LOAD_UNIT_HANDLE_DICT.keys():
+                if cell_data and str(cell_data).lower() not in LOAD_UNIT_HANDLE_DICT.keys():
                     index_status.setdefault(row_idx, set()).add('Invalid option for Load Unit Handling')
             elif key == 'sub_category' and user.username == 'sagar_fab':
                 if cell_data:
@@ -2961,8 +2963,8 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
 
 def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
     mapping_dict = get_customer_master_mapping(reader, file_type)
-    number_fields = ['credit_period', 'phone_number', 'pincode', 'phone', 'discount_percentage']
-    float_fields = ['discount_percentage']
+    number_fields = ['credit_period', 'phone_number', 'pincode', 'phone', 'discount_percentage', 'markup']
+    float_fields = ['discount_percentage', 'markup']
     rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:

@@ -914,6 +914,7 @@ def switches(request, user=''):
                        'create_order_po': 'create_order_po',
                        'calculate_customer_price': 'calculate_customer_price',
                        'shipment_sku_scan': 'shipment_sku_scan',
+                       'extra_view_order_status':'extra_view_order_status',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -945,6 +946,8 @@ def switches(request, user=''):
                 InvoiceSequence.objects.get_or_create(user_id=user.id, marketplace='',
                                                       defaults={'status': 1, 'prefix': '',
                                                                 'creation_date': datetime.datetime.now(), 'value': 1})
+            elif toggle_field == 'extra_view_order_status' and selection:
+                update_created_extra_status(user, selection)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

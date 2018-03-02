@@ -237,7 +237,6 @@ importScripts('/app/data/offlineData.js');
 
     //service worker sync event listner
     self.addEventListener("sync",function(event){
-
     	if(navigator.onLine){
     		if(event.tag==SYNC_POS_DATA && (POS_ENABLE_SYNC==false)){
 		    	POS_ENABLE_SYNC=true;

@@ -472,7 +472,7 @@ def prepare_delivery_challan_json(request, order_id, user_id):
     json_data = {}
     customer_data, summary, gst_based = {}, {}, {}
     sku_data = []
-    total_quantity, total_amount, subtotal, total_discount = [0] * 4
+    total_quantity, total_amount, subtotal, total_discount, tot_cgst, tot_sgst = [0] * 6
     status = 'fail'
     order_date = NOW
     user = User.objects.get(id=user_id)
@@ -495,8 +495,7 @@ def prepare_delivery_challan_json(request, order_id, user_id):
         #original_selling_price = sku.price
         original_selling_price = (order.unit_price * 100)/(100 - discount_percentage)
         #discount = original_selling_price - order.unit_price
-        selling_price = order.unit_price if order.unit_price != 0 \
-            else float(order.invoice_amount) / float(order.quantity)
+        selling_price = float(order.invoice_amount) / float(order.quantity)
         order_summary = CustomerOrderSummary.objects.filter(order_id=order.id)
         if order_summary:
             #total_discount  += (order_summary[0].discount * order.quantity)
@@ -504,6 +503,9 @@ def prepare_delivery_challan_json(request, order_id, user_id):
             tax_master = order_summary.values('sgst_tax', 'cgst_tax', 'igst_tax', 'utgst_tax')[0]
         else:
             tax_master = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
+        item_sgst = (order.invoice_amount/order.quantity) * tax_master['sgst_tax']/100
+        item_cgst = (order.invoice_amount/order.quantity) * tax_master['cgst_tax']/100
+        selling_price -= (item_cgst + item_sgst)
         gst_based.setdefault(tax_master['cgst_tax'], {'taxable_amt': 0,
                                                       'cgst_percent': tax_master["cgst_tax"],
                                                       'sgst_percent': tax_master["sgst_tax"],
@@ -523,15 +525,19 @@ def prepare_delivery_challan_json(request, order_id, user_id):
                          'unit_price': selling_price,
                          'selling_price': original_selling_price,
                          'discount': discount_percentage,
-                         'sgst': order.invoice_amount * tax_master["sgst_tax"] / 100,
-                         'cgst': order.invoice_amount * tax_master["cgst_tax"] / 100
+                         'sgst': item_sgst,
+                         'cgst': item_cgst
                          })
         total_quantity += int(order.quantity)
         #total_amount += (float(order.invoice_amount) + discount + \
         #                 (float(order.invoice_amount) * tax_master["sgst_tax"] / 100) + \
         #                 (float(order.invoice_amount) * tax_master["cgst_tax"] / 100) );
-        
-        total_amount += (float(order.invoice_amount))
+        if order_summary[0].issue_type == "Delivery Challan":
+            sgst_temp = float(order.invoice_amount) * tax_master["sgst_tax"] / 100;
+            cgst_temp = float(order.invoice_amount) * tax_master["cgst_tax"] / 100;
+            total_amount += (float(order.invoice_amount) - sgst_temp - cgst_temp)
+        else:
+            total_amount += (float(order.invoice_amount))
     if order_detail:
         status = 'success'
         order = order_detail[0]
@@ -556,10 +562,15 @@ def prepare_delivery_challan_json(request, order_id, user_id):
         order_summary = CustomerOrderSummary.objects.filter(order_id=order.id)
         if order_summary:
             order_summary = order_summary[0]
+            for item in gst_based:
+                tot_sgst += gst_based[item]['sgst']
+                tot_cgst += gst_based[item]['cgst']
             summary = {'total_quantity': total_quantity,
-                       'total_amount': total_amount - total_discount,
+                       'total_amount': total_amount,
                        'total_discount': total_discount,
                        'subtotal': total_amount,
+                       'cgst': tot_cgst,
+                       'sgst': tot_sgst,
                        'gst_based': gst_based,
                        'staff_member': order_summary.order_taken_by,
                        'issue_type': order_summary.issue_type}

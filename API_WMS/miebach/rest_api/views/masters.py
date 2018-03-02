@@ -344,6 +344,66 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                          )))
 
 
+@csrf_exempt
+def get_corporate_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['corporate_id', 'name', 'email_id', 'phone_number', 'address', 'status']
+    search_params = get_filtered_params(filters, lis)
+    if 'status__icontains' in search_params.keys():
+        if (str(search_params['status__icontains']).lower() in "active"):
+            search_params["status__icontains"] = 1
+        elif (str(search_params['status__icontains']).lower() in "inactive"):
+            search_params["status__icontains"] = 0
+        else:
+            search_params["status__icontains"] = "none"
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+
+    if search_term:
+        search_dict = {'active': 1, 'inactive': 0}
+        if search_term.lower() in search_dict:
+            search_terms = search_dict[search_term.lower()]
+            master_data = CorporateMaster.objects.filter(status=search_terms, user=user.id, **search_params).order_by(
+                order_data)
+
+        else:
+            master_data = CorporateMaster.objects.filter(
+                Q(name__icontains=search_term) | Q(address__icontains=search_term) |
+                Q(phone_number__icontains=search_term) | Q(email_id__icontains=search_term),
+                user=user.id, **search_params).order_by(order_data)
+
+    else:
+        master_data = CorporateMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
+
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data in master_data[start_index: stop_index]:
+        status = 'Inactive'
+        if data.status == '1':
+            status = 'Active'
+
+        if data.phone_number:
+            try:
+                data.phone_number = int(float(data.phone_number))
+            except:
+                data.phone_number = ''
+
+        # price_band_flag = get_misc_value('priceband_sync', user.id)
+        # if price_band_flag == 'true':
+        #     user = get_admin(data.user)
+
+        phone_number = ''
+        if data.phone_number and data.phone_number != '0':
+            phone_number = data.phone_number
+        temp_data['aaData'].append(
+            OrderedDict((('corporate_id', data.corporate_id), ('name', data.name), ('address', data.address),
+                         ('phone_number', phone_number), ('email_id', data.email_id), ('status', status),
+                         ('tin_number', data.tin_number), ('cst_number', data.cst_number),
+                         ('pan_number', data.pan_number), ('pincode', data.pincode), ('city', data.city), 
+                         ('state', data.state), ('country', data.country), 
+                         ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')), ('DT_RowId', data.corporate_id), 
+                         ('DT_RowClass', 'results'))))
+
 
 @csrf_exempt
 def get_staff_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -1183,6 +1243,44 @@ def update_customer_values(request, user=''):
     return HttpResponse('Updated Successfully')
 
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_Corporate_values(request, user=''):
+    """ Update Corporate Data"""
+    log.info('Update Corporate Values request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        data_id = request.POST['corporate_id']
+        data = get_or_none(CorporateMaster, {'corporate_id': data_id, 'user': user.id})
+        _name = data.name
+        for key, value in request.POST.iteritems():
+            if key not in data.__dict__.keys():
+                continue
+            if key == 'status':
+                if value == 'Active':
+                    value = 1
+                else:
+                    value = 0
+            if key == 'email_id':
+                if not value:
+                    continue
+                setattr(data, key, value)
+
+            setattr(data, key, value)
+        data.save()
+        name_ch = False
+        if _name != data.name:
+            name_ch = True
+        
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update Corporate Values failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse('Update Corporate Data Failed')
+    return HttpResponse('Updated Successfully')
+
+
 def create_level_wise_price_type(level, price_type, customer_master, user):
     if price_type:
         customer_price_type = CustomerPricetypes.objects.filter(level=level, price_type=price_type,
@@ -1195,6 +1293,44 @@ def create_level_wise_price_type(level, price_type, customer_master, user):
             log.info('Level type 2 created for %s login for customer %s and price type is %s' % (
                 user.username, customer_master.name, price_type
             ))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_corporate(request, user=''):
+    """ Add New Corporate"""
+    log.info('Add New Corporate request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        corporate_id = request.POST['corporate_id']
+        if not corporate_id:
+            return HttpResponse('Missing Required Fields')
+        data = filter_or_none(CorporateMaster, {'corporate_id': corporate_id, 'user': user.id})
+        status_msg = 'Corporate Exists'
+        sku_status = 0
+        if not data:
+            data_dict = copy.deepcopy(CORPORATE_DATA)
+            for key, value in request.POST.iteritems():
+                # if key in loop_exclude_list:
+                #     continue
+                if key == 'status':
+                    if value == 'Active':
+                        value = 1
+                    else:
+                        value = 0
+                if value == '':
+                    continue
+                data_dict[key] = value
+            data_dict['user'] = user.id
+            corporate_master = CorporateMaster(**data_dict)
+            corporate_master.save()
+            status_msg = 'New Corporate Added' 
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Add New Corporate failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+    
+    return HttpResponse(status_msg)
 
 
 @csrf_exempt

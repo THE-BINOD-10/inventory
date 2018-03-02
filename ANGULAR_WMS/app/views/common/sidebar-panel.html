@@ -32,7 +32,8 @@
     </li>
     <!-- /dashboard -->
 
-    <!-- Masters -->
+    <!-- 
+      Masters -->
     <li data-ng-class="{open: $state.includes('app.masters')}" ng-show="show_tab('MASTERS_LABEL')">
       <a href="javascript:;">
         <i class="fa fa-cubes"></i>
@@ -57,6 +58,11 @@
         <li ui-sref-active="active">
           <a ui-sref="app.masters.supplierSKUMapping" ng-show="show_tab('add_skusupplier')">
             <span>Supplier-SKU Mapping</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.masters.CorporateMaster">
+            <span>Corporate Master</span>
           </a>
         </li>
         <li ui-sref-active="active">

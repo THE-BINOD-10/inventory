@@ -115,6 +115,20 @@ def get_user_permissions(request, user):
     return {'permissions': roles, 'label_perms': label_perms}
 
 
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_corporate_master_id(request, user=''):
+    corporate_id = 1
+    reseller_price_type = ''
+    corporate_master = CorporateMaster.objects.filter(user=user.id).values_list('corporate_id', flat=True).order_by(
+        '-corporate_id')
+    if corporate_master:
+        corporate_id = corporate_master[0] + 1
+
+    return HttpResponse(json.dumps({'corporate_id': corporate_id, 'tax_data': TAX_VALUES}))
+
+
 def get_label_permissions(request, user, role_perms, user_type):
     label_keys = copy.deepcopy(LABEL_KEYS)
     sub_label_keys = copy.deepcopy(PERMISSION_DICT)
@@ -411,7 +425,7 @@ data_datatable = {  # masters
     'SizeMaster': 'get_size_master_data', 'PricingMaster': 'get_price_master_results', \
     'SellerMaster': 'get_seller_master', 'SellerMarginMapping': 'get_seller_margin_mapping', \
     'TaxMaster': 'get_tax_master', 'NetworkMaster': 'get_network_master_results',\
-    'StaffMaster': 'get_staff_master',
+    'StaffMaster': 'get_staff_master', 'CorporateMaster': 'get_corporate_master',
     # inbound
     'RaisePO': 'get_po_suggestions', 'ReceivePO': 'get_confirmed_po', \
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \

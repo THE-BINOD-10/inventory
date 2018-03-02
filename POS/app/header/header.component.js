@@ -42,7 +42,9 @@
 		if(navigator.onLine){
             //sync pos data 
             navigator.serviceWorker.ready.then(function() {
-            	if(POS_ENABLE_SYNC===false){
+            	if(POS_UPDATE_FOUND){
+            		reloadPOSPage();
+            	}else if(POS_ENABLE_SYNC===false){
 	                urlService.show_loading();
 	                syncPOSTransactionData().then(function(){
 	                    $rootScope.sync_status = false;

@@ -1131,6 +1131,29 @@ class CustomerSKU(models.Model):
         unique_together = ('customer', 'sku')
 
 
+class CorporateMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField(default=0)
+    name = models.CharField(max_length=256, default='')
+    address = models.CharField(max_length=256, default='')
+    city = models.CharField(max_length=64, default='')
+    state = models.CharField(max_length=64, default='')
+    country = models.CharField(max_length=64, default='')
+    pincode = models.CharField(max_length=64, default='')
+    phone_number = models.CharField(max_length=32, default='')
+    email_id = models.CharField(max_length=64, default='')
+    status = models.CharField(max_length=11, default='')
+    tin_number = models.CharField(max_length=64, default='')
+    corporate_id = models.PositiveIntegerField(default=0)
+    cst_number = models.CharField(max_length=64, default='')
+    pan_number = models.CharField(max_length=64, default='')
+    tax_type = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CORPORATE_MASTER'
+
 class SKUGroups(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()

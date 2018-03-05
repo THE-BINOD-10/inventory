@@ -19,7 +19,7 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   var url = "get_customer_order_detail/?order_id=";
-  if(vm.status == "orders") {
+  if(vm.status == "enquiry") {
     url = "get_customer_enquiry_detail/?enquiry_id=";
   } else if (vm.status == "manual_enquiry") {
     url = "get_manual_enquiry_detail/?user_id="+Session.userId+"&enquiry_id=";

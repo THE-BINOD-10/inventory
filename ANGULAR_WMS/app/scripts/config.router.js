@@ -299,6 +299,19 @@ var app = angular.module('urbanApp')
              url: '/corporate',
              templateUrl: 'views/masters/toggles/corporate_update.html'
            })
+        .state('app.masters.CorporateMapping', {
+          url: '/CorporateMapping',
+          permission: 'add_corporatemaster',
+          templateUrl: 'views/masters/corporate_mapping.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/CorporateMapping.js');
+                    }]
+          },
+          data: {
+            title: 'Reseller Corporate Mapping',
+          }
+        })
         .state('app.masters.CustomerMaster', {
           url: '/CustomerMaster',
           permission: 'add_customermaster',

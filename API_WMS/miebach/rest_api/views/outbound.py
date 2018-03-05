@@ -6191,16 +6191,15 @@ def get_level_based_customer_orders(request, response_data, user):
     generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
     generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
     picklist = Picklist.objects.filter(order_id__in=generic_details_ids)
-    response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id'). \
+    response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id', 'id', 'orderdetail_id'). \
                                  annotate(total_quantity=Sum('quantity')).
                                  order_by('-generic_order_id'))
     response_data['data'] = response_data['data'][start_index:stop_index]
     for record in response_data['data']:
-
         order_details = generic_orders.filter(generic_order_id=record['generic_order_id'])
-        order_detail_ids = order_details.values_list('orderdetail_id', flat=True)
+        # order_detail_ids = order_details.values_list('orderdetail_id', flat=True)
+        order_detail_ids = [record['orderdetail_id']]
         data = OrderDetail.objects.filter(id__in=order_detail_ids)
-
         ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code')
         if ord_det_qs:
             order_detail_order_id = ord_det_qs[0]['original_order_id']
@@ -6209,7 +6208,6 @@ def get_level_based_customer_orders(request, response_data, user):
             other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
             if not other_charges:
                 other_charges = 0
-
         data_status = data.filter(status=1)
         if data_status:
             status = 'open'
@@ -6219,8 +6217,9 @@ def get_level_based_customer_orders(request, response_data, user):
                                           status__icontains='open')
             if pick_status:
                 status = 'open'
-        picked_quantity = picklist.filter(order_id__in=order_detail_ids).aggregate(
-            Sum('picked_quantity'))['picked_quantity__sum']
+        picked_quantity = picklist.filter(order_id__in=order_detail_ids).aggregate(Sum('picked_quantity'))
+        if picked_quantity:
+            picked_quantity = picked_quantity['picked_quantity__sum']
         if not picked_quantity:
             picked_quantity = 0
         record['picked_quantity'] = picked_quantity
@@ -6232,7 +6231,8 @@ def get_level_based_customer_orders(request, response_data, user):
         if record['generic_order_id']:
             record['order_id'] = record['generic_order_id']
         record['order_detail_ids'] = list(order_details.values_list('orderdetail__order_id', flat=True).distinct())
-        record['reseller_name'] = CustomerMaster.objects.get(id=order_details[0].customer_id).name
+        customer_id = GenericOrderDetailMapping.objects.get(id=record['id']).customer_id
+        record['reseller_name'] = CustomerMaster.objects.get(id=customer_id).name
         for ord_det_id in order_detail_ids:
             gen_ord_obj = generic_orders.filter(orderdetail_id=ord_det_id)
             if gen_ord_obj:
@@ -6260,7 +6260,7 @@ def get_level_based_customer_orders(request, response_data, user):
                             order_detail_order_id = str(ord_det_qs[0]['order_code']) + str(ord_det_qs[0]['order_id'])
                         other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
                         if other_charges:
-                            record['total_inv_amt'] += other_charges
+                            record['total_inv_amt'] += round(other_charges, 2)
     return response_data
 
 
@@ -6650,6 +6650,19 @@ def get_customer_cart_data(request, user=""):
                     json_record['freight_charges'] = "true"
                 else:
                     json_record['freight_charges'] = "false"
+                stock_obj = StockDetail.objects.filter(sku=record.sku.id, quantity__gt=0).values(
+                    'sku_id').distinct().annotate(in_stock=Sum('quantity'))
+                if stock_obj:
+                    stock_qty = stock_obj[0]['in_stock']
+                else:
+                    stock_qty = 0
+                reserved_obj = PicklistLocation.objects.filter(stock__sku=record.sku.id, status=1).values(
+                    'stock__sku_id').distinct().annotate(in_reserved=Sum('reserved'))
+                if reserved_obj:
+                    reserved_qty = reserved_obj[0]['in_reserved']
+                else:
+                    reserved_qty = 0
+                json_record['avail_stock'] = stock_qty - reserved_qty
                 # level = json_record['warehouse_level']
                 if is_distributor:
                     if price_type:
@@ -7944,15 +7957,11 @@ def get_customer_enquiry_detail(request, user=''):
     sku_wise_details = {}
     enquiry_id = request.GET['enquiry_id']
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
-    user_profile = UserProfile.objects.filter(user=request.user.id)
     filters = {'enquiry_id': float(enquiry_id)}
-    if user_profile and (user_profile[0].warehouse_type == 'DIST' or user_profile[0].warehouse_type == 'CENTRAL_ADMIN'
-                         or user_profile[0].warehouse_type == ''):  # No warehouse user for sub distributor user.
+    if not cum_obj:
         if not request.GET.get('customer_id', ''):
             return HttpResponse("Please Send Customer ID")
         filters['customer_id'] = request.GET.get('customer_id', '')
-    elif not cum_obj:
-        return HttpResponse("No Customer User Mapping Object")
     else:
         filters['customer_id'] = cum_obj[0].customer_id
     em_qs = EnquiryMaster.objects.filter(**filters)

@@ -32,11 +32,13 @@
       
       $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
            .then( function(data) {
-				self.sku_data_filtered = data.data.file_content.slice(0,500);
-				self.sku_data = data.data.file_content;
-				self.slice_from = 0;
-				self.slice_to = 500;
-                self.selected_skus = [];
+            
+    				self.sku_data_filtered = data.data.file_content.slice(0,500);
+    				self.sku_data = data.data.file_content;
+    				self.slice_from = 0;
+    				self.slice_to = 500;
+            self.selected_skus = [];
+            
             },function(error){
               getOflfineSkuContent();
               
@@ -46,9 +48,24 @@
       function getOflfineSkuContent(){
         getData("").then(function(data){
                 if(data.length==0){
-                  urlService.show_toast("offline has no sku's");
+                  if(self.sku_data.length<0)
+                    urlService.show_toast("offline has no sku's");
+                  
+                  //uncheck selected sku's
+                  for(var sk in self.sku_data_filtered) {
+                    self.sku_data_filtered[sk]["checked"] = false;
+                  }
+
+                  for (var sk in self.sku_data) {
+                    $('input[name="selected_sku"][value="'+self.sku_data[sk]["SKUCode"]+'"]').prop("checked", false);
+                  }
+                  //clear the dialog filtered data
+                  self.sku_data_filtered=[];
+                  //clear the selected skus
+                  self.selected_skus = [];
+                  intialiseMultiSelectData(self.sku_data);
                 }else{
-                  self.sku_data = data;
+                  self.sku_data = data;  
                   intialiseMultiSelectData(self.sku_data);
                   self.selected_skus = [];
                 }
@@ -129,7 +146,9 @@
 				if(self.sku_data_filtered[sk]["SKUCode"] === sku_code) {
                     self.sku_data_filtered[sk]["checked"] = true;
 					update_search_results([self.sku_data_filtered[sk]], sku_code);
-                    cal_total();
+          angular.forEach(self.skus, function(value, index) {
+            self.changeQuantity(value);
+          });
 				}
 			}
 		}
@@ -167,19 +186,8 @@
 
     //uncheck all the select sku fields
     function uncheckMultiSelectSkus(){
-       /*for(var sk in self.sku_data_filtered) {
-          self.sku_data_filtered[sk]["checked"] = false;
-       }
-       for (var sk in self.sku_data) {
-          $('input[name="selected_sku"][value="'+self.sku_data[sk]["SKUCode"]+'"]').prop("checked", false);
-       }*/
-       //clear the dialog filtered data
-       self.sku_data_filtered=[];
-       //clear the selected skus
-       self.selected_skus = [];
-       //set the sku data from the offline
-       getOflfineSkuContent();
-    }
+        getOflfineSkuContent();
+      }
      //intialise first data
      function intialiseMultiSelectData(data){
       self.slice_from = 0;
@@ -202,12 +210,24 @@
 		}
 	 }
 
+    /*$rootScope.$on("CallParentMethod", function(){
+      $scope.parentmethod();
+    });
+
+    $scope.parentmethod = function() {
+      cal_total();
+    }*/
+
+    $scope.$on('empty', function() {
+      cal_total();
+    })
+
       //calculate total items
       self.cal_total = cal_total;
       function cal_total(){
         urlService.current_order.summary.total_amount = 0;
         urlService.current_order.summary.total_quantity = 0;
-        urlService.current_order.summary.total_discount = 0;
+        //urlService.current_order.summary.total_discount = 0;
         urlService.current_order.summary.total_returned = 0;
         urlService.current_order.summary.subtotal = 0;
         urlService.current_order.summary.sgst = 0;
@@ -221,7 +241,6 @@
       			self.skus[i].sgst = self.skus[i].cgst = self.skus[i].igst = self.skus[i].utgst = 0;
   		    }
           self.skus[i].price = self.skus[i].quantity * self.skus[i].unit_price;
-          
           urlService.current_order.summary.total_amount += self.skus[i].price;
           urlService.current_order.summary.subtotal += self.skus[i].price;
           urlService.current_order.summary.sgst += (self.skus[i].sgst * self.skus[i].quantity);
@@ -236,50 +255,54 @@
           }
           urlService.current_order.summary.total_quantity += self.skus[i].quantity;
 
-          if(Object.keys(urlService.current_order.summary.gst_based).includes(self.skus[i].cgst_percent.toString())) {
-              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["taxable_amt"] += self.skus[i].price;
-              
-              if (self.tax_inclusive) {
-                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent *
-                                                 (self.skus[i].price)/100);
-                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] += (self.skus[i].sgst_percent *
-                                                 (self.skus[i].price)/100);
-              } else {
-                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] -= (self.skus[i].cgst_percent *
-                                                 (self.skus[i].price)/100);
-                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] -= (self.skus[i].sgst_percent *
-                                                 (self.skus[i].price)/100);
-              }
+          var discount = (((self.skus[i].selling_price * self.skus[i].quantity) * self.skus[i].discount)/100);
+          /*if (!self.tax_inclusive) {
+            urlService.current_order.summary.total_discount += discount;
+          }*/
+          discount = (urlService.current_order.summary.total_discount/self.skus.length);
 
+          var agg = (self.skus[i].price + (self.skus[i].cgst*self.skus[i].quantity) + (self.skus[i].sgst*self.skus[i].quantity));
+          var tax_amt = agg - (self.skus[i].cgst_percent *(agg/100)) - (self.skus[i].sgst_percent *(agg/100)) - discount;
+          if(Object.keys(urlService.current_order.summary.gst_based).includes(self.skus[i].cgst_percent.toString())) {
+              if (self.tax_inclusive) {
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] += (self.skus[i].cgst_percent * (agg/100));
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] += (self.skus[i].sgst_percent * (agg/100));
+              } else {
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["cgst"] -= (self.skus[i].cgst_percent * (agg/100));
+                urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["sgst"] -= (self.skus[i].sgst_percent * (agg/100));
+              }
+              urlService.current_order.summary.gst_based[self.skus[i].cgst_percent]["taxable_amt"] += tax_amt;
           } else {
               urlService.current_order.summary.gst_based[self.skus[i].cgst_percent] =
-                            {"taxable_amt": self.skus[i].price,
+                            {"taxable_amt": tax_amt,
                              "cgst_percent" : self.skus[i].cgst_percent,
                              "sgst_percent" : self.skus[i].sgst_percent,
-                             "cgst": (self.skus[i].cgst_percent * (self.skus[i].price)/100),
-                             "sgst": (self.skus[i].sgst_percent * (self.skus[i].price)/100)
+                             "cgst": (self.skus[i].cgst_percent *(agg/100)),
+                             "sgst": (self.skus[i].sgst_percent *(agg/100))
                             }
           }
           urlService.current_order.summary.cgst = Math.abs(urlService.current_order.summary.cgst);
           urlService.current_order.summary.sgst = Math.abs(urlService.current_order.summary.sgst);
           if (self.tax_inclusive) {
             self.skus[i].price = self.skus[i].price + (self.skus[i].cgst * self.skus[i].quantity) + (self.skus[i].sgst * self.skus[i].quantity);
+            //self.skus[i].subtotal = self.skus[i].subtotal - (self.skus[i].cgst * self.skus[i].quantity) - (self.skus[i].sgst * self.skus[i].quantity);
           }
 		  if (self.skus[i].return_status === "true" ) {
 			    urlService.current_order.summary.total_discount += 0;
           urlService.current_order.summary.total_returned += -self.skus[i].price;
           }
 		  else
-            if (!self.tax_inclusive) {
-              urlService.current_order.summary.total_discount += (self.skus[i].selling_price * self.skus[i].quantity) - self.skus[i].price;
-            }
-
+          
           if ((self.skus.length-1) == i) {
             urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount;
 
             urlService.current_order.summary.total_amount = urlService.current_order.summary.total_amount + urlService.current_order.summary.sgst + urlService.current_order.summary.cgst + urlService.current_order.summary.igst + urlService.current_order.summary.utgst;
           }
         }
+
+        /*if (self.tax_inclusive) {
+          urlService.current_order.summary.subtotal -= urlService.current_order.summary.sgst + urlService.current_order.summary.igst + urlService.current_order.summary.cgst + urlService.current_order.summary.utgst
+        }*/
         urlService.current_order.summary.issue_type = self.issue_selected;
         var date=new Date();
         urlService.current_order.summary.invoice_number = "TI/"+(date.getMonth()+1)+date.getFullYear().toString().substr(2)+"/";
@@ -448,14 +471,16 @@
               self.submit_enable = false;
 
               //update the current order id
-              data=data.order_ids[0]+1;
-              reduceSKUQty(order_data);
-              setCheckSum(setOrderID(data)).
-                then(function(data){
-                  console.log("order id updated");
-              }).catch(function(error){
-                  console.log("order id updated error "+error);
-              });
+              if(data.order_ids[0]!="return"){
+                data=data.order_ids[0]+1;
+                setCheckSum(setOrderID(data)).
+                  then(function(data){
+                    console.log("order id updated");
+                }).catch(function(error){
+                    console.log("order id updated error "+error);
+                });
+                reduceSKUQty(order_data);
+              }
           }
             clear_fields();
           },function(error){
@@ -716,16 +741,16 @@
             } else {
 
               self.skus[i].quantity = parseInt(item.quantity);
-              self.skus[i].discount = (item.discount) ? parseInt(item.discount) : 0;
+              self.skus[i].discount = (item.discount) ? parseFloat(item.discount) : 0;
               self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
               if(self.tax_inclusive) {
                 self.skus[i].unit_price = self.skus[i].unit_price - self.skus[i].cgst - self.skus[i].sgst;
               }
-              cal_total();
             }
             break;
           }
         }
+        cal_total();
       }
   
       self.changePrice = changePrice;
@@ -743,25 +768,26 @@
                   item.selling_price = 0;
                   item.discount = 0;
                   item.total_discount = 0;
-				  item.cgst=item.sgst=item.utgst=item.igst=0;
-                  cal_total();
+				          item.cgst=item.sgst=item.utgst=item.igst=0;
                 } else {
-     
                   item.selling_price = item.price;
                   self.skus[i].quantity = parseInt(item.quantity);
-                  self.skus[i].discount = (item.discount && self.skus[i].return_status==='false') ? parseInt(item.discount) : 0;
-				  self.skus[i].sgst = item.price * self.skus[i]['sgst_percent'] / 100;
-				  self.skus[i].cgst = item.price * self.skus[i]['cgst_percent'] / 100;
-				  self.skus[i].igst = item.price * self.skus[i]['igst_percent'] / 100;
-				  self.skus[i].utgst= item.price * self.skus[i]['utgst_percent'] / 100;
+                  self.skus[i].discount = (item.discount && self.skus[i].return_status==='false') ? parseFloat(item.discount) : 0;
+                  self.skus[i].sgst = item.price * self.skus[i]['sgst_percent'] / 100;
+        				  self.skus[i].cgst = item.price * self.skus[i]['cgst_percent'] / 100;
+        				  self.skus[i].igst = item.price * self.skus[i]['igst_percent'] / 100;
+        				  self.skus[i].utgst= item.price * self.skus[i]['utgst_percent'] / 100;
                   urlService.current_order.sku_data = self.skus;
-  self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
-                  cal_total();
+                  self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
+                  if(self.tax_inclusive) {
+                    self.skus[i].unit_price = self.skus[i].unit_price - self.skus[i].cgst - self.skus[i].sgst - self.skus[i].igst;
+                  }
                 }
                 break;
               }
             }
         }
+        cal_total();
       }
       
   

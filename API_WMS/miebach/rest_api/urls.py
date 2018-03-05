@@ -87,6 +87,8 @@ urlpatterns = [
     url(r'^get_terms_and_conditions/$', get_terms_and_conditions),
     url(r'^insert_update_terms/$', insert_update_terms),
     url(r'^delete_terms/$', delete_terms),
+    url(r'^insert_staff/$', insert_staff),
+    url(r'^update_staff_values/$', update_staff_values),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),
@@ -139,6 +141,7 @@ urlpatterns = [
     url('^generate_po_labels/$', generate_po_labels),
     url('^check_generated_label/$', check_generated_label),
     url('^get_receive_po_style_view/$', get_receive_po_style_view),
+    url('^save_supplier_po/$', save_supplier_po),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -262,6 +265,7 @@ urlpatterns = [
     url(r'^remove_manual_enquiry_image/$', remove_manual_enquiry_image),
     url(r'^save_manual_enquiry_image/$', save_manual_enquiry_image),
     url(r'^request_manual_enquiry_approval/$', request_manual_enquiry_approval),
+    url(r'^get_invoice_details/$', get_invoice_details),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

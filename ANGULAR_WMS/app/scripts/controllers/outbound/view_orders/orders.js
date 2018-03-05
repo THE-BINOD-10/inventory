@@ -286,6 +286,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
             var all_order_details = data.data.data_dict[0].ord_data;
             vm.ord_status = data.data.data_dict[0].status;
+            vm.display_status_none = (vm.ord_status=="")?true:false;
 
             vm.model_data = {}
             var empty_data = {data: []}

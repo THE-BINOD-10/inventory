@@ -4,8 +4,7 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES
-
+from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES
 
 # from longerusername import MAX_USERNAME_LENGTH
 # Create your models here.
@@ -369,6 +368,7 @@ class PurchaseOrder(models.Model):
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
     received_quantity = models.FloatField(default=0)
     saved_quantity = models.FloatField(default=0)
+    intransit_quantity = models.FloatField(default=0)
     po_date = models.DateTimeField(auto_now_add=True)
     ship_to = models.CharField(max_length=64, default='')
     status = models.CharField(max_length=32, db_index=True)
@@ -1298,16 +1298,6 @@ class SizeMaster(models.Model):
         unique_together = ('user', 'size_name')
 
 
-class ProductGroups(models.Model):
-    group_type = models.CharField(max_length=64)
-    group_value = models.CharField(max_length=64)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'PRODUCT_GROUPS'
-
-
 class ProductAttributes(models.Model):
     user = models.ForeignKey(User, default=None)
     attribute_name = models.CharField(max_length=64, default='')
@@ -1368,16 +1358,6 @@ class ProductImages(models.Model):
 
     class Meta:
         db_table = 'PRODUCT_IMAGES'
-
-
-class ProductGroupsMapping(models.Model):
-    group_id = models.PositiveIntegerField()
-    product_groups = models.ForeignKey(ProductGroups)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'PRODUCT_GROUPS_MAPPING'
 
 
 class customerGroupsMapping(models.Model):
@@ -2183,6 +2163,20 @@ class OrderAwbMap(models.Model):
         unique_together = ('original_order_id', 'awb_no')
 
 
+class UserRoleMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    role_id = models.CharField(max_length=64, default='')
+    role_type = models.CharField(max_length=32, choices=ROLE_TYPE_CHOICES, default='supplier')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'USER_ROLE_MAPPING'
+        index_together = ('user', 'role_id', 'role_type')
+        unique_together = ('user', 'role_id', 'role_type')
+
+
 import django
 from django.core.validators import MaxLengthValidator
 from django.utils.translation import ugettext as _
@@ -2382,6 +2376,20 @@ class IntransitOrders(models.Model):
         unique_together = ('user', 'customer_id', 'intr_order_id', 'sku')
 
 
+class StaffMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    staff_name = models.CharField(max_length=256, default='')
+    phone_number = models.CharField(max_length=32)
+    email_id = models.EmailField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'STAFF_MASTER'
+        unique_together = ('user', 'staff_name')
+        index_together = ('user', 'staff_name')
+
+
 class MastersMapping(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
@@ -2394,6 +2402,7 @@ class MastersMapping(models.Model):
     class Meta:
         db_table = 'MASTERS_MAPPING'
         unique_together = ('user', 'master_id', 'mapping_id', 'mapping_type')
+
 
 class ManualEnquiry(models.Model):
     id = BigAutoField(primary_key=True)
@@ -2435,3 +2444,16 @@ class ManualEnquiryImages(models.Model):
 
     class Meta:
         db_table = 'MANUAL_ENQUIRY_IMAGES'
+
+
+class GroupPermMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    group = models.ForeignKey(Group)
+    perm_type = models.CharField(max_length=32)
+    perm_value = models.CharField(max_length=64, default='')
+    sequence = models.IntegerField(default=0)
+    status = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'GROUP_PERM_MAPPING'
+        unique_together = ('group', 'perm_type', 'perm_value')

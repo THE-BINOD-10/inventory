@@ -5,8 +5,8 @@
          .component("summary", {
 
            "templateUrl": "/app/order_summary/summary.template.html",
-           "controller"  : ["$http", "$scope", "urlService", "manageData", "$state", "$location", "$window",
-    function ($http, $scope, urlService, manageData, $state, $location, $window) {
+           "controller"  : ["$http", "$scope", "$rootScope", "urlService", "manageData", "$state", "$location", "$window",
+    function ($http, $scope, $rootScope, urlService, manageData, $state, $location, $window) {
 
       var self = this;
       self.VAT = urlService.VAT;
@@ -86,14 +86,10 @@
 
     //save user status in local db
     function saveUserData(user_data){
-
         setCheckSum(setCheckSumFormate(JSON.stringify(user_data),USER_DATA)).
                           then(function(data){
                               console.log("user data saved on locally "+data); 
-                                
-                               //calling pos sync 
-                               urlService.pos_sync();       
-                                         
+                              urlService.pos_sync();    
                           }).catch(function(error){
                              urlService.hide_loading();
                              console.log("user data saved fail in locally "+error.message); 
@@ -175,6 +171,45 @@
         self.staff_member = staff_member_value;
         urlService.current_order.summary.staff_member = self.staff_member;
         urlService.default_staff_member = self.staff_member;
+      }
+
+      //discount modal
+      self.discount_modal = discount_modal;
+      function discount_modal(){
+        self.total_amount = self.order.total_amount;
+        self.discount = self.order.total_discount;
+        self.disc_percent = parseFloat(((self.order.total_discount * 100)/(self.order.total_amount +
+                                         self.order.total_discount)).toFixed(2));
+        $("#discountModal").modal("show");
+      }
+
+      //change discount amount
+      self.change_disc = change_disc;
+      function change_disc(disc) {
+        disc = parseFloat(disc);
+        var perc = parseFloat((disc * 100)/(self.order.total_amount + self.order.total_discount).toFixed(2));
+        self.total_amount = parseFloat((self.order.total_amount + self.order.total_discount - disc).toFixed(2));
+        self.disc_percent = perc;
+      }
+
+      //change discount percentage
+      self.change_disc_perc = change_disc_perc;
+      function change_disc_perc(perc) {
+        perc = parseFloat(perc);
+        var amnt = parseFloat((((self.order.total_amount + self.order.total_discount) * perc)/100).toFixed(2));
+        self.total_amount = parseFloat((self.order.total_amount + self.order.total_discount - amnt).toFixed(2));
+        self.discount = amnt;
+      }
+    
+      //discount confirm
+      self.discount_confirm = discount_confirm;
+      function discount_confirm() {
+        self.order.total_discount = parseFloat(self.discount);
+        self.order.total_amount = parseFloat(self.total_amount);
+        urlService.current_order.summary.total_discount = self.order.total_discount;
+        urlService.current_order.summary.total_amount = self.order.total_amount;
+        $("#discountModal").modal("hide");
+        $rootScope.$broadcast('empty');
       }
 
     }]

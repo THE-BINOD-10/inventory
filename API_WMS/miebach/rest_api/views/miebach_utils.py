@@ -161,10 +161,6 @@ SKU_SUPPLIER_FIELDS = ((('Supplier ID *', 'supplier_id', 60), ('WMS Code *', 'wm
 RAISE_PO_FIELDS = ((('Supplier ID', 'supplier_id', 11), ('PO Name', 'po_name', 30)),
                    (('Ship To', 'ship_to', ''),))
 
-CUSTOM_ORDER_STATUS = {'Cleared': 'clear', 'Blocked': 'block', 'PO Raised - Yet to Recieve': 'po_rais',
-                       'In Production Stage': 'prdctn', 'In Printing Stage': 'prnt', 'In Embroidery Stage': 'embrdry',
-                       'Completed': 'cmpltd', 'Approved': 'approved', 'Disapproved': 'disapproved'}
-
 RAISE_PO_FIELDS1 = OrderedDict(
     [('WMS Code *', 'wms_code'), ('Supplier Code', 'supplier_code'), ('Quantity *', 'order_quantity'),
      ('Price', 'price')])
@@ -347,7 +343,7 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'Status', 'name': 'order_report_status', 'type': 'select'},
                 {'label': 'Order ID', 'name': 'order_id', 'type': 'input'}],
     'dt_headers': ['Order Date', 'Order ID', 'Customer Name', 'SKU Brand', 'SKU Category', 'SKU Class', 'SKU Size',
-                   'SKU Description', 'SKU Code', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'City',
+                   'SKU Description', 'SKU Code', 'Order Qty', 'Unit Price', 'Price', 'MRP', 'Discount', 'Tax', 'Taxable Amount', 'City',
                    'State', 'Marketplace', 'Invoice Amount', 'Status', 'Order Status', 'Remarks'],
     'dt_url': 'get_order_summary_filter', 'excel_name': 'order_summary_report',
     'print_url': 'print_order_summary_report',
@@ -922,14 +918,15 @@ PERMISSION_DICT = OrderedDict((
     ("MASTERS_LABEL", (("SKU Master", "add_skumaster"), ("Location Master", "add_locationmaster"),
                        ("Supplier Master", "add_suppliermaster"), ("Supplier SKU Mapping", "add_skusupplier"),
                        ("Customer Master", "add_customermaster"), ("Customer SKU Mapping", "add_customersku"),
-                       ("BOM Master", "add_bommaster"),
+                       ("BOM Master", "add_bommaster"), ("Staff Master", "add_staffmaster"),
                        ("Vendor Master", "add_vendormaster"), ("Discount Master", "add_categorydiscount"),
                        ("Custom SKU Template", "add_productproperties"), ("Size Master", "add_sizemaster"),
                        ('Pricing Master', 'add_pricemaster'), ('Network Master', 'add_networkmaster'),
                        ('Tax Master', 'add_taxmaster'), ('T&C Master', 'add_tandcmaster'))),
 
     # Inbound
-    ("INBOUND_LABEL", (("Raise PO", "add_openpo"), ("Receive PO", "add_purchaseorder"),
+    ("INBOUND_LABEL", (("Raise PO", "add_openpo"), ("Confirm PO", "change_openpo"),
+                       ("Receive PO", "add_purchaseorder"),
                        ("Quality Check", "add_qualitycheck"),
                        ("Putaway Confirmation", "add_polocation"), ("Sales Returns", "add_orderreturns"),
                        ("Returns Putaway", "add_returnslocation"))),
@@ -1232,6 +1229,9 @@ MP_CUSTOMER_INVOICE_HEADERS = ['UOR ID', 'SOR ID', 'Seller ID', 'Customer Name',
 
 WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time']
 
+DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', 'Order Quantity', 'Picked Quantity',
+                                 'Order Date&Time']
+
 # End of Customer Invoices page headers based on user type
 
 SUPPLIER_EXCEL_FIELDS = OrderedDict((('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),
@@ -1330,10 +1330,11 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'scan_picklist_option': 'scan_picklist_option',
                      'data_range': 'report_data_range', 'imei_limit': 'imei_limit',
                      'invoice_remarks': 'invoice_remarks',
-                     'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit'
+                     'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit',
+                     'extra_view_order_status': 'extra_view_order_status'
                      }
 
-CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS), 'all_view_order_status': CUSTOM_ORDER_STATUS,
+CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),
                    'mail_options': MAIL_REPORTS_DATA,
                    'mail_reports': MAIL_REPORTS, 'style_detail_headers': STYLE_DETAIL_HEADERS,
                    'picklist_options': PICKLIST_OPTIONS,
@@ -2464,12 +2465,11 @@ def get_order_summary_data(search_params, user, sub_user):
                 tax = cgst_amt + sgst_amt + igst_amt + utgst_amt
         else:
             tax = float(float(data.invoice_amount) / 100) * vat
-
         if order_status == 'None':
             order_status = ''
         invoice_amount = "%.2f" % ((float(unit_price) * float(data.quantity)) + tax - discount)
+        taxable_amount = "%.2f" % abs(float(invoice_amount) - float(tax))
         unit_price = "%.2f" % unit_price
-
         temp_data['aaData'].append(OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                 ('Customer Name', data.customer_name),
                                                 ('SKU Brand', data.sku.sku_brand),
@@ -2478,12 +2478,12 @@ def get_order_summary_data(search_params, user, sub_user):
                                                 ('SKU Size', data.sku.sku_size), ('SKU Description', data.sku.sku_desc),
                                                 ('SKU Code', data.sku.sku_code), ('Order Qty', int(data.quantity)),
                                                 ('MRP', int(data.sku.mrp)), ('Unit Price', unit_price),
-                                                ('Discount', data.sku.discount_percentage), ('City', data.city),
-                                                ('State', data.state), ('Marketplace', data.marketplace),
+                                                ('Discount', discount),
+                                                ('Taxable Amount', taxable_amount), ('Tax', tax),
+                                                ('City', data.city), ('State', data.state), ('Marketplace', data.marketplace),
                                                 ('Invoice Amount', invoice_amount), ('Price', data.sku.price),
                                                 ('Status', status), ('Order Status', order_status),
                                                 ('Remarks', remarks))))
-
     return temp_data
 
 

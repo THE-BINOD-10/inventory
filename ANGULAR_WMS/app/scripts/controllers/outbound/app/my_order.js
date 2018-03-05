@@ -24,6 +24,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   vm.order_data = {data: []};
   vm.index = '';
   vm.show_no_data = false;
+  vm.disable_brands_view = Session.roles.permissions.disable_brands_view;
   vm.date = new Date();
 
   vm.get_orders = function(key){

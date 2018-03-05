@@ -17,7 +17,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.user_type = Session.roles.permissions.user_type;
   vm.buttons_width = (Session.roles.permissions.create_order_po)? 4: 6;
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
-  vm.disable_brands_view = Session.roles.permissions.disable_brands_view;
+  vm.disable_brands = Session.roles.permissions.disable_brands_view;
 
   vm.order_type_value = "offline";
   vm.service = Service;

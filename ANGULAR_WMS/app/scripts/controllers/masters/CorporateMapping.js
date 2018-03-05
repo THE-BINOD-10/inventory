@@ -9,7 +9,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.distributors = [];
   vm.resellers = [];
-  vm.checked_items = {};
+  vm.total_items = {};
   vm.reseller = '';
 
   vm.get_corporates = function(res){
@@ -22,7 +22,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
 
     angular.forEach(vm.corporates, function(item){
-      vm.checked_items[item.corporate_id] = false;
+      vm.total_items[item.corporate_id] = false;
     });
   }
 
@@ -54,17 +54,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.submit = submit;
   function submit(data) {
     if (vm.reseller) {
+      var checked_items = [];
       var send = $("#form").serializeArray();
-      angular.forEach(vm.checked_items, function(row){
-        if (row) {
-          
+      angular.forEach(vm.total_items, function(value, key){
+        if (vm.total_items[key]) {
+          checked_items.push(key);
         }
       });
-
+      send.push({'name':'checked_items', 'value': checked_items});
       vm.service.apiCall("corporate_mapping_data/", 'POST', send).then(function(data){
         if(data.message) {
 
-          // vm.corporates = data.data.corporates;
+          // vm.corporates = data.data.data;
         }
       });
     } else {

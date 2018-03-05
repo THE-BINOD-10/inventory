@@ -6196,14 +6196,14 @@ def get_level_based_customer_orders(request, response_data, user):
     generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
     generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
     picklist = Picklist.objects.filter(order_id__in=generic_details_ids)
-    response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id', 'id', 'orderdetail_id'). \
+    response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id'). \
                                  annotate(total_quantity=Sum('quantity')).
                                  order_by('-generic_order_id'))
     response_data['data'] = response_data['data'][start_index:stop_index]
     for record in response_data['data']:
-        order_details = generic_orders.filter(generic_order_id=record['generic_order_id'])
-        # order_detail_ids = order_details.values_list('orderdetail_id', flat=True)
-        order_detail_ids = [record['orderdetail_id']]
+        order_details = generic_orders.filter(generic_order_id=record['generic_order_id'],
+                                              customer_id=record['customer_id'])
+        order_detail_ids = order_details.values_list('orderdetail_id', flat=True)
         data = OrderDetail.objects.filter(id__in=order_detail_ids)
         ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code')
         if ord_det_qs:
@@ -6236,7 +6236,7 @@ def get_level_based_customer_orders(request, response_data, user):
         if record['generic_order_id']:
             record['order_id'] = record['generic_order_id']
         record['order_detail_ids'] = list(order_details.values_list('orderdetail__order_id', flat=True).distinct())
-        customer_id = GenericOrderDetailMapping.objects.get(id=record['id']).customer_id
+        customer_id = record['customer_id']
         record['reseller_name'] = CustomerMaster.objects.get(id=customer_id).name
         for ord_det_id in order_detail_ids:
             gen_ord_obj = generic_orders.filter(orderdetail_id=ord_det_id)
@@ -6413,6 +6413,7 @@ def get_level_based_customer_order_detail(request, user):
     order_charge_dict = {}
     generic_order_id = request.GET['order_id']
     is_autobackorder = request.GET.get('autobackorder', 'false')
+    customer_id = request.GET.get('customer_id', '')
     user_profile = UserProfile.objects.get(user=request.user.id)
     cum_obj = ''
     if is_autobackorder == 'true':
@@ -6444,6 +6445,8 @@ def get_level_based_customer_order_detail(request, user):
         # generic_orders = GenericOrderDetailMapping.objects.filter(customer_id=cm_id)
         generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
         # generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
+        if customer_id:
+            generic_orders = generic_orders.filter(customer_id=customer_id)
         order_detail_ids = generic_orders.filter(generic_order_id=generic_order_id).values_list(
             'orderdetail_id', flat=True)
 

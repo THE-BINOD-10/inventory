@@ -854,8 +854,10 @@ def modify_po_update(request, user=''):
 @csrf_exempt
 @get_admin_user
 def switches(request, user=''):
+    
     log.info('Request params for ' + user.username + ' on ' + str(
         get_local_date(user, datetime.datetime.now())) + ' is ' + str(request.GET.dict()))
+    
     try:
         toggle_data = {'fifo_switch': 'fifo_switch',
                        'batch_switch': 'batch_switch',
@@ -915,6 +917,8 @@ def switches(request, user=''):
                        'calculate_customer_price': 'calculate_customer_price',
                        'shipment_sku_scan': 'shipment_sku_scan',
                        'extra_view_order_status':'extra_view_order_status',
+                       'disable_brands_view':'disable_brands_view',
+                       'invoice_challan_header': 'invoice_challan_header',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

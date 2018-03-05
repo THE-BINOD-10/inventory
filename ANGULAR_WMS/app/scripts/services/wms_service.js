@@ -1205,6 +1205,25 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     };
     });
 
+    app.directive('multiImageUpload', function () { 
+    return {
+        scope: true,
+        link: function (scope, el, attrs) {
+            el.bind('change', function (event) {
+                var fname = $(this).val();
+                var re = /(\.jpg|\.jpeg|\.bmp|\.gif|\.png)$/i;
+                if(!re.exec(fname)) {    
+                  scope.$emit("fileSelected", { file: [], msg:"File extension not supported!"});
+                  $(this).val('');
+                } else {
+                  var files = event.target.files;
+                  scope.$emit("fileSelected", { file: files, msg: "success"});
+                }
+            });
+        }
+    };
+    });
+
 app.directive('percentageField', [ '$filter', function( $filter ) {
     return {
         restrict: 'A',

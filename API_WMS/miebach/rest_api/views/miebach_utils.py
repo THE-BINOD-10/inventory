@@ -2441,6 +2441,7 @@ def get_order_summary_data(search_params, user, sub_user):
         order_status = ''
         remarks = ''
         order_taken_by = ''
+        payment_card, payment_cash = 0, 0
         order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data.id)
         unit_price = data.unit_price
         if order_summary:
@@ -2469,6 +2470,12 @@ def get_order_summary_data(search_params, user, sub_user):
         invoice_amount = "%.2f" % ((float(unit_price) * float(data.quantity)) + tax - discount)
         taxable_amount = "%.2f" % abs(float(invoice_amount) - float(tax))
         unit_price = "%.2f" % unit_price
+        #payment mode
+        payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_",\
+                                      original_order_id=data.original_order_id).values_list('name', 'value')
+        if payment_obj:
+            for pay in payment_obj:
+                exec("%s = %s" % (pay[0],pay[1]))
         #pos extra fields
         pos_extra = {}
         extra_fields = []
@@ -2497,7 +2504,8 @@ def get_order_summary_data(search_params, user, sub_user):
                                                 ('City', data.city), ('State', data.state), ('Marketplace', data.marketplace),
                                                 ('Invoice Amount', float(invoice_amount)), ('Price', data.sku.price),
                                                 ('Status', status), ('Order Status', order_status),
-                                                ('Remarks', remarks), ('Order Taken By', order_taken_by)))
+                                                ('Remarks', remarks), ('Order Taken By', order_taken_by),
+                                                ('Payment Cash', payment_cash), ('Payment Card', payment_card)))
         aaData.update(OrderedDict(pos_extra))
         temp_data['aaData'].append(aaData)
     return temp_data

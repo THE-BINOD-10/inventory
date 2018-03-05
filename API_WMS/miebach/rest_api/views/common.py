@@ -3839,9 +3839,11 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                                               style_quantities[sku_styles[0]['sku_class']])
                 sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
             else:
-                tax = sku_styles[0]['variants'][0]['taxes'][0]
-                tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
-                sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
+                tax = sku_styles[0]['variants'][0]['taxes']
+                if tax:
+                    tax = tax[0]
+                    tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
+                    sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
             if total_quantity >= int(stock_quantity):
                 if msp_min_price and msp_max_price:
                     if float(msp_min_price) <= sku_variants[0]['your_price'] <= float(msp_max_price):

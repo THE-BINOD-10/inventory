@@ -1039,6 +1039,8 @@ var app = angular.module('urbanApp')
                              'scripts/controllers/outbound/pop_js/backorder_jo.js',
                              'scripts/controllers/outbound/pop_js/stock_transfer.js',
                              'scripts/controllers/outbound/pop_js/picklist.js',
+                             'scripts/controllers/outbound/pop_js/enquiry_details.js',
+                             'scripts/controllers/outbound/pop_js/manual_details.js'
                              'scripts/controllers/outbound/pop_js/custom_order_details.js'
                             ]
                         }]);
@@ -1212,14 +1214,18 @@ var app = angular.module('urbanApp')
           })
         .state('app.outbound.EnquiryOrders', {
           url: '/EnquiryOrders',
-          templateUrl: 'views/outbound/enquiry_orders.html',
+          templateUrl: 'views/outbound/enquiry_details.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
-                  'scripts/controllers/outbound/pop_js/enquiry_details.js'
+                  'scripts/controllers/outbound/pending_manual_enquiry.js'
                 ]).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/outbound/enquiry_orders.js'
+                  ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/manual_enquiry.js'
                   ])
                 });
               }]
@@ -2044,7 +2050,9 @@ var app = angular.module('urbanApp')
             templateUrl: 'views/outbound/app/create_orders/your_orders.html',
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/outbound/app/my_order.js');
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/app/my_order.js'
+                ]);
               }]
             }
           })
@@ -2057,6 +2065,15 @@ var app = angular.module('urbanApp')
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load('scripts/controllers/outbound/app/order_details.js');
+              }]
+            }
+          })
+          .state('user.App.ManualEnquiry', {
+            url: '/ManualEnquiry',
+            templateUrl: 'views/outbound/app/create_orders/manual_enquiry.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/manual_enquiry.js');
               }]
             }
           })

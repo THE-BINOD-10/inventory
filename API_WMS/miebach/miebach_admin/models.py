@@ -4,7 +4,8 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, ROLE_TYPE_CHOICES
+from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES
+
 # from longerusername import MAX_USERNAME_LENGTH
 # Create your models here.
 
@@ -2426,6 +2427,48 @@ class MastersMapping(models.Model):
         unique_together = ('user', 'master_id', 'mapping_id', 'mapping_type')
 
 
+class ManualEnquiry(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    enquiry_id = models.DecimalField(max_digits=50, decimal_places=0)
+    customer_name = models.CharField(max_length=256, default='')
+    sku = models.ForeignKey(SKUMaster)
+    quantity = models.PositiveIntegerField()
+    customization_type =  models.CharField(max_length=64, default='',  choices=CUSTOMIZATION_TYPES)
+    status = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MANUAL_ENQUIRY'
+        unique_together = ('enquiry_id', 'customer_name', 'user')
+
+
+class ManualEnquiryDetails(models.Model):
+    id = BigAutoField(primary_key=True)
+    user_id = models.PositiveIntegerField()
+    enquiry = models.ForeignKey(ManualEnquiry)
+    ask_price = models.FloatField(default=0)
+    expected_date = models.DateField(blank=True, null=True)
+    remarks = models.TextField(default='')
+    status = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MANUAL_ENQUIRY_DETAILS'
+
+
+class ManualEnquiryImages(models.Model):
+    id = BigAutoField(primary_key=True)
+    enquiry = models.ForeignKey(ManualEnquiry)
+    image =  models.ImageField(upload_to='static/images/manual_enquiry/')
+    status = models.CharField(max_length=32)
+
+    class Meta:
+        db_table = 'MANUAL_ENQUIRY_IMAGES'
+
+
 class GroupPermMapping(models.Model):
     id = BigAutoField(primary_key=True)
     group = models.ForeignKey(Group)
@@ -2433,8 +2476,6 @@ class GroupPermMapping(models.Model):
     perm_value = models.CharField(max_length=64, default='')
     sequence = models.IntegerField(default=0)
     status = models.IntegerField(default=1)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'GROUP_PERM_MAPPING'

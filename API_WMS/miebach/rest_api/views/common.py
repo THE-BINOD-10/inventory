@@ -227,6 +227,8 @@ def add_user_permissions(request, response_data, user=''):
                 user_type = 'dist_customer'  # distributor customer login
     elif request_user_profile.warehouse_type == 'CENTRAL_ADMIN':
         user_type = 'central_admin'
+    elif user_profile.warehouse_type == 'CENTRAL_ADMIN':
+        user_type = 'default'
     else:
         user_type = request_user_profile.user_type
     response_data['data']['roles']['permissions']['user_type'] = user_type
@@ -465,6 +467,7 @@ data_datatable = {  # masters
     # Uploaded POs (Display only to Central Admin)
     'UploadedPos': 'get_uploaded_pos_by_customers',
     'EnquiryOrders': 'get_enquiry_orders',
+    'ManualEnquiryOrders': 'get_manual_enquiry_orders'
 }
 
 

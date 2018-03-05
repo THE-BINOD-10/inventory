@@ -261,6 +261,13 @@ urlpatterns = [
     url(r'^extend_enquiry_date/$', extend_enquiry_date),
     url(r'^order_cancel/$', order_cancel),
     url(r'^add_order_charges/$', add_order_charges),
+    url(r'^place_manual_order/$', place_manual_order),
+    url(r'^get_manual_enquiry_data/$', get_manual_enquiry_data),
+    url(r'^get_manual_enquiry_detail/$', get_manual_enquiry_detail),
+    url(r'^save_manual_enquiry_data/$', save_manual_enquiry_data),
+    url(r'^remove_manual_enquiry_image/$', remove_manual_enquiry_image),
+    url(r'^save_manual_enquiry_image/$', save_manual_enquiry_image),
+    url(r'^request_manual_enquiry_approval/$', request_manual_enquiry_approval),
     url(r'^get_invoice_details/$', get_invoice_details),
 
     # Uploaded POs [SWISS MILITARY]

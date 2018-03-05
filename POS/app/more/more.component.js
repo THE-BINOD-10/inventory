@@ -38,7 +38,7 @@
 						}
 					},function(error){
 						console.log("offline");
-						getPreOrderDetails_Check_Off_Delivered(order_id).then(function(data){
+						getPreOrderDetails_Check_Off_Delivered(urlService.userData.parent_id,order_id).then(function(data){
 							offLinePreorderData(data);
 						});
 					});

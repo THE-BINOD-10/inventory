@@ -13,6 +13,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selectAll = false;
 
     vm.update_part = true;
+    vm.permissions = Session.roles.permissions;
 
     vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()

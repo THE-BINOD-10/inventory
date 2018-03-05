@@ -30,6 +30,8 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
             sku.quantity = Number(sku.quantity);
             sku.invoice_amount = Number(sku.price) * sku.quantity;
             sku.total_amount = ((sku.invoice_amount*sku.tax) / 100) + sku.invoice_amount;
+
+            vm.quantity_valid(sku);
           });
 
           var unique_skus = {};
@@ -51,6 +53,14 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
       }
       vm.place_order_loading = false;
     })
+  }
+
+  vm.quantity_valid = function(row){
+    if (row.quantity > row.avail_stock) {
+
+      row.quantity = row.avail_stock;
+      vm.service.showNoty("You can add "+row.avail_stock+" items only", "success", "topRight");
+    }
   }
 
   vm.change_remarks = function(remark) {
@@ -124,7 +134,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
   vm.data_status = false;
   vm.insert_cool = true;
-  vm.insert_order_data = function(form) {
+  vm.insert_order_data = function(data_dict) {
 
     if (vm.user_type == 'reseller') {
 
@@ -133,7 +143,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
       } else if (!(vm.model_data.shipment_time_slot)) {
         vm.service.showNoty("Please Select Shipment Slot", "success", "bottomRight");
       } else {
-        vm.order_data_insertion(form);
+        vm.order_data_insertion(data_dict);
       }
     } else {
 
@@ -141,12 +151,12 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
         vm.service.showNoty("The Shipment Date is Required Please Select", "success", "bottomRight");
       } else {
-        vm.order_data_insertion(form);
+        vm.order_data_insertion(data_dict);
       }
     }
   }
 
-  vm.order_data_insertion = function(form){
+  vm.order_data_insertion = function(data_dict){
 
     if(vm.insert_cool && vm.data_status) {
       var msg = vm.checkDelivarableDates(vm.model_data.shipment_date, vm.model_data.data);
@@ -166,6 +176,9 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
           var elem = angular.element($('form'));
           elem = elem[0];
           elem = $(elem).serializeArray();
+          if(data_dict && data_dict.is_sample){
+            elem.push({'name': 'is_sample', 'value': true})
+          }
           vm.place_order_loading = true;
           vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
             if(data.message) {
@@ -306,6 +319,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
       Service.showNoty("You should select minimum one item", "success", "topRight");
     } else {
       data.quantity = Number(data.quantity);
+      vm.quantity_valid(data);
     }
 
     vm.update_sku_levels(vm.model_data.data, data);

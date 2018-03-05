@@ -69,22 +69,32 @@
             </div>
 
             <div class="row">
-              <div class="col-md-6 col-md-offset-3">
+              <div class="col-md-12">
                 <table class="table table-bordered">
                   <thead>
                     <tr>
                       <th>SKU Code</th>
-                      <th>Quantity</th>
-                      <th>Unit Price</th>
+                      <th>SKU Description</th>
+                      <th>Qty</th>
+                      <th>Unit Rate</th>
+                      <th>Amount</th>
+                      <th>CGST</th>
+                      <th>SGST</th>
+                      <th>IGST</th>
                       <th>Total Amount</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr ng-repeat = "data in showCase.model_data.data.sku_quantity">
                       <td>{{data.sku_code}}</td>
-                      <td>{{data.quantity}}</td>
-                      <td>{{data.unit_price}}</td>
-                      <td>{{data.invoice_amt}}</td>
+                      <td>{{data.sku_desc}}</td>
+                      <td class="text-center">{{data.quantity}}</td>
+                      <td class="text-right">{{data.unit_price}}</td>
+                      <td class="text-right">{{data.amount}}</td>
+                      <td>{{data.cgst}} <span ng-if="data.cgst_tax">(@{{data.cgst_tax}}%)</span></td>
+                      <td>{{data.sgst}} <span ng-if="data.sgst_tax">(@{{data.sgst_tax}}%)</span></td>
+                      <td>{{data.igst}} <span ng-if="data.igst_tax">(@{{data.igst_tax}}%)</span></td>
+                      <td class="text-right">{{data.invoice_amt}}</td>
                     </tr>
                   </tbody>
                 </table>

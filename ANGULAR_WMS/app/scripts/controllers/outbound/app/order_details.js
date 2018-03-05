@@ -19,12 +19,14 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   var url = "get_customer_order_detail/?order_id=";
-  if(vm.status != "orders") {
+  if(vm.status == "orders") {
     url = "get_customer_enquiry_detail/?enquiry_id=";
+  } else if (vm.status == "manual_enquiry") {
+    url = "get_manual_enquiry_detail/?user_id="+Session.userId+"&enquiry_id=";
   }
   vm.loading = true;
   vm.order_details = {}
-  vm.open_order_detail = function(order){
+  vm.open_order_detail = function(){
 
     vm.order_details = {}
     Service.apiCall(url+vm.order_id).then(function(data){
@@ -33,7 +35,6 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
         console.log(data.data);
         vm.order_details = {}
         vm.order_details = data.data;
-        vm.order_details['order'] = order;
       }
       vm.loading = false;
     })
@@ -52,6 +53,123 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
 
       return "Partially Dispatched";
     }
+  }
+
+  // custom orders
+  //
+  vm.moment = moment();
+  vm.date = new Date()
+  vm.disable_btn = false;
+  vm.edit = function(form){
+    if(form.$invalid) {
+      Service.showNoty('Please fill required fields');
+      return false;
+    }
+    vm.disable_btn = true;
+    vm.model_data['user_id'] = Session.userId;
+    vm.model_data['enquiry_id'] = vm.order_details.order.enquiry_id;
+    Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {
+      if (data.message) {
+        if (data.data == 'Success') {
+          var temp = {};
+          angular.copy(vm.model_data, temp);
+          temp['username'] = Session.userName;
+          temp['date'] =  vm.moment.format("YYYY-MM-DD");
+          vm.order_details.data.push(temp)
+          vm.model_data.ask_price = '';
+          vm.model_data.extended_date = '';
+          vm.model_data.remarks = '';
+        }
+        Service.showNoty(data.data);
+      } else {
+        Service.showNoty('Something went wrong');
+      }
+      vm.disable_btn = false;
+    });
+  }
+
+  vm.image_loding = {};
+  vm.remove_image = function(index) {
+
+    var image = vm.order_details.style.images[index];
+    var data = {'user_id': Session.userId, 'enquiry_id': vm.order_details.order.enquiry_id, 'image': image};
+    vm.image_loding[index] = true;
+    Service.apiCall('remove_manual_enquiry_image/', 'POST', data).then(function(data) {
+      if (data.message) {
+        if (data.data == 'Success') {
+          Service.showNoty('Image Deleted Successfully');
+          vm.order_details.style.images.splice(index, 1);
+        } else {
+          Service.showNoty(data.data, 'warning');
+        }
+      } else {
+        Service.showNoty('Something went wrong', 'danger');
+      }
+      vm.image_loding[index] = false;
+    });
+  }
+
+  vm.upload_name = [];
+  $scope.$on("fileSelected", function (event, args) {
+    $scope.$apply(function () {
+      vm.upload_name = []; 
+      if (args.msg == 'success') {
+        angular.forEach(args.file, function(data){vm.upload_name.push(data.name)});
+        vm.upload_image();
+      } else {
+        Service.showNoty(args.msg, 'warning');
+      }
+    });
+  });
+
+  vm.uploading = false;
+  vm.upload_image = function() {
+
+    var formData = new FormData();
+    var el = $("#image-upload");
+    var files = el[0].files;
+
+    $.each(files, function(i, file) {
+      formData.append('po_file', file);
+    });
+
+    var data = {'user_id': Session.userId, 'enquiry_id': vm.order_details.order.enquiry_id}
+    $.each(data, function(key, value) {
+      formData.append(key, value);
+    });
+    vm.uploading = true;
+    $.ajax({url: Session.url+'save_manual_enquiry_image/',
+          data: formData,
+          method: 'POST',
+          processData : false,
+          contentType : false,
+          xhrFields: {
+              withCredentials: true
+          },
+          'success': function(response) {
+            response = JSON.parse(response);
+            if(response.msg == 'Success') {
+
+              Service.showNoty(response.msg);
+              $scope.$apply(function() {
+                vm.upload_name = [];
+                vm.uploading = false;
+                angular.forEach(response.data, function(url) {
+                  vm.order_details.style.images.push(url);
+                })
+              });
+              $("input[type='file']").val('');
+            } else {
+              Service.showNoty(response.msg, 'warning');
+              $scope.$apply(function() { vm.uploading = false; })
+            }
+          },
+          'error': function(response) {
+            console.log('fail');
+            Service.showNoty('Something Went Wrong', 'warning');
+            $scope.$apply(function() { vm.uploading = false; })
+          }
+    });
   }
 }
 

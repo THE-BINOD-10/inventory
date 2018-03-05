@@ -4484,9 +4484,11 @@ def get_sku_catalogs(request, user=''):
                style_data['style_data'] = get_cal_style_data(style_data, style_quantities[style_data['sku_class']])
                style_data['tax_percentage']= '%.1f'%tax_percentage
             else:
-                tax = style_data['variants'][0]['taxes'][0]
-                tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
-                style_data['tax_percentage']= '%.1f'%tax_percentage
+                tax = style_data['variants'][0]['taxes']
+                if tax:
+                    tax = tax[0]
+                    tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
+                    style_data['tax_percentage']= '%.1f'%tax_percentage
     download_pdf = request.POST.get('share', '')
     if download_pdf:
         remarks = ''

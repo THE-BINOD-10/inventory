@@ -1151,7 +1151,9 @@ PRICE_DEF_EXCEL = OrderedDict((('sku_id', 0), ('price_type', 1),
 #BARCODE_FORMATS = {'adam_clothing': {'format1': ['sku_master'], 'format2': ['sku_master'], 'format3': ['sku_master']}}
 
 BARCODE_ADDRESS_DICT = {'adam_clothing1': 'Adam Exports 401, 4th Floor,\n Pratiek Plazza, S.V.Road,\n Goregaon West, Mumbai - 400062.\n MADE IN INDIA',
-			'scholar_clothing': 'Scholar Clothing Co. <br/> Karnataka - India'}
+			'scholar_clothing': 'Scholar Clothing Co. <br/> Karnataka - India', 'bcbs_retail': 'Scholar Clothing Co.',
+                        'bcgs_retail': 'Scholar Clothing Co.', 'SSRVM_RETAIL': 'Scholar Clothing Co.', 'stjohns_retail': 'Scholar Clothing Co.',
+                        'narayana_retail': 'Scholar Clothing Co.', 'vps_retail': 'Scholar Clothing Co.', 'christ_retail': 'Scholar Clothing Co.'}
 PRICE_MASTER_DATA = {'sku_id': '', 'price_type': '', 'price': 0, 'discount': 0}
 
 NETWORK_MASTER_HEADERS = ['Destination Location Code', 'Source Location Code', 'Lead Time',

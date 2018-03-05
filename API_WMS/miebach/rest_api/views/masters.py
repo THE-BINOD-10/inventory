@@ -3222,6 +3222,47 @@ def get_terms_and_conditions(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_distributors(request, user=''):
+    ''' Get Distributors list'''
+    message = 0
+    distributors =  list(UserGroups.objects.filter(admin_user_id=user.id, user__userprofile__warehouse_type='DIST').values('user_id', 'user__username'))
+    if distributors:
+        message = 1
+    return HttpResponse(json.dumps({'message':message, 'data': distributors}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_resellers(request, user=''):
+    ''' Get Resellers list'''
+    message = 0
+    dist = request.GET['distributor']
+    resellers = list(CustomerMaster.objects.filter(user=dist).values('customer_id', 'name', 'id'))
+    if resellers:
+        message = 1
+    return HttpResponse(json.dumps({'message': message, 'data': resellers}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_corporates(request, user=''):
+    ''' Get Corporates list'''
+    message = 0
+    checked_corporates = {}
+    if request.GET['reseller']:
+        res = request.GET['reseller']
+        checked_corporates = list(CorpResellerMapping.objects.filter(reseller_id=res).values('corporate_id'))
+    corporates = list(CorporateMaster.objects.all().values('corporate_id', 'name'))
+    if corporates:
+        message = 1
+    return HttpResponse(json.dumps({'message': message, 'data': corporates, 'checked_corporates': checked_corporates}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def insert_update_terms(request, user=''):
     ''' Create or Update Terms and conditions'''
     terms_dict = request.POST.dict()

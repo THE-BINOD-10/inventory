@@ -7,55 +7,61 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   var vm = this;
   vm.service = Service;
 
-  vm.distributors = ['Distributor-1','Distributor-2','Distributor-3','Distributor-4'];
-  vm.resellers = ['Reseller-1','Reseller-2','Reseller-3','Reseller-4'];
-  vm.corporates = ['Corporate-1','Corporate-2','Corporate-3','Corporate-4','Corporate-5','Corporate-6','Corporate-7'];
-
+  vm.distributors = [];
+  vm.resellers = [];
   vm.checked_items = {};
+  vm.reseller = '';
 
-  angular.forEach(vm.corporates, function(item){
-    vm.checked_items[item] = false;
-  });
+  vm.get_corporates = function(res){
+    var send = {'reseller': res};
+    vm.service.apiCall("get_corporates/", 'GET', send).then(function(data){
+      if(data.message) {
+
+        vm.corporates = data.data.data;
+      }
+    });
+
+    angular.forEach(vm.corporates, function(item){
+      vm.checked_items[item.corporate_id] = false;
+    });
+  }
 
   vm.base = function(){
 
     vm.title = "Reseller Corporate Mapping";
-
+    var res = 0;
+    vm.get_corporates(res);
     vm.service.apiCall("get_distributors/").then(function(data){
       if(data.message) {
 
-        vm.distributors = data.data.distributors;
+        vm.distributors = data.data.data;
       }
     });
   }
 
   vm.base();
 
-  vm.get_resellers = function(){
-
-    vm.service.apiCall("get_resellers/").then(function(data){
+  vm.get_resellers = function(dist){
+    var send = {'distributor': dist};
+    vm.service.apiCall("get_resellers/", 'GET', send).then(function(data){
       if(data.message) {
 
-        vm.resellers = data.data.resellers;
-      }
-    });
-  }
-
-  vm.get_corporates = function(){
-
-    vm.service.apiCall("get_corporates/").then(function(data){
-      if(data.message) {
-
-        vm.corporates = data.data.corporates;
+        vm.resellers = data.data.data;
       }
     });
   }
 
   vm.submit = submit;
   function submit(data) {
-    if (data.$valid) {
-      
-      vm.service.apiCall("corporate_mapping_data/").then(function(data){
+    if (vm.reseller) {
+      var send = $("#form").serializeArray();
+      angular.forEach(vm.checked_items, function(row){
+        if (row) {
+          
+        }
+      });
+
+      vm.service.apiCall("corporate_mapping_data/", 'POST', send).then(function(data){
         if(data.message) {
 
           // vm.corporates = data.data.corporates;
@@ -63,7 +69,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
     } else {
 
-      vm.service.pop_msg('Please fill required fields');
+      vm.service.showNoty('Please select distributor and reseller required fields');
     }
   }
 

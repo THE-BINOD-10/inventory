@@ -12,7 +12,7 @@
     <div class="panel">
       <div class="panel-body">
         <div class="row">
-          <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+          <form name="form" id="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
             
             <div class="col-md-10 col-md-offset-1">
               <div class="row">
@@ -20,9 +20,9 @@
                 <div class="col-md-4">
                   <div class="form-group">
                     <label class="control-label"> Distributor </label>
-                    <select class="form-control" ng-model="showCase.distributor" ng-change="showCase.get_resellers()" name="distributor">
+                    <select class="form-control" ng-model="showCase.distributor" ng-change="showCase.get_resellers(showCase.distributor)" name="distributor">
                       <option value=""> None </option>
-                      <option ng-repeat="distributor in showCase.distributors" value="{{distributor}}">{{distributor}}</option>
+                      <option ng-repeat="data in showCase.distributors" value="{{data.user_id}}">{{data.user__username}}</option>
                     </select>
                   </div>
                 </div>
@@ -30,9 +30,9 @@
                 <div class="col-md-4">
                   <div class="form-group">
                     <label class="control-label"> Reseller </label>
-                    <select class="form-control"  ng-model="showCase.reseller" ng-change="showCase.get_corporates()" name="reseller">
+                    <select class="form-control"  ng-model="showCase.reseller" ng-change="showCase.get_corporates(showCase.reseller)" name="reseller">
                       <option value=""> None </option>
-                      <option ng-repeat="reseller in showCase.resellers" value="{{reseller}}">{{reseller}}</option>
+                      <option ng-repeat="data in showCase.resellers" value="{{data.id}}">{{data.name}}</option>
                     </select>
                   </div>
                 </div>
@@ -48,9 +48,9 @@
 
               </div>
               <div class="row mt15 no-margin" style="background: #f0f0f0; padding: 15px">
-                <div class="col-md-3" ng-repeat="corporate in showCase.corporates">
-                  <input type="checkbox" class="data-select" id="{{corporate}}" ng-model="showCase.checked_items[corporate]" ng-checked="showCase.checked_items.corporate" style="display: inline-block;">
-                  <label for="{{corporate}}"> {{corporate}} </label>
+                <div class="col-md-3" ng-repeat="data in showCase.corporates">
+                  <input type="checkbox" class="data-select" id="{{data.corporate_id}}" ng-model="showCase.checked_items[data.corporate_id]" ng-checked="showCase.checked_items[data.corporate_id]" style="display: inline-block;">
+                  <label for="{{data.corporate_id}}"> {{data.name}} </label>
                 </div>
               </div>
               <div class="row mt15">

@@ -79,7 +79,7 @@
       </div>
       <div class="row mb10 custom-colors">
         <div class="col-md-1 col-sm-2 col-xs-3 mb10" ng-repeat="color in showCase.customData.colorData">
-          <div style="height: 50px;background: red;cursor: pointer;" ng-class="(showCase.customData.bodyColor==color)? 'color-selected': '';" ng-click="showCase.customData.bodyColor=color" title="{{color}}">
+          <div style="height: 50px;background: {{(($index+1)%2==0)?'red': 'yellow';}};cursor: pointer;" ng-class="(showCase.customData.bodyColor==color)? 'color-selected': '';" ng-click="showCase.customData.bodyColor=color" title="{{color}}">
           </div>
         </div>
           <!--<slick lazy-load='ondemand' slides-to-show=5 slides-to-scroll=4 class="slider lazy" infinite="false">

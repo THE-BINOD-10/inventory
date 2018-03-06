@@ -5420,8 +5420,13 @@ def update_payment_status(request, user=''):
 def create_orders_data(request, user=''):
     tax_types = copy.deepcopy(TAX_VALUES)
     tax_types.append({'tax_name': 'DEFAULT', 'tax_value': ''})
-
-    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types}))
+    invoice_types = get_misc_value('invoice_types', user.id)
+    if invoice_types in ['', 'false']:
+        invoice_types = ['Tax Invoice']
+    else:
+        invoice_types = invoice_types.split(',')
+    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types,
+                                    'invoice_types': invoice_types}))
 
 
 @csrf_exempt

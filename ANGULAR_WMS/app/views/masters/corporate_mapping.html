@@ -1,0 +1,68 @@
+<div class="page-layout" ng-controller="CorporateMapping as showCase">
+  <div class='layout-header'>
+    <div class="row">
+      <div class="col-md-6 col-sm-12 col-xs-12">
+        <div ng-include="'views/common/title.html'"></div>
+      </div>
+      <div class="col-md-6 col-sm-12 col-xs-12"></div>
+    </div>
+  </div>
+  
+  <div class="layout-body">
+    <div class="panel">
+      <div class="panel-body">
+        <div class="row">
+          <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+            
+            <div class="col-md-10 col-md-offset-1">
+              <div class="row">
+                
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label class="control-label"> Distributor </label>
+                    <select class="form-control" ng-model="showCase.distributor" ng-change="showCase.get_resellers()" name="distributor">
+                      <option value=""> None </option>
+                      <option ng-repeat="distributor in showCase.distributors" value="{{distributor}}">{{distributor}}</option>
+                    </select>
+                  </div>
+                </div>
+        
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label class="control-label"> Reseller </label>
+                    <select class="form-control"  ng-model="showCase.reseller" ng-change="showCase.get_corporates()" name="reseller">
+                      <option value=""> None </option>
+                      <option ng-repeat="reseller in showCase.resellers" value="{{reseller}}">{{reseller}}</option>
+                    </select>
+                  </div>
+                </div>
+        
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label class="control-label"> Corporate </label>
+                    <input type="text" autocomplete="off" name="search_corporate" class="form-control" placeholder="Search Corporte" typeahead="address.corporate for address in showCase.service.getSearchValues($viewValue, 'search_corporate_data?')" typeahead-loading="loadingLocations" ng-model="showCase.search_corporate">
+                    
+                    <!-- <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Customer ID/Name/Number" typeahead="address.customer_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_customer_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.customer_id" typeahead-on-select="showCase.get_customer_data($item, $model, $label, $event)"> -->
+                  </div>
+                </div>    
+
+              </div>
+              <div class="row mt15 no-margin" style="background: #f0f0f0; padding: 15px">
+                <div class="col-md-3" ng-repeat="corporate in showCase.corporates">
+                  <input type="checkbox" class="data-select" id="{{corporate}}" ng-model="showCase.checked_items[corporate]" ng-checked="showCase.checked_items.corporate" style="display: inline-block;">
+                  <label for="{{corporate}}"> {{corporate}} </label>
+                </div>
+              </div>
+              <div class="row mt15">
+                <div class="col-md-4 col-md-offset-4 text-center">
+                  <button type="button" ng-click="showCase.submit(form)" class="btn btn-primary">Mapping To Reseller</button>
+                </div>
+              </div>
+            </div>
+            
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

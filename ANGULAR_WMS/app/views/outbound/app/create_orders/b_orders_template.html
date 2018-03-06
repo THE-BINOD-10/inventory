@@ -16,7 +16,7 @@ input[type="date"]:valid::before {
 }
 </style>
         <div class="order-list">
-          <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data" ng-click="orders.open_details({orderId: order.order_id, state: orders.status, customerId: order.customer_id})" style="cursor: pointer">
+          <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data" ng-click="orders.open_details({orderId: order.order_id, state: orders.status})" style="cursor: pointer">
             <div class="row" ng-if="orders.your_orders=='orders'">
               <div class="col-md-6 col-sm-6 col-xs-6">
                 <div class="order-id">
@@ -120,10 +120,10 @@ input[type="date"]:valid::before {
                 <div class="widget-details col-xs-2 text-left">
                   <small class="order-label">Enquiry ID</small>
                   <h2 class="no-margin order-bold">{{order.order_id}}</h2></div>
-                <div class="widget-details col-xs-2 text-left">
+                <div class="widget-details col-xs-3 text-left">
                   <small class="order-label">Enquiry Date</small>
                   <h2 class="no-margin order-bold">{{order.date}}</h2></div>
-                <div class="widget-details col-xs-4 text-center">
+                <div class="widget-details col-xs-3 text-center">
                   <small class="order-label">Customer Name</small>
                   <h2 class="no-margin order-bold">{{order.customer_name}}</h2>
                 </div>

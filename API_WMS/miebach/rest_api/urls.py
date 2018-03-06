@@ -94,6 +94,7 @@ urlpatterns = [
     url(r'^get_distributors/$', get_distributors),
     url(r'^get_resellers/$', get_resellers),
     url(r'^get_corporates/$', get_corporates),
+    url(r'^corporate_mapping_data/$', corporate_mapping_data),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),

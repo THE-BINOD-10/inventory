@@ -1,0 +1,21 @@
+<div class="page-layout">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body"> 
+    <tabset class="box-tab">
+      <tab heading="Block Stock Enquiry">
+        <div ng-include="'views/outbound/enquiry_orders.html'"></div>
+      </tab>
+      <tab heading="Custom Orders">
+        <div ng-include="'views/outbound/manual_enquiry.html'"></div>
+      </tab>
+      <tab ng-if="permissions.user_type=='central_admin'" ng-controller="PendingManualEnquiryCtrl as showCase">
+        <tab-heading>
+          <span>Pending For Approval<span> <span class='label label-info ml10'>{{showCase.tb_data.recordsTotal}}</span>
+        </tab-heading>
+        <div ng-include="'views/outbound/pending_manual_enquiry.html'"></div>
+      </tab>
+    </tabset>
+  </div>
+</div>

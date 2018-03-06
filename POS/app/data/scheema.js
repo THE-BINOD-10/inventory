@@ -41,6 +41,17 @@ var POS_TABLES=DATABASE._allTables;
       pre_orders:"++id,order_id,order_data",
     });
 
+     DATABASE.version(6).stores({
+      sync_orders:null,
+      order_delivered:null
+    });
+
+    DATABASE.version(7).stores({
+      sync_orders:"++id,order_id,order,user",
+      order_delivered:"++id,order_id,delete_order,user"
+    });
+
+   
     openDB().then(function(){
       console.log("opened");
     }).catch(function(error){

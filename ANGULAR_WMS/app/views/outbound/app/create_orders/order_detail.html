@@ -44,5 +44,12 @@
         <div ng-include="'views/outbound/app/create_orders/enquiry_order_detail.html'"></div>
       </div>
     </div>
+
+    <div class="row mb20" ng-if="order.status == 'manual_enquiry'">
+      <div class="col-md-3 col-sm-2 col-xs-hidden"></div>
+      <div class="col-md-6 col-sm-8 col-xs-12">
+        <div ng-include="'views/outbound/app/create_orders/manual_enquiry_order_details.html'"></div>
+      </div>
+    </div>
   </div>
 </div>

@@ -15,9 +15,11 @@
       $scope.stockoneUrl = urlService.stockoneUrl;
       $scope.user_data = urlService.userData;
       $scope.sync_status = $rootScope.sync_status;
+      $scope.sync_msg = "Not Synced !";
       $scope.$on('change_sync_status', function(){
         $scope.sync_status = $rootScope.sync_status;
       })
+      
 
       // Fullscreen
       $scope.goFullscreen = function () {
@@ -41,14 +43,29 @@
 		if(navigator.onLine){
             //sync pos data 
             navigator.serviceWorker.ready.then(function() {
-                urlService.show_loading();
-                syncPOSTransactionData().then(function(){
-                    $rootScope.sync_status = false;
-                    $rootScope.$broadcast('change_sync_status');
-                    urlService.hide_loading();
-                }).catch(function(){
-                    urlService.hide_loading();
-                });
+            	if(POS_ENABLE_SYNC===false){
+	                urlService.show_loading();
+	                syncPOSTransactionData().then(function(){
+	                	//check user info and user id 
+	                	checkUserInfo().then(function(data){
+	                		$rootScope.sync_status = false;
+	                    	$rootScope.$broadcast('change_sync_status');
+	                	}).catch(function(error){
+	                		$scope.sync_msg=error;
+	                		$rootScope.sync_status = true;
+	                    	$rootScope.$broadcast('change_sync_status');
+	                	});
+	                    urlService.hide_loading();
+	                    POS_ENABLE_SYNC=false;
+	                    //check update for update
+	                    reloadPOSPage();
+	                }).catch(function(){
+	                    urlService.hide_loading();
+	                    POS_ENABLE_SYNC=false;
+	                    //check update for update
+	                    reloadPOSPage();
+	                });
+                }
             });
         }else{
             console.log( "offline");
@@ -57,6 +74,9 @@
         }
 
       };
+
+      //sync assign to url service
+      urlService.pos_sync=$scope.sync;
 
 	urlService.show_loading=function showRefresh(){
 	  $(".glyphicon-refresh").addClass("refresh-spinner");

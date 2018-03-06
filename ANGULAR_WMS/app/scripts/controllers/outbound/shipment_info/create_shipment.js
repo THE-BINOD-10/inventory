@@ -160,7 +160,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
               angular.copy(data.data, vm.model_data);
               angular.forEach(vm.model_data.data, function(temp) {
 
-                var shipping_quantity = (vm.mk_user)? 0 : temp.picked;
+                var shipping_quantity = (vm.mk_user || vm.permissions.shipment_sku_scan)? 0 : temp.picked;
                 temp["sub_data"] = [{"shipping_quantity": shipping_quantity, "pack_reference":""}]
               });
               if(vm.mk_user) {
@@ -238,7 +238,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         var clone = {};
         angular.copy(data.sub_data[index], clone);
         var quantity = data.picked - total;
-        quantity = (vm.mk_user) ? 0 : quantity;
+        quantity = (vm.mk_user || vm.permissions.shipment_sku_scan) ? 0 : quantity;
         clone.shipping_quantity = quantity;
         data.sub_data.push(clone);
       }
@@ -445,6 +445,38 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           vm.special_key.courier_name = '';
         }
       })
+    }
+
+    vm.update_sku_quan = function(event, scanned_sku) {
+      event.stopPropagation();
+      if (event.keyCode == 13 && scanned_sku.length > 0) {
+          console.log(vm);
+          var found_sku = false;
+          var is_updated = false;
+          for(var i=0;i<vm.model_data.data.length;i++) {
+            var data_sku = String(vm.model_data.data[i].sku__sku_code).toLocaleLowerCase();
+            if(data_sku==String(scanned_sku).toLocaleLowerCase()) {
+              found_sku = true;
+              var tot_ship = 0
+              angular.forEach(vm.model_data.data[i].sub_data, function(sb_data){
+                var sb_shipped = isNaN(sb_data.shipping_quantity)? 0: sb_data.shipping_quantity;
+                tot_ship = Number(tot_ship) + Number(sb_shipped);
+              });
+              if(vm.model_data.data[i].picked > tot_ship)
+              {
+                var last_index = vm.model_data.data[i].sub_data.length - 1;
+                var exist_quan = vm.model_data.data[i].sub_data[last_index].shipping_quantity;
+                exist_quan = (!isNaN(exist_quan)) ? exist_quan: 0;
+                vm.model_data.data[i].sub_data[last_index].shipping_quantity = Number(exist_quan) + 1;
+                is_updated = true;
+                break;
+              }
+            }
+          }
+          if(!found_sku){ vm.service.showNoty("Scanned SKU Code not found");}
+          else if(!is_updated){ vm.service.showNoty("Scanned SKU Code exceeded the quantity");}
+          vm.scan_sku = '';
+      }
     }
 
   }

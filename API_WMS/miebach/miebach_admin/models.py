@@ -4,8 +4,7 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES
-
+from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES
 
 # from longerusername import MAX_USERNAME_LENGTH
 # Create your models here.
@@ -86,6 +85,7 @@ class SKUMaster(models.Model):
     online_percentage = models.PositiveIntegerField(default=0)
     discount_percentage = models.PositiveIntegerField(default=0)
     price = models.FloatField(default=0)
+    cost_price = models.FloatField(default=0)
     mrp = models.FloatField(default=0)
     image_url = models.URLField(default='')
     qc_check = models.IntegerField(default=0)
@@ -368,6 +368,7 @@ class PurchaseOrder(models.Model):
     open_po = models.ForeignKey(OpenPO, blank=True, null=True)
     received_quantity = models.FloatField(default=0)
     saved_quantity = models.FloatField(default=0)
+    intransit_quantity = models.FloatField(default=0)
     po_date = models.DateTimeField(auto_now_add=True)
     ship_to = models.CharField(max_length=64, default='')
     status = models.CharField(max_length=32, db_index=True)
@@ -713,7 +714,8 @@ class CustomerMaster(models.Model):
     credit_period = models.PositiveIntegerField(default=0)
     price_type = models.CharField(max_length=32, default='')
     tax_type = models.CharField(max_length=32, default='')
-    margin = models.FloatField(default=0)
+    discount_percentage = models.FloatField(default=0)
+    markup = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1130,6 +1132,29 @@ class CustomerSKU(models.Model):
         unique_together = ('customer', 'sku')
 
 
+class CorporateMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField(default=0)
+    name = models.CharField(max_length=256, default='')
+    address = models.CharField(max_length=256, default='')
+    city = models.CharField(max_length=64, default='')
+    state = models.CharField(max_length=64, default='')
+    country = models.CharField(max_length=64, default='')
+    pincode = models.CharField(max_length=64, default='')
+    phone_number = models.CharField(max_length=32, default='')
+    email_id = models.CharField(max_length=64, default='')
+    status = models.CharField(max_length=11, default='')
+    tin_number = models.CharField(max_length=64, default='')
+    corporate_id = models.PositiveIntegerField(default=0)
+    cst_number = models.CharField(max_length=64, default='')
+    pan_number = models.CharField(max_length=64, default='')
+    tax_type = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CORPORATE_MASTER'
+
 class SKUGroups(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
@@ -1296,16 +1321,6 @@ class SizeMaster(models.Model):
         unique_together = ('user', 'size_name')
 
 
-class ProductGroups(models.Model):
-    group_type = models.CharField(max_length=64)
-    group_value = models.CharField(max_length=64)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'PRODUCT_GROUPS'
-
-
 class ProductAttributes(models.Model):
     user = models.ForeignKey(User, default=None)
     attribute_name = models.CharField(max_length=64, default='')
@@ -1366,16 +1381,6 @@ class ProductImages(models.Model):
 
     class Meta:
         db_table = 'PRODUCT_IMAGES'
-
-
-class ProductGroupsMapping(models.Model):
-    group_id = models.PositiveIntegerField()
-    product_groups = models.ForeignKey(ProductGroups)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'PRODUCT_GROUPS_MAPPING'
 
 
 class customerGroupsMapping(models.Model):
@@ -2181,6 +2186,20 @@ class OrderAwbMap(models.Model):
         unique_together = ('original_order_id', 'awb_no')
 
 
+class UserRoleMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    role_id = models.CharField(max_length=64, default='')
+    role_type = models.CharField(max_length=32, choices=ROLE_TYPE_CHOICES, default='supplier')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'USER_ROLE_MAPPING'
+        index_together = ('user', 'role_id', 'role_type')
+        unique_together = ('user', 'role_id', 'role_type')
+
+
 import django
 from django.core.validators import MaxLengthValidator
 from django.utils.translation import ugettext as _
@@ -2328,3 +2347,136 @@ class TANDCMaster(models.Model):
 
     class Meta:
         db_table = 'TANDC_MASTER'
+
+
+class SKUDetailStats(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    transact_id = models.IntegerField(default=0)
+    transact_type = models.CharField(max_length=36, default='')
+    quantity = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SKU_DETAIL_STATS'
+
+
+class StockStats(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    opening_stock = models.FloatField(default=0)
+    receipt_qty = models.FloatField(default=0)
+    uploaded_qty = models.FloatField(default=0)
+    produced_qty = models.FloatField(default=0)
+    dispatch_qty = models.FloatField(default=0)
+    return_qty = models.FloatField(default=0)
+    adjustment_qty = models.FloatField(default=0)
+    consumed_qty = models.FloatField(default=0)
+    closing_stock = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'STOCK_STATS'
+
+
+class IntransitOrders(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    customer_id = models.PositiveIntegerField()
+    intr_order_id = models.DecimalField(max_digits=50, decimal_places=0)
+    sku = models.ForeignKey(SKUMaster)
+    quantity = models.FloatField(default=0)
+    unit_price = models.FloatField(default=0)
+    invoice_amount = models.FloatField(default=0)
+    status = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'INTRANSIT_ORDERS'
+        unique_together = ('user', 'customer_id', 'intr_order_id', 'sku')
+
+
+class StaffMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    staff_name = models.CharField(max_length=256, default='')
+    phone_number = models.CharField(max_length=32)
+    email_id = models.EmailField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'STAFF_MASTER'
+        unique_together = ('user', 'staff_name')
+        index_together = ('user', 'staff_name')
+
+
+class MastersMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField()
+    master_id = models.PositiveIntegerField()
+    mapping_id = models.PositiveIntegerField()
+    mapping_type = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MASTERS_MAPPING'
+        unique_together = ('user', 'master_id', 'mapping_id', 'mapping_type')
+
+
+class ManualEnquiry(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    enquiry_id = models.DecimalField(max_digits=50, decimal_places=0)
+    customer_name = models.CharField(max_length=256, default='')
+    sku = models.ForeignKey(SKUMaster)
+    quantity = models.PositiveIntegerField()
+    customization_type =  models.CharField(max_length=64, default='',  choices=CUSTOMIZATION_TYPES)
+    status = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MANUAL_ENQUIRY'
+        unique_together = ('enquiry_id', 'customer_name', 'user')
+
+
+class ManualEnquiryDetails(models.Model):
+    id = BigAutoField(primary_key=True)
+    user_id = models.PositiveIntegerField()
+    enquiry = models.ForeignKey(ManualEnquiry)
+    ask_price = models.FloatField(default=0)
+    expected_date = models.DateField(blank=True, null=True)
+    remarks = models.TextField(default='')
+    status = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MANUAL_ENQUIRY_DETAILS'
+
+
+class ManualEnquiryImages(models.Model):
+    id = BigAutoField(primary_key=True)
+    enquiry = models.ForeignKey(ManualEnquiry)
+    image =  models.ImageField(upload_to='static/images/manual_enquiry/')
+    status = models.CharField(max_length=32)
+
+    class Meta:
+        db_table = 'MANUAL_ENQUIRY_IMAGES'
+
+
+class GroupPermMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    group = models.ForeignKey(Group)
+    perm_type = models.CharField(max_length=32)
+    perm_value = models.CharField(max_length=64, default='')
+    sequence = models.IntegerField(default=0)
+    status = models.IntegerField(default=1)
+
+    class Meta:
+        db_table = 'GROUP_PERM_MAPPING'
+        unique_together = ('group', 'perm_type', 'perm_value')

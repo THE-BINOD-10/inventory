@@ -1,0 +1,29 @@
+<div class="panel" ng-controller="RaiseIntransitOrderCtrl as showCase">
+  <div class="panel-header">
+    <!-- <button type="button" class="btn btn-success pull-right ml10" ng-click="showCase.add()">New Stock Transfer</button> -->
+  </div>
+  <div class="layout-body">
+    <div class="panel">
+      <div class="panel-header panel-heading border">
+        <div class="row">
+          <div class = "col-md-12">
+            
+            <div class="col-md-3">
+              <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
+                <div class="overflow-hidden">
+                <span class="widget-subtitle">MINIMUM ORDER VALUE</span>
+                <span class="widget-title bold">{{showCase.tb_data.min_order_val}}</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 pull-right">
+              <div class="widget" ng-include="'views/common/excel.html'"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      <div ng-include="'views/common/datatable.html'"></div>
+    </div>
+  </div>
+</div>

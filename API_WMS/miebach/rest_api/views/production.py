@@ -1164,6 +1164,8 @@ def rm_picklist_confirmation(request, user=''):
                                                              status=1)
                         picking_count1 = truncate_float(picking_count1, decimal_limit)
                         update_picked = picking_count1
+                        # SKU Stats
+                        save_sku_stats(user, stock.sku_id, picklist.id, 'rm_picklist', update_picked)
                         if pick_loc:
                             update_picklist_locations(pick_loc, picklist, update_picked, '', decimal_limit)
                         else:
@@ -2032,6 +2034,8 @@ def jo_putaway_data(request, user=''):
                 stock_detail.save()
                 mod_locations.append(stock_detail.location.location)
 
+            # SKU Stats
+            save_sku_stats(user, stock_detail.sku_id, data.job_order_id, 'jo', float(val[1]))
             # Collecting data for auto stock allocation
             putaway_stock_data.setdefault(stock_detail.sku_id, [])
             putaway_stock_data[stock_detail.sku_id].append(data.job_order_id)

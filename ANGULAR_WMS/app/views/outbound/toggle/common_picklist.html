@@ -9,7 +9,7 @@
           <h4 class="modal-title" id="myLargeModalLabel">Picklist</h4>
         </div>
         <div class="modal-body">
-          <div class="row">
+          <div class="row" ng-hide="pop.permissions.user_type == 'warehouse' || pop.permissions.user_type == 'distributor'">
             <div class="col-md-11 col-sm-11 col-xs-10">
               <p align="right">Merged Invoice</p>
             </div>
@@ -126,7 +126,7 @@
               <button type="button" class="btn btn-success pull-right" ng-click="pop.print_barcodes(pop.model_data.picklist_id)">Print Barcodes</button>
             </div>
           </div>-->
-          <div class="row"><!-- ng-if="pop.state_data.page == 'PullConfirmation'">-->
+          <div class="row" ng-hide="pop.permissions.user_type == 'warehouse' || pop.permissions.user_type == 'distributor'"><!-- ng-if="pop.state_data.page == 'PullConfirmation'">-->
             <div class="col-md-12">
               <button type="button" class="btn btn-danger pull-right" ng-click="pop.cancel_picklist(pop.model_data.picklist_id)">Cancel Picklist</button>
               <button type="button" class="btn btn-success pull-right mr10" ng-click="pop.update_picklist(pop.model_data.picklist_id)">Update Picklist</button>

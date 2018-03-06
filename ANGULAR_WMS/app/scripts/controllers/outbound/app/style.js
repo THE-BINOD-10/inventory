@@ -87,7 +87,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         vm.charge_remarks = data.data.charge_remarks;
         vm.generic_wharehouse_level = data.data.gen_wh_level_status;
         
-        if (data.data.freight_charges) {
+        if (data.data.freight_charges == 'true') {
           vm.freight_charges = data.data.freight_charges;
         }
         
@@ -145,7 +145,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
           vm.page_loading = false;
         }
         
-        vm.freight_charges = data.data.freight_charges;
+        // vm.freight_charges = data.data.freight_charges;
         vm.style_headers = data.data.style_headers;
         
         if (data.data.gen_wh_level_status == 'true') {

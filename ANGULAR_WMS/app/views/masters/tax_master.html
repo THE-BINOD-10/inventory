@@ -7,7 +7,7 @@
       <div class="col-md-6 col-sm-12 col-xs-12">
         <div class="row">
           <div ng-include="'views/common/excel_button.html'"></div>
-          <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-4" ng-click="showCase.add()">New</button>
+          <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-4" ng-click="showCase.add()" ng-if="!permissions.priceband_sync">New</button>
         </div>
       </div>
     </div>

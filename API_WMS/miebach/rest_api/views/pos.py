@@ -123,7 +123,7 @@ def search_product_data(request, user=''):
         except:
             master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
                                                                       Q(sku_desc__icontains=search_key), user=user.id)
-    for data in master_data[:30]:
+    for data in master_data[:100]:
         status = 'Inactive'
         if data.status:
             status = 'Active'
@@ -163,7 +163,7 @@ def search_product_data(request, user=''):
                            'SKUCode': data.wms_code,
                            'style_name': data.style_name,
                            'sku_size' : data.sku_size,
-                           'ProductDescription': data.sku_desc + "(" + data.wms_code + ")" ,
+                           'ProductDescription': data.sku_desc,
                            'price': discount_price,
                            'url': data.image_url, 'data-id': data.id,
                            'discount': discount_percentage,

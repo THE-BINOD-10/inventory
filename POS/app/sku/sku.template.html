@@ -70,6 +70,7 @@
               md-min-length="0"
               placeholder="Enter SKUCode/ProductName"
               ng-model="$ctrl.productName"
+              ng-model-options='{ debounce: 1000 }'
               md-menu-class="autocomplete-custom-template">
             <md-item-template>
               <span class="item-title">
@@ -161,8 +162,8 @@
                                            name="selected_sku" value="{{item.SKUCode}}"
                                            ng-checked="{{item.checked}}"
                                            ng-click="$ctrl.checkbox_click($event,item.SKUCode)"></td>
-                                <td style="">{{item.SKUCode| limitTo : 15 : 0}}</td>
-                                <td class="">{{item.ProductDescription| limitTo : 15 : 0}}</td>
+                                <td style="">{{item.SKUCode}}</td>
+                                <td class="">{{item.ProductDescription}}</td>
 								<td class="">{{item.stock_quantity}}</td>
                                 <td class="">{{item.price}} /-</td>
                             </tr>

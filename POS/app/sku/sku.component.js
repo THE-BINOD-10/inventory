@@ -235,7 +235,6 @@
             }
             if(!self.style_based_sku_data[item]["quantity"]) self.style_based_sku_data[item]["quantity"] = 0;
             self.tot_style_qty += parseInt(self.style_based_sku_data[item]["quantity"]);
-            debugger;
             console.log(parseInt(self.style_based_sku_data[item]["quantity"]) * self.style_based_sku_data[item]["price"]);
             self.tot_style_amount += (parseInt(self.style_based_sku_data[item]["quantity"]) * self.style_based_sku_data[item]["price"]);
         }

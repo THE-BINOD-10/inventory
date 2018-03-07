@@ -130,11 +130,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.submit = submit;
   function submit(data) {
     if (data.$valid) {
-      if ("Add Customer" == vm.title) {
-        vm.customer('insert_customer/');
+      if (vm.model_data.tax_type) {
+        if ("Add Customer" == vm.title) {
+          vm.customer('insert_customer/');
+        } else {
+          vm.model_data['data-id'] = vm.model_data.DT_RowId;
+          vm.customer('update_customer_values/');
+        }
       } else {
-        vm.model_data['data-id'] = vm.model_data.DT_RowId;
-        vm.customer('update_customer_values/');
+        vm.service.pop_msg('Please select tax type');
       }
     } else if (!(data.phone_number.$valid)) {
       vm.service.pop_msg('Invalid phone number');

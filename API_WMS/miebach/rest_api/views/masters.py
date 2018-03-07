@@ -3222,6 +3222,89 @@ def get_terms_and_conditions(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_distributors(request, user=''):
+    ''' Get Distributors list'''
+    message = 0
+    distributors =  list(UserGroups.objects.filter(admin_user_id=user.id, user__userprofile__warehouse_type='DIST').values('user_id', 'user__username'))
+    if distributors:
+        message = 1
+    return HttpResponse(json.dumps({'message':message, 'data': distributors}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_resellers(request, user=''):
+    ''' Get Resellers list'''
+    message = 0
+    dist = request.GET['distributor']
+    resellers = list(CustomerMaster.objects.filter(user=dist).values('customer_id', 'name', 'id'))
+    if resellers:
+        message = 1
+    return HttpResponse(json.dumps({'message': message, 'data': resellers}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_corporates(request, user=''):
+    ''' Get Corporates list'''
+    message = 0
+    checked_corporates = {}
+    if request.GET['reseller']:
+        res = request.GET['reseller']
+        checked_corporates = list(CorpResellerMapping.objects.filter(reseller_id=res).values('corporate_id', 'status'))
+    corporates = list(CorporateMaster.objects.all().values('corporate_id', 'name'))
+    if corporates:
+        message = 1
+    return HttpResponse(json.dumps({'message': message, 'data': corporates, 'checked_corporates': checked_corporates}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def corporate_mapping_data(request, user=''):
+    """ Add New Reseller Corporate Mapping"""
+    log.info('Add New Reseller Corporate Mapping request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    distributor = request.POST.get('distributor', '')
+    search_corporate = request.POST.get('search_corporate', '')
+    reseller = request.POST.get('reseller', '')
+    checked_items = request.POST.get('checked_items', '').split(",") # Front end items
+    checked_items = map(int,checked_items)
+    if not reseller and checked_items:
+        return HttpResponse('Missing Required Fields')
+
+    exe_corps_obj = CorpResellerMapping.objects.filter(reseller_id=reseller) # Exist items
+    if not exe_corps_obj:
+        if checked_items:
+            for corp in checked_items:
+                CorpResellerMapping.objects.create(reseller_id=reseller, corporate_id=corp, status=1)
+    else:
+        exe_corps = exe_corps_obj.values_list('corporate_id', flat=True)
+        exe_corps = map(int,exe_corps)
+        new_corps = set(checked_items) - set(exe_corps)
+        del_corps = set(exe_corps) - set(checked_items) # Status = 0
+        for corp_id in exe_corps:
+            if corp_id in checked_items:
+                up_obj = exe_corps_obj.filter(corporate_id=corp_id)
+                if up_obj:
+                    up_obj[0].status = 1
+                    up_obj[0].save()
+        for corp_id in new_corps:
+            CorpResellerMapping.objects.create(reseller_id=reseller, corporate_id=corp_id, status=1) # Insert Corporate
+        for corp_id in del_corps:
+            del_obj = exe_corps_obj.filter(corporate_id=corp_id)
+            if del_obj:
+                del_obj[0].status = 0
+                del_obj[0].save()
+
+    status_msg = 'New Reseller Corporate Mapping Added'
+    return HttpResponse(json.dumps({'status': status_msg, 'message': 1}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def insert_update_terms(request, user=''):
     ''' Create or Update Terms and conditions'''
     terms_dict = request.POST.dict()

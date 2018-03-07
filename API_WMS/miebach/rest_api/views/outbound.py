@@ -6668,19 +6668,25 @@ def get_customer_cart_data(request, user=""):
                     json_record['freight_charges'] = "true"
                 else:
                     json_record['freight_charges'] = "false"
-                stock_obj = StockDetail.objects.filter(sku=record.sku.id, quantity__gt=0).values(
-                    'sku_id').distinct().annotate(in_stock=Sum('quantity'))
-                if stock_obj:
-                    stock_qty = stock_obj[0]['in_stock']
-                else:
-                    stock_qty = 0
-                reserved_obj = PicklistLocation.objects.filter(stock__sku=record.sku.id, status=1).values(
-                    'stock__sku_id').distinct().annotate(in_reserved=Sum('reserved'))
-                if reserved_obj:
-                    reserved_qty = reserved_obj[0]['in_reserved']
-                else:
-                    reserved_qty = 0
-                json_record['avail_stock'] = stock_qty - reserved_qty
+                whs = get_same_level_warehouses(level=record.warehouse_level)
+                tot_avail_stock = 0
+                for wh in whs:
+                    sku_id = get_syncedusers_mapped_sku(wh=wh, sku_id=record.sku.id)
+                    stock_obj = StockDetail.objects.filter(sku=sku_id, quantity__gt=0).values(
+                        'sku_id').distinct().annotate(in_stock=Sum('quantity'))
+                    if stock_obj:
+                        stock_qty = stock_obj[0]['in_stock']
+                    else:
+                        stock_qty = 0
+                    reserved_obj = PicklistLocation.objects.filter(stock__sku=sku_id, status=1).values(
+                        'stock__sku_id').distinct().annotate(in_reserved=Sum('reserved'))
+                    if reserved_obj:
+                        reserved_qty = reserved_obj[0]['in_reserved']
+                    else:
+                        reserved_qty = 0
+                    avail_stock = stock_qty - reserved_qty
+                    tot_avail_stock = tot_avail_stock + avail_stock
+                json_record['avail_stock'] = tot_avail_stock
                 # level = json_record['warehouse_level']
                 if is_distributor:
                     if price_type:

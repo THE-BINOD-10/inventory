@@ -33,7 +33,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
             vm.quantity_valid(sku);
           });
-
+          vm.corporates = data.data.reseller_corporates;
           var unique_skus = {};
 
           angular.forEach(vm.model_data.data, function(sku){

@@ -172,7 +172,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
     if (Session.user_profile.user_type == 'warehouse_user') {
 
-      var mod_data = {order_id: data['orderId'], url: 'get_customer_order_detail'};
+      var mod_data = {order_id: data['orderId'], url: 'get_customer_order_detail', customer_id: data['customerId']};
       var page_url = window.location.href
       if(page_url.indexOf('AutoBackOrders') > 0){
         mod_data['autobackorder'] = true;

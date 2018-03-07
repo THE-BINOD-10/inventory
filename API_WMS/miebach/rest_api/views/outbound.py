@@ -6608,7 +6608,16 @@ def get_tax_value(user, record, product_type, tax_type):
 def get_customer_cart_data(request, user=""):
     """  return customer cart data """
 
-    response = {'data': [], 'msg': 0}
+    response = {'data': [], 'msg': 0, 'reseller_corporates': []}
+    price_band_flag = get_misc_value('priceband_sync', user.id)
+    reseller_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+    if reseller_obj and price_band_flag == 'true':
+        reseller_id = reseller_obj[0].customer_id
+        res_corps = list(CorpResellerMapping.objects.filter(reseller_id=reseller_id,
+                                                   status=1).values_list('corporate_id', flat=True).distinct())
+        corp_names = CorporateMaster.objects.filter(id__in=res_corps).values_list('name', flat=True).distinct()
+        response['reseller_corporates'].extend(corp_names)
+
     cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id)
 
     if cart_data:
@@ -6618,7 +6627,6 @@ def get_customer_cart_data(request, user=""):
         tax = 0
         if tax_type:
             tax_type = tax_type[0]
-        price_band_flag = get_misc_value('priceband_sync', user.id)
 
         cm_obj = CustomerMaster.objects.get(id=cust_user_obj[0].customer_id)
         is_distributor = cm_obj.is_distributor

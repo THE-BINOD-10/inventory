@@ -1,13 +1,16 @@
 'use strict';
 
-function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, $modal, Data) {
+function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, $modal, Data, $timeout) {
 
   var vm = this;
   vm.customData = {};
   vm.service = Service;
 
+  vm.products = ['T Shirts', 'Sweatshirts'];
+  vm.product = vm.products[0];
+
   vm.product_types = {
-    't shirts': {
+    'T Shirts': {
       'categories': ['ROUND NECK', 'V NECK', 'CHINESE COLLAR', 'POLO', 'HENLEY'],
       'fabrics': ["SCOTT SAPPHIRE", "CRACKLE", "SULPHUR DRYFIT", "SULPHUR COTTON", "GREEN POLO", "LACOSTE", "BIOWASH", "HONEY COMB", "BUTTER HK", "SUPREME", "SPARK", "6 DEGREE", "SPRINT", "SCOTT YOUNG", "AWG DRYFIT", "SUPER POLY", "GRINDLE", "SLUB", "INNER COTTON"],
       'colors': ["RED", "BLACK", "GREY", "NAVY BLUE", "YELLOW", "ROYAL BLUE", "TURQUOISE GREEN", "TURQUOISE BLUE", "ELECTRIC GREEN", "ELECTRIC BLUE", "APPLE GREEN", "WHITE MELANGE", "WHITE", "BOTTLE GREEN", "PURPLE", "MILITARY GREEN", "ICE BLUE", "COFFEE BROWN", "MAROON", "BEIGE", "CRÈME", "CHARCOAL GREY", "INDIAN BLUE", "GOLDEN YELLOW", "LEMON YELLOW", "SKY BLUE", "PINK", "ORANGE", "MAGENTA", "PISTA GREEN", "DARK GREY", "ASH GREY", "MUSTARD", "HP BLUE", "DENIM BLUE", "GREY MELANGE", "CHARCOAL MELANGE", "GREEN MELANGE", "BLUE MELANGE", "PINK MELANGE"],
@@ -104,6 +107,87 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
         'neck_tape': true,
         'bottom': true,
         'slit_type': true,
+        'label': true,
+      },
+    },
+
+    'Sweatshirts': {
+      'categories': ['300 GSM', '400 GSM', 'HIGH NECK (ALWAYS ZIP)', 'COLLAR NECK', 'CHINESE NECK'],
+      'fabrics': ["SCOTT SAPPHIRE", "CRACKLE", "SULPHUR DRYFIT", "SULPHUR COTTON", "GREEN POLO", "LACOSTE", "BIOWASH", "HONEY COMB", "BUTTER HK", "SUPREME", "SPARK", "6 DEGREE", "SPRINT", "SCOTT YOUNG", "AWG DRYFIT", "SUPER POLY", "GRINDLE", "SLUB", "INNER COTTON"],
+      'colors': ["BLACK", "NAVY BLUE", "CHARCOAL", "GREY", "ROYAL BLUE", "CHARCOAL MELANGE", "BLUE MELANGE", "PINK MELANGE", "ROYAL BLUE MELANGE"],
+      '300 GSM': {
+        'fabric': false,
+        'body_color': true,
+        'design': true,
+        'piping': true,
+        'sleeve': true,
+        'pocket': true,
+        'placket': false,
+        'print_embroidery': true,
+        'collar_tape': false,
+        'neck_tape': true,
+        'bottom': false,
+        'slit_type': false,
+        'label': true,
+      },
+      '400 GSM': {
+        'fabric': false,
+        'body_color': true,
+        'design': true,
+        'piping': true,
+        'sleeve': true,
+        'pocket': true,
+        'placket': false,
+        'print_embroidery': true,
+        'collar_tape': false,
+        'neck_tape': true,
+        'bottom': false,
+        'slit_type': false,
+        'label': true,
+      },
+      'HIGH NECK (ALWAYS ZIP)': {
+        'fabric': false,
+        'body_color': true,
+        'design': true,
+        'piping': true,
+        'sleeve': true,
+        'pocket': true,
+        'placket': false,
+        'print_embroidery': true,
+        'collar_tape': true,
+        'neck_tape': true,
+        'bottom': false,
+        'slit_type': false,
+        'label': true,
+      },
+      'COLLAR NECK': {
+        'fabric': false,
+        'body_color': true,
+        'design': true,
+        'piping': true,
+        'sleeve': true,
+        'pocket': true,
+        'placket': false,
+        'print_embroidery': true,
+        'collar_tape': true,
+        'neck_tape': true,
+        'bottom': false,
+        'slit_type': false,
+        'label': true,
+      },
+      'CHINESE NECK': {
+        'fabric': false,
+        'body_color': true,
+        'design': true,
+        'piping': true,
+        'sleeve': true,
+        'pocket': true,
+        'placket': false,
+        'print_embroidery': true,
+        'collar_tape': true,
+        'neck_tape': true,
+        'bottom': false,
+        'slit_type': false,
         'label': true,
       },
     }
@@ -218,41 +302,51 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
     })
   }
 
-  vm.getCategories = function() {
-
-    Service.apiCall("get_sku_categories/").then(function(data){
-
-      if(data.message) {
-
-        if(data.data.categories.length > 0) {
-
-          vm.customData.styles = data.data.sub_categories;
-          vm.customData.style = vm.customData.styles[0];
-          //vm.getCustomStyles(vm.customData.style);
-          vm.styleChange(vm.customData.style);
-        } else {
-
-          console.log("Categories empty");
-        }
-      }
-    })
-  }
-
-  vm.getCategories();
-
   vm.styleChange = function(style) {
 
     vm.customData.style = style;
-    if (vm.product_types['t shirts'][vm.customData.style]) {
-      vm.style_pro = vm.product_types['t shirts'][vm.customData.style];
+    if (vm.product_types[vm.product][vm.customData.style]) {
+      vm.style_pro = vm.product_types[vm.product][vm.customData.style];
     }  else {
-      vm.style_pro = vm.product_types['t shirts']['DEFAULT'];
+      vm.style_pro = vm.product_types[vm.product]['DEFAULT'];
     }
-    vm.customData.fabric.fabricOptions = vm.product_types['t shirts'].fabrics;
+    vm.customData.fabric.fabricOptions = vm.product_types[vm.product].fabrics;
     vm.customData.fabric.fabrics.fabric1 = vm.customData.fabric.fabricOptions[0];
-    vm.customData.colorData = vm.product_types['t shirts'].colors;
+    vm.customData.colorData = vm.product_types[vm.product].colors;
     //vm.getCustomStyles(vm.customData.style);
   }
+
+  vm.productChange = function(product) {
+
+    vm.product = product;
+    vm.getCategories();
+  }
+
+  vm.getCategories = function() {
+
+    //Service.apiCall("get_sku_categories/").then(function(data){
+
+    //  if(data.message) {
+
+    //    if(data.data.categories.length > 0) {
+          vm.customData.styles = [];
+          vm.customData.style = "";
+          $timeout(function() {
+
+            vm.customData.styles = vm.product_types[vm.product]['categories']; //data.data.sub_categories;
+            vm.customData.style = vm.customData.styles[0];
+            vm.styleChange(vm.customData.style);
+          }, 500);
+          //vm.getCustomStyles(vm.customData.style);
+    //    } else {
+
+    //      console.log("Categories empty");
+    //    }
+    //  }
+    //})
+  }
+
+  vm.getCategories();
 
   vm.changed = function(data) {
 
@@ -555,7 +649,7 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
 
 angular
   .module('urbanApp')
-  .controller('CreateCustomOrder', ['$scope', '$http', '$state', 'Session', 'colFilters', 'Service', '$modal', 'Data', CreateCustomOrder]);
+  .controller('CreateCustomOrder', ['$scope', '$http', '$state', 'Session', 'colFilters', 'Service', '$modal', 'Data', '$timeout', CreateCustomOrder]);
 
 function customOrderDetailsPreview($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
 

@@ -33,6 +33,24 @@
         </div>
       </div>-->
 
+    <div>
+      <div class="row mb10 mt20">
+        <div class="col-md-12">
+          <div class="shaded-title">
+            <p align="center">Products</p>
+          </div>
+        </div>
+      </div>
+      <div class="row" ui-jq="checkBo">
+        <div class="col-md-2 col-sm-3 col-xs-6" ng-repeat="product in showCase.products">
+          <label class="cb-radio cb-sm" ng-click="showCase.productChange(product)">
+            <input type="radio" ng-checked="(showCase.product == product)?'checked': '';" name="default-radio-name" ng-value="product" ng-model="showCase.product"/>{{product}}
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div ng-if="showCase.customData.styles.length != 0">
       <div class="row mb10 mt20">
         <div class="col-md-12">
           <div class="shaded-title">
@@ -40,13 +58,14 @@
           </div>
         </div>
       </div>
-      <div class="row" ng-if="showCase.customData.styles.length != 0" ui-jq="checkBo">
+      <div class="row" ui-jq="checkBo">
         <div class="col-md-2 col-sm-3 col-xs-6" ng-repeat="style in showCase.customData.styles">
           <label class="cb-radio cb-sm" ng-click="showCase.styleChange(style)">
             <input type="radio" ng-checked="(showCase.customData.style == style)?'checked': '';" name="default-radio-name" ng-value="style" ng-model="showCase.customData.style"/>{{style}}
           </label>
         </div>
       </div>
+    </div>
 
     <div ng-if="showCase.style_pro.fabric">
       <div class="row shaded-title mb10 mt10">

@@ -49,7 +49,7 @@
               </div>
               <div class="row mt15 no-margin" style="background: #f0f0f0; padding: 15px">
                 <div class="col-md-3" ng-repeat="data in showCase.corporates">
-                  <input type="checkbox" class="data-select" id="{{data.corporate_id}}" ng-model="showCase.checked_items[data.corporate_id]" ng-checked="showCase.checked_items[data.corporate_id]" style="display: inline-block;">
+                  <input type="checkbox" class="data-select" id="{{data.corporate_id}}" ng-model="showCase.total_items[data.corporate_id]" ng-checked="showCase.total_items[data.corporate_id]" style="display: inline-block;">
                   <label for="{{data.corporate_id}}"> {{data.name}} </label>
                 </div>
               </div>

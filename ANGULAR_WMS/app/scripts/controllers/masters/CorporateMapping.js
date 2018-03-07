@@ -9,20 +9,37 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.distributors = [];
   vm.resellers = [];
-  vm.checked_items = {};
+  vm.total_items = {};
   vm.reseller = '';
+  vm.corp_dict = {};
 
   vm.get_corporates = function(res){
     var send = {'reseller': res};
     vm.service.apiCall("get_corporates/", 'GET', send).then(function(data){
       if(data.message) {
+        
+        if (data.data.checked_corporates) {
+          vm.corp_dict = {};
+
+          angular.forEach(data.data.checked_corporates, function(row){
+            vm.corp_dict[row.corporate_id] = row.status;
+          });
+        }
 
         vm.corporates = data.data.data;
       }
+      vm.def_checked_value();
     });
+  }
+
+  vm.def_checked_value = function(){
 
     angular.forEach(vm.corporates, function(item){
-      vm.checked_items[item.corporate_id] = false;
+      if (vm.corp_dict[item.corporate_id]) {
+        vm.total_items[item.corporate_id] = true;
+      } else {
+        vm.total_items[item.corporate_id] = false;
+      }
     });
   }
 
@@ -54,17 +71,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.submit = submit;
   function submit(data) {
     if (vm.reseller) {
+      var checked_items = [];
       var send = $("#form").serializeArray();
-      angular.forEach(vm.checked_items, function(row){
-        if (row) {
-          
+
+      angular.forEach(vm.total_items, function(value, key){
+        if (vm.total_items[key]) {
+          checked_items.push(key);
         }
       });
-
+      
+      send.push({'name':'checked_items', 'value': checked_items});
       vm.service.apiCall("corporate_mapping_data/", 'POST', send).then(function(data){
         if(data.message) {
 
-          // vm.corporates = data.data.corporates;
+          vm.service.showNoty(data.data.success);
         }
       });
     } else {

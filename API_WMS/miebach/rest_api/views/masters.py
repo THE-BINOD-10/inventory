@@ -3284,6 +3284,12 @@ def corporate_mapping_data(request, user=''):
         exe_corps = map(int,exe_corps)
         new_corps = set(checked_items) - set(exe_corps)
         del_corps = set(exe_corps) - set(checked_items) # Status = 0
+        for corp_id in exe_corps:
+            if corp_id in checked_items:
+                up_obj = exe_corps_obj.filter(corporate_id=corp_id)
+                if up_obj:
+                    up_obj[0].status = 1
+                    up_obj[0].save()
         for corp_id in new_corps:
             CorpResellerMapping.objects.create(reseller_id=reseller, corporate_id=corp_id, status=1) # Insert Corporate
         for corp_id in del_corps:

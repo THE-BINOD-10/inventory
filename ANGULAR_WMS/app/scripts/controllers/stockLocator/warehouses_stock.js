@@ -16,7 +16,7 @@ angular.module('urbanApp', ['datatables'])
     vm.g_data = Data.stock_view;
 
     vm.layout_loading = true;
-    if(!Session.roles.permissions.add_networkmaster) {
+    if(!Session.roles.permissions.add_networkmaster && !Session.roles.permissions.priceband_sync) {
       vm.g_data.level = "";
     }
     vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level, 'GET').then(function(data){

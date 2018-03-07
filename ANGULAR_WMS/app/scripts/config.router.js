@@ -1052,9 +1052,9 @@ var app = angular.module('urbanApp')
                              'scripts/controllers/outbound/pop_js/backorder_jo.js',
                              'scripts/controllers/outbound/pop_js/stock_transfer.js',
                              'scripts/controllers/outbound/pop_js/picklist.js',
-                             'scripts/controllers/outbound/pop_js/enquiry_details.js',
                              'scripts/controllers/outbound/pop_js/manual_details.js',
-                             'scripts/controllers/outbound/pop_js/custom_order_details.js'
+                             'scripts/controllers/outbound/pop_js/custom_order_details.js',
+                             'scripts/controllers/outbound/pop_js/enquiry_details.js'
                             ]
                         }]);
                     }]

@@ -481,7 +481,7 @@ def customer_order(request):
     return HttpResponse(json.dumps({'order_ids': order_ids}))
 
 
-def prepare_delivery_challan_json(request, order_id, user_id):
+def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
     json_data = {}
     customer_data, summary, gst_based = {}, {}, {}
     sku_data = []
@@ -493,6 +493,9 @@ def prepare_delivery_challan_json(request, order_id, user_id):
     #check where discount is saved
     order_detail = OrderDetail.objects.filter(original_order_id__icontains=order_id, \
                                               user=user_id, quantity__gt=0)
+    if parent_user:
+        order_detail = OrderDetail.objects.filter(original_order_id__icontains=order_id, \
+                                              user=parent_user.id, quantity__gt=0)
     
     for order in order_detail:
         discount = 0
@@ -677,7 +680,9 @@ def pre_order_data(request, user=''):
 
 
 @login_required
-def update_order_status(request):
+@get_admin_user
+def update_order_status(request, user=''):
+    parent_user = user
     full_data = eval(request.POST['data'])
     nw_status = "offline"
     if isinstance(full_data, dict):
@@ -685,7 +690,8 @@ def update_order_status(request):
         nw_status = "online"
     for data in full_data:
         order_detail = OrderDetail.objects.filter(order_id=data['order_id'], \
-                                                  user=data['user'], \
+                                                  user=parent_user.id,
+                                                  #user=data['user'], \
                                                   quantity__gt=0, \
                                                   order_code='PRE' + str(request.user.id))
         if data['delete_order'] == "true":
@@ -749,7 +755,7 @@ def update_order_status(request):
             from_pos = True
     all_picks = Picklist.objects.filter(id__in=picks_all)
     check_and_send_mail(request, user, all_picks[0], all_picks, picklists_send_mail, from_pos)
-    json_data = prepare_delivery_challan_json(request, full_data[0]['order_id'], request.user.id)
+    json_data = prepare_delivery_challan_json(request, full_data[0]['order_id'], request.user.id, parent_user=parent_user)
     return HttpResponse(json.dumps({"message": "Delivered Successfully !", "data": json_data}))
 
 

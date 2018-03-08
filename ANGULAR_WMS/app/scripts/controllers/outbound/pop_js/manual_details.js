@@ -1,6 +1,4 @@
-angular.module('urbanApp', []).controller('ManualOrderDetails', ['$scope', 'Service', '$modalInstance', 'items', 'Session',
-function($scope, Service, $modalInstance, items, Session) {
-
+function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
   var vm = this;
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
@@ -128,4 +126,8 @@ function($scope, Service, $modalInstance, items, Session) {
 
     $modalInstance.close();
   }
-}]);
+};
+
+angular
+  .module('urbanApp')
+    .controller('ManualOrderDetails', ['$scope', 'Service', '$modalInstance', 'items', 'Session', ManualOrderDetails]);

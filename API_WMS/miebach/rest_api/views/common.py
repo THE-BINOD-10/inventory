@@ -368,7 +368,7 @@ def get_trial_user_data(request):
     return HttpResponse(json.dumps(response), content_type='application/json')
 
 
-def get_search_params(request):
+def get_search_params(request, user=''):
     search_params = {}
     filter_params = {}
     headers = []
@@ -414,6 +414,14 @@ def get_search_params(request):
             filter_params[filter_mapping[key]] = value
         elif key == 'special_key':
             search_params[data_mapping[key]] = value
+    #pos extra headers
+    if user:
+        headers.extend(["Order Taken By", "Payment Cash", "Payment Card"])
+        extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
+        for field in extra_fields_obj:
+            tmp = field.misc_value.split(',')
+            for i in tmp:
+                headers.append(str(i))
 
     return headers, search_params, filter_params
 
@@ -902,7 +910,7 @@ def order_creation_message(items, telephone, order_id, other_charges=0):
 
 def order_dispatch_message(order, user, order_qt=""):
     data = 'Your order with ID %s has been successfully picked and ready for dispatch by %s %s :' % (
-    order.order_id, user.first_name, user.last_name)
+    (order.order_code + str(order.order_id)), user.first_name, user.last_name)
     total_quantity = 0
     total_amount = 0
     telephone = order.telephone
@@ -1995,9 +2003,11 @@ def search_wms_codes(request, user=''):
 
 
 def get_order_id(user_id):
-    order_detail_id = OrderDetail.objects.filter(user=user_id,
-                                                 order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO',
-                                                                 'Pre Order']).order_by('-creation_date')
+    order_detail_id = OrderDetail.objects.filter(Q(order_code__in=\
+                                          ['MN', 'Delivery Challan', 'sample', 'R&D', 'CO','Pre Order']) |
+                                          reduce(operator.or_, (Q(order_code__icontains=x)\
+                                          for x in ['DC', 'PRE'])), user=user_id)\
+                                          .order_by('-creation_date')
     if order_detail_id:
         order_id = int(order_detail_id[0].order_id) + 1
     else:
@@ -2160,7 +2170,7 @@ def get_financial_year(date):
         return str(financial_year_start_date.year)[2:] + '-' + str(financial_year_start_date.year + 1)[2:]
 
 
-def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile):
+def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False):
     invoice_number = ""
     inv_no = ""
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
@@ -2209,7 +2219,11 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile):
     elif user_profile.warehouse_type == 'DIST':
         invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
     else:
-        invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
+        if from_pos:
+            sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))
+            invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), sub_usr + order_no)
+        else:
+            invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
 
     return invoice_number, inv_no
 
@@ -2257,7 +2271,7 @@ def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids=''):
     return imeis
 
 
-def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell_ids=''):
+def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell_ids='', from_pos=False):
     """ Build Invoice Json Data"""
 
     # Initializing Default Values
@@ -2497,8 +2511,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                  'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
                  'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
                  'discount_percentage': discount_percentage, 'id': dat.id})
-
-    _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile)
+    _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
     order_charges = {}

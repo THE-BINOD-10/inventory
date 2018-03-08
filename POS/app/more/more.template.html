@@ -26,7 +26,7 @@
 			    		<div class="modal-content">
 			  				<div class="modal-header">
 			  	  				<button type="button" class="close" data-dismiss="modal">&times;</button>
-			  	  				<h4 class="modal-title">ORDER ID {{$ctrl.selected_order.order_id}}</h4>
+			  	  				<h4 class="modal-title">ORDER ID {{$ctrl.selected_order.original_order_id}}</h4>
 				  				<div class="row customer_info">
 				  					<div ng-repeat = "(key, item) in $ctrl.selected_order.customer_data" ng-if="item">
 					  					{{key}} : {{item}}&nbsp;&nbsp;&nbsp;&nbsp;
@@ -74,7 +74,7 @@
 
 				<div class="all_orders" ng-repeat="item in $ctrl.filtered_order_details" ng-if="item.order_id">
 					<div class="each_order alert btn {{item.order_id}}" ng-click="$ctrl.select_order(item.order_id)">
-						<h4>{{item.customer_data.Name}} &nbsp;&nbsp;<strong>{{item.order_id}}</strong> &nbsp;&nbsp;&nbsp;{{item.order_date}}</h4>
+						<h4>{{item.customer_data.Name}} &nbsp;&nbsp;<strong>{{item.original_order_id}}</strong> &nbsp;&nbsp;&nbsp;{{item.order_date}}</h4>
 						<div style="overflow-y: overlay;color: #b9a09f">
 							<span ng-repeat="sku in item.sku_data"><strong>{{sku.sku_code}}&nbsp;</strong></span>
 						</div>

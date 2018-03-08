@@ -3263,6 +3263,22 @@ def get_corporates(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def search_corporate_data(request, user=''):
+    search_key = request.GET.get('q', '')
+    total_data = []
+    if not search_key:
+        return HttpResponse(json.dumps(total_data))
+
+    corporate_data = CorporateMaster.objects.filter(Q(corporate_id__icontains=search_key) | Q(name__icontains=search_key) |
+                                                Q(email_id__icontains=search_key))
+    for data in corporate_data[:30]:
+        total_data.append({'corporate_id': data.corporate_id, 'name': data.name, 'phone_number': data.phone_number})
+    return HttpResponse(json.dumps(total_data))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def corporate_mapping_data(request, user=''):
     """ Add New Reseller Corporate Mapping"""
     log.info('Add New Reseller Corporate Mapping request params for ' + user.username + ' is ' + str(request.POST.dict()))

@@ -68,6 +68,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
   }
 
+  vm.selected = {};
+  vm.get_corporate_data = function(item, model, label, event) {
+    vm.corporates = [];
+    vm.search_corporate = item.name;
+    vm.corporates.push(item)
+  }
+
   vm.submit = submit;
   function submit(data) {
     if (vm.reseller) {

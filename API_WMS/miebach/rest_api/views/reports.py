@@ -775,7 +775,7 @@ def excel_reports(request, user=''):
     excel_name = ''
     func_name = ''
     file_type = 'xls'
-    headers, search_params, filter_params = get_search_params(request)
+    headers, search_params, filter_params = get_search_params(request, user)
     if '&' in request.POST['serialize_data']:
         form_data = request.POST['serialize_data'].split('&')
     else:

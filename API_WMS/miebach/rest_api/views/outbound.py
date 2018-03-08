@@ -1095,7 +1095,7 @@ def update_picklist_pallet(stock, picking_count1):
     pallet.save()
 
 
-def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt=""):
+def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt="", from_pos=False):
     picklist_order_ids_list = []
     reciever = []
     internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
@@ -1134,8 +1134,12 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt=
         reciever.append(email)
     if reciever:
         try:
+            tmp_invoice_date = get_local_date(user, picklist.updation_date, send_date='true')
+            tmp_invoice_date = str(tmp_invoice_date.strftime('%m%y'))
+            tmp_order_id = 'TI/' + tmp_invoice_date + '/' + picklist.order.original_order_id if from_pos else\
+                           'TI/' + tmp_invoice_date + '/' + str(picklist.order.order_id)
             send_mail_attachment(reciever, '%s : Invoice No.%s' % (
-            user_data.company_name, 'TI/1116/' + str(picklist.order.order_id)), rendered, files=[pdf_file])
+            user_data.company_name, tmp_order_id), rendered, files=[pdf_file])
         except:
             log.info('mail issue')
 
@@ -1164,7 +1168,7 @@ def get_picklist_batch(picklist, value, all_picklists):
     return picklist_batch
 
 
-def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail):
+def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail, from_pos=False):
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='dispatch', misc_value='true')
 
     # order_ids = list(set(map(lambda d: d['order_id'], picklists_send_mail[0])))
@@ -1177,7 +1181,8 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
                 order_ids = [str(int(i)) for i in order_ids_list]
                 order_ids = ','.join(order_ids)
 
-            nv_data = get_invoice_data(order_ids, user, picklists_send_mail[order_id])
+
+            nv_data = get_invoice_data(order_ids, user, picklists_send_mail[order_id], from_pos=from_pos)
             nv_data = modify_invoice_data(nv_data, user)
             ord_ids = order_ids.split(",")
             nv_data = add_consignee_data(nv_data, ord_ids, user)
@@ -1197,7 +1202,8 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
             file_.close()
             os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
 
-            send_picklist_mail(all_picked_items, request, user, pdf_file, misc_detail, picklists_send_mail[order_id])
+            send_picklist_mail(all_picked_items, request, user, pdf_file, misc_detail,\
+                               picklists_send_mail[order_id], from_pos=from_pos)
             if picklist.picked_quantity > 0 and picklist.order and misc_detail:
                 if picklist.order.telephone:
                     order_dispatch_message(picklist.order, user, picklists_send_mail[order_id])
@@ -3077,7 +3083,7 @@ def send_mail_ordered_report(order_detail, telephone, items, other_charge_amount
         if not telephone:
             telephone = order_data.get('telephone', "")
         if telephone:
-            order_creation_message(items, telephone, (order_detail.order_code) + str(order_detail.order_id),
+            order_creation_message(items, telephone, str(order_detail.order_id),
                                    other_charges=other_charge_amounts)
 
 

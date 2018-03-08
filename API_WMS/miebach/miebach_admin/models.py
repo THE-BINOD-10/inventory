@@ -1155,6 +1155,18 @@ class CorporateMaster(models.Model):
     class Meta:
         db_table = 'CORPORATE_MASTER'
 
+class CorpResellerMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    reseller_id = models.PositiveIntegerField()
+    corporate_id = models.PositiveIntegerField()
+    status = models.CharField(max_length=10, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CORP_RESELLER_MAPPING'
+
+
 class SKUGroups(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()

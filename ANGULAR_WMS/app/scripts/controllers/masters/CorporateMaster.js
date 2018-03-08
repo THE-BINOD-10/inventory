@@ -99,6 +99,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.base();
     vm.get_corporate_id();
+    vm.corporate();
     $state.go('app.masters.CorporateMaster.corporate');
   }
 

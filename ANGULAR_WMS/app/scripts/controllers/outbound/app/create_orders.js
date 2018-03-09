@@ -1155,14 +1155,30 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'WRIST WATCH':'corp_attire_catg_img/Wrist Watch.svg',
 
 
-};
+  };
+  vm.category_image_map_shailesh = {
+
+    //SAILESH
+    'FULL SLEEVE SHIRT': 'FULL SLEEVE SHIRT.png',
+    'HONEY COMBED DRY FIT': 'HONEY COMBED DRY FIT.png',
+    'HOODIES WITHOUT ZIP': 'HOODIES WITHOUT ZIP.png',
+    'HOODIES WITH ZIP': 'HOODIES WITH ZIP.png',
+    'POLO': 'POLO.png',
+    'ROUND NECK': 'ROUND NECK.png'
+  }
 
   vm.get_category_image = function(category) {
 
-    if(vm.category_image_map[category]) {
+    if (Session.parent.userName == 'shailesh_mehta') {
+      if (vm.category_image_map_shailesh[category]) {
+         return '/images/categories/'+vm.category_image_map_shailesh[category];
+      } else {
+        return '/images/categories/default.png';
+      }
+    } else if(vm.category_image_map[category]) {
       return '/images/categories/'+vm.category_image_map[category];
     } else {
-      return '/images/categories/default.png'
+      return '/images/categories/default.png';
     }
   }
 

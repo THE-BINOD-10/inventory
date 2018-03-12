@@ -4954,15 +4954,18 @@ def get_seller_order_details(request, user=''):
 
     order_details = seller_data
     seller_details = seller_data[0].seller.json()
-    row_id = order_details[0].id
+    row_id = order_details[0].order_id
 
     custom_data = OrderJson.objects.filter(order_id=row_id)
     status_obj = ''
     central_remarks = ''
+    invoice_types = get_invoice_types(user)
+    invoice_type = ''
     customer_order_summary = CustomerOrderSummary.objects.filter(order_id=row_id)
     if customer_order_summary:
         status_obj = customer_order_summary[0].status
         central_remarks = customer_order_summary[0].central_remarks
+        invoice_type = customer_order_summary[0].invoice_type
 
     data_dict = []
     cus_data = []
@@ -5071,7 +5074,8 @@ def get_seller_order_details(request, user=''):
              'order_charges': order_charges,
              'sku_status': one_order.status})
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
-                      'central_remarks': central_remarks, 'seller_details': seller_details})
+                      'central_remarks': central_remarks, 'seller_details': seller_details,
+                      'invoice_type': invoice_type, 'invoice_types': invoice_types})
 
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 

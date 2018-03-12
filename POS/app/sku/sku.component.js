@@ -28,6 +28,7 @@
       self.names = ['Delivery Challan', 'Pre Order'];//['Delivery Challan', 'sample', 'R&D']
       self.nw_status = "";
       self.sku_data_filtered = [];
+      self.style_based_sku_data = [];
 
       
       $http.get(urlService.mainUrl+'rest_api/get_file_content/?name=sku_master&user='+urlService.userData.parent_id)
@@ -88,7 +89,12 @@
           }
         }).error(function() {
           $(".preloader").removeClass("ng-show").addClass("ng-hide");
-        });
+        }).catch(function(error){
+		angular.forEach(self.skus, function(value, index) {
+			self.changeQuantity(value);
+		});
+		console.log("no network");
+	});
       //Session.roles.permissions[switch_name] = switch_value;
     }
 
@@ -210,6 +216,46 @@
 		}
 	 }
 
+     //style based SKU search
+     self.change_style_switch = change_style_switch;
+     function change_style_switch(style_search){
+        if(style_search){
+           console.log("style search enabled");
+           self.qty_switch = true;
+        } else {
+          self.qty_switch = false;
+        }
+     }
+
+     //change qty for style based sku
+     self.change_style_qty = change_style_qty;
+     function change_style_qty(sku_code, qty) {
+        self.tot_style_qty = 0;
+        self.tot_style_amount = 0;
+        for (var item in self.style_based_sku_data){
+            if(self.style_based_sku_data[item]["SKUCode"] === sku_code){
+                self.style_based_sku_data[item]["quantity"] = qty;
+                self.style_based_sku_data[item]["sku_code"] = sku_code;
+                console.log(self.style_based_sku_data[item]);
+            }
+            if(!self.style_based_sku_data[item]["quantity"]) self.style_based_sku_data[item]["quantity"] = 0;
+            self.tot_style_qty += parseInt(self.style_based_sku_data[item]["quantity"]);
+            console.log(parseInt(self.style_based_sku_data[item]["quantity"]) * self.style_based_sku_data[item]["price"]);
+            self.tot_style_amount += (parseInt(self.style_based_sku_data[item]["quantity"]) * self.style_based_sku_data[item]["price"]);
+        }
+    }
+    //style sku confirm
+    self.style_confirm = style_confirm;
+    function style_confirm(){
+        for(var item in self.style_based_sku_data){
+            if(self.style_based_sku_data[item]["quantity"] > 0){
+                update_search_results([self.style_based_sku_data[item]], self.style_based_sku_data[item]["SKUCode"]);
+                changeQuantity(self.style_based_sku_data[item]);
+            }
+        }
+        $('#styleModal').modal("hide");
+        $("input[type='search'][placeholder='Enter SKUCode/ProductName'").val("").focus();
+    }
     /*$rootScope.$on("CallParentMethod", function(){
       $scope.parentmethod();
     });
@@ -603,13 +649,23 @@
           }
         }
   
-      function get_product_data(key) {
+      function get_product_data(key, style_switch) {
 
           if(key.length>1){
               var deferred = $q.defer();
-              $http.get(urlService.mainUrl+'rest_api/search_product_data/?user='+urlService.userData.parent_id+'&key='+key)
+              $http.get(urlService.mainUrl+'rest_api/search_product_data/?user='+urlService.userData.parent_id+'&key='+key
+                                          + '&style_search=' + style_switch)
                 .then( function(data) {
-                  data=data.data;
+                  if(self.style_switch){
+                    self.style_based_sku_data = data.data;
+                    data = [];
+                    self.style_qtys = {};
+                    self.tot_style_qty = 0;
+                    self.tot_style_amount = 0;
+                    $('#styleModal').modal('show');
+                  } else {
+                    data=data.data;
+                  }
                   if(data.message === "invalid user") {
                     $window.location.reload();
                  } else {

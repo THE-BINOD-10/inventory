@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 
+from mail_server import send_mail, send_mail_attachment
 import json
 from dateutil import tz
 from dateutil.relativedelta import relativedelta
@@ -15,6 +16,8 @@ from django.views.decorators.csrf import csrf_exempt
 from miebach_admin.custom_decorators import login_required, get_admin_user
 from common import *
 from miebach_utils import *
+from outbound import send_mail_ordered_report, check_and_send_mail
+from send_message import send_sms
 
 # Create your views here.
 log = init_logger('logs/pos.log')
@@ -62,6 +65,7 @@ def get_pos_user_data(request, user=''):
         response_data['status'] = 'Success'
         response_data['VAT'] = vat
         response_data['parent_id'] = user.user.id
+        response_data['user_id'] = request.user.id
         response_data['company'] = user.company_name
         response_data['address'] = user.address
         response_data['phone'] = user.phone_number
@@ -104,16 +108,26 @@ def search_pos_customer_data(request, user=''):
 @get_admin_user
 def search_product_data(request, user=''):
     search_key = request.GET['key']
+    style_switch = True if request.GET['style_search']=='true' else False
     total_data = []
-    try:
-        master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
-                                                                      Q(sku_desc__icontains=search_key) |
-                                                                      Q(ean_number=int(search_key)),
-                                                                      user=user.id)
-    except:
-        master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
+    if style_switch:
+        sku_obj = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
+                                                                  Q(sku_desc__icontains=search_key) |
+                                                                  Q(style_name__icontains=search_key),
+                                                                  user=user.id)
+        style = sku_obj[0].style_name if sku_obj else ''
+        master_data = SKUMaster.objects.exclude(sku_type='RM').filter(style_name=style, user=user.id)\
+                      if style else []
+    else:
+        try:
+            master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
+                                                                          Q(sku_desc__icontains=search_key) |
+                                                                          Q(ean_number=int(search_key)),
+                                                                          user=user.id)
+        except:
+            master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
                                                                       Q(sku_desc__icontains=search_key), user=user.id)
-    for data in master_data[:30]:
+    for data in master_data[:100]:
         status = 'Inactive'
         if data.status:
             status = 'Active'
@@ -148,9 +162,12 @@ def search_product_data(request, user=''):
         stock_quantity = stock_quantity['quantity__sum']
         if not stock_quantity:
             stock_quantity = 0
-        total_data.append({'search': str(data.wms_code) + " " + data.sku_desc + " " + str(data.ean_number),
+        total_data.append({'search': str(data.wms_code) + " " + data.sku_desc + " " +\
+                                     str(data.ean_number) + " " + str(data.style_name),
                            'SKUCode': data.wms_code,
-                           'ProductDescription': data.sku_desc,
+                           'style_name': data.style_name,
+                           'sku_size' : data.sku_size,
+                           'ProductDescription': data.sku_desc + str(data.wms_code),
                            'price': discount_price,
                            'url': data.image_url, 'data-id': data.id,
                            'discount': discount_percentage,
@@ -206,7 +223,8 @@ def get_stock_count(request, order, stock, stock_diff, user, order_quantity):
 
 
 def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
-                      picklist_number, stock_diff, item, user, invoice_number):
+                      picklist_number, stock_diff, item, user, invoice_number,\
+                      picks_all=[], picklists_send_mail={}):
     # seller_order_summary object creation
     seller_order_summary = SellerOrderSummary.objects.create(pick_number=1, \
                                                              seller_order=None, \
@@ -222,6 +240,20 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
                                            status='batch_picked', \
                                            order_id=order_detail.id, \
                                            stock_id='', creation_date=NOW)
+        picks_all.append(picklist.id)
+        quantity = picklist.picked_quantity
+        if picklist.order.order_id in picklists_send_mail.keys():
+            if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
+                qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code])
+                picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] = qty +\
+                      float(quantity)
+            else:
+                picklists_send_mail[picklist.order.order_id].update(
+                    {picklist.order.sku.sku_code: float(quantity)})
+        else:
+            picklists_send_mail.update(
+                {picklist.order.order_id: {picklist.order.sku.sku_code: float(quantity)}})
+
     obj, created = CustomerOrderSummary.objects.get_or_create(order_id=order_detail.id)
     if created:
         obj.discount = item['discount']
@@ -249,8 +281,24 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
                                         picklist_id=picklist.id, reserved=0, \
                                         stock_id=stock.id, \
                                         creation_date=NOW)
+        picks_all.append(picklist.id)
+        quantity = picklist.picked_quantity
+        if picklist.order.order_id in picklists_send_mail.keys():
+            if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
+                qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code])
+                picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] = qty +\
+                      float(quantity)
+            else:
+                picklists_send_mail[picklist.order.order_id].update(
+                    {picklist.order.sku.sku_code: float(quantity)})
+        else:
+            picklists_send_mail.update(
+                {picklist.order.order_id: {picklist.order.sku.sku_code: float(quantity)}})
+
         if not stock_diff:
             break
+    if order_detail.order_code == "PRE%s" %(request.user.id):
+        return picks_all, picklists_send_mail
     return "Success"
 
 
@@ -261,9 +309,12 @@ def customer_order(request):
     orders = eval(orders)
     order_ids = []
     only_return = True
+    order_codes = {"Delivery Challan": "DC",
+                   "Pre Order": "PRE"}
     if isinstance(orders, dict): orders = [orders]
     for order in orders:
         order_created = False
+        items_to_mail = []
         total_payment_received = sum(order['summary'].get('payment', {}).values())
         user_id = order['user']['parent_id']
         user = User.objects.get(id=user_id)
@@ -272,12 +323,13 @@ def customer_order(request):
         cust_dict = order['customer_data']
         number = order['customer_data']['Number']
         customer_data = CustomerMaster.objects.filter(phone_number=number, \
-                                                      user=user_id)
+                                                      user=user_id) if number else []
         order_id = get_order_id(user_id) if order['summary']['nw_status'] == 'online' \
             else order['summary']['order_id']
         status = 0 if order['summary']['issue_type'] == "Delivery Challan" \
             else 1
-        original_order_id = order['summary']['issue_type'] + str(order_id)
+        order_code = order_codes[order['summary']['issue_type']] + str(request.user.id)
+        original_order_id = order_code + str(order_id)
         order_ids.append(order_id)
         picklist_number = get_picklist_number(user) + 1
         if customer_data:
@@ -333,7 +385,7 @@ def customer_order(request):
                                                               title=sku.sku_desc, \
                                                               quantity=item['quantity'], \
                                                               invoice_amount=item['price'], \
-                                                              order_code=order['summary']['issue_type'], \
+                                                              order_code=order_code, \
                                                               shipment_date=NOW, \
                                                               original_order_id=original_order_id, \
                                                               nw_status=order['summary']['nw_status'], \
@@ -344,12 +396,13 @@ def customer_order(request):
                     sku_disc = (int(item['selling_price']) - item['unit_price']) * item['quantity']
                     CustomerOrderSummary.objects.create(order_id=order_detail.id, \
                                                         discount=order_level_disc_per_sku, \
-                                                        issue_type=order_detail.order_code, \
+                                                        issue_type=order['summary']['issue_type'], \
                                                         cgst_tax=item['cgst_percent'], \
                                                         sgst_tax=item['sgst_percent'], \
                                                         order_taken_by=order['summary']['staff_member'], \
                                                         creation_date=NOW)
                     order_created = True
+                    items_to_mail.append([sku.sku_desc, item['quantity'], item['price']])
                     if status == 0:
                         stock_diff, invoice_number = item['quantity'], order_id
                         stock_detail = StockDetail.objects.exclude( \
@@ -403,6 +456,20 @@ def customer_order(request):
                         location=sku_stocks_.location, \
                         returns=order_return)
             if order_created:
+                #send mail and sms for pre order
+                if order["summary"]["issue_type"] == "Pre Order" and customer_data:
+                    email_id, phone_number = customer_data[0].email_id, customer_data[0].phone_number
+                    if email_id:
+                        other_charge_amounts = 0
+                        order_detail.order_id = order_detail.original_order_id
+                        order_data = {
+                                      "customer_name": customer_data[0].name,
+                                      "address": customer_data[0].address,
+                                      "telephone": phone_number,
+                                      "email_id": email_id
+                                     }
+                        send_mail_ordered_report(order_detail, phone_number, items_to_mail,\
+                                                 other_charge_amounts, order_data, user)
                 # store extra details
                 for field, val in order["summary"].get("payment", {}).iteritems():
                     OrderFields.objects.create(original_order_id=original_order_id, name="payment_" + field, value=val,
@@ -414,7 +481,7 @@ def customer_order(request):
     return HttpResponse(json.dumps({'order_ids': order_ids}))
 
 
-def prepare_delivery_challan_json(request, order_id, user_id):
+def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
     json_data = {}
     customer_data, summary, gst_based = {}, {}, {}
     sku_data = []
@@ -424,8 +491,11 @@ def prepare_delivery_challan_json(request, order_id, user_id):
     user = User.objects.get(id=user_id)
     order_date = get_local_date(user, NOW)
     #check where discount is saved
-    order_detail = OrderDetail.objects.filter(order_id=order_id, \
+    order_detail = OrderDetail.objects.filter(original_order_id__icontains=order_id, \
                                               user=user_id, quantity__gt=0)
+    if parent_user:
+        order_detail = OrderDetail.objects.filter(original_order_id__icontains=order_id, \
+                                              user=parent_user.id, quantity__gt=0)
     
     for order in order_detail:
         discount = 0
@@ -539,7 +609,7 @@ def print_order_data(request, user=''):
     return HttpResponse(json.dumps(json_data))
 
 
-def get_order_details(order_id, user_id, mobile, customer_name, request_from):
+def get_order_details(order_id, user_id, mobile, customer_name, request_from, sub_user=''):
     customer_data, order_data = {}, {}
     summary, sku_data = [], []
     total_quantity, total_amount, subtotal = [0] * 3
@@ -552,7 +622,7 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
                                                   quantity__gt=0, status=status, \
                                                   creation_date__gte=min_order_date)
         if status == 1:
-            order_detail = order_detail.filter(order_code='Pre Order')
+            order_detail = order_detail.filter(order_code='PRE' + str(sub_user.id))
         if order_id:
             order_detail = order_detail.filter(order_id=order_id)
         else:
@@ -562,10 +632,10 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
                 order_detail = order_detail.filter(customer_name__icontains=customer_name)
     elif request_from == "preorder":
         order_detail = OrderDetail.objects.filter(user=user_id, quantity__gt=0, \
-                                                  order_code='Pre Order')
+                                                  order_code='PRE' + str(sub_user.id))
     else:
         order_detail = OrderDetail.objects.filter(user=user_id, \
-                                                  status=1, order_code='Pre Order')
+                                                  status=1, order_code='PRE' + str(sub_user.id))
     if order_id: order_detail = order_detail.filter(order_id=order_id)
     for order in order_detail:
         selling_price = order.unit_price if order.unit_price != 0 \
@@ -573,6 +643,7 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
         order_id = str(order.order_id)
         order_data.setdefault(order_id, {})
         order_data[order_id]['order_id'] = order_id
+        order_data[order_id]['original_order_id'] = order.original_order_id
         order_data[order_id]['order_date'] = order.creation_date \
             .astimezone(to_zone) \
             .strftime("%d %b %Y %I:%M %p")
@@ -595,20 +666,23 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from):
     return json.dumps({'data': order_data})
 
 
+@get_admin_user
 @login_required
-def pre_order_data(request):
+def pre_order_data(request, user=''):
     data = eval(request.POST['data'])
     order_id = data.get('order_id', '')
     mobile = data.get('mobile', '')
     customer_name = data.get('customer_name', '')
     request_from = data.get('request_from', '')
-    order_details = get_order_details(order_id, data['user'], mobile, \
-                                      customer_name, request_from)
+    order_details = get_order_details(order_id, user.id, mobile, \
+                                      customer_name, request_from, request.user)
     return HttpResponse(order_details)
 
 
 @login_required
-def update_order_status(request):
+@get_admin_user
+def update_order_status(request, user=''):
+    parent_user = user
     full_data = eval(request.POST['data'])
     nw_status = "offline"
     if isinstance(full_data, dict):
@@ -616,15 +690,18 @@ def update_order_status(request):
         nw_status = "online"
     for data in full_data:
         order_detail = OrderDetail.objects.filter(order_id=data['order_id'], \
-                                                  user=data['user'], \
+                                                  user=parent_user.id,
+                                                  #user=data['user'], \
                                                   quantity__gt=0, \
-                                                  order_code='Pre Order')
+                                                  order_code='PRE' + str(request.user.id))
         if data['delete_order'] == "true":
             order_detail.delete()
             if nw_status == "online":
                 return HttpResponse(json.dumps({"message": "Deleted Successfully !", "data": {}}))
             else:
                 continue
+        picks_all = []
+        picklists_send_mail = {}
         for order in order_detail:
             order.status = 0
             order.payment_received = order.invoice_amount
@@ -639,7 +716,6 @@ def update_order_status(request):
                 if nw_status == "online": return HttpResponse(json.dumps({"message": "Error", "data": {}}))
                 order.save()
                 continue
-
             stock_diff = StockDetail.objects.filter(sku=sku) \
                 .exclude(location__zone__zone='DAMAGED_ZONE') \
                 .values_list('sku__wms_code').distinct() \
@@ -673,9 +749,13 @@ def update_order_status(request):
             stock_detail = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE') \
                 .filter(sku__wms_code=order.sku.wms_code, sku__user=user_id)
             stock_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
-            picklist_creation(request, stock_detail, stock_quantity, order, \
-                              picklist_number, stock_diff, item, user, invoice_number)
-    json_data = prepare_delivery_challan_json(request, full_data[0]['order_id'], request.user.id)
+            picks_all, picklists_send_mail = picklist_creation(request, stock_detail,\
+                              stock_quantity, order, picklist_number, stock_diff,\
+                              item, user, invoice_number, picks_all, picklists_send_mail)
+            from_pos = True
+    all_picks = Picklist.objects.filter(id__in=picks_all)
+    check_and_send_mail(request, user, all_picks[0], all_picks, picklists_send_mail, from_pos)
+    json_data = prepare_delivery_challan_json(request, full_data[0]['order_id'], request.user.id, parent_user=parent_user)
     return HttpResponse(json.dumps({"message": "Delivered Successfully !", "data": json_data}))
 
 
@@ -692,8 +772,8 @@ def get_extra_fields(request, user=''):
 
 
 @login_required
-def get_staff_members_list(request):
-    user = request.user
+@get_admin_user
+def get_staff_members_list(request, user=''):
     members = []
     staff_obj = StaffMaster.objects.filter(user=user.id)
     if staff_obj:

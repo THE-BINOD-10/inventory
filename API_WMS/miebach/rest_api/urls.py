@@ -91,6 +91,10 @@ urlpatterns = [
     url(r'^delete_terms/$', delete_terms),
     url(r'^insert_staff/$', insert_staff),
     url(r'^update_staff_values/$', update_staff_values),
+    url(r'^get_distributors/$', get_distributors),
+    url(r'^get_resellers/$', get_resellers),
+    url(r'^get_corporates/$', get_corporates),
+    url(r'^corporate_mapping_data/$', corporate_mapping_data),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),
@@ -366,6 +370,8 @@ urlpatterns += [
     url(r'^job_order_upload/$', job_order_upload),
     url(r'^marketplace_serial_form/$', marketplace_serial_form),
     url(r'^marketplace_serial_upload/$', marketplace_serial_upload),
+    url(r'^seller_transfer_form/$', seller_transfer_form),
+    url(r'^seller_transfer_upload/$', seller_transfer_upload),
 
     url(r'^network_master_form/$', network_master_form),
     url(r'^network_master_upload/$', network_master_upload),

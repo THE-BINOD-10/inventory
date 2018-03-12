@@ -64,7 +64,10 @@ input[type="date"]:valid::before {
         </div>
 
         <div class="col-md-2 col-sm-6 col-xs-6 mt10" ng-if="showCase.user_type=='reseller'">
-          <input type="text" name="client_name" class="form-control stk-readonly pull-left" ng-model="Cart.model_data.client_name_header" required placeholder="Customer Name">
+          <select ng-model="Cart.model_data.client_name_header" class="form-control" name="client_name">
+            <option value="">Select Corporate</option>
+            <option ng-repeat="corp in Cart.corporates" value="{{corp}}">{{corp}}</option>
+          </select>
         </div>
 
         <div class="col-md-2 col-sm-6 col-xs-6" ng-if="showCase.user_type=='reseller'">

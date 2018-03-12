@@ -1095,7 +1095,7 @@ def update_picklist_pallet(stock, picking_count1):
     pallet.save()
 
 
-def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt=""):
+def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt="", from_pos=False):
     picklist_order_ids_list = []
     reciever = []
     internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
@@ -1134,8 +1134,12 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt=
         reciever.append(email)
     if reciever:
         try:
+            tmp_invoice_date = get_local_date(user, picklist.updation_date, send_date='true')
+            tmp_invoice_date = str(tmp_invoice_date.strftime('%m%y'))
+            tmp_order_id = 'TI/' + tmp_invoice_date + '/' + picklist.order.original_order_id if from_pos else\
+                           'TI/' + tmp_invoice_date + '/' + str(picklist.order.order_id)
             send_mail_attachment(reciever, '%s : Invoice No.%s' % (
-            user_data.company_name, 'TI/1116/' + str(picklist.order.order_id)), rendered, files=[pdf_file])
+            user_data.company_name, tmp_order_id), rendered, files=[pdf_file])
         except:
             log.info('mail issue')
 
@@ -1164,7 +1168,7 @@ def get_picklist_batch(picklist, value, all_picklists):
     return picklist_batch
 
 
-def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail):
+def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail, from_pos=False):
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='dispatch', misc_value='true')
 
     # order_ids = list(set(map(lambda d: d['order_id'], picklists_send_mail[0])))
@@ -1177,7 +1181,8 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
                 order_ids = [str(int(i)) for i in order_ids_list]
                 order_ids = ','.join(order_ids)
 
-            nv_data = get_invoice_data(order_ids, user, picklists_send_mail[order_id])
+
+            nv_data = get_invoice_data(order_ids, user, picklists_send_mail[order_id], from_pos=from_pos)
             nv_data = modify_invoice_data(nv_data, user)
             ord_ids = order_ids.split(",")
             nv_data = add_consignee_data(nv_data, ord_ids, user)
@@ -1197,7 +1202,8 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
             file_.close()
             os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
 
-            send_picklist_mail(all_picked_items, request, user, pdf_file, misc_detail, picklists_send_mail[order_id])
+            send_picklist_mail(all_picked_items, request, user, pdf_file, misc_detail,\
+                               picklists_send_mail[order_id], from_pos=from_pos)
             if picklist.picked_quantity > 0 and picklist.order and misc_detail:
                 if picklist.order.telephone:
                     order_dispatch_message(picklist.order, user, picklists_send_mail[order_id])
@@ -3078,7 +3084,7 @@ def send_mail_ordered_report(order_detail, telephone, items, other_charge_amount
         if not telephone:
             telephone = order_data.get('telephone', "")
         if telephone:
-            order_creation_message(items, telephone, (order_detail.order_code) + str(order_detail.order_id),
+            order_creation_message(items, telephone, str(order_detail.order_id),
                                    other_charges=other_charge_amounts)
 
 
@@ -4972,6 +4978,14 @@ def get_seller_order_details(request, user=''):
     for attr in attr_list:
         tuple_data = (attr['attribute_name'], attr['attribute_value'])
         cus_data.append(tuple_data)
+    tax_type = ''
+    inter_state = 2
+    if customer_order_summary:
+        inter_state = customer_order_summary[0].inter_state
+        if customer_order_summary[0].inter_state == 0:
+            tax_type = 'intra_state'
+        elif customer_order_summary[0].inter_state == 1:
+            tax_type = 'inter_state'
     for one_order in order_details:
         quantity = one_order.quantity
         one_order = one_order.order
@@ -5018,6 +5032,30 @@ def get_seller_order_details(request, user=''):
             if order_json:
                 sku_extra_data = eval(order_json[0].json_data)
 
+        customer_order = one_order.customerordersummary_set.filter()
+        sgst_tax = 0
+        cgst_tax = 0
+        igst_tax = 0
+        discount_percentage = 0
+        if customer_order:
+            sgst_tax = customer_order[0].sgst_tax
+            cgst_tax = customer_order[0].cgst_tax
+            igst_tax = customer_order[0].igst_tax
+            discount_percentage = 0
+            if (quantity * one_order.unit_price):
+                discount_percentage = float(
+                    "%.1f" % (float((customer_order[0].discount * 100) / (quantity * one_order.unit_price))))
+
+        tax_masters = TaxMaster.objects.filter(user_id=user.id, product_type=one_order.sku.product_type,
+                                               inter_state=inter_state)
+        taxes_data = []
+        for tax_master in tax_masters:
+            taxes_data.append(tax_master.json())
+
+        if order_id:
+            order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
+            order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
+
         order_details_data.append(
             {'product_title': product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
              'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone, 'email': email, 'address': address,
@@ -5028,7 +5066,10 @@ def get_seller_order_details(request, user=''):
              'order_id_code': one_order.order_code + str(one_order.order_id),
              'print_vendor': vend_dict['printing_vendor'],
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
-             'sku_extra_data': sku_extra_data})
+             'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
+             'unit_price': one_order.unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
+             'order_charges': order_charges,
+             'sku_status': one_order.status})
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
                       'central_remarks': central_remarks, 'seller_details': seller_details})
 
@@ -6618,7 +6659,16 @@ def get_tax_value(user, record, product_type, tax_type):
 def get_customer_cart_data(request, user=""):
     """  return customer cart data """
 
-    response = {'data': [], 'msg': 0}
+    response = {'data': [], 'msg': 0, 'reseller_corporates': []}
+    price_band_flag = get_misc_value('priceband_sync', user.id)
+    reseller_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+    if reseller_obj and price_band_flag == 'true':
+        reseller_id = reseller_obj[0].customer_id
+        res_corps = list(CorpResellerMapping.objects.filter(reseller_id=reseller_id,
+                                                   status=1).values_list('corporate_id', flat=True).distinct())
+        corp_names = CorporateMaster.objects.filter(id__in=res_corps).values_list('name', flat=True).distinct()
+        response['reseller_corporates'].extend(corp_names)
+
     cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id)
 
     if cart_data:
@@ -6628,7 +6678,6 @@ def get_customer_cart_data(request, user=""):
         tax = 0
         if tax_type:
             tax_type = tax_type[0]
-        price_band_flag = get_misc_value('priceband_sync', user.id)
 
         cm_obj = CustomerMaster.objects.get(id=cust_user_obj[0].customer_id)
         is_distributor = cm_obj.is_distributor
@@ -6670,19 +6719,25 @@ def get_customer_cart_data(request, user=""):
                     json_record['freight_charges'] = "true"
                 else:
                     json_record['freight_charges'] = "false"
-                stock_obj = StockDetail.objects.filter(sku=record.sku.id, quantity__gt=0).values(
-                    'sku_id').distinct().annotate(in_stock=Sum('quantity'))
-                if stock_obj:
-                    stock_qty = stock_obj[0]['in_stock']
-                else:
-                    stock_qty = 0
-                reserved_obj = PicklistLocation.objects.filter(stock__sku=record.sku.id, status=1).values(
-                    'stock__sku_id').distinct().annotate(in_reserved=Sum('reserved'))
-                if reserved_obj:
-                    reserved_qty = reserved_obj[0]['in_reserved']
-                else:
-                    reserved_qty = 0
-                json_record['avail_stock'] = stock_qty - reserved_qty
+                whs = get_same_level_warehouses(level=record.warehouse_level)
+                tot_avail_stock = 0
+                for wh in whs:
+                    sku_id = get_syncedusers_mapped_sku(wh=wh, sku_id=record.sku.id)
+                    stock_obj = StockDetail.objects.filter(sku=sku_id, quantity__gt=0).values(
+                        'sku_id').distinct().annotate(in_stock=Sum('quantity'))
+                    if stock_obj:
+                        stock_qty = stock_obj[0]['in_stock']
+                    else:
+                        stock_qty = 0
+                    reserved_obj = PicklistLocation.objects.filter(stock__sku=sku_id, status=1).values(
+                        'stock__sku_id').distinct().annotate(in_reserved=Sum('reserved'))
+                    if reserved_obj:
+                        reserved_qty = reserved_obj[0]['in_reserved']
+                    else:
+                        reserved_qty = 0
+                    avail_stock = stock_qty - reserved_qty
+                    tot_avail_stock = tot_avail_stock + avail_stock
+                #json_record['avail_stock'] = tot_avail_stock
                 # level = json_record['warehouse_level']
                 if is_distributor:
                     if price_type:
